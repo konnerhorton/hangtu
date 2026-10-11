@@ -14,4 +14,5 @@ def _restore_session_state():
     yield
     ak.settings.reset()
     units._reset_aliases()
+    ak.plot.reset_palette()
     plt.close("all")

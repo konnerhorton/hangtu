@@ -10,6 +10,7 @@ from ags_kit.plot._limits import (
     set_log_axis,
 )
 from ags_kit.plot._notes import Notes, edge_markers
+from ags_kit.plot._palette import resolve_palette
 
 __all__ = [
     "Notes",
@@ -19,6 +20,7 @@ __all__ = [
     "log_limits",
     "nice_limits",
     "nice_step",
+    "resolve_palette",
     "set_linear_axis",
     "set_log_axis",
 ]
