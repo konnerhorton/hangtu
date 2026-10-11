@@ -29,7 +29,7 @@ Each figure is a separate feature with its own spec file in this folder, written
 - Standard optional grouping columns: `loca_id` (exploratory hole), `geology_unit` (geology unit), `specimen_id`.
 
 ### Axes and labels
-- **Label format:** `Quantity (unit)`, e.g. `Elevation (ft, NAVD88)`, `SPT N60 (blows/ft)`, `Liquid limit, LL (%)`. Sentence case, with the symbol after a comma where useful.
+- **Label format:** `Quantity (unit)`, e.g. `Elevation (ft, NAVD88)`, `SPT N60` (counts and dimensionless values get no unit), `Liquid limit, LL (%)`. Sentence case, with the symbol after a comma where useful.
 - **Depth axes** point downward (inverted), starting at 0 at the top. **Elevation axes** point upward.
 - **Log axes** use decade major ticks with labeled powers (`10⁻⁶`), plus minor ticks at 2–9 without labels.
 - **Limits:** extend to the next "nice" number beyond the data. Ratio quantities (N, %, k) start at zero unless the scale is log. The spec says when limits are fixed (e.g. the plasticity chart).
@@ -70,7 +70,7 @@ Data for all of these already exists in the MVP scope. P00 is the foundation the
 
 | ID | Plot | Function | Type | Notes / dependencies | Status |
 |---|---|---|---|---|---|
-| P00 | **Plot framework**: house style, palette, unit-aware labels, out-of-range markers, legend rules, `Sheet` | `ak.plot.style`, `ak.Sheet` | infrastructure | Everything depends on this. Includes units for DataFrames and the column registry | [approved](P00-framework.md) |
+| P00 | **Plot framework**: house style, palette, unit-aware labels, out-of-range markers, legend rules, `Sheet` | `ak.plot.style`, `ak.Sheet` | infrastructure | Everything depends on this. Includes units for DataFrames and the column registry | [built](P00-framework.md) |
 | P01 | **Property profile**: any property against depth or elevation, linear or log axis. Presets for permeability (log), undrained shear strength, moisture content, unit weight | `profile` | plot | Foundation for P02, P06 and P09 | [draft](P01-property-profile.md) |
 | P02 | **SPT N profile**: N and/or N60 against elevation or depth, refusal markers, optional per-hole lines | `spt_profile` | plot + light analysis (N60, refusal, mid-drive depth) | P01 | idea |
 | P03 | **SPT qualitative histograms**: cohesionless (relative density) and cohesive (consistency) | `spt_histogram`, `spt_histograms` | plot + classification | P00 | idea |

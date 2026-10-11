@@ -1,4 +1,4 @@
-# Draft column registry. Becomes src/ags_kit/columns.yaml at M1.
+# Column registry: the single source of friendly column names (SPEC §10.3).
 # Schema and rules: docs/plots/P00-framework.md §5. Quantity kinds: P00 §4.1.
 #
 # Per column:

@@ -30,6 +30,8 @@ exclude = ["*.md"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "D"]
+# Greek symbols appear in axis labels (registry `label`), e.g. "Bulk unit weight, γ".
+allowed-confusables = ["γ"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
@@ -44,5 +46,9 @@ xfail_strict = true
 filterwarnings = [
     "error",
     # matplotlib < 3.10.7 calls pyparsing APIs that newer pyparsing deprecates.
+    # Deprecated keyword arguments are reported from matplotlib or from inside
+    # pyparsing itself; ags-kit doesn't use pyparsing directly.
     "ignore:.* deprecated - use :DeprecationWarning:matplotlib",
+    "ignore:.* argument is deprecated, use :DeprecationWarning:matplotlib",
+    "ignore:.* argument is deprecated, use :DeprecationWarning:pyparsing",
 ]

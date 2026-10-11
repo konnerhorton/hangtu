@@ -1,12 +1,13 @@
 # ags-kit
 
-Python library of plots, analyses and (later) AGS4 ingest/QC for geotechnical engineers. M0 (scaffolding) done; M1 (P00 framework) is next.
+Python library of plots, analyses and (later) AGS4 ingest/QC for geotechnical engineers. M0 (scaffolding) and M1 (P00 framework) done; M2 (P01 property profile) is next.
 
 ## Where things are
 - `SPEC.md`: product spec and cross-cutting decisions. Read the relevant section before designing anything.
 - `docs/plots/PXX-*.md`: one spec per figure, with acceptance criteria. `docs/plots/README.md` has the shared plot conventions.
 - `docs/work/<id>-<slug>/`: intent and plan for each unit of work (see `docs/reference/process.md`).
-- `docs/drafts/`: the draft column registry and unit aliases (ship at M1), the analyses draft spec (`analysis.md`, M3–M4) and notes for later phases. Items marked "decided" are decided; the rest is not. Finish the relevant draft as the feature spec before building from it.
+- `src/ags_kit/columns.yaml` and `src/ags_kit/units/aliases.yaml`: the column registry and unit aliases.
+- `docs/drafts/`: the analyses draft spec (`analysis.md`, M3–M4) and notes for later phases. Items marked "decided" are decided; the rest is not. Finish the relevant draft as the feature spec before building from it.
 - `TODO.md`: research items and pending decisions, referenced as "TODO #n".
 
 ## Commands
@@ -48,4 +49,5 @@ Explicit is better than implicit. Names are written out in full, or full enough 
 - If a change alters a decision recorded in `SPEC.md` or a plot spec, update that file **in the same commit**.
 - Don't renumber `SPEC.md` sections. `TODO.md` and the plot specs refer to them by number.
 - Test against the acceptance criteria in the feature's spec, and hand-calculate golden values for analyses.
+- **Visual check:** at the end of each plot unit of work, save a PNG of the plot's output (100 dpi, realistic data, both US and SI when units matter) as `docs/work/<id>/visual-check.png`, look at it, and commit it in the close-out so a reviewer sees the figure without running code. Plot specs and later docs may reuse these images.
 - Don't add dependencies beyond those in SPEC §12.1 without asking.

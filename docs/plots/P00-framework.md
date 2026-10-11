@@ -3,11 +3,11 @@
 | | |
 |---|---|
 | **ID / module** | P00 · `ak.settings`, units functions, column registry, `ak.plot` helpers, `ak.Sheet` |
-| **Status** | approved |
+| **Status** | built |
 | **Type** | infrastructure (no user-facing plot) |
 | **Target version** | v0.1, milestone M1 |
 | **Depends on** | M0 scaffolding |
-| **Related** | SPEC §2 (units), §3 (plotting), §10.3 (registry); plots README (shared conventions); registry draft [`docs/drafts/columns.yaml`](../drafts/columns.yaml); aliases draft [`docs/drafts/units-aliases.yaml`](../drafts/units-aliases.yaml) |
+| **Related** | SPEC §2 (units), §3 (plotting), §10.3 (registry); plots README (shared conventions); registry [`src/ags_kit/columns.yaml`](../../src/ags_kit/columns.yaml); aliases [`src/ags_kit/units/aliases.yaml`](../../src/ags_kit/units/aliases.yaml) |
 
 This spec defines the *implementation* of the shared conventions in the plots README. Where the two overlap, the README states the rule and this spec says how it is built and tested.
 
@@ -80,7 +80,7 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 
 ### 4.2 Unit strings and aliases
 - **Lookup order** (decided), all case-sensitive:
-  1. the alias table. The starting table is [`docs/drafts/units-aliases.yaml`](../drafts/units-aliases.yaml); it ships as `units/aliases.yaml`;
+  1. the alias table, [`src/ags_kit/units/aliases.yaml`](../../src/ags_kit/units/aliases.yaml);
   2. pint's own parser. If pint understands the string, it is accepted with a `UserWarning` saying what it was read as and how to make that explicit, e.g. `Unit "feet" for column 'depth' was read as foot. Add it with ak.add_unit_alias("feet", "foot") to silence this.`;
   3. otherwise `UnitsError`, showing `ak.add_unit_alias(...)`.
 - The dimension check (§4.3 #5) runs after either lookup, so a string pint reads as something unexpected is still caught for registered columns.
@@ -88,8 +88,8 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 - One pint `UnitRegistry` per process, owned by `ags_kit.units`.
 
 ### 4.3 Phase 1 unit rules
-1. **pcf** converts by quantity kind: unit weight → kN/m³, density → Mg/m³. The column's quantity kind decides, so the same string is safe for both. 🔬 TODO #1.
-2. **SPT N** is a count and never converted. Penetrations are `small_length` and are. 🔬 TODO #2.
+1. **pcf** (decided) converts by quantity kind: unit weight → kN/m³, density → Mg/m³. The column's quantity kind decides, so the same string is safe for both, and both display as "pcf" in US mode. In US practice pcf usually means lbm/ft³, but some reports use it for lbf/ft³; under standard gravity the two are numerically identical, so whichever the author meant, the number is the same.
+2. **SPT N** (decided) is a count and never converted. ASTM D1586 counts blows per 12 in (304.8 mm) and ISO 22476-3 per 300 mm; the 1.6% difference is far below SPT repeatability. Penetrations are `small_length` and are converted.
 3. **Elevation** = ground level − depth, after both are converted to the same unit.
 4. **Overlay definitions and thresholds** given as strings (`"3 m"`, `"10 ft"`) are parsed through the same alias table.
 5. **Dimension check:** when a registered column is declared with a unit of the wrong dimension (e.g. `depth: "kPa"`), `set_units`/`read_csv` raise `UnitsError`.
@@ -101,7 +101,7 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 - **Conversion helper** `to_display(values, unit, quantity, display_units)` returns `(magnitudes, display_unit)`. Plots draw magnitudes only; pint never reaches matplotlib.
 
 ## 5. Column registry and templates
-- Source: `src/ags_kit/columns.yaml` (draft: [`docs/drafts/columns.yaml`](../drafts/columns.yaml)). Its header comment lists the fields: `description, type, quantity, scale, label, ags, used_by` (later `agsi`).
+- Source: [`src/ags_kit/columns.yaml`](../../src/ags_kit/columns.yaml). Its header comment lists the fields: `description, type, quantity, scale, label, ags, used_by` (later `agsi`).
 - **Rules:**
   - lowercase `snake_case`, one meaning per name across the whole package;
   - number columns must have `quantity`, `scale` and `label`;
@@ -116,11 +116,12 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 
 ## 6. House style
 - `plot/ags_kit.mplstyle` plus a context manager `ak.plot.style.context()`; every plot body runs inside it. rcParams are identical before and after a call.
+- rcParams only reach axes created inside the context, so every plot also calls `style.style_axes(ax)` inside it. This gives `Sheet` panels and a user's own `ax=` the house grid, ticks and spines.
 - Font: sans-serif (`Arial`, `Helvetica`, `DejaVu Sans` fallback), 8 pt ticks and legend, 9 pt axis labels, 10 pt titles.
 - Light major gridlines (0.5 pt, gray 85%), minor gridlines on log axes only (0.3 pt).
 - Spines: all four, 0.6 pt. Ticks inward.
 - Savefig: 300 dpi, `bbox_inches="tight"` is left to the user (examples show it).
-- `**style_overrides` on any plot are passed as rcParams inside the context, so users can change one thing without touching global state.
+- `**style_overrides` on any plot are passed as rcParams inside the context, so users can change one thing without touching global state. Names can be written with dots (`**{"font.size": 10}`) or with underscores (`font_size=10`), because keyword arguments can't contain dots. An unknown name raises `AgsKitError` suggesting the closest one.
 
 ## 7. Labels
 - `axis_label(text, unit=None, datum=None, unknown=False)` → `"Elevation (ft, NAVD88)"`, `"Depth (m)"`, `"Liquid limit, LL (%)"`, `"SPT N60"` (no unit for counts and dimensionless), `"k (units unknown)"`.
@@ -143,8 +144,8 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 Helpers: `nice_limits(vmin, vmax, *, start_at_zero)`, `log_limits(vmin, vmax, min_decades=2)`, `apply_vertical_axis(ax, vs)`.
 
 ## 9. Out-of-range markers and exclusion notes
-- **Edge markers:** a value beyond a fixed limit is drawn at the limit as an **open** marker in the series color, with a short arrow pointing outward (`edge_markers(ax, x, y, limits, color)`).
-- **Notes collector:** every plot creates a `Notes` object that counts exclusions and edge-clipped values by reason ("NaN", "≤ 0 on log axis", "beyond axis limit", "less than", "greater than", "refusal", "NP"). At the end of the plot it renders one footnote below the legend (7 pt, gray), listing only non-zero counts, e.g. "3 values beyond axis limit · 2 values ≤ 0 not shown on log axis".
+- **Edge markers:** a value beyond a fixed limit is drawn at the limit as an **open** marker in the series color, with a short arrow pointing outward (`edge_markers(ax, x, y, limits, color)`). It returns a mask of the values drawn at the edge, so the plot draws the rest normally and counts these.
+- **Notes collector:** every plot creates a `Notes` object that counts exclusions and edge-clipped values by reason ("NaN", "≤ 0 on log axis", "beyond axis limit", "less than", "greater than", "refusal", "NP"). At the end of the plot it renders one footnote below the legend (7 pt, gray), listing only non-zero counts, one per line because it sits in the narrow column beside the axes, e.g. "3 values beyond axis limit, shown at the edge" / "2 values ≤ 0 not shown on log axis".
 - The counts are also attached to the axes as `ax.ags_notes` (a dict) so tests and users can read them (decided).
 
 ## 10. Palette
@@ -186,7 +187,7 @@ Helpers: `nice_limits(vmin, vmax, *, start_at_zero)`, `log_limits(vmin, vmax, mi
 - **Legend:** 12 / 13 / 31 entries give 1 column / 2 columns / no legend + note.
 - **Hints:** one `AgsKitHint` per call; none when `settings.hints = False`.
 - **Sheet:** each size and orientation has the right figure size; spans work; `save` writes PDF, PNG and SVG; a dummy plot drawn with `ax=sheet[0]` adds no figure (`plt.get_fignums()` unchanged).
-- **Shared test helpers** for later plots: `assert_us_si_equivalent(plot_fn, df, **kwargs)` (same point positions after conversion and same note counts; only labels and ticks differ) and `assert_no_global_state(plot_fn, ...)`.
+- **Shared test helpers** for later plots, as fixtures in `tests/plot/conftest.py`: `assert_us_si_equivalent(plot_fn, df, quantities, **kwargs)` (same point positions after conversion and same note counts; only labels and ticks differ; `quantities` names the x and y quantity kinds) and `assert_no_global_state(plot_fn, df, **kwargs)`. A `dummy_plot` fixture shows how a plot uses every helper.
 
 ## 15. Open questions
 None open.

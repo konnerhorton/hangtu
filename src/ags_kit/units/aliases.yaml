@@ -1,5 +1,6 @@
-# Draft of src/ags_kit/units/aliases.yaml (see docs/plots/P00-framework.md §4.2). Becomes the real file at M1.
-# AGS UNIT string  ->  pint expression        (case-sensitive)
+# Unit alias table: the first lookup for every unit string (docs/plots/P00-framework.md §4.2).
+# Unit string  ->  pint expression        (case-sensitive)
+# Add entries at run time with ak.add_unit_alias(text, pint_expr).
 "m": "meter"
 "ft": "foot"
 "mm": "millimeter"
@@ -10,10 +11,10 @@
 "psf": "lbf / foot**2"
 "ksf": "kip / foot**2"
 "psi": "lbf / inch**2"
-"tsf": "short_ton_force / foot**2"       # imperial context -> short ton (U002 info)
-"t/m2": "metric_ton_force / meter**2"    # metric context -> metric tonne (U002 info)
+"tsf": "short_ton_force / foot**2"       # imperial context -> short ton
+"t/m2": "metric_ton_force / meter**2"    # metric context -> metric tonne
 "kN/m3": "kilonewton / meter**3"
-"pcf": "lbf / foot**3"                   # resolved per heading quantity kind (SPEC 2.5 #2)
+"pcf": "lbf / foot**3"                   # resolved per column quantity kind (P00 §4.3 #1)
 "Mg/m3": "megagram / meter**3"
 "m/s": "meter / second"
 "cm/s": "centimeter / second"
