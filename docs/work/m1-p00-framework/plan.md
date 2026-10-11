@@ -46,7 +46,8 @@ src/ags_kit/
   - `ak.template(name)` returns an empty DataFrame in template order, with dtypes `float64` for number, `object` for text and `bool` for bool. An unknown name raises `ColumnError` listing the templates.
 - Tests (§14 Registry): the file loads; every number column has quantity, scale and label; every quantity is a kind in §4.1; every template column exists; names are unique `snake_case`; no name is a bare symbol from the CLAUDE.md "Naming" list (`su`, `cu`, `k`, `ll`, `unit`, …). Plus `columns("spt")` rows and `template()` columns, and the error for an unknown template.
 
-## Build 3: `M1: parse unit strings and convert to display units`
+## Build 3: `M1: parse unit strings and check their dimensions`, then `M1: convert values to display units`
+This step is two commits, because together they come to about 470 lines: parsing, aliases and the dimension check first, then `to_display`. The tests are split the same way (`tests/units/test_parse.py`, `tests/units/test_display.py`).
 - `units/__init__.py`: one `pint.UnitRegistry`.
   - `parse_unit(text, column=None)` runs the lookup order in §4.2: the alias table; then pint with a `UserWarning` saying what the string was read as; then `UnitsError` showing `ak.add_unit_alias(...)`.
   - `add_unit_alias(text, pint_expr)` checks that the expression parses. `define_unit(definition)` calls `ureg.define`.

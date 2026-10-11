@@ -29,6 +29,23 @@ def _display_overrides(value: Any) -> dict[str, str]:
             f"not {value!r}. "
             'Example: ak.settings.display_overrides = {"stress": "ksf"}'
         )
+    if value:
+        from ags_kit import units  # imported here because units imports settings
+
+        kinds = _config.quantity_kinds()
+        for kind, unit in value.items():
+            if kind not in kinds or kinds[kind]["canonical"] is None:
+                convertible = [name for name in kinds if kinds[name]["canonical"]]
+                raise AgsKitError(
+                    f"settings.display_overrides can't set a unit for {kind!r}. "
+                    f"Quantity kinds with units: {', '.join(convertible)}."
+                )
+            try:
+                units.check_dimension(units.parse_unit(unit), kind)
+            except AgsKitError as error:
+                raise AgsKitError(
+                    f"settings.display_overrides[{kind!r}]: {error}"
+                ) from None
     return dict(value)
 
 
