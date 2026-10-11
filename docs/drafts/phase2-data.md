@@ -50,6 +50,8 @@ Phase 1 unit rules (quantity kinds, aliases, pcf, SPT N) are in `docs/plots/P00-
 2. **Mixed units in one file** are handled per column.
 3. **Vertical datum:** AGS4 has **no field for the datum of `LOCA_GL`**. It is implied by `LOCA_GREF`; `LOCA_DATM` is the local datum for `LOCA_LOCZ` only. The datum label (e.g. NAVD88) is therefore a setting. One datum per project; multiple datums are a Later item.
 4. **Project settings:** the same keys as the session settings (P00 §3), stored in the project database. `to_yaml()`/`load_yaml()` export and import them.
+5. **pcf in AGS headings** (open): `pcf` is read by the heading's quantity kind (P00 §4.3 #1). Check real US files for unit weights put into AGS *density* headings (`RDEN_BDEN`, `PTST_BDEN`, dictionary unit Mg/m³), or the reverse. References: ASTM D7263, ASTM D2937, FHWA NHI-16-072.
+6. **SPT penetrations** (open): check whether US files fill `ISPT_PEN*` as 6-in increments (152.4 mm) or as nominal 150 mm values. They drive the mid-drive depth (SPEC §8.2), and are converted as lengths either way (P00 §4.3 #2).
 
 **Acceptance tests:**
 - **twin-file test**: the same data in an SI AGS file and a US AGS file ingests to identical canonical tables;

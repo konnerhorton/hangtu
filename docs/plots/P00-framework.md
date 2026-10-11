@@ -88,8 +88,8 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 - One pint `UnitRegistry` per process, owned by `ags_kit.units`.
 
 ### 4.3 Phase 1 unit rules
-1. **pcf** converts by quantity kind: unit weight → kN/m³, density → Mg/m³. The column's quantity kind decides, so the same string is safe for both. 🔬 TODO #1.
-2. **SPT N** is a count and never converted. Penetrations are `small_length` and are. 🔬 TODO #2.
+1. **pcf** (decided) converts by quantity kind: unit weight → kN/m³, density → Mg/m³. The column's quantity kind decides, so the same string is safe for both, and both display as "pcf" in US mode. In US practice pcf usually means lbm/ft³, but some reports use it for lbf/ft³; under standard gravity the two are numerically identical, so whichever the author meant, the number is the same.
+2. **SPT N** (decided) is a count and never converted. ASTM D1586 counts blows per 12 in (304.8 mm) and ISO 22476-3 per 300 mm; the 1.6% difference is far below SPT repeatability. Penetrations are `small_length` and are converted.
 3. **Elevation** = ground level − depth, after both are converted to the same unit.
 4. **Overlay definitions and thresholds** given as strings (`"3 m"`, `"10 ft"`) are parsed through the same alias table.
 5. **Dimension check:** when a registered column is declared with a unit of the wrong dimension (e.g. `depth: "kPa"`), `set_units`/`read_csv` raise `UnitsError`.

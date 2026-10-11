@@ -73,44 +73,6 @@ M0 was verified locally only (Linux, Python 3.12–3.14, plus the lowest depende
 
 ---
 
-## Units
-
-### 1. `pcf` — density vs unit weight in US practice · You · docs/plots/P00-framework.md §4.3
-**Question:** do US engineers (and US AGS files) use `pcf` correctly for density (lbm/ft³) vs unit weight (lbf/ft³)? You want ags-kit's convention to match how it's actually used, not just what is physically correct.
-
-**Claude's take:** under standard gravity, 1 lbf = 1 lbm × g, so a value in "pcf" is *numerically identical* whichever meaning is intended. The real risk is only dimensional bookkeeping inside pint (mass vs force). ags-kit can follow usage exactly by doing the following:
-- Accept `pcf` on any density or unit-weight heading, whatever the file's author meant.
-- Convert it according to the **heading's quantity kind**: unit-weight headings → kN/m³; density headings → Mg/m³.
-- Display both kinds as "pcf" in US mode.
-
-What's left for you to check:
-- Whether US files ever put unit weights into AGS *density* headings (e.g. `RDEN_BDEN`, `PTST_BDEN`, whose dictionary unit is Mg/m³), or the reverse.
-- Whether display labels should say "unit weight" or "density".
-
-**References to look at:**
-- ASTM D7263, *Laboratory Determination of Density and Unit Weight of Soil Specimens*. Defines both terms and their units.
-- ASTM D2937, *Density of Soil in Place by the Drive-Cylinder Method*.
-- FHWA *Geotechnical Site Characterization* manual (FHWA NHI-16-072), for typical US reporting.
-
-### 2. SPT N per 300 mm vs per 12 in · You · docs/plots/P00-framework.md §4.3, docs/drafts/analysis.md §1
-**Your note:** you think the equipment is all based on 300 mm regardless of how it's reported.
-
-**Claude's take:** the two standards define the test in their own units:
-- **ASTM D1586** drives the sampler in three 6-in (152.4 mm) increments and counts N over the last 12 in (304.8 mm).
-- **ISO 22476-3** uses a 150 mm seating drive and a 300 mm test drive.
-
-So US-procedure blow counts genuinely are per 12 in. The 1.6% difference is far below SPT repeatability, which is why the spec treats N as a dimensionless count and never converts it. Increment *penetrations* (`ISPT_PEN*`, `ISPT_NPEN`) **are** converted, because they are lengths. Those penetrations drive the mid-drive depth calculation (SPEC §8.2), so the depth stays correct either way.
-
-**To confirm:** that you're happy with this convention, and whether US files fill `ISPT_PEN*` as 6-in increments (152.4) or as nominal 150 mm values.
-
-**References:**
-- ASTM D1586/D1586M-18.
-- ISO 22476-3:2005+A1:2011.
-- Skempton, A.W. (1986). Standard penetration test procedures and the effects in sands of overburden pressure, relative density, particle size, ageing and overconsolidation. *Géotechnique* 36(3), 425–447.
-- ASTM D4633 (SPT energy measurement).
-
----
-
 ## Geology and classification
 
 ### 3. `soil_class` categories · You · docs/drafts/analysis.md §1, SPEC §8.3
@@ -283,4 +245,5 @@ You are also looking. Candidates found so far:
 - A helper for deciding cohesive vs cohesionless from lab data (fines %, PI).
 
 ## Done
+- ✅ #1 `pcf` and #2 SPT N per 12 in decided (2026-10-11). Recorded in P00 §4.3; the follow-ups that only matter on ingest are in docs/drafts/phase2-data.md (Units on ingest, items 5–6).
 - ✅ AGS heading names in SPEC checked against the python-ags4 dictionaries 4.0.3–4.2 (2026-10-10). All present. Version notes are in docs/drafts/phase2-data.md (Versions).
