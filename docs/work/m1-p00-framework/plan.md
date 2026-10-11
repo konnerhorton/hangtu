@@ -75,7 +75,7 @@ This step is two commits, because together they come to about 470 lines: parsing
 
 ## Build 7: `M1: count excluded values and mark values beyond limits`
 - `_notes.Notes`: `add(reason, n)` and `count(mask, reason)` for the reasons in §9, with singular and plural wording. `render(ax)` writes one 7 pt gray footnote in axes coordinates below the legend, listing only non-zero counts, and sets `ax.ags_notes`. `add_text()` is for the legend's "see legend_handles()" note.
-- `edge_markers(ax, x, y, limits, color)` draws values beyond the limits at the limit, as open markers with outward arrows. Arrow length is in points, so it doesn't depend on the data scale. It returns the count.
+- `edge_markers(ax, x, y, limits, color)` draws values beyond the limits at the limit, as open markers with outward arrows. Arrow length is in points, so it doesn't depend on the data scale. It returns a mask of the values drawn at the edge, not just the count, so the plot can draw the rest normally.
 - Tests (§14 Notes): a synthetic frame with NaN, ≤ 0 and beyond-limit values gives the right counts in `ax.ags_notes` and the footnote text; marker positions sit at the limit.
 
 ## Build 8: `M1: assign stable geology unit colors`

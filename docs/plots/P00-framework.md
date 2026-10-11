@@ -143,8 +143,8 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 Helpers: `nice_limits(vmin, vmax, *, start_at_zero)`, `log_limits(vmin, vmax, min_decades=2)`, `apply_vertical_axis(ax, vs)`.
 
 ## 9. Out-of-range markers and exclusion notes
-- **Edge markers:** a value beyond a fixed limit is drawn at the limit as an **open** marker in the series color, with a short arrow pointing outward (`edge_markers(ax, x, y, limits, color)`).
-- **Notes collector:** every plot creates a `Notes` object that counts exclusions and edge-clipped values by reason ("NaN", "≤ 0 on log axis", "beyond axis limit", "less than", "greater than", "refusal", "NP"). At the end of the plot it renders one footnote below the legend (7 pt, gray), listing only non-zero counts, e.g. "3 values beyond axis limit · 2 values ≤ 0 not shown on log axis".
+- **Edge markers:** a value beyond a fixed limit is drawn at the limit as an **open** marker in the series color, with a short arrow pointing outward (`edge_markers(ax, x, y, limits, color)`). It returns a mask of the values drawn at the edge, so the plot draws the rest normally and counts these.
+- **Notes collector:** every plot creates a `Notes` object that counts exclusions and edge-clipped values by reason ("NaN", "≤ 0 on log axis", "beyond axis limit", "less than", "greater than", "refusal", "NP"). At the end of the plot it renders one footnote below the legend (7 pt, gray), listing only non-zero counts, one per line because it sits in the narrow column beside the axes, e.g. "3 values beyond axis limit, shown at the edge" / "2 values ≤ 0 not shown on log axis".
 - The counts are also attached to the axes as `ax.ags_notes` (a dict) so tests and users can read them (decided).
 
 ## 10. Palette

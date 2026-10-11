@@ -9,10 +9,13 @@ from ags_kit.plot._limits import (
     set_linear_axis,
     set_log_axis,
 )
+from ags_kit.plot._notes import Notes, edge_markers
 
 __all__ = [
+    "Notes",
     "apply_vertical_axis",
     "axis_label",
+    "edge_markers",
     "log_limits",
     "nice_limits",
     "nice_step",
