@@ -1,14 +1,18 @@
-"""Unit strings and quantity kinds (docs/plots/P00-framework.md §4).
+"""Unit strings, quantity kinds and display conversion (docs/plots/P00-framework.md §4).
 
 One pint ``UnitRegistry`` serves the whole process. Plots only ever receive
 plain magnitudes from here; pint objects never reach matplotlib.
 """
 
+import re
+from collections.abc import Iterable
 from typing import Any
 
+import numpy as np
 import pint
 
 from ags_kit import _config
+from ags_kit._settings import _display_units, settings
 from ags_kit.errors import UnitsError, warn
 
 ureg = pint.UnitRegistry()
@@ -162,3 +166,68 @@ def check_dimension(unit: pint.Unit, quantity: str, column: str | None = None) -
         f'{subject} a {expected}, but its unit "{unit}" is {actual}. '
         f'Declare a {expected} unit instead, e.g. "{example}".'
     )
+
+
+def _display_target(quantity: str, system: str) -> tuple[pint.Unit | None, str | None]:
+    override = settings.display_overrides.get(quantity)
+    if override is not None:
+        return parse_unit(override), _pretty(override)
+    target = quantity_kind(quantity)[system]
+    unit = ureg.Unit(target["unit"]) if target["unit"] else None
+    return unit, target["text"]
+
+
+def _pretty(text: str) -> str:
+    """Write unit powers as superscripts: ``kN/m3`` -> ``kN/m³``."""
+    return re.sub(r"(?<=[A-Za-z])([23])\b", lambda m: "²³"[int(m[1]) - 2], text)
+
+
+def convert(values: Any, unit: pint.Unit, quantity: str, to: pint.Unit) -> np.ndarray:
+    """Convert magnitudes from ``unit`` to ``to``, applying P00 §4.3 #1 for density."""
+    factor = ureg.Quantity(1.0, unit)
+    if quantity == "density" and _is_force_per_volume(unit):
+        factor = factor / ureg.Quantity(1.0, "standard_gravity")
+    return np.asarray(values, dtype=float) * factor.to(to).magnitude
+
+
+def to_display(
+    values: Iterable[float],
+    unit: str | None,
+    quantity: str | None,
+    display_units: str | None = None,
+) -> tuple[np.ndarray, str | None]:
+    """Convert values to the display unit for their quantity kind.
+
+    Parameters
+    ----------
+    values
+        Magnitudes in ``unit``.
+    unit
+        The declared unit string, or None when it is unknown.
+    quantity
+        The quantity kind, or None for an unregistered column.
+    display_units
+        ``"US"`` or ``"SI"``; defaults to ``ak.settings.display_units``.
+
+    Returns
+    -------
+    magnitudes, unit text
+        The unit text is what the axis label shows, or None for no unit. Values
+        are returned unchanged when the unit is unknown, when the column has no
+        quantity kind (its unit is never guessed), and for kinds that are never
+        converted (percent, dimensionless, count).
+    """
+    system = _display_units(display_units or settings.display_units)
+    magnitudes = np.asarray(values, dtype=float)
+    if quantity is None:
+        return magnitudes, None if unit is None else _pretty(unit)
+    kind = quantity_kind(quantity)
+    if kind["canonical"] is None:
+        return magnitudes, kind[system]["text"]
+    if unit is None:
+        return magnitudes, None
+    target, text = _display_target(quantity, system)
+    source, _ = _lookup(unit)
+    if source is None:
+        source = parse_unit(unit)
+    return convert(magnitudes, source, quantity, target), text
