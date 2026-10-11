@@ -70,7 +70,7 @@ This step is two commits, because together they come to about 470 lines: parsing
 
 ## Build 6: `M1: compute nice axis limits and log ticks`
 - `_limits.nice_limits(vmin, vmax, *, start_at_zero, typical=None)`: steps of 1, 2 or 5 × 10ⁿ, picking the smallest step that gives 4–8 major ticks. If `start_at_zero` is set and all values are ≥ 0, the lower limit is 0; otherwise both ends are padded by 5%. A zero range gets ± one step around the value, or `typical` if given.
-- `log_limits(vmin, vmax, min_decades=2)` (≤ 0 raises `ValueError`; callers count those values first). `apply_log_ticks(ax, axis)`. `apply_vertical_axis(ax, vs, vmin, vmax)` for depth and elevation (§8).
+- `log_limits(vmin, vmax, min_decades=2)` (≤ 0 raises `ValueError`; callers count those values first). `nice_step(lo, hi)`, `set_linear_axis(ax, axis, limits)` and `set_log_axis(ax, axis, limits)` set limits together with matching ticks, so matplotlib's own tick choice can't disagree with the limits. `apply_vertical_axis(ax, vs, vmin, vmax)` for depth and elevation (§8).
 - Tests (§14 Limits): a table with the three cases in §14 and more. Hypothesis properties: the limits enclose the data, and there are 4–8 ticks.
 
 ## Build 7: `M1: count excluded values and mark values beyond limits`
