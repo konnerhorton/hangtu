@@ -12,7 +12,7 @@ The intent listed units before the registry. The registry goes first instead, be
 src/ags_kit/
   __init__.py          re-exports the public API (§2)
   errors.py            AgsKitError, UnitsError, ColumnError, AgsKitHint; warn() with the user's stacklevel
-  settings.py          ak.settings
+  _settings.py         ak.settings
   config/defaults.yaml default settings; quantity kinds with canonical, US and SI display units (§4.1)
   registry.py          loads columns.yaml; columns(), template(), column_info()
   columns.yaml         (promoted in the spec step)
@@ -25,9 +25,9 @@ src/ags_kit/
   plot/_labels.py, _limits.py, _notes.py, _palette.py, _legend.py, _hints.py
   sheet.py             Sheet
 ```
-- The registry module is `registry.py`, not `columns.py`. Otherwise `ak.columns` would be both a submodule and a function.
+- The registry module is `registry.py`, not `columns.py`, and the settings module is `_settings.py`, not `settings.py`. Otherwise `ak.columns` and `ak.settings` would each be both a submodule and an object, and the object would hide the module.
 - Tests mirror the package: `tests/test_settings.py`, `tests/test_registry.py`, `tests/units/`, `tests/plot/`, `tests/test_sheet.py`. SPEC §12.2 says `tests/plots/`, but the package is `ak.plot`, so the Build 11 commit changes that example to `tests/plot/`.
-- `tests/conftest.py` has an autouse fixture that saves and restores settings, aliases and palette assignments around each test, and closes all figures.
+- `tests/conftest.py` has an autouse fixture that resets settings after each test. Later builds add aliases and palette assignments to it, and closing all figures.
 - Tests run with `--import-mode=importlib`, so shared helpers can't be imported from `tests/`. They are fixtures in `tests/plot/conftest.py`.
 
 ## Build 1: `M1: add errors and settings`
@@ -35,7 +35,7 @@ src/ags_kit/
   - `AgsKitError(Exception)`; `UnitsError(AgsKitError, ValueError)`; `ColumnError(AgsKitError, ValueError)`; `AgsKitHint(UserWarning)` (§12).
   - `warn(message, category)` walks the stack to the first frame outside `ags_kit`, so warnings point at the user's line (§11).
 - `config/defaults.yaml`: the default settings from §3.
-- `settings.py`: a `Settings` object with attribute access. Assigning a value validates it and raises `AgsKitError` naming the allowed values. An unknown key raises too. Also `reset()` and an `override(**values)` context manager that restores the old values even if the block raises.
+- `_settings.py`: a `Settings` object with attribute access. Assigning a value validates it and raises `AgsKitError` naming the allowed values. An unknown key raises too. Also `reset()` and an `override(**values)` context manager that restores the old values even if the block raises.
   - Validation: `display_units` must be `"US"` or `"SI"`. `figure_sizes` values must be pairs of positive numbers. `palette` colors must pass `matplotlib.colors.is_color_like`. `hammer_efficiency` must be in (0, 100] or None. `spt_cap` must be a positive int. `display_overrides` keys must be quantity kinds; their units are checked in Build 3.
 - Tests (§14 Settings): defaults; each validation error; `override()` restores values when the block raises; `reset()`.
 

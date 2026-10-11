@@ -1,0 +1,14 @@
+# Defaults shipped with ags-kit (docs/plots/P00-framework.md §3).
+# ak.settings holds the session's choices; ak.settings.reset() restores these.
+
+settings:
+  display_units: US            # "US" | "SI"
+  display_overrides: {}        # {quantity kind: unit}, e.g. {stress: ksf}
+  vertical_datum: null         # e.g. NAVD88; added to elevation labels
+  palette: {}                  # {geology unit: color}
+  figure_sizes:                # inches, by plot kind
+    default: [6.5, 4.5]
+    profile: [4.0, 6.5]
+  hints: true                  # one AgsKitHint per plot call for missing optional columns
+  hammer_efficiency: null      # SPT energy ratio in %, used from M3
+  spt_cap: 100                 # SPT N cap, used from M3
