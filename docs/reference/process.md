@@ -1,0 +1,67 @@
+# How work gets done on ags-kit
+
+Personal reference notes. Adapted from Anthropic's [AI-native SDLC playbook](https://claude.com/resources/articles/the-ai-native-sdlc-playbook), which assumes an existing product. These notes add the part it leaves out: starting from zero with a product-level spec.
+
+## The documents
+
+| Document | Scope | Lifetime | Answers |
+|---|---|---|---|
+| `SPEC.md` | Whole product | Permanent; changes with the product | What is ags-kit, and what holds for every feature? |
+| `CLAUDE.md` | Whole repo | Permanent; under a page | How do I work in this repo (commands, conventions, recurring mistakes)? |
+| `docs/work/<id>/intent.md` | One unit of work | Frozen once done | What do we want and why? |
+| Feature spec | One feature | Kept while the feature exists | What exactly does it do, and how do we know it works? |
+| `docs/work/<id>/plan.md` | One unit of work | Frozen once merged | Which files, in what order, proven by which tests? |
+| `docs/drafts/` | Upcoming features and future phases | Until promoted to a feature spec | Draft feature specs and early notes. Input for intents; only items marked "decided" are decisions |
+| `TODO.md` | Backlog | Permanent | What hasn't been decided or researched yet? |
+
+The **feature spec** for a plot is `docs/plots/PXX-*.md`. For other work it is `docs/work/<id>/spec.md`, or a new topic doc under `docs/` when it will outlive the change, such as the Phase 2 data model.
+
+## The loop for each unit of work
+
+A unit of work is a milestone, a plot, a fix or a decision. Keep it small enough to review in one sitting.
+
+1. **Intent**: create the unit's branch, then write a short `intent.md` covering goal, why, constraints, what's out of scope, and the SPEC sections it touches. Brainstorm it with Claude and review it yourself before committing.
+2. **Spec**: write or update the feature spec. Check it against `SPEC.md`. If it needs a cross-cutting decision changed, change `SPEC.md` now, deliberately, rather than letting the code drift from it.
+3. **Plan**: Claude Code plan mode, then commit `plan.md`. It names the files, the order, and the tests that prove each acceptance criterion.
+4. **Build**: implement the plan. If the plan has to change, update `plan.md` in the same commit.
+5. **Test**: check against the acceptance criteria and golden values, and look at the figure yourself.
+6. **Close**: merge. In the same PR, update `SPEC.md` (decisions), the plot status in `docs/plots/README.md`, `TODO.md`, and `CLAUDE.md` if a mistake recurred or a convention emerged.
+
+For a trivial fix, skip the intent and plan and just write a good commit message. Use the full loop when a decision is involved.
+
+## Starting from zero
+
+The playbook's loop needs something for each intent to point at. In an existing product that's the code. In a new project it's `SPEC.md`. So the order is:
+
+1. **Product spec first.** Write down the scope, phasing and cross-cutting decisions (done: `SPEC.md`).
+2. **M0 (scaffolding) is the first run through the loop.** Once it lands, fill in the commands section of `CLAUDE.md`.
+3. **Each later milestone or plot is one run through the loop.** Milestones in SPEC §12.4 map onto intents. A milestone can be split into several intents, for example M4 into P04, P05 and P06.
+4. **Phase boundaries are where the spec is redesigned.** At M6, turn `docs/drafts/phase2-data.md` into intents and specs, and move the decisions that apply across Phase 2 into `SPEC.md`.
+
+## How detailed should SPEC.md be?
+
+Use one test: **put a decision in SPEC.md if two different features could get it wrong or decide it inconsistently.** Units, column names, the plot contract, depth conventions and error style all pass this test. A QC threshold or a dataset's column list affects only one feature, so it goes in that feature's spec.
+
+Other guides:
+- **Decisions and reasons, not designs.** Record "convert to SI on ingest, because…", not the pipeline diagram.
+- **Current state, not history.** Git keeps the history.
+- **Don't fully specify phases you aren't building yet.** Write the constraints that are already decided, and keep the rest in `docs/drafts/`. Early detail goes stale and reads as if it were decided.
+- **Config tables and YAML belong in the repo's real files**, not copied into the spec.
+- **Size check:** about 300–450 lines is healthy for this project. If a section keeps growing, a feature spec is probably hiding inside it.
+
+## Does SPEC.md eventually go away?
+
+**It shrinks, but it stays.** As features ship, the source of truth for *behavior* moves:
+- what a function does → code, docstrings, tests;
+- the column list → `columns.yaml` (`ak.columns()`);
+- defaults and tables → `config/defaults.yaml`;
+- how to use it → README, tutorial, API docs.
+
+When a SPEC section is fully covered by those, replace it with a one-line pointer.
+
+What stays is what code can't hold:
+- **who it's for** and what's out of scope;
+- the **phasing and roadmap**;
+- **cross-cutting principles and the reasons for them**, for example "never guess units" or "never drop data silently". Without these, a future contributor or Claude could undo a decision without knowing why it was made.
+
+By v1.0, `SPEC.md` will probably be a short product and architecture document with a decision log. If it gets to the point of only listing decisions, convert it to ADRs (`docs/decisions/NNNN-*.md`, one decision per file) and drop the single file. Don't do that while the product is still being designed. One file is easier to review now.

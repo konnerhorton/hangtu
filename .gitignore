@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Build and packaging
+build/
+dist/
+*.egg-info/
+
+# Environments (.python-version and uv.lock are committed)
+.venv/
+.env
+
+# Tests, coverage, tools
+.pytest_cache/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.ruff_cache/
+.mypy_cache/
+
+# Public test data, fetched by scripts/fetch_test_data.py (SPEC §12.3)
+tests/data/public/
+
+# Outputs from running examples locally
+examples/**/*.pdf
+examples/**/*.png
+examples/**/*.svg
+*.sqlite
+
+# Docs build
+/site
+docs/_build/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store

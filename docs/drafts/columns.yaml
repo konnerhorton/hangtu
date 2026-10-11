@@ -1,0 +1,295 @@
+# Draft column registry. Becomes src/ags_kit/columns.yaml at M1.
+# Schema and rules: docs/plots/P00-framework.md §5. Quantity kinds: P00 §4.1.
+#
+# Per column:
+#   description  one line, shown by ak.columns()
+#   type         number | text | bool
+#   quantity     quantity kind (numbers only); drives unit conversion and labels
+#   scale        ratio | interval   (numbers only; interval = no meaningful zero, so no CoV, TODO #9)
+#   label        axis label text without units, "Name, symbol" (numbers only)
+#   ags          AGS source heading(s), or "derived: ..." (Phase 2)
+#   used_by      plot specs that read the column
+#   agsi         AGSi code (later; omitted for now)
+# Status of the Batch 1 entries beyond P01: provisional until each plot spec is written.
+
+templates:
+  # ak.template(name): empty DataFrame with these columns, in this order
+  profile:        [loca_id, depth, elevation, ground_level, geology_unit, source]   # plus the user's value column
+  permeability:   [loca_id, depth, depth_top, depth_base, ground_level, elevation, hydraulic_conductivity, qualifier, source, test_type, geology_unit]
+  strength:       [loca_id, depth, ground_level, elevation, undrained_shear_strength, qualifier, test_type, geology_unit]
+  index:          [loca_id, depth, ground_level, elevation, water_content, bulk_unit_weight, geology_unit]
+  spt:            [loca_id, depth, ground_level, elevation, spt_n, energy_ratio, spt_penetration, spt_refusal, geology_unit, soil_class]
+  atterberg:      [loca_id, specimen_id, depth, ground_level, elevation, liquid_limit, plastic_limit, plasticity_index, non_plastic, water_content, geology_unit, soil_class]
+  grain_size:     [loca_id, specimen_id, depth, particle_size, percent_passing, geology_unit]
+
+columns:
+
+  # --- Location and depth -----------------------------------------------------
+  loca_id:
+    description: Exploratory hole ID
+    type: text
+    ags: [LOCA.LOCA_ID]
+    used_by: [P01, P02, P03, P04, P05, P06, P07]
+  specimen_id:
+    description: Specimen identifier, unique within a hole
+    type: text
+    ags: ["derived: SAMP_TOP, SAMP_REF, SAMP_TYPE, SAMP_ID, SPEC_REF, SPEC_DPTH"]
+    used_by: [P04, P05, P06]
+  depth:
+    description: Depth of the observation below ground level (the plotted point for interval tests)
+    type: number
+    quantity: length
+    scale: ratio
+    label: Depth
+    ags: ["derived: SPEC §8.2"]
+    used_by: [P01, P02, P03, P04, P05, P06, P07]
+  depth_top:
+    description: Top of the tested interval
+    type: number
+    quantity: length
+    scale: ratio
+    label: Depth to top
+    ags: [FGHG.FGHG_TOP, SAMP.SAMP_TOP]
+    used_by: [P01]
+  depth_base:
+    description: Base of the tested interval
+    type: number
+    quantity: length
+    scale: ratio
+    label: Depth to base
+    ags: [FGHG.FGHG_BASE, SAMP.SAMP_BASE]
+    used_by: [P01]
+  depth_basis:
+    description: How depth was chosen (mid_drive, sample_mid, zone_mid, ...)
+    type: text
+    ags: ["derived: SPEC §8.2"]
+    used_by: []
+  ground_level:
+    description: Ground level at the hole
+    type: number
+    quantity: length
+    scale: interval
+    label: Ground level
+    ags: [LOCA.LOCA_GL]
+    used_by: [P01, P02, P06]
+  elevation:
+    description: Elevation of the observation (ground_level - depth)
+    type: number
+    quantity: length
+    scale: interval
+    label: Elevation
+    ags: ["derived: LOCA_GL - depth"]
+    used_by: [P01, P02, P06]
+
+  # --- Grouping and flags -------------------------------------------------------
+  geology_unit:
+    description: Geology unit (colors every plot)
+    type: text
+    ags: ["derived: GEOL key or mapping file, SPEC §8.3"]
+    used_by: [P01, P02, P03, P04, P05, P06, P07]
+  soil_class:
+    description: Cohesive / cohesionless class of the unit (categories TODO #3)
+    type: text
+    ags: ["derived: mapping file"]
+    used_by: [P03]
+  source:
+    description: Where the value came from, e.g. lab or field
+    type: text
+    ags: ["derived: group of origin"]
+    used_by: [P01]
+  test_type:
+    description: Test method, e.g. falling head, packer, UU, torvane
+    type: text
+    ags: [PTST.PTST_TYPE, FGHG.FGHG_TYPE]
+    used_by: [P01]
+  qualifier:
+    description: '"<" or ">" when the true value is below or above the reported value; empty otherwise'
+    type: text
+    ags: ["derived: value flags LT / GT"]
+    used_by: [P01, P07]
+
+  # --- Properties (P01 presets; preset name = column name) ---------------------------------------------------
+  hydraulic_conductivity:
+    description: Hydraulic conductivity
+    type: number
+    quantity: hydraulic_conductivity
+    scale: ratio
+    label: Hydraulic conductivity, k
+    ags: [PTST.PTST_K, FGHG.FGHG_IPRM]
+    used_by: [P01, P07]
+  undrained_shear_strength:
+    description: Undrained shear strength
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Undrained shear strength, s_u
+    ags: [TRIT.TRIT_CU, IVAN.IVAN_IVAN, LVAN.LVAN_VNPK]   # to verify against the 4.2 dictionary
+    used_by: [P01, P07]
+  water_content:
+    description: Water (moisture) content
+    type: number
+    quantity: percent
+    scale: ratio
+    label: Water content, w
+    ags: [LNMC.LNMC_MC]
+    used_by: [P01, P06, P07]
+  bulk_unit_weight:
+    description: Bulk unit weight
+    type: number
+    quantity: unit_weight
+    scale: ratio
+    label: Bulk unit weight, γ
+    ags: ["derived: RDEN.RDEN_BDEN × g"]
+    used_by: [P01, P07]
+
+  # --- SPT (P02, P03) ------------------------------------------------------------------
+  spt_n:
+    description: SPT N as reported
+    type: number
+    quantity: count
+    scale: ratio
+    label: SPT N
+    ags: [ISPT.ISPT_NVAL]
+    used_by: [P02, P03]
+  spt_n_capped:
+    description: min(N, spt_cap)
+    type: number
+    quantity: count
+    scale: ratio
+    label: SPT N (capped)
+    ags: ["derived: docs/drafts/analysis.md §1"]
+    used_by: [P02, P03]
+  spt_n60:
+    description: N corrected to 60% energy (N × ER / 60)
+    type: number
+    quantity: count
+    scale: ratio
+    label: SPT N60
+    ags: ["derived: spt_n, energy_ratio"]
+    used_by: [P02, P03]
+  energy_ratio:
+    description: Hammer energy ratio
+    type: number
+    quantity: percent
+    scale: ratio
+    label: Energy ratio, ER
+    ags: [ISPT.ISPT_ERAT]
+    used_by: [P02]
+  spt_penetration:
+    description: Total penetration of the seating and test drives
+    type: number
+    quantity: small_length
+    scale: ratio
+    label: Penetration
+    ags: [ISPT.ISPT_NPEN]
+    used_by: [P02]
+  spt_refusal:
+    description: True if the test reached refusal or partial penetration
+    type: bool
+    ags: ["derived: docs/drafts/analysis.md §1"]
+    used_by: [P02, P03]
+
+  # --- Atterberg limits (P04, P06) ---------------------------------------------------------
+  liquid_limit:
+    description: Liquid limit
+    type: number
+    quantity: percent
+    scale: ratio
+    label: Liquid limit, LL
+    ags: [LLPL.LLPL_LL]
+    used_by: [P04, P06]
+  plastic_limit:
+    description: Plastic limit
+    type: number
+    quantity: percent
+    scale: ratio
+    label: Plastic limit, PL
+    ags: [LLPL.LLPL_PL]
+    used_by: [P04, P06]
+  plasticity_index:
+    description: Plasticity index (LL - PL)
+    type: number
+    quantity: dimensionless
+    scale: ratio
+    label: Plasticity index, PI
+    ags: [LLPL.LLPL_PI]
+    used_by: [P04]
+  non_plastic:
+    description: True if the specimen was reported non-plastic (NP)
+    type: bool
+    ags: ["derived: value flag NP"]
+    used_by: [P04, P06]
+  liquidity_index:
+    description: (w - PL) / PI
+    type: number
+    quantity: dimensionless
+    scale: interval
+    label: Liquidity index, LI
+    ags: ["derived"]
+    used_by: []
+  consistency_index:
+    description: (LL - w) / PI
+    type: number
+    quantity: dimensionless
+    scale: interval
+    label: Consistency index, Ic
+    ags: ["derived"]
+    used_by: [P17]
+
+  # --- Grain size (P05) ---------------------------------------------------------------------
+  particle_size:
+    description: Particle (sieve or hydrometer) size
+    type: number
+    quantity: particle_size
+    scale: ratio
+    label: Particle size
+    ags: [GRAT.GRAT_SIZE]
+    used_by: [P05]
+  percent_passing:
+    description: Percentage passing by mass
+    type: number
+    quantity: percent
+    scale: ratio
+    label: Percent passing
+    ags: [GRAT.GRAT_PERP]
+    used_by: [P05]
+  d10:
+    description: Particle size at 10% passing
+    type: number
+    quantity: particle_size
+    scale: ratio
+    label: D10
+    ags: ["derived: docs/drafts/analysis.md §3"]
+    used_by: [P05]
+  d30:
+    description: Particle size at 30% passing
+    type: number
+    quantity: particle_size
+    scale: ratio
+    label: D30
+    ags: ["derived"]
+    used_by: [P05]
+  d60:
+    description: Particle size at 60% passing
+    type: number
+    quantity: particle_size
+    scale: ratio
+    label: D60
+    ags: ["derived"]
+    used_by: [P05]
+  uniformity_coefficient:
+    description: Coefficient of uniformity, D60 / D10
+    type: number
+    quantity: dimensionless
+    scale: ratio
+    label: Coefficient of uniformity, Cu
+    ags: [GRAG.GRAG_UC]
+    used_by: [P05]
+  curvature_coefficient:
+    description: Coefficient of curvature, D30² / (D10 × D60)
+    type: number
+    quantity: dimensionless
+    scale: ratio
+    label: Coefficient of curvature, Cc
+    ags: [GRAG.GRAG_CC]
+    used_by: [P05]
