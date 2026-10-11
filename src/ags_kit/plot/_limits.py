@@ -73,6 +73,8 @@ def nice_limits(
             return min(typical[0], vmin), max(typical[1], vmax)
         step = 10.0 ** math.floor(math.log10(abs(vmin))) if vmin else 1.0
         lo, hi = vmin - step, vmax + step
+        if not hi > lo:  # step underflows for subnormal values such as 5e-324
+            lo, hi = vmin - 1.0, vmax + 1.0
         if zero:
             lo = max(lo, 0.0)
     elif zero:

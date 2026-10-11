@@ -27,6 +27,7 @@ from ags_kit.plot.common import (
         (7.3, 7.3, False, (6, 8.5)),  # single point: 6.3 to 8.3, step 0.5
         (0.0, 0.0, True, (0, 1)),
         (250.0, 250.0, True, (150, 350)),  # ± one step of 100
+        (5e-324, 5e-324, False, (-1, 1)),  # subnormal: the step underflows
     ],
 )
 def test_nice_limits(vmin, vmax, start_at_zero, expected):
