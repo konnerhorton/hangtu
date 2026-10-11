@@ -46,5 +46,9 @@ xfail_strict = true
 filterwarnings = [
     "error",
     # matplotlib < 3.10.7 calls pyparsing APIs that newer pyparsing deprecates.
+    # Deprecated keyword arguments are reported from matplotlib or from inside
+    # pyparsing itself; ags-kit doesn't use pyparsing directly.
     "ignore:.* deprecated - use :DeprecationWarning:matplotlib",
+    "ignore:.* argument is deprecated, use :DeprecationWarning:matplotlib",
+    "ignore:.* argument is deprecated, use :DeprecationWarning:pyparsing",
 ]
