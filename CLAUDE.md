@@ -49,4 +49,5 @@ Explicit is better than implicit. Names are written out in full, or full enough 
 - If a change alters a decision recorded in `SPEC.md` or a plot spec, update that file **in the same commit**.
 - Don't renumber `SPEC.md` sections. `TODO.md` and the plot specs refer to them by number.
 - Test against the acceptance criteria in the feature's spec, and hand-calculate golden values for analyses.
+- **Visual check:** at the end of each plot unit of work, save a PNG of the plot's output (100 dpi, realistic data, both US and SI when units matter) as `docs/work/<id>/visual-check.png`, look at it, and commit it in the close-out so a reviewer sees the figure without running code. Plot specs and later docs may reuse these images.
 - Don't add dependencies beyond those in SPEC §12.1 without asking.
