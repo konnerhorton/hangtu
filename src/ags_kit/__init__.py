@@ -6,6 +6,7 @@ from ags_kit import plot
 from ags_kit._settings import settings
 from ags_kit.errors import AgsKitError, AgsKitHint, ColumnError, UnitsError
 from ags_kit.registry import columns, template
+from ags_kit.sheet import Sheet
 from ags_kit.units import (
     add_unit_alias,
     define_unit,
@@ -20,6 +21,7 @@ __all__ = [
     "AgsKitError",
     "AgsKitHint",
     "ColumnError",
+    "Sheet",
     "UnitsError",
     "add_unit_alias",
     "columns",
