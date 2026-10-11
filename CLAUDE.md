@@ -6,7 +6,8 @@ Python library of plots, analyses and (later) AGS4 ingest/QC for geotechnical en
 - `SPEC.md`: product spec and cross-cutting decisions. Read the relevant section before designing anything.
 - `docs/plots/PXX-*.md`: one spec per figure, with acceptance criteria. `docs/plots/README.md` has the shared plot conventions.
 - `docs/work/<id>-<slug>/`: intent and plan for each unit of work (see `docs/reference/process.md`).
-- `docs/drafts/`: the draft column registry and unit aliases (ship at M1), the analyses draft spec (`analysis.md`, M3–M4) and notes for later phases. Items marked "decided" are decided; the rest is not. Finish the relevant draft as the feature spec before building from it.
+- `src/ags_kit/columns.yaml` and `src/ags_kit/units/aliases.yaml`: the column registry and unit aliases.
+- `docs/drafts/`: the analyses draft spec (`analysis.md`, M3–M4) and notes for later phases. Items marked "decided" are decided; the rest is not. Finish the relevant draft as the feature spec before building from it.
 - `TODO.md`: research items and pending decisions, referenced as "TODO #n".
 
 ## Commands

@@ -16,7 +16,7 @@
 | `SPEC.md` (this file) | Scope, phasing, cross-cutting decisions (units, data, conventions, QC, statistics, engineering) |
 | [`docs/plots/README.md`](docs/plots/README.md) | Shared plot conventions, and the plot list with each plot's status |
 | `docs/plots/PXX-*.md` | One spec per figure, from [`TEMPLATE.md`](docs/plots/TEMPLATE.md) |
-| [`docs/drafts/`](docs/drafts/) | Draft column registry and unit aliases, the analyses draft spec, and notes for later phases (Phase 2 data, Phase 3 statistics) |
+| [`docs/drafts/`](docs/drafts/) | The analyses draft spec and notes for later phases (Phase 2 data, Phase 3 statistics) |
 | [`docs/reference/eurocode7-summary.md`](docs/reference/eurocode7-summary.md) | Background for characteristic values |
 | [`TODO.md`](TODO.md) | Research items and pending decisions |
 | [`CLAUDE.md`](CLAUDE.md) | Working conventions and commands for Claude Code |
@@ -245,7 +245,7 @@ Apply in both phases. In Phase 1 they are applied by the analysis functions to t
   - later, an optional AGSi code.
 - `ak.columns("spt")` prints it, `ak.template()` builds CSV templates from it, and docstrings are generated from it.
 - Phase 1 plot specs define the columns they need; the registry is assembled from those definitions.
-- Schema and rules: P00 §5. Draft entries: [`docs/drafts/columns.yaml`](docs/drafts/columns.yaml). **Names are written out in full** (decided; explicit is better than implicit): `undrained_shear_strength`, not `su`/`cu`. Rules and accepted short forms are in CLAUDE.md, "Naming".
+- Schema and rules: P00 §5. Entries: [`src/ags_kit/columns.yaml`](src/ags_kit/columns.yaml). **Names are written out in full** (decided; explicit is better than implicit): `undrained_shear_strength`, not `su`/`cu`. Rules and accepted short forms are in CLAUDE.md, "Naming".
 
 ---
 

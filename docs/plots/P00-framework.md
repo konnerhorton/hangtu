@@ -7,7 +7,7 @@
 | **Type** | infrastructure (no user-facing plot) |
 | **Target version** | v0.1, milestone M1 |
 | **Depends on** | M0 scaffolding |
-| **Related** | SPEC §2 (units), §3 (plotting), §10.3 (registry); plots README (shared conventions); registry draft [`docs/drafts/columns.yaml`](../drafts/columns.yaml); aliases draft [`docs/drafts/units-aliases.yaml`](../drafts/units-aliases.yaml) |
+| **Related** | SPEC §2 (units), §3 (plotting), §10.3 (registry); plots README (shared conventions); registry [`src/ags_kit/columns.yaml`](../../src/ags_kit/columns.yaml); aliases [`src/ags_kit/units/aliases.yaml`](../../src/ags_kit/units/aliases.yaml) |
 
 This spec defines the *implementation* of the shared conventions in the plots README. Where the two overlap, the README states the rule and this spec says how it is built and tested.
 
@@ -80,7 +80,7 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 
 ### 4.2 Unit strings and aliases
 - **Lookup order** (decided), all case-sensitive:
-  1. the alias table. The starting table is [`docs/drafts/units-aliases.yaml`](../drafts/units-aliases.yaml); it ships as `units/aliases.yaml`;
+  1. the alias table, [`src/ags_kit/units/aliases.yaml`](../../src/ags_kit/units/aliases.yaml);
   2. pint's own parser. If pint understands the string, it is accepted with a `UserWarning` saying what it was read as and how to make that explicit, e.g. `Unit "feet" for column 'depth' was read as foot. Add it with ak.add_unit_alias("feet", "foot") to silence this.`;
   3. otherwise `UnitsError`, showing `ak.add_unit_alias(...)`.
 - The dimension check (§4.3 #5) runs after either lookup, so a string pint reads as something unexpected is still caught for registered columns.
@@ -101,7 +101,7 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 - **Conversion helper** `to_display(values, unit, quantity, display_units)` returns `(magnitudes, display_unit)`. Plots draw magnitudes only; pint never reaches matplotlib.
 
 ## 5. Column registry and templates
-- Source: `src/ags_kit/columns.yaml` (draft: [`docs/drafts/columns.yaml`](../drafts/columns.yaml)). Its header comment lists the fields: `description, type, quantity, scale, label, ags, used_by` (later `agsi`).
+- Source: [`src/ags_kit/columns.yaml`](../../src/ags_kit/columns.yaml). Its header comment lists the fields: `description, type, quantity, scale, label, ags, used_by` (later `agsi`).
 - **Rules:**
   - lowercase `snake_case`, one meaning per name across the whole package;
   - number columns must have `quantity`, `scale` and `label`;
