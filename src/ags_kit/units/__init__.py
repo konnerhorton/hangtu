@@ -5,15 +5,18 @@ plain magnitudes from here; pint objects never reach matplotlib.
 """
 
 import re
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
+from os import PathLike
 from typing import Any
 
 import numpy as np
+import pandas as pd
 import pint
 
 from ags_kit import _config
 from ags_kit._settings import _display_units, settings
-from ags_kit.errors import UnitsError, warn
+from ags_kit.errors import ColumnError, UnitsError, warn
+from ags_kit.registry import column_info
 
 ureg = pint.UnitRegistry()
 
@@ -231,3 +234,183 @@ def to_display(
     if source is None:
         source = parse_unit(unit)
     return convert(magnitudes, source, quantity, target), text
+
+
+# --- Units on DataFrames (P00 §4.4, SPEC §2.6) -------------------------------------
+
+
+def _registered_kind(column: str) -> str | None:
+    info = column_info(column)
+    return None if info is None else info.get("quantity")
+
+
+def _check_declared(column: str, text: str, quantity: str | None) -> None:
+    info = column_info(column)
+    if info is not None and info["type"] != "number":
+        raise UnitsError(
+            f"Column {column!r} holds {info['type']} values, so it has no unit. "
+            f"Remove it from the units you declare."
+        )
+    unit = parse_unit(text, column)
+    if quantity is not None:
+        check_dimension(unit, quantity, column)
+
+
+def set_units(df: pd.DataFrame, units: Mapping[str, str]) -> pd.DataFrame:
+    """Declare the units of some columns, returning a new DataFrame.
+
+    The units are checked and stored in ``df.attrs["units"]``, merged with any
+    already declared. The input DataFrame is not changed.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        The data.
+    units : dict
+        ``{column: unit string}``, e.g. ``{"depth": "ft"}``.
+
+    Examples
+    --------
+    >>> spt = ak.set_units(spt, {"depth": "ft", "ground_level": "ft"})
+    """
+    if not isinstance(units, Mapping):
+        raise UnitsError(
+            f"units must be a dict of {{column: unit}}, not {units!r}. "
+            'Example: ak.set_units(df, {"depth": "ft"})'
+        )
+    missing = [column for column in units if column not in df.columns]
+    if missing:
+        raise ColumnError(
+            f"Can't set units for {missing}: no such column. "
+            f"Columns: {', '.join(map(str, df.columns))}."
+        )
+    for column, text in units.items():
+        _check_declared(column, text, _registered_kind(column))
+    result = df.copy(deep=False)
+    result.attrs["units"] = {**units_of(df), **units}
+    return result
+
+
+def units_of(df: pd.DataFrame) -> dict[str, str]:
+    """Return the declared units of ``df`` as ``{column: unit string}``.
+
+    The result is empty when no units are declared. ``merge``, ``join`` and
+    ``concat`` drop declared units; declare them again on the result.
+    """
+    return dict(df.attrs.get("units", {}))
+
+
+def read_csv(
+    path: str | PathLike[str],
+    units: Mapping[str, str] | None = None,
+    **pandas_kwargs: Any,
+) -> pd.DataFrame:
+    """Read a CSV file and declare the units of its columns.
+
+    Parameters
+    ----------
+    path
+        The CSV file. Headers are column names from ``ak.columns()``; there is
+        no units row.
+    units : dict, optional
+        ``{column: unit string}``, e.g. ``{"depth": "ft"}``. Columns that are
+        percentages, counts or dimensionless need no units.
+    **pandas_kwargs
+        Passed to ``pandas.read_csv``.
+
+    Examples
+    --------
+    >>> spt = ak.read_csv("spt.csv", units={"depth": "ft", "ground_level": "ft"})
+    """
+    df = pd.read_csv(path, **pandas_kwargs)
+    return set_units(df, units) if units else df
+
+
+def needs_units(column: str, quantity: str | None = None) -> bool:
+    """Return whether a column's values depend on a unit.
+
+    ``quantity`` is the kind for an unregistered column (e.g. from a plot
+    preset); registered columns use the registry's kind. A column with no known
+    kind always needs a unit, because its unit is never guessed.
+    """
+    kind = _registered_kind(column) or quantity
+    return kind is None or quantity_kind(kind)["canonical"] is not None
+
+
+def resolve_units(
+    df: pd.DataFrame,
+    columns: Iterable[str],
+    units: Mapping[str, str] | None = None,
+    *,
+    quantities: Mapping[str, str] | None = None,
+    analysis: bool = False,
+) -> dict[str, str | None]:
+    """Find each column's unit, in the order of SPEC §2.6.
+
+    1. ``units``, the explicit argument; 2. ``df.attrs["units"]``; 3. no unit
+    needed (percent, dimensionless and count columns). Otherwise the unit is
+    unknown: a plot gets None and a warning, an analysis gets ``UnitsError``.
+
+    Returns
+    -------
+    dict
+        ``{column: unit string or None}``. None means unknown, or not needed
+        when ``needs_units`` is False.
+    """
+    units = units or {}
+    quantities = quantities or {}
+    declared = units_of(df)
+    resolved: dict[str, str | None] = {}
+    for column in columns:
+        quantity = _registered_kind(column) or quantities.get(column)
+        if column in units:
+            _check_declared(column, units[column], quantity)
+            resolved[column] = units[column]
+        elif column in declared:
+            resolved[column] = declared[column]
+        else:
+            resolved[column] = None
+            if needs_units(column, quantity):
+                _unknown_units(column, quantity, analysis)
+    return resolved
+
+
+def _unknown_units(column: str, quantity: str | None, analysis: bool) -> None:
+    example = quantity_kind(quantity)["US"]["text"] if quantity else "<unit>"
+    fix = (
+        f'Declare them with ak.set_units(df, {{"{column}": "{example}"}}) '
+        f'or ak.read_csv(..., units={{"{column}": "{example}"}}).'
+    )
+    if analysis:
+        raise UnitsError(f"Column {column!r} has no units. {fix}")
+    warn(
+        f"Column {column!r} has no units, so its axis label says "
+        f'"(units unknown)". {fix}'
+    )
+
+
+_QUANTITY_TEXT = re.compile(
+    r"\s*([-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)\s*(\S.*?)\s*"
+)
+
+
+def parse_quantity(text: str, quantity: str | None = None) -> tuple[float, str]:
+    """Split a string such as ``"3 m"`` or ``"10 ft"`` into a value and a unit.
+
+    The unit goes through the same alias table as column units (P00 §4.3 #4)
+    and, when ``quantity`` is given, the same dimension check.
+
+    Returns
+    -------
+    value, unit string
+        Ready for ``to_display([value], unit, quantity)``.
+    """
+    match = _QUANTITY_TEXT.fullmatch(text) if isinstance(text, str) else None
+    if match is None:
+        raise UnitsError(
+            f'{text!r} must be a number followed by a unit, e.g. "3 m" or "10 ft".'
+        )
+    unit = parse_unit(match[2])
+    if quantity is not None:
+        check_dimension(unit, quantity)
+    return float(match[1]), match[2]

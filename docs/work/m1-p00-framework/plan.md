@@ -59,7 +59,7 @@ This step is two commits, because together they come to about 470 lines: parsing
 ## Build 4: `M1: declare units on DataFrames`
 - `set_units(df, units)` checks each string with `parse_unit`. An unknown column raises `ColumnError`. A registered column whose unit has the wrong dimension raises `UnitsError` (§4.3 #5). The units are merged into `attrs["units"]` on a shallow copy, so the input frame is never changed.
 - `read_csv(path, units=None, **pandas_kwargs)` is `pd.read_csv` followed by `set_units`. `units_of(df)` returns a copy of the dict.
-- `resolve_units(df, columns, units=None, *, analysis=False)` runs the order in §4.4. For a plot, unknown units give `None` plus one `UserWarning` per column showing the `ak.set_units` call that fixes it. With `analysis=True` it raises `UnitsError`.
+- `resolve_units(df, columns, units=None, *, quantities=None, analysis=False)` runs the order in §4.4. `quantities` gives the kind of an unregistered column (from a plot preset). `needs_units(column, quantity=None)` tells plots whether a None unit means "unknown" or "not needed". For a plot, unknown units give `None` plus one `UserWarning` per column showing the `ak.set_units` call that fixes it. With `analysis=True` it raises `UnitsError`.
 - §4.3 #3 and #4: `parse_quantity("3 m")` parses overlay strings through the same alias table. There is no elevation helper yet; P01 adds one when it needs it.
 - Tests: `depth: "kPa"` raises; the input frame isn't changed; attrs survive filtering, column selection, `.copy()` and sorting; after `merge`, `resolve_units` warns. The plot-level part of that criterion is covered in Build 11.
 
