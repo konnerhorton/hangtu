@@ -296,10 +296,10 @@ ak.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
 - Python ≥ 3.12, developed with `uv`.
 - PyPI + public GitHub, MIT license.
 - **CI:** GitHub Actions on Windows, macOS and Linux × Python 3.12–3.14 (ruff + pytest). Release to PyPI on tag (trusted publishing).
-- **Phase 1 dependencies:** `pandas>=2.1,<3`, `numpy`, `matplotlib`, `pint`, `pyyaml`.
+- **Phase 1 dependencies:** `pandas>=2.1.1,<3`, `numpy>=1.26`, `matplotlib>=3.8`, `pint>=0.24.4`, `pyyaml>=6.0.1`. Each floor is the oldest release that installs and imports on Python 3.12 with current transitive dependencies, and a lowest-version CI job keeps it honest.
 - **Phase 2 adds** `python-ags4` (LGPL-3.0, used unmodified, which is compatible with MIT).
 - **Phase 3 adds** `scipy>=1.11`.
-- **Dev dependencies:** `pytest`, `ruff`, `hypothesis`, optionally `pytest-mpl`.
+- **Dev dependencies:** `pytest>=8.0`, `ruff>=0.17`, `hypothesis>=6.100`, optionally `pytest-mpl`.
 
 ### 12.2 Package layout
 - `src/` layout, package `ags_kit`.
