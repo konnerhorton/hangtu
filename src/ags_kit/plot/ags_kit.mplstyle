@@ -1,0 +1,28 @@
+# ags-kit house style (docs/plots/P00-framework.md §6).
+# Applied only inside ags_kit.plot.style.context(); global rcParams are never changed.
+
+font.family:        sans-serif
+font.sans-serif:    Arial, Helvetica, DejaVu Sans
+font.size:          9
+axes.labelsize:     9
+axes.titlesize:     10
+xtick.labelsize:    8
+ytick.labelsize:    8
+legend.fontsize:    8
+legend.frameon:     False
+
+axes.linewidth:     0.6
+axes.grid:          True
+axes.grid.which:    major
+axes.axisbelow:     True
+grid.linewidth:     0.5
+grid.color:         d9d9d9
+
+xtick.direction:    in
+ytick.direction:    in
+xtick.major.width:  0.6
+ytick.major.width:  0.6
+xtick.minor.width:  0.4
+ytick.minor.width:  0.4
+
+savefig.dpi:        300

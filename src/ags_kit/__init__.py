@@ -2,6 +2,7 @@
 
 from importlib.metadata import version
 
+from ags_kit import plot
 from ags_kit._settings import settings
 from ags_kit.errors import AgsKitError, AgsKitHint, ColumnError, UnitsError
 from ags_kit.registry import columns, template
@@ -23,6 +24,7 @@ __all__ = [
     "add_unit_alias",
     "columns",
     "define_unit",
+    "plot",
     "read_csv",
     "set_units",
     "settings",

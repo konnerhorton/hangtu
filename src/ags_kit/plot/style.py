@@ -1,0 +1,54 @@
+"""The ags-kit house style (docs/plots/P00-framework.md §6)."""
+
+import difflib
+from collections.abc import Iterator
+from contextlib import contextmanager
+from importlib.resources import as_file, files
+from typing import Any
+
+import matplotlib as mpl
+
+from ags_kit.errors import AgsKitError
+
+
+def _rc_name(name: str) -> str:
+    """Return the rcParams key for ``name``, given as ``font.size`` or ``font_size``."""
+    if name in mpl.rcParams:
+        return name
+    by_underscore = {
+        key.replace(".", "_").replace("-", "_"): key for key in mpl.rcParams
+    }
+    if name in by_underscore:
+        return by_underscore[name]
+    close = difflib.get_close_matches(name, [*mpl.rcParams, *by_underscore], n=1)
+    suggestion = f" Did you mean {close[0]!r}?" if close else ""
+    raise AgsKitError(
+        f"{name!r} isn't a matplotlib setting (rcParams), so it can't be used as a "
+        f"style override.{suggestion} Write the name with dots as a dict, "
+        '**{"font.size": 10}, or with underscores, font_size=10.'
+    )
+
+
+@contextmanager
+def context(**style_overrides: Any) -> Iterator[None]:
+    """Apply the house style, plus any overrides, inside a ``with`` block.
+
+    Every rcParam is restored afterwards, even if the block raises.
+
+    Parameters
+    ----------
+    **style_overrides
+        matplotlib rcParams, named with dots (``**{"font.size": 10}``) or with
+        underscores (``font_size=10``).
+
+    Examples
+    --------
+    >>> with ak.plot.style.context(font_size=10):
+    ...     fig, ax = plt.subplots()
+    """
+    rc = {_rc_name(name): value for name, value in style_overrides.items()}
+    with (
+        as_file(files("ags_kit").joinpath("plot/ags_kit.mplstyle")) as path,
+        mpl.rc_context(fname=str(path), rc=rc),
+    ):
+        yield

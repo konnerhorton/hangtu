@@ -120,7 +120,7 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 - Light major gridlines (0.5 pt, gray 85%), minor gridlines on log axes only (0.3 pt).
 - Spines: all four, 0.6 pt. Ticks inward.
 - Savefig: 300 dpi, `bbox_inches="tight"` is left to the user (examples show it).
-- `**style_overrides` on any plot are passed as rcParams inside the context, so users can change one thing without touching global state.
+- `**style_overrides` on any plot are passed as rcParams inside the context, so users can change one thing without touching global state. Names can be written with dots (`**{"font.size": 10}`) or with underscores (`font_size=10`), because keyword arguments can't contain dots. An unknown name raises `AgsKitError` suggesting the closest one.
 
 ## 7. Labels
 - `axis_label(text, unit=None, datum=None, unknown=False)` → `"Elevation (ft, NAVD88)"`, `"Depth (m)"`, `"Liquid limit, LL (%)"`, `"SPT N60"` (no unit for counts and dimensionless), `"k (units unknown)"`.
