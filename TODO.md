@@ -66,6 +66,11 @@ Check that the chosen name is still free on PyPI right before deciding.
 
 **Timing:** with plots first (SPEC §1.3), nothing in Phase 1 depends on this decision. It must be settled at M6, before Phase 2 (ingest and database) starts.
 
+### 0c. Publish the repo and confirm M0 CI · You + Claude · SPEC §12.1, §12.4
+M0 was verified locally only (Linux, Python 3.12–3.14, plus the lowest dependency versions).
+- Create the public GitHub repo, add the remote, and push `main`.
+- Confirm that the full matrix (Windows and macOS included) and the `lowest` job are green. M0's "done when" is met only then.
+
 ---
 
 ## Units
