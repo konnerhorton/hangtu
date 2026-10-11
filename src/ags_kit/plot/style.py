@@ -7,6 +7,7 @@ from importlib.resources import as_file, files
 from typing import Any
 
 import matplotlib as mpl
+from matplotlib.axes import Axes
 
 from ags_kit.errors import AgsKitError
 
@@ -52,3 +53,32 @@ def context(**style_overrides: Any) -> Iterator[None]:
         mpl.rc_context(fname=str(path), rc=rc),
     ):
         yield
+
+
+def style_axes(ax: Axes) -> None:
+    """Apply the axes-level style to an Axes created outside ``context()``.
+
+    rcParams only affect axes created while they are set, so a ``Sheet`` panel
+    or a user's own ``ax=`` would miss the house grid, ticks and spines. Call
+    this inside ``context()``: it reads the current rcParams, so per-call
+    overrides apply too.
+    """
+    rc = mpl.rcParams
+    ax.set_axisbelow(rc["axes.axisbelow"])
+    ax.grid(
+        rc["axes.grid"],
+        which=rc["axes.grid.which"],
+        linewidth=rc["grid.linewidth"],
+        color=rc["grid.color"],
+    )
+    for spine in ax.spines.values():
+        spine.set_linewidth(rc["axes.linewidth"])
+    for axis in ("x", "y"):
+        for which in ("major", "minor"):
+            ax.tick_params(
+                axis=axis,
+                which=which,
+                direction=rc[f"{axis}tick.direction"],
+                width=rc[f"{axis}tick.{which}.width"],
+                labelsize=rc[f"{axis}tick.labelsize"],
+            )

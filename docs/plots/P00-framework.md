@@ -116,6 +116,7 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 
 ## 6. House style
 - `plot/ags_kit.mplstyle` plus a context manager `ak.plot.style.context()`; every plot body runs inside it. rcParams are identical before and after a call.
+- rcParams only reach axes created inside the context, so every plot also calls `style.style_axes(ax)` inside it. This gives `Sheet` panels and a user's own `ax=` the house grid, ticks and spines.
 - Font: sans-serif (`Arial`, `Helvetica`, `DejaVu Sans` fallback), 8 pt ticks and legend, 9 pt axis labels, 10 pt titles.
 - Light major gridlines (0.5 pt, gray 85%), minor gridlines on log axes only (0.3 pt).
 - Spines: all four, 0.6 pt. Ticks inward.

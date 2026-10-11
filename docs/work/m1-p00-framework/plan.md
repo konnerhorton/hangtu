@@ -92,6 +92,9 @@ This step is two commits, because together they come to about 470 lines: parsing
 - `sheet.py` (§13): `Sheet(size, layout, title, orientation)` uses `plt.figure` with constrained layout. The 0.5 in margins come from the engine's `rect`, and the title from `suptitle` at the top left (12 pt bold). Panels are created on first access through int, `(r, c)` or slice keys, and the same Axes comes back for the same cells. An overlapping span raises `AgsKitError`. `save(path, dpi=300)` accepts `.pdf`, `.png` and `.svg` and raises `AgsKitError` naming them otherwise. An unknown size or orientation raises an error that lists the valid ones.
 - Tests (§14 Sheet): figure size for each size and orientation; spans; the same Axes returned twice; overlap errors; `save` writes all three formats to `tmp_path`.
 
+## Build 10b: `M1: style axes created outside the style context`
+Found while planning Build 11: rcParams only reach axes created inside `style.context()`, so `Sheet` panels and a user's `ax=` would miss the house grid, ticks and spines. `style.style_axes(ax)` applies them from the current rcParams. P00 §6 is updated.
+
 ## Build 11 (close-out): `M1: add shared plot test helpers and close out P00`
 - `tests/plot/conftest.py` fixtures (§14):
   - `dummy_plot`: a minimal plot following the contract. It uses `resolve_units`, `to_display`, the style context, labels, limits, notes, edge markers, palette, legend and hints, and returns `(fig, ax)`.

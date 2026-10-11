@@ -64,3 +64,16 @@ def test_unknown_override_raises_with_a_suggestion():
         style.context(font_sise=12),
     ):
         pass
+
+
+def test_style_axes_styles_axes_made_outside_the_context():
+    _, ax = plt.subplots()  # global rcParams: no grid, ticks out
+    with style.context(xtick_labelsize=6):
+        style.style_axes(ax)
+    gridline = ax.xaxis.get_gridlines()[0]
+    assert gridline.get_visible()
+    assert gridline.get_linewidth() == 0.5
+    assert ax.spines["left"].get_linewidth() == 0.6
+    tick = ax.xaxis.get_major_ticks()[0]
+    assert tick._tickdir == "in"
+    assert tick.label1.get_fontsize() == 6
