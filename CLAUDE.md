@@ -1,6 +1,6 @@
 # ags-kit
 
-Python library of plots, analyses and (later) AGS4 ingest/QC for geotechnical engineers. Pre-code: M0 (scaffolding) is next.
+Python library of plots, analyses and (later) AGS4 ingest/QC for geotechnical engineers. M0 (scaffolding) done; M1 (P00 framework) is next.
 
 ## Where things are
 - `SPEC.md`: product spec and cross-cutting decisions. Read the relevant section before designing anything.
@@ -10,10 +10,11 @@ Python library of plots, analyses and (later) AGS4 ingest/QC for geotechnical en
 - `TODO.md`: research items and pending decisions, referenced as "TODO #n".
 
 ## Commands
-Set up at M0; update this section when it lands.
 - `uv sync`: install
-- `uv run pytest`: tests
+- `uv run pytest`: tests (warnings are errors; assert expected ones with `pytest.warns`)
 - `uv run ruff check . && uv run ruff format .`: lint and format
+- `uv run ruff check . && uv run ruff format --check . && uv run pytest`: what CI runs (`.github/workflows/ci.yml`)
+- Oldest allowed dependency versions: `UV_RESOLUTION=lowest-direct UV_PROJECT_ENVIRONMENT=<scratch dir> uv run pytest`, then `git checkout uv.lock`, because it rewrites the lock
 
 ## Conventions
 - **Users are engineers, not developers.** Every analysis is a plain function on a DataFrame. Keep objects thin.
