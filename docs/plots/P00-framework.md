@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **ID / module** | P00 · `ak.settings`, units functions, column registry, `ak.plot` helpers, `ak.Sheet` |
-| **Status** | approved |
+| **Status** | built |
 | **Type** | infrastructure (no user-facing plot) |
 | **Target version** | v0.1, milestone M1 |
 | **Depends on** | M0 scaffolding |
@@ -187,7 +187,7 @@ Helpers: `nice_limits(vmin, vmax, *, start_at_zero)`, `log_limits(vmin, vmax, mi
 - **Legend:** 12 / 13 / 31 entries give 1 column / 2 columns / no legend + note.
 - **Hints:** one `AgsKitHint` per call; none when `settings.hints = False`.
 - **Sheet:** each size and orientation has the right figure size; spans work; `save` writes PDF, PNG and SVG; a dummy plot drawn with `ax=sheet[0]` adds no figure (`plt.get_fignums()` unchanged).
-- **Shared test helpers** for later plots: `assert_us_si_equivalent(plot_fn, df, **kwargs)` (same point positions after conversion and same note counts; only labels and ticks differ) and `assert_no_global_state(plot_fn, ...)`.
+- **Shared test helpers** for later plots, as fixtures in `tests/plot/conftest.py`: `assert_us_si_equivalent(plot_fn, df, quantities, **kwargs)` (same point positions after conversion and same note counts; only labels and ticks differ; `quantities` names the x and y quantity kinds) and `assert_no_global_state(plot_fn, df, **kwargs)`. A `dummy_plot` fixture shows how a plot uses every helper.
 
 ## 15. Open questions
 None open.

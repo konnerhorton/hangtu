@@ -116,3 +116,9 @@ Found while planning Build 11: rcParams only reach axes created inside `style.co
   - Run the lowest dependency versions as described in CLAUDE.md. matplotlib 3.8 must support `ConstrainedLayoutEngine(rect=...)`. If it doesn't, use `fig.subplots_adjust`-style margins, and update this plan in that commit.
   - `uv build`, then check that the wheel contains `columns.yaml`, `config/defaults.yaml`, `units/aliases.yaml` and `ags_kit.mplstyle`.
 - Look at a saved Tabloid `Sheet` PNG with the dummy plot in two panels, as a visual check of the style, legend placement and footnote.
+
+## Results
+- 320 tests pass on Python 3.12, 3.13 and 3.14, and with the lowest dependency versions (matplotlib 3.8 supports the layout engine's `rect`, so no fallback was needed). The lowest run needed two more pyparsing ignore rules, committed on their own.
+- The wheel contains all four data files.
+- The visual check of a Tabloid sheet showed legends outside on the right, footnotes below them, depth pointing down, SI conversion in the second panel, and an edge marker at a fixed 100% limit.
+- Windows and macOS are still unchecked until the repo is published (TODO #0c).

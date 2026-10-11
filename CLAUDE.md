@@ -1,6 +1,6 @@
 # ags-kit
 
-Python library of plots, analyses and (later) AGS4 ingest/QC for geotechnical engineers. M0 (scaffolding) done; M1 (P00 framework) is next.
+Python library of plots, analyses and (later) AGS4 ingest/QC for geotechnical engineers. M0 (scaffolding) and M1 (P00 framework) done; M2 (P01 property profile) is next.
 
 ## Where things are
 - `SPEC.md`: product spec and cross-cutting decisions. Read the relevant section before designing anything.

@@ -305,7 +305,7 @@ ak.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
 - `src/` layout, package `ags_kit`.
 - Top-level namespaces: `ak.plot`, `ak.analysis`, `ak.stats` (Phase 3), `ak.Sheet`, `ak.settings`, plus `read_csv`, `set_units`, `units_of`, `columns`, `template`.
 - Data files ship inside the package: `columns.yaml` (registry), `config/defaults.yaml`, `units/*.yaml`.
-- Tests mirror the package (`tests/plots/`, `tests/analysis/`, …), with synthetic data in `tests/data/`. Runnable scripts go in `examples/`.
+- Tests mirror the package (`tests/plot/`, `tests/units/`, …), with synthetic data in `tests/data/`. Runnable scripts go in `examples/`.
 
 ### 12.3 Testing
 - **Phase 1:**
