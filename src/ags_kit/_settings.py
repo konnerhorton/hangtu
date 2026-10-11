@@ -2,13 +2,12 @@
 
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from importlib.resources import files
 from numbers import Real
 from typing import Any
 
-import yaml
 from matplotlib.colors import is_color_like
 
+from ags_kit import _config
 from ags_kit.errors import AgsKitError
 
 
@@ -128,8 +127,7 @@ def _unknown(name: str) -> str:
 
 
 def _defaults() -> dict[str, Any]:
-    text = files("ags_kit").joinpath("config/defaults.yaml").read_text(encoding="utf-8")
-    raw = yaml.safe_load(text)["settings"]
+    raw = _config.load("config/defaults.yaml")["settings"]
     return {name: validate(raw[name]) for name, validate in _VALIDATORS.items()}
 
 

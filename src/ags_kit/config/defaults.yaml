@@ -12,3 +12,52 @@ settings:
   hints: true                  # one AgsKitHint per plot call for missing optional columns
   hammer_efficiency: null      # SPT energy ratio in %, used from M3
   spt_cap: 100                 # SPT N cap, used from M3
+
+# Quantity kinds (P00 §4.1). Units are pint expressions; text is what labels show.
+# The canonical unit is what values are converted through. Kinds with no canonical
+# unit are never converted and need no declared units.
+quantity_kinds:
+  length:
+    canonical: meter
+    US: {unit: foot, text: ft}
+    SI: {unit: meter, text: m}
+  small_length:
+    canonical: millimeter
+    US: {unit: inch, text: in}
+    SI: {unit: millimeter, text: mm}
+  particle_size:
+    canonical: millimeter
+    US: {unit: millimeter, text: mm}
+    SI: {unit: millimeter, text: mm}
+  stress:
+    canonical: kilopascal
+    US: {unit: force_pound / foot**2, text: psf}
+    SI: {unit: kilopascal, text: kPa}
+  unit_weight:
+    canonical: kilonewton / meter**3
+    US: {unit: force_pound / foot**3, text: pcf}
+    SI: {unit: kilonewton / meter**3, text: kN/m³}
+  density:
+    canonical: megagram / meter**3
+    US: {unit: pound / foot**3, text: pcf}
+    SI: {unit: megagram / meter**3, text: Mg/m³}
+  hydraulic_conductivity:
+    canonical: meter / second
+    US: {unit: centimeter / second, text: cm/s}
+    SI: {unit: meter / second, text: m/s}
+  percent:
+    canonical: null
+    US: {unit: null, text: "%"}
+    SI: {unit: null, text: "%"}
+  dimensionless:
+    canonical: null
+    US: {unit: null, text: null}
+    SI: {unit: null, text: null}
+  count:
+    canonical: null
+    US: {unit: null, text: null}
+    SI: {unit: null, text: null}
+  angle:
+    canonical: degree
+    US: {unit: degree, text: °}
+    SI: {unit: degree, text: °}

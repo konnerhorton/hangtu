@@ -40,6 +40,7 @@ src/ags_kit/
 - Tests (§14 Settings): defaults; each validation error; `override()` restores values when the block raises; `reset()`.
 
 ## Build 2: `M1: load the column registry and build templates`
+- The quantity-kind table goes into `config/defaults.yaml`: canonical unit, US and SI display unit, and the label text for each (§4.1). Density in US is `pound / foot**3` (mass) with the text `pcf`. It lands here, not in Build 3, because `ak.columns()` shows each column's display units. `_config.py` loads and caches the package's YAML files.
 - `registry.py`: loads `columns.yaml` once. `column_info(name)` returns the entry or None.
   - `ak.columns(template=None)` returns one row per column: name, description, quantity, US unit, SI unit, used by. The display units come from the quantity-kind table.
   - `ak.template(name)` returns an empty DataFrame in template order, with dtypes `float64` for number, `object` for text and `bool` for bool. An unknown name raises `ColumnError` listing the templates.
@@ -49,7 +50,6 @@ src/ags_kit/
 - `units/__init__.py`: one `pint.UnitRegistry`.
   - `parse_unit(text, column=None)` runs the lookup order in §4.2: the alias table; then pint with a `UserWarning` saying what the string was read as; then `UnitsError` showing `ak.add_unit_alias(...)`.
   - `add_unit_alias(text, pint_expr)` checks that the expression parses. `define_unit(definition)` calls `ureg.define`.
-- The quantity-kind table goes into `config/defaults.yaml`: canonical unit, US and SI display unit, and the label text for each (§4.1). Density in US is `pound / foot**3` (mass) with the text `pcf`.
 - `to_display(values, unit, quantity, display_units=None)` returns `(magnitudes, display_text)`. It uses `display_units`, else `settings.display_units`, then `settings.display_overrides`. `percent`, `dimensionless` and `count` are returned unchanged. A column with no quantity kind (an unregistered value) is drawn in its declared unit. Its kind is never guessed.
 - §4.3 #1: a force-per-volume unit on a `density` column is divided by standard gravity before conversion. `pcf` is the case that matters.
 - `settings.display_overrides` now checks each unit's dimension against its kind.
