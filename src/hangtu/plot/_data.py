@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 
-from ags_kit.errors import ColumnError
+from hangtu.errors import ColumnError
 
 _SHOWN = 5
 

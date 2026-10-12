@@ -20,12 +20,12 @@ from matplotlib.patches import Rectangle
 from matplotlib.text import Text
 from matplotlib.transforms import blended_transform_factory, offset_copy
 
-from ags_kit.errors import AgsKitError, ColumnError, warn
-from ags_kit.plot import _layers
-from ags_kit.plot._data import numeric_column, rows_text
-from ags_kit.plot._palette import resolve_palette
-from ags_kit.plot._vertical import VS, Vertical, convert_pair, convert_vertical
-from ags_kit.units import parse_quantity, read_csv, to_display, units_of
+from hangtu.errors import ColumnError, HangtuError, warn
+from hangtu.plot import _layers
+from hangtu.plot._data import numeric_column, rows_text
+from hangtu.plot._palette import resolve_palette
+from hangtu.plot._vertical import VS, Vertical, convert_pair, convert_vertical
+from hangtu.units import parse_quantity, read_csv, to_display, units_of
 
 TEXT_SIZE = 7  # points
 STRATA_ALPHA = 0.12
@@ -79,7 +79,7 @@ def _require(table: pd.DataFrame, overlay: str, columns: Sequence[str]) -> None:
     missing = [column for column in columns if column not in table.columns]
     if missing:
         template = (
-            f' Start from ak.template("{overlay}").' if overlay != "water_level" else ""
+            f' Start from ht.template("{overlay}").' if overlay != "water_level" else ""
         )
         raise ColumnError(
             f"The {overlay} table has no {', '.join(map(repr, missing))} column. "
@@ -115,7 +115,7 @@ def overlay_units(
         warn(
             f"The {overlay} table has no units for {', '.join(missing)}, so they are "
             f"taken to be in the plot data's units. Declare them to silence this: "
-            f"{overlay} = ak.set_units({overlay}, {{{example}}})."
+            f"{overlay} = ht.set_units({overlay}, {{{example}}})."
         )
     return {column: declared.get(column, unit) for column, unit in assumed.items()}
 
@@ -137,7 +137,7 @@ def pair_reference(
         f"The {overlay} table has {problem} of the depth pair (depth_top, "
         "depth_base) and the elevation pair (elevation_top, elevation_base). "
         f"Give one pair and leave the other out or blank. "
-        f'ak.template("{overlay}") lists the columns.'
+        f'ht.template("{overlay}") lists the columns.'
     )
 
 
@@ -239,7 +239,7 @@ def _water_levels(
     levels = []
     for entry in entries:
         if not (isinstance(entry, tuple | list) and len(entry) == 2):
-            raise AgsKitError(
+            raise HangtuError(
                 "water_level must be a number, a list of (value, label) pairs, or a "
                 f"table of water levels by hole, not {water_level!r}. "
                 'Example: water_level=[(112.5, "GWL (2026-03)")]'
@@ -253,7 +253,7 @@ def _water_levels(
             if vertical.unit is not None and not vertical.unknown:
                 position = float(vertical.to_display([value], vertical.unit)[0])
         else:
-            raise AgsKitError(
+            raise HangtuError(
                 f"The water level {value!r} must be a number in the plot data's "
                 'units, or a number with a unit such as "112.5 ft".'
             )
@@ -440,8 +440,8 @@ def draw_ranges(
 
     A band covers its depth or elevation pair, or the full height without
     one, and is labeled at its top with ``label`` and, when given, ``source``.
-    A path is read with ``ak.read_csv``; declare units on the table with
-    ``ak.set_units`` to read a file in other units.
+    A path is read with ``ht.read_csv``; declare units on the table with
+    ``ht.set_units`` to read a file in other units.
     """
     if not isinstance(ranges, pd.DataFrame):
         ranges = read_csv(ranges)
@@ -531,7 +531,7 @@ def draw_design_lines(
         problem = "both" if given else "neither"
         raise ColumnError(
             f"The design_lines table has {problem} of 'depth' and 'elevation'. "
-            'Give one column. ak.template("design_lines") lists the columns.'
+            'Give one column. ht.template("design_lines") lists the columns.'
         )
     from_vs = given[0]
     units = overlay_units(
@@ -591,7 +591,7 @@ def draw_reference_lines(
     top = blended_transform_factory(ax.transData, ax.transAxes)
     for entry in reference_lines:
         if not (isinstance(entry, tuple | list) and len(entry) == 2):
-            raise AgsKitError(
+            raise HangtuError(
                 "reference_lines must be a list of (value, label) pairs, not "
                 f'{reference_lines!r}. Example: reference_lines=[(2000, "limit")]'
             )
@@ -602,7 +602,7 @@ def draw_reference_lines(
         elif isinstance(value, int | float) and not isinstance(value, bool):
             x = float(scale.to_display([value], scale.unit)[0])
         else:
-            raise AgsKitError(
+            raise HangtuError(
                 f"The reference line {value!r} must be a number in the plot data's "
                 'units, or a number with a unit such as "2000 psf".'
             )
@@ -643,13 +643,13 @@ def statistics_list(stats_box: bool | Sequence[str]) -> list[str]:
     if stats_box is True:
         return list(DEFAULT_STATISTICS)
     if isinstance(stats_box, str) or not isinstance(stats_box, Sequence):
-        raise AgsKitError(
+        raise HangtuError(
             f"stats_box must be True, False or a list of statistics, not "
             f'{stats_box!r}. Example: stats_box=["count", "mean", "cov"]'
         )
     unknown = [name for name in stats_box if name not in STATISTICS]
     if unknown or not stats_box:
-        raise AgsKitError(
+        raise HangtuError(
             f"stats_box can't show {unknown or 'an empty list'}. Statistics: "
             f"{', '.join(STATISTICS)}."
         )

@@ -1,4 +1,4 @@
-"""The ags-kit house style (docs/plots/P00-framework.md §6)."""
+"""The hangtu house style (docs/plots/P00-framework.md §6)."""
 
 import difflib
 from collections.abc import Iterator
@@ -9,7 +9,7 @@ from typing import Any
 import matplotlib as mpl
 from matplotlib.axes import Axes
 
-from ags_kit.errors import AgsKitError
+from hangtu.errors import HangtuError
 
 
 def _rc_name(name: str) -> str:
@@ -23,7 +23,7 @@ def _rc_name(name: str) -> str:
         return by_underscore[name]
     close = difflib.get_close_matches(name, [*mpl.rcParams, *by_underscore], n=1)
     suggestion = f" Did you mean {close[0]!r}?" if close else ""
-    raise AgsKitError(
+    raise HangtuError(
         f"{name!r} isn't a matplotlib setting (rcParams), so it can't be used as a "
         f"style override.{suggestion} Write the name with dots as a dict, "
         '**{"font.size": 10}, or with underscores, font_size=10.'
@@ -44,12 +44,12 @@ def context(**style_overrides: Any) -> Iterator[None]:
 
     Examples
     --------
-    >>> with ak.plot.style.context(font_size=10):
+    >>> with ht.plot.style.context(font_size=10):
     ...     fig, ax = plt.subplots()
     """
     rc = {_rc_name(name): value for name, value in style_overrides.items()}
     with (
-        as_file(files("ags_kit").joinpath("plot/ags_kit.mplstyle")) as path,
+        as_file(files("hangtu").joinpath("plot/hangtu.mplstyle")) as path,
         mpl.rc_context(fname=str(path), rc=rc),
     ):
         yield

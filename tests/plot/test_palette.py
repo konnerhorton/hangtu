@@ -2,9 +2,9 @@ import numpy as np
 import pytest
 from matplotlib.colors import to_rgba
 
-import ags_kit as ak
-from ags_kit.plot._palette import AUTOMATIC
-from ags_kit.plot.common import resolve_palette
+import hangtu as ht
+from hangtu.plot._palette import AUTOMATIC
+from hangtu.plot.common import resolve_palette
 
 
 def test_automatic_colors_use_dark_tab20_shades_first():
@@ -37,18 +37,18 @@ def test_a_unit_keeps_its_color_in_a_later_plot():
 
 def test_reset_palette_forgets_assignments():
     resolve_palette(["Till", "Alluvium"])
-    ak.plot.reset_palette()
+    ht.plot.reset_palette()
     assert resolve_palette(["Till"]) == {"Till": AUTOMATIC[0]}
 
 
 def test_argument_beats_settings_beats_automatic():
-    ak.settings.palette = {"Till": "gray", "Fill": "black"}
+    ht.settings.palette = {"Till": "gray", "Fill": "black"}
     colors = resolve_palette(["Till", "Fill", "Alluvium"], palette={"Till": "tan"})
     assert colors == {"Alluvium": AUTOMATIC[0], "Fill": "black", "Till": "tan"}
 
 
 def test_invalid_palette_argument_raises():
-    with pytest.raises(ak.AgsKitError, match=r"\['Till'\]"):
+    with pytest.raises(ht.HangtuError, match=r"\['Till'\]"):
         resolve_palette(["Till"], palette={"Till": "not a color"})
 
 
@@ -61,24 +61,24 @@ def test_more_than_20_units_repeat_colors_with_a_warning():
 
 
 def test_palette_cmap_follows_the_given_order():
-    cmap = ak.plot.palette_cmap(["Till", "Alluvium"])
+    cmap = ht.plot.palette_cmap(["Till", "Alluvium"])
     assert cmap.N == 2
     assert [tuple(c) for c in cmap.colors] == [AUTOMATIC[0], AUTOMATIC[1]]
 
 
 def test_palette_cmap_without_units_uses_every_colored_unit():
-    ak.settings.palette = {"Fill": "black"}
+    ht.settings.palette = {"Fill": "black"}
     resolve_palette(["Till"])
-    assert list(ak.plot.palette_cmap().colors) == ["black", AUTOMATIC[0]]
+    assert list(ht.plot.palette_cmap().colors) == ["black", AUTOMATIC[0]]
 
 
 def test_legend_handles():
-    handles = ak.plot.legend_handles(["Till", "Fill"])
+    handles = ht.plot.legend_handles(["Till", "Fill"])
     assert [h.get_label() for h in handles] == ["Till", "Fill"]
     assert handles[0].get_facecolor() == to_rgba(AUTOMATIC[0])
 
 
-@pytest.mark.parametrize("call", [ak.plot.palette_cmap, ak.plot.legend_handles])
+@pytest.mark.parametrize("call", [ht.plot.palette_cmap, ht.plot.legend_handles])
 def test_nothing_colored_yet_raises(call):
-    with pytest.raises(ak.AgsKitError, match="No geology units have colors yet"):
+    with pytest.raises(ht.HangtuError, match="No geology units have colors yet"):
         call()

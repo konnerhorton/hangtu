@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-import ags_kit as ak
-from ags_kit.units import to_display
+import hangtu as ht
+from hangtu.units import to_display
 
 
 # P00 §14 golden values, hand-calculated:
@@ -50,19 +50,19 @@ def test_us_value_shown_in_si_converts_back_by_hand(value, unit, quantity):
 
 def test_display_units_default_to_the_setting():
     assert to_display([10.0], "m", "length")[1] == "ft"
-    with ak.settings.override(display_units="SI"):
+    with ht.settings.override(display_units="SI"):
         assert to_display([10.0], "ft", "length")[1] == "m"
 
 
 def test_display_override_changes_the_unit():
-    ak.settings.display_overrides = {"stress": "ksf"}
+    ht.settings.display_overrides = {"stress": "ksf"}
     magnitudes, label = to_display([95.76], "kPa", "stress", "US")
     assert magnitudes[0] == pytest.approx(2.0, rel=5e-4)
     assert label == "ksf"
 
 
 def test_override_text_uses_superscripts():
-    ak.settings.display_overrides = {"unit_weight": "kN/m3"}
+    ht.settings.display_overrides = {"unit_weight": "kN/m3"}
     assert to_display([1.0], "pcf", "unit_weight", "US")[1] == "kN/m³"
 
 
@@ -88,5 +88,5 @@ def test_unregistered_column_stays_in_its_declared_unit():
 
 
 def test_invalid_display_units_argument_raises():
-    with pytest.raises(ak.AgsKitError, match='"US" or "SI"'):
+    with pytest.raises(ht.HangtuError, match='"US" or "SI"'):
         to_display([1.0], "ft", "length", "metric")

@@ -14,15 +14,15 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 from matplotlib.text import Text
 
-from ags_kit import units as _units
-from ags_kit._settings import _display_units, settings
-from ags_kit.errors import AgsKitError, ColumnError, warn
-from ags_kit.plot import _layers, _presets, style
-from ags_kit.plot._data import numeric_column, rows_text
-from ags_kit.plot._hints import hint_missing
-from ags_kit.plot._labels import axis_label
-from ags_kit.plot._legend import add_legend
-from ags_kit.plot._limits import (
+from hangtu import units as _units
+from hangtu._settings import _display_units, settings
+from hangtu.errors import ColumnError, HangtuError, warn
+from hangtu.plot import _layers, _presets, style
+from hangtu.plot._data import numeric_column, rows_text
+from hangtu.plot._hints import hint_missing
+from hangtu.plot._labels import axis_label
+from hangtu.plot._legend import add_legend
+from hangtu.plot._limits import (
     apply_vertical_axis,
     log_limits,
     nice_limits,
@@ -30,8 +30,8 @@ from ags_kit.plot._limits import (
     set_linear_axis,
     set_log_axis,
 )
-from ags_kit.plot._notes import Notes, edge_markers
-from ags_kit.plot._overlays import (
+from hangtu.plot._notes import Notes, edge_markers
+from hangtu.plot._overlays import (
     ValueScale,
     draw_design_lines,
     draw_note,
@@ -43,9 +43,9 @@ from ags_kit.plot._overlays import (
     statistics_list,
     stats_table,
 )
-from ags_kit.plot._palette import resolve_palette
-from ags_kit.plot._presets import Preset
-from ags_kit.plot._vertical import (
+from hangtu.plot._palette import resolve_palette
+from hangtu.plot._presets import Preset
+from hangtu.plot._vertical import (
     Vertical,
     add_secondary_depth,
     check_secondary_depth,
@@ -55,7 +55,7 @@ from ags_kit.plot._vertical import (
     length_columns,
     vertical_values,
 )
-from ags_kit.registry import column_info
+from hangtu.registry import column_info
 
 LEGEND_WIDTH = 1.5  # inches added to the settings size for the outside legend
 NEUTRAL = "0.3"  # points not colored by a group
@@ -89,13 +89,13 @@ def _check_limits(name: str, limits: Any, log: bool = False) -> tuple[float, flo
         and limits[0] != limits[1]
     )
     if not ok:
-        raise AgsKitError(
+        raise HangtuError(
             f"{name} must be (low, high), two different numbers in display units, "
             f"not {limits!r}. Example: {name}=(0, 50)"
         )
     lo, hi = sorted(float(v) for v in limits)
     if log and lo <= 0:
-        raise AgsKitError(
+        raise HangtuError(
             f"{name}={limits!r} can't be used on a log axis, because the lower "
             f"limit must be greater than 0. Example: {name}=(1e-7, 1e-2)"
         )
@@ -108,7 +108,7 @@ def _quantity(value: str, preset: Preset | None) -> str | None:
     if preset is None:
         return registered
     if registered is not None and registered != preset.quantity:
-        raise AgsKitError(
+        raise HangtuError(
             f"preset={preset.name!r} is for a {preset.quantity.replace('_', ' ')}, "
             f"but column {value!r} is a {registered.replace('_', ' ')}. "
             f"Use preset={value!r} if it exists, or leave preset out."
@@ -260,7 +260,7 @@ def _intervals(
     Rows with no interval, or with ``depth_top`` below ``depth_base``, are NaN.
     """
     if intervals not in (True, False, "auto"):
-        raise AgsKitError(
+        raise HangtuError(
             f'intervals must be True, False or "auto", not {intervals!r}.'
         )
     if intervals is False:
@@ -465,7 +465,7 @@ def profile(
     df : pandas.DataFrame
         One row per observation: the ``value`` column, plus ``depth`` or
         ``elevation`` (or ``depth`` and ``ground_level``). See
-        ``ak.template("profile")``.
+        ``ht.template("profile")``.
     value : str
         The column to plot.
     vs : {"elevation", "depth"}, optional
@@ -498,7 +498,7 @@ def profile(
     units : dict, optional
         ``{column: unit}``, overriding the units declared on ``df``.
     display_units : {"US", "SI"}, optional
-        Defaults to ``ak.settings.display_units``.
+        Defaults to ``ht.settings.display_units``.
     figsize : (width, height), optional
         Inches; by default the settings ``profile`` size plus room for the
         legend. Ignored with ``ax=``.
@@ -513,9 +513,9 @@ def profile(
 
     Examples
     --------
-    >>> k = ak.read_csv("perm.csv", units={"depth": "ft", "ground_level": "ft",
+    >>> k = ht.read_csv("perm.csv", units={"depth": "ft", "ground_level": "ft",
     ...                                    "hydraulic_conductivity": "cm/s"})
-    >>> fig, ax = ak.plot.profile(k, "hydraulic_conductivity",
+    >>> fig, ax = ht.plot.profile(k, "hydraulic_conductivity",
     ...                           preset="hydraulic_conductivity")
     """
     if value not in df.columns:
@@ -529,11 +529,11 @@ def profile(
             f"{', '.join(map(str, df.columns))}."
         )
     if xaxis_position not in ("top", "bottom"):
-        raise AgsKitError(
+        raise HangtuError(
             f'xaxis_position must be "top" or "bottom", not {xaxis_position!r}.'
         )
     if secondary not in (None, "depth"):
-        raise AgsKitError(f'secondary must be "depth" or None, not {secondary!r}.')
+        raise HangtuError(f'secondary must be "depth" or None, not {secondary!r}.')
     statistics = statistics_list(stats_box) if stats_box is not False else None
 
     system = _display_units(display_units or settings.display_units)

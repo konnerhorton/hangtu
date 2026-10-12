@@ -4,8 +4,8 @@ from typing import Any
 
 import pandas as pd
 
-from ags_kit import _config
-from ags_kit.errors import ColumnError
+from hangtu import _config
+from hangtu.errors import ColumnError
 
 _DTYPES = {"number": "float64", "text": "object", "bool": "bool"}
 
@@ -30,7 +30,7 @@ def _template_columns(name: str) -> list[str]:
     if name not in templates:
         raise ColumnError(
             f"There is no template named {name!r}. "
-            f"Templates: {', '.join(templates)}. Example: ak.template('spt')"
+            f"Templates: {', '.join(templates)}. Example: ht.template('spt')"
         )
     return templates[name]
 
@@ -53,7 +53,7 @@ def columns(template: str | None = None) -> pd.DataFrame:
 
     Examples
     --------
-    >>> ak.columns("spt")
+    >>> ht.columns("spt")
     """
     names = (
         list(_registry()["columns"])
@@ -83,11 +83,11 @@ def template(name: str) -> pd.DataFrame:
 
     Save it with ``.to_csv(path, index=False)`` to get a file to fill in. The
     file has one header row and no units row: declare units when you read it
-    back with ``ak.read_csv(path, units={...})``.
+    back with ``ht.read_csv(path, units={...})``.
 
     Examples
     --------
-    >>> ak.template("spt").to_csv("spt.csv", index=False)
+    >>> ht.template("spt").to_csv("spt.csv", index=False)
     """
     return pd.DataFrame(
         {

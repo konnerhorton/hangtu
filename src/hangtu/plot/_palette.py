@@ -11,8 +11,8 @@ import pandas as pd
 from matplotlib.colors import ListedColormap, is_color_like
 from matplotlib.patches import Patch
 
-from ags_kit._settings import settings
-from ags_kit.errors import AgsKitError, warn
+from hangtu._settings import settings
+from hangtu.errors import HangtuError, warn
 
 # tab20 comes in dark/light pairs; use the 10 dark shades first.
 _TAB20 = list(mpl.colormaps["tab20"].colors)
@@ -41,9 +41,9 @@ def resolve_palette(
 ) -> dict[Any, Any]:
     """Return ``{unit: color}`` for ``units``, in stratigraphic or name order.
 
-    Colors come from ``palette``, then ``ak.settings.palette``, then automatic
+    Colors come from ``palette``, then ``ht.settings.palette``, then automatic
     colors from tab20. Automatic colors are remembered, so a unit keeps its
-    color in later plots until ``ak.plot.reset_palette()``.
+    color in later plots until ``ht.plot.reset_palette()``.
 
     Parameters
     ----------
@@ -57,7 +57,7 @@ def resolve_palette(
     palette = palette or {}
     bad = [unit for unit, color in palette.items() if not is_color_like(color)]
     if bad:
-        raise AgsKitError(
+        raise HangtuError(
             f"palette has colors matplotlib doesn't recognize for {bad}. "
             'Use a color name ("tan"), a hex string ("#d2b48c") or an RGB tuple.'
         )
@@ -77,7 +77,7 @@ def resolve_palette(
         warn(
             f"More than {len(AUTOMATIC)} geology units have automatic colors, so "
             "some colors repeat. Choose colors with "
-            'ak.settings.palette = {"Alluvium": "tan", ...}.'
+            'ht.settings.palette = {"Alluvium": "tan", ...}.'
         )
     return resolved
 
@@ -85,9 +85,9 @@ def resolve_palette(
 def _known_units() -> list[Any]:
     units = list(dict.fromkeys([*settings.palette, *_assigned]))
     if not units:
-        raise AgsKitError(
+        raise HangtuError(
             "No geology units have colors yet. Pass the units, e.g. "
-            'ak.plot.palette_cmap(["Alluvium", "Till"]).'
+            'ht.plot.palette_cmap(["Alluvium", "Till"]).'
         )
     return units
 
@@ -95,12 +95,12 @@ def _known_units() -> list[Any]:
 def palette_cmap(units: Sequence[Any] | None = None) -> ListedColormap:
     """Return the geology unit colors as a colormap, one color per unit in order.
 
-    Use it to color your own matplotlib plots consistently with ags-kit's.
+    Use it to color your own matplotlib plots consistently with hangtu's.
     Without ``units``, every unit colored so far in this session is included.
     """
     units = _known_units() if units is None else list(units)
     colors = resolve_palette(units, order=units)
-    return ListedColormap([colors[unit] for unit in units], name="ags_kit_geology")
+    return ListedColormap([colors[unit] for unit in units], name="hangtu_geology")
 
 
 def legend_handles(units: Sequence[Any] | None = None) -> list[Patch]:
@@ -108,7 +108,7 @@ def legend_handles(units: Sequence[Any] | None = None) -> list[Patch]:
 
     Examples
     --------
-    >>> fig.legend(handles=ak.plot.legend_handles(), loc="outside right")
+    >>> fig.legend(handles=ht.plot.legend_handles(), loc="outside right")
     """
     units = _known_units() if units is None else list(units)
     colors = resolve_palette(units, order=units)

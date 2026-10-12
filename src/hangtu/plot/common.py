@@ -1,9 +1,9 @@
 """Helpers shared by every plot. Private API: tested, but free to change."""
 
-from ags_kit.plot._hints import hint_missing
-from ags_kit.plot._labels import axis_label
-from ags_kit.plot._legend import add_legend
-from ags_kit.plot._limits import (
+from hangtu.plot._hints import hint_missing
+from hangtu.plot._labels import axis_label
+from hangtu.plot._legend import add_legend
+from hangtu.plot._limits import (
     apply_vertical_axis,
     log_limits,
     nice_limits,
@@ -11,8 +11,8 @@ from ags_kit.plot._limits import (
     set_linear_axis,
     set_log_axis,
 )
-from ags_kit.plot._notes import Notes, edge_markers
-from ags_kit.plot._palette import resolve_palette
+from hangtu.plot._notes import Notes, edge_markers
+from hangtu.plot._palette import resolve_palette
 
 __all__ = [
     "Notes",

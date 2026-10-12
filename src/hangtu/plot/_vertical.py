@@ -15,12 +15,12 @@ from matplotlib.axes import Axes
 from matplotlib.ticker import MultipleLocator
 from numpy.typing import ArrayLike
 
-from ags_kit._settings import _display_units, settings
-from ags_kit.errors import AgsKitError, ColumnError
-from ags_kit.plot._data import numeric_column
-from ags_kit.plot._labels import axis_label
-from ags_kit.plot._limits import nice_step
-from ags_kit.units import to_display
+from hangtu._settings import _display_units, settings
+from hangtu.errors import ColumnError, HangtuError
+from hangtu.plot._data import numeric_column
+from hangtu.plot._labels import axis_label
+from hangtu.plot._limits import nice_step
+from hangtu.units import to_display
 
 VS = ("depth", "elevation")
 # Every length column a profile reads. They are converted together, so one
@@ -79,7 +79,7 @@ def choose_vs(df: pd.DataFrame, vs: str | None) -> Literal["depth", "elevation"]
     ``depth`` plus ``ground_level``, and depth otherwise.
     """
     if vs is not None and vs not in VS:
-        raise AgsKitError(f'vs must be "depth", "elevation" or None, not {vs!r}.')
+        raise HangtuError(f'vs must be "depth", "elevation" or None, not {vs!r}.')
     has = set(df.columns)
     if not has & set(VS):
         raise ColumnError(
@@ -248,7 +248,7 @@ def convert_vertical(
     if from_vs == vertical.vs:
         return values
     if vertical.ground_level is None:
-        raise AgsKitError(
+        raise HangtuError(
             f"The {overlay} overlay is given in {from_vs} but the plot is against "
             f"{vertical.vs}, and the data don't share one ground level, so it can't "
             f"be converted. Give {columns} instead, or plot with vs={from_vs!r}."
@@ -274,13 +274,13 @@ def convert_pair(
 def check_secondary_depth(vertical: Vertical) -> None:
     """Raise unless a depth axis can be added: elevation, one ground level."""
     if vertical.vs != "elevation":
-        raise AgsKitError(
+        raise HangtuError(
             'secondary="depth" adds a depth axis to an elevation plot, but this '
             "plot is already against depth. Leave secondary out, or plot with "
             "vs='elevation'."
         )
     if vertical.ground_level is None:
-        raise AgsKitError(
+        raise HangtuError(
             'secondary="depth" needs one ground level for all the data, because '
             "depth = ground_level - elevation. These data have several ground "
             "levels, or none. Plot one hole, or leave secondary out."

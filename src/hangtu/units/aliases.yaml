@@ -1,6 +1,6 @@
 # Unit alias table: the first lookup for every unit string (docs/plots/P00-framework.md §4.2).
 # Unit string  ->  pint expression        (case-sensitive)
-# Add entries at run time with ak.add_unit_alias(text, pint_expr).
+# Add entries at run time with ht.add_unit_alias(text, pint_expr).
 "m": "meter"
 "ft": "foot"
 "mm": "millimeter"

@@ -2,8 +2,8 @@
 
 from dataclasses import dataclass
 
-from ags_kit import _config
-from ags_kit.errors import AgsKitError
+from hangtu import _config
+from hangtu.errors import HangtuError
 
 
 @dataclass(frozen=True)
@@ -35,11 +35,11 @@ def preset_names() -> list[str]:
 def preset(name: str) -> Preset:
     """Return the preset called ``name``.
 
-    Raises ``AgsKitError`` listing the presets when there is no such preset.
+    Raises ``HangtuError`` listing the presets when there is no such preset.
     """
     entries = _presets()
     if name not in entries:
-        raise AgsKitError(
+        raise HangtuError(
             f"There is no preset named {name!r}. Presets: {', '.join(entries)}. "
             'Example: preset="hydraulic_conductivity"'
         )

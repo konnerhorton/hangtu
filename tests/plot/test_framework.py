@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import ags_kit as ak
+import hangtu as ht
 
 
 @pytest.fixture
@@ -18,11 +18,11 @@ def water_content():
             "geology_unit": ["Fill", "Alluvium", "Alluvium", "Till", "Till"],
         }
     )
-    return ak.set_units(frame, {"depth": "ft"})
+    return ht.set_units(frame, {"depth": "ft"})
 
 
 def test_dummy_plot_composes_on_a_sheet(dummy_plot, water_content):
-    sheet = ak.Sheet("tabloid", layout=(1, 2), title="Site A")
+    sheet = ht.Sheet("tabloid", layout=(1, 2), title="Site A")
     figures = plt.get_fignums()
     fig, ax = dummy_plot(water_content, "water_content", ax=sheet[0])
     dummy_plot(water_content, "water_content", ax=sheet[1], xlim=(0, 100))
@@ -72,14 +72,14 @@ def test_units_are_unknown_after_merge(dummy_plot, water_content):
 
 
 def test_missing_geology_gives_one_hint(dummy_plot, water_content):
-    with pytest.warns(ak.AgsKitHint, match="'geology_unit'") as record:
+    with pytest.warns(ht.HangtuHint, match="'geology_unit'") as record:
         _, ax = dummy_plot(water_content.drop(columns="geology_unit"), "water_content")
     assert len(record) == 1
     assert ax.get_legend() is None
 
 
 def test_panels_get_the_house_style(dummy_plot, water_content):
-    sheet = ak.Sheet(layout=(1, 1))
+    sheet = ht.Sheet(layout=(1, 1))
     _, ax = dummy_plot(water_content, "water_content", ax=sheet[0])
     assert ax.xaxis.get_gridlines()[0].get_visible()
     assert ax.xaxis.get_major_ticks()[0]._tickdir == "in"
@@ -95,10 +95,10 @@ P00_API = [
     "columns",
     "template",
     "Sheet",
-    "AgsKitError",
+    "HangtuError",
     "UnitsError",
     "ColumnError",
-    "AgsKitHint",
+    "HangtuHint",
     "plot.palette_cmap",
     "plot.legend_handles",
     "plot.reset_palette",
@@ -108,6 +108,6 @@ P00_API = [
 
 @pytest.mark.parametrize("name", P00_API)
 def test_p00_public_api_exists(name):
-    target = ak
+    target = ht
     for part in name.split("."):
         target = getattr(target, part)

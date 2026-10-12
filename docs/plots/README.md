@@ -9,11 +9,11 @@ Each figure is a separate feature with its own spec file in this folder, written
 ## Shared conventions (apply to every plot unless its spec says otherwise)
 
 ### Function contract
-- Signature: `ak.plot.<name>(df, *, <plot-specific args>, units=None, display_units=None, figsize=None, ax=None, **style_overrides) -> (fig, ax)`.
+- Signature: `ht.plot.<name>(df, *, <plot-specific args>, units=None, display_units=None, figsize=None, ax=None, **style_overrides) -> (fig, ax)`.
   - Multi-panel figures return `(fig, axs)`.
   - Plots that run an analysis also return a result object: `(fig, ax, result)`.
-- With `ax=` given, the plot draws into that axes and never creates a figure. This is what makes `ak.Sheet` composition work.
-- Analysis code lives in `ak.analysis.*` as plain functions, which can be called without plotting. The plot calls the analysis and draws its result.
+- With `ax=` given, the plot draws into that axes and never creates a figure. This is what makes `ht.Sheet` composition work.
+- Analysis code lives in `ht.analysis.*` as plain functions, which can be called without plotting. The plot calls the analysis and draws its result.
 - Every plot returns standard matplotlib objects that the user can edit afterwards.
 - No global state: the house style is applied inside a context manager.
 
@@ -24,8 +24,8 @@ Each figure is a separate feature with its own spec file in this folder, written
   2. `df.attrs["units"]`;
   3. the column registry plus the session or project display system (Phase 2 datasets);
   4. otherwise "(units unknown)" in the label, with a warning.
-- **Display units** come from `display_units=`, else `ak.settings.display_units`. Plots never convert silently without labeling.
-- **Required vs optional columns:** each spec keeps the required set to the minimum needed to draw something useful. When optional columns that unlock features (`geology_unit`, `loca_id`, `ground_level`, …) are missing, the plot emits **one hint** per call listing them and what each would add. 🟡 Hints are a `UserWarning` subclass, `ak.AgsKitHint`, so they can be filtered, and `ak.settings.hints = False` turns them off.
+- **Display units** come from `display_units=`, else `ht.settings.display_units`. Plots never convert silently without labeling.
+- **Required vs optional columns:** each spec keeps the required set to the minimum needed to draw something useful. When optional columns that unlock features (`geology_unit`, `loca_id`, `ground_level`, …) are missing, the plot emits **one hint** per call listing them and what each would add. 🟡 Hints are a `UserWarning` subclass, `ht.HangtuHint`, so they can be filtered, and `ht.settings.hints = False` turns them off.
 - Standard optional grouping columns: `loca_id` (exploratory hole), `geology_unit` (geology unit), `specimen_id`.
 
 ### Axes and labels
@@ -51,12 +51,12 @@ Each figure is a separate feature with its own spec file in this folder, written
   - `ranges`: user-supplied published ranges (bands);
   - `reference_lines`: user-supplied lines, as a DataFrame or a list of `(value, label)`;
   - `stats_box`: `True` shows the plot's default statistics (set in its spec); a list chooses them, e.g. `["count", "mean", "cov"]`;
-  - `characteristic`: a result from `ak.stats.characteristic`;
+  - `characteristic`: a result from `ht.stats.characteristic`;
   - `note`: free text.
 - Overlays come from data and are never hard-coded: published zones (A-line, classification bands, etc.) live in `config/defaults.yaml` or in the plot module, with their source cited.
 
 ### Output
-- **Default sizes are global settings**, by plot kind: `ak.settings.figure_sizes = {"default": (6.5, 4.5), "profile": (4.0, 6.5)}` (inches; `default` fits a Letter or A4 page with margins, `profile` is portrait). Each spec says which kind it uses. `figsize=` overrides the size for one call. With `ax=`, the size comes from the axes.
+- **Default sizes are global settings**, by plot kind: `ht.settings.figure_sizes = {"default": (6.5, 4.5), "profile": (4.0, 6.5)}` (inches; `default` fits a Letter or A4 page with margins, `profile` is portrait). Each spec says which kind it uses. `figsize=` overrides the size for one call. With `ax=`, the size comes from the axes.
 - `fig.savefig` is left to the user. The examples show PDF and PNG at 300 dpi.
 
 ---
@@ -70,7 +70,7 @@ Data for all of these already exists in the MVP scope. P00 is the foundation the
 
 | ID | Plot | Function | Type | Notes / dependencies | Status |
 |---|---|---|---|---|---|
-| P00 | **Plot framework**: house style, palette, unit-aware labels, out-of-range markers, legend rules, `Sheet` | `ak.plot.style`, `ak.Sheet` | infrastructure | Everything depends on this. Includes units for DataFrames and the column registry | [built](P00-framework.md) |
+| P00 | **Plot framework**: house style, palette, unit-aware labels, out-of-range markers, legend rules, `Sheet` | `ht.plot.style`, `ht.Sheet` | infrastructure | Everything depends on this. Includes units for DataFrames and the column registry | [built](P00-framework.md) |
 | P01 | **Property profile**: any property against depth or elevation, linear or log axis. Presets for permeability (log), undrained shear strength, moisture content, unit weight | `profile` | plot | Foundation for P02, P06 and P09 | [built](P01-property-profile.md) |
 | P02 | **SPT N profile**: N and/or N60 against elevation or depth, refusal markers, optional per-hole lines | `spt_profile` | plot + light analysis (N60, refusal, mid-drive depth) | P01 | idea |
 | P03 | **SPT qualitative histograms**: cohesionless (relative density) and cohesive (consistency) | `spt_histogram`, `spt_histograms` | plot + classification | P00 | idea |

@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-from ags_kit.plot.common import Notes, edge_markers, log_limits, set_log_axis
+from hangtu.plot.common import Notes, edge_markers, log_limits, set_log_axis
 
 
 def test_notes_count_by_reason_and_skip_zero_counts():
@@ -39,11 +39,11 @@ def test_render_with_nothing_to_note():
 def test_free_text_follows_the_counts():
     _, ax = plt.subplots()
     notes = Notes()
-    notes.add_text("35 units: see ak.plot.legend_handles()")
+    notes.add_text("35 units: see ht.plot.legend_handles()")
     notes.add("nan", 2)
     footnote = notes.render(ax)
     assert footnote.get_text() == (
-        "2 blank values not shown\n35 units: see ak.plot.legend_handles()"
+        "2 blank values not shown\n35 units: see ht.plot.legend_handles()"
     )
     assert footnote.get_fontsize() == 7
 

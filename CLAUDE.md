@@ -1,12 +1,12 @@
-# ags-kit
+# hangtu
 
-Python library of plots, analyses and (later) AGS4 ingest/QC for geotechnical engineers. M0 (scaffolding), M1 (P00 framework) and M2 (P01 property profile) done; M3 (P02–P03 and the SPT analysis) is next.
+Python library of plots, analyses and (later) AGS4 ingest/QC for geotechnical engineers. M0 (scaffolding), M1 (P00 framework) and M2 (P01 property profile) done, and the package renamed from ags-kit to hangtu; M3 (P02–P03 and the SPT analysis) is next.
 
 ## Where things are
 - `SPEC.md`: product spec and cross-cutting decisions. Read the relevant section before designing anything.
 - `docs/plots/PXX-*.md`: one spec per figure, with acceptance criteria. `docs/plots/README.md` has the shared plot conventions.
 - `docs/work/<id>-<slug>/`: intent and plan for each unit of work (see `docs/reference/process.md`).
-- `src/ags_kit/columns.yaml` and `src/ags_kit/units/aliases.yaml`: the column registry and unit aliases.
+- `src/hangtu/columns.yaml` and `src/hangtu/units/aliases.yaml`: the column registry and unit aliases.
 - `docs/drafts/`: the analyses draft spec (`analysis.md`, M3–M4) and notes for later phases. Items marked "decided" are decided; the rest is not. Finish the relevant draft as the feature spec before building from it.
 - `TODO.md`: research items and pending decisions, referenced as "TODO #n".
 
@@ -19,7 +19,7 @@ Python library of plots, analyses and (later) AGS4 ingest/QC for geotechnical en
 
 ## Conventions
 - **Users are engineers, not developers.** Every analysis is a plain function on a DataFrame. Keep objects thin.
-- **Plot contract:** `ak.plot.<name>(df, *, ..., ax=None, display_units=None) -> (fig, ax)`. Apply styling in a context manager and never change global matplotlib state.
+- **Plot contract:** `ht.plot.<name>(df, *, ..., ax=None, display_units=None) -> (fig, ax)`. Apply styling in a context manager and never change global matplotlib state.
 - **Column names come from the registry** (`columns.yaml`, SPEC §10.3). Don't invent column names in a function.
 - **Units:** resolve them in the order explicit argument → `df.attrs["units"]` → registry/settings → error (analysis) or "(units unknown)" (plot). Never guess a unit (SPEC §2.6).
 - **Never drop data silently.** Draw out-of-range values at the edge with a count, and keep flagged values (NP, refusal, `<x`) distinct from blank.

@@ -5,8 +5,8 @@ import pandas as pd
 import pytest
 from matplotlib.lines import Line2D
 
-import ags_kit as ak
-from ags_kit.plot.common import Notes, add_legend, hint_missing
+import hangtu as ht
+from hangtu.plot.common import Notes, add_legend, hint_missing
 
 
 def entries(n, prefix="Unit"):
@@ -41,7 +41,7 @@ def test_more_than_30_entries_gives_a_note_instead():
     notes = Notes()
     assert add_legend(ax, [entries(29), entries(2, "Marker")], notes) is None
     assert ax.get_legend() is None
-    assert notes.lines() == ["29 geology units: see ak.plot.legend_handles()"]
+    assert notes.lines() == ["29 geology units: see ht.plot.legend_handles()"]
 
 
 def test_no_entries_no_legend():
@@ -58,14 +58,14 @@ OPTIONAL = {
 
 def test_one_hint_per_call_listing_every_missing_column():
     df = pd.DataFrame({"depth": [1.0]})
-    with pytest.warns(ak.AgsKitHint) as record:
+    with pytest.warns(ht.HangtuHint) as record:
         missing = hint_missing(df, OPTIONAL)
     assert missing == ["geology_unit", "loca_id"]
     assert len(record) == 1
     assert str(record[0].message) == (
         "No 'geology_unit' column: points are not colored by geology. "
         "No 'loca_id' column: connect= is unavailable. "
-        "(Turn hints off with ak.settings.hints = False.)"
+        "(Turn hints off with ht.settings.hints = False.)"
     )
     assert record[0].filename == __file__
 
@@ -78,7 +78,7 @@ def test_no_hint_when_nothing_is_missing():
 
 
 def test_no_hint_when_hints_are_off():
-    ak.settings.hints = False
+    ht.settings.hints = False
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         assert hint_missing(pd.DataFrame(), OPTIONAL) == list(OPTIONAL)

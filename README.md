@@ -1,8 +1,8 @@
-# ags-kit
+# hangtu
 
 Python tools for geotechnical engineers working with **AGS4** data files.
 
-AGS is a data exchange format for ground investigation data. It was developed in the UK and is used worldwide, but outside the UK and Australia the tooling for actually *using* AGS data is thin. ags-kit fills part of that gap. It turns an AGS file into a queryable database, checks its quality, and provides the analyses, statistics and plots a geotechnical engineer needs day to day, in US or SI units.
+AGS is a data exchange format for ground investigation data. It was developed in the UK and is used worldwide, but outside the UK and Australia the tooling for actually *using* AGS data is thin. hangtu fills part of that gap. It turns an AGS file into a queryable database, checks its quality, and provides the analyses, statistics and plots a geotechnical engineer needs day to day, in US or SI units.
 
 > **Status:** pre-alpha. The MVP is specified in [SPEC.md](SPEC.md) and nothing is built yet.
 
@@ -23,17 +23,17 @@ See [SPEC.md](SPEC.md) for the full specification and roadmap, and [docs/referen
 ## Quickstart (planned)
 
 ```bash
-pip install ags-kit      # or: uv add ags-kit
+pip install hangtu      # or: uv add hangtu
 ```
 
 ```python
-import ags_kit as ak
+import hangtu as ht
 
-p = ak.Project.from_ags("site.ags", db="site.sqlite", display_units="US")
+p = ht.Project.from_ags("site.ags", db="site.sqlite", display_units="US")
 p.qc().to_csv("qc_report.csv")
 
 spt = p.spt()
-fig, ax = ak.plot.spt_profile(spt, color_by="geology_unit")
+fig, ax = ht.plot.spt_profile(spt, color_by="geology_unit")
 fig.savefig("spt.png")
 ```
 

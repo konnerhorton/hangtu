@@ -3,8 +3,8 @@ from importlib.resources import files
 
 import pytest
 
-import ags_kit as ak
-from ags_kit import _config
+import hangtu as ht
+from hangtu import _config
 
 REGISTRY = _config.load("columns.yaml")
 COLUMNS = REGISTRY["columns"]
@@ -69,7 +69,7 @@ def test_overlay_field_follows_the_rules(name):
 def test_names_are_unique():
     # yaml.safe_load keeps the last of two equal keys, so check the raw file.
     # Column and field names share one namespace.
-    text = files("ags_kit").joinpath("columns.yaml").read_text(encoding="utf-8")
+    text = files("hangtu").joinpath("columns.yaml").read_text(encoding="utf-8")
     names = re.findall(r"^  ([a-z0-9_]+):\s*$", text, flags=re.MULTILINE)
     assert len(names) == len(set(names)) == len(COLUMNS) + len(OVERLAY_FIELDS)
 
@@ -82,7 +82,7 @@ def test_template_columns_are_registered(name):
 
 
 def test_columns_lists_every_column():
-    table = ak.columns()
+    table = ht.columns()
     assert list(table.columns) == [
         "name",
         "description",
@@ -95,7 +95,7 @@ def test_columns_lists_every_column():
 
 
 def test_columns_for_a_template_follows_template_order():
-    table = ak.columns("spt").set_index("name")
+    table = ht.columns("spt").set_index("name")
     assert list(table.index) == REGISTRY["templates"]["spt"]
     assert table.loc["depth", ["us_unit", "si_unit"]].tolist() == ["ft", "m"]
     assert table.loc["spt_penetration", ["us_unit", "si_unit"]].tolist() == [
@@ -107,7 +107,7 @@ def test_columns_for_a_template_follows_template_order():
 
 
 def test_template_is_an_empty_frame_with_typed_columns():
-    frame = ak.template("atterberg")
+    frame = ht.template("atterberg")
     assert frame.empty
     assert list(frame.columns) == REGISTRY["templates"]["atterberg"]
     assert frame["liquid_limit"].dtype == "float64"
@@ -127,7 +127,7 @@ PAIRS = ["depth_top", "depth_base", "elevation_top", "elevation_base"]
     ],
 )
 def test_overlay_templates_follow_p01(name, columns):
-    frame = ak.template(name)
+    frame = ht.template(name)
     assert list(frame.columns) == columns
     text = {"geology_unit", "label", "source"}
     for column in frame.columns:
@@ -135,8 +135,8 @@ def test_overlay_templates_follow_p01(name, columns):
 
 
 def test_columns_lists_overlay_fields_only_for_their_template():
-    assert "low" not in set(ak.columns()["name"])
-    table = ak.columns("ranges").set_index("name")
+    assert "low" not in set(ht.columns()["name"])
+    table = ht.columns("ranges").set_index("name")
     assert list(table.index) == REGISTRY["templates"]["ranges"]
     assert table.loc["low", ["quantity", "us_unit", "used_by"]].tolist() == ["", "", ""]
     assert table.loc["depth_top", "us_unit"] == "ft"
@@ -144,11 +144,11 @@ def test_columns_lists_overlay_fields_only_for_their_template():
 
 def test_template_csv_has_one_header_row(tmp_path):
     path = tmp_path / "spt.csv"
-    ak.template("spt").to_csv(path, index=False)
+    ht.template("spt").to_csv(path, index=False)
     assert path.read_text().splitlines() == [",".join(REGISTRY["templates"]["spt"])]
 
 
-@pytest.mark.parametrize("call", [ak.template, ak.columns])
+@pytest.mark.parametrize("call", [ht.template, ht.columns])
 def test_unknown_template_lists_the_templates(call):
-    with pytest.raises(ak.ColumnError, match=r"no template named 'sptt'.*spt"):
+    with pytest.raises(ht.ColumnError, match=r"no template named 'sptt'.*spt"):
         call("sptt")

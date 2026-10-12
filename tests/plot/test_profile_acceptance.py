@@ -17,7 +17,7 @@ import pandas as pd
 import pytest
 from matplotlib.colors import to_rgba
 
-import ags_kit as ak
+import hangtu as ht
 
 DATA = Path(__file__).parents[1] / "data"
 FT = 0.3048
@@ -25,7 +25,7 @@ PSF_TO_KPA = 0.04788026
 
 
 def perm():
-    return ak.read_csv(
+    return ht.read_csv(
         DATA / "profile_perm.csv",
         units={
             "depth": "ft",
@@ -38,7 +38,7 @@ def perm():
 
 
 def su():
-    return ak.read_csv(
+    return ht.read_csv(
         DATA / "profile_su.csv",
         units={
             "depth": "m",
@@ -50,7 +50,7 @@ def su():
 
 
 def single():
-    return ak.read_csv(
+    return ht.read_csv(
         DATA / "profile_single.csv",
         units={"depth": "ft", "ground_level": "ft", "bulk_unit_weight": "pcf"},
     )
@@ -61,11 +61,11 @@ SU = {"value": "undrained_shear_strength", "preset": "undrained_shear_strength"}
 
 
 def plot_k(**kwargs):
-    return ak.plot.profile(perm(), **K, **kwargs)
+    return ht.plot.profile(perm(), **K, **kwargs)
 
 
 def plot_su(**kwargs):
-    return ak.plot.profile(su(), **SU, **kwargs)
+    return ht.plot.profile(su(), **SU, **kwargs)
 
 
 def filled(ax):
@@ -163,7 +163,7 @@ def test_x_axis_is_at_the_bottom():
 
 def test_unit_colors_match_legend_handles():
     _, ax = plot_k()
-    for handle in ak.plot.legend_handles(["Alluvium", "Fill", "Upper Clay"]):
+    for handle in ht.plot.legend_handles(["Alluvium", "Fill", "Upper Clay"]):
         points = [c for c in ax.collections if c.get_label() == handle.get_label()]
         assert to_rgba(points[0].get_facecolor()[0]) == to_rgba(handle.get_facecolor())
 
@@ -171,7 +171,7 @@ def test_unit_colors_match_legend_handles():
 def test_carets_point_the_right_way():
     df = perm()
     df.loc[0, "qualifier"] = ">"
-    _, ax = ak.plot.profile(df, **K)
+    _, ax = ht.plot.profile(df, **K)
     assert caret_tips(ax, " <").max() < 0
     assert caret_tips(ax, " >").min() > 0
 
@@ -203,19 +203,19 @@ def test_footnote_counts():
 )
 @pytest.mark.parametrize("vs", ["depth", "elevation"])
 def test_renders_for_every_preset_and_vs(data, value, vs):
-    _, ax = ak.plot.profile(data(), value, preset=value, vs=vs)
+    _, ax = ht.plot.profile(data(), value, preset=value, vs=vs)
     assert filled(ax)
 
 
 def test_a_single_point_sits_inside_the_typical_range():
-    _, ax = ak.plot.profile(single(), "bulk_unit_weight", preset="bulk_unit_weight")
+    _, ax = ht.plot.profile(single(), "bulk_unit_weight", preset="bulk_unit_weight")
     low, high = ax.get_xlim()
     assert low <= 89.1 and high >= 146.4  # 14-23 kN/m³ in pcf
     assert low < 118.0 < high
 
 
 def test_labels_contain_units_and_the_datum():
-    with ak.settings.override(vertical_datum="NAVD88"):
+    with ht.settings.override(vertical_datum="NAVD88"):
         _, us = plot_k()
         _, si = plot_su(display_units="SI")
     assert us.get_xlabel() == "Hydraulic conductivity, k (cm/s)"
@@ -225,7 +225,7 @@ def test_labels_contain_units_and_the_datum():
 
 
 def overlays():
-    strata = ak.set_units(
+    strata = ht.set_units(
         pd.DataFrame(
             {
                 "geology_unit": ["Fill", "Alluvium", "Upper Clay"],
@@ -235,7 +235,7 @@ def overlays():
         ),
         {"elevation_top": "ft", "elevation_base": "ft"},
     )
-    ranges = ak.set_units(
+    ranges = ht.set_units(
         pd.DataFrame(
             {
                 "low": [1e-5],
@@ -246,7 +246,7 @@ def overlays():
         ),
         {"low": "cm/s", "high": "cm/s"},
     )
-    design = ak.set_units(
+    design = ht.set_units(
         pd.DataFrame(
             {"label": ["design"] * 2, "elevation": [120.0, 80.0], "value": [1e-4, 1e-6]}
         ),
@@ -281,7 +281,7 @@ def test_every_overlay_on_and_off(overlay):
 
 
 def test_draws_into_a_sheet_panel_without_a_new_figure():
-    sheet = ak.Sheet("letter", layout=(1, 2))
+    sheet = ht.Sheet("letter", layout=(1, 2))
     figures = mpl.pyplot.get_fignums()
     fig, _ = plot_k(ax=sheet[0])
     assert fig is sheet.figure
@@ -300,7 +300,7 @@ def test_draws_into_a_sheet_panel_without_a_new_figure():
 def test_us_and_si_put_points_in_the_same_place(
     data, kwargs, quantity, assert_us_si_equivalent
 ):
-    plot = partial(ak.plot.profile, **kwargs)
+    plot = partial(ht.plot.profile, **kwargs)
     assert_us_si_equivalent(plot, data(), (quantity, "length"))
 
 
@@ -318,18 +318,18 @@ def test_out_of_range_counts():
 
 
 def test_missing_columns_and_units_are_explained():
-    with pytest.raises(ak.ColumnError, match="Column 'k' not found"):
-        ak.plot.profile(perm(), "k")
+    with pytest.raises(ht.ColumnError, match="Column 'k' not found"):
+        ht.plot.profile(perm(), "k")
     no_vertical = perm().drop(columns=["depth", "ground_level"])
-    with pytest.raises(ak.ColumnError, match="'depth' or an 'elevation' column"):
-        ak.plot.profile(no_vertical, **K)
+    with pytest.raises(ht.ColumnError, match="'depth' or an 'elevation' column"):
+        ht.plot.profile(no_vertical, **K)
     bare = pd.read_csv(DATA / "profile_perm.csv")
     with pytest.warns(UserWarning) as record:
-        _, ax = ak.plot.profile(bare, **K)
+        _, ax = ht.plot.profile(bare, **K)
     messages = [str(warning.message) for warning in record]
     assert any("'hydraulic_conductivity' has no units" in m for m in messages)
     assert ax.get_xlabel() == "Hydraulic conductivity, k (units unknown)"
 
 
 def test_no_change_to_global_state(assert_no_global_state):
-    assert_no_global_state(ak.plot.profile, perm(), **K, **overlays())
+    assert_no_global_state(ht.plot.profile, perm(), **K, **overlays())

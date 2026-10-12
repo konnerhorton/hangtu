@@ -1,4 +1,4 @@
-"""Session settings, available as ``ak.settings`` (docs/plots/P00-framework.md §3)."""
+"""Session settings, available as ``ht.settings`` (docs/plots/P00-framework.md §3)."""
 
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
@@ -7,15 +7,15 @@ from typing import Any
 
 from matplotlib.colors import is_color_like
 
-from ags_kit import _config
-from ags_kit.errors import AgsKitError
+from hangtu import _config
+from hangtu.errors import HangtuError
 
 
 def _display_units(value: Any) -> str:
     if value not in ("US", "SI"):
-        raise AgsKitError(
+        raise HangtuError(
             f'settings.display_units must be "US" or "SI", not {value!r}. '
-            'Example: ak.settings.display_units = "SI"'
+            'Example: ht.settings.display_units = "SI"'
         )
     return value
 
@@ -24,26 +24,26 @@ def _display_overrides(value: Any) -> dict[str, str]:
     if not isinstance(value, dict) or not all(
         isinstance(key, str) and isinstance(unit, str) for key, unit in value.items()
     ):
-        raise AgsKitError(
+        raise HangtuError(
             "settings.display_overrides must be a dict of {quantity kind: unit}, "
             f"not {value!r}. "
-            'Example: ak.settings.display_overrides = {"stress": "ksf"}'
+            'Example: ht.settings.display_overrides = {"stress": "ksf"}'
         )
     if value:
-        from ags_kit import units  # imported here because units imports settings
+        from hangtu import units  # imported here because units imports settings
 
         kinds = _config.quantity_kinds()
         for kind, unit in value.items():
             if kind not in kinds or kinds[kind]["canonical"] is None:
                 convertible = [name for name in kinds if kinds[name]["canonical"]]
-                raise AgsKitError(
+                raise HangtuError(
                     f"settings.display_overrides can't set a unit for {kind!r}. "
                     f"Quantity kinds with units: {', '.join(convertible)}."
                 )
             try:
                 units.check_dimension(units.parse_unit(unit), kind)
-            except AgsKitError as error:
-                raise AgsKitError(
+            except HangtuError as error:
+                raise HangtuError(
                     f"settings.display_overrides[{kind!r}]: {error}"
                 ) from None
     return dict(value)
@@ -51,22 +51,22 @@ def _display_overrides(value: Any) -> dict[str, str]:
 
 def _vertical_datum(value: Any) -> str | None:
     if value is not None and (not isinstance(value, str) or not value.strip()):
-        raise AgsKitError(
+        raise HangtuError(
             f"settings.vertical_datum must be a datum name or None, not {value!r}. "
-            'Example: ak.settings.vertical_datum = "NAVD88"'
+            'Example: ht.settings.vertical_datum = "NAVD88"'
         )
     return value
 
 
 def _palette(value: Any) -> dict[str, Any]:
     if not isinstance(value, dict):
-        raise AgsKitError(
+        raise HangtuError(
             "settings.palette must be a dict of {geology unit: color}, "
-            f'not {value!r}. Example: ak.settings.palette = {{"Alluvium": "tan"}}'
+            f'not {value!r}. Example: ht.settings.palette = {{"Alluvium": "tan"}}'
         )
     bad = [unit for unit, color in value.items() if not is_color_like(color)]
     if bad:
-        raise AgsKitError(
+        raise HangtuError(
             f"settings.palette has colors matplotlib doesn't recognize for {bad}. "
             'Use a color name ("tan"), a hex string ("#d2b48c") or an RGB tuple.'
         )
@@ -75,11 +75,11 @@ def _palette(value: Any) -> dict[str, Any]:
 
 def _figure_sizes(value: Any) -> dict[str, tuple[float, float]]:
     example = (
-        "Example: ak.settings.figure_sizes = "
+        "Example: ht.settings.figure_sizes = "
         '{"default": (6.5, 4.5), "profile": (4.0, 6.5)}'
     )
     if not isinstance(value, dict) or "default" not in value:
-        raise AgsKitError(
+        raise HangtuError(
             "settings.figure_sizes must be a dict of {plot kind: (width, height)} "
             f'in inches that includes "default", not {value!r}. {example}'
         )
@@ -90,7 +90,7 @@ def _figure_sizes(value: Any) -> dict[str, tuple[float, float]]:
             or len(size) != 2
             or not all(_is_number(side) and side > 0 for side in size)
         ):
-            raise AgsKitError(
+            raise HangtuError(
                 f"settings.figure_sizes[{kind!r}] must be (width, height) in inches, "
                 f"both positive, not {size!r}. {example}"
             )
@@ -100,25 +100,25 @@ def _figure_sizes(value: Any) -> dict[str, tuple[float, float]]:
 
 def _hints(value: Any) -> bool:
     if not isinstance(value, bool):
-        raise AgsKitError(f"settings.hints must be True or False, not {value!r}.")
+        raise HangtuError(f"settings.hints must be True or False, not {value!r}.")
     return value
 
 
 def _hammer_efficiency(value: Any) -> float | None:
     if value is not None and not (_is_number(value) and 0 < value <= 100):
-        raise AgsKitError(
+        raise HangtuError(
             "settings.hammer_efficiency must be the energy ratio in percent, "
             f"greater than 0 and at most 100, or None, not {value!r}. "
-            "Example: ak.settings.hammer_efficiency = 80"
+            "Example: ht.settings.hammer_efficiency = 80"
         )
     return None if value is None else float(value)
 
 
 def _spt_cap(value: Any) -> int:
     if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
-        raise AgsKitError(
+        raise HangtuError(
             "settings.spt_cap must be a positive whole number of blows, "
-            f"not {value!r}. Example: ak.settings.spt_cap = 100"
+            f"not {value!r}. Example: ht.settings.spt_cap = 100"
         )
     return value
 
@@ -140,7 +140,7 @@ _VALIDATORS: dict[str, Callable[[Any], Any]] = {
 
 
 def _unknown(name: str) -> str:
-    return f"ak.settings has no setting {name!r}. Settings: {', '.join(_VALIDATORS)}."
+    return f"ht.settings has no setting {name!r}. Settings: {', '.join(_VALIDATORS)}."
 
 
 def _defaults() -> dict[str, Any]:
@@ -151,15 +151,15 @@ def _defaults() -> dict[str, Any]:
 class Settings:
     """Session settings with attribute access.
 
-    Every assignment is checked, and a bad value raises ``AgsKitError`` saying
+    Every assignment is checked, and a bad value raises ``HangtuError`` saying
     what is allowed.
 
     Examples
     --------
-    >>> ak.settings.display_units = "SI"
-    >>> with ak.settings.override(display_units="US"):
-    ...     fig, ax = ak.plot.profile(df, "hydraulic_conductivity")
-    >>> ak.settings.reset()
+    >>> ht.settings.display_units = "SI"
+    >>> with ht.settings.override(display_units="US"):
+    ...     fig, ax = ht.plot.profile(df, "hydraulic_conductivity")
+    >>> ht.settings.reset()
     """
 
     __slots__ = ("_values",)
@@ -207,7 +207,7 @@ class Settings:
         try:
             validate = _VALIDATORS[name]
         except KeyError:
-            raise AgsKitError(_unknown(name)) from None
+            raise HangtuError(_unknown(name)) from None
         return validate(value)
 
 

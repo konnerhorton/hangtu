@@ -13,10 +13,10 @@ import numpy as np
 import pandas as pd
 import pint
 
-from ags_kit import _config
-from ags_kit._settings import _display_units, settings
-from ags_kit.errors import ColumnError, UnitsError, warn
-from ags_kit.registry import column_info
+from hangtu import _config
+from hangtu._settings import _display_units, settings
+from hangtu.errors import ColumnError, UnitsError, warn
+from hangtu.registry import column_info
 
 ureg = pint.UnitRegistry()
 
@@ -54,7 +54,7 @@ def _where(column: str | None) -> str:
 def parse_unit(text: str, column: str | None = None) -> pint.Unit:
     """Read a unit string, in the lookup order of P00 §4.2.
 
-    1. The alias table (``units/aliases.yaml`` plus ``ak.add_unit_alias``).
+    1. The alias table (``units/aliases.yaml`` plus ``ht.add_unit_alias``).
     2. pint's own parser, with a warning saying what the string was read as.
     3. Otherwise ``UnitsError``.
 
@@ -72,13 +72,13 @@ def parse_unit(text: str, column: str | None = None) -> pint.Unit:
         raise UnitsError(
             f'Unit "{text}"{_where(column)} isn\'t recognized, and unit strings are '
             f"case-sensitive.{suggestion} If it is a real unit, add it with "
-            f'ak.add_unit_alias("{text}", "<pint unit>"), '
-            f'e.g. ak.add_unit_alias("{text}", "foot").'
+            f'ht.add_unit_alias("{text}", "<pint unit>"), '
+            f'e.g. ht.add_unit_alias("{text}", "foot").'
         )
     if not from_alias:
         warn(
             f'Unit "{text}"{_where(column)} was read as {unit}. Add it with '
-            f'ak.add_unit_alias("{text}", "{unit}") to silence this.'
+            f'ht.add_unit_alias("{text}", "{unit}") to silence this.'
         )
     return unit
 
@@ -88,8 +88,8 @@ def add_unit_alias(text: str, pint_expr: str) -> None:
 
     Examples
     --------
-    >>> ak.add_unit_alias("feet", "foot")
-    >>> ak.add_unit_alias("kN/m^2", "kilonewton / meter**2")
+    >>> ht.add_unit_alias("feet", "foot")
+    >>> ht.add_unit_alias("kN/m^2", "kilonewton / meter**2")
     """
     if not isinstance(text, str) or not text.strip():
         raise UnitsError(f"The alias must be a non-empty string, not {text!r}.")
@@ -97,25 +97,25 @@ def add_unit_alias(text: str, pint_expr: str) -> None:
         raise UnitsError(
             f'Can\'t add alias "{text}": pint doesn\'t understand "{pint_expr}". '
             'Use a pint unit expression such as "foot" or "kilonewton / meter**2", '
-            "or define a new unit first with ak.define_unit(...)."
+            "or define a new unit first with ht.define_unit(...)."
         )
     _aliases[text] = pint_expr
 
 
 def define_unit(pint_definition: str) -> None:
-    """Define a new unit in ags-kit's pint registry, using pint's definition syntax.
+    """Define a new unit in hangtu's pint registry, using pint's definition syntax.
 
     Examples
     --------
-    >>> ak.define_unit("smoot = 1.7018 * meter")
-    >>> ak.add_unit_alias("smoots", "smoot")
+    >>> ht.define_unit("smoot = 1.7018 * meter")
+    >>> ht.add_unit_alias("smoots", "smoot")
     """
     try:
         ureg.define(pint_definition)
     except Exception as error:
         raise UnitsError(
             f"Can't define unit {pint_definition!r}: {error}. "
-            'Use pint\'s syntax, e.g. ak.define_unit("smoot = 1.7018 * meter").'
+            'Use pint\'s syntax, e.g. ht.define_unit("smoot = 1.7018 * meter").'
         ) from None
 
 
@@ -210,7 +210,7 @@ def to_display(
     quantity
         The quantity kind, or None for an unregistered column.
     display_units
-        ``"US"`` or ``"SI"``; defaults to ``ak.settings.display_units``.
+        ``"US"`` or ``"SI"``; defaults to ``ht.settings.display_units``.
 
     Returns
     -------
@@ -271,12 +271,12 @@ def set_units(df: pd.DataFrame, units: Mapping[str, str]) -> pd.DataFrame:
 
     Examples
     --------
-    >>> spt = ak.set_units(spt, {"depth": "ft", "ground_level": "ft"})
+    >>> spt = ht.set_units(spt, {"depth": "ft", "ground_level": "ft"})
     """
     if not isinstance(units, Mapping):
         raise UnitsError(
             f"units must be a dict of {{column: unit}}, not {units!r}. "
-            'Example: ak.set_units(df, {"depth": "ft"})'
+            'Example: ht.set_units(df, {"depth": "ft"})'
         )
     missing = [column for column in units if column not in df.columns]
     if missing:
@@ -310,7 +310,7 @@ def read_csv(
     Parameters
     ----------
     path
-        The CSV file. Headers are column names from ``ak.columns()``; there is
+        The CSV file. Headers are column names from ``ht.columns()``; there is
         no units row.
     units : dict, optional
         ``{column: unit string}``, e.g. ``{"depth": "ft"}``. Columns that are
@@ -320,7 +320,7 @@ def read_csv(
 
     Examples
     --------
-    >>> spt = ak.read_csv("spt.csv", units={"depth": "ft", "ground_level": "ft"})
+    >>> spt = ht.read_csv("spt.csv", units={"depth": "ft", "ground_level": "ft"})
     """
     df = pd.read_csv(path, **pandas_kwargs)
     return set_units(df, units) if units else df
@@ -378,8 +378,8 @@ def resolve_units(
 def _unknown_units(column: str, quantity: str | None, analysis: bool) -> None:
     example = quantity_kind(quantity)["US"]["text"] if quantity else "<unit>"
     fix = (
-        f'Declare them with ak.set_units(df, {{"{column}": "{example}"}}) '
-        f'or ak.read_csv(..., units={{"{column}": "{example}"}}).'
+        f'Declare them with ht.set_units(df, {{"{column}": "{example}"}}) '
+        f'or ht.read_csv(..., units={{"{column}": "{example}"}}).'
     )
     if analysis:
         raise UnitsError(f"Column {column!r} has no units. {fix}")

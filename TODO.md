@@ -9,30 +9,6 @@ Items to think through or research. Each item notes who owns it and the SPEC.md 
 
 ## Project
 
-### 0. Rename the package · You · README, SPEC (throughout), pyproject.toml, repo directory · **Decide before the first PyPI release (milestone M5)**
-**Why:**
-- DIGGS support is on the roadmap.
-- The target audience is US engineers, who are unfamiliar with both AGS and DIGGS; they work with .xlsx and .pdf. The name shouldn't assume they know either format.
-- "AGS" is the acronym of a trade body whose official library is `python-ags4`, so `ags-kit` could look endorsed.
-
-Keep "AGS" and "DIGGS" in the PyPI description, keywords and README so the package is still easy to find.
-
-**Candidates free on PyPI (checked 2026-10-10):**
-- `geotechkit` / `geotech-kit` (Claude's pick: clear to US and UK engineers, and not tied to a file format);
-- `gikit` (second choice: short, but "GI" is UK/AU jargon);
-- `borekit`, `borehole-kit`, `stratakit`, `subsurfacekit`, `soilkit`.
-
-Check that the chosen name is still free on PyPI right before deciding.
-
-**Steps once chosen:**
-- update `pyproject.toml` (name and description);
-- change the import name `ags_kit` → new name in SPEC, README and docs;
-- update the `ak.` alias in the examples if desired;
-- rename the repo directory;
-- re-check PyPI availability right before the first release.
-
-**Related decision:** the canonical data model is item 0b below.
-
 ### 0b. Canonical data model: AGS-shaped or observation-based? · You · SPEC §6, §7 · **Decide before Phase 2 starts (milestone M6)**
 **Background:** AGS is often criticized as a *storage* model, as opposed to a transfer format. Claude's guesses at why (unconfirmed):
 1. Depths are part of record identity: correcting a depth re-keys every child test, and the keys are formatted decimals.
@@ -88,7 +64,7 @@ M0 was verified locally only (Linux, Python 3.12–3.14, plus the lowest depende
   - Is rock (weathered, IGM) worth separating?
 
 ### 4. SPT classification tables · You · docs/drafts/analysis.md §1 · needed for P03
-Written to `src/ags_kit/config/spt_classes.yaml` (Terzaghi & Peck 1948 / Peck, Hanson & Thornburn 1974) for you to confirm:
+Written to `src/hangtu/config/spt_classes.yaml` (Terzaghi & Peck 1948 / Peck, Hanson & Thornburn 1974) for you to confirm:
 - the boundaries;
 - the boundary convention (lower bound inclusive);
 - whether to classify on N or N60 by default.

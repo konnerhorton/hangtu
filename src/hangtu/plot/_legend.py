@@ -8,7 +8,7 @@ from matplotlib.axes import Axes
 from matplotlib.legend import Legend
 from matplotlib.transforms import offset_copy
 
-from ags_kit.plot._notes import Notes
+from hangtu.plot._notes import Notes
 
 MAX_ROWS = 12
 MAX_ENTRIES = 30
@@ -31,7 +31,7 @@ def add_legend(
         groups, then special markers such as qualifiers and edge markers.
     notes
         The plot's notes. With more than 30 entries the legend is left out
-        and a note points to ``ak.plot.legend_handles()`` instead.
+        and a note points to ``ht.plot.legend_handles()`` instead.
     offset
         Extra space in points between the axes and the legend, e.g. for a
         secondary axis on the right.
@@ -46,7 +46,7 @@ def add_legend(
     if len(handles) > MAX_ENTRIES:
         units = len(sections[0])
         notes.add_text(
-            f"{units} geology units: see ak.plot.legend_handles()"
+            f"{units} geology units: see ht.plot.legend_handles()"
             if units
             else f"{len(handles)} legend entries not shown"
         )

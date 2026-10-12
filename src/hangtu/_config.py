@@ -13,7 +13,7 @@ def load(path: str) -> Any:
 
     The result is cached and shared, so callers must not modify it.
     """
-    text = files("ags_kit").joinpath(path).read_text(encoding="utf-8")
+    text = files("hangtu").joinpath(path).read_text(encoding="utf-8")
     return yaml.safe_load(text)
 
 

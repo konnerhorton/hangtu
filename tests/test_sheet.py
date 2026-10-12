@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import pytest
 
-import ags_kit as ak
+import hangtu as ht
 
 
 @pytest.mark.parametrize(
@@ -17,22 +17,22 @@ import ags_kit as ak
 @pytest.mark.parametrize("orientation", ["landscape", "portrait"])
 def test_figure_size(size, portrait, orientation):
     expected = portrait if orientation == "portrait" else portrait[::-1]
-    sheet = ak.Sheet(size, orientation=orientation)
+    sheet = ht.Sheet(size, orientation=orientation)
     assert tuple(sheet.figure.get_size_inches()) == pytest.approx(expected)
 
 
 def test_default_is_landscape_tabloid():
-    assert tuple(ak.Sheet().figure.get_size_inches()) == (17, 11)
+    assert tuple(ht.Sheet().figure.get_size_inches()) == (17, 11)
 
 
 def test_margins_are_half_an_inch():
-    sheet = ak.Sheet("letter", orientation="portrait")
+    sheet = ht.Sheet("letter", orientation="portrait")
     rect = sheet.figure.get_layout_engine().get()["rect"]
     assert rect == pytest.approx((0.5 / 8.5, 0.5 / 11, 1 - 1 / 8.5, 1 - 1 / 11))
 
 
 def test_title_at_top_left():
-    sheet = ak.Sheet(title="Site A")
+    sheet = ht.Sheet(title="Site A")
     title = sheet.figure.get_suptitle()
     assert title == "Site A"
     text = sheet.figure._suptitle
@@ -42,14 +42,14 @@ def test_title_at_top_left():
 
 
 def test_panels_are_created_once_and_counted_row_by_row():
-    sheet = ak.Sheet(layout=(2, 2))
+    sheet = ht.Sheet(layout=(2, 2))
     assert sheet[1] is sheet[0, 1]
     assert sheet[-1] is sheet[1, 1]
     assert len(sheet.figure.axes) == 2
 
 
 def test_spanning_panel():
-    sheet = ak.Sheet(layout=(2, 3))
+    sheet = ht.Sheet(layout=(2, 3))
     top = sheet[0, :]
     left = sheet[1, 0:2]
     assert sheet[0, 0:3] is top
@@ -59,9 +59,9 @@ def test_spanning_panel():
 
 
 def test_overlapping_panels_raise():
-    sheet = ak.Sheet(layout=(2, 2))
+    sheet = ht.Sheet(layout=(2, 2))
     sheet[0, 1]
-    with pytest.raises(ak.AgsKitError, match=r"\[0, 0:2\] overlaps panel \[0, 1\]"):
+    with pytest.raises(ht.HangtuError, match=r"\[0, 0:2\] overlaps panel \[0, 1\]"):
         sheet[0, :]
 
 
@@ -76,8 +76,8 @@ def test_overlapping_panels_raise():
     ],
 )
 def test_bad_panel_keys(key, message):
-    with pytest.raises(ak.AgsKitError, match=message):
-        ak.Sheet(layout=(2, 2))[key]
+    with pytest.raises(ht.HangtuError, match=message):
+        ht.Sheet(layout=(2, 2))[key]
 
 
 @pytest.mark.parametrize(
@@ -90,13 +90,13 @@ def test_bad_panel_keys(key, message):
     ],
 )
 def test_bad_arguments(arguments, message):
-    with pytest.raises(ak.AgsKitError, match=message):
-        ak.Sheet(**arguments)
+    with pytest.raises(ht.HangtuError, match=message):
+        ht.Sheet(**arguments)
 
 
 @pytest.mark.parametrize("suffix", [".pdf", ".png", ".svg"])
 def test_save(tmp_path, suffix):
-    sheet = ak.Sheet("letter", layout=(1, 2), title="Site A")
+    sheet = ht.Sheet("letter", layout=(1, 2), title="Site A")
     sheet[0].plot([0, 1], [0, 1])
     path = tmp_path / f"sheet{suffix}"
     sheet.save(path, dpi=50)
@@ -104,12 +104,12 @@ def test_save(tmp_path, suffix):
 
 
 def test_save_rejects_other_formats(tmp_path):
-    with pytest.raises(ak.AgsKitError, match=r"\.jpg.*\.pdf, \.png, \.svg"):
-        ak.Sheet().save(tmp_path / "sheet.jpg")
+    with pytest.raises(ht.HangtuError, match=r"\.jpg.*\.pdf, \.png, \.svg"):
+        ht.Sheet().save(tmp_path / "sheet.jpg")
 
 
 def test_drawing_into_a_panel_adds_no_figure():
-    sheet = ak.Sheet(layout=(1, 2))
+    sheet = ht.Sheet(layout=(1, 2))
     before = plt.get_fignums()
     sheet[0].plot([0, 1], [0, 1])
     assert plt.get_fignums() == before

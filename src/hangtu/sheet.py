@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
-from ags_kit.errors import AgsKitError
+from hangtu.errors import HangtuError
 
 # Portrait width x height in inches.
 SIZES = {
@@ -40,10 +40,10 @@ class Sheet:
 
     Examples
     --------
-    >>> sheet = ak.Sheet("tabloid", layout=(2, 2), title="Site A")
-    >>> ak.plot.profile(k, "hydraulic_conductivity", ax=sheet[0])
-    >>> ak.plot.profile(su, "undrained_shear_strength", ax=sheet[1])
-    >>> ak.plot.profile(w, "water_content", ax=sheet[1, :])  # a whole row
+    >>> sheet = ht.Sheet("tabloid", layout=(2, 2), title="Site A")
+    >>> ht.plot.profile(k, "hydraulic_conductivity", ax=sheet[0])
+    >>> ht.plot.profile(su, "undrained_shear_strength", ax=sheet[1])
+    >>> ht.plot.profile(w, "water_content", ax=sheet[1, :])  # a whole row
     >>> sheet.save("site_a.pdf")
     """
 
@@ -56,11 +56,11 @@ class Sheet:
     ) -> None:
         key = str(size).lower().replace(" ", "_").replace("-", "_")
         if key not in SIZES:
-            raise AgsKitError(
+            raise HangtuError(
                 f"Sheet size {size!r} isn't available. Sizes: {', '.join(SIZES)}."
             )
         if orientation not in ORIENTATIONS:
-            raise AgsKitError(
+            raise HangtuError(
                 f'orientation must be "landscape" or "portrait", not {orientation!r}.'
             )
         if (
@@ -68,9 +68,9 @@ class Sheet:
             or len(layout) != 2
             or not all(isinstance(n, int) and n > 0 for n in layout)
         ):
-            raise AgsKitError(
+            raise HangtuError(
                 f"layout must be (rows, columns), two positive whole numbers, "
-                f"not {layout!r}. Example: ak.Sheet(layout=(2, 2))"
+                f"not {layout!r}. Example: ht.Sheet(layout=(2, 2))"
             )
         width, height = SIZES[key]
         if orientation == "landscape":
@@ -107,7 +107,7 @@ class Sheet:
         ]
         taken = {self._owner[cell] for cell in cells if cell in self._owner}
         if taken:
-            raise AgsKitError(
+            raise HangtuError(
                 f"Panel {_describe(span)} overlaps panel {_describe(min(taken))}, "
                 "which already exists. Each part of the sheet can be in one panel."
             )
@@ -121,7 +121,7 @@ class Sheet:
             count = self.rows * self.columns
             index = key + count if key < 0 else key
             if not 0 <= index < count:
-                raise AgsKitError(
+                raise HangtuError(
                     f"Panel {key} doesn't exist: the layout has {count} panels, "
                     f"numbered 0 to {count - 1} row by row."
                 )
@@ -131,7 +131,7 @@ class Sheet:
             rows = _range(key[0], self.rows, "row")
             columns = _range(key[1], self.columns, "column")
             return rows + columns
-        raise AgsKitError(
+        raise HangtuError(
             f"Pick a panel with a number or [row, column], not {key!r}. "
             "Examples: sheet[0], sheet[1, 0], sheet[0, :] for a whole row."
         )
@@ -140,7 +140,7 @@ class Sheet:
         """Save the sheet. The format comes from the extension: .pdf, .png or .svg."""
         suffix = Path(path).suffix.lower()
         if suffix not in FORMATS:
-            raise AgsKitError(
+            raise HangtuError(
                 f"Can't save a sheet as {suffix or 'a file without an extension'}. "
                 f"Use {', '.join(FORMATS)}, e.g. sheet.save('site_a.pdf')."
             )
@@ -156,7 +156,7 @@ def _range(index: int | slice, count: int, name: str) -> tuple[int, int]:
         position = index + count if index < 0 else index
         if 0 <= position < count:
             return position, position + 1
-    raise AgsKitError(
+    raise HangtuError(
         f"{name.capitalize()} {index!r} doesn't exist: the layout has {count} "
         f"{name}s, numbered 0 to {count - 1}."
     )

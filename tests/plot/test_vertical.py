@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import ags_kit as ak
-from ags_kit.plot._data import numeric_column
-from ags_kit.plot._vertical import (
+import hangtu as ht
+from hangtu.plot._data import numeric_column
+from hangtu.plot._vertical import (
     Vertical,
     choose_vs,
     convert_pair,
@@ -12,7 +12,7 @@ from ags_kit.plot._vertical import (
     length_columns,
     vertical_values,
 )
-from ags_kit.units import resolve_units
+from hangtu.units import resolve_units
 
 
 def _resolve(df, vs, display_units="US"):
@@ -60,7 +60,7 @@ def test_depth_can_come_from_elevation_and_ground_level():
 
 def test_neither_depth_nor_elevation_names_both_and_the_columns():
     df = pd.DataFrame(columns=["loca_id", "hydraulic_conductivity"])
-    with pytest.raises(ak.ColumnError) as error:
+    with pytest.raises(ht.ColumnError) as error:
         choose_vs(df, None)
     message = str(error.value)
     assert "'depth'" in message
@@ -70,7 +70,7 @@ def test_neither_depth_nor_elevation_names_both_and_the_columns():
 
 
 def test_elevation_without_a_way_to_get_it_explains_both_ways():
-    with pytest.raises(ak.ColumnError) as error:
+    with pytest.raises(ht.ColumnError) as error:
         choose_vs(pd.DataFrame(columns=["depth"]), "elevation")
     message = str(error.value)
     assert "'elevation' column" in message
@@ -79,12 +79,12 @@ def test_elevation_without_a_way_to_get_it_explains_both_ways():
 
 
 def test_depth_without_a_way_to_get_it_explains_both_ways():
-    with pytest.raises(ak.ColumnError, match=r"'depth' column.*'elevation' plus"):
+    with pytest.raises(ht.ColumnError, match=r"'depth' column.*'elevation' plus"):
         choose_vs(pd.DataFrame(columns=["elevation"]), "depth")
 
 
 def test_unknown_vs_is_an_error():
-    with pytest.raises(ak.AgsKitError, match=r"vs must be.*'elev'"):
+    with pytest.raises(ht.HangtuError, match=r"vs must be.*'elev'"):
         choose_vs(pd.DataFrame(columns=["depth"]), "elev")
 
 
@@ -93,7 +93,7 @@ def test_unknown_vs_is_an_error():
 
 def test_elevation_is_ground_level_minus_depth():
     # P01 §12 golden value: GL 120.0 ft, depth 15.0 ft -> 105.0 ft.
-    df = ak.set_units(
+    df = ht.set_units(
         pd.DataFrame({"depth": [15.0], "ground_level": [120.0]}),
         {"depth": "ft", "ground_level": "ft"},
     )
@@ -105,7 +105,7 @@ def test_elevation_is_ground_level_minus_depth():
 
 
 def test_depth_is_ground_level_minus_elevation():
-    df = ak.set_units(
+    df = ht.set_units(
         pd.DataFrame({"elevation": [105.0], "ground_level": [120.0]}),
         {"elevation": "ft", "ground_level": "ft"},
     )
@@ -114,7 +114,7 @@ def test_depth_is_ground_level_minus_elevation():
 
 
 def test_an_elevation_column_is_used_as_given():
-    df = ak.set_units(
+    df = ht.set_units(
         pd.DataFrame({"depth": [15.0], "ground_level": [120.0], "elevation": [99.0]}),
         {"depth": "ft", "ground_level": "ft", "elevation": "ft"},
     )
@@ -127,7 +127,7 @@ def test_an_elevation_column_is_used_as_given():
 )
 def test_depth_is_converted_to_display_units(display_units, expected, text):
     # P01 §12 golden value: 10.0 ft <-> 3.048 m.
-    df = ak.set_units(pd.DataFrame({"depth": [10.0]}), {"depth": "ft"})
+    df = ht.set_units(pd.DataFrame({"depth": [10.0]}), {"depth": "ft"})
     values, vertical = _resolve(df, "depth", display_units)
     assert values == pytest.approx([expected])
     assert vertical.unit_text == text
@@ -135,7 +135,7 @@ def test_depth_is_converted_to_display_units(display_units, expected, text):
 
 
 def test_depth_and_ground_level_convert_before_subtracting():
-    df = ak.set_units(
+    df = ht.set_units(
         pd.DataFrame({"depth": [10.0], "ground_level": [30.0]}),
         {"depth": "ft", "ground_level": "m"},
     )
@@ -145,17 +145,17 @@ def test_depth_and_ground_level_convert_before_subtracting():
 
 
 def test_the_datum_is_on_elevation_labels_only():
-    df = ak.set_units(
+    df = ht.set_units(
         pd.DataFrame({"depth": [10.0], "ground_level": [30.0]}),
         {"depth": "ft", "ground_level": "ft"},
     )
-    with ak.settings.override(vertical_datum="NAVD88"):
+    with ht.settings.override(vertical_datum="NAVD88"):
         assert _resolve(df, "elevation")[1].label() == "Elevation (ft, NAVD88)"
         assert _resolve(df, "depth")[1].label() == "Depth (ft)"
 
 
 def test_any_length_without_units_leaves_all_lengths_unconverted():
-    df = ak.set_units(
+    df = ht.set_units(
         pd.DataFrame({"depth": [10.0], "ground_level": [30.0]}), {"depth": "ft"}
     )
     with pytest.warns(UserWarning, match="'ground_level' has no units"):
@@ -179,14 +179,14 @@ def test_any_length_without_units_leaves_all_lengths_unconverted():
 )
 def test_single_ground_level(columns, expected):
     df = pd.DataFrame({"depth": [15.0, 20.0], **columns})
-    df = ak.set_units(df, dict.fromkeys(df.columns, "ft"))
+    df = ht.set_units(df, dict.fromkeys(df.columns, "ft"))
     vs = "elevation" if columns else "depth"
     assert _resolve(df, vs)[1].ground_level == expected
 
 
 def test_text_in_a_vertical_column_names_the_rows():
     df = pd.DataFrame({"depth": [1.0, "12 ft", None, "abc"]})
-    with pytest.raises(ak.ColumnError) as error:
+    with pytest.raises(ht.ColumnError) as error:
         numeric_column(df, "depth")
     message = str(error.value)
     assert "rows 1 ('12 ft'), 3 ('abc')" in message
@@ -217,7 +217,7 @@ def test_an_elevation_pair_converts_to_depth():
 
 
 def test_a_pair_that_cant_be_converted_says_what_to_give():
-    with pytest.raises(ak.AgsKitError) as error:
+    with pytest.raises(ht.HangtuError) as error:
         convert_pair([10.0], [20.0], "depth", _vertical(ground_level=None), "strata")
     message = str(error.value)
     assert "strata overlay is given in depth" in message
@@ -227,7 +227,7 @@ def test_a_pair_that_cant_be_converted_says_what_to_give():
 
 
 def test_a_single_position_names_its_own_column():
-    with pytest.raises(ak.AgsKitError, match="Give elevation instead"):
+    with pytest.raises(ht.HangtuError, match="Give elevation instead"):
         convert_vertical(
             [10.0], "depth", _vertical(ground_level=None), "design_lines", "elevation"
         )

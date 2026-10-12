@@ -5,7 +5,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from ags_kit.plot.common import (
+from hangtu.plot.common import (
     apply_vertical_axis,
     log_limits,
     nice_limits,

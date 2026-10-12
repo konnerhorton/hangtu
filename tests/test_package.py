@@ -3,11 +3,11 @@ from importlib.metadata import version
 
 import pytest
 
-import ags_kit
+import hangtu
 
 
 def test_version_matches_installed_metadata():
-    assert ags_kit.__version__ == version("ags-kit")
+    assert hangtu.__version__ == version("hangtu")
 
 
 @pytest.mark.parametrize("module", ["pandas", "numpy", "matplotlib", "pint", "yaml"])
