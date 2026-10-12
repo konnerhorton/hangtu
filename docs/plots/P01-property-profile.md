@@ -156,6 +156,8 @@ Units come from `df.attrs` or `units=`; otherwise they are assumed to match the 
 
 ## 9. Units behavior
 - **Vertical:** ft (US) / m (SI). The datum appears in elevation labels from `settings.vertical_datum`; if it isn't set, the label is just "Elevation (ft)".
+  - The length columns (`depth`, `elevation`, `ground_level`, `depth_top`, `depth_base`) are converted together, and each is converted before any subtraction. If any of them has no units, none is converted: all are drawn as given, the label says "(units unknown)", and the usual warning names the column.
+  - With `vs="depth"` and no `depth` column, depth is `ground_level − elevation`.
 - **Value:** converted according to the preset or registry quantity.
   - k: cm/s (US, decided) / m/s (SI). A log axis keeps whole decades in either unit, since the conversion is a factor of 100.
   - s_u: psf / kPa (per-quantity override, e.g. ksf).
