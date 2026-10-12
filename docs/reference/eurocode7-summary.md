@@ -1,6 +1,6 @@
-# Eurocode 7 — Summary for ags-kit
+# Eurocode 7 — Summary for hangtu
 
-> **What this is:** a summary, in our own words, of the parts of Eurocode 7 (EN 1997) that matter to ags-kit, written to guide the design of the statistics and QC features. It is **not** a substitute for the standard. EN 1997 is copyrighted and sold by CEN member bodies (BSI, DIN, etc.). This summary relies on public secondary sources, listed at the end.
+> **What this is:** a summary, in our own words, of the parts of Eurocode 7 (EN 1997) that matter to hangtu, written to guide the design of the statistics and QC features. It is **not** a substitute for the standard. EN 1997 is copyrighted and sold by CEN member bodies (BSI, DIN, etc.). This summary relies on public secondary sources, listed at the end.
 >
 > **Verification flags:** clause and formula numbers marked ✅ were cross-checked against the JRC technical report (Orr et al., 2025), which quotes the published EN 1997-1:2024. Items marked ⚠️ come from draft-era (prEN/FprEN) material or general knowledge and should be checked against a purchased copy before being relied on in design.
 
@@ -19,7 +19,7 @@
 - In the UK, BSI withdraws the 1st generation on **30 March 2028**, so the two generations coexist until then. Other countries set their own dates through their National Annexes. ⚠️
 - In the 2nd generation, the old Part 1 is split three ways: general rules go to EN 1997-1, structure-specific rules (foundations, retaining structures, anchors, slopes) go to EN 1997-3, and the basis of design goes to EN 1990.
 
-**ags-kit stance:** implement the 2nd-generation statistical framework as the primary method, and document how it maps to the 1st-generation terminology (section 3.6). Since the team works mostly in the US, EC7 is used as a **well-documented statistical method**, not as a code obligation.
+**hangtu stance:** implement the 2nd-generation statistical framework as the primary method, and document how it maps to the 1st-generation terminology (section 3.6). Since the team works mostly in the US, EC7 is used as a **well-documented statistical method**, not as a code obligation.
 
 ---
 
@@ -43,10 +43,10 @@ measured value  →  derived value  →  representative value  →  design value
 - **Ground Model** (new in the 2nd generation): a site-specific outline of the disposition and character of the ground and groundwater, based on ground investigation and other data. It includes the derived values for every geotechnical unit in the zone of influence. ⚠️ (wording per draft EN 1997-2)
 - **Geotechnical Design Model**: the conceptual representation of the site, taken from the Ground Model, used to verify each design situation and limit state.
 
-**ags-kit relevance:** the AGS database is effectively the raw material for the Ground Model. In our terms:
+**hangtu relevance:** the AGS database is effectively the raw material for the Ground Model. In our terms:
 - a "geology code" maps to a **geotechnical unit**;
 - a canned query result (e.g. N60 by unit) is a set of **derived values**;
-- `ak.stats.characteristic()` produces a **characteristic value**.
+- `ht.stats.characteristic()` produces a **characteristic value**.
 
 The library must keep these concepts separate and traceable, which means recording which correlation was used, which η, and which n.
 
@@ -96,7 +96,7 @@ Use "−" for an inferior (low) value and "+" for a superior (high) value.
 - The JRC and the standard's notes point out that in practice **Case 3**, an assumed conservative upper V_X, is often better than Case 2, because V_X computed from a small sample is unreliable. Case 1 (truly known V_X) is rare.
 
 ### 3.4 Indicative coefficients of variation
-From EN 1997-1 Annex A, Tables A.1 and A.2, as reproduced in the JRC report (CC BY 4.0). These are the defaults ags-kit will use for Case 3.
+From EN 1997-1 Annex A, Tables A.1 and A.2, as reproduced in the JRC report (CC BY 4.0). These are the defaults hangtu will use for Case 3.
 
 | Property / test parameter | V_X (%) |
 |---|---|
@@ -157,7 +157,7 @@ The standard sets **no hard minimum n**. The JRC offers several criteria:
   - Whether the 2024 edition keeps these values is unverified.
 - **Correlations**: 1st-gen EN 1997-2 annexes gave example correlations (e.g. SPT → relative density, φ′). The 2nd generation moves many test-specific correlations into EN 1997-2 annexes, organized by ground property. ⚠️ (details unverified)
 
-**ags-kit relevance:**
+**hangtu relevance:**
 - The QC module should check what the GIR needs: a location and datum for every hole (LOCA_NATE/NATN/GL, LOCA_GREF), sample quality and type (SAMP_TYPE), and a geotechnical unit for every test.
 - Analyses that use correlations must record which correlation was applied.
 
@@ -165,7 +165,7 @@ The standard sets **no hard minimum n**. The JRC offers several criteria:
 
 ## 5. Design verification (context only)
 
-ags-kit does **not** do limit-state design. For orientation:
+hangtu does **not** do limit-state design. For orientation:
 
 - **1st gen**: Design Approaches DA1 (two combinations), DA2 and DA3. Each country chose one or more.
 - **2nd gen**: Design Approaches are removed. ULS verification is E_d ≤ R_d, with:
@@ -178,31 +178,31 @@ ags-kit does **not** do limit-state design. For orientation:
     - c_u: 1.4·k_M
   - k_M (like k_F on actions) depends on the consequence class. Example values for k_F are 1.1 for CC3, 1.0 for CC2 and 0.9 for CC1.
 - Other verification routes: prescriptive rules, testing, the observational method, and reliability-based methods.
-- **Why this matters for ags-kit:** the partial factor is applied to the *representative* value. A characteristic value that is too optimistic (wrong type, wrong k_n, V_X underestimated) carries straight through into an unsafe design value. That is why the stats output must state the type, the case, n and V_X explicitly.
+- **Why this matters for hangtu:** the partial factor is applied to the *representative* value. A characteristic value that is too optimistic (wrong type, wrong k_n, V_X underestimated) carries straight through into an unsafe design value. That is why the stats output must state the type, the case, n and V_X explicitly.
 
 ---
 
 ## 6. Data quality expectations
 
-The themes that recur in both generations, translated into ags-kit QC requirements:
+The themes that recur in both generations, translated into hangtu QC requirements:
 
-| EC7 expectation | ags-kit check / feature |
+| EC7 expectation | hangtu check / feature |
 |---|---|
 | Derived values are traceable to measured values and the correlation used | Provenance columns (source file and line); analysis outputs record the method, correlation and parameters |
 | Representative values are set **per geotechnical unit** | Every test must map to a geology unit; `missing_geology` and `straddles_boundary` QC rules |
 | Sufficiency of data (quantity, quality, spatial distribution) decides characteristic vs nominal | `characteristic()` warns when n is below the JRC guidance and reports the n needed |
 | Sample quality is recorded | Completeness checks on SAMP_TYPE; a sample-quality filter is a possible later feature |
 | Position and elevation recorded with grid and datum | `LOCA_NATE/NATN/GL/GREF` completeness; datum carried as metadata |
-| Data distribution checked (normal vs log-normal) | `ak.stats.fit()` with goodness of fit; `characteristic()` takes `distribution="normal"|"lognormal"` |
+| Data distribution checked (normal vs log-normal) | `ht.stats.fit()` with goodness of fit; `characteristic()` takes `distribution="normal"|"lognormal"` |
 | Depth trends handled separately | `characteristic(..., trend="depth")` using a regression prediction interval |
-| Comparison of derived values from different sources in one unit (EN 1997-1, Table 4.6 ✅) | `ak.stats.compare()` (Welch t / Mann-Whitney); box plots by unit and source |
+| Comparison of derived values from different sources in one unit (EN 1997-1, Table 4.6 ✅) | `ht.stats.compare()` (Welch t / Mann-Whitney); box plots by unit and source |
 
 ---
 
-## 7. Proposed ags-kit API (feeds into SPEC.md §7)
+## 7. Proposed hangtu API (feeds into SPEC.md §7)
 
 ```python
-res = ak.stats.characteristic(
+res = ht.stats.characteristic(
     values,                    # array/Series of derived values in one geotechnical unit
     estimate="mean",           # "mean" (Type A) | "fractile" (Type B) | "intermediate" (Type C, needs gamma2)
     side="low",                # "low" (inferior, default) | "high" (superior)

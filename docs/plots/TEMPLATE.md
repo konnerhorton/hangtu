@@ -10,7 +10,7 @@ How to use this template:
 
 | | |
 |---|---|
-| **ID / function** | PXX · `ak.plot.<name>()` (+ `ak.analysis.<name>()` if it includes an analysis) |
+| **ID / function** | PXX · `ht.plot.<name>()` (+ `ht.analysis.<name>()` if it includes an analysis) |
 | **Status** | idea / draft / review / approved / built |
 | **Type** | plot · plot + light analysis · analysis |
 | **Target version** | v0.1 / v0.2 / … |
@@ -52,7 +52,7 @@ How to use this template:
 <!-- n/a for pure plots. Otherwise this is the core of the spec: formulas, methods with references, assumptions, options, and what the result object contains.
      Every number drawn on the plot that isn't raw data must be defined here. -->
 
-- **Function:** `ak.analysis.<name>(df, ...) -> <Result>`
+- **Function:** `ht.analysis.<name>(df, ...) -> <Result>`
 - **Method(s):**
   1. … (formula, reference)
 - **Options:** e.g. `method="casagrande" | "becker"`
@@ -104,7 +104,7 @@ How to use this template:
 |---|---|---|---|---|---|
 | e.g. A-line | `a_line=` | on | Casagrande (1948); config | solid black 0.8 pt | labeled on the line |
 | Published ranges | `ranges=` | off | user DataFrame or CSV | translucent band | |
-| Stats box | `stats_box=` | off | `ak.stats.describe` | text box, upper right | |
+| Stats box | `stats_box=` | off | `ht.stats.describe` | text box, upper right | |
 | Analysis result | | | §4 result object | | e.g. σ′p construction lines |
 
 **User-supplied overlay format:** columns and units expected for any user data (e.g. `ranges`: `group, low, high, source`).
@@ -134,7 +134,7 @@ def <name>(
 
 **Example:**
 ```python
-fig, ax = ak.plot.<name>(df, ...)
+fig, ax = ht.plot.<name>(df, ...)
 ```
 
 ## 11. Edge cases and data quality

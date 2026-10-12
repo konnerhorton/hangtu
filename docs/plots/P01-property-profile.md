@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **ID / function** | P01 · `ak.plot.profile()` |
+| **ID / function** | P01 · `ht.plot.profile()` |
 | **Status** | built |
 | **Type** | plot (no analysis, apart from computing elevation) |
 | **Target version** | v0.1 |
@@ -134,14 +134,14 @@ Presets live in `config/defaults.yaml`, with the typical range in the quantity's
 | Strata bands | `strata=` DataFrame | off | User: `geology_unit` plus a depth or elevation pair (formats below) | Full-width horizontal bands in palette colors, alpha 0.12; unit name at the top right of the band, inside the axes, 7 pt (at the top, so a water level mid-band stays clear) | Only meaningful for one stratigraphy (a single hole or an idealized profile). The user is responsible for that |
 | Water level | `water_level=` float, or list of `(value, label)` | off | User | Dashed blue line 0.8 pt, ▽ symbol and label at the right end ("GWL" by default) | A number is in `vs` and in the declared units of the main data's vertical column; a string such as `"112.5 ft"` carries its own unit |
 | Water level per hole | `water_level=` DataFrame: `loca_id, depth\|elevation[, label]` | off | User | Short ▽ tick at the right edge of the axes for each hole, labeled with `label`, else `loca_id`, when there are ≤ 6 holes | For several holes with different water levels. A level given in the other reference (depth while plotting elevation, or the reverse) is converted with that hole's ground level from the main data, looked up by `loca_id`; a hole without one isn't drawn, and a warning names it |
-| Published ranges | `ranges=` DataFrame or CSV | off | User: `low, high, label`, an optional `source`, and an optional depth or elevation pair (formats below) | Vertical translucent band (alpha 0.15, light hatching) from low to high, over top–base or the full height. Label "label (source)" at the top, starting at the left of the part inside the axes; for a full-height band it sits just above the axes when the x-axis is at the bottom, clear of the strata labels | Values converted from the declared units. A CSV path is read with `ak.read_csv`. A row whose pair is blank covers the full height, so one table can mix both. On a log axis, a `low` ≤ 0 starts at the axis edge |
+| Published ranges | `ranges=` DataFrame or CSV | off | User: `low, high, label`, an optional `source`, and an optional depth or elevation pair (formats below) | Vertical translucent band (alpha 0.15, light hatching) from low to high, over top–base or the full height. Label "label (source)" at the top, starting at the left of the part inside the axes; for a full-height band it sits just above the axes when the x-axis is at the bottom, clear of the strata labels | Values converted from the declared units. A CSV path is read with `ht.read_csv`. A row whose pair is blank covers the full height, so one table can mix both. On a log axis, a `low` ≤ 0 starts at the axis edge |
 | Design lines | `design_lines=` DataFrame | off | User or P09: `label, <vs column>, value` (one polyline per label) | Bold dashed 1.5 pt, dark gray; label at the deepest point inside the axes | Same idea as AGSi parameter profiles; P09 produces these |
 | Reference lines | `reference_lines=` list of `(value, label)` | off | User | Thin vertical line 0.6 pt, dotted; label at the top (just above the axes when the x-axis is at the bottom) | e.g. a code limit. A number is in the main data's units; a string such as `"2000 psf"` carries its own |
 | Stats box | `stats_box=True`, or a list of statistics | off | pandas (no scipy needed). Default: count, mean, std, median, min, max per unit. A list chooses the statistics, e.g. `stats_box=["count", "mean", "cov"]`; allowed: `count, mean, std, cov, median, min, max` | Text box, lower left, 7 pt, above any `note`. By default (`stats_box_room=True`) the bottom of the vertical axis moves out to a nice value so the box sits below the lowest point or interval bar instead of covering data; `stats_box_room=False` or `ylim=` leaves the limits alone | ≤ 6 units listed in legend order, then an "All" row when there are several; otherwise "All" only. Statistics are of the values drawn, in display units: blanks and values ≤ 0 on a log axis are left out, values drawn at the edge count at their true value and qualified values at their reported value. On a log axis, statistics are of the plotted values (not log values). std is the sample standard deviation, shown as "—" when n < 2; CoV is "—" on an interval scale (TODO #9). Numbers have 3 significant figures (`1,290`, `0.0123`), in scientific notation below 0.01 or from a million (`2.30e-05`) |
 | Exclusion notes | automatic | **on** | Counts of NaN, ≤ 0 on log, beyond-limit, qualified | Footnote below the legend, 7 pt gray | **Always shown when non-zero** (no silent drops) |
 | Note | `note=` str | off | User | Lower-left text, 7 pt | |
 
-**User-supplied overlay formats** (`ak.template("strata")`, `"ranges"` and `"design_lines"` give the exact columns; the templates list both the depth and the elevation form, so fill in one and leave the other blank. A pair whose columns are all blank counts as absent):
+**User-supplied overlay formats** (`ht.template("strata")`, `"ranges"` and `"design_lines"` give the exact columns; the templates list both the depth and the elevation form, so fill in one and leave the other blank. A pair whose columns are all blank counts as absent):
 - `strata`: `geology_unit` plus **either** `depth_top, depth_base` **or** `elevation_top, elevation_base`.
 - `ranges`: `low, high, label, source`, plus optionally **either** `depth_top, depth_base` **or** `elevation_top, elevation_base` (otherwise the range covers the full height).
 - `design_lines`: `label, depth|elevation, value`.
@@ -150,9 +150,9 @@ Presets live in `config/defaults.yaml`, with the typical range in the quantity's
 - A pair that matches `vs` is drawn as given. Elevation strata are what make an idealized site profile over several holes possible.
 - A pair that doesn't match `vs` is converted with `ground_level` (SPEC §8.1), which must be a single value for all rows of the main data (the same rule as `secondary="depth"`, §6).
 - In depth, top ≤ base; in elevation, top ≥ base. A row with its top and base the wrong way round is not drawn, and a warning names it.
-- `low`, `high`, `label` and `value` are fields of the overlay table, not data columns. They are listed in the `fields:` section of `columns.yaml`, so templates can use them, but `ak.columns()` leaves them out. `source` is the registry column.
+- `low`, `high`, `label` and `value` are fields of the overlay table, not data columns. They are listed in the `fields:` section of `columns.yaml`, so templates can use them, but `ht.columns()` leaves them out. `source` is the registry column.
 
-**Overlay units** come from the overlay table's own `df.attrs` (`ak.set_units(strata, ...)`); `units=` applies to the main data only. Columns without declared units are taken to be in the main data's units, with one warning per overlay that shows the `ak.set_units` call: `low`, `high` and `value` in the value column's unit, vertical columns in the main data's vertical unit. Rows with a blank top or base aren't drawn, and a warning names them.
+**Overlay units** come from the overlay table's own `df.attrs` (`ht.set_units(strata, ...)`); `units=` applies to the main data only. Columns without declared units are taken to be in the main data's units, with one warning per overlay that shows the `ht.set_units` call: `low`, `high` and `value` in the value column's unit, vertical columns in the main data's vertical unit. Rows with a blank top or base aren't drawn, and a warning names them.
 
 ## 9. Units behavior
 - **Vertical:** ft (US) / m (SI). The datum appears in elevation labels from `settings.vertical_datum`; if it isn't set, the label is just "Elevation (ft)".
@@ -205,13 +205,13 @@ def profile(
 
 **Examples:**
 ```python
-k = ak.read_csv("perm.csv", units={"depth": "ft", "depth_top": "ft", "depth_base": "ft",
+k = ht.read_csv("perm.csv", units={"depth": "ft", "depth_top": "ft", "depth_base": "ft",
                                    "ground_level": "ft", "hydraulic_conductivity": "cm/s"})
-fig, ax = ak.plot.profile(k, "hydraulic_conductivity", preset="hydraulic_conductivity", marker_by="source",
+fig, ax = ht.plot.profile(k, "hydraulic_conductivity", preset="hydraulic_conductivity", marker_by="source",
                           water_level=[(112.5, "GWL (2026-03)")])
 
-su = ak.read_csv("su.csv", units={"elevation": "ft", "undrained_shear_strength": "psf"})
-fig, ax = ak.plot.profile(su, "undrained_shear_strength", preset="undrained_shear_strength", vs="elevation",
+su = ht.read_csv("su.csv", units={"elevation": "ft", "undrained_shear_strength": "psf"})
+fig, ax = ht.plot.profile(su, "undrained_shear_strength", preset="undrained_shear_strength", vs="elevation",
                           ranges=pd.DataFrame({"low": [1000], "high": [2000],
                                                "label": ["stiff"], "source": ["Terzaghi & Peck"]}),
                           display_units="SI")
@@ -227,7 +227,7 @@ fig, ax = ak.plot.profile(su, "undrained_shear_strength", preset="undrained_shea
 | `vs="elevation"` given explicitly, with neither `elevation` nor `ground_level` + `depth` | Error explaining the two ways to provide it |
 | `vs=None` with only `depth` | Plotted against depth, with the optional-columns hint mentioning `ground_level` |
 | Optional columns missing (`geology_unit`, `loca_id`, `ground_level`, …) | Plot drawn; one hint listing what each missing column would add |
-| Units unknown for value or vertical | Plot drawn with "(units unknown)" in the label, plus a warning naming the column and how to declare it (`ak.set_units`) |
+| Units unknown for value or vertical | Plot drawn with "(units unknown)" in the label, plus a warning naming the column and how to declare it (`ht.set_units`) |
 | Values ≤ 0 on a log axis | Excluded and counted in the footnote |
 | Values beyond `xlim`/`ylim` | Edge marker + arrow + count |
 | `depth_top` > `depth_base` | Bar not drawn for that row; warning naming the row |
@@ -257,7 +257,7 @@ fig, ax = ak.plot.profile(su, "undrained_shear_strength", preset="undrained_shea
   - elevation increases upward;
   - the log axis shows whole decades with `10ⁿ` labels;
   - the x-axis is at the bottom by default;
-  - unit colors match the colors from `ak.plot.legend_handles()`;
+  - unit colors match the colors from `ht.plot.legend_handles()`;
   - carets point the right way;
   - footnote counts are correct.
 - **Automated:**

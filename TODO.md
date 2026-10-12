@@ -64,7 +64,7 @@ M0 was verified locally only (Linux, Python 3.12–3.14, plus the lowest depende
   - Is rock (weathered, IGM) worth separating?
 
 ### 4. SPT classification tables · You · docs/drafts/analysis.md §1 · needed for P03
-Written to `src/ags_kit/config/spt_classes.yaml` (Terzaghi & Peck 1948 / Peck, Hanson & Thornburn 1974) for you to confirm:
+Written to `src/hangtu/config/spt_classes.yaml` (Terzaghi & Peck 1948 / Peck, Hanson & Thornburn 1974) for you to confirm:
 - the boundaries;
 - the boundary convention (lower bound inclusive);
 - whether to classify on N or N60 by default.

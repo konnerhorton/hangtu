@@ -2,12 +2,12 @@
 
 | | |
 |---|---|
-| **ID / module** | P00 · `ak.settings`, units functions, column registry, `ak.plot` helpers, `ak.Sheet` |
+| **ID / module** | P00 · `ht.settings`, units functions, column registry, `ht.plot` helpers, `ht.Sheet` |
 | **Status** | built |
 | **Type** | infrastructure (no user-facing plot) |
 | **Target version** | v0.1, milestone M1 |
 | **Depends on** | M0 scaffolding |
-| **Related** | SPEC §2 (units), §3 (plotting), §10.3 (registry); plots README (shared conventions); registry [`src/ags_kit/columns.yaml`](../../src/ags_kit/columns.yaml); aliases [`src/ags_kit/units/aliases.yaml`](../../src/ags_kit/units/aliases.yaml) |
+| **Related** | SPEC §2 (units), §3 (plotting), §10.3 (registry); plots README (shared conventions); registry [`src/hangtu/columns.yaml`](../../src/hangtu/columns.yaml); aliases [`src/hangtu/units/aliases.yaml`](../../src/hangtu/units/aliases.yaml) |
 
 This spec defines the *implementation* of the shared conventions in the plots README. Where the two overlap, the README states the rule and this spec says how it is built and tested.
 
@@ -21,26 +21,26 @@ Everything P01–P07 need, so that each plot spec only describes its own drawing
 
 ## 2. Public API added in M1
 ```python
-import ags_kit as ak
+import hangtu as ht
 
-ak.settings                     # session settings (§3)
-ak.read_csv(path, units=None, **pandas_kwargs) -> pd.DataFrame
-ak.set_units(df, units: dict[str, str]) -> pd.DataFrame     # returns a new frame, never modifies df (decided)
-ak.units_of(df) -> dict[str, str]
-ak.add_unit_alias(text: str, pint_expr: str) -> None
-ak.define_unit(pint_definition: str) -> None
-ak.columns(template: str | None = None) -> pd.DataFrame       # registry as a readable table
-ak.template(name: str) -> pd.DataFrame                        # empty frame with the template's columns
-ak.Sheet(size="tabloid", layout=(1, 1), title=None, orientation="landscape")
-ak.plot.palette_cmap(units=None) -> ListedColormap
-ak.plot.legend_handles(units=None) -> list[Artist]
-ak.plot.reset_palette() -> None
-ak.HangtuError, ak.UnitsError, ak.ColumnError, ak.HangtuHint
+ht.settings                     # session settings (§3)
+ht.read_csv(path, units=None, **pandas_kwargs) -> pd.DataFrame
+ht.set_units(df, units: dict[str, str]) -> pd.DataFrame     # returns a new frame, never modifies df (decided)
+ht.units_of(df) -> dict[str, str]
+ht.add_unit_alias(text: str, pint_expr: str) -> None
+ht.define_unit(pint_definition: str) -> None
+ht.columns(template: str | None = None) -> pd.DataFrame       # registry as a readable table
+ht.template(name: str) -> pd.DataFrame                        # empty frame with the template's columns
+ht.Sheet(size="tabloid", layout=(1, 1), title=None, orientation="landscape")
+ht.plot.palette_cmap(units=None) -> ListedColormap
+ht.plot.legend_handles(units=None) -> list[Artist]
+ht.plot.reset_palette() -> None
+ht.HangtuError, ht.UnitsError, ht.ColumnError, ht.HangtuHint
 ```
-Internal helpers used by every plot live in `ak.plot.common` (§6–§9). They are private API: tested, but free to change.
+Internal helpers used by every plot live in `ht.plot.common` (§6–§9). They are private API: tested, but free to change.
 
 ## 3. Settings
-`ak.settings` is a single object with attribute access. Values are validated on assignment (a bad value raises `HangtuError` naming the allowed values).
+`ht.settings` is a single object with attribute access. Values are validated on assignment (a bad value raises `HangtuError` naming the allowed values).
 
 | Key | Type | Default | Used by |
 |---|---|---|---|
@@ -53,8 +53,8 @@ Internal helpers used by every plot live in `ak.plot.common` (§6–§9). They a
 | `hammer_efficiency` | `float \| None` (%) | `None` | SPT analysis (M3) |
 | `spt_cap` | `int` | `100` | SPT analysis (M3) |
 
-- `ak.settings.reset()` restores defaults.
-- `with ak.settings.override(display_units="SI"): ...` changes values temporarily (used heavily in tests).
+- `ht.settings.reset()` restores defaults.
+- `with ht.settings.override(display_units="SI"): ...` changes values temporarily (used heavily in tests).
 - Defaults for the *values* (display maps, presets, classification tables) live in `config/defaults.yaml`. Settings only hold the session's choices.
 
 ## 4. Units
@@ -80,12 +80,12 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 
 ### 4.2 Unit strings and aliases
 - **Lookup order** (decided), all case-sensitive:
-  1. the alias table, [`src/ags_kit/units/aliases.yaml`](../../src/ags_kit/units/aliases.yaml);
-  2. pint's own parser. If pint understands the string, it is accepted with a `UserWarning` saying what it was read as and how to make that explicit, e.g. `Unit "feet" for column 'depth' was read as foot. Add it with ak.add_unit_alias("feet", "foot") to silence this.`;
-  3. otherwise `UnitsError`, showing `ak.add_unit_alias(...)`.
+  1. the alias table, [`src/hangtu/units/aliases.yaml`](../../src/hangtu/units/aliases.yaml);
+  2. pint's own parser. If pint understands the string, it is accepted with a `UserWarning` saying what it was read as and how to make that explicit, e.g. `Unit "feet" for column 'depth' was read as foot. Add it with ht.add_unit_alias("feet", "foot") to silence this.`;
+  3. otherwise `UnitsError`, showing `ht.add_unit_alias(...)`.
 - The dimension check (§4.3 #5) runs after either lookup, so a string pint reads as something unexpected is still caught for registered columns.
 - `add_unit_alias` validates the pint expression; `define_unit` adds a genuinely new pint unit first.
-- One pint `UnitRegistry` per process, owned by `ags_kit.units`.
+- One pint `UnitRegistry` per process, owned by `hangtu.units`.
 
 ### 4.3 Phase 1 unit rules
 1. **pcf** (decided) converts by quantity kind: unit weight → kN/m³, density → Mg/m³. The column's quantity kind decides, so the same string is safe for both, and both display as "pcf" in US mode. In US practice pcf usually means lbm/ft³, but some reports use it for lbf/ft³; under standard gravity the two are numerically identical, so whichever the author meant, the number is the same.
@@ -97,26 +97,26 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 ### 4.4 Units on DataFrames (SPEC §2.6)
 - `read_csv` and `set_units` validate every unit string, then store `{column: unit string}` in `df.attrs["units"]`. `set_units` merges with existing units and returns a shallow copy.
 - `units_of(df)` returns that dict (empty if none).
-- **Resolution in a plot** (helper `resolve_units(df, columns, units=)`): `units=` argument → `df.attrs["units"]` → registry quantity kind (for unitless kinds) → unknown. Unknown means "(units unknown)" in the label plus a `UserWarning` naming the column and showing the `ak.set_units` call that fixes it. Analyses raise `UnitsError` instead.
+- **Resolution in a plot** (helper `resolve_units(df, columns, units=)`): `units=` argument → `df.attrs["units"]` → registry quantity kind (for unitless kinds) → unknown. Unknown means "(units unknown)" in the label plus a `UserWarning` naming the column and showing the `ht.set_units` call that fixes it. Analyses raise `UnitsError` instead.
 - **Conversion helper** `to_display(values, unit, quantity, display_units)` returns `(magnitudes, display_unit)`. Plots draw magnitudes only; pint never reaches matplotlib.
 
 ## 5. Column registry and templates
-- Source: [`src/ags_kit/columns.yaml`](../../src/ags_kit/columns.yaml). Its header comment lists the fields: `description, type, quantity, scale, label, ags, used_by` (later `agsi`).
+- Source: [`src/hangtu/columns.yaml`](../../src/hangtu/columns.yaml). Its header comment lists the fields: `description, type, quantity, scale, label, ags, used_by` (later `agsi`).
 - **Rules:**
   - lowercase `snake_case`, one meaning per name across the whole package;
   - number columns must have `quantity`, `scale` and `label`;
   - a plot spec that needs a new column adds it here in the same change;
   - any unregistered numeric column can still be plotted as a `value`, with units from `units=`/`df.attrs` and a label from the column name or `label=`.
-- `ak.columns()` returns one row per column (name, description, quantity, US unit, SI unit, used by). `ak.columns("spt")` limits it to a template.
-- **Overlay fields:** names used only in overlay tables (P01 §8: `low`, `high`, `label`, `value`) go in a separate `fields:` section, with a description and type. They share the column namespace and naming rules, and templates may use them, but they aren't data columns: `ak.columns()` leaves them out, and `ak.columns("ranges")` lists them with blank units.
-- `ak.template(name)` returns an empty DataFrame with the template's columns. Unknown names raise `ColumnError` listing the available templates.
+- `ht.columns()` returns one row per column (name, description, quantity, US unit, SI unit, used by). `ht.columns("spt")` limits it to a template.
+- **Overlay fields:** names used only in overlay tables (P01 §8: `low`, `high`, `label`, `value`) go in a separate `fields:` section, with a description and type. They share the column namespace and naming rules, and templates may use them, but they aren't data columns: `ht.columns()` leaves them out, and `ht.columns("ranges")` lists them with blank units.
+- `ht.template(name)` returns an empty DataFrame with the template's columns. Unknown names raise `ColumnError` listing the available templates.
 - **Template CSVs are plain** (decided): one header row, no units row. Units are declared in `read_csv(..., units={...})`, which matches how engineers keep units: in their head or in a note, not in the file.
 - **Names are written out** (CLAUDE.md, "Naming"): `undrained_shear_strength`, `uniformity_coefficient`, `curvature_coefficient`, `liquid_limit`, `spt_n60`, not `su`, `cu`, `cc`, `ll`, `n60`. Symbols belong in axis labels (`label`), never in column names. Units never appear in names (`particle_size`, not `size_mm`).
 - A registry test loads the file and checks the rules above (§14).
 - `loca_id` keeps the AGS name (decided): it is the most widely adopted convention.
 
 ## 6. House style
-- `plot/ags_kit.mplstyle` plus a context manager `ak.plot.style.context()`; every plot body runs inside it. rcParams are identical before and after a call.
+- `plot/hangtu.mplstyle` plus a context manager `ht.plot.style.context()`; every plot body runs inside it. rcParams are identical before and after a call.
 - rcParams only reach axes created inside the context, so every plot also calls `style.style_axes(ax)` inside it. This gives `Sheet` panels and a user's own `ax=` the house grid, ticks and spines.
 - Font: sans-serif (`Arial`, `Helvetica`, `DejaVu Sans` fallback), 8 pt ticks and legend, 9 pt axis labels, 10 pt titles.
 - Light major gridlines (0.5 pt, gray 85%), minor gridlines on log axes only (0.3 pt).
@@ -156,16 +156,16 @@ Helpers: `nice_limits(vmin, vmax, *, start_at_zero)`, `log_limits(vmin, vmax, mi
 - `palette_cmap(units)` returns a `ListedColormap` in unit order; `legend_handles(units)` returns patches for a stand-alone legend.
 
 ## 11. Legends and hints
-- **Legend:** outside the axes on the right, no frame, 8 pt. Sections in order: units (colors), then marker groups, then special markers (qualifiers, edge markers) with counts. More than 12 entries → columns of up to 12; more than 30 → no legend, and a note saying "n units: see ak.plot.legend_handles()". `add_legend(..., offset=)` and `Notes.render(ax, offset=)` move the legend and footnote further right, in points, to clear a secondary axis.
+- **Legend:** outside the axes on the right, no frame, 8 pt. Sections in order: units (colors), then marker groups, then special markers (qualifiers, edge markers) with counts. More than 12 entries → columns of up to 12; more than 30 → no legend, and a note saying "n units: see ht.plot.legend_handles()". `add_legend(..., offset=)` and `Notes.render(ax, offset=)` move the legend and footnote further right, in points, to clear a secondary axis.
 - **Hints** (plots README, "Input data"): `hint_missing(df, optional)` collects missing optional columns with a short reason each and issues **one** `HangtuHint` per call, unless `settings.hints` is `False`. The warning's `stacklevel` points at the user's line.
 
 ## 12. Errors
 - `HangtuError` is the base class. `UnitsError(HangtuError, ValueError)` for unit problems; `ColumnError(HangtuError, ValueError)` for missing or unknown columns and templates.
 - Messages follow SPEC §11: what is wrong, where (column, row count), and what to do, with a runnable example where possible:
-  `Column 'depth' has no units. Declare them with ak.set_units(df, {"depth": "ft"}) or read_csv(..., units={...}).`
+  `Column 'depth' has no units. Declare them with ht.set_units(df, {"depth": "ft"}) or read_csv(..., units={...}).`
 
 ## 13. Sheet
-- `ak.Sheet(size="tabloid", layout=(rows, cols), title=None, orientation="landscape")` creates one figure with a GridSpec, using constrained layout so outside legends fit.
+- `ht.Sheet(size="tabloid", layout=(rows, cols), title=None, orientation="landscape")` creates one figure with a GridSpec, using constrained layout so outside legends fit.
 - **Sizes (portrait, inches):** Letter 8.5 × 11 · Tabloid 11 × 17 · ANSI D 22 × 34 · A4 8.27 × 11.69 · A3 11.69 × 16.54. Landscape swaps them. Margins 0.5 in.
 - **Panels:** `sheet[i]` (row-major index), `sheet[r, c]`, and slices for spanning panels (`sheet[0, :]`). Each panel's Axes is created on first access and the same object is returned after that. Overlapping spans raise `HangtuError`.
 - **Title:** simple text at the top left, 12 pt bold. No title block (Later).

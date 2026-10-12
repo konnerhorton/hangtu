@@ -1,4 +1,4 @@
-# How work gets done on ags-kit
+# How work gets done on hangtu
 
 Personal reference notes. Adapted from Anthropic's [AI-native SDLC playbook](https://claude.com/resources/articles/the-ai-native-sdlc-playbook), which assumes an existing product. These notes add the part it leaves out: starting from zero with a product-level spec.
 
@@ -6,7 +6,7 @@ Personal reference notes. Adapted from Anthropic's [AI-native SDLC playbook](htt
 
 | Document | Scope | Lifetime | Answers |
 |---|---|---|---|
-| `SPEC.md` | Whole product | Permanent; changes with the product | What is ags-kit, and what holds for every feature? |
+| `SPEC.md` | Whole product | Permanent; changes with the product | What is hangtu, and what holds for every feature? |
 | `CLAUDE.md` | Whole repo | Permanent; under a page | How do I work in this repo (commands, conventions, recurring mistakes)? |
 | `docs/work/<id>/intent.md` | One unit of work | Frozen once done | What do we want and why? |
 | Feature spec | One feature | Kept while the feature exists | What exactly does it do, and how do we know it works? |
@@ -53,7 +53,7 @@ Other guides:
 
 **It shrinks, but it stays.** As features ship, the source of truth for *behavior* moves:
 - what a function does → code, docstrings, tests;
-- the column list → `columns.yaml` (`ak.columns()`);
+- the column list → `columns.yaml` (`ht.columns()`);
 - defaults and tables → `config/defaults.yaml`;
 - how to use it → README, tutorial, API docs.
 
