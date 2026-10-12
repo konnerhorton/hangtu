@@ -77,7 +77,7 @@ Data for all of these already exists in the MVP scope. P00 is the foundation the
 | P04 | **Plasticity chart**: USCS or BS 5930, A/U lines, zones, NP count | `plasticity_chart` | plot + classification | P00 | idea |
 | P05 | **Grain size distribution**: curves, envelope per unit, sieve axis, D-value markers | `grain_size` | plot + analysis (Dx, Cu, Cc, gradation) | P00 | idea |
 | P06 | **Water content profile with Atterberg limits**: w against depth, with a PL–LL bar for each specimen | `water_content_profile` | plot | P01 | idea |
-| P07 | **Box plot by unit**: optional log scale, published-range bands | `boxplot` | plot | P00 | idea |
+| P07 | **Property by geology unit**: values per unit with percentile bars (or boxes), against a report's baseline range per unit; one panel or a grid of properties | `geology_unit_comparison`, `geology_unit_comparisons` | plot | P00, P01 presets | [approved](P07-geology-unit-comparison.md) |
 
 ### Batch 2: laboratory analysis plots (each is a substantial analysis)
 | ID | Plot | Function | Notes | Status |
@@ -104,4 +104,4 @@ Data for all of these already exists in the MVP scope. P00 is the foundation the
 | P23 | Lateral earth pressure with depth (coefficient K and/or σ′h profile) | Probably builds on P01; scope to define |
 
 ### Suggested order
-**P00 → P01 → P02 → P03 → P04 → P05 → P06 → P07**: the core index and SPT set, enough for a first feedback release. Then P08–P09 once the statistics research items are settled, then Batch 2.
+**P00 → P01 → P07 → P02 → P03 → P04 → P05 → P06**: the core index and SPT set, enough for a first feedback release. Then P08–P09 once the statistics research items are settled, then Batch 2.

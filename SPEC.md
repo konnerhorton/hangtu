@@ -49,7 +49,7 @@
 
 | Version | Phase | Content |
 |---|---|---|
-| **v0.1** | **1: Plots** | - Plot framework (P00): style, palette, unit-aware labels, out-of-range markers, `Sheet`.<br>- Batch 1 plots **P01–P07**: property profile, SPT profile, SPT histograms, plasticity chart, grain size, water content profile, box plots.<br>- The analyses they need: SPT N60/refusal/classes, plasticity classification, Dx/Cu/Cc/gradation.<br>- Units handling for DataFrames (§2.6), the column registry, CSV templates.<br>- **First PyPI release; feedback round.** |
+| **v0.1** | **1: Plots** | - Plot framework (P00): style, palette, unit-aware labels, out-of-range markers, `Sheet`.<br>- Batch 1 plots **P01–P07**: property profile, SPT profile, SPT histograms, plasticity chart, grain size, water content profile, property by geology unit.<br>- The analyses they need: SPT N60/refusal/classes, plasticity classification, Dx/Cu/Cc/gradation.<br>- Units handling for DataFrames (§2.6), the column registry, CSV templates.<br>- **First PyPI release; feedback round.** |
 | **v0.2** | **2: Data** | - AGS4 ingest (units on ingest, value flags) into SQLite.<br>- QC level 1 with CSV report and diff tool.<br>- Depth/elevation/geology conventions and joins.<br>- Ready-made datasets (SPT, Atterberg/index properties, grain size, permeability) that feed the Phase 1 plots directly.<br>- **Blocked by TODO 0b (internal data model).** |
 | **v0.3** | **3: Statistics** | - `describe`, `fit` (bounded and censored), `compare`, `compare_groups`, `crosstab`, EC7 `characteristic`.<br>- Plots P08 (distribution fit) and P09 (characteristic value profile). |
 | v0.4 | | - Clogging (P17–P18; Thewes & Burger 2004, Hollmann & Thewes 2013).<br>- QC level 2 (engineering-judgment ranges).<br>- Standards comparison with a library of published ranges.<br>- User-defined PSD regions; plasticity-chart data region.<br>- Compaction curve (P16). |
@@ -115,7 +115,7 @@ Full conventions are in [`docs/plots/README.md`](docs/plots/README.md); each fig
 - **Input:** tidy DataFrames with registry column names (§10.3) and declared units (§2.6). There is no dependency on the database.
 - **House style** (agreed for now): sans-serif font, 8–9 pt, light grids, legend outside right. Applied in a context manager, so the user's matplotlib state is untouched. No company drafting standard.
 - **Axes:** depth points downward and elevation upward. Labels include units and the datum (e.g. "Elevation (ft, NAVD88)").
-- **Log scales:** supported by profile, histogram, box and fit plots (for permeability etc.).
+- **Log scales:** supported by profile, histogram, geology-unit comparison and fit plots (for permeability etc.).
 - **Out-of-range data is never dropped silently:** it's drawn at the edge with an arrow and a count. Flagged values (refusal, NP, `<x`, `>x`) are drawn distinctly or counted.
 - **Geology colors:** a `{unit: color}` palette, resolved in this order:
   1. an explicit `palette=` argument;
@@ -152,7 +152,7 @@ Analysis code lives in `ht.analysis.*`, as plain functions usable without plotti
 
 - Functions: `describe`, `fit`, `compare`, `compare_groups`, `crosstab`, `characteristic`. Draft behavior is in [`docs/drafts/phase3-stats.md`](docs/drafts/phase3-stats.md) (TODO #8–#13).
 
-Box plots with published-range overlays (P07) are a Phase 1 *plot* and don't need the statistics module.
+P07 (property by geology unit against a report's baseline ranges) is a Phase 1 *plot*: it computes its percentiles with NumPy and doesn't need the statistics module.
 
 ---
 
@@ -326,9 +326,10 @@ ht.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
 | M0 | Scaffolding: src layout, deps, ruff, pytest, CI matrix, MIT license | CI green |
 | M1 | **P00 framework**: settings, units for DataFrames (§2.6), column registry, style, palette, label and out-of-range helpers, `Sheet` | Framework tests pass; a dummy plot composes on a Sheet |
 | M2 | **P01** property profile | P01 acceptance criteria met |
+| M2b | **P07** property by geology unit (moved ahead of M3 from M5) | P07 acceptance criteria met |
 | M3 | **P02–P03** + SPT analysis | P02/P03 criteria + SPT golden tests |
 | M4 | **P04–P06** + classification and gradation analyses | P04–P06 criteria + classification/Dx golden tests |
-| M5 | **P07**, examples, CSV templates, README/tutorial; PyPI name check → **v0.1.0 on PyPI** | Examples run from a clean `pip install` |
+| M5 | Examples, CSV templates, README/tutorial; PyPI name check → **v0.1.0 on PyPI** | Examples run from a clean `pip install` |
 | M6 | Feedback round; Phase 2 design closed (**TODO 0b**) | Decisions recorded in SPEC |
 | M7+ | Phase 2 milestones (ingest → QC → joins/datasets), then Phase 3 | Defined at M6 |
 
