@@ -80,7 +80,8 @@ It ends up in GBR compliance reviews, differing site condition assessments, phas
   - `geology_unit_comparisons()`: one panel per value, in a grid `columns=2` wide, filled row by row; an odd last panel leaves its cell empty. Each panel has its own value axis, limits and units. One legend for the whole figure, centered below the grid.
 - **Default size:**
   - single panel: the global `default` size (6.5 × 4.5 in).
-  - grid: a new `grid` kind in `ht.settings.figure_sizes`, **per panel** (3.75 × 2.75 in), plus 0.6 in for the shared legend. Six panels in two columns make 7.5 × 8.85 in, which fits a Letter page with 0.5 in margins. `figsize=` sets the size of the whole figure.
+  - grid: a new `grid` kind in `ht.settings.figure_sizes`, **per panel** (3.75 × 2.75 in), plus 0.6 in for the shared legend, plus 8.5 pt per footnote line. Six panels in two columns make 7.5 × 8.85 in, which fits a Letter page with 0.5 in margins. `figsize=` sets the size of the whole figure, and it is not grown for the footnote.
+  - The shared legend (up to 4 entries per row) and the footnote below it sit in a band at the bottom of the figure that the panels are kept out of. Qualifier entries total their counts over the panels; each footnote line starts with its panel's quantity, e.g. "Consistency index, Ic: 4 values beyond axis limit, shown at the edge". Each panel's own counts are in its `ax.ags_notes`.
 - **Orientation:** horizontal only: units on the vertical axis, values across.
 
 ## 6. Axes
@@ -214,9 +215,10 @@ def geology_unit_comparisons(
     xlim: dict[str, tuple[float, float]] | None = None,
     reference_lines: dict[str, list[tuple[float, str]]] | None = None,
     figsize: tuple[float, float] | None = None,         # whole figure; None -> settings "grid" per panel
-    # every other argument of geology_unit_comparison except `value`, `note` and `ax`, applied to all panels
-    **kwargs,
-) -> tuple[Figure, np.ndarray]: ...
+    # every other argument of geology_unit_comparison except `value`, `note` and `ax`,
+    # written out in the signature and applied to all panels
+    **style_overrides,
+) -> tuple[Figure, np.ndarray]: ...       # axs[i] is the panel of values[i]
 ```
 
 - The grid takes one table holding every value column, or a dict with one table per value, because properties often come from different tests (water content from the index tests, s_u from the vane tests). Each table keeps its own declared units.

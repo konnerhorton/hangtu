@@ -100,6 +100,8 @@ class _Panel:
     notes: Notes = field(default_factory=Notes)
     counts: list[Artist] = field(default_factory=list)
     baseline: Baseline | None = None
+    flags: list[Artist] = field(default_factory=list)  # qualifier entries
+    title: str = ""  # the value axis text without units, for grid footnotes
 
 
 def _choose_preset(value: str, preset: str | None) -> Preset | None:
@@ -577,7 +579,7 @@ def _draw_panel(
         panel.handles.append(
             _values.legend_marker("o", _values.NEUTRAL, "Data", POINT_SIZE)
         )
-    panel.handles += _values.qualifier_handles(
+    panel.flags = _values.qualifier_handles(
         np.where(drawn, qualifiers, ""), panel.notes
     )
     if reference_lines is not None:
@@ -596,9 +598,10 @@ def _draw_panel(
             color="0.4",
             zorder=_layers.ANNOTATIONS,
         )
+    panel.title = _values.axis_text(value, label, chosen)
     ax.set_xlabel(
         axis_label(
-            _values.axis_text(value, label, chosen),
+            panel.title,
             x_unit_text,
             unknown=resolved[value] is None and _units.needs_units(value, quantity),
         )
@@ -742,7 +745,7 @@ def geology_unit_comparison(
             units=units,
             system=system,
         )
-        handles = panel.handles
+        handles = [*panel.handles, *panel.flags]
         if panel.baseline is not None and panel.baseline.units:
             text = legend_text(baseline_label, [panel.baseline])
             handles = [_baseline_handle(text), *handles]
@@ -750,3 +753,269 @@ def geology_unit_comparison(
         add_legend(ax, [handles], panel.notes, offset)
         panel.notes.render(ax, offset)
     return fig, ax
+
+
+GRID_PANEL = (3.75, 2.75)  # inches per panel, when settings has no "grid" size
+GRID_LEGEND = 0.6  # inches below the panels for the shared legend
+FOOTNOTE_LINE = 8.5  # points per footnote line (7 pt text)
+LEGEND_COLUMNS = 4
+LEGEND_ROW = 14.0  # points per row of the shared legend
+BAND_PAD = 6.0  # points above and below the legend and footnote
+
+
+def _per_panel(name: str, given: Any, values: list[str]) -> dict[str, Any]:
+    """Check a per-panel argument: a dict keyed by value (P07 §10)."""
+    if given is None:
+        return {}
+    if not isinstance(given, dict):
+        raise HangtuError(
+            f"{name} must be a dict of {{value: setting}} so each panel gets its own, "
+            f"not {given!r}. Example: {name}={{{values[0]!r}: ...}}"
+        )
+    unknown = [key for key in given if key not in values]
+    if unknown:
+        raise HangtuError(
+            f"{name} has settings for {unknown}, which aren't in values "
+            f"({', '.join(values)})."
+        )
+    return given
+
+
+def _tables(
+    data: pd.DataFrame | dict[str, pd.DataFrame], values: list[str]
+) -> dict[str, pd.DataFrame]:
+    """Return the table for each value: the one table, or one per value."""
+    if isinstance(data, pd.DataFrame):
+        return dict.fromkeys(values, data)
+    if not isinstance(data, dict):
+        raise HangtuError(
+            "data must be a DataFrame, or a dict of {value: DataFrame} with one "
+            f"table per panel, not {type(data).__name__}."
+        )
+    missing = [value for value in values if value not in data]
+    extra = [key for key in data if key not in values]
+    if missing or extra:
+        raise HangtuError(
+            "data must have one table for each value. "
+            + (f"Missing: {', '.join(missing)}. " if missing else "")
+            + (f"Not in values: {', '.join(map(str, extra))}." if extra else "")
+        )
+    return data
+
+
+def _grid_flags(panels: list[_Panel]) -> list[Artist]:
+    """Return qualifier legend entries with counts summed over the panels."""
+    handles = []
+    for marker, size, text, reason in _values.QUALIFIERS.values():
+        n = sum(panel.notes.counts.get(reason, 0) for panel in panels)
+        if n:
+            handles.append(
+                _values.legend_marker(marker, _values.NEUTRAL, f"{text} ({n})", size)
+            )
+    return handles
+
+
+def _grid_footnote(panels: list[_Panel]) -> list[str]:
+    """Return each panel's note lines, prefixed with its quantity."""
+    return [
+        f"{panel.title}: {line}" for panel in panels for line in panel.notes.lines()
+    ]
+
+
+def _grid_legend(fig: Figure, handles: list[Artist], footnote: list[str]) -> None:
+    """Put one legend below the panels, and the footnote below it.
+
+    A band at the bottom of the figure is kept free of panels for them.
+    """
+    if not handles and not footnote:
+        return
+    legend_rows = -(-len(handles) // LEGEND_COLUMNS)
+    band = (legend_rows * LEGEND_ROW + len(footnote) * FOOTNOTE_LINE + 2 * BAND_PAD) / (
+        72.0 * fig.get_figheight()
+    )
+    fig.get_layout_engine().set(rect=(0.0, band, 1.0, 1.0 - band))
+    if handles:
+        legend = fig.legend(
+            handles=handles,
+            loc="upper center",
+            bbox_to_anchor=(0.5, band),
+            bbox_transform=fig.transFigure,
+            ncols=min(len(handles), LEGEND_COLUMNS),
+            frameon=False,
+            fontsize=8,
+            borderaxespad=0.0,
+        )
+        legend.set_in_layout(False)
+    if footnote:
+        fig.text(
+            0.5,
+            BAND_PAD / (72.0 * fig.get_figheight()),
+            "\n".join(footnote),
+            ha="center",
+            va="bottom",
+            fontsize=7,
+            color="0.4",
+        )
+
+
+def geology_unit_comparisons(
+    data: pd.DataFrame | dict[str, pd.DataFrame],
+    values: list[str],
+    *,
+    columns: int = 2,
+    baseline: pd.DataFrame | str | None = None,
+    baseline_label: str | None = None,
+    baseline_units: dict[str, str] | None = None,
+    summary: Literal["percentiles", "box"] | None = "percentiles",
+    percentiles: tuple[float, float, float] = (10, 50, 90),
+    percentile_method: str = "linear",
+    summary_min_count: int | None = None,
+    points: bool = True,
+    preset: dict[str, str] | None = None,
+    log: dict[str, bool] | None = None,
+    label: dict[str, str] | None = None,
+    xlim: dict[str, tuple[float, float]] | None = None,
+    reference_lines: dict[str, list[tuple[float, str]]] | None = None,
+    order: list[str] | None = None,
+    color_by: Literal["geology_unit"] | None = "geology_unit",
+    palette: dict[str, str] | None = None,
+    units: dict[str, str] | None = None,
+    display_units: Literal["US", "SI"] | None = None,
+    figsize: tuple[float, float] | None = None,
+    **style_overrides: Any,
+) -> tuple[Figure, np.ndarray]:
+    """Compare several properties by geology unit, one panel each (P07).
+
+    Each panel is a ``geology_unit_comparison``. The panels share one legend,
+    below the grid, and one footnote that names the panel of each note.
+
+    Parameters
+    ----------
+    data : DataFrame or dict
+        One table holding every value column, or ``{value: table}`` when the
+        properties come from different tests. Each table keeps its own units.
+    values : list of str
+        The columns to compare, one panel each, in this order.
+    columns : int
+        Panels per row.
+    baseline : DataFrame or path, optional
+        The report's ranges, with a ``property`` column naming the value of
+        each row when there is more than one value.
+    preset, log, label, xlim, reference_lines : dict, optional
+        Per-panel settings, keyed by value, e.g. ``log={"hydraulic_conductivity":
+        True}``.
+    figsize : (width, height), optional
+        The whole figure, in inches. By default the settings ``grid`` size
+        per panel, plus room for the legend.
+
+    The other arguments are those of ``geology_unit_comparison`` and apply to
+    every panel.
+
+    Returns
+    -------
+    fig, axs
+        ``axs[i]`` is the panel of ``values[i]``.
+
+    Examples
+    --------
+    >>> fig, axs = ht.plot.geology_unit_comparisons(
+    ...     {"water_content": index, "undrained_shear_strength": vane},
+    ...     ["water_content", "undrained_shear_strength"],
+    ...     baseline=gbr, baseline_label="GBR baseline p10-p90, p50")
+    """
+    if (
+        isinstance(values, str)
+        or not isinstance(values, list | tuple)
+        or not values
+        or len(set(values)) != len(values)
+    ):
+        raise HangtuError(
+            "values must be a list of different value columns, one per panel, not "
+            f'{values!r}. Example: values=["water_content", "bulk_unit_weight"]'
+        )
+    values = list(values)
+    if not isinstance(columns, int) or isinstance(columns, bool) or columns < 1:
+        raise HangtuError(
+            f"columns must be a whole number of at least 1, not {columns!r}."
+        )
+    tables = _tables(data, values)
+    settings_for = {
+        name: _per_panel(name, given, values)
+        for name, given in (
+            ("preset", preset),
+            ("log", log),
+            ("label", label),
+            ("xlim", xlim),
+            ("reference_lines", reference_lines),
+        )
+    }
+    for value in values:
+        _check_columns(tables[value], value, color_by)
+    if baseline is not None and not isinstance(baseline, pd.DataFrame):
+        baseline = _units.read_csv(baseline)
+    if baseline is not None and len(values) > 1 and "property" not in baseline.columns:
+        raise ColumnError(
+            "The baseline table covers several values here, so it needs a "
+            "'property' column naming the value of each row, e.g. water_content."
+        )
+    chosen_summary = _check_summary(
+        summary, percentiles, percentile_method, summary_min_count
+    )
+    system = _display_units(display_units or settings.display_units)
+    n_rows = -(-len(values) // columns)
+    n_columns = min(columns, len(values))
+
+    with style.context(**style_overrides):
+        grow = figsize is None
+        if figsize is None:
+            width, height = settings.figure_sizes.get("grid", GRID_PANEL)
+            figsize = (n_columns * width, n_rows * height + GRID_LEGEND)
+        fig, grid = plt.subplots(
+            n_rows, n_columns, figsize=figsize, layout="constrained", squeeze=False
+        )
+        cells = list(grid.ravel())
+        for unused in cells[len(values) :]:
+            unused.remove()
+        axs = np.array(cells[: len(values)], dtype=object)
+        panels = []
+        for ax, value in zip(axs, values, strict=True):
+            panel = _draw_panel(
+                ax,
+                tables[value],
+                value,
+                preset=settings_for["preset"].get(value),
+                log=settings_for["log"].get(value),
+                label=settings_for["label"].get(value),
+                xlim=settings_for["xlim"].get(value),
+                order=order,
+                color_by=color_by,
+                points=points,
+                summary=chosen_summary,
+                baseline=baseline,
+                baseline_units=baseline_units,
+                reference_lines=settings_for["reference_lines"].get(value),
+                note=None,
+                palette=palette,
+                units=units,
+                system=system,
+            )
+            ax.ags_notes = dict(panel.notes.counts)
+            panels.append(panel)
+
+        handles: dict[str, Artist] = {}
+        drawn = [
+            p.baseline for p in panels if p.baseline is not None and p.baseline.units
+        ]
+        if drawn:
+            text = legend_text(baseline_label, drawn)
+            handles[text] = _baseline_handle(text)
+        for panel in panels:
+            for handle in panel.handles:
+                handles.setdefault(handle.get_label(), handle)
+        legend_handles = [*handles.values(), *_grid_flags(panels)]
+        footnote = _grid_footnote(panels)
+        if footnote and grow:
+            width, height = fig.get_size_inches()
+            fig.set_size_inches(width, height + len(footnote) * FOOTNOTE_LINE / 72.0)
+        _grid_legend(fig, legend_handles, footnote)
+    return fig, axs
