@@ -148,6 +148,24 @@ def single_ground_level(levels: np.ndarray | None) -> float | None:
     return float(known[0])
 
 
+def interval_bounds(
+    df: pd.DataFrame, units: Mapping[str, str | None], vertical: Vertical
+) -> tuple[np.ndarray, np.ndarray] | None:
+    """Return ``depth_top`` and ``depth_base`` in the vertical reference.
+
+    In elevation, each row's bounds are converted with its own ground level
+    (``row_ground_levels``). Returns None when that isn't possible.
+    """
+    lengths, _ = length_values(df, units, vertical.display_units)
+    top, base = lengths["depth_top"], lengths["depth_base"]
+    if vertical.vs == "depth":
+        return top, base
+    levels = row_ground_levels(lengths)
+    if levels is None:
+        return None
+    return levels - top, levels - base
+
+
 def vertical_values(
     df: pd.DataFrame,
     vs: Literal["depth", "elevation"],

@@ -119,9 +119,9 @@ Presets live in `config/defaults.yaml`, with the typical range in the quantity's
 | Series | Mark | Color by | Marker by | Size / width | Legend entry | Notes |
 |---|---|---|---|---|---|---|
 | Observations | scatter | `geology_unit` (palette); a single neutral color if `color_by=None` or the column is absent | `marker_by=` column (default: all circles) | 5 pt markers | ✔ per unit, ✔ per marker group | Filled markers |
-| Test intervals | thin vertical line from `depth_top` to `depth_base` at x = value | same as the marker | — | 1.0 pt, round caps | — | `intervals="auto"`: drawn when both columns exist |
+| Test intervals | thin vertical line from `depth_top` to `depth_base` at x = value | same as the marker | — | 1.0 pt, round caps | — | `intervals="auto"`: drawn when both columns exist; `True` without them is an error. In elevation, each row uses its own ground level (`ground_level`, or `elevation + depth`); with neither, bars aren't drawn and a warning says why. Bounds count toward the vertical limits. No bar for a value drawn at the edge |
 | Connecting lines | line through each hole's points, sorted by vertical position | neutral gray (holes cross units) | — | 0.6 pt, alpha 0.6 | — | Only with `connect=True`; off by default |
-| Qualified values | caret ◁ / ▷ at the value | unit color | — | 6 pt | ✔ "less than (n)" / "greater than (n)" | Replaces the normal marker |
+| Qualified values | caret ◁ / ▷ at the value | unit color | — | 6 pt | ✔ "less than (n)" / "greater than (n)" | Replaces the normal marker. Also counted in the footnote. Beyond a fixed limit, the caret is drawn open at the edge and counted both ways |
 | Out-of-range (fixed limits) | open marker at the axis edge + small arrow pointing outward | unit color | — | 5 pt | ✔ footnote "n values beyond axis limit" | README policy |
 
 **Marker cycle** for `marker_by`: ● ■ ▲ ◆ ▼ ✚ ✖ ⬟ ⬢ ★ (10 shapes). Beyond 10 groups, the shapes repeat and a warning suggests `connect=True` or splitting the data.
@@ -240,6 +240,7 @@ fig, ax = ak.plot.profile(su, "undrained_shear_strength", preset="undrained_shea
 | `strata` or `ranges` with both a depth and an elevation pair, or (for `strata`) neither | Error naming the two pairs and saying to give one |
 | `strata` or `ranges` pair doesn't match `vs`, and there are several ground levels (or none) | Error saying the pair can't be converted, and to give the pair that matches `vs` |
 | Overlay row with top and base the wrong way round | Row not drawn; warning naming the row |
+| `qualifier` other than `"<"`, `">"` or blank | Error listing the rows and the values found |
 | Mixed lab and field data | Fine. Use `marker_by="source"` to distinguish them |
 
 ## 12. Acceptance criteria and tests

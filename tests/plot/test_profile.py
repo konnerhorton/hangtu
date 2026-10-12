@@ -349,7 +349,6 @@ def test_us_and_si_put_points_in_the_same_place(
         {"reference_lines": [(1000.0, "limit")]},
         {"stats_box": True},
         {"note": "draft"},
-        {"intervals": True},
     ],
 )
 def test_arguments_not_built_yet_say_so(arguments, frame):

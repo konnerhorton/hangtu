@@ -10,10 +10,11 @@ import numpy as np
 import pandas as pd
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from matplotlib.lines import Line2D
 
 from ags_kit import units as _units
 from ags_kit._settings import _display_units, settings
-from ags_kit.errors import AgsKitError, ColumnError
+from ags_kit.errors import AgsKitError, ColumnError, warn
 from ags_kit.plot import _layers, _presets, style
 from ags_kit.plot._data import numeric_column
 from ags_kit.plot._hints import hint_missing
@@ -29,13 +30,27 @@ from ags_kit.plot._limits import (
 from ags_kit.plot._notes import Notes, edge_markers
 from ags_kit.plot._palette import resolve_palette
 from ags_kit.plot._presets import Preset
-from ags_kit.plot._vertical import choose_vs, length_columns, vertical_values
+from ags_kit.plot._vertical import (
+    Vertical,
+    choose_vs,
+    interval_bounds,
+    length_columns,
+    vertical_values,
+)
 from ags_kit.registry import column_info
 
 LEGEND_WIDTH = 1.5  # inches added to the settings size for the outside legend
 NEUTRAL = "0.3"  # points not colored by a group
 MARKER_SIZE = 5.0  # points
+CARET_SIZE = 6.0  # points
+INTERVAL_WIDTH = 1.0  # points
 BLANK_GROUP = "(blank)"
+# Qualifier -> (marker, size, legend text, notes reason) (P01 §3, §7).
+QUALIFIERS = {
+    "<": ("<", CARET_SIZE, "less than", "less_than"),
+    ">": (">", CARET_SIZE, "greater than", "greater_than"),
+}
+_SHOWN_ROWS = 5
 
 
 def _check_limits(name: str, limits: Any, log: bool = False) -> tuple[float, float]:
@@ -70,8 +85,6 @@ def _check_not_yet_built(df: pd.DataFrame, arguments: Mapping[str, Any]) -> None
     for name, value in arguments.items():
         if value is not None and value is not False:
             raise _not_yet(f"{name}=...")
-    if "qualifier" in df.columns and df["qualifier"].fillna("").astype(str).any():
-        raise _not_yet("data with a 'qualifier' column")
 
 
 def _quantity(value: str, preset: Preset | None) -> str | None:
@@ -175,6 +188,151 @@ def _color_groups(
     if blank.any():
         colors[BLANK_GROUP] = NEUTRAL
     return groups, colors
+
+
+def _rows_text(index: pd.Index) -> str:
+    rows = [str(row) for row in index]
+    more = f" and {len(rows) - _SHOWN_ROWS} more" if len(rows) > _SHOWN_ROWS else ""
+    return ", ".join(rows[:_SHOWN_ROWS]) + more
+
+
+def _qualifiers(df: pd.DataFrame) -> np.ndarray:
+    """Return each row's qualifier: ``"<"``, ``">"`` or ``""``."""
+    if "qualifier" not in df.columns:
+        return np.full(len(df), "", dtype=object)
+    qualifiers = df["qualifier"].fillna("").astype(str).str.strip()
+    bad = ~qualifiers.isin(["", *QUALIFIERS])
+    if bad.any():
+        found = ", ".join(repr(text) for text in dict.fromkeys(qualifiers[bad]))
+        raise ColumnError(
+            f'Column \'qualifier\' must hold "<", ">" or nothing, but rows '
+            f"{_rows_text(df.index[bad])} hold {found}. Put the qualifier only in "
+            "'qualifier' and the number in the value column."
+        )
+    return qualifiers.to_numpy(dtype=object)
+
+
+def _intervals(
+    df: pd.DataFrame,
+    intervals: bool | str,
+    units: Mapping[str, str | None],
+    vertical: Vertical,
+) -> tuple[np.ndarray, np.ndarray] | None:
+    """Return the test interval of each row in the vertical reference, or None.
+
+    Rows with no interval, or with ``depth_top`` below ``depth_base``, are NaN.
+    """
+    if intervals not in (True, False, "auto"):
+        raise AgsKitError(
+            f'intervals must be True, False or "auto", not {intervals!r}.'
+        )
+    if intervals is False:
+        return None
+    if not {"depth_top", "depth_base"} <= set(df.columns):
+        if intervals is True:
+            raise ColumnError(
+                "intervals=True needs 'depth_top' and 'depth_base' columns with "
+                "the top and base of each tested interval. Add them, or leave "
+                "intervals out."
+            )
+        return None
+    bounds = interval_bounds(df, units, vertical)
+    if bounds is None:
+        warn(
+            "Test intervals aren't drawn: drawing them against elevation needs "
+            "each hole's ground level, from a 'ground_level' column or from "
+            "'elevation' and 'depth'. Add one, or plot with vs='depth'."
+        )
+        return None
+    top, base = bounds
+    swapped = (top < base) if vertical.vs == "elevation" else (top > base)
+    if swapped.any():
+        warn(
+            f"Rows {_rows_text(df.index[swapped])} have depth_top below "
+            "depth_base, so their test intervals aren't drawn. Check those rows."
+        )
+    return np.where(swapped, np.nan, top), np.where(swapped, np.nan, base)
+
+
+def _draw_points(
+    ax: Axes,
+    x: np.ndarray,
+    y: np.ndarray,
+    rows: np.ndarray,
+    qualifiers: np.ndarray,
+    color: Any,
+    label: str,
+    limits: Mapping[str, tuple[float, float] | None],
+) -> tuple[Any, np.ndarray]:
+    """Draw one group's points, with qualified values as carets.
+
+    Returns the plain-marker collection, for the legend, and the mask of
+    rows drawn at the edge.
+    """
+    edge = np.zeros(len(x), dtype=bool)
+    kinds = {"": ("o", MARKER_SIZE, _layers.MARKERS)} | {
+        qualifier: (marker, size, _layers.QUALIFIERS)
+        for qualifier, (marker, size, _, _) in QUALIFIERS.items()
+    }
+    handle = None
+    for qualifier, (marker, size, zorder) in kinds.items():
+        these = rows & (qualifiers == qualifier)
+        if any(limits.values()):
+            edge[these] = edge_markers(ax, x[these], y[these], limits, color, marker)
+        inside = these & ~edge
+        if qualifier and not inside.any():
+            continue
+        collection = ax.scatter(
+            x[inside],
+            y[inside],
+            s=size**2,
+            marker=marker,
+            color=color,
+            edgecolors="white",
+            linewidths=0.4,
+            label=label if not qualifier else f"_{label} {qualifier}",
+            zorder=zorder,
+        )
+        if handle is None:
+            handle = collection
+    return handle, edge
+
+
+def _draw_intervals(
+    ax: Axes, x: np.ndarray, top: np.ndarray, base: np.ndarray, color: Any
+) -> None:
+    """Draw test intervals as vertical bars: one line, broken by NaN."""
+    if not x.size:
+        return
+    gaps = np.full(x.size, np.nan)
+    ax.plot(
+        np.column_stack([x, x, gaps]).ravel(),
+        np.column_stack([top, base, gaps]).ravel(),
+        color=color,
+        linewidth=INTERVAL_WIDTH,
+        solid_capstyle="round",
+        zorder=_layers.INTERVALS,
+    )
+
+
+def _qualifier_handles(qualifiers: np.ndarray, notes: Notes) -> list[Line2D]:
+    """Count qualified values and return their legend entries."""
+    handles = []
+    for qualifier, (marker, size, text, reason) in QUALIFIERS.items():
+        n = notes.count(qualifiers == qualifier, reason)
+        if n:
+            handles.append(
+                Line2D(
+                    [],
+                    [],
+                    marker=marker,
+                    markersize=size,
+                    color=NEUTRAL,
+                    linestyle="none",
+                    label=f"{text} ({n})",
+                )
+            )
+    return handles
 
 
 def _new_axes(figsize: tuple[float, float] | None) -> tuple[Figure, Axes]:
@@ -300,10 +458,6 @@ def profile(
             "note": note,
         },
     )
-    if intervals is True or (
-        intervals == "auto" and {"depth_top", "depth_base"} <= set(df.columns)
-    ):
-        raise _not_yet("intervals=...")
 
     system = _display_units(display_units or settings.display_units)
     chosen = _presets.preset(preset) if preset is not None else None
@@ -332,6 +486,8 @@ def profile(
         raw = numeric_column(df, value)
         x, x_unit_text = _units.to_display(raw, resolved[value], quantity, system)
         y, vertical = vertical_values(df, vs, resolved, system)
+        qualifiers = _qualifiers(df)
+        bounds = _intervals(df, intervals, resolved, vertical)
 
         notes = Notes()
         blank = np.isnan(x) | np.isnan(y)
@@ -341,6 +497,12 @@ def profile(
             nonpositive = drawn & (x <= 0)
             notes.count(nonpositive, "log_nonpositive")
             drawn &= ~nonpositive
+        if bounds is None:
+            bars = np.zeros(len(df), dtype=bool)
+            top = base = np.full(len(df), np.nan)
+        else:
+            top, base = bounds
+            bars = drawn & np.isfinite(top) & np.isfinite(base)
 
         if ax is None:
             fig, ax = _new_axes(figsize)
@@ -359,7 +521,9 @@ def profile(
             set_log_axis(ax, "x", limits)
         else:
             set_linear_axis(ax, "x", limits)
-        _set_vertical_axis(ax, vs, y[drawn], ylim)
+        _set_vertical_axis(
+            ax, vs, np.concatenate([y[drawn], top[bars], base[bars]]), ylim
+        )
         if xaxis_position == "top":
             ax.xaxis.tick_top()
             ax.xaxis.set_label_position("top")
@@ -369,24 +533,16 @@ def profile(
         handles = []
         for group, color in colors.items():
             rows = drawn & (groups == group) if group is not None else drawn
-            if xlim or ylim:
-                edge[rows] = edge_markers(
-                    ax, x[rows], y[rows], {"x": xlim, "y": ylim}, color
-                )
-            inside = rows & ~edge
-            handle = ax.scatter(
-                x[inside],
-                y[inside],
-                s=MARKER_SIZE**2,
-                color=color,
-                edgecolors="white",
-                linewidths=0.4,
-                label=str(group),
-                zorder=_layers.MARKERS,
+            handle, group_edge = _draw_points(
+                ax, x, y, rows, qualifiers, color, str(group), {"x": xlim, "y": ylim}
             )
+            edge |= group_edge
+            these = bars & rows & ~group_edge
+            _draw_intervals(ax, x[these], top[these], base[these], color)
             if group is not None and rows.any():
                 handles.append(handle)
         notes.count(edge, "beyond_limit")
+        qualified = _qualifier_handles(np.where(drawn, qualifiers, ""), notes)
 
         if not drawn.any():
             ax.text(
@@ -408,6 +564,6 @@ def profile(
             )
         )
         ax.set_ylabel(vertical.label())
-        add_legend(ax, [handles], notes)
+        add_legend(ax, [handles, qualified], notes)
         notes.render(ax)
     return fig, ax
