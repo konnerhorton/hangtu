@@ -12,6 +12,7 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
+from matplotlib.text import Text
 
 from ags_kit import units as _units
 from ags_kit._settings import _display_units, settings
@@ -25,6 +26,7 @@ from ags_kit.plot._limits import (
     apply_vertical_axis,
     log_limits,
     nice_limits,
+    nice_step,
     set_linear_axis,
     set_log_axis,
 )
@@ -61,6 +63,7 @@ MARKER_SIZE = 5.0  # points
 CARET_SIZE = 6.0  # points
 INTERVAL_WIDTH = 1.0  # points
 BLANK_GROUP = "(blank)"
+ROOM_MARGIN = 0.02  # axes fraction between the stats box and the lowest data
 SECONDARY_SPACE = 42.0  # points between the axes and the legend for a depth axis
 # Qualifier -> (marker, size, legend text, notes reason) (P01 §3, §7).
 QUALIFIERS = {
@@ -167,6 +170,34 @@ def _x_limits(
     if log:
         return log_limits(vmin, vmax)
     return nice_limits(vmin, vmax, start_at_zero=start_at_zero)
+
+
+def _room_below_data(ax: Axes, box: Text, lowest: float) -> None:
+    """Deepen the vertical axis so ``box`` sits below the lowest data.
+
+    ``lowest`` is the data value nearest the bottom of the axes on screen
+    (the deepest depth, or the lowest elevation). The bottom limit moves out
+    to a nice value; the top limit only rounds out to the same step.
+    """
+    figure = ax.figure
+    figure.draw_without_rendering()  # runs the layout, so sizes are final
+    renderer = figure.canvas.get_renderer()
+    box_top = box.get_bbox_patch().get_window_extent(renderer).y1
+    needed = ax.transAxes.inverted().transform((0.0, box_top))[1] + ROOM_MARGIN
+    bottom, top = ax.get_ylim()  # in screen order, for depth and elevation
+    if (lowest - bottom) / (top - bottom) >= needed or not 0 < needed < 1:
+        return
+
+    def outward(value: float, step: float, away_from: float) -> float:
+        n = value / step
+        return (math.floor(n) if value < away_from else math.ceil(n)) * step
+
+    wanted = (lowest - needed * top) / (1 - needed)
+    step = nice_step(*sorted((wanted, top)))
+    top = outward(top, step, wanted) if top % step else top
+    wanted = (lowest - needed * top) / (1 - needed)
+    step = nice_step(*sorted((wanted, top)))
+    set_linear_axis(ax, "y", (outward(wanted, step, top), top))
 
 
 def _set_vertical_axis(
@@ -414,6 +445,7 @@ def profile(
     design_lines: pd.DataFrame | None = None,
     reference_lines: list[tuple[float, str]] | None = None,
     stats_box: bool | list[str] = False,
+    stats_box_room: bool = True,
     note: str | None = None,
     palette: dict[str, str] | None = None,
     units: dict[str, str] | None = None,
@@ -454,6 +486,13 @@ def profile(
         edge with an arrow, and counted.
     xaxis_position : {"bottom", "top"}
         ``"top"`` puts the value axis at the top, as on a borehole log.
+    stats_box : bool or list of str
+        A box of statistics at the lower left: True for count, mean, std,
+        median, min and max per unit, or a list chosen from those and
+        ``"cov"``.
+    stats_box_room : bool
+        Deepen the vertical axis so the stats box sits below the lowest
+        data instead of covering it. Ignored with ``ylim=``.
     palette : dict, optional
         ``{geology unit: color}`` for this plot.
     units : dict, optional
@@ -592,8 +631,6 @@ def profile(
             draw_reference_lines(ax, reference_lines, scale)
         if note is not None:
             draw_note(ax, str(note))
-        if secondary == "depth":
-            add_secondary_depth(ax, vertical)
 
         groups, colors = _color_groups(df, color_by, palette)
         marker_groups, shapes = _marker_groups(df, marker_by)
@@ -660,7 +697,13 @@ def profile(
                 order=list(colors),
                 interval=bool(info) and info.get("scale") == "interval",
             )
-            draw_stats_box(ax, rows, None if note is None else str(note))
+            box = draw_stats_box(ax, rows, None if note is None else str(note))
+            heights = np.concatenate([y[drawn], top[bars], base[bars]])
+            if stats_box_room and ylim is None and heights.size:
+                lowest = heights.max() if vs == "depth" else heights.min()
+                _room_below_data(ax, box, float(lowest))
+        if secondary == "depth":
+            add_secondary_depth(ax, vertical)
         offset = SECONDARY_SPACE if secondary else 0.0
         add_legend(ax, [unit_handles, shape_handles, qualified], notes, offset)
         notes.render(ax, offset)

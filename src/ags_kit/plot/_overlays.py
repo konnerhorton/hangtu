@@ -17,6 +17,7 @@ import pandas as pd
 from matplotlib.axes import Axes
 from matplotlib.colors import to_rgb
 from matplotlib.patches import Rectangle
+from matplotlib.text import Text
 from matplotlib.transforms import blended_transform_factory, offset_copy
 
 from ags_kit.errors import AgsKitError, ColumnError, warn
@@ -720,7 +721,7 @@ def stats_table(
     return rows
 
 
-def draw_stats_box(ax: Axes, rows: Sequence[Sequence[str]], note: str | None) -> None:
+def draw_stats_box(ax: Axes, rows: Sequence[Sequence[str]], note: str | None) -> Text:
     """Write the stats table in a box at the lower left, above any ``note``."""
     widths = [max(len(row[i]) for row in rows) for i in range(len(rows[0]))]
     lines = [
@@ -731,7 +732,7 @@ def draw_stats_box(ax: Axes, rows: Sequence[Sequence[str]], note: str | None) ->
         for row in rows
     ]
     above_note = 0.0 if note is None else NOTE_LINE_HEIGHT * (note.count("\n") + 1) + 4
-    ax.text(
+    return ax.text(
         0.02,
         0.02,
         "\n".join(lines),

@@ -123,4 +123,4 @@ These fill gaps in P01. Each one goes into P01 in the commit that builds it.
 - `columns.yaml`: every overlay column already listed P01 in `used_by`, so no change. `TODO.md`: no change.
 - **Visual check** (`visual-check.png`, US and SI on a Letter sheet): elevation up with the datum, whole decades with `10ⁿ` labels, unit colors shared by points and strata, interval bars, the "<" caret, gray marker groups after the unit colors, the footnote counts, and the depth axis on the right with the legend clear of it. Two things to know:
   - A value exactly on a whole decade (k = 1.0e-3 cm/s) sits on the frame, because P00's `log_limits` doesn't add a decade for it.
-  - The stats box is in the lower left, as P01 §8 places it, and can cover points there; a wider `ylim=` leaves room under the data.
+  - The stats box is in the lower left, as P01 §8 places it. After review, `stats_box_room=True` (the default) deepens the vertical axis so the box sits below the lowest data.

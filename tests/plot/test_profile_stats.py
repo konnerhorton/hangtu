@@ -240,3 +240,89 @@ def test_unknown_statistic_names_the_allowed_ones(frame):
 )
 def test_format_number(value, text):
     assert format_number(value) == text
+
+
+# --- room for the stats box ----------------------------------------------------------
+
+
+def deep_frame(frame):
+    """Twelve points down to 60 ft in six units: a tall box over the deepest."""
+    depths = [5.0 * i for i in range(1, 13)]
+    return frame(
+        values=[200.0 * i for i in range(1, 13)],
+        loca_id=["A"] * 12,
+        depth=depths,
+        ground_level=[120.0] * 12,
+        geology_unit=[f"Unit {i // 2}" for i in range(12)],
+    )
+
+
+def box_and_lowest(ax, lowest):
+    """The box top and the lowest data, as fractions of the axes height."""
+    ax.figure.draw_without_rendering()
+    renderer = ax.figure.canvas.get_renderer()
+    box_top = stats_text(ax).get_bbox_patch().get_window_extent(renderer).y1
+    to_axes = ax.transAxes.inverted()
+    data_y = ax.transData.transform((1.0, lowest))[1]
+    return to_axes.transform((0, box_top))[1], to_axes.transform((0, data_y))[1]
+
+
+@pytest.mark.parametrize(("vs", "lowest"), [("elevation", 60.0), ("depth", 60.0)])
+def test_the_axis_deepens_so_the_box_sits_below_the_data(frame, vs, lowest):
+    _, plain = ak.plot.profile(
+        deep_frame(frame),
+        "undrained_shear_strength",
+        vs=vs,
+        stats_box=True,
+        stats_box_room=False,
+    )
+    box_top, data = box_and_lowest(plain, lowest)
+    assert data < box_top  # without room, the box covers the deepest points
+    _, ax = ak.plot.profile(
+        deep_frame(frame), "undrained_shear_strength", vs=vs, stats_box=True
+    )
+    box_top, data = box_and_lowest(ax, lowest)
+    assert data > box_top
+    bottom, top = ax.get_ylim()
+    plain_bottom, plain_top = plain.get_ylim()
+    # Only the bottom moves out, to a whole number of tick steps.
+    assert abs(bottom - top) > abs(plain_bottom - plain_top)
+    step = ax.yaxis.get_major_locator()()[1] - ax.yaxis.get_major_locator()()[0]
+    assert bottom / step == pytest.approx(round(bottom / step))
+
+
+def test_intervals_count_as_data_under_the_box(frame):
+    df = deep_frame(frame)
+    df["depth_top"] = df["depth"] - 2.0
+    df["depth_base"] = df["depth"] + 8.0
+    df = ak.set_units(df, {"depth_top": "ft", "depth_base": "ft"})
+    _, ax = ak.plot.profile(df, "undrained_shear_strength", vs="depth", stats_box=True)
+    box_top, data = box_and_lowest(ax, 68.0)
+    assert data > box_top
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"stats_box": True, "stats_box_room": False},
+        {"stats_box": True, "ylim": (50.0, 120.0)},
+    ],
+)
+def test_room_is_left_alone_when_turned_off_or_limits_are_fixed(frame, kwargs):
+    _, plain = ak.plot.profile(
+        deep_frame(frame), "undrained_shear_strength", ylim=kwargs.get("ylim")
+    )
+    _, ax = ak.plot.profile(deep_frame(frame), "undrained_shear_strength", **kwargs)
+    assert ax.get_ylim() == plain.get_ylim()
+
+
+def test_the_secondary_depth_axis_follows_the_deeper_range(frame):
+    fig, ax = ak.plot.profile(
+        deep_frame(frame), "undrained_shear_strength", stats_box=True, secondary="depth"
+    )
+    fig.canvas.draw()
+    (depth,) = ax.child_axes
+    for d in depth.get_yticks():
+        drawn = depth.transData.transform((0.0, d))[1]
+        assert drawn == pytest.approx(ax.transData.transform((0.0, 120.0 - d))[1])
+    assert max(depth.get_yticks()) >= 120.0 - ax.get_ylim()[0] - 10.0
