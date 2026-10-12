@@ -172,6 +172,22 @@ def profile_frame(
     return units.set_units(df, declared)
 
 
+def comparison_frame(
+    value="undrained_shear_strength",
+    values=(500.0, 1000.0, 1500.0, 2000.0, 800.0, 1200.0),
+    unit="psf",
+    **columns,
+):
+    """Values in three geology units, for P07. ``unit=None`` declares no units."""
+    data = {
+        "geology_unit": ["Fill", "Fill", "Clay", "Clay", "Sand", "Sand"],
+        value: list(values),
+        **columns,
+    }
+    df = pd.DataFrame(data)
+    return units.set_units(df, {value: unit}) if unit else df
+
+
 def drawn_points(ax):
     """Every scatter point drawn on ``ax``, as one (n, 2) array."""
     offsets = [c.get_offsets() for c in ax.collections if len(c.get_offsets())]
@@ -181,6 +197,11 @@ def drawn_points(ax):
 @pytest.fixture(name="frame")
 def _frame():
     return profile_frame
+
+
+@pytest.fixture(name="comparison")
+def _comparison():
+    return comparison_frame
 
 
 @pytest.fixture(name="points")

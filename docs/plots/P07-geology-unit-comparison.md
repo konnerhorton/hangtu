@@ -57,6 +57,8 @@ It ends up in GBR compliance reviews, differing site condition assessments, phas
 
 **Grouping columns used:** `geology_unit` → rows, and color (default).
 
+**Hints:** none. `geology_unit` is required, and the optional columns (`qualifier`, `non_plastic`) don't unlock a feature an engineer would miss, so P07 issues no `HangtuHint`.
+
 **Value flags handled:**
 - `qualifier` `<` / `>`: a caret ◁ / ▷ in place of the point, counted in the legend and the footnote, as P01 §7. The summary uses the reported value.
 - `non_plastic`: counted in the footnote, not drawn. NP is distinct from blank everywhere (SPEC §4).
@@ -106,7 +108,7 @@ It ends up in GBR compliance reviews, differing site condition assessments, phas
 
 ## 7. Data marks
 
-Each unit's row is one unit of height, centered on its tick. Offsets are fractions of that height, measured upward from the center.
+Each unit's row is one unit of height, centered on its tick. Offsets are fractions of that height, measured upward from the center. Rows sit at y = 0, 1, 2, … on an inverted axis, so the first unit is at the top. The jitter comes from `numpy.random.default_rng(0)`, drawn once per call in data order, so the same data gives the same figure in US and SI.
 
 | Series | Mark | Color by | Position in the row | Size / width | Legend entry | Notes |
 |---|---|---|---|---|---|---|
