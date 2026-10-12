@@ -6,6 +6,7 @@ import pytest
 from matplotlib.colors import to_rgb
 
 import ags_kit as ak
+from ags_kit.plot import _layers
 from ags_kit.plot._overlays import WATER_COLOR
 
 FT = 0.3048
@@ -330,3 +331,280 @@ def test_overlay_positions_agree_in_us_and_si(frame):
         )
     for us, si in zip(drawn["US"], drawn["SI"], strict=True):
         np.testing.assert_allclose(us * FT, si)
+
+
+# --- ranges ---------------------------------------------------------------------
+
+
+def range_frame(units=("psf", "ft"), **columns):
+    df = pd.DataFrame(
+        {
+            "low": [1000.0],
+            "high": [2000.0],
+            "label": ["stiff"],
+            "source": ["Terzaghi & Peck"],
+            **columns,
+        }
+    )
+    value_unit, length_unit = units
+    declared = {"low": value_unit, "high": value_unit}
+    declared |= {c: length_unit for c in df.columns if c.startswith(("depth", "elev"))}
+    return ak.set_units(df, declared)
+
+
+def range_boxes(ax):
+    """Each range as (x low, x high, y low, y high) in data or axes units."""
+    found = []
+    for patch in ax.patches:
+        if patch.get_hatch() != "//":
+            continue
+        x, y = patch.get_x(), patch.get_y()
+        w, h = patch.get_width(), patch.get_height()
+        found.append((x, x + w, min(y, y + h), max(y, y + h)))
+    return sorted(found)
+
+
+def test_a_range_in_psf_is_drawn_in_kpa(frame):
+    # P01 §12: 2,000 psf <-> 95.76 kPa.
+    _, ax = ak.plot.profile(
+        frame(), "undrained_shear_strength", ranges=range_frame(), display_units="SI"
+    )
+    ((low, high, bottom, top),) = range_boxes(ax)
+    assert (low, high) == pytest.approx((47.88, 95.76), rel=1e-4)
+    assert (bottom, top) == (0.0, 1.0)  # full height, in axes units
+    assert "stiff (Terzaghi & Peck)" in texts(ax)
+
+
+def test_a_range_over_a_depth_pair_drawn_in_elevation(frame):
+    ranges = range_frame(depth_top=[10.0], depth_base=[20.0])
+    _, ax = ak.plot.profile(frame(), "undrained_shear_strength", ranges=ranges)
+    assert range_boxes(ax) == [(1000.0, 2000.0, 100.0, 110.0)]
+
+
+def test_a_range_without_a_source(frame):
+    ranges = range_frame().drop(columns="source")
+    _, ax = ak.plot.profile(frame(), "undrained_shear_strength", ranges=ranges)
+    assert "stiff" in texts(ax)
+
+
+def test_ranges_from_a_csv_file(frame, tmp_path):
+    path = tmp_path / "ranges.csv"
+    range_frame().to_csv(path, index=False)
+    with pytest.warns(UserWarning, match="ranges table has no units for low, high"):
+        _, ax = ak.plot.profile(frame(), "undrained_shear_strength", ranges=str(path))
+    assert range_boxes(ax)[0][:2] == (1000.0, 2000.0)
+
+
+def test_one_units_warning_per_overlay(frame):
+    ranges = pd.DataFrame(
+        {"low": [1000.0], "high": [2000.0], "label": ["stiff"]}
+        | {"depth_top": [10.0], "depth_base": [20.0]}
+    )
+    with pytest.warns(UserWarning) as record:
+        ak.plot.profile(frame(), "undrained_shear_strength", ranges=ranges)
+    assert len(record) == 1
+    assert "low, high, depth_top, depth_base" in str(record[0].message)
+
+
+def test_a_range_needs_low_high_and_label(frame):
+    with pytest.raises(ak.ColumnError, match=r"no 'high' column.*template\(\"ranges"):
+        ak.plot.profile(
+            frame(),
+            "undrained_shear_strength",
+            ranges=range_frame().drop(columns="high"),
+        )
+
+
+def test_a_range_on_a_log_axis_starting_at_zero(frame):
+    df = frame("hydraulic_conductivity", [1e-5, 3e-6, 2e-4, 5e-7], "cm/s")
+    ranges = ak.set_units(
+        pd.DataFrame({"low": [0.0], "high": [1e-4], "label": ["clean sand"]}),
+        {"low": "cm/s", "high": "cm/s"},
+    )
+    _, ax = ak.plot.profile(
+        df, "hydraulic_conductivity", preset="hydraulic_conductivity", ranges=ranges
+    )
+    ((low, high, _, _),) = range_boxes(ax)
+    assert (low, high) == pytest.approx((1e-7, 1e-4))
+
+
+# --- design and reference lines ---------------------------------------------------
+
+
+def design_frame(**columns):
+    df = pd.DataFrame(
+        {
+            "label": ["Design", "Design", "Design"],
+            "depth": [20.0, 0.0, 10.0],
+            "value": [2000.0, 500.0, 1200.0],
+            **columns,
+        }
+    )
+    return ak.set_units(df, {"depth": "ft", "value": "psf"})
+
+
+def design_lines(ax):
+    return [
+        line
+        for line in ax.lines
+        if line.get_linewidth() == 1.5 and line.get_linestyle() == "--"
+    ]
+
+
+def test_a_design_line_in_depth_drawn_in_elevation(frame):
+    _, ax = ak.plot.profile(
+        frame(), "undrained_shear_strength", design_lines=design_frame()
+    )
+    (line,) = design_lines(ax)
+    assert list(line.get_ydata()) == [120.0, 110.0, 100.0]
+    assert list(line.get_xdata()) == [500.0, 1200.0, 2000.0]
+    assert line.get_linestyle() == "--"
+    assert "Design" in texts(ax)
+
+
+def test_one_polyline_per_label(frame):
+    df = design_frame(label=["Upper", "Lower", "Upper"])
+    _, ax = ak.plot.profile(frame(), "undrained_shear_strength", design_lines=df)
+    assert len(design_lines(ax)) == 2
+
+
+def test_a_design_line_needs_one_vertical_column(frame):
+    df = design_frame(elevation=[100.0, 120.0, 110.0])
+    with pytest.raises(ak.ColumnError, match="both of 'depth' and 'elevation'"):
+        ak.plot.profile(frame(), "undrained_shear_strength", design_lines=df)
+
+
+def test_a_design_line_in_depth_needs_one_ground_level(frame):
+    df = frame(ground_level=[120.0, 120.0, 118.0, 118.0])
+    with pytest.raises(ak.AgsKitError, match="Give elevation instead"):
+        ak.plot.profile(df, "undrained_shear_strength", design_lines=design_frame())
+
+
+def test_reference_lines(frame):
+    _, ax = ak.plot.profile(
+        frame(),
+        "undrained_shear_strength",
+        reference_lines=[(1000.0, "limit"), ("95.76 kPa", "upper")],
+    )
+    lines = [line for line in ax.lines if line.get_linestyle() == ":"]
+    assert [line.get_xdata()[0] for line in lines] == pytest.approx(
+        [1000.0, 2000.0], rel=1e-4
+    )
+    assert {line.get_linewidth() for line in lines} == {0.6}
+    assert {"limit", "upper"} <= set(texts(ax))
+
+
+@pytest.mark.parametrize("reference_lines", [[1000.0], [("big", "limit")]])
+def test_bad_reference_lines_are_an_error(frame, reference_lines):
+    with pytest.raises(ak.AgsKitError):
+        ak.plot.profile(
+            frame(), "undrained_shear_strength", reference_lines=reference_lines
+        )
+
+
+def test_note_is_written_at_the_lower_left(frame):
+    _, ax = ak.plot.profile(frame(), "undrained_shear_strength", note="Draft")
+    (note,) = [text for text in ax.texts if text.get_text() == "Draft"]
+    assert note.get_position() == (0.02, 0.02)
+    assert note.get_fontsize() == 7
+
+
+# --- every overlay ------------------------------------------------------------------
+
+
+def every_overlay():
+    return {
+        "strata": strata_frame(),
+        "ranges": range_frame(),
+        "design_lines": design_frame(),
+        "reference_lines": [(1000.0, "limit")],
+        "water_level": 112.5,
+        "note": "Draft",
+    }
+
+
+@pytest.mark.parametrize("overlay", list(every_overlay()))
+def test_each_overlay_on_and_off(frame, overlay):
+    _, plain = ak.plot.profile(frame(), "undrained_shear_strength")
+    _, ax = ak.plot.profile(
+        frame(), "undrained_shear_strength", **{overlay: every_overlay()[overlay]}
+    )
+    drawn = len(ax.patches) + len(ax.lines) + len(ax.texts)
+    assert drawn > len(plain.patches) + len(plain.lines) + len(plain.texts)
+    assert len(ax.collections) == len(plain.collections)
+
+
+def test_the_layers_follow_p01_draw_order():
+    order = [
+        _layers.STRATA,
+        _layers.RANGES,
+        _layers.LINES,
+        _layers.WATER_LEVEL,
+        _layers.INTERVALS,
+        _layers.CONNECT,
+        _layers.MARKERS,
+        _layers.QUALIFIERS,
+        _layers.ANNOTATIONS,
+    ]
+    assert order == sorted(order)
+    assert len(set(order)) == len(order)
+
+
+def test_each_mark_is_drawn_on_its_layer(frame):
+    df = frame(depth_top=[4.0, 9.0, 10.0, 18.0], depth_base=[6.0, 11.0, 20.0, 30.0])
+    df = ak.set_units(df, {"depth_top": "ft", "depth_base": "ft"})
+    df["qualifier"] = ["<", "", "", ""]
+    _, ax = ak.plot.profile(
+        df, "undrained_shear_strength", connect=True, **every_overlay()
+    )
+    lines = ax.lines
+    marks = {
+        _layers.STRATA: [p for p in ax.patches if p.get_hatch() != "//"],
+        _layers.RANGES: [p for p in ax.patches if p.get_hatch() == "//"],
+        _layers.LINES: [line for line in lines if line.get_linestyle() == ":"]
+        + design_lines(ax),
+        _layers.WATER_LEVEL: [
+            line for line in lines if line.get_color() == WATER_COLOR
+        ],
+        _layers.INTERVALS: [
+            line for line in lines if line.get_solid_capstyle() == "round"
+        ],
+        _layers.CONNECT: [line for line in lines if line.get_alpha() == 0.6],
+        _layers.MARKERS: [
+            c for c in ax.collections if not c.get_label().startswith("_")
+        ],
+        _layers.QUALIFIERS: [
+            c for c in ax.collections if c.get_label().startswith("_")
+        ],
+    }
+    for layer, artists in marks.items():
+        assert artists
+        assert {artist.get_zorder() for artist in artists} == {layer}
+
+
+def test_value_overlays_agree_in_us_and_si(frame):
+    drawn = {}
+    for system in ("US", "SI"):
+        _, ax = ak.plot.profile(
+            frame(),
+            "undrained_shear_strength",
+            ranges=range_frame(depth_top=[10.0], depth_base=[20.0]),
+            design_lines=design_frame(),
+            reference_lines=[(1000.0, "limit")],
+            display_units=system,
+        )
+        (line,) = design_lines(ax)
+        (reference,) = [x for x in ax.lines if x.get_linestyle() == ":"]
+        drawn[system] = (
+            np.array(range_boxes(ax)),
+            np.column_stack([line.get_xdata(), line.get_ydata()]),
+            np.array(reference.get_xdata()),
+        )
+    psf_to_kpa = 0.04788026
+    np.testing.assert_allclose(
+        drawn["US"][0] * [psf_to_kpa, psf_to_kpa, FT, FT], drawn["SI"][0], rtol=1e-6
+    )
+    np.testing.assert_allclose(
+        drawn["US"][1] * [psf_to_kpa, FT], drawn["SI"][1], rtol=1e-6
+    )
+    np.testing.assert_allclose(drawn["US"][2] * psf_to_kpa, drawn["SI"][2], rtol=1e-6)

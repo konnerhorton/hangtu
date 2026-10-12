@@ -7,19 +7,23 @@ points (plan decision 8).
 """
 
 from collections.abc import Mapping, Sequence
-from typing import Any
+from dataclasses import dataclass
+from os import PathLike
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
 from matplotlib.axes import Axes
+from matplotlib.colors import to_rgb
+from matplotlib.patches import Rectangle
 from matplotlib.transforms import blended_transform_factory, offset_copy
 
 from ags_kit.errors import AgsKitError, ColumnError, warn
 from ags_kit.plot import _layers
 from ags_kit.plot._data import numeric_column, rows_text
 from ags_kit.plot._palette import resolve_palette
-from ags_kit.plot._vertical import VS, Vertical, convert_pair
-from ags_kit.units import parse_quantity, units_of
+from ags_kit.plot._vertical import VS, Vertical, convert_pair, convert_vertical
+from ags_kit.units import parse_quantity, read_csv, to_display, units_of
 
 TEXT_SIZE = 7  # points
 STRATA_ALPHA = 0.12
@@ -29,8 +33,44 @@ WATER_SYMBOL_SIZE = 6  # points
 WATER_LABEL = "GWL"
 MAX_HOLE_LABELS = 6
 NEUTRAL = "0.3"
+RANGE_COLOR = "0.45"
+RANGE_ALPHA = 0.15
+DESIGN_COLOR = "0.2"
+DESIGN_WIDTH = 1.5  # points
+REFERENCE_COLOR = "0.3"
+REFERENCE_WIDTH = 0.6  # points
 
-_PAIRS = {vs: (f"{vs}_top", f"{vs}_base") for vs in VS}
+
+@dataclass(frozen=True)
+class ValueScale:
+    """How the main data's values are drawn, for overlays given in values.
+
+    Attributes
+    ----------
+    unit
+        The declared unit of the value column; None when it is unknown or not
+        needed, and overlay values are then drawn as given.
+    quantity
+        The quantity kind, or None for an unregistered column.
+    display_units
+        ``"US"`` or ``"SI"``.
+    log
+        True on a log axis.
+    """
+
+    unit: str | None
+    quantity: str | None
+    display_units: str
+    log: bool
+
+    def to_display(self, values: Any, unit: str | None) -> np.ndarray:
+        """Convert values in ``unit`` to the display units of the main data."""
+        if self.unit is None or unit is None:
+            return np.asarray(values, dtype=float)
+        return to_display(values, unit, self.quantity, self.display_units)[0]
+
+
+PAIRS = {vs: (f"{vs}_top", f"{vs}_base") for vs in VS}
 
 
 def _require(table: pd.DataFrame, overlay: str, columns: Sequence[str]) -> None:
@@ -78,35 +118,40 @@ def overlay_units(
     return {column: declared.get(column, unit) for column, unit in assumed.items()}
 
 
+def pair_reference(
+    table: pd.DataFrame, overlay: str, *, required: bool
+) -> Literal["depth", "elevation"] | None:
+    """Return which pair an overlay gives: ``"depth"``, ``"elevation"`` or None.
+
+    Exactly one of ``depth_top, depth_base`` and ``elevation_top,
+    elevation_base`` may be given; a pair whose columns are all blank counts
+    as absent. None means neither, which is an error when ``required``.
+    """
+    given = [vs for vs, pair in PAIRS.items() if _given(table, pair)]
+    if len(given) == 1 or (not given and not required):
+        return given[0] if given else None
+    problem = "both" if given else "neither"
+    raise ColumnError(
+        f"The {overlay} table has {problem} of the depth pair (depth_top, "
+        "depth_base) and the elevation pair (elevation_top, elevation_base). "
+        f"Give one pair and leave the other out or blank. "
+        f'ak.template("{overlay}") lists the columns.'
+    )
+
+
 def vertical_pair(
     table: pd.DataFrame,
     overlay: str,
     vertical: Vertical,
-    *,
-    required: bool,
-) -> tuple[np.ndarray, np.ndarray] | None:
-    """Read an overlay's depth or elevation pair, drawn in ``vertical.vs``.
+    from_vs: Literal["depth", "elevation"],
+    units: Mapping[str, str | None],
+) -> tuple[np.ndarray, np.ndarray]:
+    """Read an overlay's top and base, drawn in ``vertical.vs``.
 
-    Exactly one of ``depth_top, depth_base`` and ``elevation_top,
-    elevation_base`` may be given; a pair whose columns are all blank counts
-    as absent. Rows with top and base the wrong way round, or a blank bound,
-    are NaN and named in a warning. Returns None when no pair is given and
-    none is ``required``.
+    Rows with top and base the wrong way round, or a blank bound, are NaN
+    and named in a warning.
     """
-    given = [vs for vs, pair in _PAIRS.items() if _given(table, pair)]
-    if len(given) != 1:
-        if not given and not required:
-            return None
-        problem = "both" if given else "neither"
-        raise ColumnError(
-            f"The {overlay} table has {problem} of the depth pair (depth_top, "
-            "depth_base) and the elevation pair (elevation_top, elevation_base). "
-            f"Give one pair and leave the other out or blank. "
-            f'ak.template("{overlay}") lists the columns.'
-        )
-    from_vs = given[0]
-    pair = _PAIRS[from_vs]
-    units = overlay_units(table, overlay, dict.fromkeys(pair, vertical.unit))
+    pair = PAIRS[from_vs]
     top, base = (
         vertical.to_display(numeric_column(table, column), units[column] or "")
         for column in pair
@@ -138,7 +183,11 @@ def draw_strata(
 ) -> None:
     """Draw full-width strata bands, labeled at the top right inside the axes."""
     _require(strata, "strata", ["geology_unit"])
-    top, base = vertical_pair(strata, "strata", vertical, required=True)
+    from_vs = pair_reference(strata, "strata", required=True)
+    units = overlay_units(
+        strata, "strata", dict.fromkeys(PAIRS[from_vs], vertical.unit)
+    )
+    top, base = vertical_pair(strata, "strata", vertical, from_vs, units)
     units = strata["geology_unit"].to_numpy(dtype=object)
     colors = resolve_palette(units, palette)
     edge = blended_transform_factory(ax.transAxes, ax.transData)
@@ -334,3 +383,206 @@ def draw_water_level(
         )
         _water_symbol(ax, 0.97, y)
         _water_label(ax, 0.97, y, label)
+
+
+def _top_label(ax: Axes, x: float, y: float, text: str, transform: Any) -> None:
+    """Write ``text`` centered on ``x``, just below ``y``."""
+    ax.text(
+        x,
+        y,
+        text,
+        transform=offset_copy(transform, ax.figure, y=-2, units="points"),
+        ha="center",
+        va="top",
+        fontsize=TEXT_SIZE,
+        color="0.25",
+        clip_on=True,
+        zorder=_layers.ANNOTATIONS,
+    )
+
+
+def draw_ranges(
+    ax: Axes,
+    ranges: pd.DataFrame | str | PathLike[str],
+    vertical: Vertical,
+    scale: ValueScale,
+) -> None:
+    """Draw published ranges as translucent hatched bands from low to high.
+
+    A band covers its depth or elevation pair, or the full height without
+    one, and is labeled at its top with ``label`` and, when given, ``source``.
+    A path is read with ``ak.read_csv``; declare units on the table with
+    ``ak.set_units`` to read a file in other units.
+    """
+    if not isinstance(ranges, pd.DataFrame):
+        ranges = read_csv(ranges)
+    _require(ranges, "ranges", ["low", "high", "label"])
+    from_vs = pair_reference(ranges, "ranges", required=False)
+    assumed = {"low": scale.unit, "high": scale.unit}
+    if from_vs is not None:
+        assumed |= dict.fromkeys(PAIRS[from_vs], vertical.unit)
+    units = overlay_units(ranges, "ranges", assumed)
+    low, high = (
+        scale.to_display(numeric_column(ranges, column), units[column])
+        for column in ("low", "high")
+    )
+    if from_vs is None:
+        top = base = np.full(len(ranges), np.nan)
+    else:
+        top, base = vertical_pair(ranges, "ranges", vertical, from_vs, units)
+    sources = ranges["source"] if "source" in ranges.columns else None
+    full_height = blended_transform_factory(ax.transData, ax.transAxes)
+    for i, (lo, hi, label) in enumerate(zip(low, high, ranges["label"], strict=True)):
+        if np.isnan(lo) or np.isnan(hi) or (from_vs and np.isnan(top[i])):
+            continue
+        lo, hi = sorted((lo, hi))
+        if scale.log and lo <= 0:
+            lo = min(ax.get_xlim())
+        if from_vs is None:
+            y, height, transform = 0.0, 1.0, full_height
+            label_y = 1.0
+        else:
+            # top is the upper edge on screen in both depth and elevation.
+            y, height, transform = base[i], top[i] - base[i], ax.transData
+            label_y = top[i]
+        ax.add_patch(
+            Rectangle(
+                (lo, y),
+                hi - lo,
+                height,
+                transform=transform,
+                facecolor=(*to_rgb(RANGE_COLOR), RANGE_ALPHA),
+                edgecolor=(*to_rgb(RANGE_COLOR), 0.5),
+                hatch="//",
+                linewidth=0.6,
+                zorder=_layers.RANGES,
+            )
+        )
+        text = str(label)
+        if sources is not None and pd.notna(sources.iloc[i]):
+            text += f" ({sources.iloc[i]})"
+        # Center the label on the part of the band inside the axes.
+        left, right = sorted(ax.get_xlim())
+        lo, hi = max(lo, left), min(hi, right)
+        if lo < hi:
+            middle = float(np.sqrt(lo * hi)) if scale.log else (lo + hi) / 2
+            _top_label(ax, middle, label_y, text, transform)
+
+
+def _inside(ax: Axes, x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    (left, right), (bottom, top) = sorted(ax.get_xlim()), sorted(ax.get_ylim())
+    return (x >= left) & (x <= right) & (y >= bottom) & (y <= top)
+
+
+def draw_design_lines(
+    ax: Axes, design_lines: pd.DataFrame, vertical: Vertical, scale: ValueScale
+) -> None:
+    """Draw one dashed polyline per ``label``, labeled at its deepest end.
+
+    The table has ``label``, ``value`` and one of ``depth`` or ``elevation``
+    (P09 produces it). A column that doesn't match ``vs`` is converted with
+    the single ground level.
+    """
+    _require(design_lines, "design_lines", ["label", "value"])
+    given = [vs for vs in VS if _given(design_lines, [vs])]
+    if len(given) != 1:
+        problem = "both" if given else "neither"
+        raise ColumnError(
+            f"The design_lines table has {problem} of 'depth' and 'elevation'. "
+            'Give one column. ak.template("design_lines") lists the columns.'
+        )
+    from_vs = given[0]
+    units = overlay_units(
+        design_lines, "design_lines", {from_vs: vertical.unit, "value": scale.unit}
+    )
+    positions = vertical.to_display(
+        numeric_column(design_lines, from_vs), units[from_vs] or ""
+    )
+    positions = convert_vertical(
+        positions, from_vs, vertical, "design_lines", vertical.vs
+    )
+    values = scale.to_display(numeric_column(design_lines, "value"), units["value"])
+    labels = design_lines["label"].to_numpy(dtype=object)
+    depth_order = 1.0 if vertical.vs == "depth" else -1.0
+    for label in dict.fromkeys(labels):
+        rows = (labels == label) & ~np.isnan(positions) & ~np.isnan(values)
+        if not rows.any():
+            continue
+        order = np.argsort(depth_order * positions[rows], kind="stable")
+        x, y = values[rows][order], positions[rows][order]
+        ax.plot(
+            x,
+            y,
+            color=DESIGN_COLOR,
+            linewidth=DESIGN_WIDTH,
+            linestyle="--",
+            zorder=_layers.LINES,
+        )
+        # Label the deepest point inside the axes.
+        inside = _inside(ax, x, y)
+        if not inside.any():
+            continue
+        end = np.flatnonzero(inside)[-1]
+        ax.annotate(
+            str(label),
+            xy=(x[end], y[end]),
+            xytext=(3, -3),
+            textcoords="offset points",
+            ha="left",
+            va="top",
+            fontsize=TEXT_SIZE,
+            color=DESIGN_COLOR,
+            annotation_clip=True,
+            zorder=_layers.ANNOTATIONS,
+        )
+
+
+def draw_reference_lines(
+    ax: Axes, reference_lines: Sequence[tuple[float | str, str]], scale: ValueScale
+) -> None:
+    """Draw thin dotted vertical lines at values, labeled at the top.
+
+    A number is in the main data's units; a string such as ``"2000 psf"``
+    carries its own unit.
+    """
+    top = blended_transform_factory(ax.transData, ax.transAxes)
+    for entry in reference_lines:
+        if not (isinstance(entry, tuple | list) and len(entry) == 2):
+            raise AgsKitError(
+                "reference_lines must be a list of (value, label) pairs, not "
+                f'{reference_lines!r}. Example: reference_lines=[(2000, "limit")]'
+            )
+        value, label = entry
+        if isinstance(value, str):
+            number, unit = parse_quantity(value, scale.quantity)
+            x = float(scale.to_display([number], unit)[0])
+        elif isinstance(value, int | float) and not isinstance(value, bool):
+            x = float(scale.to_display([value], scale.unit)[0])
+        else:
+            raise AgsKitError(
+                f"The reference line {value!r} must be a number in the plot data's "
+                'units, or a number with a unit such as "2000 psf".'
+            )
+        ax.axvline(
+            x,
+            color=REFERENCE_COLOR,
+            linewidth=REFERENCE_WIDTH,
+            linestyle=":",
+            zorder=_layers.LINES,
+        )
+        _top_label(ax, x, 1.0, str(label), top)
+
+
+def draw_note(ax: Axes, note: str) -> None:
+    """Write a note at the lower left inside the axes."""
+    ax.text(
+        0.02,
+        0.02,
+        note,
+        transform=ax.transAxes,
+        ha="left",
+        va="bottom",
+        fontsize=TEXT_SIZE,
+        color="0.25",
+        zorder=_layers.ANNOTATIONS,
+    )

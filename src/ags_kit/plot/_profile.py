@@ -29,7 +29,15 @@ from ags_kit.plot._limits import (
     set_log_axis,
 )
 from ags_kit.plot._notes import Notes, edge_markers
-from ags_kit.plot._overlays import draw_strata, draw_water_level
+from ags_kit.plot._overlays import (
+    ValueScale,
+    draw_design_lines,
+    draw_note,
+    draw_ranges,
+    draw_reference_lines,
+    draw_strata,
+    draw_water_level,
+)
 from ags_kit.plot._palette import resolve_palette
 from ags_kit.plot._presets import Preset
 from ags_kit.plot._vertical import (
@@ -493,11 +501,7 @@ def profile(
         df,
         {
             "secondary": secondary,
-            "ranges": ranges,
-            "design_lines": design_lines,
-            "reference_lines": reference_lines,
             "stats_box": stats_box or None,
-            "note": note,
         },
     )
 
@@ -585,6 +589,15 @@ def profile(
                 else None
             )
             draw_water_level(ax, water_level, vertical, ground_levels)
+        scale = ValueScale(resolved[value], quantity, system, log)
+        if ranges is not None:
+            draw_ranges(ax, ranges, vertical, scale)
+        if design_lines is not None:
+            draw_design_lines(ax, design_lines, vertical, scale)
+        if reference_lines is not None:
+            draw_reference_lines(ax, reference_lines, scale)
+        if note is not None:
+            draw_note(ax, str(note))
 
         groups, colors = _color_groups(df, color_by, palette)
         marker_groups, shapes = _marker_groups(df, marker_by)

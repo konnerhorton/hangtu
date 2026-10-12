@@ -4,7 +4,6 @@ from functools import partial
 
 import matplotlib as mpl
 import numpy as np
-import pandas as pd
 import pytest
 
 import ags_kit as ak
@@ -340,11 +339,7 @@ def test_us_and_si_put_points_in_the_same_place(
     "arguments",
     [
         {"secondary": "depth"},
-        {"ranges": pd.DataFrame()},
-        {"design_lines": pd.DataFrame()},
-        {"reference_lines": [(1000.0, "limit")]},
         {"stats_box": True},
-        {"note": "draft"},
     ],
 )
 def test_arguments_not_built_yet_say_so(arguments, frame):
