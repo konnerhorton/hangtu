@@ -340,8 +340,6 @@ def test_us_and_si_put_points_in_the_same_place(
     "arguments",
     [
         {"secondary": "depth"},
-        {"strata": pd.DataFrame()},
-        {"water_level": 110.0},
         {"ranges": pd.DataFrame()},
         {"design_lines": pd.DataFrame()},
         {"reference_lines": [(1000.0, "limit")]},

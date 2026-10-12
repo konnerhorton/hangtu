@@ -131,9 +131,9 @@ Presets live in `config/defaults.yaml`, with the typical range in the quantity's
 
 | Overlay | Argument | Default | Source of definition | Style | Notes |
 |---|---|---|---|---|---|
-| Strata bands | `strata=` DataFrame | off | User: `geology_unit` plus a depth or elevation pair (formats below) | Full-width horizontal bands in palette colors, alpha 0.12; unit name at the right edge inside the axes, 7 pt | Only meaningful for one stratigraphy (a single hole or an idealized profile). The user is responsible for that |
-| Water level | `water_level=` float, or list of `(value, label)` | off | User | Dashed blue line 0.8 pt, ▽ symbol and label at the right end ("GWL" by default) | In the units of `vs` (declared or display) |
-| Water level per hole | `water_level=` DataFrame: `loca_id, depth\|elevation[, label]` | off | User | Short ▽ tick at the right edge of the axes for each hole, labeled with `loca_id` when there are ≤ 6 holes | For several holes with different water levels. Units from `df.attrs` or `units=` |
+| Strata bands | `strata=` DataFrame | off | User: `geology_unit` plus a depth or elevation pair (formats below) | Full-width horizontal bands in palette colors, alpha 0.12; unit name at the top right of the band, inside the axes, 7 pt (at the top, so a water level mid-band stays clear) | Only meaningful for one stratigraphy (a single hole or an idealized profile). The user is responsible for that |
+| Water level | `water_level=` float, or list of `(value, label)` | off | User | Dashed blue line 0.8 pt, ▽ symbol and label at the right end ("GWL" by default) | A number is in `vs` and in the declared units of the main data's vertical column; a string such as `"112.5 ft"` carries its own unit |
+| Water level per hole | `water_level=` DataFrame: `loca_id, depth\|elevation[, label]` | off | User | Short ▽ tick at the right edge of the axes for each hole, labeled with `label`, else `loca_id`, when there are ≤ 6 holes | For several holes with different water levels. A level given in the other reference (depth while plotting elevation, or the reverse) is converted with that hole's ground level from the main data, looked up by `loca_id`; a hole without one isn't drawn, and a warning names it |
 | Published ranges | `ranges=` DataFrame or CSV | off | User: `low, high, label, source`, plus an optional depth or elevation pair (formats below) | Vertical translucent band (alpha 0.15, hatched outline) from low to high, over top–base or the full height. Label at the top | Values converted from the declared units |
 | Design lines | `design_lines=` DataFrame | off | User or P09: `label, <vs column>, value` (one polyline per label) | Bold dashed 1.5 pt, dark gray; label at the line end | Same idea as AGSi parameter profiles; P09 produces these |
 | Reference lines | `reference_lines=` list of `(value, label)` | off | User | Thin vertical line 0.6 pt, dotted; label at the top | e.g. a code limit |
@@ -152,7 +152,7 @@ Presets live in `config/defaults.yaml`, with the typical range in the quantity's
 - In depth, top ≤ base; in elevation, top ≥ base. A row with its top and base the wrong way round is not drawn, and a warning names it.
 - `low`, `high`, `label` and `value` are fields of the overlay table, not data columns. They are listed in the `fields:` section of `columns.yaml`, so templates can use them, but `ak.columns()` leaves them out. `source` is the registry column.
 
-Units come from `df.attrs` or `units=`; otherwise they are assumed to match the main data, with a warning.
+**Overlay units** come from the overlay table's own `df.attrs` (`ak.set_units(strata, ...)`); `units=` applies to the main data only. Columns without declared units are taken to be in the main data's units, with one warning per overlay that shows the `ak.set_units` call: `low`, `high` and `value` in the value column's unit, vertical columns in the main data's vertical unit. Rows with a blank top or base aren't drawn, and a warning names them.
 
 ## 9. Units behavior
 - **Vertical:** ft (US) / m (SI). The datum appears in elevation labels from `settings.vertical_datum`; if it isn't set, the label is just "Elevation (ft)".

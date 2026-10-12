@@ -8,6 +8,13 @@ from ags_kit.errors import ColumnError
 _SHOWN = 5
 
 
+def rows_text(index: pd.Index) -> str:
+    """Name rows by their index labels, at most five: ``"3, 7 and 2 more"``."""
+    rows = [str(row) for row in index]
+    more = f" and {len(rows) - _SHOWN} more" if len(rows) > _SHOWN else ""
+    return ", ".join(rows[:_SHOWN]) + more
+
+
 def numeric_column(df: pd.DataFrame, column: str) -> np.ndarray:
     """Return ``df[column]`` as floats, with blanks as NaN.
 

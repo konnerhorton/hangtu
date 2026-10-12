@@ -17,7 +17,7 @@ from ags_kit import units as _units
 from ags_kit._settings import _display_units, settings
 from ags_kit.errors import AgsKitError, ColumnError, warn
 from ags_kit.plot import _layers, _presets, style
-from ags_kit.plot._data import numeric_column
+from ags_kit.plot._data import numeric_column, rows_text
 from ags_kit.plot._hints import hint_missing
 from ags_kit.plot._labels import axis_label
 from ags_kit.plot._legend import add_legend
@@ -29,11 +29,13 @@ from ags_kit.plot._limits import (
     set_log_axis,
 )
 from ags_kit.plot._notes import Notes, edge_markers
+from ags_kit.plot._overlays import draw_strata, draw_water_level
 from ags_kit.plot._palette import resolve_palette
 from ags_kit.plot._presets import Preset
 from ags_kit.plot._vertical import (
     Vertical,
     choose_vs,
+    hole_ground_levels,
     interval_bounds,
     length_columns,
     vertical_values,
@@ -57,7 +59,6 @@ QUALIFIER_ORDER = [marker for marker, *_ in QUALIFIERS.values()]
 CARETS = set(QUALIFIER_ORDER)
 CONNECT_WIDTH = 0.6  # points
 CONNECT_ALPHA = 0.6
-_SHOWN_ROWS = 5
 
 
 def _check_limits(name: str, limits: Any, log: bool = False) -> tuple[float, float]:
@@ -197,12 +198,6 @@ def _color_groups(
     return groups, colors
 
 
-def _rows_text(index: pd.Index) -> str:
-    rows = [str(row) for row in index]
-    more = f" and {len(rows) - _SHOWN_ROWS} more" if len(rows) > _SHOWN_ROWS else ""
-    return ", ".join(rows[:_SHOWN_ROWS]) + more
-
-
 def _qualifiers(df: pd.DataFrame) -> np.ndarray:
     """Return each row's qualifier: ``"<"``, ``">"`` or ``""``."""
     if "qualifier" not in df.columns:
@@ -213,7 +208,7 @@ def _qualifiers(df: pd.DataFrame) -> np.ndarray:
         found = ", ".join(repr(text) for text in dict.fromkeys(qualifiers[bad]))
         raise ColumnError(
             f'Column \'qualifier\' must hold "<", ">" or nothing, but rows '
-            f"{_rows_text(df.index[bad])} hold {found}. Put the qualifier only in "
+            f"{rows_text(df.index[bad])} hold {found}. Put the qualifier only in "
             "'qualifier' and the number in the value column."
         )
     return qualifiers.to_numpy(dtype=object)
@@ -255,7 +250,7 @@ def _intervals(
     swapped = (top < base) if vertical.vs == "elevation" else (top > base)
     if swapped.any():
         warn(
-            f"Rows {_rows_text(df.index[swapped])} have depth_top below "
+            f"Rows {rows_text(df.index[swapped])} have depth_top below "
             "depth_base, so their test intervals aren't drawn. Check those rows."
         )
     return np.where(swapped, np.nan, top), np.where(swapped, np.nan, base)
@@ -498,8 +493,6 @@ def profile(
         df,
         {
             "secondary": secondary,
-            "strata": strata,
-            "water_level": water_level,
             "ranges": ranges,
             "design_lines": design_lines,
             "reference_lines": reference_lines,
@@ -582,6 +575,16 @@ def profile(
         if xaxis_position == "top":
             ax.xaxis.tick_top()
             ax.xaxis.set_label_position("top")
+
+        if strata is not None:
+            draw_strata(ax, strata, vertical, palette)
+        if water_level is not None:
+            ground_levels = (
+                hole_ground_levels(df, resolved, vertical)
+                if isinstance(water_level, pd.DataFrame)
+                else None
+            )
+            draw_water_level(ax, water_level, vertical, ground_levels)
 
         groups, colors = _color_groups(df, color_by, palette)
         marker_groups, shapes = _marker_groups(df, marker_by)

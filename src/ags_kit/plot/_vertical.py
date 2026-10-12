@@ -166,6 +166,20 @@ def interval_bounds(
     return levels - top, levels - base
 
 
+def hole_ground_levels(
+    df: pd.DataFrame, units: Mapping[str, str | None], vertical: Vertical
+) -> dict[object, float]:
+    """Return ``{loca_id: ground level}`` in display units, for holes that have one."""
+    if "loca_id" not in df.columns:
+        return {}
+    lengths, _ = length_values(df, units, vertical.display_units)
+    levels = row_ground_levels(lengths)
+    if levels is None:
+        return {}
+    known = pd.Series(levels, index=df["loca_id"].to_numpy()).dropna()
+    return known[~known.index.duplicated()].to_dict()
+
+
 def vertical_values(
     df: pd.DataFrame,
     vs: Literal["depth", "elevation"],
