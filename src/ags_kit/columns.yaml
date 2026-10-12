@@ -11,6 +11,10 @@
 #   used_by      plot specs that read the column
 #   agsi         AGSi code (later; omitted for now)
 # Status of the Batch 1 entries beyond P01: provisional until each plot spec is written.
+#
+# fields: names used only in overlay tables (P01 §8), such as a range's low and
+# high. They aren't data columns, so ak.columns() leaves them out, but templates
+# may use them. Per field: description, type.
 
 templates:
   # ak.template(name): empty DataFrame with these columns, in this order
@@ -21,6 +25,24 @@ templates:
   spt:            [loca_id, depth, ground_level, elevation, spt_n, energy_ratio, spt_penetration, spt_refusal, geology_unit, soil_class]
   atterberg:      [loca_id, specimen_id, depth, ground_level, elevation, liquid_limit, plastic_limit, plasticity_index, non_plastic, water_content, geology_unit, soil_class]
   grain_size:     [loca_id, specimen_id, depth, particle_size, percent_passing, geology_unit]
+  # Overlays (P01 §8): fill in one depth or elevation pair and leave the other blank.
+  strata:         [geology_unit, depth_top, depth_base, elevation_top, elevation_base]
+  ranges:         [low, high, label, source, depth_top, depth_base, elevation_top, elevation_base]
+  design_lines:   [label, depth, elevation, value]
+
+fields:
+  low:
+    description: Lower bound of a published range, in the plotted value's units
+    type: number
+  high:
+    description: Upper bound of a published range, in the plotted value's units
+    type: number
+  label:
+    description: Text drawn beside an overlay
+    type: text
+  value:
+    description: Value of a design line at a depth or elevation, in the plotted value's units
+    type: number
 
 columns:
 
@@ -80,6 +102,22 @@ columns:
     label: Elevation
     ags: ["derived: LOCA_GL - depth"]
     used_by: [P01, P02, P06]
+  elevation_top:
+    description: Elevation of the top of an interval, e.g. a stratum in an idealized profile
+    type: number
+    quantity: length
+    scale: interval
+    label: Elevation of top
+    ags: ["derived: LOCA_GL - top depth"]
+    used_by: [P01]
+  elevation_base:
+    description: Elevation of the base of an interval
+    type: number
+    quantity: length
+    scale: interval
+    label: Elevation of base
+    ags: ["derived: LOCA_GL - base depth"]
+    used_by: [P01]
 
   # --- Grouping and flags -------------------------------------------------------
   geology_unit:

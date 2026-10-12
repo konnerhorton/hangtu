@@ -112,6 +112,8 @@ n/a, apart from:
 | `bulk_unit_weight` | `bulk_unit_weight` | Bulk unit weight, γ | unit weight / pcf / kN/m³ | linear | **no** | 14–23 kN/m³ (90–145 pcf) | 8–30 kN/m³ |
 | *(none)* | any | `value` column name, or `label=` | from `df.attrs`/`units=` | `log=` (default linear) | yes if registry scale = ratio | data | — |
 
+Presets live in `config/defaults.yaml`, with the typical range in the quantity's canonical unit (converted to display units when used). The valid ranges above are for reference only and aren't stored: nothing in P01 uses them, and QC level 2 (v0.4) will have its own ranges.
+
 ## 7. Data marks
 
 | Series | Mark | Color by | Marker by | Size / width | Legend entry | Notes |
@@ -139,7 +141,7 @@ n/a, apart from:
 | Exclusion notes | automatic | **on** | Counts of NaN, ≤ 0 on log, beyond-limit, qualified | Footnote below the legend, 7 pt gray | **Always shown when non-zero** (no silent drops) |
 | Note | `note=` str | off | User | Lower-left text, 7 pt | |
 
-**User-supplied overlay formats** (`ak.template("strata")`, `"ranges"` and `"design_lines"` give the exact columns):
+**User-supplied overlay formats** (`ak.template("strata")`, `"ranges"` and `"design_lines"` give the exact columns; the templates list both the depth and the elevation form, so fill in one and leave the other blank. A pair whose columns are all blank counts as absent):
 - `strata`: `geology_unit` plus **either** `depth_top, depth_base` **or** `elevation_top, elevation_base`.
 - `ranges`: `low, high, label, source`, plus optionally **either** `depth_top, depth_base` **or** `elevation_top, elevation_base` (otherwise the range covers the full height).
 - `design_lines`: `label, depth|elevation, value`.
@@ -148,7 +150,7 @@ n/a, apart from:
 - A pair that matches `vs` is drawn as given. Elevation strata are what make an idealized site profile over several holes possible.
 - A pair that doesn't match `vs` is converted with `ground_level` (SPEC §8.1), which must be a single value for all rows of the main data (the same rule as `secondary="depth"`, §6).
 - In depth, top ≤ base; in elevation, top ≥ base. A row with its top and base the wrong way round is not drawn, and a warning names it.
-- `low`, `high`, `label` and `source` are fields of the overlay table, not registry columns.
+- `low`, `high`, `label` and `value` are fields of the overlay table, not data columns. They are listed in the `fields:` section of `columns.yaml`, so templates can use them, but `ak.columns()` leaves them out. `source` is the registry column.
 
 Units come from `df.attrs` or `units=`; otherwise they are assumed to match the main data, with a warning.
 

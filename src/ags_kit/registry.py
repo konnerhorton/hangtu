@@ -19,6 +19,12 @@ def column_info(name: str) -> dict[str, Any] | None:
     return _registry()["columns"].get(name)
 
 
+def _entry(name: str) -> dict[str, Any]:
+    """Return the entry for a template name: a column, or an overlay field."""
+    registry = _registry()
+    return registry["columns"].get(name) or registry["fields"][name]
+
+
 def _template_columns(name: str) -> list[str]:
     templates = _registry()["templates"]
     if name not in templates:
@@ -36,6 +42,8 @@ def columns(template: str | None = None) -> pd.DataFrame:
     ----------
     template : str, optional
         Only list the columns of this template, in template order, e.g. ``"spt"``.
+        Overlay templates such as ``"ranges"`` also list their overlay fields
+        (``low``, ``high``), which take the plotted value's units.
 
     Returns
     -------
@@ -47,12 +55,15 @@ def columns(template: str | None = None) -> pd.DataFrame:
     --------
     >>> ak.columns("spt")
     """
-    entries = _registry()["columns"]
-    names = list(entries) if template is None else _template_columns(template)
+    names = (
+        list(_registry()["columns"])
+        if template is None
+        else _template_columns(template)
+    )
     kinds = _config.quantity_kinds()
     rows = []
     for name in names:
-        entry = entries[name]
+        entry = _entry(name)
         kind = kinds.get(entry.get("quantity"), {})
         rows.append(
             {
@@ -78,10 +89,9 @@ def template(name: str) -> pd.DataFrame:
     --------
     >>> ak.template("spt").to_csv("spt.csv", index=False)
     """
-    entries = _registry()["columns"]
     return pd.DataFrame(
         {
-            column: pd.Series(dtype=_DTYPES[entries[column]["type"]])
+            column: pd.Series(dtype=_DTYPES[_entry(column)["type"]])
             for column in _template_columns(name)
         }
     )

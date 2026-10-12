@@ -108,6 +108,7 @@ The quantity kind of a column comes from the registry, or from a plot preset for
   - a plot spec that needs a new column adds it here in the same change;
   - any unregistered numeric column can still be plotted as a `value`, with units from `units=`/`df.attrs` and a label from the column name or `label=`.
 - `ak.columns()` returns one row per column (name, description, quantity, US unit, SI unit, used by). `ak.columns("spt")` limits it to a template.
+- **Overlay fields:** names used only in overlay tables (P01 §8: `low`, `high`, `label`, `value`) go in a separate `fields:` section, with a description and type. They share the column namespace and naming rules, and templates may use them, but they aren't data columns: `ak.columns()` leaves them out, and `ak.columns("ranges")` lists them with blank units.
 - `ak.template(name)` returns an empty DataFrame with the template's columns. Unknown names raise `ColumnError` listing the available templates.
 - **Template CSVs are plain** (decided): one header row, no units row. Units are declared in `read_csv(..., units={...})`, which matches how engineers keep units: in their head or in a note, not in the file.
 - **Names are written out** (CLAUDE.md, "Naming"): `undrained_shear_strength`, `uniformity_coefficient`, `curvature_coefficient`, `liquid_limit`, `spt_n60`, not `su`, `cu`, `cc`, `ll`, `n60`. Symbols belong in axis labels (`label`), never in column names. Units never appear in names (`particle_size`, not `size_mm`).
