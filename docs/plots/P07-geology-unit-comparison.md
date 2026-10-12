@@ -149,7 +149,8 @@ There is no stats box: the count label and the summary bar already carry n and t
 | `high` | ✔ with `low` | Upper end of the report's range |
 | `source` | – | Citation, e.g. "GBR Table 4-2"; used for the default legend text |
 
-- A row needs `low` and `high`, or `central` alone. A row with neither is not drawn, and a warning names it.
+- Rows are filtered to the plotted property first, so the checks below apply only to the rows being drawn.
+- A row needs `low` and `high`, or `central` alone. A row with neither is not drawn, and a warning names it. A row with only one of `low` and `high` draws no bar (just its `central`, if any), and a warning names it.
 - A row with `low` > `high` is not drawn, and a warning names it (as P01 ranges).
 - Two rows for the same unit and property are an error naming them.
 - A baseline row with a blank `geology_unit` is not drawn, and a warning names it.
@@ -161,6 +162,8 @@ There is no stats box: the count label and the summary bar already carry n and t
 1. `baseline_units=` `{property: unit}`, e.g. `{"bulk_unit_weight": "kN/m3", "undrained_shear_strength": "kPa"}`. This is the only way to give different units for different properties in one long table, since `df.attrs["units"]` is per column.
 2. Units declared on the table's `low`, `central` and `high` with `ht.set_units` (single-property tables, as P01 ranges).
 3. Otherwise the value column's units, with one warning per call that shows both ways to declare them.
+
+A `baseline_units` key that is neither a `property` in the table nor the plotted value is an error naming it, to catch typos. A unit of the wrong kind (a length for s_u) is a `UnitsError`.
 
 ## 9. Units behavior
 - **Value axis:** converted according to the preset or registry quantity, as P01 §9 (s_u psf / kPa, unit weight pcf / kN/m³, k cm/s / m/s, % in both).

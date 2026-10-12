@@ -7,6 +7,7 @@ STRATA = 1.0
 RANGES = 1.1
 LINES = 1.2  # reference and design lines
 WATER_LEVEL = 1.3
+BASELINE = 1.4  # P07 baseline bars
 INTERVALS = 2.0
 CONNECT = 2.1
 MARKERS = 2.5

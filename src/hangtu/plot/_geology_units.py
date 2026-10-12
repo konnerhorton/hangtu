@@ -20,11 +20,13 @@ from hangtu import units as _units
 from hangtu._settings import _display_units, settings
 from hangtu.errors import ColumnError, HangtuError
 from hangtu.plot import _layers, _presets, _values, style
+from hangtu.plot._baseline import Baseline, legend_text, read_baseline
 from hangtu.plot._data import numeric_column
 from hangtu.plot._labels import axis_label
 from hangtu.plot._legend import add_legend
 from hangtu.plot._limits import set_linear_axis, set_log_axis
 from hangtu.plot._notes import Notes
+from hangtu.plot._overlays import ValueScale
 from hangtu.plot._palette import resolve_palette
 from hangtu.plot._presets import Preset
 
@@ -44,6 +46,11 @@ COUNT_SIZE = 7  # points
 COUNT_GAP = 4.0  # points between the axes and a count label
 LEGEND_GAP = 6.0  # points between the count labels and the legend
 EMPTY_COLOR = "0.4"
+BASELINE_COLOR = "0.25"
+BASELINE_OFFSET = 0.28  # row heights above the center line
+BASELINE_WIDTH = 1.2  # points
+BASELINE_CAP_HEIGHT = 0.12  # row heights
+BASELINE_MARKER_SIZE = 5.0  # points
 # numpy.percentile(method=...) choices; NumPy has no public list (plan decision 6).
 PERCENTILE_METHODS = (
     "inverted_cdf",
@@ -90,6 +97,7 @@ class _Panel:
     handles: list[Artist] = field(default_factory=list)
     notes: Notes = field(default_factory=Notes)
     counts: list[Artist] = field(default_factory=list)
+    baseline: Baseline | None = None
 
 
 def _choose_preset(value: str, preset: str | None) -> Preset | None:
@@ -173,15 +181,19 @@ def _not_built(**arguments: Any) -> None:
 
 
 def _rows(
-    df: pd.DataFrame, order: list[str] | None, palette: dict[str, str] | None
+    df: pd.DataFrame,
+    order: list[str] | None,
+    palette: dict[str, str] | None,
+    extra: list[Any],
 ) -> tuple[np.ndarray, dict[Any, Any]]:
     """Return each row's geology unit, and ``{unit: color}`` in row order.
 
-    Units in ``order`` come first, then the rest by name, then "(blank)".
+    ``extra`` are units with a baseline but perhaps no data. Units in
+    ``order`` come first, then the rest by name, then "(blank)".
     """
     groups = df["geology_unit"].to_numpy(dtype=object)
     blank = pd.isna(groups)
-    colors = resolve_palette(groups[~blank], palette, order)
+    colors = resolve_palette([*groups[~blank], *extra], palette, order)
     if blank.any():
         groups = np.where(blank, _values.BLANK_GROUP, groups)
         colors[_values.BLANK_GROUP] = _values.NEUTRAL
@@ -197,9 +209,17 @@ def _set_unit_axis(ax: Axes, names: list[Any]) -> None:
     ax.grid(False, axis="y", which="both")
 
 
-def _caps(ax: Axes, xs: Sequence[float], row: float, color: Any, width: float) -> None:
+def _caps(
+    ax: Axes,
+    xs: Sequence[float],
+    row: float,
+    color: Any,
+    width: float,
+    height: float = CAP_HEIGHT,
+    zorder: float = _layers.SUMMARY,
+) -> None:
     """Draw short vertical end caps at ``xs`` on a row."""
-    half = CAP_HEIGHT / 2
+    half = height / 2
     gaps = [np.nan] * len(xs)
     ax.plot(
         np.column_stack([xs, xs, gaps]).ravel(),
@@ -207,7 +227,7 @@ def _caps(ax: Axes, xs: Sequence[float], row: float, color: Any, width: float) -
         color=color,
         linewidth=width,
         solid_capstyle="butt",
-        zorder=_layers.SUMMARY,
+        zorder=zorder,
     )
 
 
@@ -284,6 +304,62 @@ def _draw_box(
     _caps(ax, [low, high], row, color, BOX_WIDTH)
 
 
+def _draw_baseline(
+    ax: Axes, baseline: Baseline, row_of: dict[Any, int], log: bool
+) -> None:
+    """Draw each unit's baseline bar above its row, with a diamond at ``central``.
+
+    On a log axis a ``low`` at or below 0 starts the bar at the axis edge.
+    """
+    left = ax.get_xlim()[0]
+    for unit, low, central, high in zip(
+        baseline.units, baseline.low, baseline.central, baseline.high, strict=True
+    ):
+        y = row_of[unit] - BASELINE_OFFSET
+        if np.isfinite(low):
+            if log and low <= 0:
+                low = left
+            ax.plot(
+                [low, high],
+                [y, y],
+                color=BASELINE_COLOR,
+                linewidth=BASELINE_WIDTH,
+                solid_capstyle="butt",
+                zorder=_layers.BASELINE,
+            )
+            _caps(
+                ax,
+                [low, high],
+                y,
+                BASELINE_COLOR,
+                BASELINE_WIDTH,
+                BASELINE_CAP_HEIGHT,
+                _layers.BASELINE,
+            )
+        if np.isfinite(central) and not (log and central <= 0):
+            ax.plot(
+                [central],
+                [y],
+                marker="D",
+                markersize=BASELINE_MARKER_SIZE,
+                color=BASELINE_COLOR,
+                linestyle="none",
+                zorder=_layers.BASELINE,
+            )
+
+
+def _baseline_handle(label: str) -> Artist:
+    return Line2D(
+        [],
+        [],
+        color=BASELINE_COLOR,
+        linewidth=BASELINE_WIDTH,
+        marker="D",
+        markersize=BASELINE_MARKER_SIZE,
+        label=label,
+    )
+
+
 def _count_label(ax: Axes, row: float, n: int, summarized: bool | None) -> Artist:
     """Write "n = 288" just outside the right edge of the axes, level with a row.
 
@@ -355,6 +431,8 @@ def _draw_panel(
     color_by: str | None,
     points: bool,
     summary: _Summary,
+    baseline: pd.DataFrame | str | None,
+    baseline_units: dict[str, str] | None,
     palette: dict[str, str] | None,
     units: dict[str, str] | None,
     system: str,
@@ -378,7 +456,12 @@ def _draw_panel(
         nonpositive = drawn & (x <= 0)
         panel.notes.count(nonpositive, "log_nonpositive")
         drawn &= ~nonpositive
-    groups, colors = _rows(df[drawn], order, palette)
+    scale = ValueScale(resolved[value], quantity, system, log)
+    if baseline is not None:
+        panel.baseline = read_baseline(baseline, value, scale, baseline_units)
+    groups, colors = _rows(
+        df[drawn], order, palette, panel.baseline.units if panel.baseline else []
+    )
     rows = list(colors)
     unit_of = np.full(len(df), None, dtype=object)
     unit_of[drawn] = groups
@@ -386,8 +469,13 @@ def _draw_panel(
     jitter = np.random.default_rng(JITTER_SEED).uniform(-JITTER, JITTER, len(df))
 
     style.style_axes(ax)
+    extent = x[drawn]
+    if panel.baseline is not None:
+        extent = np.concatenate([extent, panel.baseline.values()])
+        if log:
+            extent = extent[extent > 0]
     limits = _values.value_limits(
-        x[drawn],
+        extent,
         log=log,
         xlim=xlim,
         start_at_zero=_values.start_at_zero(value, chosen),
@@ -398,6 +486,8 @@ def _draw_panel(
     else:
         set_linear_axis(ax, "x", limits)
     _set_unit_axis(ax, rows)
+    if panel.baseline is not None:
+        _draw_baseline(ax, panel.baseline, row_of, log)
 
     draw_summary = {"percentiles": _draw_percentiles, "box": _draw_box}.get(
         summary.kind
@@ -499,6 +589,26 @@ def geology_unit_comparison(
         ``geology_unit``.
     value : str
         The column to compare.
+    baseline : DataFrame or path, optional
+        The report's range per geology unit: ``geology_unit``, ``low``,
+        ``high``, and optionally ``central``, ``property`` and ``source``.
+        See ``ht.template("baseline")``.
+    baseline_label : str, optional
+        The baseline's legend text, saying what the report's range is, e.g.
+        ``"GBR baseline p10-p90, p50"``. By default the table's source.
+    baseline_units : dict, optional
+        ``{property: unit}`` for the baseline's ranges, e.g.
+        ``{"undrained_shear_strength": "kPa"}``. By default the units declared
+        on the table, else the value column's units, with a warning.
+    summary : {"percentiles", "box", None}
+        Each unit's summary: a percentile bar, a box plot, or none.
+    percentiles : (low, center, high)
+        The bar's ends and center marker, as percentiles from 0 to 100.
+    percentile_method : str
+        Passed to ``numpy.percentile(method=...)``, e.g. ``"hazen"``.
+    summary_min_count : int, optional
+        The fewest values a unit needs for a summary. By default
+        ``ht.settings.summary_min_count`` (5).
     points : bool
         Draw every value as a point.
     preset : str, optional
@@ -539,9 +649,6 @@ def geology_unit_comparison(
     """
     _check_columns(df, value, color_by)
     _not_built(
-        baseline=baseline is not None,
-        baseline_label=baseline_label is not None,
-        baseline_units=baseline_units is not None,
         xlim=xlim is not None,
         reference_lines=reference_lines is not None,
         note=note is not None,
@@ -570,11 +677,17 @@ def geology_unit_comparison(
             color_by=color_by,
             points=points,
             summary=chosen_summary,
+            baseline=baseline,
+            baseline_units=baseline_units,
             palette=palette,
             units=units,
             system=system,
         )
+        handles = panel.handles
+        if panel.baseline is not None and panel.baseline.units:
+            text = legend_text(baseline_label, [panel.baseline])
+            handles = [_baseline_handle(text), *handles]
         offset = _legend_offset(ax, panel.counts)
-        add_legend(ax, [panel.handles], panel.notes, offset)
+        add_legend(ax, [handles], panel.notes, offset)
         panel.notes.render(ax, offset)
     return fig, ax
