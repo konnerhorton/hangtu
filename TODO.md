@@ -204,6 +204,18 @@ Open research points:
   - How do the stats box and `describe()` show these counts?
 - **Timing:** before P06 (water content profile with Atterberg limits), where NP values are common.
 
+### 16. Other summaries in P07 · You + Claude · P07; SPEC §5
+- **Problem:** in its first version, P07 (property by geology unit) summarizes each unit only with percentiles. `percentiles=` chooses which ones, and `percentile_method=` passes any NumPy method through (default `"linear"`). A report's baseline may have been summarized some other way, so the data bar and the baseline bar aren't always like for like.
+- **Wanted:** a way to match how the report summarized its data:
+  - **other summaries**: min–max, mean ± k·σ, and the geometric mean and log-space percentiles for log quantities such as hydraulic conductivity;
+  - **a summary the user computes**: pass per-unit values in, as for the baseline table.
+- **To decide:**
+  - Which of these does v0.1 need, if any?
+  - Is it an extension of `summary=`, or a callable?
+  - How does this line up with `ht.stats.describe` (Phase 3), so the two never give different numbers for the same data?
+  - How does the legend name the method?
+- **Claude's view:** these belong with `describe` in Phase 3, which P07 would then call.
+
 ---
 
 ## Test data
