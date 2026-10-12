@@ -88,5 +88,5 @@ def test_unregistered_column_stays_in_its_declared_unit():
 
 
 def test_invalid_display_units_argument_raises():
-    with pytest.raises(ak.AgsKitError, match='"US" or "SI"'):
+    with pytest.raises(ak.HangtuError, match='"US" or "SI"'):
         to_display([1.0], "ft", "length", "metric")

@@ -48,7 +48,7 @@ def test_argument_beats_settings_beats_automatic():
 
 
 def test_invalid_palette_argument_raises():
-    with pytest.raises(ak.AgsKitError, match=r"\['Till'\]"):
+    with pytest.raises(ak.HangtuError, match=r"\['Till'\]"):
         resolve_palette(["Till"], palette={"Till": "not a color"})
 
 
@@ -80,5 +80,5 @@ def test_legend_handles():
 
 @pytest.mark.parametrize("call", [ak.plot.palette_cmap, ak.plot.legend_handles])
 def test_nothing_colored_yet_raises(call):
-    with pytest.raises(ak.AgsKitError, match="No geology units have colors yet"):
+    with pytest.raises(ak.HangtuError, match="No geology units have colors yet"):
         call()

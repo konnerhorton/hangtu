@@ -101,13 +101,13 @@ def test_units_of_the_wrong_dimension_raise(text, quantity, message):
 
 
 def test_display_override_with_the_wrong_dimension_raises():
-    with pytest.raises(ak.AgsKitError, match=r"display_overrides\['stress'\].*length"):
+    with pytest.raises(ak.HangtuError, match=r"display_overrides\['stress'\].*length"):
         ak.settings.display_overrides = {"stress": "ft"}
 
 
 @pytest.mark.parametrize("kind", ["percent", "loudness"])
 def test_display_override_for_a_kind_without_units_raises(kind):
-    with pytest.raises(ak.AgsKitError, match=f"can't set a unit for '{kind}'"):
+    with pytest.raises(ak.HangtuError, match=f"can't set a unit for '{kind}'"):
         ak.settings.display_overrides = {kind: "ft"}
 
 

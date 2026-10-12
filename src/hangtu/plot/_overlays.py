@@ -20,7 +20,7 @@ from matplotlib.patches import Rectangle
 from matplotlib.text import Text
 from matplotlib.transforms import blended_transform_factory, offset_copy
 
-from hangtu.errors import AgsKitError, ColumnError, warn
+from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.plot import _layers
 from hangtu.plot._data import numeric_column, rows_text
 from hangtu.plot._palette import resolve_palette
@@ -239,7 +239,7 @@ def _water_levels(
     levels = []
     for entry in entries:
         if not (isinstance(entry, tuple | list) and len(entry) == 2):
-            raise AgsKitError(
+            raise HangtuError(
                 "water_level must be a number, a list of (value, label) pairs, or a "
                 f"table of water levels by hole, not {water_level!r}. "
                 'Example: water_level=[(112.5, "GWL (2026-03)")]'
@@ -253,7 +253,7 @@ def _water_levels(
             if vertical.unit is not None and not vertical.unknown:
                 position = float(vertical.to_display([value], vertical.unit)[0])
         else:
-            raise AgsKitError(
+            raise HangtuError(
                 f"The water level {value!r} must be a number in the plot data's "
                 'units, or a number with a unit such as "112.5 ft".'
             )
@@ -591,7 +591,7 @@ def draw_reference_lines(
     top = blended_transform_factory(ax.transData, ax.transAxes)
     for entry in reference_lines:
         if not (isinstance(entry, tuple | list) and len(entry) == 2):
-            raise AgsKitError(
+            raise HangtuError(
                 "reference_lines must be a list of (value, label) pairs, not "
                 f'{reference_lines!r}. Example: reference_lines=[(2000, "limit")]'
             )
@@ -602,7 +602,7 @@ def draw_reference_lines(
         elif isinstance(value, int | float) and not isinstance(value, bool):
             x = float(scale.to_display([value], scale.unit)[0])
         else:
-            raise AgsKitError(
+            raise HangtuError(
                 f"The reference line {value!r} must be a number in the plot data's "
                 'units, or a number with a unit such as "2000 psf".'
             )
@@ -643,13 +643,13 @@ def statistics_list(stats_box: bool | Sequence[str]) -> list[str]:
     if stats_box is True:
         return list(DEFAULT_STATISTICS)
     if isinstance(stats_box, str) or not isinstance(stats_box, Sequence):
-        raise AgsKitError(
+        raise HangtuError(
             f"stats_box must be True, False or a list of statistics, not "
             f'{stats_box!r}. Example: stats_box=["count", "mean", "cov"]'
         )
     unknown = [name for name in stats_box if name not in STATISTICS]
     if unknown or not stats_box:
-        raise AgsKitError(
+        raise HangtuError(
             f"stats_box can't show {unknown or 'an empty list'}. Statistics: "
             f"{', '.join(STATISTICS)}."
         )

@@ -72,7 +72,7 @@ def test_units_are_unknown_after_merge(dummy_plot, water_content):
 
 
 def test_missing_geology_gives_one_hint(dummy_plot, water_content):
-    with pytest.warns(ak.AgsKitHint, match="'geology_unit'") as record:
+    with pytest.warns(ak.HangtuHint, match="'geology_unit'") as record:
         _, ax = dummy_plot(water_content.drop(columns="geology_unit"), "water_content")
     assert len(record) == 1
     assert ax.get_legend() is None
@@ -95,10 +95,10 @@ P00_API = [
     "columns",
     "template",
     "Sheet",
-    "AgsKitError",
+    "HangtuError",
     "UnitsError",
     "ColumnError",
-    "AgsKitHint",
+    "HangtuHint",
     "plot.palette_cmap",
     "plot.legend_handles",
     "plot.reset_palette",

@@ -6,19 +6,19 @@ import warnings
 _PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__)) + os.sep
 
 
-class AgsKitError(Exception):
+class HangtuError(Exception):
     """Base class for every error hangtu raises on purpose."""
 
 
-class UnitsError(AgsKitError, ValueError):
+class UnitsError(HangtuError, ValueError):
     """A unit string is unknown, missing, or has the wrong dimension."""
 
 
-class ColumnError(AgsKitError, ValueError):
+class ColumnError(HangtuError, ValueError):
     """A column or template is missing or unknown."""
 
 
-class AgsKitHint(UserWarning):
+class HangtuHint(UserWarning):
     """A suggestion about optional data that would improve a plot.
 
     Turn hints off with ``ak.settings.hints = False``.

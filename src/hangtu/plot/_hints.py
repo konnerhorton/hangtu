@@ -5,7 +5,7 @@ from collections.abc import Mapping
 import pandas as pd
 
 from hangtu._settings import settings
-from hangtu.errors import AgsKitHint, warn
+from hangtu.errors import HangtuHint, warn
 
 
 def hint_missing(df: pd.DataFrame, optional: Mapping[str, str]) -> list[str]:
@@ -30,6 +30,6 @@ def hint_missing(df: pd.DataFrame, optional: Mapping[str, str]) -> list[str]:
         )
         warn(
             f"{reasons} (Turn hints off with ak.settings.hints = False.)",
-            AgsKitHint,
+            HangtuHint,
         )
     return missing

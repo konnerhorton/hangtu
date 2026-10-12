@@ -68,20 +68,20 @@ def test_secondary_moves_the_legend_and_footnote_clear(frame):
 def test_secondary_with_several_ground_levels_is_an_error(frame):
     df = frame(ground_level=[120.0, 120.0, 118.0, 118.0])
     figures = plt.get_fignums()
-    with pytest.raises(ak.AgsKitError, match="needs one ground level"):
+    with pytest.raises(ak.HangtuError, match="needs one ground level"):
         ak.plot.profile(df, "undrained_shear_strength", secondary="depth")
     assert plt.get_fignums() == figures
 
 
 def test_secondary_on_a_depth_plot_is_an_error(frame):
-    with pytest.raises(ak.AgsKitError, match="already against depth"):
+    with pytest.raises(ak.HangtuError, match="already against depth"):
         ak.plot.profile(
             frame(), "undrained_shear_strength", vs="depth", secondary="depth"
         )
 
 
 def test_secondary_must_be_depth(frame):
-    with pytest.raises(ak.AgsKitError, match='secondary must be "depth"'):
+    with pytest.raises(ak.HangtuError, match='secondary must be "depth"'):
         ak.plot.profile(frame(), "undrained_shear_strength", secondary="elevation")
 
 
@@ -215,12 +215,12 @@ def test_stats_box_sits_above_the_note(frame):
 
 @pytest.mark.parametrize("stats_box", [["count", "mode"], [], "mean", 3])
 def test_bad_stats_box_lists_the_statistics(frame, stats_box):
-    with pytest.raises(ak.AgsKitError, match="stats_box"):
+    with pytest.raises(ak.HangtuError, match="stats_box"):
         ak.plot.profile(frame(), "undrained_shear_strength", stats_box=stats_box)
 
 
 def test_unknown_statistic_names_the_allowed_ones(frame):
-    with pytest.raises(ak.AgsKitError, match="count, mean, std, cov, median, min, max"):
+    with pytest.raises(ak.HangtuError, match="count, mean, std, cov, median, min, max"):
         ak.plot.profile(frame(), "undrained_shear_strength", stats_box=["mode"])
 
 

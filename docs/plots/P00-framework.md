@@ -35,12 +35,12 @@ ak.Sheet(size="tabloid", layout=(1, 1), title=None, orientation="landscape")
 ak.plot.palette_cmap(units=None) -> ListedColormap
 ak.plot.legend_handles(units=None) -> list[Artist]
 ak.plot.reset_palette() -> None
-ak.AgsKitError, ak.UnitsError, ak.ColumnError, ak.AgsKitHint
+ak.HangtuError, ak.UnitsError, ak.ColumnError, ak.HangtuHint
 ```
 Internal helpers used by every plot live in `ak.plot.common` (§6–§9). They are private API: tested, but free to change.
 
 ## 3. Settings
-`ak.settings` is a single object with attribute access. Values are validated on assignment (a bad value raises `AgsKitError` naming the allowed values).
+`ak.settings` is a single object with attribute access. Values are validated on assignment (a bad value raises `HangtuError` naming the allowed values).
 
 | Key | Type | Default | Used by |
 |---|---|---|---|
@@ -122,7 +122,7 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 - Light major gridlines (0.5 pt, gray 85%), minor gridlines on log axes only (0.3 pt).
 - Spines: all four, 0.6 pt. Ticks inward.
 - Savefig: 300 dpi, `bbox_inches="tight"` is left to the user (examples show it).
-- `**style_overrides` on any plot are passed as rcParams inside the context, so users can change one thing without touching global state. Names can be written with dots (`**{"font.size": 10}`) or with underscores (`font_size=10`), because keyword arguments can't contain dots. An unknown name raises `AgsKitError` suggesting the closest one.
+- `**style_overrides` on any plot are passed as rcParams inside the context, so users can change one thing without touching global state. Names can be written with dots (`**{"font.size": 10}`) or with underscores (`font_size=10`), because keyword arguments can't contain dots. An unknown name raises `HangtuError` suggesting the closest one.
 
 ## 7. Labels
 - `axis_label(text, unit=None, datum=None, unknown=False)` → `"Elevation (ft, NAVD88)"`, `"Depth (m)"`, `"Liquid limit, LL (%)"`, `"SPT N60"` (no unit for counts and dimensionless), `"k (units unknown)"`.
@@ -157,17 +157,17 @@ Helpers: `nice_limits(vmin, vmax, *, start_at_zero)`, `log_limits(vmin, vmax, mi
 
 ## 11. Legends and hints
 - **Legend:** outside the axes on the right, no frame, 8 pt. Sections in order: units (colors), then marker groups, then special markers (qualifiers, edge markers) with counts. More than 12 entries → columns of up to 12; more than 30 → no legend, and a note saying "n units: see ak.plot.legend_handles()". `add_legend(..., offset=)` and `Notes.render(ax, offset=)` move the legend and footnote further right, in points, to clear a secondary axis.
-- **Hints** (plots README, "Input data"): `hint_missing(df, optional)` collects missing optional columns with a short reason each and issues **one** `AgsKitHint` per call, unless `settings.hints` is `False`. The warning's `stacklevel` points at the user's line.
+- **Hints** (plots README, "Input data"): `hint_missing(df, optional)` collects missing optional columns with a short reason each and issues **one** `HangtuHint` per call, unless `settings.hints` is `False`. The warning's `stacklevel` points at the user's line.
 
 ## 12. Errors
-- `AgsKitError` is the base class. `UnitsError(AgsKitError, ValueError)` for unit problems; `ColumnError(AgsKitError, ValueError)` for missing or unknown columns and templates.
+- `HangtuError` is the base class. `UnitsError(HangtuError, ValueError)` for unit problems; `ColumnError(HangtuError, ValueError)` for missing or unknown columns and templates.
 - Messages follow SPEC §11: what is wrong, where (column, row count), and what to do, with a runnable example where possible:
   `Column 'depth' has no units. Declare them with ak.set_units(df, {"depth": "ft"}) or read_csv(..., units={...}).`
 
 ## 13. Sheet
 - `ak.Sheet(size="tabloid", layout=(rows, cols), title=None, orientation="landscape")` creates one figure with a GridSpec, using constrained layout so outside legends fit.
 - **Sizes (portrait, inches):** Letter 8.5 × 11 · Tabloid 11 × 17 · ANSI D 22 × 34 · A4 8.27 × 11.69 · A3 11.69 × 16.54. Landscape swaps them. Margins 0.5 in.
-- **Panels:** `sheet[i]` (row-major index), `sheet[r, c]`, and slices for spanning panels (`sheet[0, :]`). Each panel's Axes is created on first access and the same object is returned after that. Overlapping spans raise `AgsKitError`.
+- **Panels:** `sheet[i]` (row-major index), `sheet[r, c]`, and slices for spanning panels (`sheet[0, :]`). Each panel's Axes is created on first access and the same object is returned after that. Overlapping spans raise `HangtuError`.
 - **Title:** simple text at the top left, 12 pt bold. No title block (Later).
 - `sheet.save(path, dpi=300)`: the format comes from the extension (`.pdf`, `.png`, `.svg`); others raise an error.
 - Plots given `ax=` draw into the panel, never create a figure, and ignore `figsize`.
@@ -186,7 +186,7 @@ Helpers: `nice_limits(vmin, vmax, *, start_at_zero)`, `log_limits(vmin, vmax, mi
 - **Notes and edge markers:** counts match for a synthetic frame with NaN, ≤ 0 and beyond-limit values.
 - **Palette:** the same unit gets the same color in two separate plots; `order` is respected; `reset_palette()` clears it.
 - **Legend:** 12 / 13 / 31 entries give 1 column / 2 columns / no legend + note.
-- **Hints:** one `AgsKitHint` per call; none when `settings.hints = False`.
+- **Hints:** one `HangtuHint` per call; none when `settings.hints = False`.
 - **Sheet:** each size and orientation has the right figure size; spans work; `save` writes PDF, PNG and SVG; a dummy plot drawn with `ax=sheet[0]` adds no figure (`plt.get_fignums()` unchanged).
 - **Shared test helpers** for later plots, as fixtures in `tests/plot/conftest.py`: `assert_us_si_equivalent(plot_fn, df, quantities, **kwargs)` (same point positions after conversion and same note counts; only labels and ticks differ; `quantities` names the x and y quantity kinds) and `assert_no_global_state(plot_fn, df, **kwargs)`. A `dummy_plot` fixture shows how a plot uses every helper.
 

@@ -12,7 +12,7 @@ from matplotlib.colors import ListedColormap, is_color_like
 from matplotlib.patches import Patch
 
 from hangtu._settings import settings
-from hangtu.errors import AgsKitError, warn
+from hangtu.errors import HangtuError, warn
 
 # tab20 comes in dark/light pairs; use the 10 dark shades first.
 _TAB20 = list(mpl.colormaps["tab20"].colors)
@@ -57,7 +57,7 @@ def resolve_palette(
     palette = palette or {}
     bad = [unit for unit, color in palette.items() if not is_color_like(color)]
     if bad:
-        raise AgsKitError(
+        raise HangtuError(
             f"palette has colors matplotlib doesn't recognize for {bad}. "
             'Use a color name ("tan"), a hex string ("#d2b48c") or an RGB tuple.'
         )
@@ -85,7 +85,7 @@ def resolve_palette(
 def _known_units() -> list[Any]:
     units = list(dict.fromkeys([*settings.palette, *_assigned]))
     if not units:
-        raise AgsKitError(
+        raise HangtuError(
             "No geology units have colors yet. Pass the units, e.g. "
             'ak.plot.palette_cmap(["Alluvium", "Till"]).'
         )

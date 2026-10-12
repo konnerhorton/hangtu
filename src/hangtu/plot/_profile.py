@@ -16,7 +16,7 @@ from matplotlib.text import Text
 
 from hangtu import units as _units
 from hangtu._settings import _display_units, settings
-from hangtu.errors import AgsKitError, ColumnError, warn
+from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.plot import _layers, _presets, style
 from hangtu.plot._data import numeric_column, rows_text
 from hangtu.plot._hints import hint_missing
@@ -89,13 +89,13 @@ def _check_limits(name: str, limits: Any, log: bool = False) -> tuple[float, flo
         and limits[0] != limits[1]
     )
     if not ok:
-        raise AgsKitError(
+        raise HangtuError(
             f"{name} must be (low, high), two different numbers in display units, "
             f"not {limits!r}. Example: {name}=(0, 50)"
         )
     lo, hi = sorted(float(v) for v in limits)
     if log and lo <= 0:
-        raise AgsKitError(
+        raise HangtuError(
             f"{name}={limits!r} can't be used on a log axis, because the lower "
             f"limit must be greater than 0. Example: {name}=(1e-7, 1e-2)"
         )
@@ -108,7 +108,7 @@ def _quantity(value: str, preset: Preset | None) -> str | None:
     if preset is None:
         return registered
     if registered is not None and registered != preset.quantity:
-        raise AgsKitError(
+        raise HangtuError(
             f"preset={preset.name!r} is for a {preset.quantity.replace('_', ' ')}, "
             f"but column {value!r} is a {registered.replace('_', ' ')}. "
             f"Use preset={value!r} if it exists, or leave preset out."
@@ -260,7 +260,7 @@ def _intervals(
     Rows with no interval, or with ``depth_top`` below ``depth_base``, are NaN.
     """
     if intervals not in (True, False, "auto"):
-        raise AgsKitError(
+        raise HangtuError(
             f'intervals must be True, False or "auto", not {intervals!r}.'
         )
     if intervals is False:
@@ -529,11 +529,11 @@ def profile(
             f"{', '.join(map(str, df.columns))}."
         )
     if xaxis_position not in ("top", "bottom"):
-        raise AgsKitError(
+        raise HangtuError(
             f'xaxis_position must be "top" or "bottom", not {xaxis_position!r}.'
         )
     if secondary not in (None, "depth"):
-        raise AgsKitError(f'secondary must be "depth" or None, not {secondary!r}.')
+        raise HangtuError(f'secondary must be "depth" or None, not {secondary!r}.')
     statistics = statistics_list(stats_box) if stats_box is not False else None
 
     system = _display_units(display_units or settings.display_units)

@@ -61,5 +61,5 @@ def test_typical_range_is_in_the_canonical_unit(name, system, expected):
 
 
 def test_unknown_preset_lists_the_presets():
-    with pytest.raises(ak.AgsKitError, match=r"no preset named 'su'.*undrained_shear"):
+    with pytest.raises(ak.HangtuError, match=r"no preset named 'su'.*undrained_shear"):
         preset("su")

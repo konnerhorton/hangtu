@@ -4,7 +4,7 @@ from importlib.metadata import version
 
 from hangtu import plot
 from hangtu._settings import settings
-from hangtu.errors import AgsKitError, AgsKitHint, ColumnError, UnitsError
+from hangtu.errors import ColumnError, HangtuError, HangtuHint, UnitsError
 from hangtu.registry import columns, template
 from hangtu.sheet import Sheet
 from hangtu.units import (
@@ -18,9 +18,9 @@ from hangtu.units import (
 __version__ = version("hangtu")
 
 __all__ = [
-    "AgsKitError",
-    "AgsKitHint",
     "ColumnError",
+    "HangtuError",
+    "HangtuHint",
     "Sheet",
     "UnitsError",
     "add_unit_alias",

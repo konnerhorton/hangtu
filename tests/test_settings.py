@@ -56,14 +56,14 @@ def test_figure_sizes_are_stored_as_float_pairs():
 )
 def test_invalid_values_raise_and_keep_the_old_value(name, value, message):
     before = getattr(ak.settings, name)
-    with pytest.raises(ak.AgsKitError, match=message):
+    with pytest.raises(ak.HangtuError, match=message):
         setattr(ak.settings, name, value)
     assert getattr(ak.settings, name) == before
 
 
 def test_unknown_setting_raises_naming_the_settings():
     with pytest.raises(
-        ak.AgsKitError, match=r"no setting 'display_unit'.*display_units"
+        ak.HangtuError, match=r"no setting 'display_unit'.*display_units"
     ):
         ak.settings.display_unit = "SI"
     with pytest.raises(AttributeError, match="no setting 'display_unit'"):
@@ -93,7 +93,7 @@ def test_override_restores_values_when_the_block_raises():
 
 def test_override_with_an_invalid_value_changes_nothing():
     with (
-        pytest.raises(ak.AgsKitError, match="spt_cap"),
+        pytest.raises(ak.HangtuError, match="spt_cap"),
         ak.settings.override(display_units="SI", spt_cap=-1),
     ):
         pass

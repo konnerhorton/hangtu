@@ -256,7 +256,7 @@ def test_color_by_another_column(frame):
 
 def test_one_hint_lists_the_missing_optional_columns(frame):
     df = frame().drop(columns=["loca_id", "geology_unit", "ground_level"])
-    with pytest.warns(ak.AgsKitHint) as record:
+    with pytest.warns(ak.HangtuHint) as record:
         ak.plot.profile(df, "undrained_shear_strength")
     assert len(record) == 1
     message = str(record[0].message)
@@ -268,7 +268,7 @@ def test_one_hint_lists_the_missing_optional_columns(frame):
 def test_no_ground_level_hint_when_plotting_elevation(frame):
     df = frame(elevation=[115.0, 110.0, 105.0, 100.0])
     df = ak.set_units(df.drop(columns=["ground_level", "loca_id"]), {"elevation": "ft"})
-    with pytest.warns(ak.AgsKitHint) as record:
+    with pytest.warns(ak.HangtuHint) as record:
         ak.plot.profile(df, "undrained_shear_strength")
     assert "ground_level" not in str(record[0].message)
 
@@ -285,12 +285,12 @@ def test_text_in_the_value_column_names_the_rows(frame):
 
 
 def test_a_preset_for_another_quantity_is_an_error(frame):
-    with pytest.raises(ak.AgsKitError, match=r"is for a percent.*is a stress"):
+    with pytest.raises(ak.HangtuError, match=r"is for a percent.*is a stress"):
         ak.plot.profile(frame(), "undrained_shear_strength", preset="water_content")
 
 
 def test_unknown_preset_is_an_error(frame):
-    with pytest.raises(ak.AgsKitError, match="no preset named 'su'"):
+    with pytest.raises(ak.HangtuError, match="no preset named 'su'"):
         ak.plot.profile(frame(), "undrained_shear_strength", preset="su")
 
 
@@ -300,7 +300,7 @@ def test_color_by_a_missing_column_is_an_error(frame):
 
 
 def test_bad_xaxis_position_is_an_error(frame):
-    with pytest.raises(ak.AgsKitError, match="xaxis_position"):
+    with pytest.raises(ak.HangtuError, match="xaxis_position"):
         ak.plot.profile(frame(), "undrained_shear_strength", xaxis_position="left")
 
 

@@ -73,13 +73,13 @@ def test_edge_counts_on_a_log_axis(frame):
     [((5, 5), "two different numbers"), ((0, "a"), "two different numbers")],
 )
 def test_bad_limits_are_an_error(xlim, message, frame):
-    with pytest.raises(ak.AgsKitError, match=message):
+    with pytest.raises(ak.HangtuError, match=message):
         ak.plot.profile(frame(), "undrained_shear_strength", xlim=xlim)
 
 
 def test_log_limits_must_be_positive(frame):
     df = frame("hydraulic_conductivity", K, "cm/s")
-    with pytest.raises(ak.AgsKitError, match="greater than 0"):
+    with pytest.raises(ak.HangtuError, match="greater than 0"):
         ak.plot.profile(df, "hydraulic_conductivity", log=True, xlim=(0, 1))
 
 

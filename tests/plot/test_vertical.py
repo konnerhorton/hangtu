@@ -84,7 +84,7 @@ def test_depth_without_a_way_to_get_it_explains_both_ways():
 
 
 def test_unknown_vs_is_an_error():
-    with pytest.raises(ak.AgsKitError, match=r"vs must be.*'elev'"):
+    with pytest.raises(ak.HangtuError, match=r"vs must be.*'elev'"):
         choose_vs(pd.DataFrame(columns=["depth"]), "elev")
 
 
@@ -217,7 +217,7 @@ def test_an_elevation_pair_converts_to_depth():
 
 
 def test_a_pair_that_cant_be_converted_says_what_to_give():
-    with pytest.raises(ak.AgsKitError) as error:
+    with pytest.raises(ak.HangtuError) as error:
         convert_pair([10.0], [20.0], "depth", _vertical(ground_level=None), "strata")
     message = str(error.value)
     assert "strata overlay is given in depth" in message
@@ -227,7 +227,7 @@ def test_a_pair_that_cant_be_converted_says_what_to_give():
 
 
 def test_a_single_position_names_its_own_column():
-    with pytest.raises(ak.AgsKitError, match="Give elevation instead"):
+    with pytest.raises(ak.HangtuError, match="Give elevation instead"):
         convert_vertical(
             [10.0], "depth", _vertical(ground_level=None), "design_lines", "elevation"
         )

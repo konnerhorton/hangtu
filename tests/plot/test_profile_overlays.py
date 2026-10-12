@@ -71,7 +71,7 @@ def test_depth_strata_drawn_in_depth_as_given(frame):
 
 def test_depth_strata_with_several_ground_levels_is_an_error(frame):
     df = frame(ground_level=[120.0, 120.0, 118.0, 118.0])
-    with pytest.raises(ak.AgsKitError) as error:
+    with pytest.raises(ak.HangtuError) as error:
         ak.plot.profile(df, "undrained_shear_strength", strata=strata_frame())
     message = str(error.value)
     assert "strata overlay is given in depth" in message
@@ -217,7 +217,7 @@ def test_a_water_level_against_depth(frame):
 
 @pytest.mark.parametrize("water_level", [[112.5], "high", [(None, "GWL")], True])
 def test_a_bad_water_level_is_an_error(frame, water_level):
-    with pytest.raises(ak.AgsKitError):
+    with pytest.raises(ak.HangtuError):
         ak.plot.profile(frame(), "undrained_shear_strength", water_level=water_level)
 
 
@@ -498,7 +498,7 @@ def test_a_design_line_needs_one_vertical_column(frame):
 
 def test_a_design_line_in_depth_needs_one_ground_level(frame):
     df = frame(ground_level=[120.0, 120.0, 118.0, 118.0])
-    with pytest.raises(ak.AgsKitError, match="Give elevation instead"):
+    with pytest.raises(ak.HangtuError, match="Give elevation instead"):
         ak.plot.profile(df, "undrained_shear_strength", design_lines=design_frame())
 
 
@@ -518,7 +518,7 @@ def test_reference_lines(frame):
 
 @pytest.mark.parametrize("reference_lines", [[1000.0], [("big", "limit")]])
 def test_bad_reference_lines_are_an_error(frame, reference_lines):
-    with pytest.raises(ak.AgsKitError):
+    with pytest.raises(ak.HangtuError):
         ak.plot.profile(
             frame(), "undrained_shear_strength", reference_lines=reference_lines
         )

@@ -123,7 +123,7 @@ def test_intervals_true_without_the_columns_is_an_error(frame):
 
 
 def test_bad_intervals_value_is_an_error(frame):
-    with pytest.raises(ak.AgsKitError, match="intervals must be"):
+    with pytest.raises(ak.HangtuError, match="intervals must be"):
         ak.plot.profile(frame(), "undrained_shear_strength", intervals="yes")
 
 

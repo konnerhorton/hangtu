@@ -25,7 +25,7 @@ Each figure is a separate feature with its own spec file in this folder, written
   3. the column registry plus the session or project display system (Phase 2 datasets);
   4. otherwise "(units unknown)" in the label, with a warning.
 - **Display units** come from `display_units=`, else `ak.settings.display_units`. Plots never convert silently without labeling.
-- **Required vs optional columns:** each spec keeps the required set to the minimum needed to draw something useful. When optional columns that unlock features (`geology_unit`, `loca_id`, `ground_level`, …) are missing, the plot emits **one hint** per call listing them and what each would add. 🟡 Hints are a `UserWarning` subclass, `ak.AgsKitHint`, so they can be filtered, and `ak.settings.hints = False` turns them off.
+- **Required vs optional columns:** each spec keeps the required set to the minimum needed to draw something useful. When optional columns that unlock features (`geology_unit`, `loca_id`, `ground_level`, …) are missing, the plot emits **one hint** per call listing them and what each would add. 🟡 Hints are a `UserWarning` subclass, `ak.HangtuHint`, so they can be filtered, and `ak.settings.hints = False` turns them off.
 - Standard optional grouping columns: `loca_id` (exploratory hole), `geology_unit` (geology unit), `specimen_id`.
 
 ### Axes and labels

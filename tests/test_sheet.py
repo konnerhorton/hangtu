@@ -61,7 +61,7 @@ def test_spanning_panel():
 def test_overlapping_panels_raise():
     sheet = ak.Sheet(layout=(2, 2))
     sheet[0, 1]
-    with pytest.raises(ak.AgsKitError, match=r"\[0, 0:2\] overlaps panel \[0, 1\]"):
+    with pytest.raises(ak.HangtuError, match=r"\[0, 0:2\] overlaps panel \[0, 1\]"):
         sheet[0, :]
 
 
@@ -76,7 +76,7 @@ def test_overlapping_panels_raise():
     ],
 )
 def test_bad_panel_keys(key, message):
-    with pytest.raises(ak.AgsKitError, match=message):
+    with pytest.raises(ak.HangtuError, match=message):
         ak.Sheet(layout=(2, 2))[key]
 
 
@@ -90,7 +90,7 @@ def test_bad_panel_keys(key, message):
     ],
 )
 def test_bad_arguments(arguments, message):
-    with pytest.raises(ak.AgsKitError, match=message):
+    with pytest.raises(ak.HangtuError, match=message):
         ak.Sheet(**arguments)
 
 
@@ -104,7 +104,7 @@ def test_save(tmp_path, suffix):
 
 
 def test_save_rejects_other_formats(tmp_path):
-    with pytest.raises(ak.AgsKitError, match=r"\.jpg.*\.pdf, \.png, \.svg"):
+    with pytest.raises(ak.HangtuError, match=r"\.jpg.*\.pdf, \.png, \.svg"):
         ak.Sheet().save(tmp_path / "sheet.jpg")
 
 

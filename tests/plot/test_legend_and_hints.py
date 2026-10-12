@@ -58,7 +58,7 @@ OPTIONAL = {
 
 def test_one_hint_per_call_listing_every_missing_column():
     df = pd.DataFrame({"depth": [1.0]})
-    with pytest.warns(ak.AgsKitHint) as record:
+    with pytest.warns(ak.HangtuHint) as record:
         missing = hint_missing(df, OPTIONAL)
     assert missing == ["geology_unit", "loca_id"]
     assert len(record) == 1

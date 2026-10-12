@@ -60,7 +60,7 @@ def test_hyphenated_names_have_an_underscore_form():
 
 def test_unknown_override_raises_with_a_suggestion():
     with (
-        pytest.raises(ak.AgsKitError, match="Did you mean 'font_size'"),
+        pytest.raises(ak.HangtuError, match="Did you mean 'font_size'"),
         style.context(font_sise=12),
     ):
         pass
