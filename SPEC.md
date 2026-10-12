@@ -32,7 +32,9 @@
   - So everything analytical is a plain function on a DataFrame.
   - The (Phase 2) `Project` object is kept deliberately thin.
 - **Project model** (decided): open source, developed independently. Published on **PyPI** and public GitHub under the **MIT** license. No company data is used in development or testing.
-- **Name:** `ags-kit` / `ags_kit` is a **working name**. A rename is planned to reflect DIGGS support and a US audience (TODO 0). It must be settled **before the first PyPI release** (end of Phase 1).
+- **Name** (decided): **`hangtu`**, imported as `import hangtu as ht`. It replaces the working name `ags-kit`, which tied the package to one file format and could look endorsed by the AGS trade body.
+  - Keep "AGS" and "DIGGS" in the PyPI description, keywords and README, so the package is still easy to find.
+  - Check that the name is still free on PyPI right before the first release (M5).
 
 ### 1.2 Formats
 | Format | Role | When |
@@ -326,7 +328,7 @@ ak.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
 | M2 | **P01** property profile | P01 acceptance criteria met |
 | M3 | **P02–P03** + SPT analysis | P02/P03 criteria + SPT golden tests |
 | M4 | **P04–P06** + classification and gradation analyses | P04–P06 criteria + classification/Dx golden tests |
-| M5 | **P07**, examples, CSV templates, README/tutorial; **rename settled (TODO 0)** → **v0.1.0 on PyPI** | Examples run from a clean `pip install` |
+| M5 | **P07**, examples, CSV templates, README/tutorial; PyPI name check → **v0.1.0 on PyPI** | Examples run from a clean `pip install` |
 | M6 | Feedback round; Phase 2 design closed (**TODO 0b**) | Decisions recorded in SPEC |
 | M7+ | Phase 2 milestones (ingest → QC → joins/datasets), then Phase 3 | Defined at M6 |
 
