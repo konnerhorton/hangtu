@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **ID / function** | P01 · `ak.plot.profile()` |
-| **Status** | draft |
+| **Status** | approved |
 | **Type** | plot (no analysis, apart from computing elevation) |
 | **Target version** | v0.1 |
 | **Depends on** | P00 (framework: style, palette, unit resolution, out-of-range markers, legend rules) |
@@ -129,20 +129,26 @@ n/a, apart from:
 
 | Overlay | Argument | Default | Source of definition | Style | Notes |
 |---|---|---|---|---|---|
-| Strata bands | `strata=` DataFrame | off | User: `unit, top, base` (in the same vertical reference as `vs`) | Full-width horizontal bands in palette colors, alpha 0.12; unit name at the right edge inside the axes, 7 pt | Only meaningful for one stratigraphy (a single hole or an idealized profile). The user is responsible for that |
+| Strata bands | `strata=` DataFrame | off | User: `geology_unit` plus a depth or elevation pair (formats below) | Full-width horizontal bands in palette colors, alpha 0.12; unit name at the right edge inside the axes, 7 pt | Only meaningful for one stratigraphy (a single hole or an idealized profile). The user is responsible for that |
 | Water level | `water_level=` float, or list of `(value, label)` | off | User | Dashed blue line 0.8 pt, ▽ symbol and label at the right end ("GWL" by default) | In the units of `vs` (declared or display) |
 | Water level per hole | `water_level=` DataFrame: `loca_id, depth\|elevation[, label]` | off | User | Short ▽ tick at the right edge of the axes for each hole, labeled with `loca_id` when there are ≤ 6 holes | For several holes with different water levels. Units from `df.attrs` or `units=` |
-| Published ranges | `ranges=` DataFrame or CSV | off | User: `low, high, label, source`, plus optional `top, base` | Vertical translucent band (alpha 0.15, hatched outline) from low to high, over top–base or the full height. Label at the top | Values converted from the declared units |
+| Published ranges | `ranges=` DataFrame or CSV | off | User: `low, high, label, source`, plus an optional depth or elevation pair (formats below) | Vertical translucent band (alpha 0.15, hatched outline) from low to high, over top–base or the full height. Label at the top | Values converted from the declared units |
 | Design lines | `design_lines=` DataFrame | off | User or P09: `label, <vs column>, value` (one polyline per label) | Bold dashed 1.5 pt, dark gray; label at the line end | Same idea as AGSi parameter profiles; P09 produces these |
 | Reference lines | `reference_lines=` list of `(value, label)` | off | User | Thin vertical line 0.6 pt, dotted; label at the top | e.g. a code limit |
 | Stats box | `stats_box=True`, or a list of statistics | off | pandas (no scipy needed). Default: count, mean, std, median, min, max per unit. A list chooses the statistics, e.g. `stats_box=["count", "mean", "cov"]`; allowed: `count, mean, std, cov, median, min, max` | Text box, lower left, 7 pt | ≤ 6 units listed; otherwise overall only. std is shown as "—" when n < 2. On a log axis, statistics are of the plotted values (not log values) |
 | Exclusion notes | automatic | **on** | Counts of NaN, ≤ 0 on log, beyond-limit, qualified | Footnote below the legend, 7 pt gray | **Always shown when non-zero** (no silent drops) |
 | Note | `note=` str | off | User | Lower-left text, 7 pt | |
 
-**User-supplied overlay formats:**
-- `strata`: columns `unit, top, base`.
-- `ranges`: `low, high, label, source[, top, base]`.
+**User-supplied overlay formats** (`ak.template("strata")`, `"ranges"` and `"design_lines"` give the exact columns):
+- `strata`: `geology_unit` plus **either** `depth_top, depth_base` **or** `elevation_top, elevation_base`.
+- `ranges`: `low, high, label, source`, plus optionally **either** `depth_top, depth_base` **or** `elevation_top, elevation_base` (otherwise the range covers the full height).
 - `design_lines`: `label, depth|elevation, value`.
+
+**Vertical reference of strata and ranges:**
+- A pair that matches `vs` is drawn as given. Elevation strata are what make an idealized site profile over several holes possible.
+- A pair that doesn't match `vs` is converted with `ground_level` (SPEC §8.1), which must be a single value for all rows of the main data (the same rule as `secondary="depth"`, §6).
+- In depth, top ≤ base; in elevation, top ≥ base. A row with its top and base the wrong way round is not drawn, and a warning names it.
+- `low`, `high`, `label` and `source` are fields of the overlay table, not registry columns.
 
 Units come from `df.attrs` or `units=`; otherwise they are assumed to match the main data, with a warning.
 
@@ -224,6 +230,9 @@ fig, ax = ak.plot.profile(su, "undrained_shear_strength", preset="undrained_shea
 | More than 12 / 30 legend entries | README legend rules (columns / note) |
 | Duplicate rows | Plotted as given (no de-duplication in plots) |
 | `secondary="depth"` with several ground levels | Clear error (§6) |
+| `strata` or `ranges` with both a depth and an elevation pair, or (for `strata`) neither | Error naming the two pairs and saying to give one |
+| `strata` or `ranges` pair doesn't match `vs`, and there are several ground levels (or none) | Error saying the pair can't be converted, and to give the pair that matches `vs` |
+| Overlay row with top and base the wrong way round | Row not drawn; warning naming the row |
 | Mixed lab and field data | Fine. Use `marker_by="source"` to distinguish them |
 
 ## 12. Acceptance criteria and tests
@@ -261,7 +270,7 @@ fig, ax = ak.plot.profile(su, "undrained_shear_strength", preset="undrained_shea
 - NAVFAC (1986). *Design Manual 7.01: Soil Mechanics*. Typical unit weights.
 
 ## 14. Open questions
-None open. Review decisions are recorded in the body: k shown in cm/s in US units (§9), x-axis at the bottom (§6), stats box contents (§8), `connect=` off by default (§7), per-hole water levels (§8), and only `value` plus depth or elevation required (§3).
+None open. Review decisions are recorded in the body: overlay column names and the depth-or-elevation pairs for strata and ranges (§8), k shown in cm/s in US units (§9), x-axis at the bottom (§6), stats box contents (§8), `connect=` off by default (§7), per-hole water levels (§8), and only `value` plus depth or elevation required (§3).
 
 ## 15. Future enhancements
 - `facet_by="loca_id"`: one panel per hole with a shared vertical axis (a borehole-by-borehole profile sheet).
