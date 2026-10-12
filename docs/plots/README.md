@@ -65,6 +65,8 @@ Each figure is a separate feature with its own spec file in this folder, written
 
 **Status:** `idea` → `draft` (spec written) → `review` → `approved` → `built`.
 
+Draft notes for plots that are still at `idea`, and seven proposed new plots (P24–P30), are in [`drafts/`](drafts/README.md). The proposed IDs aren't in the tables below until each one is picked up.
+
 ### Batch 1: index and in-situ plots (start here)
 Data for all of these already exists in the MVP scope. P00 is the foundation the others build on.
 

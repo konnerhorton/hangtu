@@ -12,6 +12,7 @@ Personal reference notes. Adapted from Anthropic's [AI-native SDLC playbook](htt
 | Feature spec | One feature | Kept while the feature exists | What exactly does it do, and how do we know it works? |
 | `docs/work/<id>/plan.md` | One unit of work | Frozen once merged | Which files, in what order, proven by which tests? |
 | `docs/drafts/` | Upcoming features and future phases | Until promoted to a feature spec | Draft feature specs and early notes. Input for intents; only items marked "decided" are decisions |
+| `docs/plots/drafts/` | Plots not yet specified | Until promoted to `docs/plots/PXX-*.md` | Draft plot specs in the TEMPLATE format. Input for a plot's spec step; not decisions |
 | `TODO.md` | Backlog | Permanent | What hasn't been decided or researched yet? |
 
 The **feature spec** for a plot is `docs/plots/PXX-*.md`. For other work it is `docs/work/<id>/spec.md`, or a new topic doc under `docs/` when it will outlive the change, such as the Phase 2 data model.
