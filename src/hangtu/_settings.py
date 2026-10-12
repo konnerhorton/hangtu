@@ -123,6 +123,15 @@ def _spt_cap(value: Any) -> int:
     return value
 
 
+def _summary_min_count(value: Any) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+        raise HangtuError(
+            "settings.summary_min_count must be a whole number of at least 1, "
+            f"not {value!r}. Example: ht.settings.summary_min_count = 5"
+        )
+    return value
+
+
 def _is_number(value: Any) -> bool:
     return isinstance(value, Real) and not isinstance(value, bool)
 
@@ -136,6 +145,7 @@ _VALIDATORS: dict[str, Callable[[Any], Any]] = {
     "hints": _hints,
     "hammer_efficiency": _hammer_efficiency,
     "spt_cap": _spt_cap,
+    "summary_min_count": _summary_min_count,
 }
 
 

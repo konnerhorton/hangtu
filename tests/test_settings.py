@@ -8,10 +8,15 @@ def test_defaults():
     assert ht.settings.display_overrides == {}
     assert ht.settings.vertical_datum is None
     assert ht.settings.palette == {}
-    assert ht.settings.figure_sizes == {"default": (6.5, 4.5), "profile": (4.0, 6.5)}
+    assert ht.settings.figure_sizes == {
+        "default": (6.5, 4.5),
+        "profile": (4.0, 6.5),
+        "grid": (3.75, 2.75),
+    }
     assert ht.settings.hints is True
     assert ht.settings.hammer_efficiency is None
     assert ht.settings.spt_cap == 100
+    assert ht.settings.summary_min_count == 5
 
 
 @pytest.mark.parametrize(
@@ -24,6 +29,7 @@ def test_defaults():
         ("hints", False),
         ("hammer_efficiency", 80.0),
         ("spt_cap", 50),
+        ("summary_min_count", 1),
     ],
 )
 def test_valid_values_are_stored(name, value):
@@ -52,6 +58,9 @@ def test_figure_sizes_are_stored_as_float_pairs():
         ("spt_cap", 100.0, "positive whole number"),
         ("spt_cap", True, "positive whole number"),
         ("spt_cap", 0, "positive whole number"),
+        ("summary_min_count", 0, "at least 1"),
+        ("summary_min_count", 2.5, "at least 1"),
+        ("summary_min_count", True, "at least 1"),
     ],
 )
 def test_invalid_values_raise_and_keep_the_old_value(name, value, message):

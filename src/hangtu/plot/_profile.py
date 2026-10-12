@@ -2,7 +2,6 @@
 
 import math
 from collections.abc import Mapping
-from numbers import Real
 from typing import Any, Literal
 
 import matplotlib.pyplot as plt
@@ -10,22 +9,19 @@ import numpy as np
 import pandas as pd
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
-from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 from matplotlib.text import Text
 
 from hangtu import units as _units
 from hangtu._settings import _display_units, settings
 from hangtu.errors import ColumnError, HangtuError, warn
-from hangtu.plot import _layers, _presets, style
+from hangtu.plot import _layers, _presets, _values, style
 from hangtu.plot._data import numeric_column, rows_text
 from hangtu.plot._hints import hint_missing
 from hangtu.plot._labels import axis_label
 from hangtu.plot._legend import add_legend
 from hangtu.plot._limits import (
     apply_vertical_axis,
-    log_limits,
-    nice_limits,
     nice_step,
     set_linear_axis,
     set_log_axis,
@@ -43,8 +39,6 @@ from hangtu.plot._overlays import (
     statistics_list,
     stats_table,
 )
-from hangtu.plot._palette import resolve_palette
-from hangtu.plot._presets import Preset
 from hangtu.plot._vertical import (
     Vertical,
     add_secondary_depth,
@@ -58,118 +52,16 @@ from hangtu.plot._vertical import (
 from hangtu.registry import column_info
 
 LEGEND_WIDTH = 1.5  # inches added to the settings size for the outside legend
-NEUTRAL = "0.3"  # points not colored by a group
 MARKER_SIZE = 5.0  # points
-CARET_SIZE = 6.0  # points
 INTERVAL_WIDTH = 1.0  # points
-BLANK_GROUP = "(blank)"
 ROOM_MARGIN = 0.02  # axes fraction between the stats box and the lowest data
 SECONDARY_SPACE = 42.0  # points between the axes and the legend for a depth axis
-# Qualifier -> (marker, size, legend text, notes reason) (P01 §3, §7).
-QUALIFIERS = {
-    "<": ("<", CARET_SIZE, "less than", "less_than"),
-    ">": (">", CARET_SIZE, "greater than", "greater_than"),
-}
 # Marker shapes for marker_by groups: ● ■ ▲ ◆ ▼ ✚ ✖ ⬟ ⬢ ★ (P01 §7).
 MARKER_CYCLE = ("o", "s", "^", "D", "v", "P", "X", "p", "h", "*")
-QUALIFIER_ORDER = [marker for marker, *_ in QUALIFIERS.values()]
+QUALIFIER_ORDER = [marker for marker, *_ in _values.QUALIFIERS.values()]
 CARETS = set(QUALIFIER_ORDER)
 CONNECT_WIDTH = 0.6  # points
 CONNECT_ALPHA = 0.6
-
-
-def _check_limits(name: str, limits: Any, log: bool = False) -> tuple[float, float]:
-    ok = (
-        isinstance(limits, list | tuple)
-        and len(limits) == 2
-        and all(
-            isinstance(v, Real) and not isinstance(v, bool) and math.isfinite(v)
-            for v in limits
-        )
-        and limits[0] != limits[1]
-    )
-    if not ok:
-        raise HangtuError(
-            f"{name} must be (low, high), two different numbers in display units, "
-            f"not {limits!r}. Example: {name}=(0, 50)"
-        )
-    lo, hi = sorted(float(v) for v in limits)
-    if log and lo <= 0:
-        raise HangtuError(
-            f"{name}={limits!r} can't be used on a log axis, because the lower "
-            f"limit must be greater than 0. Example: {name}=(1e-7, 1e-2)"
-        )
-    return lo, hi
-
-
-def _quantity(value: str, preset: Preset | None) -> str | None:
-    info = column_info(value)
-    registered = info.get("quantity") if info else None
-    if preset is None:
-        return registered
-    if registered is not None and registered != preset.quantity:
-        raise HangtuError(
-            f"preset={preset.name!r} is for a {preset.quantity.replace('_', ' ')}, "
-            f"but column {value!r} is a {registered.replace('_', ' ')}. "
-            f"Use preset={value!r} if it exists, or leave preset out."
-        )
-    return preset.quantity
-
-
-def _x_text(value: str, label: str | None, preset: Preset | None) -> str:
-    if label is not None:
-        return label
-    if preset is not None:
-        return preset.label
-    info = column_info(value)
-    return info["label"] if info and "label" in info else value
-
-
-def _start_at_zero(value: str, preset: Preset | None) -> bool:
-    if preset is not None:
-        return preset.start_at_zero
-    info = column_info(value)
-    return bool(info) and info.get("scale") == "ratio"
-
-
-def _typical(
-    preset: Preset | None, x_unit: str | None, system: str
-) -> tuple[float, float] | None:
-    """Return the preset's typical range in display units, if it can be converted."""
-    if preset is None:
-        return None
-    kind = _units.quantity_kind(preset.quantity)
-    if kind["canonical"] is not None and x_unit is None:
-        return None
-    low, high = _units.to_display(
-        preset.typical, kind["canonical"], preset.quantity, system
-    )[0]
-    return float(low), float(high)
-
-
-def _x_limits(
-    x: np.ndarray,
-    *,
-    log: bool,
-    xlim: tuple[float, float] | None,
-    start_at_zero: bool,
-    typical: tuple[float, float] | None,
-) -> tuple[float, float]:
-    if xlim is not None:
-        return xlim
-    if not x.size:
-        if typical is not None:
-            if log:
-                return log_limits(*typical)
-            return nice_limits(*typical, start_at_zero=start_at_zero)
-        return (1.0, 100.0) if log else (0.0, 1.0)
-    vmin, vmax = float(x.min()), float(x.max())
-    if vmin == vmax and typical is not None:
-        # A single value: the typical range, widened to include it (P01 §11).
-        vmin, vmax = min(typical[0], vmin), max(typical[1], vmax)
-    if log:
-        return log_limits(vmin, vmax)
-    return nice_limits(vmin, vmax, start_at_zero=start_at_zero)
 
 
 def _room_below_data(ax: Axes, box: Text, lowest: float) -> None:
@@ -213,40 +105,6 @@ def _set_vertical_axis(
         apply_vertical_axis(ax, vs, float(y.min()), float(y.max()))
     else:
         apply_vertical_axis(ax, vs, 0.0, 1.0)
-
-
-def _color_groups(
-    df: pd.DataFrame, color_by: str | None, palette: Mapping[Any, Any] | None
-) -> tuple[np.ndarray, dict[Any, Any]]:
-    """Return each row's group, and ``{group: color}`` in legend order.
-
-    Rows with a blank group are grouped as ``BLANK_GROUP`` in a neutral color.
-    """
-    if color_by is None or color_by not in df.columns:
-        return np.full(len(df), None, dtype=object), {None: NEUTRAL}
-    groups = df[color_by].to_numpy(dtype=object)
-    blank = pd.isna(groups)
-    colors = resolve_palette(groups[~blank], palette)
-    groups = np.where(blank, BLANK_GROUP, groups)
-    if blank.any():
-        colors[BLANK_GROUP] = NEUTRAL
-    return groups, colors
-
-
-def _qualifiers(df: pd.DataFrame) -> np.ndarray:
-    """Return each row's qualifier: ``"<"``, ``">"`` or ``""``."""
-    if "qualifier" not in df.columns:
-        return np.full(len(df), "", dtype=object)
-    qualifiers = df["qualifier"].fillna("").astype(str).str.strip()
-    bad = ~qualifiers.isin(["", *QUALIFIERS])
-    if bad.any():
-        found = ", ".join(repr(text) for text in dict.fromkeys(qualifiers[bad]))
-        raise ColumnError(
-            f'Column \'qualifier\' must hold "<", ">" or nothing, but rows '
-            f"{rows_text(df.index[bad])} hold {found}. Put the qualifier only in "
-            "'qualifier' and the number in the value column."
-        )
-    return qualifiers.to_numpy(dtype=object)
 
 
 def _intervals(
@@ -296,7 +154,7 @@ def _marker_groups(
 ) -> tuple[np.ndarray, dict[Any, str]]:
     """Return each row's marker group, and ``{group: shape}`` in legend order.
 
-    Rows with a blank group are grouped as ``BLANK_GROUP``. Without
+    Rows with a blank group are grouped as ``_values.BLANK_GROUP``. Without
     ``marker_by`` there are no groups.
     """
     if marker_by is None:
@@ -310,8 +168,8 @@ def _marker_groups(
     blank = pd.isna(groups)
     names = sorted(dict.fromkeys(groups[~blank]), key=str)
     if blank.any():
-        names.append(BLANK_GROUP)
-        groups = np.where(blank, BLANK_GROUP, groups)
+        names.append(_values.BLANK_GROUP)
+        groups = np.where(blank, _values.BLANK_GROUP, groups)
     if len(names) > len(MARKER_CYCLE):
         warn(
             f"marker_by={marker_by!r} has {len(names)} groups but there are "
@@ -349,7 +207,7 @@ def _draw_points(
         ax.scatter(
             x[inside],
             y[inside],
-            s=(CARET_SIZE if caret else MARKER_SIZE) ** 2,
+            s=(_values.CARET_SIZE if caret else MARKER_SIZE) ** 2,
             marker=marker,
             color=color,
             edgecolors="white",
@@ -358,18 +216,6 @@ def _draw_points(
             zorder=_layers.QUALIFIERS if caret else _layers.MARKERS,
         )
     return edge
-
-
-def _legend_marker(marker: str, color: Any, label: str, size: float) -> Line2D:
-    return Line2D(
-        [],
-        [],
-        marker=marker,
-        markersize=size,
-        color=color,
-        linestyle="none",
-        label=label,
-    )
 
 
 def _draw_connections(
@@ -382,7 +228,7 @@ def _draw_connections(
         ax.plot(
             x[order],
             y[order],
-            color=NEUTRAL,
+            color=_values.NEUTRAL,
             linewidth=CONNECT_WIDTH,
             alpha=CONNECT_ALPHA,
             zorder=_layers.CONNECT,
@@ -404,16 +250,6 @@ def _draw_intervals(
         solid_capstyle="round",
         zorder=_layers.INTERVALS,
     )
-
-
-def _qualifier_handles(qualifiers: np.ndarray, notes: Notes) -> list[Line2D]:
-    """Count qualified values and return their legend entries."""
-    handles = []
-    for qualifier, (marker, size, text, reason) in QUALIFIERS.items():
-        n = notes.count(qualifiers == qualifier, reason)
-        if n:
-            handles.append(_legend_marker(marker, NEUTRAL, f"{text} ({n})", size))
-    return handles
 
 
 def _new_axes(figsize: tuple[float, float] | None) -> tuple[Figure, Axes]:
@@ -538,10 +374,10 @@ def profile(
 
     system = _display_units(display_units or settings.display_units)
     chosen = _presets.preset(preset) if preset is not None else None
-    quantity = _quantity(value, chosen)
+    quantity = _values.quantity_of(value, chosen)
     log = chosen.log if log is None and chosen is not None else bool(log)
-    xlim = _check_limits("xlim", xlim, log) if xlim is not None else None
-    ylim = _check_limits("ylim", ylim) if ylim is not None else None
+    xlim = _values.check_limits("xlim", xlim, log) if xlim is not None else None
+    ylim = _values.check_limits("ylim", ylim) if ylim is not None else None
     vs = choose_vs(df, vs)
     if connect and "loca_id" not in df.columns:
         raise ColumnError(
@@ -571,7 +407,7 @@ def profile(
         y, vertical = vertical_values(df, vs, resolved, system)
         if secondary == "depth":
             check_secondary_depth(vertical)
-        qualifiers = _qualifiers(df)
+        qualifiers = _values.qualifiers(df)
         bounds = _intervals(df, intervals, resolved, vertical)
 
         notes = Notes()
@@ -595,12 +431,12 @@ def profile(
             fig = ax.figure
         style.style_axes(ax)
 
-        limits = _x_limits(
+        limits = _values.value_limits(
             x[drawn],
             log=log,
             xlim=xlim,
-            start_at_zero=_start_at_zero(value, chosen),
-            typical=_typical(chosen, resolved[value], system),
+            start_at_zero=_values.start_at_zero(value, chosen),
+            typical=_values.typical_range(chosen, resolved[value], system),
         )
         if log:
             set_log_axis(ax, "x", limits)
@@ -632,9 +468,9 @@ def profile(
         if note is not None:
             draw_note(ax, str(note))
 
-        groups, colors = _color_groups(df, color_by, palette)
+        groups, colors = _values.color_groups(df, color_by, palette)
         marker_groups, shapes = _marker_groups(df, marker_by)
-        carets = {q: marker for q, (marker, *_) in QUALIFIERS.items()}
+        carets = {q: marker for q, (marker, *_) in _values.QUALIFIERS.items()}
         markers = np.array(
             [
                 carets.get(q, shapes.get(group, MARKER_CYCLE[0]))
@@ -658,15 +494,15 @@ def profile(
                 unit_handles.append(
                     Patch(facecolor=color, edgecolor="none", label=str(group))
                     if shapes
-                    else _legend_marker("o", color, str(group), MARKER_SIZE)
+                    else _values.legend_marker("o", color, str(group), MARKER_SIZE)
                 )
         notes.count(edge, "beyond_limit")
         shape_handles = [
-            _legend_marker(shape, NEUTRAL, str(group), MARKER_SIZE)
+            _values.legend_marker(shape, _values.NEUTRAL, str(group), MARKER_SIZE)
             for group, shape in shapes.items()
             if (drawn & (marker_groups == group)).any()
         ]
-        qualified = _qualifier_handles(np.where(drawn, qualifiers, ""), notes)
+        qualified = _values.qualifier_handles(np.where(drawn, qualifiers, ""), notes)
 
         if not drawn.any():
             ax.text(
@@ -682,7 +518,7 @@ def profile(
 
         ax.set_xlabel(
             axis_label(
-                _x_text(value, label, chosen),
+                _values.axis_text(value, label, chosen),
                 x_unit_text,
                 unknown=resolved[value] is None and _units.needs_units(value, quantity),
             )
