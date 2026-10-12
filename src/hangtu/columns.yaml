@@ -2,7 +2,7 @@
 # Schema and rules: docs/plots/P00-framework.md §5. Quantity kinds: P00 §4.1.
 #
 # Per column:
-#   description  one line, shown by ak.columns()
+#   description  one line, shown by ht.columns()
 #   type         number | text | bool
 #   quantity     quantity kind (numbers only); drives unit conversion and labels
 #   scale        ratio | interval   (numbers only; interval = no meaningful zero, so no CoV, TODO #9)
@@ -13,11 +13,11 @@
 # Status of the Batch 1 entries beyond P01: provisional until each plot spec is written.
 #
 # fields: names used only in overlay tables (P01 §8), such as a range's low and
-# high. They aren't data columns, so ak.columns() leaves them out, but templates
+# high. They aren't data columns, so ht.columns() leaves them out, but templates
 # may use them. Per field: description, type.
 
 templates:
-  # ak.template(name): empty DataFrame with these columns, in this order
+  # ht.template(name): empty DataFrame with these columns, in this order
   profile:        [loca_id, depth, elevation, ground_level, geology_unit, source]   # plus the user's value column
   permeability:   [loca_id, depth, depth_top, depth_base, ground_level, elevation, hydraulic_conductivity, qualifier, source, test_type, geology_unit]
   strength:       [loca_id, depth, ground_level, elevation, undrained_shear_strength, qualifier, test_type, geology_unit]

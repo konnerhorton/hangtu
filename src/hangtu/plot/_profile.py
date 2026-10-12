@@ -465,7 +465,7 @@ def profile(
     df : pandas.DataFrame
         One row per observation: the ``value`` column, plus ``depth`` or
         ``elevation`` (or ``depth`` and ``ground_level``). See
-        ``ak.template("profile")``.
+        ``ht.template("profile")``.
     value : str
         The column to plot.
     vs : {"elevation", "depth"}, optional
@@ -498,7 +498,7 @@ def profile(
     units : dict, optional
         ``{column: unit}``, overriding the units declared on ``df``.
     display_units : {"US", "SI"}, optional
-        Defaults to ``ak.settings.display_units``.
+        Defaults to ``ht.settings.display_units``.
     figsize : (width, height), optional
         Inches; by default the settings ``profile`` size plus room for the
         legend. Ignored with ``ax=``.
@@ -513,9 +513,9 @@ def profile(
 
     Examples
     --------
-    >>> k = ak.read_csv("perm.csv", units={"depth": "ft", "ground_level": "ft",
+    >>> k = ht.read_csv("perm.csv", units={"depth": "ft", "ground_level": "ft",
     ...                                    "hydraulic_conductivity": "cm/s"})
-    >>> fig, ax = ak.plot.profile(k, "hydraulic_conductivity",
+    >>> fig, ax = ht.plot.profile(k, "hydraulic_conductivity",
     ...                           preset="hydraulic_conductivity")
     """
     if value not in df.columns:

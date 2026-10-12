@@ -1,5 +1,5 @@
 # Defaults shipped with hangtu (docs/plots/P00-framework.md §3).
-# ak.settings holds the session's choices; ak.settings.reset() restores these.
+# ht.settings holds the session's choices; ht.settings.reset() restores these.
 
 settings:
   display_units: US            # "US" | "SI"

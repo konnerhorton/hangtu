@@ -40,10 +40,10 @@ class Sheet:
 
     Examples
     --------
-    >>> sheet = ak.Sheet("tabloid", layout=(2, 2), title="Site A")
-    >>> ak.plot.profile(k, "hydraulic_conductivity", ax=sheet[0])
-    >>> ak.plot.profile(su, "undrained_shear_strength", ax=sheet[1])
-    >>> ak.plot.profile(w, "water_content", ax=sheet[1, :])  # a whole row
+    >>> sheet = ht.Sheet("tabloid", layout=(2, 2), title="Site A")
+    >>> ht.plot.profile(k, "hydraulic_conductivity", ax=sheet[0])
+    >>> ht.plot.profile(su, "undrained_shear_strength", ax=sheet[1])
+    >>> ht.plot.profile(w, "water_content", ax=sheet[1, :])  # a whole row
     >>> sheet.save("site_a.pdf")
     """
 
@@ -70,7 +70,7 @@ class Sheet:
         ):
             raise HangtuError(
                 f"layout must be (rows, columns), two positive whole numbers, "
-                f"not {layout!r}. Example: ak.Sheet(layout=(2, 2))"
+                f"not {layout!r}. Example: ht.Sheet(layout=(2, 2))"
             )
         width, height = SIZES[key]
         if orientation == "landscape":

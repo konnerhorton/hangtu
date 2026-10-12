@@ -29,7 +29,7 @@ def hint_missing(df: pd.DataFrame, optional: Mapping[str, str]) -> list[str]:
             f"No {column!r} column: {optional[column]}." for column in missing
         )
         warn(
-            f"{reasons} (Turn hints off with ak.settings.hints = False.)",
+            f"{reasons} (Turn hints off with ht.settings.hints = False.)",
             HangtuHint,
         )
     return missing

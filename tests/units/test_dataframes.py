@@ -130,7 +130,7 @@ def test_unknown_units_warn_once_per_column_for_a_plot(spt):
         result = resolve_units(spt, ["depth", "spt_n"])
     assert result == {"depth": None, "spt_n": None}
     assert len(record) == 1
-    assert 'ak.set_units(df, {"depth": "ft"})' in str(record[0].message)
+    assert 'ht.set_units(df, {"depth": "ft"})' in str(record[0].message)
     assert '"(units unknown)"' in str(record[0].message)
 
 

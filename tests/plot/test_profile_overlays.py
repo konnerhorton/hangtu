@@ -143,7 +143,7 @@ def test_a_swapped_stratum_warns_and_is_not_drawn(frame):
 
 
 def test_strata_without_units_take_the_data_units_with_a_warning(frame):
-    with pytest.warns(UserWarning, match=r"strata table has no units.*ak\.set_units"):
+    with pytest.warns(UserWarning, match=r"strata table has no units.*ht\.set_units"):
         _, ax = ak.plot.profile(
             frame(),
             "undrained_shear_strength",

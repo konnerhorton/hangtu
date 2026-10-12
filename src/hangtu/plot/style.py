@@ -44,7 +44,7 @@ def context(**style_overrides: Any) -> Iterator[None]:
 
     Examples
     --------
-    >>> with ak.plot.style.context(font_size=10):
+    >>> with ht.plot.style.context(font_size=10):
     ...     fig, ax = plt.subplots()
     """
     rc = {_rc_name(name): value for name, value in style_overrides.items()}

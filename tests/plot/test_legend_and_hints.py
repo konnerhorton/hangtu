@@ -41,7 +41,7 @@ def test_more_than_30_entries_gives_a_note_instead():
     notes = Notes()
     assert add_legend(ax, [entries(29), entries(2, "Marker")], notes) is None
     assert ax.get_legend() is None
-    assert notes.lines() == ["29 geology units: see ak.plot.legend_handles()"]
+    assert notes.lines() == ["29 geology units: see ht.plot.legend_handles()"]
 
 
 def test_no_entries_no_legend():
@@ -65,7 +65,7 @@ def test_one_hint_per_call_listing_every_missing_column():
     assert str(record[0].message) == (
         "No 'geology_unit' column: points are not colored by geology. "
         "No 'loca_id' column: connect= is unavailable. "
-        "(Turn hints off with ak.settings.hints = False.)"
+        "(Turn hints off with ht.settings.hints = False.)"
     )
     assert record[0].filename == __file__
 

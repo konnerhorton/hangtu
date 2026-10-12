@@ -1,4 +1,4 @@
-"""Session settings, available as ``ak.settings`` (docs/plots/P00-framework.md §3)."""
+"""Session settings, available as ``ht.settings`` (docs/plots/P00-framework.md §3)."""
 
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
@@ -15,7 +15,7 @@ def _display_units(value: Any) -> str:
     if value not in ("US", "SI"):
         raise HangtuError(
             f'settings.display_units must be "US" or "SI", not {value!r}. '
-            'Example: ak.settings.display_units = "SI"'
+            'Example: ht.settings.display_units = "SI"'
         )
     return value
 
@@ -27,7 +27,7 @@ def _display_overrides(value: Any) -> dict[str, str]:
         raise HangtuError(
             "settings.display_overrides must be a dict of {quantity kind: unit}, "
             f"not {value!r}. "
-            'Example: ak.settings.display_overrides = {"stress": "ksf"}'
+            'Example: ht.settings.display_overrides = {"stress": "ksf"}'
         )
     if value:
         from hangtu import units  # imported here because units imports settings
@@ -53,7 +53,7 @@ def _vertical_datum(value: Any) -> str | None:
     if value is not None and (not isinstance(value, str) or not value.strip()):
         raise HangtuError(
             f"settings.vertical_datum must be a datum name or None, not {value!r}. "
-            'Example: ak.settings.vertical_datum = "NAVD88"'
+            'Example: ht.settings.vertical_datum = "NAVD88"'
         )
     return value
 
@@ -62,7 +62,7 @@ def _palette(value: Any) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise HangtuError(
             "settings.palette must be a dict of {geology unit: color}, "
-            f'not {value!r}. Example: ak.settings.palette = {{"Alluvium": "tan"}}'
+            f'not {value!r}. Example: ht.settings.palette = {{"Alluvium": "tan"}}'
         )
     bad = [unit for unit, color in value.items() if not is_color_like(color)]
     if bad:
@@ -75,7 +75,7 @@ def _palette(value: Any) -> dict[str, Any]:
 
 def _figure_sizes(value: Any) -> dict[str, tuple[float, float]]:
     example = (
-        "Example: ak.settings.figure_sizes = "
+        "Example: ht.settings.figure_sizes = "
         '{"default": (6.5, 4.5), "profile": (4.0, 6.5)}'
     )
     if not isinstance(value, dict) or "default" not in value:
@@ -109,7 +109,7 @@ def _hammer_efficiency(value: Any) -> float | None:
         raise HangtuError(
             "settings.hammer_efficiency must be the energy ratio in percent, "
             f"greater than 0 and at most 100, or None, not {value!r}. "
-            "Example: ak.settings.hammer_efficiency = 80"
+            "Example: ht.settings.hammer_efficiency = 80"
         )
     return None if value is None else float(value)
 
@@ -118,7 +118,7 @@ def _spt_cap(value: Any) -> int:
     if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
         raise HangtuError(
             "settings.spt_cap must be a positive whole number of blows, "
-            f"not {value!r}. Example: ak.settings.spt_cap = 100"
+            f"not {value!r}. Example: ht.settings.spt_cap = 100"
         )
     return value
 
@@ -140,7 +140,7 @@ _VALIDATORS: dict[str, Callable[[Any], Any]] = {
 
 
 def _unknown(name: str) -> str:
-    return f"ak.settings has no setting {name!r}. Settings: {', '.join(_VALIDATORS)}."
+    return f"ht.settings has no setting {name!r}. Settings: {', '.join(_VALIDATORS)}."
 
 
 def _defaults() -> dict[str, Any]:
@@ -156,10 +156,10 @@ class Settings:
 
     Examples
     --------
-    >>> ak.settings.display_units = "SI"
-    >>> with ak.settings.override(display_units="US"):
-    ...     fig, ax = ak.plot.profile(df, "hydraulic_conductivity")
-    >>> ak.settings.reset()
+    >>> ht.settings.display_units = "SI"
+    >>> with ht.settings.override(display_units="US"):
+    ...     fig, ax = ht.plot.profile(df, "hydraulic_conductivity")
+    >>> ht.settings.reset()
     """
 
     __slots__ = ("_values",)

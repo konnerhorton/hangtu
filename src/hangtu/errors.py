@@ -21,7 +21,7 @@ class ColumnError(HangtuError, ValueError):
 class HangtuHint(UserWarning):
     """A suggestion about optional data that would improve a plot.
 
-    Turn hints off with ``ak.settings.hints = False``.
+    Turn hints off with ``ht.settings.hints = False``.
     """
 
 

@@ -79,7 +79,7 @@ def _require(table: pd.DataFrame, overlay: str, columns: Sequence[str]) -> None:
     missing = [column for column in columns if column not in table.columns]
     if missing:
         template = (
-            f' Start from ak.template("{overlay}").' if overlay != "water_level" else ""
+            f' Start from ht.template("{overlay}").' if overlay != "water_level" else ""
         )
         raise ColumnError(
             f"The {overlay} table has no {', '.join(map(repr, missing))} column. "
@@ -115,7 +115,7 @@ def overlay_units(
         warn(
             f"The {overlay} table has no units for {', '.join(missing)}, so they are "
             f"taken to be in the plot data's units. Declare them to silence this: "
-            f"{overlay} = ak.set_units({overlay}, {{{example}}})."
+            f"{overlay} = ht.set_units({overlay}, {{{example}}})."
         )
     return {column: declared.get(column, unit) for column, unit in assumed.items()}
 
@@ -137,7 +137,7 @@ def pair_reference(
         f"The {overlay} table has {problem} of the depth pair (depth_top, "
         "depth_base) and the elevation pair (elevation_top, elevation_base). "
         f"Give one pair and leave the other out or blank. "
-        f'ak.template("{overlay}") lists the columns.'
+        f'ht.template("{overlay}") lists the columns.'
     )
 
 
@@ -440,8 +440,8 @@ def draw_ranges(
 
     A band covers its depth or elevation pair, or the full height without
     one, and is labeled at its top with ``label`` and, when given, ``source``.
-    A path is read with ``ak.read_csv``; declare units on the table with
-    ``ak.set_units`` to read a file in other units.
+    A path is read with ``ht.read_csv``; declare units on the table with
+    ``ht.set_units`` to read a file in other units.
     """
     if not isinstance(ranges, pd.DataFrame):
         ranges = read_csv(ranges)
@@ -531,7 +531,7 @@ def draw_design_lines(
         problem = "both" if given else "neither"
         raise ColumnError(
             f"The design_lines table has {problem} of 'depth' and 'elevation'. "
-            'Give one column. ak.template("design_lines") lists the columns.'
+            'Give one column. ht.template("design_lines") lists the columns.'
         )
     from_vs = given[0]
     units = overlay_units(
