@@ -5,6 +5,7 @@ Python library of plots, analyses and (later) AGS4 ingest/QC for geotechnical en
 ## Where things are
 - `SPEC.md`: product spec and cross-cutting decisions. Read the relevant section before designing anything.
 - `docs/plots/PXX-*.md`: one spec per figure, with acceptance criteria. `docs/plots/README.md` has the shared plot conventions.
+- `docs/plots/drafts/`: draft notes for plots not yet specified, in the TEMPLATE format, including proposed IDs P24–P30. They are not decisions. When a plot's unit of work starts, promote its draft to `docs/plots/PXX-*.md` in the spec step.
 - `docs/work/<id>-<slug>/`: intent and plan for each unit of work (see `docs/reference/process.md`).
 - `src/hangtu/columns.yaml` and `src/hangtu/units/aliases.yaml`: the column registry and unit aliases.
 - `docs/drafts/`: the analyses draft spec (`analysis.md`, M3–M4) and notes for later phases. Items marked "decided" are decided; the rest is not. Finish the relevant draft as the feature spec before building from it.
