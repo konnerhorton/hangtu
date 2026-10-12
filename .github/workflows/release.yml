@@ -1,0 +1,106 @@
+name: Release
+
+# Pushing a tag like v0.1.0 publishes to PyPI. Running the workflow by hand
+# (Actions tab → Release → Run workflow) publishes to TestPyPI, as a rehearsal.
+# Both use trusted publishing (SPEC §12.1), so no API token is stored: PyPI
+# accepts uploads only from this file running in the matching environment.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  MPLBACKEND: Agg
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+      - name: Check the tag matches the version in pyproject.toml
+        if: github.ref_type == 'tag'
+        run: |
+          version=$(uv version --short)
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME doesn't match version $version in pyproject.toml. Set version = \"${GITHUB_REF_NAME#v}\" in pyproject.toml, commit, and tag that commit instead."
+            exit 1
+          fi
+      - run: uv build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  # Runs the test suite against the built wheel, installed the way a user
+  # would install it. CI tests the source tree, so it can't catch a file
+  # missing from the wheel.
+  test-wheel:
+    name: test wheel (${{ matrix.os }}, Python ${{ matrix.python }})
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.12", "3.14"]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: ${{ matrix.python }}
+      # Without the source tree, the tests can only import the installed wheel.
+      - run: rm -rf src
+      - run: >-
+          uv run --isolated --no-project
+          --with dist/*.whl --with pytest --with hypothesis
+          pytest
+
+  publish-pypi:
+    name: publish to PyPI
+    if: github.ref_type == 'tag'
+    needs: test-wheel
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/hangtu/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  publish-testpypi:
+    name: publish to TestPyPI
+    if: github.event_name == 'workflow_dispatch'
+    needs: test-wheel
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/hangtu/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
