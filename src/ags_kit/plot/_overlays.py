@@ -146,11 +146,14 @@ def vertical_pair(
     vertical: Vertical,
     from_vs: Literal["depth", "elevation"],
     units: Mapping[str, str | None],
+    *,
+    full_height_rows: bool = False,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Read an overlay's top and base, drawn in ``vertical.vs``.
 
     Rows with top and base the wrong way round, or a blank bound, are NaN
-    and named in a warning.
+    and named in a warning. With ``full_height_rows``, a row with both bounds
+    blank is NaN without a warning: it covers the full height.
     """
     pair = PAIRS[from_vs]
     top, base = (
@@ -159,6 +162,8 @@ def vertical_pair(
     )
     top, base = convert_pair(top, base, from_vs, vertical, overlay)
     blank = np.isnan(top) | np.isnan(base)
+    if full_height_rows:
+        blank &= ~(np.isnan(top) & np.isnan(base))
     swapped = (top < base) if vertical.vs == "elevation" else (top > base)
     if blank.any():
         warn(
@@ -386,20 +391,42 @@ def draw_water_level(
         _water_label(ax, 0.97, y, label)
 
 
-def _top_label(ax: Axes, x: float, y: float, text: str, transform: Any) -> None:
-    """Write ``text`` centered on ``x``, just below ``y``."""
+def _top_label(
+    ax: Axes,
+    x: float,
+    y: float,
+    text: str,
+    transform: Any,
+    *,
+    ha: str = "center",
+    above_axes: bool = False,
+) -> None:
+    """Write ``text`` at ``x``, just below ``y``.
+
+    With ``above_axes``, the text goes just above the top of the axes
+    instead, clear of the strata labels inside the top edge. Use it for
+    full-height marks when the x-axis is at the bottom.
+    """
+    shift = 2 if ha == "left" else 0
     ax.text(
         x,
         y,
         text,
-        transform=offset_copy(transform, ax.figure, y=-2, units="points"),
-        ha="center",
-        va="top",
+        transform=offset_copy(
+            transform, ax.figure, x=shift, y=2 if above_axes else -2, units="points"
+        ),
+        ha=ha,
+        va="bottom" if above_axes else "top",
         fontsize=TEXT_SIZE,
         color="0.25",
-        clip_on=True,
+        clip_on=not above_axes,
         zorder=_layers.ANNOTATIONS,
     )
+
+
+def _top_is_free(ax: Axes) -> bool:
+    """Return True when nothing is drawn above the axes (x-axis at the bottom)."""
+    return ax.xaxis.get_label_position() == "bottom"
 
 
 def draw_ranges(
@@ -430,17 +457,24 @@ def draw_ranges(
     if from_vs is None:
         top = base = np.full(len(ranges), np.nan)
     else:
-        top, base = vertical_pair(ranges, "ranges", vertical, from_vs, units)
+        top, base = vertical_pair(
+            ranges, "ranges", vertical, from_vs, units, full_height_rows=True
+        )
+    full_height = (
+        np.ones(len(ranges), dtype=bool)
+        if from_vs is None
+        else ranges[list(PAIRS[from_vs])].isna().all(axis=1).to_numpy()
+    )
     sources = ranges["source"] if "source" in ranges.columns else None
-    full_height = blended_transform_factory(ax.transData, ax.transAxes)
+    axes_height = blended_transform_factory(ax.transData, ax.transAxes)
     for i, (lo, hi, label) in enumerate(zip(low, high, ranges["label"], strict=True)):
-        if np.isnan(lo) or np.isnan(hi) or (from_vs and np.isnan(top[i])):
+        if np.isnan(lo) or np.isnan(hi) or (not full_height[i] and np.isnan(top[i])):
             continue
         lo, hi = sorted((lo, hi))
         if scale.log and lo <= 0:
             lo = min(ax.get_xlim())
-        if from_vs is None:
-            y, height, transform = 0.0, 1.0, full_height
+        if full_height[i]:
+            y, height, transform = 0.0, 1.0, axes_height
             label_y = 1.0
         else:
             # top is the upper edge on screen in both depth and elevation.
@@ -462,12 +496,18 @@ def draw_ranges(
         text = str(label)
         if sources is not None and pd.notna(sources.iloc[i]):
             text += f" ({sources.iloc[i]})"
-        # Center the label on the part of the band inside the axes.
+        # Start the label at the left of the part of the band inside the axes.
         left, right = sorted(ax.get_xlim())
-        lo, hi = max(lo, left), min(hi, right)
-        if lo < hi:
-            middle = float(np.sqrt(lo * hi)) if scale.log else (lo + hi) / 2
-            _top_label(ax, middle, label_y, text, transform)
+        if max(lo, left) < min(hi, right):
+            _top_label(
+                ax,
+                max(lo, left),
+                label_y,
+                text,
+                transform,
+                ha="left",
+                above_axes=bool(full_height[i]) and _top_is_free(ax),
+            )
 
 
 def _inside(ax: Axes, x: np.ndarray, y: np.ndarray) -> np.ndarray:
@@ -527,10 +567,11 @@ def draw_design_lines(
         ax.annotate(
             str(label),
             xy=(x[end], y[end]),
-            xytext=(3, -3),
+            # Up and left of the deepest point, which is at the bottom on screen.
+            xytext=(-3, 3),
             textcoords="offset points",
-            ha="left",
-            va="top",
+            ha="right",
+            va="bottom",
             fontsize=TEXT_SIZE,
             color=DESIGN_COLOR,
             annotation_clip=True,
@@ -571,7 +612,7 @@ def draw_reference_lines(
             linestyle=":",
             zorder=_layers.LINES,
         )
-        _top_label(ax, x, 1.0, str(label), top)
+        _top_label(ax, x, 1.0, str(label), top, above_axes=_top_is_free(ax))
 
 
 def draw_note(ax: Axes, note: str) -> None:
@@ -615,11 +656,15 @@ def statistics_list(stats_box: bool | Sequence[str]) -> list[str]:
 
 
 def format_number(value: float) -> str:
-    """Write a statistic to 3 significant figures: ``1,290``, ``15.6``, ``2.3e-05``."""
+    """Write a statistic to 3 significant figures: ``1,290``, ``0.0123``, ``2.30e-05``.
+
+    Values below 0.01 or from a million up are in scientific notation, so a
+    column of small values such as k reads consistently.
+    """
     if value == 0 or not np.isfinite(value):
         return f"{value:g}"
     exponent = math.floor(math.log10(abs(value)))
-    if not -3 <= exponent < 6:
+    if not -2 <= exponent < 6:
         return f"{value:.2e}"
     rounded = float(f"{value:.3g}")
     return f"{rounded:,.{max(0, 2 - exponent)}f}"

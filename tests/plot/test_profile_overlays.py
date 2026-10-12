@@ -381,6 +381,28 @@ def test_a_range_over_a_depth_pair_drawn_in_elevation(frame):
     assert range_boxes(ax) == [(1000.0, 2000.0, 100.0, 110.0)]
 
 
+def test_a_range_row_without_bounds_covers_the_full_height(frame):
+    ranges = range_frame(depth_top=[10.0], depth_base=[20.0])
+    ranges = pd.concat([ranges, range_frame()], ignore_index=True)
+    # concat drops declared units, so declare them again.
+    ranges = ak.set_units(
+        ranges,
+        {"low": "psf", "high": "psf", "depth_top": "ft", "depth_base": "ft"},
+    )
+    _, ax = ak.plot.profile(frame(), "undrained_shear_strength", ranges=ranges)
+    assert range_boxes(ax) == [
+        (1000.0, 2000.0, 0.0, 1.0),
+        (1000.0, 2000.0, 100.0, 110.0),
+    ]
+
+
+def test_a_range_row_with_one_bound_warns(frame):
+    ranges = range_frame(depth_top=[10.0], depth_base=[np.nan])
+    with pytest.warns(UserWarning, match="Rows 0 of the ranges table have a blank"):
+        _, ax = ak.plot.profile(frame(), "undrained_shear_strength", ranges=ranges)
+    assert range_boxes(ax) == []
+
+
 def test_a_range_without_a_source(frame):
     ranges = range_frame().drop(columns="source")
     _, ax = ak.plot.profile(frame(), "undrained_shear_strength", ranges=ranges)
