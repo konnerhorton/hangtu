@@ -15,12 +15,12 @@ from matplotlib.axes import Axes
 from matplotlib.ticker import MultipleLocator
 from numpy.typing import ArrayLike
 
-from ags_kit._settings import _display_units, settings
-from ags_kit.errors import AgsKitError, ColumnError
-from ags_kit.plot._data import numeric_column
-from ags_kit.plot._labels import axis_label
-from ags_kit.plot._limits import nice_step
-from ags_kit.units import to_display
+from hangtu._settings import _display_units, settings
+from hangtu.errors import AgsKitError, ColumnError
+from hangtu.plot._data import numeric_column
+from hangtu.plot._labels import axis_label
+from hangtu.plot._limits import nice_step
+from hangtu.units import to_display
 
 VS = ("depth", "elevation")
 # Every length column a profile reads. They are converted together, so one

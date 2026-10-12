@@ -6,7 +6,7 @@ import matplotlib as mpl
 import numpy as np
 import pytest
 
-import ags_kit as ak
+import hangtu as ak
 
 PRESETS = {
     # preset: (values, declared unit, quantity kind)

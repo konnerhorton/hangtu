@@ -1,6 +1,6 @@
 import pytest
 
-import ags_kit as ak
+import hangtu as ak
 
 
 def test_defaults():

@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import ags_kit as ak
-from ags_kit.plot._data import numeric_column
-from ags_kit.plot._vertical import (
+import hangtu as ak
+from hangtu.plot._data import numeric_column
+from hangtu.plot._vertical import (
     Vertical,
     choose_vs,
     convert_pair,
@@ -12,7 +12,7 @@ from ags_kit.plot._vertical import (
     length_columns,
     vertical_values,
 )
-from ags_kit.units import resolve_units
+from hangtu.units import resolve_units
 
 
 def _resolve(df, vs, display_units="US"):

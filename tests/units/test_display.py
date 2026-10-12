@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-import ags_kit as ak
-from ags_kit.units import to_display
+import hangtu as ak
+from hangtu.units import to_display
 
 
 # P00 §14 golden values, hand-calculated:

@@ -1,8 +1,8 @@
 import matplotlib
 import pytest
 
-import ags_kit as ak
-from ags_kit import units
+import hangtu as ak
+from hangtu import units
 
 matplotlib.use("Agg")
 

@@ -8,10 +8,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from ags_kit import units
-from ags_kit._settings import settings
-from ags_kit.plot import style
-from ags_kit.plot.common import (
+from hangtu import units
+from hangtu._settings import settings
+from hangtu.plot import style
+from hangtu.plot.common import (
     Notes,
     add_legend,
     apply_vertical_axis,
@@ -22,7 +22,7 @@ from ags_kit.plot.common import (
     resolve_palette,
     set_linear_axis,
 )
-from ags_kit.registry import column_info
+from hangtu.registry import column_info
 
 
 def dummy_plot(

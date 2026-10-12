@@ -13,10 +13,10 @@ import numpy as np
 import pandas as pd
 import pint
 
-from ags_kit import _config
-from ags_kit._settings import _display_units, settings
-from ags_kit.errors import ColumnError, UnitsError, warn
-from ags_kit.registry import column_info
+from hangtu import _config
+from hangtu._settings import _display_units, settings
+from hangtu.errors import ColumnError, UnitsError, warn
+from hangtu.registry import column_info
 
 ureg = pint.UnitRegistry()
 
@@ -103,7 +103,7 @@ def add_unit_alias(text: str, pint_expr: str) -> None:
 
 
 def define_unit(pint_definition: str) -> None:
-    """Define a new unit in ags-kit's pint registry, using pint's definition syntax.
+    """Define a new unit in hangtu's pint registry, using pint's definition syntax.
 
     Examples
     --------

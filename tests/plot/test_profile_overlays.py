@@ -5,9 +5,9 @@ import pandas as pd
 import pytest
 from matplotlib.colors import to_rgb
 
-import ags_kit as ak
-from ags_kit.plot import _layers
-from ags_kit.plot._overlays import WATER_COLOR
+import hangtu as ak
+from hangtu.plot import _layers
+from hangtu.plot._overlays import WATER_COLOR
 
 FT = 0.3048
 

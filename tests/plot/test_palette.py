@@ -2,9 +2,9 @@ import numpy as np
 import pytest
 from matplotlib.colors import to_rgba
 
-import ags_kit as ak
-from ags_kit.plot._palette import AUTOMATIC
-from ags_kit.plot.common import resolve_palette
+import hangtu as ak
+from hangtu.plot._palette import AUTOMATIC
+from hangtu.plot.common import resolve_palette
 
 
 def test_automatic_colors_use_dark_tab20_shades_first():

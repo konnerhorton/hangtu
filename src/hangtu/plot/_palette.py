@@ -11,8 +11,8 @@ import pandas as pd
 from matplotlib.colors import ListedColormap, is_color_like
 from matplotlib.patches import Patch
 
-from ags_kit._settings import settings
-from ags_kit.errors import AgsKitError, warn
+from hangtu._settings import settings
+from hangtu.errors import AgsKitError, warn
 
 # tab20 comes in dark/light pairs; use the 10 dark shades first.
 _TAB20 = list(mpl.colormaps["tab20"].colors)
@@ -95,12 +95,12 @@ def _known_units() -> list[Any]:
 def palette_cmap(units: Sequence[Any] | None = None) -> ListedColormap:
     """Return the geology unit colors as a colormap, one color per unit in order.
 
-    Use it to color your own matplotlib plots consistently with ags-kit's.
+    Use it to color your own matplotlib plots consistently with hangtu's.
     Without ``units``, every unit colored so far in this session is included.
     """
     units = _known_units() if units is None else list(units)
     colors = resolve_palette(units, order=units)
-    return ListedColormap([colors[unit] for unit in units], name="ags_kit_geology")
+    return ListedColormap([colors[unit] for unit in units], name="hangtu_geology")
 
 
 def legend_handles(units: Sequence[Any] | None = None) -> list[Patch]:

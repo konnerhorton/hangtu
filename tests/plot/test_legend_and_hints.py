@@ -5,8 +5,8 @@ import pandas as pd
 import pytest
 from matplotlib.lines import Line2D
 
-import ags_kit as ak
-from ags_kit.plot.common import Notes, add_legend, hint_missing
+import hangtu as ak
+from hangtu.plot.common import Notes, add_legend, hint_missing
 
 
 def entries(n, prefix="Unit"):

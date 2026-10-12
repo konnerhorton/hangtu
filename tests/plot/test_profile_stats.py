@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-import ags_kit as ak
-from ags_kit.plot._overlays import format_number, stats_table
+import hangtu as ak
+from hangtu.plot._overlays import format_number, stats_table
 
 # --- secondary depth axis ------------------------------------------------------------
 

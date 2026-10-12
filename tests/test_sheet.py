@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import pytest
 
-import ags_kit as ak
+import hangtu as ak
 
 
 @pytest.mark.parametrize(

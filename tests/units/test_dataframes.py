@@ -1,8 +1,8 @@
 import pandas as pd
 import pytest
 
-import ags_kit as ak
-from ags_kit.units import needs_units, parse_quantity, resolve_units
+import hangtu as ak
+from hangtu.units import needs_units, parse_quantity, resolve_units
 
 
 @pytest.fixture

@@ -1,9 +1,9 @@
 import pytest
 
-import ags_kit as ak
-from ags_kit import units
-from ags_kit.plot._presets import preset, preset_names
-from ags_kit.registry import column_info
+import hangtu as ak
+from hangtu import units
+from hangtu.plot._presets import preset, preset_names
+from hangtu.registry import column_info
 
 P01_PRESETS = [
     "hydraulic_conductivity",

@@ -1,4 +1,4 @@
-"""The ags-kit house style (docs/plots/P00-framework.md §6)."""
+"""The hangtu house style (docs/plots/P00-framework.md §6)."""
 
 import difflib
 from collections.abc import Iterator
@@ -9,7 +9,7 @@ from typing import Any
 import matplotlib as mpl
 from matplotlib.axes import Axes
 
-from ags_kit.errors import AgsKitError
+from hangtu.errors import AgsKitError
 
 
 def _rc_name(name: str) -> str:
@@ -49,7 +49,7 @@ def context(**style_overrides: Any) -> Iterator[None]:
     """
     rc = {_rc_name(name): value for name, value in style_overrides.items()}
     with (
-        as_file(files("ags_kit").joinpath("plot/ags_kit.mplstyle")) as path,
+        as_file(files("hangtu").joinpath("plot/hangtu.mplstyle")) as path,
         mpl.rc_context(fname=str(path), rc=rc),
     ):
         yield

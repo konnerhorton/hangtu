@@ -2,12 +2,12 @@
 
 from importlib.metadata import version
 
-from ags_kit import plot
-from ags_kit._settings import settings
-from ags_kit.errors import AgsKitError, AgsKitHint, ColumnError, UnitsError
-from ags_kit.registry import columns, template
-from ags_kit.sheet import Sheet
-from ags_kit.units import (
+from hangtu import plot
+from hangtu._settings import settings
+from hangtu.errors import AgsKitError, AgsKitHint, ColumnError, UnitsError
+from hangtu.registry import columns, template
+from hangtu.sheet import Sheet
+from hangtu.units import (
     add_unit_alias,
     define_unit,
     read_csv,
@@ -15,7 +15,7 @@ from ags_kit.units import (
     units_of,
 )
 
-__version__ = version("ags-kit")
+__version__ = version("hangtu")
 
 __all__ = [
     "AgsKitError",

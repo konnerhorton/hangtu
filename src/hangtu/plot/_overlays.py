@@ -20,12 +20,12 @@ from matplotlib.patches import Rectangle
 from matplotlib.text import Text
 from matplotlib.transforms import blended_transform_factory, offset_copy
 
-from ags_kit.errors import AgsKitError, ColumnError, warn
-from ags_kit.plot import _layers
-from ags_kit.plot._data import numeric_column, rows_text
-from ags_kit.plot._palette import resolve_palette
-from ags_kit.plot._vertical import VS, Vertical, convert_pair, convert_vertical
-from ags_kit.units import parse_quantity, read_csv, to_display, units_of
+from hangtu.errors import AgsKitError, ColumnError, warn
+from hangtu.plot import _layers
+from hangtu.plot._data import numeric_column, rows_text
+from hangtu.plot._palette import resolve_palette
+from hangtu.plot._vertical import VS, Vertical, convert_pair, convert_vertical
+from hangtu.units import parse_quantity, read_csv, to_display, units_of
 
 TEXT_SIZE = 7  # points
 STRATA_ALPHA = 0.12

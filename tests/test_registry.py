@@ -3,8 +3,8 @@ from importlib.resources import files
 
 import pytest
 
-import ags_kit as ak
-from ags_kit import _config
+import hangtu as ak
+from hangtu import _config
 
 REGISTRY = _config.load("columns.yaml")
 COLUMNS = REGISTRY["columns"]
@@ -69,7 +69,7 @@ def test_overlay_field_follows_the_rules(name):
 def test_names_are_unique():
     # yaml.safe_load keeps the last of two equal keys, so check the raw file.
     # Column and field names share one namespace.
-    text = files("ags_kit").joinpath("columns.yaml").read_text(encoding="utf-8")
+    text = files("hangtu").joinpath("columns.yaml").read_text(encoding="utf-8")
     names = re.findall(r"^  ([a-z0-9_]+):\s*$", text, flags=re.MULTILINE)
     assert len(names) == len(set(names)) == len(COLUMNS) + len(OVERLAY_FIELDS)
 

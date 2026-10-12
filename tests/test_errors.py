@@ -1,11 +1,11 @@
 import pytest
 
-import ags_kit as ak
-from ags_kit.errors import warn
+import hangtu as ak
+from hangtu.errors import warn
 
 
 @pytest.mark.parametrize("error", [ak.UnitsError, ak.ColumnError])
-def test_data_errors_are_ags_kit_and_value_errors(error):
+def test_data_errors_are_hangtu_and_value_errors(error):
     assert issubclass(error, ak.AgsKitError)
     assert issubclass(error, ValueError)
 

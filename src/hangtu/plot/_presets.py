@@ -2,8 +2,8 @@
 
 from dataclasses import dataclass
 
-from ags_kit import _config
-from ags_kit.errors import AgsKitError
+from hangtu import _config
+from hangtu.errors import AgsKitError
 
 
 @dataclass(frozen=True)

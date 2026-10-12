@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import ags_kit as ak
+import hangtu as ak
 
 
 @pytest.fixture

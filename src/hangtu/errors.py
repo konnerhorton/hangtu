@@ -1,4 +1,4 @@
-"""Errors and warnings raised by ags-kit (docs/plots/P00-framework.md §12)."""
+"""Errors and warnings raised by hangtu (docs/plots/P00-framework.md §12)."""
 
 import os
 import warnings
@@ -7,7 +7,7 @@ _PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__)) + os.sep
 
 
 class AgsKitError(Exception):
-    """Base class for every error ags-kit raises on purpose."""
+    """Base class for every error hangtu raises on purpose."""
 
 
 class UnitsError(AgsKitError, ValueError):
@@ -26,5 +26,5 @@ class AgsKitHint(UserWarning):
 
 
 def warn(message: str, category: type[Warning] = UserWarning) -> None:
-    """Issue a warning that points at the user's line, not at ags-kit's code."""
+    """Issue a warning that points at the user's line, not at hangtu's code."""
     warnings.warn(message, category, skip_file_prefixes=(_PACKAGE_DIR,))

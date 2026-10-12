@@ -8,7 +8,7 @@ from matplotlib.axes import Axes
 from matplotlib.legend import Legend
 from matplotlib.transforms import offset_copy
 
-from ags_kit.plot._notes import Notes
+from hangtu.plot._notes import Notes
 
 MAX_ROWS = 12
 MAX_ENTRIES = 30

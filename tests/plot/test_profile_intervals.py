@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 from matplotlib.colors import to_rgba
 
-import ags_kit as ak
+import hangtu as ak
 
 TOPS = {"depth_top": [4.0, 9.0, 10.0, 18.0], "depth_base": [6.0, 11.0, 20.0, 30.0]}
 

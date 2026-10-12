@@ -2,9 +2,9 @@ import itertools
 
 import pytest
 
-import ags_kit as ak
-from ags_kit import _config, units
-from ags_kit.units import check_dimension, parse_unit, ureg
+import hangtu as ak
+from hangtu import _config, units
+from hangtu.units import check_dimension, parse_unit, ureg
 
 
 @pytest.mark.parametrize("text", _config.load("units/aliases.yaml"))

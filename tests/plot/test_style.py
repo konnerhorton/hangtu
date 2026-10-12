@@ -2,8 +2,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import pytest
 
-import ags_kit as ak
-from ags_kit.plot import style
+import hangtu as ak
+from hangtu.plot import style
 
 
 def snapshot():

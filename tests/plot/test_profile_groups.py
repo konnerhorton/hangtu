@@ -8,7 +8,7 @@ from matplotlib.colors import to_rgba
 from matplotlib.markers import MarkerStyle
 from matplotlib.patches import Patch
 
-import ags_kit as ak
+import hangtu as ak
 
 CYCLE = ["o", "s", "^", "D", "v", "P", "X", "p", "h", "*", "<", ">"]
 

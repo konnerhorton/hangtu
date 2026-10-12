@@ -1,4 +1,4 @@
-# Defaults shipped with ags-kit (docs/plots/P00-framework.md §3).
+# Defaults shipped with hangtu (docs/plots/P00-framework.md §3).
 # ak.settings holds the session's choices; ak.settings.reset() restores these.
 
 settings:

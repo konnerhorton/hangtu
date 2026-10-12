@@ -4,8 +4,8 @@ from collections.abc import Mapping
 
 import pandas as pd
 
-from ags_kit._settings import settings
-from ags_kit.errors import AgsKitHint, warn
+from hangtu._settings import settings
+from hangtu.errors import AgsKitHint, warn
 
 
 def hint_missing(df: pd.DataFrame, optional: Mapping[str, str]) -> list[str]:

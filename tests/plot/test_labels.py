@@ -1,6 +1,6 @@
 import pytest
 
-from ags_kit.plot.common import axis_label
+from hangtu.plot.common import axis_label
 
 
 @pytest.mark.parametrize(

@@ -1,5 +1,5 @@
-# ags-kit house style (docs/plots/P00-framework.md §6).
-# Applied only inside ags_kit.plot.style.context(); global rcParams are never changed.
+# hangtu house style (docs/plots/P00-framework.md §6).
+# Applied only inside hangtu.plot.style.context(); global rcParams are never changed.
 
 font.family:        sans-serif
 font.sans-serif:    Arial, Helvetica, DejaVu Sans

@@ -17,7 +17,7 @@ import pandas as pd
 import pytest
 from matplotlib.colors import to_rgba
 
-import ags_kit as ak
+import hangtu as ak
 
 DATA = Path(__file__).parents[1] / "data"
 FT = 0.3048

@@ -6,7 +6,7 @@ from functools import partial
 import numpy as np
 import pytest
 
-import ags_kit as ak
+import hangtu as ak
 
 K = [1e-5, 3e-6, 2e-4, 5e-7]  # cm/s
 K_PRESET = {"preset": "hydraulic_conductivity"}

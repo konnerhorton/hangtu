@@ -4,8 +4,8 @@ from typing import Any
 
 import pandas as pd
 
-from ags_kit import _config
-from ags_kit.errors import ColumnError
+from hangtu import _config
+from hangtu.errors import ColumnError
 
 _DTYPES = {"number": "float64", "text": "object", "bool": "bool"}
 

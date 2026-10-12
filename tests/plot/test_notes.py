@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-from ags_kit.plot.common import Notes, edge_markers, log_limits, set_log_axis
+from hangtu.plot.common import Notes, edge_markers, log_limits, set_log_axis
 
 
 def test_notes_count_by_reason_and_skip_zero_counts():

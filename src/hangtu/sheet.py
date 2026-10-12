@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
-from ags_kit.errors import AgsKitError
+from hangtu.errors import AgsKitError
 
 # Portrait width x height in inches.
 SIZES = {

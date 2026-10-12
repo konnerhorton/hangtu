@@ -7,8 +7,8 @@ from typing import Any
 
 from matplotlib.colors import is_color_like
 
-from ags_kit import _config
-from ags_kit.errors import AgsKitError
+from hangtu import _config
+from hangtu.errors import AgsKitError
 
 
 def _display_units(value: Any) -> str:
@@ -30,7 +30,7 @@ def _display_overrides(value: Any) -> dict[str, str]:
             'Example: ak.settings.display_overrides = {"stress": "ksf"}'
         )
     if value:
-        from ags_kit import units  # imported here because units imports settings
+        from hangtu import units  # imported here because units imports settings
 
         kinds = _config.quantity_kinds()
         for kind, unit in value.items():

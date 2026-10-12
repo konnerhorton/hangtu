@@ -1,5 +1,5 @@
 [project]
-name = "ags-kit"
+name = "hangtu"
 version = "0.1.0.dev0"
 description = "Tools for working with AGS4 geotechnical data: ingest, QC, query, analyze and plot"
 readme = "README.md"
@@ -47,7 +47,7 @@ filterwarnings = [
     "error",
     # matplotlib < 3.10.7 calls pyparsing APIs that newer pyparsing deprecates.
     # Deprecated keyword arguments are reported from matplotlib or from inside
-    # pyparsing itself; ags-kit doesn't use pyparsing directly.
+    # pyparsing itself; hangtu doesn't use pyparsing directly.
     "ignore:.* deprecated - use :DeprecationWarning:matplotlib",
     "ignore:.* argument is deprecated, use :DeprecationWarning:matplotlib",
     "ignore:.* argument is deprecated, use :DeprecationWarning:pyparsing",
