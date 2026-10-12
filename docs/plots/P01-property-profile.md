@@ -124,7 +124,7 @@ Presets live in `config/defaults.yaml`, with the typical range in the quantity's
 | Qualified values | caret ◁ / ▷ at the value | unit color | — | 6 pt | ✔ "less than (n)" / "greater than (n)" | Replaces the normal marker. Also counted in the footnote. Beyond a fixed limit, the caret is drawn open at the edge and counted both ways |
 | Out-of-range (fixed limits) | open marker at the axis edge + small arrow pointing outward | unit color | — | 5 pt | ✔ footnote "n values beyond axis limit" | README policy |
 
-**Marker cycle** for `marker_by`: ● ■ ▲ ◆ ▼ ✚ ✖ ⬟ ⬢ ★ (10 shapes). Beyond 10 groups, the shapes repeat and a warning suggests `connect=True` or splitting the data.
+**Marker cycle** for `marker_by`: ● ■ ▲ ◆ ▼ ✚ ✖ ⬟ ⬢ ★ (10 shapes), given to the groups sorted by name, with a "(blank)" group last. Beyond 10 groups, the shapes repeat and a warning suggests `connect=True` or splitting the data. With `marker_by`, the legend shows geology units as color patches, then the groups as gray markers.
 
 **Draw order (bottom → top):** strata bands → ranges → reference and design lines → water level → interval bars → connecting lines → markers → qualifiers → annotations and notes.
 ## 8. Overlays and annotations
@@ -236,6 +236,7 @@ fig, ax = ak.plot.profile(su, "undrained_shear_strength", preset="undrained_shea
 | Text in the `value` or a length column (`"NP"`, `"12 ft"`) | Error naming the rows. Counting flagged text such as `NP` is TODO #15 |
 | More than 12 / 30 legend entries | README legend rules (columns / note) |
 | Duplicate rows | Plotted as given (no de-duplication in plots) |
+| `connect=True` without `loca_id` | Error: it was asked for explicitly, so a hint isn't enough |
 | `secondary="depth"` with several ground levels | Clear error (§6) |
 | `strata` or `ranges` with both a depth and an elevation pair, or (for `strata`) neither | Error naming the two pairs and saying to give one |
 | `strata` or `ranges` pair doesn't match `vs`, and there are several ground levels (or none) | Error saying the pair can't be converted, and to give the pair that matches `vs` |

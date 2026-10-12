@@ -11,6 +11,7 @@ import pandas as pd
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 
 from ags_kit import units as _units
 from ags_kit._settings import _display_units, settings
@@ -50,6 +51,12 @@ QUALIFIERS = {
     "<": ("<", CARET_SIZE, "less than", "less_than"),
     ">": (">", CARET_SIZE, "greater than", "greater_than"),
 }
+# Marker shapes for marker_by groups: ● ■ ▲ ◆ ▼ ✚ ✖ ⬟ ⬢ ★ (P01 §7).
+MARKER_CYCLE = ("o", "s", "^", "D", "v", "P", "X", "p", "h", "*")
+QUALIFIER_ORDER = [marker for marker, *_ in QUALIFIERS.values()]
+CARETS = set(QUALIFIER_ORDER)
+CONNECT_WIDTH = 0.6  # points
+CONNECT_ALPHA = 0.6
 _SHOWN_ROWS = 5
 
 
@@ -254,48 +261,102 @@ def _intervals(
     return np.where(swapped, np.nan, top), np.where(swapped, np.nan, base)
 
 
+def _marker_groups(
+    df: pd.DataFrame, marker_by: str | None
+) -> tuple[np.ndarray, dict[Any, str]]:
+    """Return each row's marker group, and ``{group: shape}`` in legend order.
+
+    Rows with a blank group are grouped as ``BLANK_GROUP``. Without
+    ``marker_by`` there are no groups.
+    """
+    if marker_by is None:
+        return np.full(len(df), None, dtype=object), {}
+    if marker_by not in df.columns:
+        raise ColumnError(
+            f"marker_by={marker_by!r} isn't a column. Available columns: "
+            f"{', '.join(map(str, df.columns))}."
+        )
+    groups = df[marker_by].to_numpy(dtype=object)
+    blank = pd.isna(groups)
+    names = sorted(dict.fromkeys(groups[~blank]), key=str)
+    if blank.any():
+        names.append(BLANK_GROUP)
+        groups = np.where(blank, BLANK_GROUP, groups)
+    if len(names) > len(MARKER_CYCLE):
+        warn(
+            f"marker_by={marker_by!r} has {len(names)} groups but there are "
+            f"{len(MARKER_CYCLE)} marker shapes, so some shapes repeat. Use "
+            "connect=True to follow each hole, or split the data into several plots."
+        )
+    shapes = {name: MARKER_CYCLE[i % len(MARKER_CYCLE)] for i, name in enumerate(names)}
+    return groups, shapes
+
+
 def _draw_points(
     ax: Axes,
     x: np.ndarray,
     y: np.ndarray,
     rows: np.ndarray,
-    qualifiers: np.ndarray,
+    markers: np.ndarray,
     color: Any,
     label: str,
     limits: Mapping[str, tuple[float, float] | None],
-) -> tuple[Any, np.ndarray]:
-    """Draw one group's points, with qualified values as carets.
+) -> np.ndarray:
+    """Draw one color group's points, one collection per marker shape.
 
-    Returns the plain-marker collection, for the legend, and the mask of
-    rows drawn at the edge.
+    Returns the mask of rows drawn at the edge of fixed limits.
     """
     edge = np.zeros(len(x), dtype=bool)
-    kinds = {"": ("o", MARKER_SIZE, _layers.MARKERS)} | {
-        qualifier: (marker, size, _layers.QUALIFIERS)
-        for qualifier, (marker, size, _, _) in QUALIFIERS.items()
-    }
-    handle = None
-    for qualifier, (marker, size, zorder) in kinds.items():
-        these = rows & (qualifiers == qualifier)
+    present = set(markers[rows])
+    shapes = [m for m in MARKER_CYCLE if m in present]
+    shapes += [m for m in QUALIFIER_ORDER if m in present]
+    for i, marker in enumerate(shapes):
+        caret = marker in CARETS
+        these = rows & (markers == marker)
         if any(limits.values()):
             edge[these] = edge_markers(ax, x[these], y[these], limits, color, marker)
         inside = these & ~edge
-        if qualifier and not inside.any():
-            continue
-        collection = ax.scatter(
+        ax.scatter(
             x[inside],
             y[inside],
-            s=size**2,
+            s=(CARET_SIZE if caret else MARKER_SIZE) ** 2,
             marker=marker,
             color=color,
             edgecolors="white",
             linewidths=0.4,
-            label=label if not qualifier else f"_{label} {qualifier}",
-            zorder=zorder,
+            label=label if i == 0 and not caret else f"_{label} {marker}",
+            zorder=_layers.QUALIFIERS if caret else _layers.MARKERS,
         )
-        if handle is None:
-            handle = collection
-    return handle, edge
+    return edge
+
+
+def _legend_marker(marker: str, color: Any, label: str, size: float) -> Line2D:
+    return Line2D(
+        [],
+        [],
+        marker=marker,
+        markersize=size,
+        color=color,
+        linestyle="none",
+        label=label,
+    )
+
+
+def _draw_connections(
+    ax: Axes, holes: np.ndarray, x: np.ndarray, y: np.ndarray, rows: np.ndarray
+) -> None:
+    """Draw one gray line through each hole's points, in vertical order."""
+    for hole in dict.fromkeys(holes[rows & ~pd.isna(holes)]):
+        these = np.flatnonzero(rows & (holes == hole))
+        order = these[np.argsort(y[these], kind="stable")]
+        ax.plot(
+            x[order],
+            y[order],
+            color=NEUTRAL,
+            linewidth=CONNECT_WIDTH,
+            alpha=CONNECT_ALPHA,
+            zorder=_layers.CONNECT,
+        )
 
 
 def _draw_intervals(
@@ -321,17 +382,7 @@ def _qualifier_handles(qualifiers: np.ndarray, notes: Notes) -> list[Line2D]:
     for qualifier, (marker, size, text, reason) in QUALIFIERS.items():
         n = notes.count(qualifiers == qualifier, reason)
         if n:
-            handles.append(
-                Line2D(
-                    [],
-                    [],
-                    marker=marker,
-                    markersize=size,
-                    color=NEUTRAL,
-                    linestyle="none",
-                    label=f"{text} ({n})",
-                )
-            )
+            handles.append(_legend_marker(marker, NEUTRAL, f"{text} ({n})", size))
     return handles
 
 
@@ -446,8 +497,6 @@ def profile(
     _check_not_yet_built(
         df,
         {
-            "marker_by": marker_by,
-            "connect": connect or None,
             "secondary": secondary,
             "strata": strata,
             "water_level": water_level,
@@ -466,6 +515,12 @@ def profile(
     xlim = _check_limits("xlim", xlim, log) if xlim is not None else None
     ylim = _check_limits("ylim", ylim) if ylim is not None else None
     vs = choose_vs(df, vs)
+    if connect and "loca_id" not in df.columns:
+        raise ColumnError(
+            "connect=True draws a line through each hole's points, so it needs a "
+            "'loca_id' column naming the hole of each row. Add it, or leave "
+            "connect out."
+        )
 
     with style.context(**style_overrides):
         optional = {
@@ -529,19 +584,39 @@ def profile(
             ax.xaxis.set_label_position("top")
 
         groups, colors = _color_groups(df, color_by, palette)
+        marker_groups, shapes = _marker_groups(df, marker_by)
+        carets = {q: marker for q, (marker, *_) in QUALIFIERS.items()}
+        markers = np.array(
+            [
+                carets.get(q, shapes.get(group, MARKER_CYCLE[0]))
+                for q, group in zip(qualifiers, marker_groups, strict=True)
+            ],
+            dtype=object,
+        )
+        if connect:
+            _draw_connections(ax, df["loca_id"].to_numpy(dtype=object), x, y, drawn)
         edge = np.zeros(len(df), dtype=bool)
-        handles = []
+        unit_handles = []
         for group, color in colors.items():
             rows = drawn & (groups == group) if group is not None else drawn
-            handle, group_edge = _draw_points(
-                ax, x, y, rows, qualifiers, color, str(group), {"x": xlim, "y": ylim}
+            group_edge = _draw_points(
+                ax, x, y, rows, markers, color, str(group), {"x": xlim, "y": ylim}
             )
             edge |= group_edge
             these = bars & rows & ~group_edge
             _draw_intervals(ax, x[these], top[these], base[these], color)
             if group is not None and rows.any():
-                handles.append(handle)
+                unit_handles.append(
+                    Patch(facecolor=color, edgecolor="none", label=str(group))
+                    if shapes
+                    else _legend_marker("o", color, str(group), MARKER_SIZE)
+                )
         notes.count(edge, "beyond_limit")
+        shape_handles = [
+            _legend_marker(shape, NEUTRAL, str(group), MARKER_SIZE)
+            for group, shape in shapes.items()
+            if (drawn & (marker_groups == group)).any()
+        ]
         qualified = _qualifier_handles(np.where(drawn, qualifiers, ""), notes)
 
         if not drawn.any():
@@ -564,6 +639,6 @@ def profile(
             )
         )
         ax.set_ylabel(vertical.label())
-        add_legend(ax, [handles, qualified], notes)
+        add_legend(ax, [unit_handles, shape_handles, qualified], notes)
         notes.render(ax)
     return fig, ax
