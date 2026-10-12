@@ -21,17 +21,18 @@ from hangtu._settings import _display_units, settings
 from hangtu.errors import ColumnError, HangtuError
 from hangtu.plot import _layers, _presets, _values, style
 from hangtu.plot._baseline import Baseline, legend_text, read_baseline
-from hangtu.plot._data import numeric_column
+from hangtu.plot._data import numeric_column, rows_text
 from hangtu.plot._labels import axis_label
 from hangtu.plot._legend import add_legend
 from hangtu.plot._limits import set_linear_axis, set_log_axis
-from hangtu.plot._notes import Notes
-from hangtu.plot._overlays import ValueScale
+from hangtu.plot._notes import ARROW_LENGTH, Notes, edge_markers
+from hangtu.plot._overlays import ValueScale, draw_note, draw_reference_lines
 from hangtu.plot._palette import resolve_palette
 from hangtu.plot._presets import Preset
 
 POINT_SIZE = 3.0  # points
 POINT_ALPHA = 0.4
+CARET_SIZE = 5.0  # points
 JITTER = 0.15  # row heights either side of the center line (P07 §7)
 JITTER_SEED = 0  # the same data always gives the same figure (plan decision 4)
 BAR_WIDTH = 2.0  # points
@@ -44,6 +45,7 @@ BOX_FILL = (1.0, 1.0, 1.0, 0.6)
 WHISKER_REACH = 1.5  # times the IQR (Tukey 1977)
 COUNT_SIZE = 7  # points
 COUNT_GAP = 4.0  # points between the axes and a count label
+EDGE_GAP = ARROW_LENGTH + 4.0  # more, to clear an edge marker's arrow on the right
 LEGEND_GAP = 6.0  # points between the count labels and the legend
 EMPTY_COLOR = "0.4"
 BASELINE_COLOR = "0.25"
@@ -173,13 +175,6 @@ def _check_summary(
     return _Summary(summary, (low, mid, high), percentile_method, summary_min_count)
 
 
-def _not_built(**arguments: Any) -> None:
-    """Refuse arguments whose behavior isn't built yet, instead of ignoring them."""
-    given = [name for name, used in arguments.items() if used]
-    if given:
-        raise NotImplementedError(f"{', '.join(given)} isn't built yet (P07 plan).")
-
-
 def _rows(
     df: pd.DataFrame,
     order: list[str] | None,
@@ -198,6 +193,21 @@ def _rows(
         groups = np.where(blank, _values.BLANK_GROUP, groups)
         colors[_values.BLANK_GROUP] = _values.NEUTRAL
     return groups, colors
+
+
+def _non_plastic(df: pd.DataFrame) -> np.ndarray:
+    """Return True for rows reported non-plastic (NP)."""
+    if "non_plastic" not in df.columns:
+        return np.zeros(len(df), dtype=bool)
+    flags = df["non_plastic"]
+    known = flags.isna() | flags.isin([True, False])
+    if not known.all():
+        raise ColumnError(
+            f"Column 'non_plastic' must hold True, False or nothing, but rows "
+            f"{rows_text(df.index[~known])} hold something else. Mark NP "
+            "specimens True and leave their value blank."
+        )
+    return flags.fillna(False).to_numpy(dtype=bool)
 
 
 def _set_unit_axis(ax: Axes, names: list[Any]) -> None:
@@ -304,6 +314,47 @@ def _draw_box(
     _caps(ax, [low, high], row, color, BOX_WIDTH)
 
 
+def _draw_points(
+    ax: Axes,
+    x: np.ndarray,
+    y: np.ndarray,
+    rows: np.ndarray,
+    qualifiers: np.ndarray,
+    carets: dict[str, str],
+    color: Any,
+    unit: Any,
+    xlim: tuple[float, float] | None,
+) -> np.ndarray:
+    """Draw one unit's points, with carets for qualified values.
+
+    Values beyond ``xlim`` are drawn at the edge instead. Returns the mask of
+    rows drawn at the edge.
+    """
+    edge = np.zeros(len(x), dtype=bool)
+    for qualifier in ("", *carets):
+        these = rows & (qualifiers == qualifier)
+        if not these.any():
+            continue
+        marker = carets.get(qualifier, "o")
+        if xlim is not None:
+            edge[these] = edge_markers(
+                ax, x[these], y[these], {"x": xlim}, color, marker
+            )
+        inside = these & ~edge
+        ax.scatter(
+            x[inside],
+            y[inside],
+            s=(CARET_SIZE if qualifier else POINT_SIZE) ** 2,
+            marker=marker,
+            color=color,
+            alpha=1.0 if qualifier else POINT_ALPHA,
+            linewidths=0,
+            label=f"_{unit}" if not qualifier else f"_{unit} {marker}",
+            zorder=_layers.QUALIFIERS if qualifier else _layers.MARKERS,
+        )
+    return edge
+
+
 def _draw_baseline(
     ax: Axes, baseline: Baseline, row_of: dict[Any, int], log: bool
 ) -> None:
@@ -360,7 +411,9 @@ def _baseline_handle(label: str) -> Artist:
     )
 
 
-def _count_label(ax: Axes, row: float, n: int, summarized: bool | None) -> Artist:
+def _count_label(
+    ax: Axes, row: float, n: int, summarized: bool | None, gap: float
+) -> Artist:
     """Write "n = 288" just outside the right edge of the axes, level with a row.
 
     ``summarized`` is False when a summary was asked for but n is too small.
@@ -370,7 +423,7 @@ def _count_label(ax: Axes, row: float, n: int, summarized: bool | None) -> Artis
         text,
         xy=(1.0, row),
         xycoords=blended_transform_factory(ax.transAxes, ax.transData),
-        xytext=(COUNT_GAP, 0.0),
+        xytext=(gap, 0.0),
         textcoords="offset points",
         ha="left",
         va="center",
@@ -414,8 +467,9 @@ def _legend_offset(ax: Axes, counts: Sequence[Artist]) -> float:
     figure = ax.figure
     figure.draw_without_rendering()
     renderer = figure.canvas.get_renderer()
-    widest = max(label.get_window_extent(renderer).width for label in counts)
-    return COUNT_GAP + widest * 72.0 / figure.dpi + LEGEND_GAP
+    right = ax.get_window_extent(renderer).x1
+    reach = max(label.get_window_extent(renderer).x1 for label in counts) - right
+    return reach * 72.0 / figure.dpi + LEGEND_GAP
 
 
 def _draw_panel(
@@ -433,6 +487,8 @@ def _draw_panel(
     summary: _Summary,
     baseline: pd.DataFrame | str | None,
     baseline_units: dict[str, str] | None,
+    reference_lines: list[tuple[float, str]] | None,
+    note: str | None,
     palette: dict[str, str] | None,
     units: dict[str, str] | None,
     system: str,
@@ -450,8 +506,11 @@ def _draw_panel(
     x, x_unit_text = _units.to_display(
         numeric_column(df, value), resolved[value], quantity, system
     )
+    qualifiers = _values.qualifiers(df)
+    non_plastic = _non_plastic(df)
+    panel.notes.count(non_plastic, "non_plastic")
     # Blank values are tests not done, so they are skipped, not counted (P07 §14).
-    drawn = ~np.isnan(x)
+    drawn = ~np.isnan(x) & ~non_plastic
     if log:
         nonpositive = drawn & (x <= 0)
         panel.notes.count(nonpositive, "log_nonpositive")
@@ -493,33 +552,38 @@ def _draw_panel(
         summary.kind
     )
     summarized_any = False
+    carets = {q: marker for q, (marker, *_) in _values.QUALIFIERS.items()}
+    right_edge = points and xlim is not None and bool((x[drawn] > xlim[1]).any())
+    gap = COUNT_GAP + (EDGE_GAP if right_edge else 0.0)
+    edge = np.zeros(len(df), dtype=bool)
     for unit, color in colors.items():
         these = drawn & (unit_of == unit)
         color = _values.NEUTRAL if color_by is None else color
         row = row_of[unit]
         if points and these.any():
-            ax.scatter(
-                x[these],
-                row + jitter[these],
-                s=POINT_SIZE**2,
-                color=color,
-                alpha=POINT_ALPHA,
-                linewidths=0,
-                label=f"_{unit}",
-                zorder=_layers.MARKERS,
+            edge |= _draw_points(
+                ax, x, row + jitter, these, qualifiers, carets, color, unit, xlim
             )
         n = int(these.sum())
         summarized = None if draw_summary is None else n >= summary.min_count
         if summarized:
             draw_summary(ax, x[these], row, color, summary)
             summarized_any = True
-        panel.counts.append(_count_label(ax, row, n, summarized))
+        panel.counts.append(_count_label(ax, row, n, summarized, gap))
+    panel.notes.count(edge, "beyond_limit")
     if summarized_any:
         panel.handles.append(_summary_handle(summary))
     if points and drawn.any():
         panel.handles.append(
             _values.legend_marker("o", _values.NEUTRAL, "Data", POINT_SIZE)
         )
+    panel.handles += _values.qualifier_handles(
+        np.where(drawn, qualifiers, ""), panel.notes
+    )
+    if reference_lines is not None:
+        draw_reference_lines(ax, reference_lines, scale)
+    if note is not None:
+        draw_note(ax, str(note))
 
     if not rows:
         ax.text(
@@ -648,13 +712,6 @@ def geology_unit_comparison(
     ...     index, "bulk_unit_weight", order=["Fill", "Alluvium", "Till"])
     """
     _check_columns(df, value, color_by)
-    _not_built(
-        xlim=xlim is not None,
-        reference_lines=reference_lines is not None,
-        note=note is not None,
-        qualifier="qualifier" in df.columns,
-        non_plastic="non_plastic" in df.columns,
-    )
     chosen_summary = _check_summary(
         summary, percentiles, percentile_method, summary_min_count
     )
@@ -679,6 +736,8 @@ def geology_unit_comparison(
             summary=chosen_summary,
             baseline=baseline,
             baseline_units=baseline_units,
+            reference_lines=reference_lines,
+            note=note,
             palette=palette,
             units=units,
             system=system,

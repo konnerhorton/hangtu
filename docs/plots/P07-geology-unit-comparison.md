@@ -53,7 +53,7 @@ It ends up in GBR compliance reviews, differing site condition assessments, phas
 | *`value`* (any column, named by `value=`) | The property compared | from the preset or registry | per quantity | per quantity | per quantity | ✔ | per preset (P01 §6) | — | e.g. `LLPL.LLPL_PI`, `IVAN.IVAN_IVAN` | Must be numeric; text is an error (TODO #15) |
 | `geology_unit` | Geology unit: one row of the plot per unit | — | — | — | — | ✔ | | | mapped from GEOL | Blank → a "(blank)" row at the bottom |
 | `qualifier` | `"<"`, `">"`, or empty | — | — | — | — | – | | {"", "<", ">"} | value flags `LT`/`GT` | As P01: drawn as a caret, counted, summarized at the reported value |
-| `non_plastic` | True if the specimen was reported NP | — | — | — | — | – | | bool | value flag `NP` | Rows with `True` aren't drawn or summarized; counted as "non-plastic (NP)" |
+| `non_plastic` | True if the specimen was reported NP | — | — | — | — | – | | bool | value flag `NP` | Rows with `True` aren't drawn or summarized; counted as "non-plastic (NP)". Anything other than True, False or blank is an error naming the rows |
 
 **Grouping columns used:** `geology_unit` → rows, and color (default).
 
@@ -120,7 +120,7 @@ Each unit's row is one unit of height, centered on its tick. Offsets are fractio
 | Data box (`summary="box"`) | box from the 25th to the 75th percentile, median line, whiskers with caps | unit color edges, white fill at alpha 0.6 | center, 0.3 high | 1.0 pt | ✔ "Data: quartiles, median, 1.5 IQR whiskers" | Replaces the bar and circle. Drawn as a patch and lines rather than `ax.bxp`, whose arguments changed in matplotlib 3.10 |
 | Qualified values | caret ◁ / ▷ at the value, jittered as the points | unit color | center ± 0.15 | 5 pt | ✔ "less than (n)" / "greater than (n)" | As P01 §7 |
 | Out-of-range values (fixed limits) | open marker at the axis edge + small arrow outward | unit color | jittered as the points | 3 pt | footnote | P00 §9. A bar or box running past a fixed limit is cut at the edge without its cap, so it reads as continuing |
-| Count label | text "n = 288" | black (gray 0.4 for "n = 0") | center line, just outside the right spine | 7 pt | — | "n = 2 (no summary)" below `summary_min_count`. The legend and footnote move right to clear the widest label |
+| Count label | text "n = 288" | black (gray 0.4 for "n = 0") | center line, just outside the right spine | 7 pt | — | "n = 2 (no summary)" below `summary_min_count`. The legend and footnote move right to clear the widest label. When a value lies beyond the upper limit, the labels move a further 14 pt right to clear its edge arrow |
 
 **Legend:** the marks are explained once, by gray stand-ins for the data bar and points (the unit colors are already named by the tick labels, so there is no per-unit color legend, a deviation from the plots README). Order: baseline, data summary, data points, then qualifiers and edge markers with counts. A single panel puts the legend outside on the right, moved right to clear the count labels (`add_legend(..., offset=)`), with the footnote below it. The grid puts one legend centered below all panels, with one footnote below it.
 
