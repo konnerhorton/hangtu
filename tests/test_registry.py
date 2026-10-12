@@ -124,12 +124,16 @@ PAIRS = ["depth_top", "depth_base", "elevation_top", "elevation_base"]
         ("strata", ["geology_unit", *PAIRS]),
         ("ranges", ["low", "high", "label", "source", *PAIRS]),
         ("design_lines", ["label", "depth", "elevation", "value"]),
+        (
+            "baseline",
+            ["geology_unit", "property", "low", "central", "high", "source"],
+        ),
     ],
 )
-def test_overlay_templates_follow_p01(name, columns):
+def test_overlay_templates_follow_p01_and_p07(name, columns):
     frame = ht.template(name)
     assert list(frame.columns) == columns
-    text = {"geology_unit", "label", "source"}
+    text = {"geology_unit", "label", "source", "property"}
     for column in frame.columns:
         assert frame[column].dtype == ("object" if column in text else "float64")
 

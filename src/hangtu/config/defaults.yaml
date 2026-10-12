@@ -9,9 +9,11 @@ settings:
   figure_sizes:                # inches, by plot kind
     default: [6.5, 4.5]
     profile: [4.0, 6.5]
+    grid: [3.75, 2.75]         # per panel (P07 grid)
   hints: true                  # one HangtuHint per plot call for missing optional columns
   hammer_efficiency: null      # SPT energy ratio in %, used from M3
   spt_cap: 100                 # SPT N cap, used from M3
+  summary_min_count: 5         # fewest values per unit for a P07 summary bar
 
 # Plot presets (docs/plots/P01-property-profile.md §6). The preset name is the
 # registry column it plots. Typical ranges are in the quantity's canonical unit
