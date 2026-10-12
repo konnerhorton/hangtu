@@ -29,6 +29,8 @@ templates:
   strata:         [geology_unit, depth_top, depth_base, elevation_top, elevation_base]
   ranges:         [low, high, label, source, depth_top, depth_base, elevation_top, elevation_base]
   design_lines:   [label, depth, elevation, value]
+  # Baseline ranges per geology unit (P07 §8): one row per unit and property.
+  baseline:       [geology_unit, property, low, central, high, source]
 
 fields:
   low:
@@ -42,6 +44,12 @@ fields:
     type: text
   value:
     description: Value of a design line at a depth or elevation, in the plotted value's units
+    type: number
+  property:
+    description: The value column a baseline row applies to, e.g. water_content
+    type: text
+  central:
+    description: Central value of a baseline range (p50, mean or typical, as the report states)
     type: number
 
 columns:
@@ -134,7 +142,7 @@ columns:
     description: Where the value came from, e.g. lab or field
     type: text
     ags: ["derived: group of origin"]
-    used_by: [P01]
+    used_by: [P01, P07]
   test_type:
     description: Test method, e.g. falling head, packer, UU, torvane
     type: text
@@ -251,12 +259,12 @@ columns:
     scale: ratio
     label: Plasticity index, PI
     ags: [LLPL.LLPL_PI]
-    used_by: [P04]
+    used_by: [P04, P07]
   non_plastic:
     description: True if the specimen was reported non-plastic (NP)
     type: bool
     ags: ["derived: value flag NP"]
-    used_by: [P04, P06]
+    used_by: [P04, P06, P07]
   liquidity_index:
     description: (w - PL) / PI
     type: number
@@ -264,7 +272,7 @@ columns:
     scale: interval
     label: Liquidity index, LI
     ags: ["derived"]
-    used_by: []
+    used_by: [P07]
   consistency_index:
     description: (LL - w) / PI
     type: number
@@ -272,7 +280,7 @@ columns:
     scale: interval
     label: Consistency index, Ic
     ags: ["derived"]
-    used_by: [P17]
+    used_by: [P07, P17]
 
   # --- Grain size (P05) ---------------------------------------------------------------------
   particle_size:
