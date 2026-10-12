@@ -333,15 +333,3 @@ def test_us_and_si_put_points_in_the_same_place(
     df = frame(name, values, unit)
     plot = partial(ak.plot.profile, value=name, preset=name, vs=vs)
     assert_us_si_equivalent(plot, df, (quantity, "length"))
-
-
-@pytest.mark.parametrize(
-    "arguments",
-    [
-        {"secondary": "depth"},
-        {"stats_box": True},
-    ],
-)
-def test_arguments_not_built_yet_say_so(arguments, frame):
-    with pytest.raises(NotImplementedError, match="isn't available yet"):
-        ak.plot.profile(frame(), "undrained_shear_strength", **arguments)

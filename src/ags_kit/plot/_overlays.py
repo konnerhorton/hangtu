@@ -6,6 +6,7 @@ are lines, patches and text, never scatter collections: those hold the data
 points (plan decision 8).
 """
 
+import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from os import PathLike
@@ -584,5 +585,123 @@ def draw_note(ax: Axes, note: str) -> None:
         va="bottom",
         fontsize=TEXT_SIZE,
         color="0.25",
+        zorder=_layers.ANNOTATIONS,
+    )
+
+
+STATISTICS = ("count", "mean", "std", "cov", "median", "min", "max")
+DEFAULT_STATISTICS = ("count", "mean", "std", "median", "min", "max")
+_STATISTIC_HEADINGS = {"count": "n", "cov": "CoV"}
+MAX_STATS_UNITS = 6
+NOTE_LINE_HEIGHT = 8.5  # points, for 7 pt text
+
+
+def statistics_list(stats_box: bool | Sequence[str]) -> list[str]:
+    """Return the statistics a ``stats_box`` argument asks for."""
+    if stats_box is True:
+        return list(DEFAULT_STATISTICS)
+    if isinstance(stats_box, str) or not isinstance(stats_box, Sequence):
+        raise AgsKitError(
+            f"stats_box must be True, False or a list of statistics, not "
+            f'{stats_box!r}. Example: stats_box=["count", "mean", "cov"]'
+        )
+    unknown = [name for name in stats_box if name not in STATISTICS]
+    if unknown or not stats_box:
+        raise AgsKitError(
+            f"stats_box can't show {unknown or 'an empty list'}. Statistics: "
+            f"{', '.join(STATISTICS)}."
+        )
+    return list(stats_box)
+
+
+def format_number(value: float) -> str:
+    """Write a statistic to 3 significant figures: ``1,290``, ``15.6``, ``2.3e-05``."""
+    if value == 0 or not np.isfinite(value):
+        return f"{value:g}"
+    exponent = math.floor(math.log10(abs(value)))
+    if not -3 <= exponent < 6:
+        return f"{value:.2e}"
+    rounded = float(f"{value:.3g}")
+    return f"{rounded:,.{max(0, 2 - exponent)}f}"
+
+
+def _statistic(values: np.ndarray, name: str, interval: bool) -> str:
+    n = values.size
+    if name == "count":
+        return str(n)
+    if n == 0 or (name in ("std", "cov") and n < 2):
+        return "—"
+    if name == "cov":
+        mean = values.mean()
+        # CoV needs a true zero (TODO #9).
+        if interval or mean == 0:
+            return "—"
+        return f"{values.std(ddof=1) / abs(mean):.2f}"
+    result = {
+        "mean": np.mean,
+        "std": lambda v: np.std(v, ddof=1),
+        "median": np.median,
+        "min": np.min,
+        "max": np.max,
+    }[name](values)
+    return format_number(float(result))
+
+
+def stats_table(
+    values: np.ndarray,
+    groups: np.ndarray,
+    statistics: Sequence[str],
+    *,
+    order: Sequence[Any] | None = None,
+    interval: bool = False,
+) -> list[list[str]]:
+    """Return the stats box rows: a heading, one row per group, and "All".
+
+    Groups are listed when there are at most 6 (with "All" after them when
+    there are several); otherwise only "All". ``groups`` holds None for
+    ungrouped data; ``order`` is the legend order of the groups. std is the
+    sample standard deviation, and shows "—" when n < 2.
+    """
+    present = set(groups)
+    names = [g for g in (order or dict.fromkeys(groups)) if g in present]
+    names = [g for g in names if g is not None]
+    rows = [["", *(_STATISTIC_HEADINGS.get(name, name) for name in statistics)]]
+    listed = names if len(names) <= MAX_STATS_UNITS else []
+    for name in listed:
+        these = values[groups == name]
+        rows.append([str(name), *(_statistic(these, s, interval) for s in statistics)])
+    if len(listed) != 1:
+        rows.append(["All", *(_statistic(values, s, interval) for s in statistics)])
+    return rows
+
+
+def draw_stats_box(ax: Axes, rows: Sequence[Sequence[str]], note: str | None) -> None:
+    """Write the stats table in a box at the lower left, above any ``note``."""
+    widths = [max(len(row[i]) for row in rows) for i in range(len(rows[0]))]
+    lines = [
+        "  ".join(
+            cell.ljust(width) if i == 0 else cell.rjust(width)
+            for i, (cell, width) in enumerate(zip(row, widths, strict=True))
+        )
+        for row in rows
+    ]
+    above_note = 0.0 if note is None else NOTE_LINE_HEIGHT * (note.count("\n") + 1) + 4
+    ax.text(
+        0.02,
+        0.02,
+        "\n".join(lines),
+        transform=offset_copy(ax.transAxes, ax.figure, y=above_note, units="points"),
+        ha="left",
+        va="bottom",
+        fontsize=TEXT_SIZE,
+        family="monospace",
+        color="0.15",
+        bbox={
+            "boxstyle": "round,pad=0.3",
+            "facecolor": "white",
+            "edgecolor": "0.7",
+            "linewidth": 0.5,
+            "alpha": 0.9,
+        },
         zorder=_layers.ANNOTATIONS,
     )

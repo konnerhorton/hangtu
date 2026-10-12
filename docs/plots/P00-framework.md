@@ -156,7 +156,7 @@ Helpers: `nice_limits(vmin, vmax, *, start_at_zero)`, `log_limits(vmin, vmax, mi
 - `palette_cmap(units)` returns a `ListedColormap` in unit order; `legend_handles(units)` returns patches for a stand-alone legend.
 
 ## 11. Legends and hints
-- **Legend:** outside the axes on the right, no frame, 8 pt. Sections in order: units (colors), then marker groups, then special markers (qualifiers, edge markers) with counts. More than 12 entries → columns of up to 12; more than 30 → no legend, and a note saying "n units: see ak.plot.legend_handles()".
+- **Legend:** outside the axes on the right, no frame, 8 pt. Sections in order: units (colors), then marker groups, then special markers (qualifiers, edge markers) with counts. More than 12 entries → columns of up to 12; more than 30 → no legend, and a note saying "n units: see ak.plot.legend_handles()". `add_legend(..., offset=)` and `Notes.render(ax, offset=)` move the legend and footnote further right, in points, to clear a secondary axis.
 - **Hints** (plots README, "Input data"): `hint_missing(df, optional)` collects missing optional columns with a short reason each and issues **one** `AgsKitHint` per call, unless `settings.hints` is `False`. The warning's `stacklevel` points at the user's line.
 
 ## 12. Errors

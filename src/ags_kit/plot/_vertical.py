@@ -8,14 +8,18 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal
 
+import matplotlib as mpl
 import numpy as np
 import pandas as pd
+from matplotlib.axes import Axes
+from matplotlib.ticker import MultipleLocator
 from numpy.typing import ArrayLike
 
 from ags_kit._settings import _display_units, settings
 from ags_kit.errors import AgsKitError, ColumnError
 from ags_kit.plot._data import numeric_column
 from ags_kit.plot._labels import axis_label
+from ags_kit.plot._limits import nice_step
 from ags_kit.units import to_display
 
 VS = ("depth", "elevation")
@@ -265,3 +269,47 @@ def convert_pair(
         convert_vertical(top, from_vs, vertical, overlay, columns),
         convert_vertical(base, from_vs, vertical, overlay, columns),
     )
+
+
+def check_secondary_depth(vertical: Vertical) -> None:
+    """Raise unless a depth axis can be added: elevation, one ground level."""
+    if vertical.vs != "elevation":
+        raise AgsKitError(
+            'secondary="depth" adds a depth axis to an elevation plot, but this '
+            "plot is already against depth. Leave secondary out, or plot with "
+            "vs='elevation'."
+        )
+    if vertical.ground_level is None:
+        raise AgsKitError(
+            'secondary="depth" needs one ground level for all the data, because '
+            "depth = ground_level - elevation. These data have several ground "
+            "levels, or none. Plot one hole, or leave secondary out."
+        )
+
+
+def add_secondary_depth(ax: Axes, vertical: Vertical) -> Axes:
+    """Add a depth axis on the right of an elevation profile (P01 §6).
+
+    Depth is ``ground_level - elevation``, so it needs one ground level for
+    all the data. Call after the elevation limits are set.
+    """
+    check_secondary_depth(vertical)
+    level = vertical.ground_level
+
+    def flip(values: np.ndarray) -> np.ndarray:
+        return level - np.asarray(values)
+
+    secondary = ax.secondary_yaxis("right", functions=(flip, flip))
+    depths = sorted(level - np.asarray(ax.get_ylim()))
+    secondary.yaxis.set_major_locator(MultipleLocator(nice_step(*depths)))
+    rc = mpl.rcParams
+    secondary.tick_params(
+        direction=rc["ytick.direction"],
+        width=rc["ytick.major.width"],
+        labelsize=rc["ytick.labelsize"],
+    )
+    secondary.spines["right"].set_linewidth(rc["axes.linewidth"])
+    secondary.set_ylabel(
+        axis_label("Depth", vertical.unit_text, unknown=vertical.unknown)
+    )
+    return secondary

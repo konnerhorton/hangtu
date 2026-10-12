@@ -69,11 +69,13 @@ class Notes:
         ]
         return counts + self.texts
 
-    def render(self, ax: Axes) -> Annotation | None:
+    def render(self, ax: Axes, offset: float = 0.0) -> Annotation | None:
         """Write the footnote to the right of the axes, below the legend.
 
         Also sets ``ax.ags_notes`` to the counts, so users and tests can read
-        them. Returns the footnote, or None when there is nothing to note.
+        them. ``offset`` is extra space in points between the axes and the
+        footnote, as for ``add_legend``. Returns the footnote, or None when
+        there is nothing to note.
         """
         ax.ags_notes = dict(self.counts)
         lines = self.lines()
@@ -83,6 +85,8 @@ class Notes:
             "\n".join(lines),
             xy=(1.02, 0.0),
             xycoords="axes fraction",
+            xytext=(offset, 0.0),
+            textcoords="offset points",
             ha="left",
             va="bottom",
             fontsize=FOOTNOTE_SIZE,

@@ -100,7 +100,7 @@ n/a, apart from:
 - [ ] Equal aspect: no.
 - [ ] Shared limits: no (but `ylim=` lets users align profiles placed side by side on a Sheet).
 - [x] Log axis: always a whole number of decades, and at least 2.
-- [x] Secondary depth axis **only when all rows share one ground level** (a single hole, or an idealized profile). Otherwise `secondary="depth"` raises a clear error, because the depth↔elevation mapping would be ambiguous.
+- [x] Secondary depth axis **only when all rows share one ground level** (a single hole, or an idealized profile). Otherwise `secondary="depth"` raises a clear error, because the depth↔elevation mapping would be ambiguous. With `vs="depth"` it is an error too, since the plot is already against depth. The legend and footnote move right to clear the depth axis.
 
 **Presets** (general rules in the plots README, "Presets"):
 
@@ -137,7 +137,7 @@ Presets live in `config/defaults.yaml`, with the typical range in the quantity's
 | Published ranges | `ranges=` DataFrame or CSV | off | User: `low, high, label`, an optional `source`, and an optional depth or elevation pair (formats below) | Vertical translucent band (alpha 0.15, light hatching) from low to high, over top–base or the full height. Label at the top, "label (source)", centered on the part inside the axes | Values converted from the declared units. A CSV path is read with `ak.read_csv`. On a log axis, a `low` ≤ 0 starts at the axis edge |
 | Design lines | `design_lines=` DataFrame | off | User or P09: `label, <vs column>, value` (one polyline per label) | Bold dashed 1.5 pt, dark gray; label at the deepest point inside the axes | Same idea as AGSi parameter profiles; P09 produces these |
 | Reference lines | `reference_lines=` list of `(value, label)` | off | User | Thin vertical line 0.6 pt, dotted; label at the top | e.g. a code limit. A number is in the main data's units; a string such as `"2000 psf"` carries its own |
-| Stats box | `stats_box=True`, or a list of statistics | off | pandas (no scipy needed). Default: count, mean, std, median, min, max per unit. A list chooses the statistics, e.g. `stats_box=["count", "mean", "cov"]`; allowed: `count, mean, std, cov, median, min, max` | Text box, lower left, 7 pt | ≤ 6 units listed; otherwise overall only. std is shown as "—" when n < 2. On a log axis, statistics are of the plotted values (not log values) |
+| Stats box | `stats_box=True`, or a list of statistics | off | pandas (no scipy needed). Default: count, mean, std, median, min, max per unit. A list chooses the statistics, e.g. `stats_box=["count", "mean", "cov"]`; allowed: `count, mean, std, cov, median, min, max` | Text box, lower left, 7 pt, above any `note` | ≤ 6 units listed in legend order, then an "All" row when there are several; otherwise "All" only. Statistics are of the values drawn, in display units: blanks and values ≤ 0 on a log axis are left out, values drawn at the edge count at their true value and qualified values at their reported value. On a log axis, statistics are of the plotted values (not log values). std is the sample standard deviation, shown as "—" when n < 2; CoV is "—" on an interval scale (TODO #9). Numbers have 3 significant figures (`1,290`, `0.0123`, `2.30e-05`) |
 | Exclusion notes | automatic | **on** | Counts of NaN, ≤ 0 on log, beyond-limit, qualified | Footnote below the legend, 7 pt gray | **Always shown when non-zero** (no silent drops) |
 | Note | `note=` str | off | User | Lower-left text, 7 pt | |
 

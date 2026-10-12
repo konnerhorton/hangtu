@@ -35,13 +35,18 @@ from ags_kit.plot._overlays import (
     draw_note,
     draw_ranges,
     draw_reference_lines,
+    draw_stats_box,
     draw_strata,
     draw_water_level,
+    statistics_list,
+    stats_table,
 )
 from ags_kit.plot._palette import resolve_palette
 from ags_kit.plot._presets import Preset
 from ags_kit.plot._vertical import (
     Vertical,
+    add_secondary_depth,
+    check_secondary_depth,
     choose_vs,
     hole_ground_levels,
     interval_bounds,
@@ -56,6 +61,7 @@ MARKER_SIZE = 5.0  # points
 CARET_SIZE = 6.0  # points
 INTERVAL_WIDTH = 1.0  # points
 BLANK_GROUP = "(blank)"
+SECONDARY_SPACE = 42.0  # points between the axes and the legend for a depth axis
 # Qualifier -> (marker, size, legend text, notes reason) (P01 §3, §7).
 QUALIFIERS = {
     "<": ("<", CARET_SIZE, "less than", "less_than"),
@@ -91,16 +97,6 @@ def _check_limits(name: str, limits: Any, log: bool = False) -> tuple[float, flo
             f"limit must be greater than 0. Example: {name}=(1e-7, 1e-2)"
         )
     return lo, hi
-
-
-def _not_yet(argument: str) -> NotImplementedError:
-    return NotImplementedError(f"profile({argument}) isn't available yet.")
-
-
-def _check_not_yet_built(df: pd.DataFrame, arguments: Mapping[str, Any]) -> None:
-    for name, value in arguments.items():
-        if value is not None and value is not False:
-            raise _not_yet(f"{name}=...")
 
 
 def _quantity(value: str, preset: Preset | None) -> str | None:
@@ -497,13 +493,9 @@ def profile(
         raise AgsKitError(
             f'xaxis_position must be "top" or "bottom", not {xaxis_position!r}.'
         )
-    _check_not_yet_built(
-        df,
-        {
-            "secondary": secondary,
-            "stats_box": stats_box or None,
-        },
-    )
+    if secondary not in (None, "depth"):
+        raise AgsKitError(f'secondary must be "depth" or None, not {secondary!r}.')
+    statistics = statistics_list(stats_box) if stats_box is not False else None
 
     system = _display_units(display_units or settings.display_units)
     chosen = _presets.preset(preset) if preset is not None else None
@@ -538,6 +530,8 @@ def profile(
         raw = numeric_column(df, value)
         x, x_unit_text = _units.to_display(raw, resolved[value], quantity, system)
         y, vertical = vertical_values(df, vs, resolved, system)
+        if secondary == "depth":
+            check_secondary_depth(vertical)
         qualifiers = _qualifiers(df)
         bounds = _intervals(df, intervals, resolved, vertical)
 
@@ -598,6 +592,8 @@ def profile(
             draw_reference_lines(ax, reference_lines, scale)
         if note is not None:
             draw_note(ax, str(note))
+        if secondary == "depth":
+            add_secondary_depth(ax, vertical)
 
         groups, colors = _color_groups(df, color_by, palette)
         marker_groups, shapes = _marker_groups(df, marker_by)
@@ -655,6 +651,17 @@ def profile(
             )
         )
         ax.set_ylabel(vertical.label())
-        add_legend(ax, [unit_handles, shape_handles, qualified], notes)
-        notes.render(ax)
+        if statistics is not None:
+            info = column_info(value)
+            rows = stats_table(
+                x[drawn],
+                groups[drawn],
+                statistics,
+                order=list(colors),
+                interval=bool(info) and info.get("scale") == "interval",
+            )
+            draw_stats_box(ax, rows, None if note is None else str(note))
+        offset = SECONDARY_SPACE if secondary else 0.0
+        add_legend(ax, [unit_handles, shape_handles, qualified], notes, offset)
+        notes.render(ax, offset)
     return fig, ax
