@@ -2,7 +2,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import pytest
 
-import hangtu as ak
+import hangtu as ht
 from hangtu.plot import style
 
 
@@ -60,7 +60,7 @@ def test_hyphenated_names_have_an_underscore_form():
 
 def test_unknown_override_raises_with_a_suggestion():
     with (
-        pytest.raises(ak.HangtuError, match="Did you mean 'font_size'"),
+        pytest.raises(ht.HangtuError, match="Did you mean 'font_size'"),
         style.context(font_sise=12),
     ):
         pass

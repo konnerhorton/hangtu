@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 from matplotlib.lines import Line2D
 
-import hangtu as ak
+import hangtu as ht
 from hangtu.plot.common import Notes, add_legend, hint_missing
 
 
@@ -58,7 +58,7 @@ OPTIONAL = {
 
 def test_one_hint_per_call_listing_every_missing_column():
     df = pd.DataFrame({"depth": [1.0]})
-    with pytest.warns(ak.HangtuHint) as record:
+    with pytest.warns(ht.HangtuHint) as record:
         missing = hint_missing(df, OPTIONAL)
     assert missing == ["geology_unit", "loca_id"]
     assert len(record) == 1
@@ -78,7 +78,7 @@ def test_no_hint_when_nothing_is_missing():
 
 
 def test_no_hint_when_hints_are_off():
-    ak.settings.hints = False
+    ht.settings.hints = False
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         assert hint_missing(pd.DataFrame(), OPTIONAL) == list(OPTIONAL)

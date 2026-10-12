@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-import hangtu as ak
+import hangtu as ht
 from hangtu.plot._overlays import format_number, stats_table
 
 # --- secondary depth axis ------------------------------------------------------------
@@ -17,7 +17,7 @@ def secondary_axis(ax):
 
 @pytest.mark.parametrize(("system", "level"), [("US", 120.0), ("SI", 120.0 * 0.3048)])
 def test_secondary_depth_is_ground_level_minus_elevation(frame, system, level):
-    fig, ax = ak.plot.profile(
+    fig, ax = ht.plot.profile(
         frame(), "undrained_shear_strength", secondary="depth", display_units=system
     )
     fig.canvas.draw()
@@ -35,7 +35,7 @@ def test_secondary_depth_is_ground_level_minus_elevation(frame, system, level):
 
 
 def test_secondary_depth_ticks_are_nice_steps(frame):
-    fig, ax = ak.plot.profile(frame(), "undrained_shear_strength", secondary="depth")
+    fig, ax = ht.plot.profile(frame(), "undrained_shear_strength", secondary="depth")
     fig.canvas.draw()
     ticks = secondary_axis(ax).get_yticks()
     steps = np.diff(ticks)
@@ -45,9 +45,9 @@ def test_secondary_depth_ticks_are_nice_steps(frame):
 
 def test_secondary_moves_the_legend_and_footnote_clear(frame):
     df = frame(values=[np.nan, 1000.0, 1500.0, 2000.0])
-    fig, plain = ak.plot.profile(df, "undrained_shear_strength")
+    fig, plain = ht.plot.profile(df, "undrained_shear_strength")
     fig.canvas.draw()
-    fig2, ax = ak.plot.profile(df, "undrained_shear_strength", secondary="depth")
+    fig2, ax = ht.plot.profile(df, "undrained_shear_strength", secondary="depth")
     fig2.canvas.draw()
 
     def gap(axes, artist):
@@ -68,26 +68,26 @@ def test_secondary_moves_the_legend_and_footnote_clear(frame):
 def test_secondary_with_several_ground_levels_is_an_error(frame):
     df = frame(ground_level=[120.0, 120.0, 118.0, 118.0])
     figures = plt.get_fignums()
-    with pytest.raises(ak.HangtuError, match="needs one ground level"):
-        ak.plot.profile(df, "undrained_shear_strength", secondary="depth")
+    with pytest.raises(ht.HangtuError, match="needs one ground level"):
+        ht.plot.profile(df, "undrained_shear_strength", secondary="depth")
     assert plt.get_fignums() == figures
 
 
 def test_secondary_on_a_depth_plot_is_an_error(frame):
-    with pytest.raises(ak.HangtuError, match="already against depth"):
-        ak.plot.profile(
+    with pytest.raises(ht.HangtuError, match="already against depth"):
+        ht.plot.profile(
             frame(), "undrained_shear_strength", vs="depth", secondary="depth"
         )
 
 
 def test_secondary_must_be_depth(frame):
-    with pytest.raises(ak.HangtuError, match='secondary must be "depth"'):
-        ak.plot.profile(frame(), "undrained_shear_strength", secondary="elevation")
+    with pytest.raises(ht.HangtuError, match='secondary must be "depth"'):
+        ht.plot.profile(frame(), "undrained_shear_strength", secondary="elevation")
 
 
 def test_secondary_leaves_no_global_state(frame, assert_no_global_state):
     assert_no_global_state(
-        ak.plot.profile, frame(), value="undrained_shear_strength", secondary="depth"
+        ht.plot.profile, frame(), value="undrained_shear_strength", secondary="depth"
     )
 
 
@@ -116,7 +116,7 @@ GOLDEN = [
 
 
 def test_stats_box_golden_values(frame):
-    _, ax = ak.plot.profile(frame(), "undrained_shear_strength", stats_box=True)
+    _, ax = ht.plot.profile(frame(), "undrained_shear_strength", stats_box=True)
     assert rows(ax) == GOLDEN
     box = stats_text(ax)
     assert box.get_fontsize() == 7
@@ -124,7 +124,7 @@ def test_stats_box_golden_values(frame):
 
 
 def test_stats_box_with_chosen_statistics(frame):
-    _, ax = ak.plot.profile(
+    _, ax = ht.plot.profile(
         frame(), "undrained_shear_strength", stats_box=["count", "mean", "cov"]
     )
     # CoV = 353.55 / 750 = 0.47 and 353.55 / 1750 = 0.20; all 645.50 / 1250 = 0.52.
@@ -137,7 +137,7 @@ def test_stats_box_with_chosen_statistics(frame):
 
 
 def test_stats_are_in_display_units(frame):
-    _, ax = ak.plot.profile(
+    _, ax = ht.plot.profile(
         frame(), "undrained_shear_strength", stats_box=["mean"], display_units="SI"
     )
     # 750 psf = 35.91 kPa; 1250 psf = 59.85 kPa.
@@ -147,18 +147,18 @@ def test_stats_are_in_display_units(frame):
 
 def test_std_is_a_dash_for_a_single_value(frame):
     df = frame().iloc[:3]
-    _, ax = ak.plot.profile(df, "undrained_shear_strength", stats_box=["count", "std"])
+    _, ax = ht.plot.profile(df, "undrained_shear_strength", stats_box=["count", "std"])
     assert rows(ax)[1] == ["Clay", "1", "—"]
 
 
 def test_one_unit_has_no_all_row(frame):
     df = frame(geology_unit=["Fill"] * 4)
-    _, ax = ak.plot.profile(df, "undrained_shear_strength", stats_box=["count"])
+    _, ax = ht.plot.profile(df, "undrained_shear_strength", stats_box=["count"])
     assert rows(ax) == [["n"], ["Fill", "4"]]
 
 
 def test_ungrouped_data_shows_all_only(frame):
-    _, ax = ak.plot.profile(
+    _, ax = ht.plot.profile(
         frame(), "undrained_shear_strength", color_by=None, stats_box=["count"]
     )
     assert rows(ax) == [["n"], ["All", "4"]]
@@ -190,7 +190,7 @@ def test_stats_are_of_the_values_drawn(frame):
         "cm/s",
         qualifier=["", "", "", ">"],
     )
-    _, ax = ak.plot.profile(
+    _, ax = ht.plot.profile(
         df,
         "hydraulic_conductivity",
         preset="hydraulic_conductivity",
@@ -203,7 +203,7 @@ def test_stats_are_of_the_values_drawn(frame):
 
 
 def test_stats_box_sits_above_the_note(frame):
-    _, ax = ak.plot.profile(
+    _, ax = ht.plot.profile(
         frame(), "undrained_shear_strength", stats_box=True, note="Draft\nfor review"
     )
     fig = ax.figure
@@ -215,13 +215,13 @@ def test_stats_box_sits_above_the_note(frame):
 
 @pytest.mark.parametrize("stats_box", [["count", "mode"], [], "mean", 3])
 def test_bad_stats_box_lists_the_statistics(frame, stats_box):
-    with pytest.raises(ak.HangtuError, match="stats_box"):
-        ak.plot.profile(frame(), "undrained_shear_strength", stats_box=stats_box)
+    with pytest.raises(ht.HangtuError, match="stats_box"):
+        ht.plot.profile(frame(), "undrained_shear_strength", stats_box=stats_box)
 
 
 def test_unknown_statistic_names_the_allowed_ones(frame):
-    with pytest.raises(ak.HangtuError, match="count, mean, std, cov, median, min, max"):
-        ak.plot.profile(frame(), "undrained_shear_strength", stats_box=["mode"])
+    with pytest.raises(ht.HangtuError, match="count, mean, std, cov, median, min, max"):
+        ht.plot.profile(frame(), "undrained_shear_strength", stats_box=["mode"])
 
 
 @pytest.mark.parametrize(
@@ -269,7 +269,7 @@ def box_and_lowest(ax, lowest):
 
 @pytest.mark.parametrize(("vs", "lowest"), [("elevation", 60.0), ("depth", 60.0)])
 def test_the_axis_deepens_so_the_box_sits_below_the_data(frame, vs, lowest):
-    _, plain = ak.plot.profile(
+    _, plain = ht.plot.profile(
         deep_frame(frame),
         "undrained_shear_strength",
         vs=vs,
@@ -278,7 +278,7 @@ def test_the_axis_deepens_so_the_box_sits_below_the_data(frame, vs, lowest):
     )
     box_top, data = box_and_lowest(plain, lowest)
     assert data < box_top  # without room, the box covers the deepest points
-    _, ax = ak.plot.profile(
+    _, ax = ht.plot.profile(
         deep_frame(frame), "undrained_shear_strength", vs=vs, stats_box=True
     )
     box_top, data = box_and_lowest(ax, lowest)
@@ -295,8 +295,8 @@ def test_intervals_count_as_data_under_the_box(frame):
     df = deep_frame(frame)
     df["depth_top"] = df["depth"] - 2.0
     df["depth_base"] = df["depth"] + 8.0
-    df = ak.set_units(df, {"depth_top": "ft", "depth_base": "ft"})
-    _, ax = ak.plot.profile(df, "undrained_shear_strength", vs="depth", stats_box=True)
+    df = ht.set_units(df, {"depth_top": "ft", "depth_base": "ft"})
+    _, ax = ht.plot.profile(df, "undrained_shear_strength", vs="depth", stats_box=True)
     box_top, data = box_and_lowest(ax, 68.0)
     assert data > box_top
 
@@ -309,15 +309,15 @@ def test_intervals_count_as_data_under_the_box(frame):
     ],
 )
 def test_room_is_left_alone_when_turned_off_or_limits_are_fixed(frame, kwargs):
-    _, plain = ak.plot.profile(
+    _, plain = ht.plot.profile(
         deep_frame(frame), "undrained_shear_strength", ylim=kwargs.get("ylim")
     )
-    _, ax = ak.plot.profile(deep_frame(frame), "undrained_shear_strength", **kwargs)
+    _, ax = ht.plot.profile(deep_frame(frame), "undrained_shear_strength", **kwargs)
     assert ax.get_ylim() == plain.get_ylim()
 
 
 def test_the_secondary_depth_axis_follows_the_deeper_range(frame):
-    fig, ax = ak.plot.profile(
+    fig, ax = ht.plot.profile(
         deep_frame(frame), "undrained_shear_strength", stats_box=True, secondary="depth"
     )
     fig.canvas.draw()

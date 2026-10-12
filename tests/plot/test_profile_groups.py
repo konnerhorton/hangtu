@@ -8,7 +8,7 @@ from matplotlib.colors import to_rgba
 from matplotlib.markers import MarkerStyle
 from matplotlib.patches import Patch
 
-import hangtu as ak
+import hangtu as ht
 
 CYCLE = ["o", "s", "^", "D", "v", "P", "X", "p", "h", "*", "<", ">"]
 
@@ -46,7 +46,7 @@ def legend(ax):
 
 def test_each_group_gets_a_shape_from_the_cycle(frame):
     df = frame(source=["lab", "field", "lab", "field"])
-    _, ax = ak.plot.profile(df, "undrained_shear_strength", marker_by="source")
+    _, ax = ht.plot.profile(df, "undrained_shear_strength", marker_by="source")
     # Groups are sorted by name: field is ●, lab is ■.
     assert shapes_by_point(ax) == {
         (500.0, 115.0): "s",
@@ -58,7 +58,7 @@ def test_each_group_gets_a_shape_from_the_cycle(frame):
 
 def test_legend_lists_units_then_gray_marker_groups(frame):
     df = frame(source=["lab", "field", "lab", "field"])
-    _, ax = ak.plot.profile(df, "undrained_shear_strength", marker_by="source")
+    _, ax = ht.plot.profile(df, "undrained_shear_strength", marker_by="source")
     assert legend(ax) == ["Clay", "Fill", "field", "lab"]
     handles = ax.get_legend().legend_handles
     assert all(isinstance(handle, Patch) for handle in handles[:2])
@@ -68,8 +68,8 @@ def test_legend_lists_units_then_gray_marker_groups(frame):
 
 def test_unit_colors_still_match_legend_handles(frame):
     df = frame(source=["lab", "field", "lab", "field"])
-    _, ax = ak.plot.profile(df, "undrained_shear_strength", marker_by="source")
-    patches = {p.get_label(): p.get_facecolor() for p in ak.plot.legend_handles()}
+    _, ax = ht.plot.profile(df, "undrained_shear_strength", marker_by="source")
+    patches = {p.get_label(): p.get_facecolor() for p in ht.plot.legend_handles()}
     for collection in ax.collections:
         unit = collection.get_label().lstrip("_").split(" ")[0]
         assert tuple(collection.get_facecolor()[0]) == patches[unit]
@@ -85,7 +85,7 @@ def test_more_than_ten_groups_repeat_shapes_and_warn(frame):
         test_type=[f"type {i:02d}" for i in range(1, 12)],
     )
     with pytest.warns(UserWarning, match=r"11 groups.*connect=True.*split the data"):
-        _, ax = ak.plot.profile(df, "undrained_shear_strength", marker_by="test_type")
+        _, ax = ht.plot.profile(df, "undrained_shear_strength", marker_by="test_type")
     shapes = shapes_by_point(ax)
     assert shapes[(100.0, 119.0)] == "o"
     assert shapes[(1100.0, 109.0)] == "o"
@@ -94,7 +94,7 @@ def test_more_than_ten_groups_repeat_shapes_and_warn(frame):
 
 def test_a_blank_group_is_listed_last(frame):
     df = frame(source=["lab", None, "lab", "field"])
-    _, ax = ak.plot.profile(df, "undrained_shear_strength", marker_by="source")
+    _, ax = ht.plot.profile(df, "undrained_shear_strength", marker_by="source")
     assert legend(ax) == ["Clay", "Fill", "field", "lab", "(blank)"]
     assert shapes_by_point(ax)[(1000.0, 110.0)] == "^"
 
@@ -102,25 +102,25 @@ def test_a_blank_group_is_listed_last(frame):
 def test_a_group_with_nothing_drawn_has_no_legend_entry(frame):
     df = frame(values=[500.0, np.nan, 1500.0, 2000.0])
     df["source"] = ["lab", "field", "lab", "lab"]
-    _, ax = ak.plot.profile(df, "undrained_shear_strength", marker_by="source")
+    _, ax = ht.plot.profile(df, "undrained_shear_strength", marker_by="source")
     assert legend(ax) == ["Clay", "Fill", "lab"]
 
 
 def test_a_qualifier_caret_replaces_the_group_shape(frame):
     df = frame(source=["lab", "field", "lab", "field"], qualifier=["<", "", "", ""])
-    _, ax = ak.plot.profile(df, "undrained_shear_strength", marker_by="source")
+    _, ax = ht.plot.profile(df, "undrained_shear_strength", marker_by="source")
     assert shapes_by_point(ax)[(500.0, 115.0)] == "<"
     assert legend(ax) == ["Clay", "Fill", "field", "lab", "less than (1)"]
 
 
 def test_marker_by_a_missing_column_is_an_error(frame):
-    with pytest.raises(ak.ColumnError, match="marker_by='source' isn't a column"):
-        ak.plot.profile(frame(), "undrained_shear_strength", marker_by="source")
+    with pytest.raises(ht.ColumnError, match="marker_by='source' isn't a column"):
+        ht.plot.profile(frame(), "undrained_shear_strength", marker_by="source")
 
 
 def test_edge_markers_keep_the_group_shape(frame):
     df = frame(source=["lab", "field", "lab", "field"])
-    _, ax = ak.plot.profile(
+    _, ax = ht.plot.profile(
         df, "undrained_shear_strength", marker_by="source", xlim=(0, 1800)
     )
     (edge,) = [c for c in ax.collections if len(c.get_facecolor()) == 0]
@@ -133,7 +133,7 @@ def test_edge_markers_keep_the_group_shape(frame):
 
 def test_one_gray_line_per_hole_in_vertical_order(frame):
     df = frame(loca_id=["A", "B", "A", "B"]).iloc[[2, 1, 0, 3]]
-    _, ax = ak.plot.profile(df, "undrained_shear_strength", connect=True)
+    _, ax = ht.plot.profile(df, "undrained_shear_strength", connect=True)
     # Rows are shuffled; each hole's points are still joined in vertical order.
     holes = {
         tuple(sorted(line.get_xdata())): list(line.get_ydata()) for line in ax.lines
@@ -148,26 +148,26 @@ def test_one_gray_line_per_hole_in_vertical_order(frame):
 
 def test_lines_follow_only_drawn_points(frame):
     df = frame(values=[500.0, np.nan, 1500.0, 2000.0], loca_id=["A"] * 4)
-    _, ax = ak.plot.profile(df, "undrained_shear_strength", connect=True)
+    _, ax = ht.plot.profile(df, "undrained_shear_strength", connect=True)
     (line,) = ax.lines
     assert sorted(line.get_ydata()) == [100.0, 105.0, 115.0]
 
 
 def test_connect_off_by_default(frame):
-    _, ax = ak.plot.profile(frame(), "undrained_shear_strength")
+    _, ax = ht.plot.profile(frame(), "undrained_shear_strength")
     assert len(ax.lines) == 0
 
 
 def test_connect_without_loca_id_is_an_error(frame):
     df = frame().drop(columns="loca_id")
-    with pytest.raises(ak.ColumnError, match=r"connect=True.*'loca_id'"):
-        ak.plot.profile(df, "undrained_shear_strength", connect=True)
+    with pytest.raises(ht.ColumnError, match=r"connect=True.*'loca_id'"):
+        ht.plot.profile(df, "undrained_shear_strength", connect=True)
 
 
 def test_us_and_si_agree_with_groups(frame, assert_us_si_equivalent):
     df = frame(source=["lab", "field", "lab", "field"])
     plot = partial(
-        ak.plot.profile,
+        ht.plot.profile,
         value="undrained_shear_strength",
         marker_by="source",
         connect=True,

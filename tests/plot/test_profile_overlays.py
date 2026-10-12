@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 from matplotlib.colors import to_rgb
 
-import hangtu as ak
+import hangtu as ht
 from hangtu.plot import _layers
 from hangtu.plot._overlays import WATER_COLOR
 
@@ -21,7 +21,7 @@ def strata_frame(pair="depth", units="ft", **columns):
     }
     df = pd.DataFrame(data)
     if units:
-        df = ak.set_units(df, {f"{pair}_top": units, f"{pair}_base": units})
+        df = ht.set_units(df, {f"{pair}_top": units, f"{pair}_base": units})
     return df
 
 
@@ -57,13 +57,13 @@ def point_color(ax, unit):
 
 
 def test_depth_strata_drawn_in_elevation_with_one_ground_level(frame):
-    _, ax = ak.plot.profile(frame(), "undrained_shear_strength", strata=strata_frame())
+    _, ax = ht.plot.profile(frame(), "undrained_shear_strength", strata=strata_frame())
     assert [band[:2] for band in bands(ax)] == [(90.0, 110.0), (110.0, 120.0)]
     assert {"Fill", "Clay"} <= set(texts(ax))
 
 
 def test_depth_strata_drawn_in_depth_as_given(frame):
-    _, ax = ak.plot.profile(
+    _, ax = ht.plot.profile(
         frame(), "undrained_shear_strength", vs="depth", strata=strata_frame()
     )
     assert [band[:2] for band in bands(ax)] == [(0.0, 10.0), (10.0, 30.0)]
@@ -71,8 +71,8 @@ def test_depth_strata_drawn_in_depth_as_given(frame):
 
 def test_depth_strata_with_several_ground_levels_is_an_error(frame):
     df = frame(ground_level=[120.0, 120.0, 118.0, 118.0])
-    with pytest.raises(ak.HangtuError) as error:
-        ak.plot.profile(df, "undrained_shear_strength", strata=strata_frame())
+    with pytest.raises(ht.HangtuError) as error:
+        ht.plot.profile(df, "undrained_shear_strength", strata=strata_frame())
     message = str(error.value)
     assert "strata overlay is given in depth" in message
     assert "elevation_top and elevation_base" in message
@@ -80,14 +80,14 @@ def test_depth_strata_with_several_ground_levels_is_an_error(frame):
 
 def test_elevation_strata_over_several_holes(frame):
     df = frame(ground_level=[120.0, 120.0, 118.0, 118.0])
-    _, ax = ak.plot.profile(
+    _, ax = ht.plot.profile(
         df, "undrained_shear_strength", strata=strata_frame("elevation")
     )
     assert [band[:2] for band in bands(ax)] == [(90.0, 110.0), (110.0, 120.0)]
 
 
 def test_elevation_strata_drawn_in_depth_with_one_ground_level(frame):
-    _, ax = ak.plot.profile(
+    _, ax = ht.plot.profile(
         frame(),
         "undrained_shear_strength",
         vs="depth",
@@ -97,7 +97,7 @@ def test_elevation_strata_drawn_in_depth_with_one_ground_level(frame):
 
 
 def test_strata_colors_match_the_point_colors(frame):
-    _, ax = ak.plot.profile(frame(), "undrained_shear_strength", strata=strata_frame())
+    _, ax = ht.plot.profile(frame(), "undrained_shear_strength", strata=strata_frame())
     low, high = bands(ax)
     assert low[2] == point_color(ax, "Clay")
     assert high[2] == point_color(ax, "Fill")
@@ -115,36 +115,36 @@ def test_both_pairs_or_neither_is_an_error(frame, columns):
     strata = strata_frame(**columns)
     if not columns:
         strata = strata.drop(columns=["depth_top", "depth_base"])
-    with pytest.raises(ak.ColumnError, match=r"depth pair .* elevation pair"):
-        ak.plot.profile(frame(), "undrained_shear_strength", strata=strata)
+    with pytest.raises(ht.ColumnError, match=r"depth pair .* elevation pair"):
+        ht.plot.profile(frame(), "undrained_shear_strength", strata=strata)
 
 
 def test_a_blank_pair_from_the_template_counts_as_absent(frame):
-    strata = pd.concat([ak.template("strata"), strata_frame()], ignore_index=True)
-    strata = ak.set_units(strata, {"depth_top": "ft", "depth_base": "ft"})
-    _, ax = ak.plot.profile(frame(), "undrained_shear_strength", strata=strata)
+    strata = pd.concat([ht.template("strata"), strata_frame()], ignore_index=True)
+    strata = ht.set_units(strata, {"depth_top": "ft", "depth_base": "ft"})
+    _, ax = ht.plot.profile(frame(), "undrained_shear_strength", strata=strata)
     assert len(bands(ax)) == 2
 
 
 def test_strata_need_a_geology_unit(frame):
     strata = strata_frame().drop(columns="geology_unit")
-    with pytest.raises(ak.ColumnError, match=r"no 'geology_unit' column.*template"):
-        ak.plot.profile(frame(), "undrained_shear_strength", strata=strata)
+    with pytest.raises(ht.ColumnError, match=r"no 'geology_unit' column.*template"):
+        ht.plot.profile(frame(), "undrained_shear_strength", strata=strata)
 
 
 def test_a_swapped_stratum_warns_and_is_not_drawn(frame):
     strata = strata_frame(depth_top=[0.0, 40.0])
-    strata = ak.set_units(strata, {"depth_top": "ft"})
+    strata = ht.set_units(strata, {"depth_top": "ft"})
     with pytest.warns(
         UserWarning, match=r"Rows 1 of the strata table.*wrong way round"
     ):
-        _, ax = ak.plot.profile(frame(), "undrained_shear_strength", strata=strata)
+        _, ax = ht.plot.profile(frame(), "undrained_shear_strength", strata=strata)
     assert len(bands(ax)) == 1
 
 
 def test_strata_without_units_take_the_data_units_with_a_warning(frame):
     with pytest.warns(UserWarning, match=r"strata table has no units.*ht\.set_units"):
-        _, ax = ak.plot.profile(
+        _, ax = ht.plot.profile(
             frame(),
             "undrained_shear_strength",
             vs="depth",
@@ -155,15 +155,15 @@ def test_strata_without_units_take_the_data_units_with_a_warning(frame):
 
 
 def test_strata_in_their_own_units_are_converted(frame):
-    _, ax = ak.plot.profile(
+    _, ax = ht.plot.profile(
         frame(), "undrained_shear_strength", vs="depth", strata=strata_frame(units="m")
     )
     assert bands(ax)[0][:2] == pytest.approx((0.0, 10.0 / FT))
 
 
 def test_overlays_add_no_scatter_collections(frame):
-    _, plain = ak.plot.profile(frame(), "undrained_shear_strength")
-    _, ax = ak.plot.profile(
+    _, plain = ht.plot.profile(frame(), "undrained_shear_strength")
+    _, ax = ht.plot.profile(
         frame(),
         "undrained_shear_strength",
         strata=strata_frame(),
@@ -176,7 +176,7 @@ def test_overlays_add_no_scatter_collections(frame):
 
 
 def test_a_number_is_in_the_data_units(frame):
-    _, ax = ak.plot.profile(frame(), "undrained_shear_strength", water_level=112.5)
+    _, ax = ht.plot.profile(frame(), "undrained_shear_strength", water_level=112.5)
     assert water_lines(ax) == [112.5]
     assert "GWL" in texts(ax)
     (line,) = [line for line in ax.lines if line.get_linestyle() == "--"]
@@ -187,19 +187,19 @@ def test_a_number_is_in_the_data_units(frame):
 
 
 def test_a_number_in_si(frame):
-    _, ax = ak.plot.profile(
+    _, ax = ht.plot.profile(
         frame(), "undrained_shear_strength", water_level=112.5, display_units="SI"
     )
     assert water_lines(ax) == pytest.approx([112.5 * FT])
 
 
 def test_a_string_carries_its_own_unit(frame):
-    _, ax = ak.plot.profile(frame(), "undrained_shear_strength", water_level="34.29 m")
+    _, ax = ht.plot.profile(frame(), "undrained_shear_strength", water_level="34.29 m")
     assert water_lines(ax) == pytest.approx([112.5], rel=1e-4)
 
 
 def test_a_list_of_labeled_levels(frame):
-    _, ax = ak.plot.profile(
+    _, ax = ht.plot.profile(
         frame(),
         "undrained_shear_strength",
         water_level=[(112.5, "GWL (2026-03)"), ("110 ft", "perched")],
@@ -209,7 +209,7 @@ def test_a_list_of_labeled_levels(frame):
 
 
 def test_a_water_level_against_depth(frame):
-    _, ax = ak.plot.profile(
+    _, ax = ht.plot.profile(
         frame(), "undrained_shear_strength", vs="depth", water_level=7.5
     )
     assert water_lines(ax) == [7.5]
@@ -217,8 +217,8 @@ def test_a_water_level_against_depth(frame):
 
 @pytest.mark.parametrize("water_level", [[112.5], "high", [(None, "GWL")], True])
 def test_a_bad_water_level_is_an_error(frame, water_level):
-    with pytest.raises(ak.HangtuError):
-        ak.plot.profile(frame(), "undrained_shear_strength", water_level=water_level)
+    with pytest.raises(ht.HangtuError):
+        ht.plot.profile(frame(), "undrained_shear_strength", water_level=water_level)
 
 
 def hole_ticks(ax):
@@ -234,42 +234,42 @@ def hole_ticks(ax):
 
 def test_per_hole_depths_use_each_hole_ground_level(frame):
     df = frame(ground_level=[120.0, 120.0, 118.0, 118.0])
-    levels = ak.set_units(
+    levels = ht.set_units(
         pd.DataFrame({"loca_id": ["A", "B"], "depth": [5.0, 6.0]}), {"depth": "ft"}
     )
-    _, ax = ak.plot.profile(df, "undrained_shear_strength", water_level=levels)
+    _, ax = ht.plot.profile(df, "undrained_shear_strength", water_level=levels)
     assert hole_ticks(ax) == {"A": 115.0, "B": 112.0}
     assert water_lines(ax) == []
 
 
 def test_per_hole_label_replaces_the_hole_name(frame):
-    levels = ak.set_units(
+    levels = ht.set_units(
         pd.DataFrame(
             {"loca_id": ["A", "B"], "depth": [5.0, 6.0], "label": ["A (dry)", None]}
         ),
         {"depth": "ft"},
     )
-    _, ax = ak.plot.profile(frame(), "undrained_shear_strength", water_level=levels)
+    _, ax = ht.plot.profile(frame(), "undrained_shear_strength", water_level=levels)
     assert hole_ticks(ax) == {"A (dry)": 115.0, "B": 114.0}
 
 
 def test_per_hole_elevations_against_depth(frame):
-    levels = ak.set_units(
+    levels = ht.set_units(
         pd.DataFrame({"loca_id": ["A", "B"], "elevation": [115.0, 112.0]}),
         {"elevation": "ft"},
     )
-    _, ax = ak.plot.profile(
+    _, ax = ht.plot.profile(
         frame(), "undrained_shear_strength", vs="depth", water_level=levels
     )
     assert hole_ticks(ax) == {"A": 5.0, "B": 8.0}
 
 
 def test_a_hole_without_a_ground_level_warns_and_is_not_drawn(frame):
-    levels = ak.set_units(
+    levels = ht.set_units(
         pd.DataFrame({"loca_id": ["A", "C"], "depth": [5.0, 6.0]}), {"depth": "ft"}
     )
     with pytest.warns(UserWarning, match=r"Water levels for C aren't drawn"):
-        _, ax = ak.plot.profile(frame(), "undrained_shear_strength", water_level=levels)
+        _, ax = ht.plot.profile(frame(), "undrained_shear_strength", water_level=levels)
     assert hole_ticks(ax) == {"A": 115.0}
 
 
@@ -282,43 +282,43 @@ def test_more_than_six_holes_are_not_labeled(frame):
         ground_level=[120.0] * 7,
         geology_unit=["Fill"] * 7,
     )
-    levels = ak.set_units(
+    levels = ht.set_units(
         pd.DataFrame({"loca_id": holes, "depth": [3.0] * 7}), {"depth": "ft"}
     )
-    _, ax = ak.plot.profile(df, "undrained_shear_strength", water_level=levels)
+    _, ax = ht.plot.profile(df, "undrained_shear_strength", water_level=levels)
     assert len(hole_ticks(ax)) == 7
     assert not set(holes) & set(texts(ax))
 
 
 def test_per_hole_table_needs_one_vertical_column(frame):
     levels = pd.DataFrame({"loca_id": ["A"], "level": [5.0]})
-    with pytest.raises(ak.ColumnError, match="neither of 'depth' and 'elevation'"):
-        ak.plot.profile(frame(), "undrained_shear_strength", water_level=levels)
+    with pytest.raises(ht.ColumnError, match="neither of 'depth' and 'elevation'"):
+        ht.plot.profile(frame(), "undrained_shear_strength", water_level=levels)
 
 
 def test_per_hole_table_without_units_warns(frame):
     levels = pd.DataFrame({"loca_id": ["A"], "depth": [5.0]})
     with pytest.warns(UserWarning, match="water_level table has no units for depth"):
-        ak.plot.profile(frame(), "undrained_shear_strength", water_level=levels)
+        ht.plot.profile(frame(), "undrained_shear_strength", water_level=levels)
 
 
 # --- US and SI ------------------------------------------------------------------
 
 
 def test_overlay_positions_agree_in_us_and_si(frame):
-    levels = ak.set_units(
+    levels = ht.set_units(
         pd.DataFrame({"loca_id": ["A", "B"], "depth": [5.0, 6.0]}), {"depth": "ft"}
     )
     drawn = {}
     for system in ("US", "SI"):
-        _, strata_ax = ak.plot.profile(
+        _, strata_ax = ht.plot.profile(
             frame(),
             "undrained_shear_strength",
             strata=strata_frame(),
             water_level=112.5,
             display_units=system,
         )
-        _, hole_ax = ak.plot.profile(
+        _, hole_ax = ht.plot.profile(
             frame(),
             "undrained_shear_strength",
             water_level=levels,
@@ -349,7 +349,7 @@ def range_frame(units=("psf", "ft"), **columns):
     value_unit, length_unit = units
     declared = {"low": value_unit, "high": value_unit}
     declared |= {c: length_unit for c in df.columns if c.startswith(("depth", "elev"))}
-    return ak.set_units(df, declared)
+    return ht.set_units(df, declared)
 
 
 def range_boxes(ax):
@@ -366,7 +366,7 @@ def range_boxes(ax):
 
 def test_a_range_in_psf_is_drawn_in_kpa(frame):
     # P01 §12: 2,000 psf <-> 95.76 kPa.
-    _, ax = ak.plot.profile(
+    _, ax = ht.plot.profile(
         frame(), "undrained_shear_strength", ranges=range_frame(), display_units="SI"
     )
     ((low, high, bottom, top),) = range_boxes(ax)
@@ -377,7 +377,7 @@ def test_a_range_in_psf_is_drawn_in_kpa(frame):
 
 def test_a_range_over_a_depth_pair_drawn_in_elevation(frame):
     ranges = range_frame(depth_top=[10.0], depth_base=[20.0])
-    _, ax = ak.plot.profile(frame(), "undrained_shear_strength", ranges=ranges)
+    _, ax = ht.plot.profile(frame(), "undrained_shear_strength", ranges=ranges)
     assert range_boxes(ax) == [(1000.0, 2000.0, 100.0, 110.0)]
 
 
@@ -385,11 +385,11 @@ def test_a_range_row_without_bounds_covers_the_full_height(frame):
     ranges = range_frame(depth_top=[10.0], depth_base=[20.0])
     ranges = pd.concat([ranges, range_frame()], ignore_index=True)
     # concat drops declared units, so declare them again.
-    ranges = ak.set_units(
+    ranges = ht.set_units(
         ranges,
         {"low": "psf", "high": "psf", "depth_top": "ft", "depth_base": "ft"},
     )
-    _, ax = ak.plot.profile(frame(), "undrained_shear_strength", ranges=ranges)
+    _, ax = ht.plot.profile(frame(), "undrained_shear_strength", ranges=ranges)
     assert range_boxes(ax) == [
         (1000.0, 2000.0, 0.0, 1.0),
         (1000.0, 2000.0, 100.0, 110.0),
@@ -399,13 +399,13 @@ def test_a_range_row_without_bounds_covers_the_full_height(frame):
 def test_a_range_row_with_one_bound_warns(frame):
     ranges = range_frame(depth_top=[10.0], depth_base=[np.nan])
     with pytest.warns(UserWarning, match="Rows 0 of the ranges table have a blank"):
-        _, ax = ak.plot.profile(frame(), "undrained_shear_strength", ranges=ranges)
+        _, ax = ht.plot.profile(frame(), "undrained_shear_strength", ranges=ranges)
     assert range_boxes(ax) == []
 
 
 def test_a_range_without_a_source(frame):
     ranges = range_frame().drop(columns="source")
-    _, ax = ak.plot.profile(frame(), "undrained_shear_strength", ranges=ranges)
+    _, ax = ht.plot.profile(frame(), "undrained_shear_strength", ranges=ranges)
     assert "stiff" in texts(ax)
 
 
@@ -413,7 +413,7 @@ def test_ranges_from_a_csv_file(frame, tmp_path):
     path = tmp_path / "ranges.csv"
     range_frame().to_csv(path, index=False)
     with pytest.warns(UserWarning, match="ranges table has no units for low, high"):
-        _, ax = ak.plot.profile(frame(), "undrained_shear_strength", ranges=str(path))
+        _, ax = ht.plot.profile(frame(), "undrained_shear_strength", ranges=str(path))
     assert range_boxes(ax)[0][:2] == (1000.0, 2000.0)
 
 
@@ -423,14 +423,14 @@ def test_one_units_warning_per_overlay(frame):
         | {"depth_top": [10.0], "depth_base": [20.0]}
     )
     with pytest.warns(UserWarning) as record:
-        ak.plot.profile(frame(), "undrained_shear_strength", ranges=ranges)
+        ht.plot.profile(frame(), "undrained_shear_strength", ranges=ranges)
     assert len(record) == 1
     assert "low, high, depth_top, depth_base" in str(record[0].message)
 
 
 def test_a_range_needs_low_high_and_label(frame):
-    with pytest.raises(ak.ColumnError, match=r"no 'high' column.*template\(\"ranges"):
-        ak.plot.profile(
+    with pytest.raises(ht.ColumnError, match=r"no 'high' column.*template\(\"ranges"):
+        ht.plot.profile(
             frame(),
             "undrained_shear_strength",
             ranges=range_frame().drop(columns="high"),
@@ -439,11 +439,11 @@ def test_a_range_needs_low_high_and_label(frame):
 
 def test_a_range_on_a_log_axis_starting_at_zero(frame):
     df = frame("hydraulic_conductivity", [1e-5, 3e-6, 2e-4, 5e-7], "cm/s")
-    ranges = ak.set_units(
+    ranges = ht.set_units(
         pd.DataFrame({"low": [0.0], "high": [1e-4], "label": ["clean sand"]}),
         {"low": "cm/s", "high": "cm/s"},
     )
-    _, ax = ak.plot.profile(
+    _, ax = ht.plot.profile(
         df, "hydraulic_conductivity", preset="hydraulic_conductivity", ranges=ranges
     )
     ((low, high, _, _),) = range_boxes(ax)
@@ -462,7 +462,7 @@ def design_frame(**columns):
             **columns,
         }
     )
-    return ak.set_units(df, {"depth": "ft", "value": "psf"})
+    return ht.set_units(df, {"depth": "ft", "value": "psf"})
 
 
 def design_lines(ax):
@@ -474,7 +474,7 @@ def design_lines(ax):
 
 
 def test_a_design_line_in_depth_drawn_in_elevation(frame):
-    _, ax = ak.plot.profile(
+    _, ax = ht.plot.profile(
         frame(), "undrained_shear_strength", design_lines=design_frame()
     )
     (line,) = design_lines(ax)
@@ -486,24 +486,24 @@ def test_a_design_line_in_depth_drawn_in_elevation(frame):
 
 def test_one_polyline_per_label(frame):
     df = design_frame(label=["Upper", "Lower", "Upper"])
-    _, ax = ak.plot.profile(frame(), "undrained_shear_strength", design_lines=df)
+    _, ax = ht.plot.profile(frame(), "undrained_shear_strength", design_lines=df)
     assert len(design_lines(ax)) == 2
 
 
 def test_a_design_line_needs_one_vertical_column(frame):
     df = design_frame(elevation=[100.0, 120.0, 110.0])
-    with pytest.raises(ak.ColumnError, match="both of 'depth' and 'elevation'"):
-        ak.plot.profile(frame(), "undrained_shear_strength", design_lines=df)
+    with pytest.raises(ht.ColumnError, match="both of 'depth' and 'elevation'"):
+        ht.plot.profile(frame(), "undrained_shear_strength", design_lines=df)
 
 
 def test_a_design_line_in_depth_needs_one_ground_level(frame):
     df = frame(ground_level=[120.0, 120.0, 118.0, 118.0])
-    with pytest.raises(ak.HangtuError, match="Give elevation instead"):
-        ak.plot.profile(df, "undrained_shear_strength", design_lines=design_frame())
+    with pytest.raises(ht.HangtuError, match="Give elevation instead"):
+        ht.plot.profile(df, "undrained_shear_strength", design_lines=design_frame())
 
 
 def test_reference_lines(frame):
-    _, ax = ak.plot.profile(
+    _, ax = ht.plot.profile(
         frame(),
         "undrained_shear_strength",
         reference_lines=[(1000.0, "limit"), ("95.76 kPa", "upper")],
@@ -518,14 +518,14 @@ def test_reference_lines(frame):
 
 @pytest.mark.parametrize("reference_lines", [[1000.0], [("big", "limit")]])
 def test_bad_reference_lines_are_an_error(frame, reference_lines):
-    with pytest.raises(ak.HangtuError):
-        ak.plot.profile(
+    with pytest.raises(ht.HangtuError):
+        ht.plot.profile(
             frame(), "undrained_shear_strength", reference_lines=reference_lines
         )
 
 
 def test_note_is_written_at_the_lower_left(frame):
-    _, ax = ak.plot.profile(frame(), "undrained_shear_strength", note="Draft")
+    _, ax = ht.plot.profile(frame(), "undrained_shear_strength", note="Draft")
     (note,) = [text for text in ax.texts if text.get_text() == "Draft"]
     assert note.get_position() == (0.02, 0.02)
     assert note.get_fontsize() == 7
@@ -547,8 +547,8 @@ def every_overlay():
 
 @pytest.mark.parametrize("overlay", list(every_overlay()))
 def test_each_overlay_on_and_off(frame, overlay):
-    _, plain = ak.plot.profile(frame(), "undrained_shear_strength")
-    _, ax = ak.plot.profile(
+    _, plain = ht.plot.profile(frame(), "undrained_shear_strength")
+    _, ax = ht.plot.profile(
         frame(), "undrained_shear_strength", **{overlay: every_overlay()[overlay]}
     )
     drawn = len(ax.patches) + len(ax.lines) + len(ax.texts)
@@ -574,9 +574,9 @@ def test_the_layers_follow_p01_draw_order():
 
 def test_each_mark_is_drawn_on_its_layer(frame):
     df = frame(depth_top=[4.0, 9.0, 10.0, 18.0], depth_base=[6.0, 11.0, 20.0, 30.0])
-    df = ak.set_units(df, {"depth_top": "ft", "depth_base": "ft"})
+    df = ht.set_units(df, {"depth_top": "ft", "depth_base": "ft"})
     df["qualifier"] = ["<", "", "", ""]
-    _, ax = ak.plot.profile(
+    _, ax = ht.plot.profile(
         df, "undrained_shear_strength", connect=True, **every_overlay()
     )
     lines = ax.lines
@@ -607,7 +607,7 @@ def test_each_mark_is_drawn_on_its_layer(frame):
 def test_value_overlays_agree_in_us_and_si(frame):
     drawn = {}
     for system in ("US", "SI"):
-        _, ax = ak.plot.profile(
+        _, ax = ht.plot.profile(
             frame(),
             "undrained_shear_strength",
             ranges=range_frame(depth_top=[10.0], depth_base=[20.0]),
