@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **ID / function** | P07 · `ht.plot.geology_unit_comparison()`, `ht.plot.geology_unit_comparisons()` |
-| **Status** | approved |
+| **Status** | built |
 | **Type** | plot (percentiles only, no analysis module) |
 | **Target version** | v0.1 |
 | **Depends on** | P00 (framework); reuses the P01 presets and overlay helpers (`plot/_overlays.py`) |
@@ -20,6 +20,8 @@ Compares the measured values of one property, grouped by geology unit, with the 
 It ends up in GBR compliance reviews, differing site condition assessments, phase-to-phase data reports and design checks. Several properties are usually shown together on one page, so a second function lays out one panel per property.
 
 ## 2. Reference figure
+The built figure, from the test data: [`visual-check.png`](../work/p07-geology-unit-comparison/visual-check.png) (SI) and [`visual-check-us.png`](../work/p07-geology-unit-comparison/visual-check-us.png) (US).
+
 ```
             Water content, w (%)
       A |   ├──◆────────────────────┤                    n = 288
@@ -290,9 +292,10 @@ fig, axs = ht.plot.geology_unit_comparisons(
   - **US vs SI:** the same bar positions after conversion and the same counts;
   - no change to global `rcParams`.
 - **Test data** (synthetic CSVs in `tests/data/`):
-  - `comparison_index.csv`: 6 units, water content and bulk unit weight, a unit with n = 2, one value beyond a fixed limit, US units;
+  - `comparison_index.csv`: 6 units; water content and bulk unit weight (a unit with n = 2, a unit with none); plasticity and consistency indices in two units, with 3 NP specimens and 4 consistency indices below −0.6; US units;
   - `comparison_vane.csv`: s_u in two units, one `<` value, SI units;
-  - `comparison_baseline.csv`: long baseline for three properties, a unit with no data, one `central`-only row, mixed units declared with `baseline_units`.
+  - `comparison_perm.csv`: k in three units, cm/s;
+  - `comparison_baseline.csv`: long baseline for six properties in SI, a unit with no data, one `central`-only row, units declared with `baseline_units`.
 
 ## 13. References
 - Hyndman, R.J. & Fan, Y. (1996). Sample quantiles in statistical packages. *The American Statistician* 50(4), 361–365. Definitions of the percentile methods NumPy offers.

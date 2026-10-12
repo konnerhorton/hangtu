@@ -107,3 +107,20 @@ These fill gaps in P07. Each one goes into P07 in the commit that builds it.
   - The lowest dependency versions, as in CLAUDE.md. `numpy.percentile(method=...)` needs NumPy ≥ 1.22, and `fig.legend(loc="outside lower center")` needs matplotlib ≥ 3.7; check both on the lowest versions.
   - `uv build`, and check that the wheel's `columns.yaml` has the `baseline` template and its `defaults.yaml` has the new settings.
 - Look at both visual checks against the §2 reference figure and the "A good version" list.
+
+## Results
+- 751 tests pass on Python 3.12, 3.13 and 3.14, and with the lowest dependency versions (matplotlib 3.8.0, numpy 1.26.0, pandas 2.1.1, pint 0.24.4). The wheel's `columns.yaml` has the `baseline` template and its `defaults.yaml` has `summary_min_count` and the `grid` size.
+- **Commits:** the refactor (Build 0), then one commit per build step as planned, plus two fixes:
+  - `P07: apply non_plastic only to Atterberg values`. The realistic test data showed that applying `non_plastic` to every value dropped and counted the water contents of NP specimens. NP now applies to LL, PL, PI, LI and Ic only (P07 §3).
+  - `P07: fix problems the realistic test data showed`. A `non_plastic` column read from CSV with blanks is object dtype, and `fillna` on it raised a pandas FutureWarning. Edge arrows at the lower limit covered the unit names, which now move clear of them.
+- **Changes from the plan**, each recorded in P07 in its commit:
+  - Summary, flag and grid tests are in their own files (`test_geology_unit_summaries.py`, `test_geology_unit_flags.py`) next to the planned ones, so each file stays readable. There is no `test_values.py`: no test imported the moved helpers.
+  - `used_by` also lists P07 for `plasticity_index` and `source`.
+  - A row of the baseline with only one of `low` and `high` draws no bar and warns (P07 §8).
+  - Count labels move a further 14 pt right when a value is beyond the upper limit, so an edge arrow doesn't run into them (P07 §7).
+  - In the grid, the legend and footnote sit in a band kept free of panels, instead of `fig.legend(loc="outside lower center")`: that legend overlapped a footnote placed below it. The default figure grows by the footnote's height.
+  - The visual check has six properties from four CSVs; k comes from a fourth file, `comparison_perm.csv`.
+- `TODO.md`: no change (#16 stays open). SPEC: no change beyond the spec commit.
+- **Visual check** (`visual-check.png` in SI, `visual-check-us.png` in US, 7.5 × 9.3 in at 100 dpi): units in order with their palette colors in every panel; baseline bars above the data bars; "n = 0" for the unit with only a baseline; "n = 2 (no summary)"; the central-only k row; the cut bar and edge markers at −0.6 on the consistency index, with the unit names clear of them; the "<" caret on s_u; one legend and a footnote naming each panel. One thing to know:
+  - A value exactly at a nice limit sits on the frame and is half hidden (PI = 25 here), because P00's limits stop at the nice value above the largest value. P01 has the same behavior.
+
