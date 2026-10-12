@@ -20,7 +20,6 @@ PRESETS = {
     "water_content": ([20.0, 25.0, 30.0, 35.0], None, "percent"),
     "bulk_unit_weight": ([110.0, 115.0, 120.0, 125.0], "pcf", "unit_weight"),
 }
-LINEAR = [name for name in PRESETS if name != "hydraulic_conductivity"]
 
 
 def unit_color(ax, unit):
@@ -31,7 +30,7 @@ def unit_color(ax, unit):
 # --- renders ------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("name", LINEAR)
+@pytest.mark.parametrize("name", PRESETS)
 @pytest.mark.parametrize("vs", ["depth", "elevation"])
 def test_renders_for_every_preset_and_vs(name, vs, frame, points):
     values, unit, _ = PRESETS[name]
@@ -326,7 +325,7 @@ def test_draws_into_a_sheet_panel(assert_no_global_state, frame, points):
     assert len(points(ax)) == 4
 
 
-@pytest.mark.parametrize("name", LINEAR)
+@pytest.mark.parametrize("name", PRESETS)
 @pytest.mark.parametrize("vs", ["depth", "elevation"])
 def test_us_and_si_put_points_in_the_same_place(
     name, vs, assert_us_si_equivalent, frame
@@ -351,9 +350,6 @@ def test_us_and_si_put_points_in_the_same_place(
         {"stats_box": True},
         {"note": "draft"},
         {"intervals": True},
-        {"log": True},
-        {"xlim": (0, 1000)},
-        {"ylim": (0, 10)},
     ],
 )
 def test_arguments_not_built_yet_say_so(arguments, frame):

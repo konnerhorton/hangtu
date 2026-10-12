@@ -1,6 +1,8 @@
 """P01 property profile (docs/plots/P01-property-profile.md)."""
 
+import math
 from collections.abc import Mapping
+from numbers import Real
 from typing import Any, Literal
 
 import matplotlib.pyplot as plt
@@ -17,8 +19,14 @@ from ags_kit.plot._data import numeric_column
 from ags_kit.plot._hints import hint_missing
 from ags_kit.plot._labels import axis_label
 from ags_kit.plot._legend import add_legend
-from ags_kit.plot._limits import apply_vertical_axis, nice_limits, set_linear_axis
-from ags_kit.plot._notes import Notes
+from ags_kit.plot._limits import (
+    apply_vertical_axis,
+    log_limits,
+    nice_limits,
+    set_linear_axis,
+    set_log_axis,
+)
+from ags_kit.plot._notes import Notes, edge_markers
 from ags_kit.plot._palette import resolve_palette
 from ags_kit.plot._presets import Preset
 from ags_kit.plot._vertical import choose_vs, length_columns, vertical_values
@@ -28,6 +36,30 @@ LEGEND_WIDTH = 1.5  # inches added to the settings size for the outside legend
 NEUTRAL = "0.3"  # points not colored by a group
 MARKER_SIZE = 5.0  # points
 BLANK_GROUP = "(blank)"
+
+
+def _check_limits(name: str, limits: Any, log: bool = False) -> tuple[float, float]:
+    ok = (
+        isinstance(limits, list | tuple)
+        and len(limits) == 2
+        and all(
+            isinstance(v, Real) and not isinstance(v, bool) and math.isfinite(v)
+            for v in limits
+        )
+        and limits[0] != limits[1]
+    )
+    if not ok:
+        raise AgsKitError(
+            f"{name} must be (low, high), two different numbers in display units, "
+            f"not {limits!r}. Example: {name}=(0, 50)"
+        )
+    lo, hi = sorted(float(v) for v in limits)
+    if log and lo <= 0:
+        raise AgsKitError(
+            f"{name}={limits!r} can't be used on a log axis, because the lower "
+            f"limit must be greater than 0. Example: {name}=(1e-7, 1e-2)"
+        )
+    return lo, hi
 
 
 def _not_yet(argument: str) -> NotImplementedError:
@@ -88,23 +120,40 @@ def _typical(
 
 
 def _x_limits(
-    x: np.ndarray, *, start_at_zero: bool, typical: tuple[float, float] | None
+    x: np.ndarray,
+    *,
+    log: bool,
+    xlim: tuple[float, float] | None,
+    start_at_zero: bool,
+    typical: tuple[float, float] | None,
 ) -> tuple[float, float]:
+    if xlim is not None:
+        return xlim
     if not x.size:
         if typical is not None:
+            if log:
+                return log_limits(*typical)
             return nice_limits(*typical, start_at_zero=start_at_zero)
-        return (0.0, 1.0)
+        return (1.0, 100.0) if log else (0.0, 1.0)
     vmin, vmax = float(x.min()), float(x.max())
     if vmin == vmax and typical is not None:
         # A single value: the typical range, widened to include it (P01 §11).
         vmin, vmax = min(typical[0], vmin), max(typical[1], vmax)
+    if log:
+        return log_limits(vmin, vmax)
     return nice_limits(vmin, vmax, start_at_zero=start_at_zero)
 
 
 def _set_vertical_axis(
-    ax: Axes, vs: Literal["depth", "elevation"], y: np.ndarray
+    ax: Axes,
+    vs: Literal["depth", "elevation"],
+    y: np.ndarray,
+    ylim: tuple[float, float] | None,
 ) -> None:
-    if y.size:
+    if ylim is not None:
+        lo, hi = ylim
+        set_linear_axis(ax, "y", (hi, lo) if vs == "depth" else (lo, hi))
+    elif y.size:
         apply_vertical_axis(ax, vs, float(y.min()), float(y.max()))
     else:
         apply_vertical_axis(ax, vs, 0.0, 1.0)
@@ -242,8 +291,6 @@ def profile(
             "marker_by": marker_by,
             "connect": connect or None,
             "secondary": secondary,
-            "xlim": xlim,
-            "ylim": ylim,
             "strata": strata,
             "water_level": water_level,
             "ranges": ranges,
@@ -262,8 +309,8 @@ def profile(
     chosen = _presets.preset(preset) if preset is not None else None
     quantity = _quantity(value, chosen)
     log = chosen.log if log is None and chosen is not None else bool(log)
-    if log:
-        raise _not_yet("log=True, or a log preset")
+    xlim = _check_limits("xlim", xlim, log) if xlim is not None else None
+    ylim = _check_limits("ylim", ylim) if ylim is not None else None
     vs = choose_vs(df, vs)
 
     with style.context(**style_overrides):
@@ -290,6 +337,10 @@ def profile(
         blank = np.isnan(x) | np.isnan(y)
         notes.count(blank, "nan")
         drawn = ~blank
+        if log:
+            nonpositive = drawn & (x <= 0)
+            notes.count(nonpositive, "log_nonpositive")
+            drawn &= ~nonpositive
 
         if ax is None:
             fig, ax = _new_axes(figsize)
@@ -299,22 +350,33 @@ def profile(
 
         limits = _x_limits(
             x[drawn],
+            log=log,
+            xlim=xlim,
             start_at_zero=_start_at_zero(value, chosen),
             typical=_typical(chosen, resolved[value], system),
         )
-        set_linear_axis(ax, "x", limits)
-        _set_vertical_axis(ax, vs, y[drawn])
+        if log:
+            set_log_axis(ax, "x", limits)
+        else:
+            set_linear_axis(ax, "x", limits)
+        _set_vertical_axis(ax, vs, y[drawn], ylim)
         if xaxis_position == "top":
             ax.xaxis.tick_top()
             ax.xaxis.set_label_position("top")
 
         groups, colors = _color_groups(df, color_by, palette)
+        edge = np.zeros(len(df), dtype=bool)
         handles = []
         for group, color in colors.items():
             rows = drawn & (groups == group) if group is not None else drawn
+            if xlim or ylim:
+                edge[rows] = edge_markers(
+                    ax, x[rows], y[rows], {"x": xlim, "y": ylim}, color
+                )
+            inside = rows & ~edge
             handle = ax.scatter(
-                x[rows],
-                y[rows],
+                x[inside],
+                y[inside],
                 s=MARKER_SIZE**2,
                 color=color,
                 edgecolors="white",
@@ -324,6 +386,7 @@ def profile(
             )
             if group is not None and rows.any():
                 handles.append(handle)
+        notes.count(edge, "beyond_limit")
 
         if not drawn.any():
             ax.text(
