@@ -53,7 +53,7 @@ It ends up in GBR compliance reviews, differing site condition assessments, phas
 | *`value`* (any column, named by `value=`) | The property compared | from the preset or registry | per quantity | per quantity | per quantity | ✔ | per preset (P01 §6) | — | e.g. `LLPL.LLPL_PI`, `IVAN.IVAN_IVAN` | Must be numeric; text is an error (TODO #15) |
 | `geology_unit` | Geology unit: one row of the plot per unit | — | — | — | — | ✔ | | | mapped from GEOL | Blank → a "(blank)" row at the bottom |
 | `qualifier` | `"<"`, `">"`, or empty | — | — | — | — | – | | {"", "<", ">"} | value flags `LT`/`GT` | As P01: drawn as a caret, counted, summarized at the reported value |
-| `non_plastic` | True if the specimen was reported NP | — | — | — | — | – | | bool | value flag `NP` | Rows with `True` aren't drawn or summarized; counted as "non-plastic (NP)". Anything other than True, False or blank is an error naming the rows |
+| `non_plastic` | True if the specimen was reported NP | — | — | — | — | – | | bool | value flag `NP` | Applies to Atterberg values only (LL, PL, PI, LI, Ic): a row with `True` isn't drawn or summarized, and is counted as "non-plastic (NP)". Its water content and other values still count. Anything other than True, False or blank is an error naming the rows |
 
 **Grouping columns used:** `geology_unit` → rows, and color (default).
 

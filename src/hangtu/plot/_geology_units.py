@@ -33,6 +33,14 @@ from hangtu.plot._presets import Preset
 POINT_SIZE = 3.0  # points
 POINT_ALPHA = 0.4
 CARET_SIZE = 5.0  # points
+# Values that don't exist for a non-plastic (NP) specimen (P07 §3).
+ATTERBERG = {
+    "liquid_limit",
+    "plastic_limit",
+    "plasticity_index",
+    "liquidity_index",
+    "consistency_index",
+}
 JITTER = 0.15  # row heights either side of the center line (P07 §7)
 JITTER_SEED = 0  # the same data always gives the same figure (plan decision 4)
 BAR_WIDTH = 2.0  # points
@@ -197,9 +205,12 @@ def _rows(
     return groups, colors
 
 
-def _non_plastic(df: pd.DataFrame) -> np.ndarray:
-    """Return True for rows reported non-plastic (NP)."""
-    if "non_plastic" not in df.columns:
+def _non_plastic(df: pd.DataFrame, value: str) -> np.ndarray:
+    """Return True for rows reported non-plastic (NP), for Atterberg values.
+
+    Other values of an NP specimen, such as its water content, still count.
+    """
+    if value not in ATTERBERG or "non_plastic" not in df.columns:
         return np.zeros(len(df), dtype=bool)
     flags = df["non_plastic"]
     known = flags.isna() | flags.isin([True, False])
@@ -509,7 +520,7 @@ def _draw_panel(
         numeric_column(df, value), resolved[value], quantity, system
     )
     qualifiers = _values.qualifiers(df)
-    non_plastic = _non_plastic(df)
+    non_plastic = _non_plastic(df, value)
     panel.notes.count(non_plastic, "non_plastic")
     # Blank values are tests not done, so they are skipped, not counted (P07 §14).
     drawn = ~np.isnan(x) & ~non_plastic

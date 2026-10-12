@@ -130,6 +130,22 @@ def test_a_value_flagged_non_plastic_is_left_out():
     assert central(ax) == pytest.approx(6.0)
 
 
+def test_non_plastic_only_applies_to_atterberg_values(points):
+    df = pd.DataFrame(
+        {
+            "geology_unit": ["A"] * 6,
+            "water_content": [20.0, 21.0, 22.0, 23.0, 24.0, 25.0],
+            "plasticity_index": [np.nan, 8.0, 9.0, 10.0, 11.0, 12.0],
+            "non_plastic": [True, False, False, False, False, False],
+        }
+    )
+    _, ax = ht.plot.geology_unit_comparison(df, "water_content")
+    assert ax.ags_notes == {}
+    assert len(points(ax)) == 6
+    _, ax = ht.plot.geology_unit_comparison(df, "plasticity_index")
+    assert ax.ags_notes == {"non_plastic": 1}
+
+
 def test_non_plastic_must_be_true_or_false():
     with pytest.raises(ht.ColumnError, match="'non_plastic'"):
         ht.plot.geology_unit_comparison(
