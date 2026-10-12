@@ -106,3 +106,21 @@ These fill gaps in P01. Each one goes into P01 in the commit that builds it.
   - The lowest dependency versions, as in CLAUDE.md. `secondary_yaxis(functions=...)` and `vlines(capstyle=...)` must work on matplotlib 3.8.
   - `uv build`, and check that the wheel's `defaults.yaml` contains the presets.
 - Look at `visual-check.png` against the §2 reference figure and the "A good version" list.
+
+## Results
+- 608 tests pass on Python 3.12, 3.13 and 3.14, and with the lowest dependency versions (matplotlib 3.8.0, numpy 1.26.0, pandas 2.1.1, pint 0.24.4). `secondary_yaxis(functions=...)` works on matplotlib 3.8. The wheel's `defaults.yaml` has the four presets, and its `columns.yaml` has `fields:` and the three overlay templates.
+- **Build 3 was split in two** because it came to about 900 lines: the linear profile (`60fbc39`), then log axes and fixed limits (`c0ca924`). A further commit (`54daea3`) fixed the label clashes the visual check showed.
+- **Changes from the plan**, each recorded in P01 (or P00) in its commit:
+  - Interval bars are lines broken by NaN, not `vlines`: a `LineCollection` reports a dummy (0, 0) offset that the US/SI position checks would read as a point.
+  - `_data.py` (`numeric_column`, `rows_text`) and `_layers.py` (the §7 draw order) are new private modules. `ValueScale` in `_overlays.py` converts overlay values as `Vertical` converts positions.
+  - Length columns convert together: if any has no units, none is converted (P01 §9). `vs="depth"` also works from `elevation` plus `ground_level`.
+  - Templates list both pairs; a pair left blank counts as absent, and in `ranges` a row with a blank pair covers the full height.
+  - `add_legend` and `Notes.render` take an `offset` so the legend and footnote clear the secondary depth axis (P00 §11).
+  - Strata labels sit at the top right of each band; full-height range and reference line labels sit just above the axes when the x-axis is at the bottom.
+  - Per-hole water levels use an optional `label` column, as P01 §8 lists, falling back to `loca_id`.
+  - The stats box adds an "All" row under the units, follows the legend order, and writes numbers to 3 significant figures.
+  - The shared profile test data are fixtures in `tests/plot/conftest.py`, because `--import-mode=importlib` stops test modules importing each other.
+- `columns.yaml`: every overlay column already listed P01 in `used_by`, so no change. `TODO.md`: no change.
+- **Visual check** (`visual-check.png`, US and SI on a Letter sheet): elevation up with the datum, whole decades with `10ⁿ` labels, unit colors shared by points and strata, interval bars, the "<" caret, gray marker groups after the unit colors, the footnote counts, and the depth axis on the right with the legend clear of it. Two things to know:
+  - A value exactly on a whole decade (k = 1.0e-3 cm/s) sits on the frame, because P00's `log_limits` doesn't add a decade for it.
+  - The stats box is in the lower left, as P01 §8 places it, and can cover points there; a wider `ylim=` leaves room under the data.

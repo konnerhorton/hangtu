@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **ID / function** | P01 · `ak.plot.profile()` |
-| **Status** | approved |
+| **Status** | built |
 | **Type** | plot (no analysis, apart from computing elevation) |
 | **Target version** | v0.1 |
 | **Depends on** | P00 (framework: style, palette, unit resolution, out-of-range markers, legend rules) |
