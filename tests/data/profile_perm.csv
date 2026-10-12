@@ -1,0 +1,18 @@
+loca_id,depth,depth_top,depth_base,ground_level,hydraulic_conductivity,qualifier,source,test_type,geology_unit
+B-1,4.0,,,118.0,3.2e-4,,lab,falling head,Fill
+B-1,10.0,,,118.0,8.5e-5,,lab,falling head,Alluvium
+B-1,14.0,12.0,16.0,118.0,2.1e-4,,field,packer,Alluvium
+B-1,21.0,,,118.0,5.0e-5,,lab,falling head,Alluvium
+B-1,30.0,,,118.0,4.0e-7,<,lab,falling head,Upper Clay
+B-1,38.0,35.0,41.0,118.0,2.5e-7,,field,rising head,Upper Clay
+B-2,6.0,,,120.0,1.5e-4,,lab,falling head,Fill
+B-2,15.0,10.0,20.0,120.0,1.0e-3,,field,packer,Alluvium
+B-2,22.0,,,120.0,0.0,,lab,falling head,Alluvium
+B-2,28.0,,,120.0,6.0e-7,,lab,falling head,Upper Clay
+B-2,36.0,,,120.0,,,lab,falling head,Upper Clay
+B-2,42.0,40.0,44.0,120.0,1.8e-7,,field,rising head,Upper Clay
+B-3,5.0,,,119.5,4.5e-4,,lab,falling head,Fill
+B-3,12.0,,,119.5,1.2e-4,,lab,falling head,Alluvium
+B-3,19.0,17.0,21.0,119.5,3.5e-4,,field,packer,Alluvium
+B-3,31.0,,,119.5,3.0e-7,,lab,falling head,Upper Clay
+B-3,40.0,,,119.5,9.0e-8,,lab,falling head,Upper Clay

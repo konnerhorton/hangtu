@@ -13,6 +13,40 @@ settings:
   hammer_efficiency: null      # SPT energy ratio in %, used from M3
   spt_cap: 100                 # SPT N cap, used from M3
 
+# Plot presets (docs/plots/P01-property-profile.md §6). The preset name is the
+# registry column it plots. Typical ranges are in the quantity's canonical unit
+# (the % value for percent) and only set default axis limits for sparse data;
+# they are never used for QC (plots README, "Presets").
+presets:
+  hydraulic_conductivity:
+    column: hydraulic_conductivity
+    label: Hydraulic conductivity, k
+    quantity: hydraulic_conductivity
+    log: true
+    start_at_zero: false
+    typical: [1.0e-11, 1.0e-2]
+  undrained_shear_strength:
+    column: undrained_shear_strength
+    label: Undrained shear strength, s_u
+    quantity: stress
+    log: false
+    start_at_zero: true
+    typical: [0, 300]
+  water_content:
+    column: water_content
+    label: Water content, w
+    quantity: percent
+    log: false
+    start_at_zero: true
+    typical: [0, 100]
+  bulk_unit_weight:
+    column: bulk_unit_weight
+    label: Bulk unit weight, γ
+    quantity: unit_weight
+    log: false
+    start_at_zero: false
+    typical: [14, 23]
+
 # Quantity kinds (P00 §4.1). Units are pint expressions; text is what labels show.
 # The canonical unit is what values are converted through. Kinds with no canonical
 # unit are never converted and need no declared units.

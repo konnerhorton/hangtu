@@ -8,6 +8,7 @@ from ags_kit import _config
 
 REGISTRY = _config.load("columns.yaml")
 COLUMNS = REGISTRY["columns"]
+OVERLAY_FIELDS = REGISTRY["fields"]
 KINDS = _config.quantity_kinds()
 
 FIELDS = {"description", "type", "quantity", "scale", "label", "ags", "used_by"}
@@ -32,11 +33,17 @@ def test_quantity_kinds_match_p00_table():
     }
 
 
+def _follows_naming_rules(name):
+    return (
+        re.fullmatch(r"[a-z][a-z0-9]*(_[a-z0-9]+)*", name) is not None
+        and name not in BARE_SYMBOLS
+    )
+
+
 @pytest.mark.parametrize("name", COLUMNS)
 def test_column_entry_follows_the_rules(name):
     entry = COLUMNS[name]
-    assert re.fullmatch(r"[a-z][a-z0-9]*(_[a-z0-9]+)*", name)
-    assert name not in BARE_SYMBOLS
+    assert _follows_naming_rules(name)
     assert set(entry) <= FIELDS
     assert entry["description"]
     assert entry["type"] in {"number", "text", "bool"}
@@ -50,17 +57,27 @@ def test_column_entry_follows_the_rules(name):
         assert {"quantity", "scale", "label"}.isdisjoint(entry)
 
 
+@pytest.mark.parametrize("name", OVERLAY_FIELDS)
+def test_overlay_field_follows_the_rules(name):
+    entry = OVERLAY_FIELDS[name]
+    assert _follows_naming_rules(name)
+    assert set(entry) == {"description", "type"}
+    assert entry["description"]
+    assert entry["type"] in {"number", "text", "bool"}
+
+
 def test_names_are_unique():
     # yaml.safe_load keeps the last of two equal keys, so check the raw file.
+    # Column and field names share one namespace.
     text = files("ags_kit").joinpath("columns.yaml").read_text(encoding="utf-8")
     names = re.findall(r"^  ([a-z0-9_]+):\s*$", text, flags=re.MULTILINE)
-    assert len(names) == len(set(names)) == len(COLUMNS)
+    assert len(names) == len(set(names)) == len(COLUMNS) + len(OVERLAY_FIELDS)
 
 
 @pytest.mark.parametrize("name", REGISTRY["templates"])
 def test_template_columns_are_registered(name):
     columns = REGISTRY["templates"][name]
-    assert set(columns) <= set(COLUMNS)
+    assert set(columns) <= set(COLUMNS) | set(OVERLAY_FIELDS)
     assert len(columns) == len(set(columns))
 
 
@@ -96,6 +113,33 @@ def test_template_is_an_empty_frame_with_typed_columns():
     assert frame["liquid_limit"].dtype == "float64"
     assert frame["loca_id"].dtype == "object"
     assert frame["non_plastic"].dtype == "bool"
+
+
+PAIRS = ["depth_top", "depth_base", "elevation_top", "elevation_base"]
+
+
+@pytest.mark.parametrize(
+    ("name", "columns"),
+    [
+        ("strata", ["geology_unit", *PAIRS]),
+        ("ranges", ["low", "high", "label", "source", *PAIRS]),
+        ("design_lines", ["label", "depth", "elevation", "value"]),
+    ],
+)
+def test_overlay_templates_follow_p01(name, columns):
+    frame = ak.template(name)
+    assert list(frame.columns) == columns
+    text = {"geology_unit", "label", "source"}
+    for column in frame.columns:
+        assert frame[column].dtype == ("object" if column in text else "float64")
+
+
+def test_columns_lists_overlay_fields_only_for_their_template():
+    assert "low" not in set(ak.columns()["name"])
+    table = ak.columns("ranges").set_index("name")
+    assert list(table.index) == REGISTRY["templates"]["ranges"]
+    assert table.loc["low", ["quantity", "us_unit", "used_by"]].tolist() == ["", "", ""]
+    assert table.loc["depth_top", "us_unit"] == "ft"
 
 
 def test_template_csv_has_one_header_row(tmp_path):

@@ -217,6 +217,19 @@ Open research points:
 
 ---
 
+## Plots
+
+### 15. Count non-numeric values in the value column · You + Claude · P01 §3, §8; plots README "Out-of-range data"
+- **Problem:** text in a value column (`NP`, `refusal`, `-`, …) can't be drawn. In M2, P01 raises an error naming the non-numeric rows, so nothing is dropped silently, but the user has to clean the column before plotting.
+- **Wanted:** draw the numeric values, count the rest in the footnote, and optionally in the stats box (e.g. "n = 12, plus 2 NP"), keeping flagged values distinct from blanks (CLAUDE.md, "Never drop data silently").
+- **To decide:**
+  - Which strings are recognized flags (NP, refusal, …) and how they map to the existing `Notes` reasons (`non_plastic`, `refusal`)?
+  - Is unrecognized text counted under a generic reason, or still an error?
+  - How do the stats box and `describe()` show these counts?
+- **Timing:** before P06 (water content profile with Atterberg limits), where NP values are common.
+
+---
+
 ## Test data
 
 ### 14. Public AGS datasets · Claude + You · SPEC §12.3

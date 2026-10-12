@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from matplotlib.artist import Artist
 from matplotlib.axes import Axes
 from matplotlib.legend import Legend
+from matplotlib.transforms import offset_copy
 
 from ags_kit.plot._notes import Notes
 
@@ -14,7 +15,10 @@ MAX_ENTRIES = 30
 
 
 def add_legend(
-    ax: Axes, sections: Sequence[Sequence[Artist]], notes: Notes
+    ax: Axes,
+    sections: Sequence[Sequence[Artist]],
+    notes: Notes,
+    offset: float = 0.0,
 ) -> Legend | None:
     """Add the legend outside the axes on the right.
 
@@ -28,6 +32,9 @@ def add_legend(
     notes
         The plot's notes. With more than 30 entries the legend is left out
         and a note points to ``ak.plot.legend_handles()`` instead.
+    offset
+        Extra space in points between the axes and the legend, e.g. for a
+        secondary axis on the right.
 
     Returns
     -------
@@ -48,6 +55,7 @@ def add_legend(
         handles=handles,
         loc="upper left",
         bbox_to_anchor=(1.02, 1.0),
+        bbox_transform=offset_copy(ax.transAxes, ax.figure, x=offset, units="points"),
         borderaxespad=0.0,
         frameon=False,
         fontsize=8,
