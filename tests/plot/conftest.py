@@ -5,6 +5,7 @@ import copy
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import pytest
 
 from ags_kit import units
@@ -143,6 +144,48 @@ def assert_us_si_equivalent(plot_fn, df, quantities, **kwargs):
     for us_xy, si_xy in zip(us_points, si_points, strict=True):
         np.testing.assert_allclose(us_xy * to_si, si_xy, rtol=1e-9)
     assert us.ags_notes == si.ags_notes
+
+
+def profile_frame(
+    value="undrained_shear_strength",
+    values=(500.0, 1000.0, 1500.0, 2000.0),
+    unit="psf",
+    **columns,
+):
+    """Profile data: two holes with every optional column, lengths in ft.
+
+    ``unit=None`` leaves the value's units undeclared. ``columns`` add or
+    replace columns.
+    """
+    data = {
+        "loca_id": ["A", "A", "B", "B"],
+        "depth": [5.0, 10.0, 15.0, 20.0],
+        "ground_level": [120.0, 120.0, 120.0, 120.0],
+        "geology_unit": ["Fill", "Fill", "Clay", "Clay"],
+        value: list(values),
+        **columns,
+    }
+    df = pd.DataFrame(data)
+    declared = {"depth": "ft", "ground_level": "ft"}
+    if unit:
+        declared[value] = unit
+    return units.set_units(df, declared)
+
+
+def drawn_points(ax):
+    """Every scatter point drawn on ``ax``, as one (n, 2) array."""
+    offsets = [c.get_offsets() for c in ax.collections if len(c.get_offsets())]
+    return np.concatenate(offsets) if offsets else np.empty((0, 2))
+
+
+@pytest.fixture(name="frame")
+def _frame():
+    return profile_frame
+
+
+@pytest.fixture(name="points")
+def _points():
+    return drawn_points
 
 
 @pytest.fixture(name="dummy_plot")

@@ -231,6 +231,9 @@ fig, ax = ak.plot.profile(su, "undrained_shear_strength", preset="undrained_shea
 | Values beyond `xlim`/`ylim` | Edge marker + arrow + count |
 | `depth_top` > `depth_base` | Bar not drawn for that row; warning naming the row |
 | A `geology_unit` value not in the palette | Auto-assigned a color, which is remembered for the session |
+| Rows with a blank `geology_unit` (or `color_by` column) | Drawn in the neutral gray and listed as "(blank)" at the end of the unit legend. A unit with no point drawn gets no legend entry |
+| `preset=` for a different quantity than a registered `value` column (e.g. `preset="water_content"` on `undrained_shear_strength`) | Error naming both quantities |
+| Text in the `value` or a length column (`"NP"`, `"12 ft"`) | Error naming the rows. Counting flagged text such as `NP` is TODO #15 |
 | More than 12 / 30 legend entries | README legend rules (columns / note) |
 | Duplicate rows | Plotted as given (no de-duplication in plots) |
 | `secondary="depth"` with several ground levels | Clear error (§6) |
