@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from numbers import Real
 from typing import Any, Literal
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -220,7 +221,7 @@ def _non_plastic(df: pd.DataFrame, value: str) -> np.ndarray:
             f"{rows_text(df.index[~known])} hold something else. Mark NP "
             "specimens True and leave their value blank."
         )
-    return flags.fillna(False).to_numpy(dtype=bool)
+    return flags.eq(True).to_numpy(dtype=bool)
 
 
 def _set_unit_axis(ax: Axes, names: list[Any]) -> None:
@@ -568,6 +569,9 @@ def _draw_panel(
     carets = {q: marker for q, (marker, *_) in _values.QUALIFIERS.items()}
     right_edge = points and xlim is not None and bool((x[drawn] > xlim[1]).any())
     gap = COUNT_GAP + (EDGE_GAP if right_edge else 0.0)
+    if points and xlim is not None and (x[drawn] < xlim[0]).any():
+        # Clear the edge arrows on the left, so they don't cover the unit names.
+        ax.yaxis.set_tick_params(pad=mpl.rcParams["ytick.major.pad"] + EDGE_GAP)
     edge = np.zeros(len(df), dtype=bool)
     for unit, color in colors.items():
         these = drawn & (unit_of == unit)

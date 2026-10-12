@@ -73,6 +73,17 @@ def test_count_labels_clear_an_arrow_at_the_right_edge():
     assert count_label(ax).xyann[0] > plain + 10
 
 
+def test_unit_names_clear_an_arrow_at_the_left_edge():
+    _, ax = ht.plot.geology_unit_comparison(
+        frame(ONE_TO_TEN), "consistency_index", xlim=(0, 12)
+    )
+    plain = ax.yaxis.get_major_ticks()[0].get_pad()
+    _, ax = ht.plot.geology_unit_comparison(
+        frame([*ONE_TO_TEN, -3.0]), "consistency_index", xlim=(0, 12)
+    )
+    assert ax.yaxis.get_major_ticks()[0].get_pad() > plain + 10
+
+
 def test_bad_xlim_is_an_error():
     with pytest.raises(ht.HangtuError, match="xlim must be"):
         ht.plot.geology_unit_comparison(
