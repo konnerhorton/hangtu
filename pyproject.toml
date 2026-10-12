@@ -1,6 +1,6 @@
 [project]
 name = "hangtu"
-version = "0.1.0.dev0"
+version = "0.0.1"
 description = "Plots and analyses for geotechnical engineers, in US or SI units; AGS4 and DIGGS data ingest planned"
 readme = "README.md"
 requires-python = ">=3.12"
