@@ -22,6 +22,7 @@ from hangtu.plot._labels import axis_label
 from hangtu.plot._legend import add_legend
 from hangtu.plot._limits import (
     apply_vertical_axis,
+    nice_limits,
     nice_step,
     set_linear_axis,
     set_log_axis,
@@ -58,10 +59,9 @@ ROOM_MARGIN = 0.02  # axes fraction between the stats box and the lowest data
 SECONDARY_SPACE = 42.0  # points between the axes and the legend for a depth axis
 # Marker shapes for marker_by groups: ● ■ ▲ ◆ ▼ ✚ ✖ ⬟ ⬢ ★ (P01 §7).
 MARKER_CYCLE = ("o", "s", "^", "D", "v", "P", "X", "p", "h", "*")
-QUALIFIER_ORDER = [marker for marker, *_ in _values.QUALIFIERS.values()]
-CARETS = set(QUALIFIER_ORDER)
 CONNECT_WIDTH = 0.6  # points
 CONNECT_ALPHA = 0.6
+CLEAR_FACTOR = 1.05  # x-limit at least the nice value above 1.05 x clear_of (P02 §6)
 
 
 def _room_below_data(ax: Axes, box: Text, lowest: float) -> None:
@@ -189,17 +189,19 @@ def _draw_points(
     color: Any,
     label: str,
     limits: Mapping[str, tuple[float, float] | None],
+    flag_sizes: Mapping[str, float],
 ) -> np.ndarray:
     """Draw one color group's points, one collection per marker shape.
 
-    Returns the mask of rows drawn at the edge of fixed limits.
+    ``flag_sizes`` maps each flag marker (qualifier caret, refusal) to its
+    size. Returns the mask of rows drawn at the edge of fixed limits.
     """
     edge = np.zeros(len(x), dtype=bool)
     present = set(markers[rows])
     shapes = [m for m in MARKER_CYCLE if m in present]
-    shapes += [m for m in QUALIFIER_ORDER if m in present]
+    shapes += [m for m in flag_sizes if m in present]
     for i, marker in enumerate(shapes):
-        caret = marker in CARETS
+        caret = marker in flag_sizes
         these = rows & (markers == marker)
         if any(limits.values()):
             edge[these] = edge_markers(ax, x[these], y[these], limits, color, marker)
@@ -207,7 +209,7 @@ def _draw_points(
         ax.scatter(
             x[inside],
             y[inside],
-            s=(_values.CARET_SIZE if caret else MARKER_SIZE) ** 2,
+            s=(flag_sizes[marker] if caret else MARKER_SIZE) ** 2,
             marker=marker,
             color=color,
             edgecolors="white",
@@ -354,6 +356,85 @@ def profile(
     >>> fig, ax = ht.plot.profile(k, "hydraulic_conductivity",
     ...                           preset="hydraulic_conductivity")
     """
+    return _draw_profile(
+        df,
+        value,
+        vs=vs,
+        preset=preset,
+        log=log,
+        label=label,
+        color_by=color_by,
+        marker_by=marker_by,
+        connect=connect,
+        intervals=intervals,
+        xlim=xlim,
+        ylim=ylim,
+        xaxis_position=xaxis_position,
+        secondary=secondary,
+        strata=strata,
+        water_level=water_level,
+        ranges=ranges,
+        design_lines=design_lines,
+        reference_lines=reference_lines,
+        stats_box=stats_box,
+        stats_box_room=stats_box_room,
+        note=note,
+        palette=palette,
+        units=units,
+        display_units=display_units,
+        figsize=figsize,
+        ax=ax,
+        **style_overrides,
+    )
+
+
+def _draw_profile(
+    df: pd.DataFrame,
+    value: str,
+    *,
+    vs: Literal["elevation", "depth"] | None = None,
+    preset: str | None = None,
+    log: bool | None = None,
+    label: str | None = None,
+    color_by: str | None = "geology_unit",
+    marker_by: str | None = None,
+    connect: bool = False,
+    intervals: bool | Literal["auto"] = "auto",
+    xlim: tuple[float, float] | None = None,
+    ylim: tuple[float, float] | None = None,
+    xaxis_position: Literal["top", "bottom"] = "bottom",
+    secondary: Literal["depth"] | None = None,
+    strata: pd.DataFrame | None = None,
+    water_level: float | list[tuple[float, str]] | pd.DataFrame | None = None,
+    ranges: pd.DataFrame | str | None = None,
+    design_lines: pd.DataFrame | None = None,
+    reference_lines: list[tuple[float, str]] | None = None,
+    stats_box: bool | list[str] = False,
+    stats_box_room: bool = True,
+    note: str | None = None,
+    palette: dict[str, str] | None = None,
+    units: dict[str, str] | None = None,
+    display_units: Literal["US", "SI"] | None = None,
+    figsize: tuple[float, float] | None = None,
+    ax: Axes | None = None,
+    flags: np.ndarray | None = None,
+    flag_kinds: Mapping[str, _values.Flag] = _values.QUALIFIERS,
+    clear_of: float | None = None,
+    extra_hints: Mapping[str, str] | None = None,
+    **style_overrides: Any,
+) -> tuple[Figure, Axes]:
+    """Draw a profile: ``profile()`` and the plots built on it (P02).
+
+    The arguments are ``profile()``'s, plus:
+
+    - ``flags``: each row's key into ``flag_kinds``, or ``""``. None reads the
+      ``qualifier`` column (P01).
+    - ``flag_kinds``: ``{key: Flag}``, how each flag is drawn and counted.
+    - ``clear_of``: a value the x-axis upper limit stays clear of, so markers
+      drawn there aren't on the frame (P02 refusals at the cap).
+    - ``extra_hints``: ``{column: what is lost without it}``, added to the
+      optional-column hint.
+    """
     if value not in df.columns:
         raise ColumnError(
             f"Column {value!r} not found. Available columns: "
@@ -394,6 +475,7 @@ def profile(
             optional = {"geology_unit": "points are not colored by geology", **optional}
         if vs == "depth":
             optional["ground_level"] = "elevations can't be computed"
+        optional.update(extra_hints or {})
         hint_missing(df, optional)
 
         resolved = _units.resolve_units(
@@ -407,7 +489,8 @@ def profile(
         y, vertical = vertical_values(df, vs, resolved, system)
         if secondary == "depth":
             check_secondary_depth(vertical)
-        qualifiers = _values.qualifiers(df)
+        if flags is None:
+            flags = _values.qualifiers(df)
         bounds = _intervals(df, intervals, resolved, vertical)
 
         notes = Notes()
@@ -438,6 +521,12 @@ def profile(
             start_at_zero=_values.start_at_zero(value, chosen),
             typical=_values.typical_range(chosen, resolved[value], system),
         )
+        if clear_of is not None and xlim is None and not log:
+            # Leave room beyond clear_of so markers there aren't on the frame.
+            clear = nice_limits(
+                limits[0], CLEAR_FACTOR * clear_of, start_at_zero=limits[0] >= 0
+            )[1]
+            limits = (limits[0], max(limits[1], clear))
         if log:
             set_log_axis(ax, "x", limits)
         else:
@@ -470,11 +559,12 @@ def profile(
 
         groups, colors = _values.color_groups(df, color_by, palette)
         marker_groups, shapes = _marker_groups(df, marker_by)
-        carets = {q: marker for q, (marker, *_) in _values.QUALIFIERS.items()}
+        flag_markers = {key: kind.marker for key, kind in flag_kinds.items()}
+        flag_sizes = {kind.marker: kind.size for kind in flag_kinds.values()}
         markers = np.array(
             [
-                carets.get(q, shapes.get(group, MARKER_CYCLE[0]))
-                for q, group in zip(qualifiers, marker_groups, strict=True)
+                flag_markers.get(key, shapes.get(group, MARKER_CYCLE[0]))
+                for key, group in zip(flags, marker_groups, strict=True)
             ],
             dtype=object,
         )
@@ -485,7 +575,15 @@ def profile(
         for group, color in colors.items():
             rows = drawn & (groups == group) if group is not None else drawn
             group_edge = _draw_points(
-                ax, x, y, rows, markers, color, str(group), {"x": xlim, "y": ylim}
+                ax,
+                x,
+                y,
+                rows,
+                markers,
+                color,
+                str(group),
+                {"x": xlim, "y": ylim},
+                flag_sizes,
             )
             edge |= group_edge
             these = bars & rows & ~group_edge
@@ -502,7 +600,7 @@ def profile(
             for group, shape in shapes.items()
             if (drawn & (marker_groups == group)).any()
         ]
-        qualified = _values.qualifier_handles(np.where(drawn, qualifiers, ""), notes)
+        flagged = _values.flag_handles(np.where(drawn, flags, ""), flag_kinds, notes)
 
         if not drawn.any():
             ax.text(
@@ -541,6 +639,6 @@ def profile(
         if secondary == "depth":
             add_secondary_depth(ax, vertical)
         offset = SECONDARY_SPACE if secondary else 0.0
-        add_legend(ax, [unit_handles, shape_handles, qualified], notes, offset)
+        add_legend(ax, [unit_handles, shape_handles, flagged], notes, offset)
         notes.render(ax, offset)
     return fig, ax

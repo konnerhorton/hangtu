@@ -25,7 +25,7 @@ tests/data/
 
 ## Decisions the build makes
 These fill gaps in P02. Any that changes what a user sees goes into P02 in the commit that builds it.
-1. **One drawing function for P01 and P02.** A refactor commit splits `profile()` into argument checks and a private `_draw_profile(df, value, *, flags, preset, ...)`, with no change in behavior. `flags` is a per-row array of keys into a mapping `{key: Flag(marker, size, legend_text, reason)}`. P01 builds it from `qualifier` (`_values.QUALIFIERS` becomes `Flag`s); P02 builds it from `spt_refusal`. Overlays, limits, legend, stats box and notes are then shared, not copied.
+1. **One drawing function for P01 and P02.** A refactor commit moves the body of `profile()`, argument checks included (P02 needs the same checks), into a private `_draw_profile(df, value, *, ..., flags, flag_kinds, clear_of, extra_hints)`; `profile()` passes its arguments through. No change in behavior. `flags` is a per-row array of keys into a mapping `{key: Flag(marker, size, legend_text, reason)}`. P01 builds it from `qualifier` (`_values.QUALIFIERS` becomes `Flag`s); P02 builds it from `spt_refusal`. Overlays, limits, legend, stats box and notes are then shared, not copied.
 2. **`spt_profile()` is a thin wrapper:** check `n` and `refusal`, run `ht.analysis.spt(df, hammer_efficiency=, cap=, units=)`, set the refusal rows' value to the cap (or drop them with a count), apply the N60 rules, then call `_draw_profile()` with the preset named by `n`.
 3. **Refusals drawn at the cap are flagged rows**, with marker ▶ (`">"` filled), 6 pt, legend text "refusal", reason `refusal`. Out of range they go through `edge_markers` like P01 qualifiers, so they're counted both ways.
 4. **Footnote text with fields.** `Notes.add` and `Notes.count` take keyword fields that fill the reason's text, so `refusal` reads "{n} refusal{s}, shown at {column} = {cap}" ("2 refusals, shown at N = 100"). Counts in `ax.ags_notes` stay plain integers by reason. The existing `refusal` text is only used by tests so far; it changes to the field form.
@@ -35,7 +35,7 @@ These fill gaps in P02. Any that changes what a user sees goes into P02 in the c
 8. **Hints:** P01's hint dictionary, plus `spt_refusal` when both `spt_refusal` and `spt_penetration` are missing ("refusals can't be found"). `_draw_profile()` takes the extra hint entries from its caller.
 9. **The refusal and N60 errors use `HangtuError`.** A missing `spt_n` is the analysis's `ColumnError`, unchanged.
 
-## Build 0 (refactor): `P01: split profile() into checks and a shared drawing function`
+## Build 0 (refactor): `P01: draw profiles through a shared function with flags`
 - `_values.Flag`; `_draw_profile()` with `flags`, `clear_of` and extra hints (decisions 1, 6, 8), all with P01's behavior when unused.
 - Tests: the P01 and P07 tests pass unchanged.
 

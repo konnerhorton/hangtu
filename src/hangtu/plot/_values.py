@@ -1,13 +1,13 @@
-"""Value-axis helpers shared by the plots (P01, P07).
+"""Value-axis helpers shared by the plots (P01, P02, P07).
 
-Limits, labels, presets, unit colors and qualifiers for the axis that carries
-the plotted property.
+Limits, labels, presets, unit colors and flagged values (qualifiers,
+refusals) for the axis that carries the plotted property.
 """
 
 import math
 from collections.abc import Mapping
 from numbers import Real
-from typing import Any
+from typing import Any, NamedTuple
 
 import numpy as np
 import pandas as pd
@@ -25,10 +25,21 @@ from hangtu.registry import column_info
 NEUTRAL = "0.3"  # points not colored by a group
 CARET_SIZE = 6.0  # points
 BLANK_GROUP = "(blank)"
-# Qualifier -> (marker, size, legend text, notes reason) (P01 §3, §7).
+
+
+class Flag(NamedTuple):
+    """How a flagged value is drawn: in place of its marker, and counted."""
+
+    marker: str
+    size: float  # points
+    text: str  # legend text, before the count
+    reason: str  # notes reason (_notes.REASONS)
+
+
+# Qualifier -> flag (P01 §3, §7).
 QUALIFIERS = {
-    "<": ("<", CARET_SIZE, "less than", "less_than"),
-    ">": (">", CARET_SIZE, "greater than", "greater_than"),
+    "<": Flag("<", CARET_SIZE, "less than", "less_than"),
+    ">": Flag(">", CARET_SIZE, "greater than", "greater_than"),
 }
 
 
@@ -160,14 +171,24 @@ def qualifiers(df: pd.DataFrame) -> np.ndarray:
     return qualifiers.to_numpy(dtype=object)
 
 
-def qualifier_handles(qualifiers: np.ndarray, notes: Notes) -> list[Line2D]:
-    """Count qualified values and return their legend entries."""
+def flag_handles(
+    flags: np.ndarray, kinds: Mapping[str, Flag], notes: Notes
+) -> list[Line2D]:
+    """Count flagged values by kind and return their legend entries.
+
+    ``flags`` holds each row's key into ``kinds``, or ``""`` for none.
+    """
     handles = []
-    for qualifier, (marker, size, text, reason) in QUALIFIERS.items():
-        n = notes.count(qualifiers == qualifier, reason)
+    for key, (marker, size, text, reason) in kinds.items():
+        n = notes.count(flags == key, reason)
         if n:
             handles.append(legend_marker(marker, NEUTRAL, f"{text} ({n})", size))
     return handles
+
+
+def qualifier_handles(qualifiers: np.ndarray, notes: Notes) -> list[Line2D]:
+    """Count qualified values and return their legend entries."""
+    return flag_handles(qualifiers, QUALIFIERS, notes)
 
 
 def legend_marker(marker: str, color: Any, label: str, size: float) -> Line2D:
