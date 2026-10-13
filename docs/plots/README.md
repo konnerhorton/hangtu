@@ -74,7 +74,7 @@ Data for all of these already exists in the MVP scope. P00 is the foundation the
 |---|---|---|---|---|---|
 | P00 | **Plot framework**: house style, palette, unit-aware labels, out-of-range markers, legend rules, `Sheet` | `ht.plot.style`, `ht.Sheet` | infrastructure | Everything depends on this. Includes units for DataFrames and the column registry | [built](P00-framework.md) |
 | P01 | **Property profile**: any property against depth or elevation, linear or log axis. Presets for permeability (log), undrained shear strength, moisture content, unit weight | `profile` | plot | Foundation for P02, P06 and P09 | [built](P01-property-profile.md) |
-| P02 | **SPT N profile**: N and/or N60 against elevation or depth, refusal markers, optional per-hole lines | `spt_profile` | plot + light analysis (N60, refusal, mid-drive depth) | P01 | idea |
+| P02 | **SPT N profile**: N or N60 against elevation or depth, refusal markers, optional per-hole lines | `spt_profile` | plot + light analysis (`ht.analysis.spt`) | P01 | [approved](P02-spt-profile.md) |
 | P03 | **SPT qualitative histograms**: cohesionless (relative density) and cohesive (consistency) | `spt_histogram`, `spt_histograms` | plot + classification | P00 | idea |
 | P04 | **Plasticity chart**: USCS or BS 5930, A/U lines, zones, NP count | `plasticity_chart` | plot + classification | P00 | idea |
 | P05 | **Grain size distribution**: curves, envelope per unit, sieve axis, D-value markers | `grain_size` | plot + analysis (Dx, Cu, Cc, gradation) | P00 | idea |
