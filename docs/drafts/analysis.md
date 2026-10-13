@@ -58,7 +58,7 @@ spt_class(df, *, n="spt_n", table="cohesionless") -> pandas.Series
 Returns each test's class as an ordered categorical, in table order with "Refusal" last. It runs `spt()` on `df` first, so the refusal rule is the same.
 
 - **Which table** is the user's call: they pick `table=` and pass the rows it applies to. `soil_class` isn't read.
-- **Which value:** the column named by `n` (`spt_n`, `spt_n60` or `spt_n_capped`).
+- **Which value:** the column named by `n` (`spt_n`, `spt_n60` or `spt_n_capped`). For N60, set `ht.settings.hammer_efficiency`, fill in `energy_ratio`, or run `spt()` first with `hammer_efficiency=`; what `spt()` filled in is kept.
 - **Lower bound inclusive:** a class runs from its lower bound up to, not including, the next one. N = 0 is "very loose", N = 10 "medium dense", N = 50 "very dense".
 - **A refusal** is "Refusal" only, whatever its N. A blank value gives a blank class.
 
@@ -81,10 +81,11 @@ Sources: Terzaghi & Peck (1948); Peck, Hanson & Thornburn (1974). User-defined b
 Each says what is wrong, where (the rows, listed as the plots do) and what to do (SPEC §11).
 - No `spt_n` column: list the columns available.
 - `spt_n` not numeric, or negative.
-- `energy_ratio` or `hammer_efficiency` outside (0, 100].
+- `energy_ratio` or `hammer_efficiency` outside (0, 100]. The hint says an energy ratio of 0.8 is entered as 80.
+- `cap` not a positive whole number.
 - `spt_refusal` holding something other than the values above.
 - `spt_penetration` with no units when a row needs it (`UnitsError`, with the `set_units` example).
-- `spt_class`: an unknown `table` (list the two), or an `n` column that doesn't exist.
+- `spt_class`: an unknown `table` (list the two); `n` other than the three columns in §1.4; negative values in the `n` column (an `spt_n60` filled in by the user).
 
 ### 1.6 Acceptance criteria and golden values
 Worked by hand.

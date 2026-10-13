@@ -60,3 +60,14 @@ These are implementation choices §1 leaves open. Any that changes what a user s
 ## Verification
 - After each build: `uv run ruff check . && uv run ruff format --check . && uv run pytest`.
 - At close-out: Python 3.13 and 3.14 (`uv run --isolated --python 3.1x pytest`); the lowest dependency versions, as in CLAUDE.md; `uv build`, and check that the wheel has `config/spt_classes.yaml` and `spt_class` in `columns.yaml`.
+
+## Results
+- 814 tests pass on Python 3.12, 3.13 and 3.14, and with the lowest dependency versions (matplotlib 3.8.0, numpy 1.26.0, pandas 2.1.1, pint 0.24.4, pyyaml 6.0.1). The wheel has `hangtu/analysis/`, `config/spt_classes.yaml`, and `spt_class` in `columns.yaml`.
+- **Commits:** a refactor first, then one commit per build step as planned.
+  - `analysis: move the column readers out of the plot package`. `rows_text` and `numeric_column` moved from `plot/_data.py` to `hangtu/_data.py` (decision 6), so `ht.analysis` doesn't import `ht.plot`.
+- **Changes from the plan**, each recorded in §1 in the close-out:
+  - `spt_refusal` cells are read one at a time rather than with pandas `fillna`, which raised a FutureWarning on an object column read from CSV with blanks (decision 2).
+  - §1.5 lists the `cap=` error, the energy-ratio hint, and the `spt_class` errors as built: `n` limited to the three N columns, and a negative `spt_n60` filled in by the user.
+  - §1.4 says how to get N60 classes: the setting, `energy_ratio`, or `spt()` first. `spt_class()` takes no `hammer_efficiency=` of its own.
+- **For P02 and P03:** with no `spt_refusal` and no `spt_penetration` column, `spt()` finds no refusals and says nothing. The plots should give the hint in P02 decision 8. An `energy_ratio` of 0.8 is accepted as 0.8 %; only 0 and values over 100 are errors.
+- `TODO.md`: #4 closed; #3 no longer blocks P03. SPEC: no change beyond the spec commit.
