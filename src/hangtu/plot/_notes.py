@@ -11,14 +11,17 @@ from matplotlib.axes import Axes
 from matplotlib.text import Annotation
 from numpy.typing import ArrayLike
 
-# Footnote wording by reason. {n} is the count, {s} the plural ending.
+# Footnote wording by reason. {n} is the count, {s} the plural ending, and
+# {where} optional detail a plot sets with Notes.set_where (P02: the cap).
 REASONS = {
     "nan": "{n} blank value{s} not shown",
     "log_nonpositive": "{n} value{s} ≤ 0 not shown on log axis",
     "beyond_limit": "{n} value{s} beyond axis limit, shown at the edge",
     "less_than": "{n} value{s} reported as less than (<)",
     "greater_than": "{n} value{s} reported as greater than (>)",
-    "refusal": "{n} refusal{s}",
+    "refusal": "{n} refusal{s}{where}",
+    "refusal_excluded": "{n} refusal{s} not shown",
+    "no_energy_ratio": "{n} test{s} without an energy ratio not shown",
     "non_plastic": "{n} non-plastic (NP) value{s}",
 }
 
@@ -40,6 +43,7 @@ class Notes:
     def __init__(self) -> None:
         self.counts: dict[str, int] = {}
         self.texts: list[str] = []
+        self.where: dict[str, str] = {}
 
     def add(self, reason: str, n: int) -> None:
         """Add ``n`` values excluded or marked for ``reason`` (a key of REASONS)."""
@@ -56,6 +60,14 @@ class Notes:
         self.add(reason, n)
         return n
 
+    def set_where(self, reason: str, text: str) -> None:
+        """Add detail to a reason's wording, e.g. ", shown at N = 100"."""
+        if reason not in REASONS:
+            raise ValueError(
+                f"Unknown reason {reason!r}. Reasons: {', '.join(REASONS)}."
+            )
+        self.where[reason] = text
+
     def add_text(self, text: str) -> None:
         """Add a free-text line to the footnote, e.g. a note replacing the legend."""
         self.texts.append(text)
@@ -63,7 +75,9 @@ class Notes:
     def lines(self) -> list[str]:
         """Return the footnote lines, in the order of REASONS, then free text."""
         counts = [
-            REASONS[reason].format(n=n, s="" if n == 1 else "s")
+            REASONS[reason].format(
+                n=n, s="" if n == 1 else "s", where=self.where.get(reason, "")
+            )
             for reason in REASONS
             if (n := self.counts.get(reason))
         ]

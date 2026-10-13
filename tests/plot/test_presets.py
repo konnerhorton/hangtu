@@ -11,13 +11,14 @@ P01_PRESETS = [
     "water_content",
     "bulk_unit_weight",
 ]
+P02_PRESETS = ["spt_n", "spt_n60", "spt_n_capped"]
 
 
-def test_the_p01_presets_ship():
-    assert preset_names() == P01_PRESETS
+def test_the_p01_and_p02_presets_ship():
+    assert preset_names() == P01_PRESETS + P02_PRESETS
 
 
-@pytest.mark.parametrize("name", P01_PRESETS)
+@pytest.mark.parametrize("name", P01_PRESETS + P02_PRESETS)
 def test_preset_matches_the_registry(name):
     entry = preset(name)
     info = column_info(entry.column)
@@ -34,6 +35,9 @@ def test_preset_matches_the_registry(name):
         ("undrained_shear_strength", False, True),
         ("water_content", False, True),
         ("bulk_unit_weight", False, False),
+        ("spt_n", False, True),
+        ("spt_n60", False, True),
+        ("spt_n_capped", False, True),
     ],
 )
 def test_preset_scale_follows_p01(name, log, start_at_zero):
