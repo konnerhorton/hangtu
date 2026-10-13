@@ -70,6 +70,19 @@ def test_one_hint_per_call_listing_every_missing_column():
     assert record[0].filename == __file__
 
 
+def test_columns_the_caller_found_missing_join_the_one_hint():
+    # The columns are in df (an analysis added them), but weren't in the input.
+    df = pd.DataFrame(columns=["depth", "geology_unit", "spt_refusal"])
+    with pytest.warns(ht.HangtuHint) as record:
+        missing = hint_missing(df, OPTIONAL, {"spt_refusal": "refusals can't be found"})
+    assert missing == ["loca_id", "spt_refusal"]
+    assert len(record) == 1
+    assert str(record[0].message).startswith(
+        "No 'loca_id' column: connect= is unavailable. "
+        "No 'spt_refusal' column: refusals can't be found."
+    )
+
+
 def test_no_hint_when_nothing_is_missing():
     df = pd.DataFrame(columns=list(OPTIONAL))
     with warnings.catch_warnings():

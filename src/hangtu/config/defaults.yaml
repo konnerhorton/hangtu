@@ -48,6 +48,28 @@ presets:
     log: false
     start_at_zero: false
     typical: [14, 23]
+  # SPT (P02 §6). N is a count and never converts.
+  spt_n:
+    column: spt_n
+    label: SPT N
+    quantity: count
+    log: false
+    start_at_zero: true
+    typical: [0, 50]
+  spt_n60:
+    column: spt_n60
+    label: SPT N60
+    quantity: count
+    log: false
+    start_at_zero: true
+    typical: [0, 50]
+  spt_n_capped:
+    column: spt_n_capped
+    label: SPT N (capped)
+    quantity: count
+    log: false
+    start_at_zero: true
+    typical: [0, 50]
 
 # Quantity kinds (P00 §4.1). Units are pint expressions; text is what labels show.
 # The canonical unit is what values are converted through. Kinds with no canonical

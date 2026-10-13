@@ -32,7 +32,7 @@ These fill gaps in P02. Any that changes what a user sees goes into P02 in the c
 5. **New reasons:** `refusal_excluded` "{n} refusal{s} not shown"; `no_energy_ratio` "{n} test{s} without an energy ratio not shown".
 6. **X upper limit with refusals:** after P01's limits are worked out, if any refusal is drawn and `xlim` isn't given, the upper limit becomes `nice_limits(0, 1.05 × cap)`'s upper bound when that is higher (120 for a cap of 100). This happens in `_draw_profile()` through a `clear_of=` value, so the limit logic stays in one place.
 7. **Stats box with refusals:** the values summarized are the drawn ones, so refusals count at the cap (SPEC §4). When any are included, the footnote adds "Statistics include refusals at N = 100" through `Notes.add_text`.
-8. **Hints:** P01's hint dictionary, plus `spt_refusal` when both `spt_refusal` and `spt_penetration` are missing ("refusals can't be found"). `_draw_profile()` takes the extra hint entries from its caller.
+8. **Hints:** P01's hint dictionary, plus `spt_refusal` when both `spt_refusal` and `spt_penetration` are missing from the input ("refusals can't be found"). The check is on the user's `df`, since the analysis output always has `spt_refusal`: `hint_missing()` takes a third argument, `{column: reason}` for columns the caller found missing, which join the one hint. `_draw_profile()` passes its `extra_hints` there.
 9. **The refusal and N60 errors use `HangtuError`.** A missing `spt_n` is the analysis's `ColumnError`, unchanged.
 
 ## Build 0 (refactor): `P01: draw profiles through a shared function with flags`

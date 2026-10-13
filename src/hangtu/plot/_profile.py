@@ -432,8 +432,9 @@ def _draw_profile(
     - ``flag_kinds``: ``{key: Flag}``, how each flag is drawn and counted.
     - ``clear_of``: a value the x-axis upper limit stays clear of, so markers
       drawn there aren't on the frame (P02 refusals at the cap).
-    - ``extra_hints``: ``{column: what is lost without it}``, added to the
-      optional-column hint.
+    - ``extra_hints``: ``{column: what is lost without it}`` for columns the
+      caller found missing (P02 checks its input before the analysis adds
+      columns). They join the one optional-column hint.
     """
     if value not in df.columns:
         raise ColumnError(
@@ -475,8 +476,7 @@ def _draw_profile(
             optional = {"geology_unit": "points are not colored by geology", **optional}
         if vs == "depth":
             optional["ground_level"] = "elevations can't be computed"
-        optional.update(extra_hints or {})
-        hint_missing(df, optional)
+        hint_missing(df, optional, extra_hints)
 
         resolved = _units.resolve_units(
             df,
