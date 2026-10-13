@@ -71,7 +71,7 @@ As P01: single panel, the `profile` size, portrait.
 ## 6. Axes
 As P01, with:
 - **X axis:** the column `n`: linear, from 0. Label from the registry: "SPT N", "SPT N60" or "SPT N (capped)", with no unit.
-- **X limits:** P00's nice limits over the drawn values, at least the preset's typical range (0–50). When refusals are drawn at the cap, the upper limit is the nice limit above 1.05 × cap (120 for a cap of 100), so the markers aren't on the frame. `xlim=` overrides, as P01.
+- **X limits:** as P01: nice limits over the drawn values from 0, with the preset's typical range (0–50) used only for sparse data (plots README, "Presets"). When refusals are drawn at the cap, the upper limit is the nice limit above 1.05 × cap (120 for a cap of 100), so the markers aren't on the frame. `xlim=` overrides, as P01.
 - **Presets** `spt_n`, `spt_n60` and `spt_n_capped` in `config/defaults.yaml`: quantity count, linear, start at zero, typical [0, 50]. The preset is picked from `n`; there is no `preset=` or `log=` argument.
 
 ## 7. Data marks
