@@ -421,6 +421,7 @@ def _draw_profile(
     flag_kinds: Mapping[str, _values.Flag] = _values.QUALIFIERS,
     clear_of: float | None = None,
     extra_hints: Mapping[str, str] | None = None,
+    notes: Notes | None = None,
     **style_overrides: Any,
 ) -> tuple[Figure, Axes]:
     """Draw a profile: ``profile()`` and the plots built on it (P02).
@@ -435,6 +436,8 @@ def _draw_profile(
     - ``extra_hints``: ``{column: what is lost without it}`` for columns the
       caller found missing (P02 checks its input before the analysis adds
       columns). They join the one optional-column hint.
+    - ``notes``: footnote counts and text the caller has already collected,
+      e.g. rows it left out (P02 excluded refusals). None starts empty.
     """
     if value not in df.columns:
         raise ColumnError(
@@ -493,7 +496,7 @@ def _draw_profile(
             flags = _values.qualifiers(df)
         bounds = _intervals(df, intervals, resolved, vertical)
 
-        notes = Notes()
+        notes = Notes() if notes is None else notes
         blank = np.isnan(x) | np.isnan(y)
         notes.count(blank, "nan")
         drawn = ~blank

@@ -91,3 +91,22 @@ def test_no_edge_markers_when_everything_fits():
     mask = edge_markers(ax, [1.0, 2.0], [1.0, np.nan], {"x": (0, 5)}, color="C0")
     assert not mask.any()
     assert not ax.collections
+
+
+def test_where_adds_detail_to_a_reason():
+    notes = Notes()
+    notes.add("refusal", 2)
+    notes.set_where("refusal", ", shown at N = 100")
+    notes.add("refusal_excluded", 1)
+    notes.add("no_energy_ratio", 3)
+    assert notes.lines() == [
+        "2 refusals, shown at N = 100",
+        "1 refusal not shown",
+        "3 tests without an energy ratio not shown",
+    ]
+    assert notes.counts == {"refusal": 2, "refusal_excluded": 1, "no_energy_ratio": 3}
+
+
+def test_where_for_an_unknown_reason_raises():
+    with pytest.raises(ValueError, match="Unknown reason 'cap'"):
+        Notes().set_where("cap", "x")

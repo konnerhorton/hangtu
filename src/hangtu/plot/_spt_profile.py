@@ -11,10 +11,13 @@ from hangtu import analysis
 from hangtu._settings import settings
 from hangtu.errors import HangtuError
 from hangtu.plot import _values
+from hangtu.plot._notes import Notes
 from hangtu.plot._profile import _draw_profile
 
 N_COLUMNS = ("spt_n", "spt_n60", "spt_n_capped")
 REFUSAL_OPTIONS = ("cap", "exclude")
+# How the footnote names the plotted value (P02 §7).
+AXIS_SYMBOL = {"spt_n": "N", "spt_n60": "N60", "spt_n_capped": "N"}
 # A refusal drawn at the cap: a filled triangle pointing right (P02 §7).
 REFUSAL = "refusal"
 REFUSAL_FLAGS = {
@@ -114,13 +117,39 @@ def spt_profile(
     """
     _check_choice("n", n, N_COLUMNS)
     _check_choice("refusal", refusal, REFUSAL_OPTIONS)
-    if refusal == "exclude":
-        raise NotImplementedError('refusal="exclude" is built in P02 build 2.')
     data = analysis.spt(df, hammer_efficiency=hammer_efficiency, cap=cap, units=units)
     cap = settings.spt_cap if cap is None else cap  # checked by the analysis
     refused = data["spt_refusal"].to_numpy(dtype=bool)
-    data[n] = np.where(refused, float(cap), data[n].to_numpy(dtype=float))
-    flags = np.where(refused, REFUSAL, "").astype(object)
+    values = data[n].to_numpy(dtype=float)
+    notes = Notes()
+    keep = np.ones(len(data), dtype=bool)
+
+    if n == "spt_n60":
+        reported = data["spt_n"].to_numpy(dtype=float)
+        if np.isfinite(reported).any() and not np.isfinite(values).any():
+            raise HangtuError(
+                "No test has N60, because no energy ratio is known. Set "
+                "ht.settings.hammer_efficiency = 80, pass hammer_efficiency=80, "
+                "or fill in 'energy_ratio'. Or plot N with n=\"spt_n\"."
+            )
+        # Tests with an N but no N60 had no energy ratio. Blank N is P01's "nan".
+        no_ratio = np.isnan(values) & np.isfinite(reported) & ~refused
+        notes.count(no_ratio, "no_energy_ratio")
+        keep &= ~no_ratio
+
+    if refusal == "exclude":
+        notes.count(refused, "refusal_excluded")
+        keep &= ~refused
+        clear_of = None
+    else:
+        values = np.where(refused, float(cap), values)
+        notes.set_where("refusal", f", shown at {AXIS_SYMBOL[n]} = {cap}")
+        clear_of = float(cap) if refused.any() else None
+        if stats_box is not False and refused.any():
+            notes.add_text(f"Statistics include refusals at {AXIS_SYMBOL[n]} = {cap}")
+    data[n] = values
+    data = data.loc[keep]
+    flags = np.where(refused[keep], REFUSAL, "").astype(object)
 
     hints = {}
     if not {"spt_refusal", "spt_penetration"} & set(df.columns):
@@ -157,5 +186,7 @@ def spt_profile(
         flags=flags,
         flag_kinds=REFUSAL_FLAGS,
         extra_hints=hints,
+        notes=notes,
+        clear_of=clear_of,
         **style_overrides,
     )
