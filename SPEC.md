@@ -330,7 +330,7 @@ ht.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
 | M2b | **P07** property by geology unit (moved ahead of M3 from M5) | P07 acceptance criteria met |
 | M3 | **P02–P03** + SPT analysis | P02/P03 criteria + SPT golden tests |
 | M4 | **P04–P06** + classification and gradation analyses | P04–P06 criteria + classification/Dx golden tests |
-| M5 | Examples, CSV templates, README/tutorial; PyPI name check → **v0.1.0 on PyPI** | Examples run from a clean `pip install` |
+| M5 | Examples, CSV templates, README/tutorial → **v0.1.0 on PyPI** | Examples run from a clean `pip install` |
 | M6 | Feedback round; Phase 2 design closed (**TODO 0b**) | Decisions recorded in SPEC |
 | M7+ | Phase 2 milestones (ingest → QC → joins/datasets), then Phase 3 | Defined at M6 |
 
