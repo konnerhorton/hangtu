@@ -1,0 +1,25 @@
+# SPT class tables (docs/drafts/analysis.md §1.4). Each class runs from its
+# lower bound up to, not including, the next class's lower bound (lower bound
+# inclusive), so N = 10 is "Medium dense". The last class has no upper bound.
+# Classes are listed from the lowest N up; the first lower bound is 0.
+
+cohesionless:
+  description: Relative density of cohesionless soils
+  source: Terzaghi & Peck (1948); Peck, Hanson & Thornburn (1974)
+  classes:
+    - {name: Very loose, lower: 0}
+    - {name: Loose, lower: 4}
+    - {name: Medium dense, lower: 10}
+    - {name: Dense, lower: 30}
+    - {name: Very dense, lower: 50}
+
+cohesive:
+  description: Consistency of cohesive soils
+  source: Terzaghi & Peck (1948)
+  classes:
+    - {name: Very soft, lower: 0}
+    - {name: Soft, lower: 2}
+    - {name: Medium stiff, lower: 4}
+    - {name: Stiff, lower: 8}
+    - {name: Very stiff, lower: 15}
+    - {name: Hard, lower: 30}

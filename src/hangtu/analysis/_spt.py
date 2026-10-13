@@ -7,12 +7,15 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from hangtu import _config
 from hangtu import units as _units
 from hangtu._data import numeric_column, rows_text
 from hangtu._settings import settings
 from hangtu.errors import ColumnError, HangtuError
 
 REFUSAL_PENETRATION = 450.0  # mm: seating plus test drive (§1.3)
+REFUSAL_CLASS = "Refusal"
+N_COLUMNS = ("spt_n", "spt_n60", "spt_n_capped")
 _TRUE = {"true", "yes", "1", "1.0"}
 _FALSE = {"false", "no", "0", "0.0"}
 
@@ -194,3 +197,79 @@ def spt(
     result["spt_n60"] = n60
     result["spt_n_capped"] = capped
     return result
+
+
+def class_table(table: str) -> tuple[list[str], np.ndarray]:
+    """Return a class table's names and lower bounds, from the lowest N up."""
+    tables = _config.load("config/spt_classes.yaml")
+    if table not in tables:
+        raise HangtuError(
+            f"There is no SPT class table named {table!r}. Tables: "
+            f'{", ".join(map(repr, tables))}. Example: table="cohesive"'
+        )
+    classes = tables[table]["classes"]
+    names = [entry["name"] for entry in classes]
+    lowers = np.array([entry["lower"] for entry in classes], dtype=float)
+    return names, lowers
+
+
+def spt_class(
+    df: pd.DataFrame, *, n: str = "spt_n", table: str = "cohesionless"
+) -> pd.Series:
+    """Classify SPT tests by relative density or consistency (analysis.md §1.4).
+
+    Each class runs from its lower bound up to, not including, the next one, so
+    N = 0 is "Very loose" and N = 10 is "Medium dense". A refusal is
+    "Refusal", whatever its N, and a blank value gives a blank class.
+
+    Which table applies is the engineer's call: pick ``table`` and pass the rows
+    it applies to. The data first goes through ``ht.analysis.spt()``, so the
+    refusal rule is the same.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        One row per SPT test, as for ``ht.analysis.spt()``.
+    n : {"spt_n", "spt_n60", "spt_n_capped"}
+        The value classified. For N60, set ``ht.settings.hammer_efficiency``,
+        fill in ``energy_ratio``, or run ``ht.analysis.spt()`` first with
+        ``hammer_efficiency=``.
+    table : {"cohesionless", "cohesive"}
+        Relative density (very loose to very dense) or consistency (very soft
+        to hard). The tables are in ``config/spt_classes.yaml``.
+
+    Returns
+    -------
+    pandas.Series
+        An ordered categorical named ``spt_class``, with the table's classes
+        from the lowest N up and "Refusal" last, on the index of ``df``.
+
+    Examples
+    --------
+    >>> sand = spt[spt["geology_unit"] == "Alluvial sand"]
+    >>> ht.analysis.spt_class(sand, table="cohesionless").value_counts(sort=False)
+    """
+    if n not in N_COLUMNS:
+        raise HangtuError(
+            f"n must be one of {', '.join(map(repr, N_COLUMNS))}, not {n!r}. "
+            'Example: n="spt_n60"'
+        )
+    names, lowers = class_table(table)
+    result = spt(df)
+    values = numeric_column(result, n)
+    negative = values < 0
+    if negative.any():
+        raise HangtuError(
+            f"Column {n!r} has negative values in rows "
+            f"{rows_text(result.index[negative])}. Blow counts are 0 or more."
+        )
+    refusal = result["spt_refusal"].to_numpy(dtype=bool)
+    blank = np.isnan(values) & ~refusal
+    position = np.searchsorted(lowers, np.nan_to_num(values), side="right") - 1
+    categories = [*names, REFUSAL_CLASS]
+    codes = np.where(refusal, len(names), np.where(blank, -1, position))
+    return pd.Series(
+        pd.Categorical.from_codes(codes, categories=categories, ordered=True),
+        index=df.index,
+        name="spt_class",
+    )
