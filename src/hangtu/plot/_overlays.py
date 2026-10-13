@@ -20,9 +20,9 @@ from matplotlib.patches import Rectangle
 from matplotlib.text import Text
 from matplotlib.transforms import blended_transform_factory, offset_copy
 
+from hangtu._data import numeric_column, rows_text
 from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.plot import _layers
-from hangtu.plot._data import numeric_column, rows_text
 from hangtu.plot._palette import resolve_palette
 from hangtu.plot._vertical import VS, Vertical, convert_pair, convert_vertical
 from hangtu.units import parse_quantity, read_csv, to_display, units_of

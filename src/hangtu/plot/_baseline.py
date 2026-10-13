@@ -13,8 +13,8 @@ import numpy as np
 import pandas as pd
 
 from hangtu import units as _units
+from hangtu._data import numeric_column, rows_text
 from hangtu.errors import ColumnError, HangtuError, warn
-from hangtu.plot._data import numeric_column, rows_text
 from hangtu.plot._overlays import ValueScale
 from hangtu.registry import column_info
 

@@ -18,11 +18,11 @@ from matplotlib.ticker import NullLocator
 from matplotlib.transforms import blended_transform_factory
 
 from hangtu import units as _units
+from hangtu._data import numeric_column, rows_text
 from hangtu._settings import _display_units, settings
 from hangtu.errors import ColumnError, HangtuError
 from hangtu.plot import _layers, _presets, _values, style
 from hangtu.plot._baseline import Baseline, legend_text, read_baseline
-from hangtu.plot._data import numeric_column, rows_text
 from hangtu.plot._labels import axis_label
 from hangtu.plot._legend import add_legend
 from hangtu.plot._limits import set_linear_axis, set_log_axis

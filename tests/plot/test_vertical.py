@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 import hangtu as ht
-from hangtu.plot._data import numeric_column
+from hangtu._data import numeric_column
 from hangtu.plot._vertical import (
     Vertical,
     choose_vs,
