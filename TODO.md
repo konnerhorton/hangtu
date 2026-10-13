@@ -46,10 +46,10 @@ Items to think through or research. Each item notes who owns it and the SPEC.md 
 
 ## Geology and classification
 
-### 3. `soil_class` categories · You · docs/drafts/analysis.md §1, SPEC §8.3
+### 3. `soil_class` categories · You · SPEC §8.3
 - **Current draft:** `coarse | fine | organic | fill | rock`.
+- **No longer needed for the SPT histograms (P03):** the user picks the class table and passes the rows it applies to (M3 intent, decision 6). `soil_class` could later pick the table automatically.
 - **What depends on it:**
-  - SPT histograms: cohesive vs cohesionless (§8.1);
   - USCS organic flags (§8.2);
   - future tooling that suggests a class from lab data.
 - **Questions:**
@@ -57,12 +57,6 @@ Items to think through or research. Each item notes who owns it and the SPEC.md 
   - Do you need `intermediate`, e.g. silty sand with PI < 7?
   - How should fill be handled (by its dominant behavior)?
   - Is rock (weathered, IGM) worth separating?
-
-### 4. SPT classification tables · You · docs/drafts/analysis.md §1 · needed for P03
-Written to `src/hangtu/config/spt_classes.yaml` (Terzaghi & Peck 1948 / Peck, Hanson & Thornburn 1974) for you to confirm:
-- the boundaries;
-- the boundary convention (lower bound inclusive);
-- whether to classify on N or N60 by default.
 
 ### 5. Plasticity and gradation systems · Claude (verify) · docs/drafts/analysis.md §2–3 · needed for P04–P05 (Phase 1)
 Verify against the source standards during M5:
@@ -241,6 +235,7 @@ You are also looking. Candidates found so far:
 - A helper for deciding cohesive vs cohesionless from lab data (fines %, PI).
 
 ## Done
+- ✅ #4 SPT classification tables decided (2026-10-13): the Terzaghi & Peck / Peck, Hanson & Thornburn boundaries, lower bound inclusive, classified on whichever N column the user names (default `spt_n`). In `src/hangtu/config/spt_classes.yaml`; spec in docs/drafts/analysis.md §1.4. User-defined bins come later.
 - ✅ #0c Repo published on GitHub; the full CI matrix (Windows, macOS, Linux × Python 3.12–3.14) and the `lowest` job are green, so M0 is done (2026-10-12). 0.0.1 is on PyPI, released by `release.yml` (SPEC §12.1).
 - ✅ #1 `pcf` and #2 SPT N per 12 in decided (2026-10-11). Recorded in P00 §4.3; the follow-ups that only matter on ingest are in docs/drafts/phase2-data.md (Units on ingest, items 5–6).
 - ✅ AGS heading names in SPEC checked against the python-ags4 dictionaries 4.0.3–4.2 (2026-10-10). All present. Version notes are in docs/drafts/phase2-data.md (Versions).

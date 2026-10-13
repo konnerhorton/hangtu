@@ -15,9 +15,9 @@ from matplotlib.axes import Axes
 from matplotlib.ticker import MultipleLocator
 from numpy.typing import ArrayLike
 
+from hangtu._data import numeric_column
 from hangtu._settings import _display_units, settings
 from hangtu.errors import ColumnError, HangtuError
-from hangtu.plot._data import numeric_column
 from hangtu.plot._labels import axis_label
 from hangtu.plot._limits import nice_step
 from hangtu.units import to_display

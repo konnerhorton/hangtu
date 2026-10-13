@@ -234,6 +234,11 @@ columns:
     type: bool
     ags: ["derived: docs/drafts/analysis.md §1"]
     used_by: [P02, P03]
+  spt_class:
+    description: SPT relative-density or consistency class, or Refusal
+    type: text
+    ags: ["derived: docs/drafts/analysis.md §1.4"]
+    used_by: [P03]
 
   # --- Atterberg limits (P04, P06) ---------------------------------------------------------
   liquid_limit:

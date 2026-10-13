@@ -136,7 +136,7 @@ Full conventions are in [`docs/plots/README.md`](docs/plots/README.md); each fig
 ---
 
 ## 4. Analyses (Phase 1 unless noted)
-Analysis code lives in `ht.analysis.*`, as plain functions usable without plotting. Detail (SPT refusal and N60, plasticity systems, classification, Dx/Cu/Cc) is in the draft spec [`docs/drafts/analysis.md`](docs/drafts/analysis.md) (§1 SPT, §2 Atterberg, §3 grain size). Decisions that more than one plot depends on:
+Analysis code lives in `ht.analysis.*`, as plain functions usable without plotting. Detail is in [`docs/drafts/analysis.md`](docs/drafts/analysis.md): §1 SPT (refusal, N60, cap, classes) is decided; §2 Atterberg and §3 grain size are drafts until M4. Decisions that more than one plot depends on:
 - **SPT refusals** are included by default at the cap value (`spt_cap = 100`) with a note. Statistics treat them as censored.
 - **N60** stays NULL until an energy ratio or `hammer_efficiency` is given. There is no default.
 - **NP** is distinct from blank everywhere and shown as a count on plots.
@@ -195,8 +195,9 @@ Apply in both phases. In Phase 1 they are applied by the analysis functions to t
 ### 8.2 Test depth
 | Data | Depth used (decided) | `depth_basis` |
 |---|---|---|
-| SPT | Middle of the test drive: `top + seating penetration + test penetration / 2`, from the increment penetrations | `mid_drive` |
-| SPT, increments missing | 🟡 `top + 300 mm`. If total penetration is under 450 mm: `top + total − 150 mm` (not less than `top`) | `mid_drive_nominal` |
+| SPT (Phase 2, AGS) | Middle of the test drive: `top + seating penetration + test penetration / 2`, from the increment penetrations | `mid_drive` |
+| SPT (Phase 2), increments missing | 🟡 `top + 300 mm`. If total penetration is under 450 mm: `top + total − 150 mm` (not less than `top`) | `mid_drive_nominal` |
+| SPT (Phase 1, CSV) | `depth` as given; the template has no increments (decided, analysis.md §1.2) | — |
 | Lab tests | Specimen depth → else sample midpoint → else sample top | `spec_depth` / `sample_mid` / `sample_top` |
 | Field permeability | Midpoint of the test zone | `zone_mid` |
 | Intervals (geology, samples) | Top and base kept as-is | — |
@@ -337,7 +338,7 @@ ht.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
 ---
 
 ## 13. Open questions
-1. **SPT nominal mid-drive fallback** (§8.2): OK as proposed?
+1. **SPT nominal mid-drive fallback** (§8.2): OK as proposed? Deferred to Phase 2, since CSV input uses `depth` as given.
 2. **`index_properties()` specimen combining:** when one sample has several specimens of a test, use the one nearest the other test's depth and flag it, or keep every combination?
 3. **Docs site** for v0.1.0, or README + examples only?
 4. **Phase 1 data entry beyond CSV:** is `read_csv` + templates enough for the first feedback round? Or should v0.1 include a thin `ht.read_ags()` that returns python-ags4 tables converted to SI, without the database or QC, so testers can try plots on real AGS files? This would mean building part of Phase 2 (units on ingest) early. 🟡 Lean: CSV first; add `read_ags` only if testers ask.

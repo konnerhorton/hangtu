@@ -13,10 +13,10 @@ from matplotlib.patches import Patch
 from matplotlib.text import Text
 
 from hangtu import units as _units
+from hangtu._data import numeric_column, rows_text
 from hangtu._settings import _display_units, settings
 from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.plot import _layers, _presets, _values, style
-from hangtu.plot._data import numeric_column, rows_text
 from hangtu.plot._hints import hint_missing
 from hangtu.plot._labels import axis_label
 from hangtu.plot._legend import add_legend

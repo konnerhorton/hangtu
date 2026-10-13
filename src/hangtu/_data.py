@@ -1,4 +1,4 @@
-"""Reading plot input columns."""
+"""Reading input columns, shared by the plots and the analyses."""
 
 import numpy as np
 import pandas as pd

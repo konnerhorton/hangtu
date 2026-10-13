@@ -14,8 +14,8 @@ import pandas as pd
 from matplotlib.lines import Line2D
 
 from hangtu import units as _units
+from hangtu._data import rows_text
 from hangtu.errors import ColumnError, HangtuError
-from hangtu.plot._data import rows_text
 from hangtu.plot._limits import log_limits, nice_limits
 from hangtu.plot._notes import Notes
 from hangtu.plot._palette import resolve_palette

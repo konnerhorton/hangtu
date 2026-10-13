@@ -2,7 +2,7 @@
 
 from importlib.metadata import version
 
-from hangtu import plot
+from hangtu import analysis, plot
 from hangtu._settings import settings
 from hangtu.errors import ColumnError, HangtuError, HangtuHint, UnitsError
 from hangtu.registry import columns, template
@@ -24,6 +24,7 @@ __all__ = [
     "Sheet",
     "UnitsError",
     "add_unit_alias",
+    "analysis",
     "columns",
     "define_unit",
     "plot",
