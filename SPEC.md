@@ -266,7 +266,7 @@ k = ht.read_csv("perm.csv", units={"depth": "ft", "hydraulic_conductivity": "cm/
 
 fig, ax = ht.plot.profile(k, value="hydraulic_conductivity", preset="hydraulic_conductivity")       # log axis, P01
 fig, ax = ht.plot.spt_profile(spt, vs="elevation")                   # P02
-fig, axs = ht.plot.spt_histograms(spt)                               # P03
+fig, ax = ht.plot.spt_histogram(spt, table="cohesionless")           # P03
 fig, ax = ht.plot.plasticity_chart(atterberg, system="uscs")         # P04
 
 sheet = ht.Sheet(size="tabloid", layout=(1, 2), title="Site X")
