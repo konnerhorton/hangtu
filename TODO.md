@@ -42,11 +42,6 @@ Items to think through or research. Each item notes who owns it and the SPEC.md 
 
 **Timing:** with plots first (SPEC §1.3), nothing in Phase 1 depends on this decision. It must be settled at M6, before Phase 2 (ingest and database) starts.
 
-### 0c. Publish the repo and confirm M0 CI · You + Claude · SPEC §12.1, §12.4
-M0 was verified locally only (Linux, Python 3.12–3.14, plus the lowest dependency versions).
-- Create the public GitHub repo, add the remote, and push `main`.
-- Confirm that the full matrix (Windows and macOS included) and the `lowest` job are green. M0's "done when" is met only then.
-
 ---
 
 ## Geology and classification
@@ -246,5 +241,6 @@ You are also looking. Candidates found so far:
 - A helper for deciding cohesive vs cohesionless from lab data (fines %, PI).
 
 ## Done
+- ✅ #0c Repo published on GitHub; the full CI matrix (Windows, macOS, Linux × Python 3.12–3.14) and the `lowest` job are green, so M0 is done (2026-10-12). 0.0.1 is on PyPI, released by `release.yml` (SPEC §12.1).
 - ✅ #1 `pcf` and #2 SPT N per 12 in decided (2026-10-11). Recorded in P00 §4.3; the follow-ups that only matter on ingest are in docs/drafts/phase2-data.md (Units on ingest, items 5–6).
 - ✅ AGS heading names in SPEC checked against the python-ags4 dictionaries 4.0.3–4.2 (2026-10-10). All present. Version notes are in docs/drafts/phase2-data.md (Versions).

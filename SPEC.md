@@ -34,7 +34,7 @@
 - **Project model** (decided): open source, developed independently. Published on **PyPI** and public GitHub under the **MIT** license. No company data is used in development or testing.
 - **Name** (decided): **`hangtu`**, imported as `import hangtu as ht`. It replaces the working name `ags-kit`, which tied the package to one file format and could look endorsed by the AGS trade body.
   - Keep "AGS" and "DIGGS" in the PyPI description, keywords and README, so the package is still easy to find.
-  - Check that the name is still free on PyPI right before the first release (M5).
+  - The name is claimed on PyPI by the 0.0.1 placeholder release (§12.1).
 
 ### 1.2 Formats
 | Format | Role | When |
@@ -297,7 +297,8 @@ ht.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
 ### 12.1 Environment and distribution
 - Python ≥ 3.12, developed with `uv`.
 - PyPI + public GitHub, MIT license.
-- **CI:** GitHub Actions on Windows, macOS and Linux × Python 3.12–3.14 (ruff + pytest). Release to PyPI on tag (trusted publishing).
+- **CI:** GitHub Actions on Windows, macOS and Linux × Python 3.12–3.14 (ruff + pytest). Release to PyPI on a `v*` tag (trusted publishing, `release.yml`): the tag must match the version in `pyproject.toml`, and the test suite runs against the built wheel on all three operating systems before upload. A manual run publishes to TestPyPI instead.
+- **0.0.1** is a placeholder release that claims the name on PyPI before v0.1 (decided 2026-10-12). It contains the M2b state: P00, P01 and P07.
 - **Phase 1 dependencies:** `pandas>=2.1.1,<3`, `numpy>=1.26`, `matplotlib>=3.8`, `pint>=0.24.4`, `pyyaml>=6.0.1`. Each floor is the oldest release that installs and imports on Python 3.12 with current transitive dependencies, and a lowest-version CI job keeps it honest.
 - **Phase 2 adds** `python-ags4` (LGPL-3.0, used unmodified, which is compatible with MIT).
 - **Phase 3 adds** `scipy>=1.11`.
@@ -329,7 +330,7 @@ ht.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
 | M2b | **P07** property by geology unit (moved ahead of M3 from M5) | P07 acceptance criteria met |
 | M3 | **P02–P03** + SPT analysis | P02/P03 criteria + SPT golden tests |
 | M4 | **P04–P06** + classification and gradation analyses | P04–P06 criteria + classification/Dx golden tests |
-| M5 | Examples, CSV templates, README/tutorial; PyPI name check → **v0.1.0 on PyPI** | Examples run from a clean `pip install` |
+| M5 | Examples, CSV templates, README/tutorial → **v0.1.0 on PyPI** | Examples run from a clean `pip install` |
 | M6 | Feedback round; Phase 2 design closed (**TODO 0b**) | Decisions recorded in SPEC |
 | M7+ | Phase 2 milestones (ingest → QC → joins/datasets), then Phase 3 | Defined at M6 |
 
