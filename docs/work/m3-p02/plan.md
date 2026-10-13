@@ -67,3 +67,17 @@ These fill gaps in P02. Any that changes what a user sees goes into P02 in the c
 - After each build: `uv run ruff check . && uv run ruff format --check . && uv run pytest`.
 - At close-out: Python 3.13 and 3.14 (`uv run --isolated --python 3.1x pytest`); the lowest dependency versions, as in CLAUDE.md; `uv build`, and check the wheel's `defaults.yaml` has the SPT presets.
 - Look at the visual check against the §2 reference figure and the "A good version" list.
+
+## Results
+- 867 tests pass on Python 3.12, 3.13 and 3.14, and with the lowest dependency versions (matplotlib 3.8.0, numpy 1.26.0, pandas 2.1.1, pint 0.24.4). The wheel has `plot/_spt_profile.py` and the three SPT presets in `defaults.yaml`.
+- **Commits:** one per build step, as planned. The acceptance counts against `tests/data/spt.csv` matched the hand counts the first time.
+- **Changes from the plan**, each recorded here in its commit:
+  - Build 0 moved `profile()`'s whole body, checks included, into `_draw_profile()` (decision 1).
+  - Build 1: the refusal hint could never fire, because `_draw_profile()` checked the analysis output, which always has `spt_refusal`. `hint_missing()` now takes columns the caller found missing (decision 8).
+  - Build 2: footnote detail comes from `Notes.set_where()` and a `notes=` argument to `_draw_profile()`, not a field on `Flag`, so P07 is untouched (decisions 4 and 7).
+  - `columns.yaml` needed no change: every column P02 reads already listed it.
+- **P02 spec:** status `built`; the hint and N60 error texts as built; with no N at all, `n="spt_n60"` shows "No data" rather than the energy-ratio error; `refusal="exclude"` doesn't extend the axis.
+- `TODO.md`: no change. SPEC: no change.
+- **Visual check** (`visual-check.png`, Letter, 100 dpi): N in US with `connect=True` beside N60 in SI, with strata and a water level. Refusals at 100 clear of the frame (axis to 120), the hole lines running out to them, and the footnotes "5 refusals, shown at N = 100" and "N60 = 100" with "36 tests without an energy ratio not shown". Two things to know, both P01 behavior:
+  - the legend lists units alphabetically (Alluvial sand before Fill), not in stratigraphic order; `palette=` or the session palette sets colors, but there is no `order=` in P01;
+  - the strata in the figure are idealized, so a few points sit just outside their band.

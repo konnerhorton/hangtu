@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **ID / function** | P02 · `ht.plot.spt_profile()` (uses `ht.analysis.spt()`) |
-| **Status** | approved |
+| **Status** | built |
 | **Type** | plot + light analysis |
 | **Target version** | v0.1 (milestone M3) |
 | **Depends on** | P00, P01, the SPT analysis (`docs/drafts/analysis.md` §1) |
@@ -51,7 +51,7 @@ Shows SPT N (or N60) against elevation or depth for many holes at once, colored 
 
 **Test depth** is `depth` as given (analysis §1.2, SPEC §8.2). The mid-drive depth from the increments is Phase 2. If the depths are the top of each test, the points sit up to 0.45 m (1.5 ft) high; the docstring says to give the mid-drive depth when it is known.
 
-**Hints** (one per call, as P01): P01's list, plus "No `spt_refusal` or `spt_penetration` column: refusals can't be found" when both are missing.
+**Hints** (one per call, as P01): P01's list, plus "No 'spt_refusal' column: refusals can't be found. Add it, or 'spt_penetration' with its units." when both columns are missing from the input.
 
 **Value flags handled:**
 - refusal: a right-pointing filled triangle ▶ at the cap, or left out and counted (§7);
@@ -80,7 +80,7 @@ As P01, plus:
 | Series | Mark | Color by | Size | Legend entry | Notes |
 |---|---|---|---|---|---|
 | Refusal, `refusal="cap"` | filled triangle ▶ at x = cap | unit color | 6 pt | ✔ gray ▶ "refusal (n)" | Footnote "n refusals, shown at N = 100" (the cap and N or N60 as plotted). Replaces the normal marker. Beyond `xlim`, drawn open at the edge and counted both ways, as P01 qualifiers |
-| Refusal, `refusal="exclude"` | none | — | — | — | Footnote "n refusals not shown" |
+| Refusal, `refusal="exclude"` | none | — | — | — | Footnote "n refusals not shown". The x-axis isn't extended for the cap |
 
 - **Refusals are drawn at the cap whichever column is plotted.** A refusal is a refusal; its N60 isn't meaningful as a number.
 - **A non-refusal value above the cap is drawn at its value.** N60 is not capped (analysis §1.3), so N = 90 with ER = 80 is drawn at 120.
@@ -150,7 +150,7 @@ As P01, plus:
 |---|---|
 | No `spt_n` column | The analysis's error, listing the columns |
 | `n="spt_n60"`, some tests without N60 | Those tests left out (refusals still drawn at the cap) and counted: "n tests without an energy ratio not shown" |
-| `n="spt_n60"`, no test has N60 | Error: "No test has N60, because no energy ratio is known. Set ht.settings.hammer_efficiency = 80, pass hammer_efficiency=80, or fill in 'energy_ratio'." |
+| `n="spt_n60"`, no test has N60 | Error: "No test has N60, because no energy ratio is known. Set ht.settings.hammer_efficiency = 80, pass hammer_efficiency=80, or fill in 'energy_ratio'. Or plot N with n="spt_n"." With no N at all, there is no error: the plot shows "No data" |
 | `n` or `refusal` not one of the allowed values | Error listing them, with an example |
 | Refusal with a blank N | Drawn at the cap |
 | Refusal with N above the cap (e.g. 150) | Drawn at the cap, as every refusal |
@@ -174,7 +174,7 @@ As P01, plus:
   - `assert_us_si_equivalent` on the vertical axis; `assert_no_global_state`, also with `ax=` on a `Sheet` panel;
   - empty input gives "No data".
 - **Acceptance against test data** `tests/data/spt.csv`: four holes, three units plus fill, about 80 tests over 30 m, ER on two holes only, a few refusals (one with blank N, some found from `spt_penetration`), and blank N rows. The footnote counts are worked out by hand.
-- **Visual check:** `docs/work/m3-p02/visual-check.png`, a `Sheet` with the profile in US and SI side by side, with strata and a water level.
+- **Visual check:** [`docs/work/m3-p02/visual-check.png`](../work/m3-p02/visual-check.png), a `Sheet` with N in US (with `connect=True`) and N60 in SI side by side, with strata and a water level.
 
 ## 13. References
 - `docs/drafts/analysis.md` §1 and its references.
