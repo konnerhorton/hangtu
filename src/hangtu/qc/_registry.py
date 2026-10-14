@@ -9,7 +9,6 @@ dimensionless and ``"2 %"`` would pass as an angle.
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any
 
 #: Rules whose findings are stored at ingest (qc.md §4.1). They take
 #: ``severity`` and ``enabled`` only. ``V*`` stands for every python-ags4 rule.
@@ -52,11 +51,29 @@ THRESHOLDS: dict[str, dict[str, str]] = {
 }
 
 
+@dataclass(frozen=True)
+class Finding:
+    """One QC finding, before its severity is applied (qc.md §5.1).
+
+    ``line`` is the DATA line the finding is about. ``loca_id``, ``depth`` (in
+    m) and ``value`` are filled from that line when not given.
+    """
+
+    rule_id: str
+    message: str
+    group: str | None = None
+    heading: str | None = None
+    line: int | None = None
+    loca_id: str | None = None
+    depth: float | None = None
+    value: str | None = None
+
+
 @dataclass
 class RuleResult:
     """What a rule returns: its findings and how many records it looked at."""
 
-    findings: list[Any] = field(default_factory=list)
+    findings: list[Finding] = field(default_factory=list)
     records_checked: int = 0
 
 

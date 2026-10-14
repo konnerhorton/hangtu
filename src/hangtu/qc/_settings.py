@@ -8,7 +8,8 @@ unit once (m, deg, m/s; percent and counts as given).
 """
 
 import difflib
-from collections.abc import Mapping
+import re
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
@@ -60,6 +61,14 @@ class RuleSettings:
         return is_ingest_rule(self.rule_id)
 
 
+def rule_sort_key(rule_id: str) -> tuple:
+    """Sort rule IDs with their numbers in order: ``V7`` before ``V10c``."""
+    return tuple(
+        (0, int(part), "") if part.isdigit() else (1, 0, part)
+        for part in re.findall(r"\d+|\D+", rule_id)
+    )
+
+
 def is_ingest_rule(rule_id: str) -> bool:
     """Return True for a rule whose findings are stored at ingest (§4.1)."""
     return rule_id in INGEST_RULES or _is_v_rule(rule_id)
@@ -95,7 +104,10 @@ class Settings:
         if rule_id in self.defaults:
             default = self.defaults[rule_id]
         elif _is_v_rule(rule_id):
-            default = {**self.defaults["V*"], "title": "python-ags4 format rule"}
+            default = {
+                **self.defaults["V*"],
+                "title": f"python-ags4 rule {rule_id[1:]}",
+            }
         else:
             raise KeyError(rule_id)
         layers = [self.overrides.get(rule_id, {})]
@@ -132,8 +144,16 @@ class Settings:
         )
 
 
-def load(rules: Override = None, min_fields: Override = None) -> Settings:
+def load(
+    rules: Override = None,
+    min_fields: Override = None,
+    file_headings: Iterable[tuple[str, str]] = (),
+) -> Settings:
     """Return the default settings merged with ``rules`` and ``min_fields``.
+
+    ``file_headings`` are the file's own ``(group, heading)`` pairs: a
+    ``min_fields`` group or heading is accepted if it is there or in the AGS 4
+    dictionaries, so a user-defined group can be checked too.
 
     Raises
     ------
@@ -151,7 +171,9 @@ def load(rules: Override = None, min_fields: Override = None) -> Settings:
     settings = Settings(
         defaults=defaults,
         overrides=overrides,
-        min_fields=_merge_min_fields(_read(min_fields, "min_fields")),
+        min_fields=_merge_min_fields(
+            _read(min_fields, "min_fields"), set(file_headings)
+        ),
     )
     for rule_id in overrides:
         settings.rule(rule_id)  # converts each threshold, raising if one is wrong
@@ -293,14 +315,14 @@ def _plain_number(given: Any) -> float | None:
 
 
 def _merge_min_fields(
-    overrides: dict[str, Any],
+    overrides: dict[str, Any], in_file: set[tuple[str, str]]
 ) -> dict[str, dict[str, tuple[str, ...]]]:
     merged = {
         group: {kind: _flatten(lists.get(kind) or []) for kind in FIELD_KINDS}
         for group, lists in _config.load("qc/min_fields.yaml")["min_fields"].items()
     }
     for group, lists in overrides.items():
-        _check_group(group)
+        _check_group(group, in_file)
         if not isinstance(lists, Mapping):
             raise HangtuError(
                 f"min_fields for {group} must be a dict of "
@@ -315,7 +337,7 @@ def _merge_min_fields(
                 )
             headings = _flatten(headings or [])
             for heading in headings:
-                _check_heading(group, heading)
+                _check_heading(group, heading, in_file)
             entry[kind] = headings
     return merged
 
@@ -330,31 +352,44 @@ def _flatten(headings: Any) -> tuple[str, ...]:
     return tuple(str(item) for item in flat)
 
 
-def _check_group(group: str) -> None:
-    if any(group in standard(version).groups for version in DICTIONARY_VERSIONS):
+def _check_group(group: str, in_file: set[tuple[str, str]]) -> None:
+    file_groups = sorted({g for g, _ in in_file})
+    if group in file_groups or any(
+        group in standard(version).groups for version in DICTIONARY_VERSIONS
+    ):
         return
     known = sorted({g for v in DICTIONARY_VERSIONS for g in standard(v).groups})
-    close = difflib.get_close_matches(group, known, n=3)
+    close = difflib.get_close_matches(group, [*file_groups, *known], n=3)
     hint = f" Did you mean {', '.join(close)}?" if close else ""
+    in_this_file = f" The file has {', '.join(file_groups)}." if file_groups else ""
     raise HangtuError(
-        f"min_fields names group {group!r}, which isn't in the AGS 4 "
-        f"dictionaries.{hint} The groups are {', '.join(known)}."
+        f"min_fields names group {group!r}, which isn't in the file or the AGS 4 "
+        f"dictionaries.{hint}{in_this_file} The dictionary groups are "
+        f"{', '.join(known)}."
     )
 
 
-def _check_heading(group: str, heading: str) -> None:
-    for version in DICTIONARY_VERSIONS:
-        if (group, heading) in standard(version).headings:
-            return
+def _check_heading(group: str, heading: str, in_file: set[tuple[str, str]]) -> None:
+    if (group, heading) in in_file or any(
+        (group, heading) in standard(version).headings
+        for version in DICTIONARY_VERSIONS
+    ):
+        return
     known = list(
         dict.fromkeys(
-            h
-            for v in DICTIONARY_VERSIONS
-            for (g, h) in standard(v).headings
-            if g == group
+            [
+                *(h for g, h in sorted(in_file) if g == group),
+                *(
+                    h
+                    for v in DICTIONARY_VERSIONS
+                    for (g, h) in standard(v).headings
+                    if g == group
+                ),
+            ]
         )
     )
     raise HangtuError(
         f"min_fields names heading {heading!r} in {group}, which isn't in the "
-        f"AGS 4 dictionaries. The headings of {group} are {', '.join(known)}."
+        f"file or the AGS 4 dictionaries. The headings of {group} are "
+        f"{', '.join(known)}."
     )

@@ -276,7 +276,7 @@ def test_unit_on_a_count():
 
 def test_unknown_min_fields_group():
     with pytest.raises(
-        HangtuError, match=r"group 'LOCX'.*Did you mean LOCA.*The groups are"
+        HangtuError, match=r"group .LOCX.*Did you mean LOCA.*The dictionary groups are"
     ):
         load(min_fields={"LOCX": {"required": ["LOCX_ID"]}})
 
