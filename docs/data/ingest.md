@@ -5,7 +5,7 @@
 | **Status** | done (M5) |
 | **Intent** | [`docs/work/m5-ingest/intent.md`](../work/m5-ingest/intent.md) |
 | **Parent** | SPEC §2.2 (units), §6 (ingestion), §7 (data model), §11 (errors) |
-| **Related** | P00 §4 (quantity kinds, aliases, pcf). `docs/drafts/phase2-data.md` keeps the QC and dataset notes for M6 and M7 |
+| **Related** | P00 §4 (quantity kinds, aliases, pcf). [`qc.md`](qc.md) (M6) reports these findings; `docs/drafts/phase2-data.md` keeps the dataset notes for M7 |
 
 ## 1. Purpose and scope
 Read one AGS4 file (4.0.3 to 4.2) into a project SQLite database, and open that database again later:
@@ -13,7 +13,7 @@ Read one AGS4 file (4.0.3 to 4.2) into a project SQLite database, and open that 
 - a **canonical layer**: AGS 4.2-shaped, typed, in SI, with value flags and surrogate keys (SPEC §7);
 - the **findings** raised while reading, stored for the QC report (M6).
 
-**Not in scope:** the QC report and rules beyond ingest (M6); `diff()`, `p.locations`, the geology map, joins and datasets (M7); mid-drive SPT depth (SPEC §8.2, M7); DIGGS, AGS3 and more than one file per project; writing AGS (SPEC §1.4).
+**Not in scope:** the QC report, rules beyond ingest and `diff()` (M6, [`qc.md`](qc.md)); `p.locations`, the geology map, joins and datasets (M7); mid-drive SPT depth (SPEC §8.2, M7); DIGGS, AGS3 and more than one file per project; writing AGS (SPEC §1.4).
 
 ## 2. Public API
 ```python
@@ -138,7 +138,7 @@ As decided in SPEC §6.2:
 | `U004` | error | Unit dimension doesn't match the dictionary; column raw only |
 | `T001` | info | Unrecognized text in a numeric column; flag `OTHER` |
 
-`U004` and `M001` are new; M6 adds them to the QC rule list. One finding per heading for `U` rules; one per cell for `T001`.
+`U004` and `M001` are new; `qc.md` §4.1 adds them to the QC rule list. One finding per heading for `U` rules; one per cell for `T001`.
 
 ## 10. Errors
 Written for engineers (SPEC §11):
