@@ -52,6 +52,7 @@ Internal helpers used by every plot live in `ht.plot.common` (§6–§9). They a
 | `hints` | `bool` | `True` | §11 |
 | `hammer_efficiency` | `float \| None` (%) | `None` | SPT analysis (M3) |
 | `spt_cap` | `int` | `100` | SPT analysis (M3) |
+| `geology_key` | `"GEOL_GEOL"` \| `"GEOL_GEO2"` \| `"GEOL_LEG"` \| `"GEOL_FORM"` \| `"GEOL_BGS"` | `"GEOL_GEOL"` | datasets (M7, `docs/data/datasets.md` §5.1) |
 
 - `ht.settings.reset()` restores defaults.
 - `with ht.settings.override(display_units="SI"): ...` changes values temporarily (used heavily in tests).
@@ -150,7 +151,8 @@ Helpers: `nice_limits(vmin, vmax, *, start_at_zero)`, `log_limits(vmin, vmax, mi
 - The counts are also attached to the axes as `ax.ags_notes` (a dict) so tests and users can read them (decided).
 
 ## 10. Palette
-- Resolution: `palette=` argument → `settings.palette` → automatic.
+- Resolution: `palette=` argument → `settings.palette` → `df.attrs["palette"]` (a project's geology map, `docs/data/datasets.md` §5.2) → automatic.
+- A categorical `geology_unit` gives the units' order, where a plot lists them.
 - **Automatic:** colors from `tab20`, reordered to use the 10 darker shades first, then the 10 lighter ones. Units are assigned in stratigraphic `order` if known, else sorted by name. Assignments are remembered for the session (`reset_palette()` clears them), so a unit keeps its color in every plot.
 - More than 20 units: colors repeat, with a warning.
 - `palette_cmap(units)` returns a `ListedColormap` in unit order; `legend_handles(units)` returns patches for a stand-alone legend.

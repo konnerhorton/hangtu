@@ -209,19 +209,20 @@ Apply in both phases. In Phase 1 they are applied by the analysis functions to t
 | Data | Depth used (decided) | `depth_basis` |
 |---|---|---|
 | SPT (Phase 2, AGS) | Middle of the test drive: `top + seating penetration + test penetration / 2`, from the increment penetrations | `mid_drive` |
-| SPT (Phase 2), increments missing | 🟡 `top + 300 mm`. If total penetration is under 450 mm: `top + total − 150 mm` (not less than `top`) | `mid_drive_nominal` |
+| SPT (Phase 2), increments missing | The same formula with a nominal 150 mm seating drive and the rest of the total penetration as the test drive; `top + 300 mm` for a full test or no total (decided 2026-10-14, `docs/data/datasets.md` §6.1) | `mid_drive_nominal` |
 | SPT (Phase 1, CSV) | `depth` as given; the template has no increments (decided, analysis.md §1.2) | — |
 | Lab tests | Specimen depth → else sample midpoint → else sample top | `spec_depth` / `sample_mid` / `sample_top` |
 | Field permeability | Midpoint of the test zone | `zone_mid` |
 | Intervals (geology, samples) | Top and base kept as-is | — |
 
 ### 8.3 Geology
-- **Geology key** (decided): configurable, default `GEOL_GEOL`. Options: `GEOL_GEO2`, `GEOL_LEG`, `GEOL_FORM`, `GEOL_BGS`, or a mapping file. Several fields can be carried side by side (`geology_fields=`) and compared using `crosstab`.
-- **Mapping file** (CSV: `code, unit, soil_class, order, color`):
+- **Geology key** (decided): configurable as the setting `geology_key`, default `GEOL_GEOL`. Options: `GEOL_GEO2`, `GEOL_LEG`, `GEOL_FORM`, `GEOL_BGS`, plus a mapping file. hangtu never falls back to another heading on its own. Several fields can be carried side by side (`geology_fields=`) and compared using `crosstab`.
+- **Mapping file** (CSV: `code, geology_unit, soil_class, order, color`; stored with the project):
   - **exact, case-sensitive match** (decided);
   - `soil_class` drives the cohesive/cohesionless split (🔬 TODO #3);
   - `color` feeds the palette.
-- **Interval rule** (decided): `top ≤ d < base`. At the bottom of the hole, `d = base` belongs to the last interval. For overlaps, the lowest top wins.
+- **Interval rule** (decided): `top ≤ d < base`. At the bottom of the hole, `d = base` belongs to the last interval. For overlaps, the lowest top (the deepest) wins.
+- Unmapped codes are kept as their own units, with a warning and QC G004; they are never dropped.
 
 ---
 
@@ -245,11 +246,11 @@ Apply in both phases. In Phase 1 they are applied by the analysis functions to t
 ## 10. Datasets and column registry
 
 ### 10.1 Project access (Phase 2)
-`p.groups`, `p.table(group, raw=False)`, `p.locations`, `p.diff(group, heading=None, changed_only=False)`, `p.sql(...)` (read-only, SI).
+`p.groups`, `p.table(group, raw=False)`, `p.locations`, `p.set_geology_map(path)`, `p.geology_map`, `p.diff(group, heading=None, changed_only=False)`, `p.sql(...)` (read-only, SI).
 
 ### 10.2 Ready-made datasets (Phase 2)
-- `p.spt()`, `p.atterberg()`, `p.grain_size()` / `p.grain_size_summary()`, `p.index_properties()`, `p.permeability()`.
-- They return DataFrames in **exactly the shape the Phase 1 plots expect**: the same registry column names, with units attached. Draft column lists are in the drafts file.
+- `p.spt()`, `p.atterberg()`, `p.grain_size()` and `p.permeability()` (M7, v0.1); `p.grain_size_summary()`, `p.index_properties()` and the classification columns with the M8 analyses (v0.2).
+- They return DataFrames in **exactly the shape the Phase 1 plots expect**: the same registry column names, with units attached, in the project's display units unless `display_units=` says otherwise. Columns and rules: [`docs/data/datasets.md`](docs/data/datasets.md).
 - **Common filters:** `where=`, `contains=`, `elevation=`, `depth=`, `holes=`, `geology=`, `geology_fields=`, `include_incomplete=`, `display_units=` (naming decided).
 
 ### 10.3 Column registry (both phases)
@@ -321,7 +322,7 @@ ht.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
 ### 12.2 Package layout
 - `src/` layout, package `hangtu`.
 - Top-level namespaces: `ht.plot`, `ht.analysis`, `ht.stats` (Phase 3), `ht.Project` (Phase 2), `ht.Sheet`, `ht.settings`, plus `read_csv`, `set_units`, `units_of`, `columns`, `template`.
-- Phase 2 modules: `ags/` (the ingest pipeline), `qc/` (QC rules and report), `db.py` (the only module that talks to SQLite, §7) and `project.py`.
+- Phase 2 modules: `ags/` (the ingest pipeline), `qc/` (QC rules and report), `datasets/` (joins and datasets), `db.py` (the only module that talks to SQLite, §7) and `project.py`.
 - Data files ship inside the package: `columns.yaml` (registry), `config/defaults.yaml`, `units/*.yaml`, `ags/value_flags.yaml`, `qc/rules.yaml`, `qc/min_fields.yaml`.
 - Tests mirror the package (`tests/plot/`, `tests/units/`, …), with synthetic data in `tests/data/`. Runnable scripts go in `examples/`.
 
@@ -358,6 +359,5 @@ Rows are in build order. M8 comes after M9 and M10 since v0.1 moved ahead of P04
 ---
 
 ## 13. Open questions
-1. **SPT nominal mid-drive fallback** (§8.2): OK as proposed? Deferred to Phase 2, since CSV input uses `depth` as given.
 2. **`index_properties()` specimen combining:** when one sample has several specimens of a test, use the one nearest the other test's depth and flag it, or keep every combination?
 3. **Docs site** for v0.1.0, or README + examples only?
