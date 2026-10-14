@@ -2,9 +2,8 @@ from hangtu import _config, qc  # noqa: F401  (importing qc registers the rules)
 from hangtu.qc._registry import RULES
 from hangtu.qc._settings import is_ingest_rule
 
-# Rules in rules.yaml whose code comes in a later build step (plan Builds 6-8).
+# Rules in rules.yaml whose code comes in a later build step (plan Builds 7-8).
 PENDING = {
-    *("D001", "D002", "D003", "D004", "D005", "D007"),
     *("S001", "S002", "S003", "S004", "S005"),
     *("A001", "A002", "A003", "A004"),
     *("P001", "P002", "P003", "P004", "K001"),

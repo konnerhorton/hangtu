@@ -44,8 +44,11 @@ def test_findings_sorted_by_severity_rule_and_line(defects):
     found = defects.findings
     order = {"error": 0, "warning": 1, "info": 2}
     assert list(found["severity"].map(order)) == sorted(found["severity"].map(order))
-    errors = list(found.query("severity == 'error'")["rule_id"])
-    assert errors == ["U001", "U004", "V7", "V9", "V9", "V10c", "V10c", "V18"]
+    errors = found.query("severity == 'error'")["rule_id"]
+    ingest = [rule_id for rule_id in errors if rule_id[0] in "UV"]
+    assert ingest == ["U001", "U004", "V7", "V9", "V9", "V10c", "V10c", "V18"]
+    lines = list(found.query("rule_id == 'D001'")["source_line"])
+    assert lines == sorted(lines)
 
 
 def test_severity_override_changes_findings_and_summary(projects):
@@ -126,15 +129,11 @@ def test_printed_summary(defects):
         f"  {counts['error']} errors, {counts['warning']} warnings, "
         f"{counts['info']} info"
     )
-    assert lines[2].split() == [
-        "error",
-        "U001",
-        "Unknown",
-        "or",
-        "ambiguous",
-        "unit",
-        "1",
-    ]
+    summary = defects.summary()
+    first = summary.iloc[0]
+    assert lines[2].split()[:2] == [first["severity"], first["rule_id"]]
+    assert lines[2].endswith(f" {first['count']}")
+    assert len(lines) == len(summary) + 3
     assert lines[-1].startswith("  findings: report.findings")
     # Counts line up in one column.
     assert len({line.rindex(" ") for line in lines[2:-1]}) == 1

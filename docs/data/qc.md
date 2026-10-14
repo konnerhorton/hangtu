@@ -125,7 +125,9 @@ As in `ingest.md` §9, read back from the `finding` table: `V<rule>`, `VLOG`, `V
 | D005 | An interval record (sample, test zone) crosses a geology boundary | info | |
 | D007 | Specimen depth (`SPEC_DPTH`) outside its sample (`SAMP_TOP` to `SAMP_BASE`, or below `SAMP_TOP` when there is no base) | warning | `depth_tolerance: 0.01 m` |
 
+- D002 and D003 give one finding per record, at its first offending depth heading.
 - D003 compares with `LOCA_FDEP + final_depth_tolerance`. Skipped where `LOCA_FDEP` is blank (L003).
+- D007 gives one finding per specimen, at its first row in file order, even when several tests (`LLPL`, `GRAG`, …) share it.
 - D004 and D005 use `GEOL` as written, and are skipped for holes with no geology (G001). D004 checks the top depth of each record; GEOL itself is not checked against itself.
 - SPT depth is `ISPT_TOP` here. The mid-drive depth (SPEC §8.2) is M7's, and doesn't change which hole or interval a test is in except within 0.45 m of a boundary.
 - **D006 (duplicate) is dropped from the draft.** Two records with the same keys are already python-ags4's Rule 10a (`V10a`); two records at the same depth with different keys (two samples, two specimens) are legitimate.
