@@ -11,6 +11,7 @@ import pandas as pd
 import hangtu.db as database
 from hangtu import ags, qc
 from hangtu._settings import Settings, settings
+from hangtu.datasets import _geology_map
 from hangtu.errors import HangtuError, warn
 
 _KEY_COLUMNS = ("_row", "_line", "location_id", "sample_id", "specimen_id")
@@ -254,6 +255,40 @@ class Project:
         >>> p.diff("ISPT", changed_only=True)
         """
         return qc.diff(self._path, group, heading, changed_only)
+
+    # --- Geology map (datasets.md §5.2) -----------------------------------------
+
+    def set_geology_map(
+        self, source: "str | PathLike[str] | pd.DataFrame | None"
+    ) -> None:
+        """Map the geology codes in the file to the units you report on.
+
+        The map is checked and stored with the project, replacing any earlier
+        one, until the database is rebuilt. The codes are values of the
+        ``p.settings.geology_key`` heading (``GEOL_GEOL`` by default), matched
+        exactly and case-sensitively.
+
+        Parameters
+        ----------
+        source
+            A CSV file or a DataFrame with the columns ``code`` and
+            ``geology_unit`` (required) and ``soil_class``, ``order`` and
+            ``color`` (optional). None removes the map.
+
+        Examples
+        --------
+        >>> p.set_geology_map("strata.csv")
+        >>> p.geology_map
+        >>> p.set_geology_map(None)
+        """
+        rows = None if source is None else _geology_map.read(source)
+        database.write_geology_map(self._path, rows)
+
+    @property
+    def geology_map(self) -> pd.DataFrame | None:
+        """The stored geology map, or None if there isn't one."""
+        rows = database.read_geology_map(self._path)
+        return None if rows.empty else rows
 
     def __repr__(self) -> str:
         """Summarize the file, its groups and the findings by severity."""
