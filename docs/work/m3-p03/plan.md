@@ -66,3 +66,13 @@ They are in P03 from the spec step, since its API, edge cases and criteria depen
 - After each build: `uv run ruff check . && uv run ruff format --check . && uv run pytest`.
 - At close-out: Python 3.13 and 3.14; the lowest dependency versions (check `ax.bar` hatch colors with matplotlib 3.8, where `hatch.color` is an rcParam, not a bar argument).
 - Look at the visual check against the §2 reference figure.
+
+## Results
+- 915 tests pass on Python 3.12, 3.13 and 3.14, and with the lowest dependency versions (matplotlib 3.8.0, numpy 1.26.0, pandas 2.1.1, pint 0.24.4). The refusal hatch takes the unit color on matplotlib 3.8 and 3.11: it follows the bar's explicit edge color.
+- **Commits:** one per build step, plus one for the tick labels (below). Build 1 came to about 520 lines with its tests, over the 300-line guide; it is one idea (the plot and its tests), as P02's first build (447 lines) was.
+- **Changes from the plan**, each recorded in its commit:
+  - Build 2: `note=` goes in the footnote, not inside the axes as P01's does, where it would cover the bars (P03 §8). The y limit leaves room for bar labels.
+  - Close-out: the tick labels put each word of a class name on its own line (decision 6, P03 §6). The visual check showed the two-line labels running into each other on a half-Letter `Sheet` panel.
+- **Acceptance:** `tests/data/spt.csv` split on `geology_unit` into Fill and Alluvial sand (cohesionless) and Glacial till and Residual soil (cohesive). Two hand-worked expectations were wrong at first, not the code: the y limit for a tallest bar of 87 % is 100, since a step of 10 would give more than 8 ticks, and N = 8 at ER 82 % is N60 = 10.9, medium dense.
+- **Visual check** (`visual-check.png`, Letter, 100 dpi, bar labels on): cohesionless beside cohesive. One image, since nothing converts between US and SI (§9). The test data's cohesive units are stiff, so almost every test is "Hard"; the 5 Residual soil refusals are a separate hatched bar.
+- `TODO.md`: no change; #3 already said P03 doesn't depend on it. `SPEC.md`: no change at close-out. §12.4 has no done marker for any milestone, so none was added for M3; `CLAUDE.md` records it.
