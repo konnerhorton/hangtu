@@ -157,7 +157,7 @@ One row per `LLPL` row.
 | Column | From |
 |---|---|
 | `loca_id` | `LOCA_ID` |
-| `specimen_id` | The project's specimen key (ingest.md §5): unique in the project, stable until the database is rebuilt |
+| `specimen_id` | The project's specimen key (ingest.md §5), as text (`"12"`): unique in the project, stable until the database is rebuilt |
 | `sample_reference` | `SAMP_ID` where given, else `SAMP_TYPE` + `SAMP_REF` at `SAMP_TOP`, as text (`U1 at 1.50 m`) |
 | `specimen_reference` | `SPEC_REF` |
 | `ground_level`, `depth`, `depth_basis`, `elevation` | Lab depth, below |
@@ -223,7 +223,7 @@ Each dataset call gives at most one warning per kind (`UserWarning`, as the rest
 
 ## 11. Registry
 New columns, each checked against the whole registry (CLAUDE.md, "Naming"): `location_type`, `final_depth`, `easting`, `northing`, `latitude`, `longitude`, `remarks`, `source_line`, `energy_source`, `sample_reference`, `specimen_reference`, `geology_description`, `geology_code`, `geology_code_secondary`, `legend_code`, `geology_formation`, `bgs_lexicon_code`.
-- Changed: `specimen_id` (the project's specimen key, an integer); `depth_top`/`depth_base`, `hydraulic_conductivity` and `test_type` get their new AGS sources (`SPEC_DPTH`/`SPEC_BASE`, `IPRG_*`).
+- Changed: `specimen_id` (the project's specimen key, as text, since the registry type is text and CSV users type their own IDs); `depth_top`/`depth_base`, `hydraulic_conductivity` and `test_type` get their new AGS sources (`SPEC_DPTH`/`SPEC_BASE`, `IPRG_*`).
 - The CSV templates (`ht.template()`) don't change: they describe what a user types in, and a dataset is a superset of its template.
 
 ## 12. Test files
