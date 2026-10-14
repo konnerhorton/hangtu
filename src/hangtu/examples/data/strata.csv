@@ -1,0 +1,4 @@
+code,geology_unit,soil_class,order,color
+FILL,Fill,fill,1,#9e9e9e
+ALV,Alluvium,fine,2,#5b8db8
+TRC,Terrace,coarse,3,#e0b040

@@ -47,6 +47,11 @@ class Vertical:
         given, unconverted, and labels say "(units unknown)".
     ground_level
         The ground level in display units when every row shares one, else None.
+    datum
+        The vertical datum for elevation labels: the data's
+        ``df.attrs["vertical_datum"]`` (a project dataset's), else
+        ``ht.settings.vertical_datum``. The data's wins because a datum is a
+        fact about the data, not a preference.
     """
 
     vs: Literal["depth", "elevation"]
@@ -55,10 +60,11 @@ class Vertical:
     unit_text: str | None
     unknown: bool
     ground_level: float | None
+    datum: str | None = None
 
     def label(self) -> str:
         """Return the vertical axis label, with the datum on elevation labels only."""
-        datum = settings.vertical_datum if self.vs == "elevation" else None
+        datum = self.datum if self.vs == "elevation" else None
         return axis_label(self.vs.capitalize(), self.unit_text, datum, self.unknown)
 
     def to_display(self, values: ArrayLike, unit: str) -> np.ndarray:
@@ -221,6 +227,7 @@ def vertical_values(
         unit_text=text,
         unknown=unknown,
         ground_level=single_ground_level(row_ground_levels(lengths)),
+        datum=df.attrs.get("vertical_datum") or settings.vertical_datum,
     )
     return values, vertical
 

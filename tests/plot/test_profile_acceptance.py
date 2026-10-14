@@ -146,8 +146,8 @@ def test_elevation_increases_upward():
 def test_log_axis_shows_whole_decades():
     _, ax = plot_k()
     low, high = ax.get_xlim()
-    # 9.0e-8 to 1.0e-3 cm/s: 1.0e-3 is a whole decade, so it is the limit.
-    assert (low, high) == pytest.approx((1e-8, 1e-3))
+    # 9.0e-8 to 1.0e-3 cm/s: 1.0e-3 is a whole decade, so the limit is one more.
+    assert (low, high) == pytest.approx((1e-8, 1e-2))
     labels = [ax.xaxis.get_major_formatter()(tick) for tick in (1e-8, 1e-5, 1e-3)]
     assert labels == [
         r"$\mathdefault{10^{-8}}$",

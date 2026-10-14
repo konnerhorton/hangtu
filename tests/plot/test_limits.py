@@ -18,7 +18,11 @@ from hangtu.plot.common import (
     ("vmin", "vmax", "start_at_zero", "expected"),
     [
         (0.3, 7.8, True, (0, 8)),  # P00 §14
-        (0.0, 100.0, True, (0, 100)),
+        (0.0, 100.0, True, (0, 120)),  # 100 is on a step: one more step of 20
+        (0.0, 30.0, True, (0, 35)),  # P00 §8: PI 30 off the frame
+        (0.0, 6.0, True, (0, 7)),  # P00 §8: deepest test at 6.0 m
+        (0.0, 140.0, True, (0, 200)),  # 160 takes a step of 50, so snap again
+        (-30.0, -10.0, True, (-35, -5)),  # no zero start: padded, not moved
         (12.3, 47.9, False, (10, 50)),  # padded to (10.52, 49.68), step 10
         (12.3, 47.9, True, (0, 50)),
         (-35.2, 12.4, False, (-40, 20)),  # elevations, step 10
@@ -41,7 +45,8 @@ def test_single_point_uses_the_typical_range():
         1e-9,
         1e-2,
     )
-    assert nice_limits(5.0, 5.0, start_at_zero=True, typical=(0, 2)) == (0, 5.0)
+    # Widened to (0, 5), then 5 moved off the limit by a step of 1.
+    assert nice_limits(5.0, 5.0, start_at_zero=True, typical=(0, 2)) == (0, 6.0)
 
 
 @pytest.mark.parametrize("bad", [(2.0, 1.0), (math.nan, 1.0), (0.0, math.inf)])
@@ -59,7 +64,8 @@ def test_nice_limits_enclose_the_data_with_4_to_8_ticks(a, b, start_at_zero):
     if 0 < vmax - vmin < 1e-6 * max(abs(vmin), abs(vmax), 1):
         return  # ranges below float precision of the values are out of scope
     lo, hi = nice_limits(vmin, vmax, start_at_zero=start_at_zero)
-    assert lo <= vmin and hi >= vmax
+    # P00 §8: no value sits on a limit, except on a lower limit of 0.
+    assert (lo < vmin or lo == 0 == vmin) and hi > vmax
     ticks = round((hi - lo) / nice_step(lo, hi)) + 1
     assert 4 <= ticks <= 8
 
@@ -69,13 +75,20 @@ def test_nice_limits_enclose_the_data_with_4_to_8_ticks(a, b, start_at_zero):
     [
         (2e-7, 3e-4, (1e-7, 1e-3)),  # P00 §14
         (5e-6, 8e-6, (1e-6, 1e-4)),  # P00 §14: one decade extended to two
-        (1e-3, 1e-1, (1e-3, 1e-1)),  # exact decades are kept
-        (1000.0, 1000.0, (1e3, 1e5)),
+        (1e-3, 1e-1, (1e-4, 1.0)),  # P00 §8: exact decades get one more
+        (1e-5, 3e-4, (1e-6, 1e-3)),  # P00 §8
+        (1000.0, 1000.0, (1e2, 1e4)),  # one decade each side
         (0.5, 300.0, (0.1, 1e3)),
     ],
 )
 def test_log_limits(vmin, vmax, expected):
     assert log_limits(vmin, vmax) == pytest.approx(expected)
+
+
+def test_clear_false_keeps_a_range_that_isnt_data():
+    # A typical range drawn with no data, or room left for markers.
+    assert nice_limits(0.0, 100.0, start_at_zero=True, clear=False) == (0, 100)
+    assert log_limits(1e-9, 1e-2, clear=False) == pytest.approx((1e-9, 1e-2))
 
 
 @pytest.mark.parametrize("bad", [(0.0, 1.0), (-1.0, 1.0), (2.0, 1.0)])

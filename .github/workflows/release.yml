@@ -69,10 +69,49 @@ jobs:
           --with dist/*.whl --with pytest --with hypothesis
           pytest
 
+  # Runs each script in examples/ against the built wheel, from an empty
+  # folder, the way a user would run it after pip install (SPEC §12.1, §12.4).
+  # Anything written to stderr, such as a warning, fails the job.
+  examples:
+    name: examples (${{ matrix.os }})
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+      # Without the source tree, the examples can only import the installed wheel.
+      - run: rm -rf src
+      - run: |
+          mkdir run && cd run
+          for script in ../examples/*.py; do
+            echo "::group::$script"
+            uv run --quiet --isolated --no-project --with ../dist/*.whl \
+              python "$script" 2> stderr.txt || { cat stderr.txt; exit 1; }
+            echo "::endgroup::"
+            if [ -s stderr.txt ]; then
+              cat stderr.txt
+              echo "::error::$script wrote to stderr"
+              exit 1
+            fi
+          done
+
   publish-pypi:
     name: publish to PyPI
     if: github.ref_type == 'tag'
-    needs: test-wheel
+    needs: [test-wheel, examples]
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -89,7 +128,7 @@ jobs:
   publish-testpypi:
     name: publish to TestPyPI
     if: github.event_name == 'workflow_dispatch'
-    needs: test-wheel
+    needs: [test-wheel, examples]
     runs-on: ubuntu-latest
     environment:
       name: testpypi

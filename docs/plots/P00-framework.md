@@ -129,7 +129,7 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 - `axis_label(text, unit=None, datum=None, unknown=False)` → `"Elevation (ft, NAVD88)"`, `"Depth (m)"`, `"Liquid limit, LL (%)"`, `"SPT N60"` (no unit for counts and dimensionless), `"k (units unknown)"`.
 - Unit text uses display forms: `kN/m³`, `Mg/m³`, `cm/s`, `psf`, `°`, with Unicode superscripts.
 - Label text comes from the registry `label`, a preset, or `label=`; only the unit part is generated.
-- The datum is added only to elevation labels and only when `settings.vertical_datum` is set.
+- The datum is added only to elevation labels, from the data's `df.attrs["vertical_datum"]` (a project dataset carries its project's), else `settings.vertical_datum`. The data's wins because a datum is a fact about the data, not a preference (decided 2026-10-14, M9).
 
 ## 8. Axis limits and ticks
 | Case | Rule |
@@ -142,6 +142,7 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 | Elevation axis | normal direction, nice floor/ceiling with 5% padding |
 | Single point / zero range | ± one nice step around the value, or the preset's typical range if there is one |
 | Fixed limits (`xlim=`, presets with fixed limits) | used as given; data beyond them handled by §9 |
+| A value exactly on a limit hangtu picks | the limit moves out one step (a tick step, or a decade on a log axis), so no point sits on the frame. A lower limit of 0 stays at 0, and fixed limits are used as given (decided 2026-10-14, TODO #18) |
 
 Helpers: `nice_limits(vmin, vmax, *, start_at_zero)`, `log_limits(vmin, vmax, min_decades=2)`, `apply_vertical_axis(ax, vs)`.
 

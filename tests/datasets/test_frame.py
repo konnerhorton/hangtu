@@ -93,6 +93,12 @@ def test_us_display_units_and_attrs(fresh):
         ht.units.parse_unit(unit)  # reads back without a warning
 
 
+def test_the_project_datum_travels_with_the_dataset(fresh):
+    df = _quiet(_dataset, fresh(vertical_datum="NAVD88"))
+    assert df.attrs["vertical_datum"] == "NAVD88"
+    assert "vertical_datum" not in _quiet(_dataset, fresh()).attrs
+
+
 def test_geology_codes_without_a_map(fresh):
     df = _quiet(_dataset, fresh())
     assert list(df["geology_unit"]) == ["ALV", "ALV", "ALV", "ALV", "TRC"]

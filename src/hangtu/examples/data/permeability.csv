@@ -1,0 +1,11 @@
+loca_id,ground_level,depth,depth_top,depth_base,depth_basis,elevation,hydraulic_conductivity,qualifier,source,test_type,geology_unit,soil_class,geology_description
+B-1,36.5,13,,,spec_depth,23.5,2e-07,,lab,FW,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-2,35.8,13,,,spec_depth,22.8,3.4e-07,,lab,FW,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,34.2,13,,,spec_depth,21.2,3.8e-08,,lab,FW,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-4,37.1,13,,,spec_depth,24.1,1.7e-07,,lab,FW,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-5,35,13,,,spec_depth,22,1.1e-07,,lab,FW,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,33.6,13,,,spec_depth,20.6,1.6e-08,,lab,FW,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-2,35.8,37.5,35,40,zone_mid,-1.7,0.003,,field,FH,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,34.2,37.5,35,40,zone_mid,-3.3,0.003,,field,FH,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,35,37.5,35,40,zone_mid,-2.5,0.00035,,field,FH,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,33.6,37.5,35,40,zone_mid,-3.9,0.0023,,field,FH,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)

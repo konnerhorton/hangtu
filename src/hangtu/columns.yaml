@@ -17,14 +17,16 @@
 # may use them. Per field: description, type.
 
 templates:
-  # ht.template(name): empty DataFrame with these columns, in this order
+  # ht.template(name): empty DataFrame with these columns, in this order.
+  # spt, atterberg, grain_size and permeability are their dataset's columns
+  # without those only hangtu produces (SPEC §2.6; tests/test_registry.py).
   profile:        [loca_id, depth, elevation, ground_level, geology_unit, source]   # plus the user's value column
-  permeability:   [loca_id, depth, depth_top, depth_base, ground_level, elevation, hydraulic_conductivity, qualifier, source, test_type, geology_unit]
+  permeability:   [loca_id, ground_level, depth, depth_top, depth_base, depth_basis, elevation, hydraulic_conductivity, qualifier, source, test_type, geology_unit, soil_class, geology_description]
   strength:       [loca_id, depth, ground_level, elevation, undrained_shear_strength, qualifier, test_type, geology_unit]
   index:          [loca_id, depth, ground_level, elevation, water_content, bulk_unit_weight, geology_unit]
-  spt:            [loca_id, depth, ground_level, elevation, spt_n, energy_ratio, spt_penetration, spt_refusal, geology_unit, soil_class]
-  atterberg:      [loca_id, specimen_id, depth, ground_level, elevation, liquid_limit, plastic_limit, plasticity_index, non_plastic, water_content, geology_unit, soil_class]
-  grain_size:     [loca_id, specimen_id, depth, particle_size, percent_passing, geology_unit]
+  spt:            [loca_id, ground_level, depth, depth_basis, elevation, spt_n, spt_n60, energy_ratio, spt_refusal, spt_penetration, remarks, geology_unit, soil_class, geology_description]
+  atterberg:      [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, depth_top, depth_base, liquid_limit, plastic_limit, plasticity_index, non_plastic, water_content, geology_unit, soil_class, geology_description]
+  grain_size:     [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, particle_size, percent_passing, qualifier, geology_unit, soil_class, geology_description]
   # Overlays (P01 §8): fill in one depth or elevation pair and leave the other blank.
   strata:         [geology_unit, depth_top, depth_base, elevation_top, elevation_base]
   ranges:         [low, high, label, source, depth_top, depth_base, elevation_top, elevation_base]

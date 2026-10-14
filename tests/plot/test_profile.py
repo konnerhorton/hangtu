@@ -54,7 +54,7 @@ def test_depth_axis_starts_at_zero_at_the_top(frame):
     _, ax = ht.plot.profile(frame(), "undrained_shear_strength", vs="depth")
     bottom, top = ax.get_ylim()
     assert top == 0
-    assert bottom == 20.0
+    assert bottom == 25.0  # the deepest value, 20 ft, kept off the frame
     assert ax.yaxis_inverted()
     assert ax.get_ylabel() == "Depth (ft)"
 
@@ -74,12 +74,24 @@ def test_elevation_label_carries_the_datum(frame):
     assert ax.get_ylabel() == "Elevation (ft, NAVD88)"
 
 
+def test_the_datas_datum_beats_the_session_datum(frame):
+    df = frame()
+    df.attrs["vertical_datum"] = "NGVD29"  # as a project dataset carries it
+    _, ax = ht.plot.profile(df, "undrained_shear_strength")
+    assert ax.get_ylabel() == "Elevation (ft, NGVD29)"
+    with ht.settings.override(vertical_datum="NAVD88"):
+        _, ax = ht.plot.profile(df, "undrained_shear_strength")
+    assert ax.get_ylabel() == "Elevation (ft, NGVD29)"
+    _, ax = ht.plot.profile(df, "undrained_shear_strength", vs="depth")
+    assert ax.get_ylabel() == "Depth (ft)"
+
+
 # --- value axis ---------------------------------------------------------------
 
 
 def test_ratio_scale_starts_at_zero_and_unit_weight_does_not(frame):
     _, ax = ht.plot.profile(frame(), "undrained_shear_strength")
-    assert ax.get_xlim() == (0.0, 2000.0)
+    assert ax.get_xlim() == (0.0, 2500.0)  # the largest value, 2,000, kept off
     values, unit, _ = PRESETS["bulk_unit_weight"]
     df = frame("bulk_unit_weight", values, unit)
     _, ax = ht.plot.profile(df, "bulk_unit_weight", preset="bulk_unit_weight")
