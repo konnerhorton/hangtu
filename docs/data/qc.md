@@ -172,7 +172,7 @@ As in `ingest.md` §9, read back from the `finding` table: `V<rule>`, `VLOG`, `V
 - Headings checked: `PTST_K`, `FGHG_IPRM`, `FGHS_IPRM`, `IPRG_IPRM` (4.0.x). An `LT`/`GT` value is checked at its bound.
 
 ### 4.9 Ordering, wording
-- Findings are sorted by severity (error, warning, info), then rule ID, then source line.
+- Findings are sorted by severity (error, warning, info), then rule ID with its number in order (`V7` before `V10c`), then source line.
 - Messages follow SPEC §11 and name the hole and depth, the heading, the value as the file wrote it and the threshold in display units, and what to check: "ISPT_TOP 6.00 m (19.7 ft) in BH1 is below the final depth of the hole, LOCA_FDEP 5.00 m (16.4 ft). Check the test depth or the final depth."
 
 ### 4.10 Minimally useful fields (C)
@@ -223,18 +223,18 @@ In the shipped file the lists are written out in full; `<SPEC_KEY>` is a YAML an
 - `df.attrs["units"]` is `{"depth": <display unit>}`, as for any hangtu DataFrame.
 
 ### 5.2 `report.rules`
-One row per rule, enabled or not, in rule order:
+One row per rule, enabled or not, in rule order. After `V*` come the V rules the file raised and any named in an override; other V rules aren't listed, since python-ags4 has dozens.
 
 | Column | Content |
 |---|---|
-| `rule_id`, `title` | from `rules.yaml` |
-| `enabled`, `severity` | after overrides |
+| `rule_id`, `title` | from `rules.yaml`; a single V rule is titled `python-ags4 rule 10c` |
+| `enabled`, `severity` | after overrides; `as stored` for `V*`, V rules and `VLOG` unless overridden, since their stored severities differ |
 | `thresholds` | one text cell: `depth_tolerance = 0.05 ft; …`, each in the unit it was given |
-| `overridden` | `yes` if anything differs from the defaults |
-| `records_checked` | how many records the rule looked at; blank for ingest rules |
+| `overridden` | `yes` if anything differs from the defaults, else `no` |
+| `records_checked` | how many records the rule looked at; blank for ingest rules and disabled rules |
 | `findings` | how many findings it raised |
 
-`report.source` holds the project file, its SHA-256, its AGS version, the hangtu version and the time of the run. `to_csv` writes them as `#` comment lines at the top of the rules file (`# file: site.ags`), so a report sent on its own says what it checked; `pd.read_csv(path, comment="#")` reads it back.
+`report.source` holds the project file (`file`, `path`), its `sha256`, its `ags_version`, the `hangtu_version` and the time of the run (`run_at`, local ISO 8601 to the second). `to_csv` writes them as `#` comment lines at the top of the rules file (`# file: site.ags`), so a report sent on its own says what it checked; `pd.read_csv(path, comment="#")` reads it back.
 
 ### 5.3 Printed summary
 ```

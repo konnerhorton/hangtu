@@ -9,7 +9,7 @@ from typing import Any
 import pandas as pd
 
 import hangtu.db as database
-from hangtu import ags
+from hangtu import ags, qc
 from hangtu._settings import Settings, settings
 from hangtu.errors import HangtuError, warn
 
@@ -186,6 +186,38 @@ class Project:
                 else ""
             )
             raise HangtuError(f"The query failed: {reason}.{read_only}") from None
+
+    def qc(
+        self,
+        rules: "str | PathLike[str] | dict | None" = None,
+        min_fields: "str | PathLike[str] | dict | None" = None,
+    ) -> "qc.Report":
+        """Check the data for integrity problems and return a report (qc.md).
+
+        Runs every QC level 1 rule over the canonical tables and adds the
+        findings stored at ingest. Nothing is written to the database, so
+        running it twice gives the same report.
+
+        Parameters
+        ----------
+        rules
+            Overrides of the default rule settings (``qc/rules.yaml``): a path
+            to a YAML file or a dict holding only what changes. Each rule takes
+            ``enabled``, ``severity`` and ``thresholds``; a threshold with a
+            unit is written with it (``"0.05 ft"``).
+        min_fields
+            Overrides of the minimally useful fields per group
+            (``qc/min_fields.yaml``), ``required`` and ``recommended`` lists.
+
+        Examples
+        --------
+        >>> report = p.qc()
+        >>> report = p.qc(rules={"G002": {"thresholds": {"depth_tolerance": "0.05 ft"}},
+        ...                      "A004": {"enabled": False}})
+        >>> report.findings
+        >>> report.to_csv("qc_report.csv")   # and qc_report_rules.csv
+        """
+        return qc.run(self._path, rules, min_fields)
 
     def __repr__(self) -> str:
         """Summarize the file, its groups and the findings by severity."""
