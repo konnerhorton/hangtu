@@ -17,6 +17,7 @@ def test_defaults():
     assert ht.settings.hammer_efficiency is None
     assert ht.settings.spt_cap == 100
     assert ht.settings.summary_min_count == 5
+    assert ht.settings.geology_key == "GEOL_GEOL"
 
 
 @pytest.mark.parametrize(
@@ -30,6 +31,7 @@ def test_defaults():
         ("hammer_efficiency", 80.0),
         ("spt_cap", 50),
         ("summary_min_count", 1),
+        ("geology_key", "GEOL_FORM"),
     ],
 )
 def test_valid_values_are_stored(name, value):
@@ -61,6 +63,8 @@ def test_figure_sizes_are_stored_as_float_pairs():
         ("summary_min_count", 0, "at least 1"),
         ("summary_min_count", 2.5, "at least 1"),
         ("summary_min_count", True, "at least 1"),
+        ("geology_key", "geol_form", "GEOL_GEOL, GEOL_GEO2, GEOL_LEG, GEOL_FORM"),
+        ("geology_key", "GEOL_DESC", "one of GEOL_GEOL"),
     ],
 )
 def test_invalid_values_raise_and_keep_the_old_value(name, value, message):

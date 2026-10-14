@@ -14,6 +14,7 @@ settings:
   hammer_efficiency: null      # SPT energy ratio in %, used from M3
   spt_cap: 100                 # SPT N cap, used from M3
   summary_min_count: 5         # fewest values per unit for a P07 summary bar
+  geology_key: GEOL_GEOL       # GEOL heading holding each layer's code (datasets, M7)
 
 # Plot presets (docs/plots/P01-property-profile.md §6). The preset name is the
 # registry column it plots. Typical ranges are in the quantity's canonical unit
