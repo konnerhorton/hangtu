@@ -1,0 +1,194 @@
+"""Lab datasets: ``p.atterberg()`` and ``p.grain_size()`` (datasets.md §6.2, §6.3)."""
+
+from os import PathLike
+
+import numpy as np
+import pandas as pd
+
+from hangtu.datasets import _joins
+from hangtu.datasets._frame import Build
+from hangtu.errors import warn
+
+#: Columns every lab dataset starts with.
+SPECIMEN_COLUMNS = [
+    "loca_id",
+    "specimen_id",
+    "sample_reference",
+    "specimen_reference",
+    "ground_level",
+    "depth",
+    "depth_basis",
+    "elevation",
+]
+ATTERBERG_COLUMNS = [
+    *SPECIMEN_COLUMNS,
+    "depth_top",
+    "depth_base",
+    "liquid_limit",
+    "plastic_limit",
+    "plasticity_index",
+    "non_plastic",
+    "water_content",
+    "liquidity_index",
+    "consistency_index",
+]
+GRAIN_SIZE_COLUMNS = [
+    *SPECIMEN_COLUMNS,
+    "particle_size",
+    "percent_passing",
+    "qualifier",
+]
+
+
+def specimens(build: Build, group: str, rows: pd.DataFrame) -> pd.DataFrame:
+    """Return the specimen columns of lab ``rows``, in SI (§6.2, "Lab depth").
+
+    Depth is ``SPEC_DPTH``, else the sample's midpoint, else its top, with the
+    sample's top and base read from ``SAMP``. ``depth_top`` and ``depth_base``
+    are the specimen's ``SPEC_DPTH`` and ``SPEC_BASE`` when both are given.
+    """
+    samples = build.samples()
+    sample_id = rows["sample_id"] if "sample_id" in rows else pd.Series(pd.NA)
+    known = sample_id.notna() & sample_id.isin(samples.index)
+    at = sample_id[known].astype(int).to_numpy()
+    top = build.numbers(rows, "SAMP_TOP")
+    top[known] = samples.loc[at, "SAMP_TOP"].to_numpy()
+    base = pd.Series(np.nan, index=rows.index, dtype=float)
+    base[known] = samples.loc[at, "SAMP_BASE"].to_numpy()
+    specimen_depth = build.numbers(rows, "SPEC_DPTH")
+    specimen_base = build.numbers(rows, "SPEC_BASE")
+    depth, basis = _joins.lab_depth(specimen_depth, top, base)
+    both = specimen_depth.notna() & specimen_base.notna()
+    specimen_id = (
+        rows["specimen_id"]
+        if "specimen_id" in rows
+        else pd.Series(pd.NA, index=rows.index)
+    )
+    return pd.DataFrame(
+        {
+            "location_id": rows["location_id"],
+            "loca_id": build.texts(rows, "LOCA_ID"),
+            "specimen_id": specimen_id.map(
+                lambda key: None if pd.isna(key) else str(int(key))
+            ),
+            "sample_reference": _sample_reference(build, group, rows),
+            "specimen_reference": build.texts(rows, "SPEC_REF"),
+            "depth": depth,
+            "depth_basis": basis,
+            "depth_top": specimen_depth.where(both),
+            "depth_base": specimen_base.where(both),
+            "_line": rows["_line"],
+        },
+        index=rows.index,
+    )
+
+
+def _sample_reference(build: Build, group: str, rows: pd.DataFrame) -> pd.Series:
+    """``SAMP_ID``, else ``<type><ref> at <top>`` as the file wrote them."""
+    unit = build.data.heading_info(group, "SAMP_TOP")["file_unit"] or ""
+
+    def reference(row) -> str | None:
+        if isinstance(row.get("SAMP_ID"), str) and row["SAMP_ID"]:
+            return row["SAMP_ID"]
+        kind = row.get("SAMP_TYPE") if isinstance(row.get("SAMP_TYPE"), str) else ""
+        ref = row.get("SAMP_REF") if isinstance(row.get("SAMP_REF"), str) else ""
+        top = build.data.text_at(group, row["_line"], "SAMP_TOP")
+        if not (kind or ref) and top is None:
+            return None
+        at = f" at {top} {unit}".rstrip() if top is not None else ""
+        return f"{kind}{ref}{at}"
+
+    return pd.Series(
+        [reference(row) for row in rows.to_dict("records")],
+        index=rows.index,
+        dtype=object,
+    )
+
+
+def atterberg(
+    path: str | PathLike[str],
+    *,
+    display_units: str | None = None,
+    include_incomplete: bool = False,
+    **common,
+) -> pd.DataFrame:
+    """Build the Atterberg dataset; see ``Project.atterberg``."""
+    build = Build(
+        path,
+        noun=("Atterberg result", "Atterberg results"),
+        display_units=display_units,
+        include_incomplete=include_incomplete,
+    )
+    if not build.has("LLPL"):
+        return build.finish(pd.DataFrame(), ATTERBERG_COLUMNS, group="LLPL", **common)
+    rows = build.rows("LLPL")
+    frame = specimens(build, "LLPL", rows)
+    liquid = build.numbers(rows, "LLPL_LL")
+    plastic = build.numbers(rows, "LLPL_PL")
+    index = build.numbers(rows, "LLPL_PI")
+    non_plastic = pd.Series(False, index=rows.index)
+    for heading in ("LLPL_LL", "LLPL_PL", "LLPL_PI"):
+        non_plastic |= build.flagged("LLPL", rows, heading, "NP")
+    index = index.where(index.notna() | non_plastic, liquid - plastic)
+    water = _water_content(build, frame)
+    usable = ~non_plastic & (index > 0)
+    frame["liquid_limit"] = liquid
+    frame["plastic_limit"] = plastic
+    frame["plasticity_index"] = index
+    frame["non_plastic"] = non_plastic
+    frame["water_content"] = water
+    frame["liquidity_index"] = ((water - plastic) / index).where(usable)
+    frame["consistency_index"] = ((liquid - water) / index).where(usable)
+    return build.finish(frame, ATTERBERG_COLUMNS, group="LLPL", **common)
+
+
+def _water_content(build: Build, frame: pd.DataFrame) -> pd.Series:
+    """``LNMC_MC`` of each row's specimen, where it has exactly one (§6.2)."""
+    water = pd.Series(np.nan, index=frame.index, dtype=float)
+    if not build.has("LNMC") or "specimen_id" not in build.data.table("LNMC"):
+        return water
+    lnmc = build.data.table("LNMC").dropna(subset=["specimen_id"])
+    keys = lnmc["specimen_id"].astype(int).astype(str)
+    counts = keys.value_counts()
+    single = pd.Series(
+        build.numbers(lnmc, "LNMC_MC").to_numpy(), index=keys.to_numpy()
+    )[lambda s: s.index.isin(counts.index[counts == 1])]
+    water = frame["specimen_id"].map(single).astype(float)
+    several = frame["specimen_id"].isin(counts.index[counts > 1])
+    if several.any():
+        named = ", ".join(
+            dict.fromkeys(
+                f"{row.loca_id} {row.sample_reference}/{row.specimen_reference}"
+                for row in frame[several].itertuples()
+            )
+        )
+        warn(
+            f"Specimens with more than one water content (LNMC) row: {named}. "
+            "Their water_content, liquidity_index and consistency_index are left "
+            "blank, since hangtu can't tell which applies. Check LNMC."
+        )
+    return water
+
+
+def grain_size(
+    path: str | PathLike[str],
+    *,
+    display_units: str | None = None,
+    include_incomplete: bool = False,
+    **common,
+) -> pd.DataFrame:
+    """Build the grading-curve dataset; see ``Project.grain_size``."""
+    build = Build(
+        path,
+        noun=("grading point", "grading points"),
+        display_units=display_units,
+        include_incomplete=include_incomplete,
+    )
+    if not build.has("GRAT"):
+        return build.finish(pd.DataFrame(), GRAIN_SIZE_COLUMNS, group="GRAT", **common)
+    rows = build.rows("GRAT")
+    frame = specimens(build, "GRAT", rows)
+    frame["particle_size"] = build.numbers(rows, "GRAT_SIZE")
+    frame["percent_passing"] = build.numbers(rows, "GRAT_PERP")
+    frame["qualifier"] = build.qualifier("GRAT", rows, "GRAT_PERP")
+    return build.finish(frame, GRAIN_SIZE_COLUMNS, group="GRAT", **common)

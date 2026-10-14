@@ -163,14 +163,14 @@ One row per `LLPL` row.
 | `ground_level`, `depth`, `depth_basis`, `elevation` | Lab depth, below |
 | `depth_top`, `depth_base` | `SPEC_DPTH` and `SPEC_BASE` when both are given, else blank |
 | `liquid_limit`, `plastic_limit` | `LLPL_LL`, `LLPL_PL` |
-| `plasticity_index` | `LLPL_PI`; where blank, `LL − PL` when both are numbers |
+| `plasticity_index` | `LLPL_PI`; where blank, `LL − PL` when both are numbers and the specimen isn't NP |
 | `non_plastic` | True when `LLPL_LL`, `LLPL_PL` or `LLPL_PI` has the `NP` flag, else False |
 | `water_content` | `LNMC_MC` of the same specimen (`specimen_id`), where there is exactly one; a specimen with several `LNMC` rows gets a blank and one warning per call that names them |
 | `liquidity_index` | `(w − PL) / PI` |
 | `consistency_index` | `(LL − w) / PI` |
 
 - LI and Ic are blank when a value they need is blank, when the specimen is NP, or when PI ≤ 0.
-- An NP specimen has blank LL, PL and PI (ingest.md §8) and `non_plastic = True`, so P07 counts it as NP, not as a blank (SPEC §4).
+- An NP specimen has `non_plastic = True` and blanks where the file wrote `NP` (ingest.md §8); a liquid limit the file gives is kept, and its PI isn't filled in. P07 counts it as NP, not as a blank (SPEC §4).
 
 **Lab depth** (SPEC §8.2), for every lab dataset: `SPEC_DPTH` (`spec_depth`), else the sample's midpoint `(SAMP_TOP + SAMP_BASE) / 2` from `SAMP` (`sample_mid`), else `SAMP_TOP` (`sample_top`).
 

@@ -336,6 +336,127 @@ class Project:
             display_units=display_units,
         )
 
+    def atterberg(
+        self,
+        *,
+        holes: "str | list[str] | None" = None,
+        geology: "str | list[str] | None" = None,
+        depth: "tuple | None" = None,
+        elevation: "tuple | None" = None,
+        where: dict | None = None,
+        contains: "str | list[str] | None" = None,
+        geology_fields: "str | list[str] | None" = None,
+        include_incomplete: bool = False,
+        display_units: str | None = None,
+    ) -> pd.DataFrame:
+        """Return the Atterberg limits, one row per LLPL record, ready for P01 and P07.
+
+        Each result has its specimen's water content (``LNMC``), liquidity
+        index and consistency index. A non-plastic specimen has
+        ``non_plastic = True`` and a blank plastic limit and plasticity index,
+        so plots count it as NP, never as a blank. A blank ``LLPL_PI`` is
+        filled with LL - PL. Depth is the specimen's, else its sample's
+        midpoint, else its top (``depth_basis``). Classification columns come
+        with the M8 analyses. See ``docs/data/datasets.md`` §6.2.
+
+        Parameters
+        ----------
+        holes, geology
+            Keep these holes (``LOCA_ID``) or geology units.
+        depth, elevation
+            Keep ``low <= value <= high``, given in the dataset's units
+            (``(0, 30)``) or as quantity strings (``("0 ft", "30 ft")``).
+            Either end may be None.
+        where
+            Keep rows matching ``{column: value or list of values}``.
+        contains
+            Keep rows whose geology description contains this text (any
+            case), or any of a list.
+        geology_fields
+            GEOL headings to add as columns, e.g. ``["GEOL_FORM"]``.
+        include_incomplete
+            Keep records with a blank required field (QC C001). By default
+            they're left out, with a warning that counts them.
+        display_units
+            ``"US"`` or ``"SI"``; by default the project's.
+
+        Examples
+        --------
+        >>> atterberg = p.atterberg(geology=["Alluvium"])
+        >>> fig, ax = ht.plot.geology_unit_comparison(atterberg, "plasticity_index")
+        """
+        return datasets.atterberg(
+            self._path,
+            holes=holes,
+            geology=geology,
+            depth=depth,
+            elevation=elevation,
+            where=where,
+            contains=contains,
+            geology_fields=geology_fields,
+            include_incomplete=include_incomplete,
+            display_units=display_units,
+        )
+
+    def grain_size(
+        self,
+        *,
+        holes: "str | list[str] | None" = None,
+        geology: "str | list[str] | None" = None,
+        depth: "tuple | None" = None,
+        elevation: "tuple | None" = None,
+        where: dict | None = None,
+        contains: "str | list[str] | None" = None,
+        geology_fields: "str | list[str] | None" = None,
+        include_incomplete: bool = False,
+        display_units: str | None = None,
+    ) -> pd.DataFrame:
+        """Return the grading curves, one row per GRAT point, in file order.
+
+        ``particle_size`` is in mm in US and SI output alike, as US practice
+        keeps it. Each point carries its specimen (``specimen_id``) and depth,
+        so a curve is the rows of one specimen. See ``docs/data/datasets.md``
+        §6.3.
+
+        Parameters
+        ----------
+        holes, geology
+            Keep these holes (``LOCA_ID``) or geology units.
+        depth, elevation
+            Keep ``low <= value <= high``, given in the dataset's units
+            (``(0, 30)``) or as quantity strings (``("0 ft", "30 ft")``).
+            Either end may be None.
+        where
+            Keep rows matching ``{column: value or list of values}``.
+        contains
+            Keep rows whose geology description contains this text (any
+            case), or any of a list.
+        geology_fields
+            GEOL headings to add as columns, e.g. ``["GEOL_FORM"]``.
+        include_incomplete
+            Keep records with a blank required field (QC C001). By default
+            they're left out, with a warning that counts them.
+        display_units
+            ``"US"`` or ``"SI"``; by default the project's.
+
+        Examples
+        --------
+        >>> curves = p.grain_size(holes=["BH3"])
+        >>> curves.groupby("specimen_id")["percent_passing"].min()
+        """
+        return datasets.grain_size(
+            self._path,
+            holes=holes,
+            geology=geology,
+            depth=depth,
+            elevation=elevation,
+            where=where,
+            contains=contains,
+            geology_fields=geology_fields,
+            include_incomplete=include_incomplete,
+            display_units=display_units,
+        )
+
     # --- Geology map (datasets.md §5.2) -----------------------------------------
 
     def set_geology_map(
