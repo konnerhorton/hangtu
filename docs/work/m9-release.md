@@ -253,3 +253,17 @@ README.md, docs/img/readme-spt.png
   - `uv build`, then both scripts run against the wheel from an empty directory outside the repo;
   - look at both example PDFs and the README figure.
 - After merge, with approval: a TestPyPI rehearsal, then `pip install hangtu` in a fresh environment and run one example.
+
+### Results
+- 1525 tests pass on Python 3.12 and with the lowest dependency versions.
+- **Release rehearsal:** `uv build` gives `hangtu-0.1.0` (wheel and sdist). Both examples ran against the wheel from an empty folder outside the repo using `release.yml`'s shell step, with nothing on stderr. The job itself first runs on GitHub with the TestPyPI rehearsal after merge.
+- **Commits:** one per build step, plus two fixes the examples found, each in its own commit:
+  - `M9: name every file the AGS example writes`: `report.to_csv()` also writes `qc_report_rules.csv`.
+  - `M9: put a project's vertical datum on its elevation labels`: datasets didn't carry `p.settings.vertical_datum`, so the AGS example's figure had no datum. Datasets now set `df.attrs["vertical_datum"]`, and plots read it ahead of `ht.settings.vertical_datum`, since a datum is a fact about the data (P00 §7, datasets.md §4).
+- **Changes from the plan and spec**, each recorded above in the commit that made it:
+  - The limit rule needed a `clear=False` for ranges that aren't data (a typical range with no data, the empty vertical axis, P01's room beyond `clear_of`), and `clear_of_data` for a single value inside a preset's typical range.
+  - `site.ags` is written in round US values rather than converted from SI, with US SPT spacing (2.5 ft to 10 ft, then 5 ft). The planted findings are a geology gap (G002) and a PI slip (A002), not a missing ground level, which would also raise C001 and make the example warn. Acceptance criterion 2 allows info findings.
+  - The example CSV files leave `spt_n60` blank, as most users' files would, and the plots work it out from `energy_ratio`. The CSV example sets `ht.settings.palette` so its colors match the AGS example's geology map.
+  - SPEC §12.4 has no done markers, so M9's row is unchanged; CLAUDE.md records M9 as done.
+- **Looked at by hand:** both example PDFs (the same tests in the same places; the AGS one in the map's order and colors), the README figure, and the TODO #18 sample before and after the limit change.
+- **After merge, with approval at each step:** push `main`, run `release.yml` by hand for TestPyPI and install from there once, then tag `v0.1.0` and push the tag, and write the GitHub release notes (spec §7).

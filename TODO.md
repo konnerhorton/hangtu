@@ -153,10 +153,6 @@ Open research points:
   - How do the stats box and `describe()` show these counts?
 - **Timing:** before P06 (water content profile with Atterberg limits), where NP values are common.
 
-### 18. A point exactly on the axis limit · Claude · plots README "Out-of-range data"
-- **Seen in the M7 hand check:** P07 with PI values 26 and 30 sets the x-axis to 0–30, so the point at 30 sits on the right spine and is hard to see. It's drawn, not dropped, so no data is lost.
-- **To decide:** pad the data limits so the extreme points sit inside the frame (P00 §8, axis limits), for P01 and P07 alike.
-
 ### 16. Other summaries in P07 · You + Claude · P07; SPEC §5
 - **Problem:** in its first version, P07 (property by geology unit) summarizes each unit only with percentiles. `percentiles=` chooses which ones, and `percentile_method=` passes any NumPy method through (default `"linear"`). A report's baseline may have been summarized some other way, so the data bar and the baseline bar aren't always like for like.
 - **Wanted:** a way to match how the report summarized its data:
@@ -199,6 +195,7 @@ You are also looking. Candidates found so far:
 - A helper for deciding cohesive vs cohesionless from lab data (fines %, PI).
 
 ## Done
+- ✅ #18 A point exactly on the axis limit decided and built (2026-10-14, M9): a value on a limit hangtu picks moves that limit out one step (a tick step, or a decade on a log axis). A lower limit of 0 stays, and limits the user sets are used as given. In P00 §8.
 - ✅ #17 Particle size shown in inches decided (2026-10-14): `GRAT_SIZE`, `LLPL_SIZE` and `PTST_SZUN` get the `particle_size` kind at ingest, so US output keeps mm. In docs/data/datasets.md §10 and ingest.md §7.
 - ✅ #6 QC thresholds kept as the defaults (2026-10-14): L005 (3 m from the median of the 5 nearest holes within 200 m), S002 (N > 100), A003 (LL < 10 or > 150), G002/G003 (0.01 m; a project can set any unit, and imperial rounding doesn't cause false gaps). In docs/data/qc.md §4. P001/P003 stay open.
 - ✅ #4 SPT classification tables decided (2026-10-13): the Terzaghi & Peck / Peck, Hanson & Thornburn boundaries, lower bound inclusive, classified on whichever N column the user names (default `spt_n`). In `src/hangtu/config/spt_classes.yaml`; spec in docs/drafts/analysis.md §1.4. User-defined bins come later.
