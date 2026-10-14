@@ -57,11 +57,11 @@ The intent's decisions, made exact. M9 adds no analysis and no plot, so this sec
 
 | File | Content |
 |---|---|
-| `site.ags` | AGS 4.1, 6 boreholes with ground levels, GEOL with three units (Fill, Alluvium, Terrace) using `GEOL_GEOL` codes, SPT every 5 ft with increments, Atterberg limits with water contents, grading curves, lab and field permeability. Passes python-ags4, and has a handful of deliberate QC findings (a missing ground level, a test below the final depth) so the QC example shows a report with something in it |
+| `site.ags` | AGS 4.2 in US units (ft, in, cm/s), written in round values as a US consultant's file would be: 6 boreholes with ground levels, GEOL with three units (Fill, Alluvium, Terrace) using `GEOL_GEOL` codes, SPT every 2.5 ft to 10 ft and every 5 ft below, with increments, Atterberg limits with water contents, grading curves, lab and field permeability. Passes python-ags4, and has two planted QC warnings so the QC example shows a report with something in it: a gap in one hole's geology log (G002) and a plasticity index that doesn't match LL − PL (A002). Neither makes a dataset warn |
 | `strata.csv` | The geology map for `site.ags` (`code`, `geology_unit`, `soil_class`, `order`, `color`) |
 | `spt.csv`, `atterberg.csv`, `permeability.csv` | The same tests as `site.ags`, as a CSV user would type them: each file's columns follow its template (§2), depths and ground levels in ft, hydraulic conductivity in cm/s |
 
-- **The CSV files are made from `site.ags`.** `tests/data/_make_examples.py` ingests `site.ags`, writes each dataset's template columns to CSV, and writes `site.ags` itself from fixed values. The CSV and AGS examples then draw the same tests, which is what decision 4 promises. A test checks that the generator reproduces the shipped files.
+- **The CSV files are made from `site.ags`.** `tests/data/_make_examples.py` writes `site.ags` from fixed rules and a seeded `random.Random`, then ingests it and writes each dataset's template columns to CSV. The CSV and AGS examples then draw the same tests, which is what decision 4 promises. A test checks that the generator reproduces the shipped files.
 - Values are realistic for a river valley site: N rising with depth in the Terrace, PI 10–35 in the Alluvium, hydraulic conductivity 1e-7 to 1e-3 cm/s. They are not taken from a real site.
 
 ### 2. Templates follow the datasets
@@ -153,7 +153,7 @@ Made in the spec commit, except the two marked close-out.
 
 ### 9. Acceptance criteria
 1. `ht.examples.path()` returns an existing file for every name in `ht.examples.names()`, from the installed wheel. An unknown name gives the error in §1.
-2. `site.ags` passes python-ags4, and its QC report has the planted findings and no others.
+2. `site.ags` passes python-ags4, and its QC report has no errors and exactly the two planted warnings. Info findings are allowed: blank increments after a refusal, and GRAG without a silt/clay split, are what real files have.
 3. The generator reproduces every shipped example file byte for byte.
 4. Each of the four templates equals its dataset's columns minus the §2 list. A template saved, filled from the dataset, and read back with `ht.read_csv` feeds its plots with no warning.
 5. Both example scripts exit 0, print no warning and write their files: in CI from the source tree, and in `release.yml` from the wheel on all three operating systems.
@@ -190,7 +190,7 @@ README.md, docs/img/readme-spt.png
    - **Log:** a decade equal to `vmin` or `vmax` moves out one decade, and `min_decades` applies after that.
 2. **Golden limits that change** are updated in the same commit, each with a comment giving the reason: `(0, 100) → (0, 120)`, the exact-decade log case and the single-value typical-range case. Plot tests that assert limits on whole-step data are updated the same way. Any other change shows up as a failure, and I list it in the commit body.
 3. **`ht.examples` is a module, not data on `Project`:** `importlib.resources.files("hangtu.examples") / "data" / name`, returned as a `Path`. The wheel is installed unzipped, so a real path works for `from_ags` and `read_csv`.
-4. **The example site** is its own set of values in `_make_examples.py`, not the test files: 6 holes, about 60 SPT, 15 Atterberg, 8 gradings and 10 permeability results, enough to draw realistic figures. It reuses `group`, `write_file`, `dict_group` and `to_us` from `_make_files.py` (loaded with `importlib`, as the test conftests do), so it is written in SI and converted to US with the same exact factors. The planted QC findings are a missing `LOCA_GL` on one hole and one SPT below its `LOCA_FDEP`.
+4. **The example site** is its own set of values in `_make_examples.py`, not the test files: 6 holes, 77 SPT, 14 Atterberg, 8 gradings and 10 permeability results, enough to draw realistic figures. It reuses `group`, `write_group`, `tran` and the UNIT/TYPE descriptions from `_make_files.py` (loaded with `importlib`, as the test conftests do). It is written directly in round US values, not converted from SI, so the file reads like a real US one. The planted QC findings are a geology gap (G002) and a PI slip (A002). A missing `LOCA_GL`, the first idea, would also raise C001 and blank that hole's elevations, so the example would print warnings.
 5. **CSV files are written** by ingesting `site.ags` into a temporary database, taking each dataset with `display_units="US"`, keeping the template's columns, and writing them with `to_csv(index=False)`, with floats to 6 significant figures so the files read cleanly. Writing depends on pandas' CSV output, so the check against the generator (acceptance criterion 3) compares parsed frames for the CSV files and bytes for `site.ags`.
 6. **The scripts run as subprocesses in the tests,** with Python's default warning filters, as a user would run them. The test fails if anything is written to stderr. QC findings go to stdout as part of the printed summary, so they don't count.
 
