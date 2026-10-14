@@ -1,8 +1,9 @@
-"""Geology rules G001 to G003 (qc.md §4.3)."""
+"""Geology rules G001 to G004 (qc.md §4.3)."""
 
 import numpy as np
 import pandas as pd
 
+import hangtu.db as database
 from hangtu.qc import _text
 from hangtu.qc._data import Data
 from hangtu.qc._registry import Finding, RuleResult, rule
@@ -127,3 +128,33 @@ def geology_overlap(data: Data, settings: RuleSettings) -> RuleResult:
             if row["GEOL_BASE"] > above["GEOL_BASE"]:
                 above = row
     return RuleResult(findings, len(logs))
+
+
+@rule("G004")
+def unmapped_code(data: Data, settings: RuleSettings) -> RuleResult:
+    key = data.project_settings.get("geology_key", "GEOL_GEOL")
+    mapping = database.read_geology_map(data.path)
+    if mapping.empty or not data.has("GEOL", key):
+        return RuleResult()
+    geol = data.table("GEOL")
+    raw = data.raw("GEOL").set_index("_line")[key].reindex(geol["_line"])
+    codes = pd.Series(raw.to_numpy(), index=geol.index).fillna("")
+    known = set(mapping["code"])
+    findings = []
+    for code, rows in geol.groupby(codes, sort=False):
+        if code == "" or code in known:
+            continue
+        first = rows.iloc[0]
+        layers = f"{len(rows)} layer{'s' if len(rows) != 1 else ''}"
+        findings.append(
+            Finding(
+                "G004",
+                f"{key} {code!r} ({layers}, first in {first['LOCA_ID']}) isn't in the "
+                "geology map, so its tests are kept under the code as their own "
+                "geology unit. Add it to the map, or check the code.",
+                group="GEOL",
+                heading=key,
+                line=first["_line"],
+            )
+        )
+    return RuleResult(findings, len(geol))

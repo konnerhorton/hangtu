@@ -93,7 +93,9 @@ def test_1_every_computed_rule_has_a_case(defects_report):
         for rule_id in defects_report.rules["rule_id"]
         if rule_id[0] in "LGDSAPKC"
     }
-    assert computed <= raised
+    # G004 needs a geology map, so its case is joins.ags with strata.csv
+    # (tests/qc/test_geology.py), not the defects file.
+    assert computed - {"G004"} <= raised
 
 
 def test_1_findings_carry_group_hole_and_heading(defects_report):
