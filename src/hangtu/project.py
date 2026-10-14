@@ -219,6 +219,42 @@ class Project:
         """
         return qc.run(self._path, rules, min_fields)
 
+    def diff(
+        self,
+        group: str,
+        heading: str | list[str] | None = None,
+        changed_only: bool = False,
+    ) -> pd.DataFrame:
+        """Compare the file's text with the stored value, cell by cell (qc.md §7).
+
+        Parameters
+        ----------
+        group
+            The AGS group, e.g. ``"ISPT"``.
+        heading
+            One heading or a list; by default every heading of the group.
+        changed_only
+            Keep only the cells ingest changed: ``flagged``, ``not_converted``,
+            ``converted`` and ``reformatted``.
+
+        Returns
+        -------
+        DataFrame
+            One row per cell, in file order: ``_line``, ``loca_id``,
+            ``heading``, ``text`` and ``file_unit`` as in the file; ``value``
+            and ``unit`` as stored (SI); ``display_value`` and
+            ``display_unit`` in the project's display units; ``flag`` and
+            ``bound``; and ``change``, which says what ingest did: ``blank``,
+            ``flagged``, ``not_converted``, ``converted``, ``reformatted`` or
+            ``unchanged``.
+
+        Examples
+        --------
+        >>> p.diff("ISPT", heading="ISPT_TOP")
+        >>> p.diff("ISPT", changed_only=True)
+        """
+        return qc.diff(self._path, group, heading, changed_only)
+
     def __repr__(self) -> str:
         """Summarize the file, its groups and the findings by severity."""
         source = database.read_source(self._path)

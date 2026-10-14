@@ -284,7 +284,7 @@ One row per cell of the group, in file order:
 - `reformatted`: a date, time, angle or yes/no rewritten (`dd/mm/yyyy` → ISO, `hh:mm:ss` → seconds, `DMS` → degrees, `Y` → 1);
 - `unchanged`: anything else (text, numbers already in the canonical unit, counts).
 
-`heading=` takes a heading or a list; key headings are included only if named. `changed_only=True` keeps `flagged`, `not_converted`, `converted` and `reformatted`. Display values use `units.to_display` with the heading's quantity kind; a heading with no kind is shown as stored.
+`heading=` takes a heading or a list, and only those headings are shown: key headings are included only if named. An unknown heading lists the group's headings. `changed_only=True` keeps `flagged`, `not_converted`, `converted` and `reformatted`. Display values use `units.to_display` with the heading's quantity kind; a heading with no kind is shown as stored.
 
 ## 8. Test files
 Synthetic, written by `tests/data/ags/_make_files.py` (SPEC §12.3).
@@ -326,7 +326,7 @@ Synthetic, written by `tests/data/ags/_make_files.py` (SPEC §12.3).
 5. **Thresholds and overrides:** `"0.05 ft"` and `"0.01524 m"` give the same G002 findings; a disabled rule raises nothing and shows `enabled = False` in `report.rules`; a severity override changes the findings and the summary; `V*` with a single V rule follows §3.3; an override file and the same dict give the same report. Each error in §2 is raised with its message.
 6. **Rules table:** has every rule; `overridden` and `records_checked` are right for an override and for a group the file doesn't have (`records_checked = 0`).
 7. **CSV:** `to_csv` writes both files; reading the findings back with `pd.read_csv` gives the same table; the rules file starts with the `report.source` comment lines and reads back with `comment="#"`. `depth` is in ft with `display_units="US"` and m with `"SI"`, with `depth_unit` to match.
-8. **Diff:** each `change` value appears on the test files (`converted` and pcf on `site_us.ags`; `flagged`, `reformatted` (DMS, `T`, `YN`) on `site_si.ags`; `not_converted` on `defects.ags`); `changed_only` and `heading=` filter as §7 says; display values follow `p.settings.display_units`.
+8. **Diff:** each `change` value appears on the test files (`converted` and pcf on `site_us.ags`; `flagged`, `reformatted` (DMS, `YN`) on `site_si.ags` and `T` on `site_v404.ags`; `not_converted` on `defects.ags`); `changed_only` and `heading=` filter as §7 says; display values follow `p.settings.display_units`.
 9. **Read-only and quiet:** QC and diff leave the database file unchanged (same SHA-256), raise no Python warnings and print nothing.
 
 ## 10. Open questions

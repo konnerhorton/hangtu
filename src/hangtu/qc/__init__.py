@@ -5,11 +5,12 @@ from os import PathLike
 # The rule modules register their rules with @rule when imported.
 from hangtu.qc import _depths, _fields, _geology, _locations, _tests  # noqa: F401
 from hangtu.qc._data import Data
+from hangtu.qc._diff import diff
 from hangtu.qc._registry import RULES, RuleResult
 from hangtu.qc._report import Report, build
 from hangtu.qc._settings import Override, load
 
-__all__ = ["Report", "run"]
+__all__ = ["Report", "diff", "run"]
 
 
 def run(
