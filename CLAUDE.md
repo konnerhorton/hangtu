@@ -1,6 +1,6 @@
 # hangtu
 
-Python library of plots, analyses and (later) AGS4 ingest/QC for geotechnical engineers. M0 (scaffolding), M1 (P00 framework), M2 (P01 property profile), M2b (P07 property by geology unit) and M3 (SPT analysis, P02 SPT profile, P03 SPT class histogram) done, and the package renamed from ags-kit to hangtu. Phase 2 comes next, ahead of the remaining plots (SPEC §1.3): M4 decided the data model (AGS 4.2-shaped tables, SPEC §7), M5 (AGS4 ingest into SQLite, `ht.Project`) and M6 (QC level 1: `p.qc()`, the report and `p.diff()`) are done, and M7 (depth, elevation and geology joins, datasets) is next. v0.1 ships after M7 (M9), ahead of P04–P06 (M8, v0.2; SPEC §1.3).
+Python library of plots, analyses and (later) AGS4 ingest/QC for geotechnical engineers. M0 (scaffolding), M1 (P00 framework), M2 (P01 property profile), M2b (P07 property by geology unit) and M3 (SPT analysis, P02 SPT profile, P03 SPT class histogram) done, and the package renamed from ags-kit to hangtu. Phase 2 comes next, ahead of the remaining plots (SPEC §1.3): M4 decided the data model (AGS 4.2-shaped tables, SPEC §7), M5 (AGS4 ingest into SQLite, `ht.Project`) and M6 (QC level 1: `p.qc()`, the report and `p.diff()`) and M7 (depth, elevation and geology joins, datasets: `p.spt()`, `p.atterberg()`, `p.grain_size()`, `p.permeability()`) are done. M9 (examples, templates, README → v0.1.0 on PyPI) is next, ahead of P04–P06 (M8, v0.2; SPEC §1.3).
 
 ## Where things are
 - `SPEC.md`: product spec and cross-cutting decisions. Read the relevant section before designing anything.

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | spec (M7) |
+| **Status** | done (M7) |
 | **Intent** | [`docs/work/m7-datasets.md`](../work/m7-datasets.md#intent) |
 | **Parent** | SPEC §2.6 (units), §7 (data model), §8 (depth, elevation, geology), §10 (datasets, registry), §11 (errors) |
 | **Related** | [`ingest.md`](ingest.md) (canonical layer, value flags), [`qc.md`](qc.md) (C001, G004, D004/D005). `docs/drafts/analysis.md` §1 (SPT). P01, P02, P03, P07 (the plots these feed) |
@@ -49,7 +49,7 @@ fig, ax = ht.plot.spt_profile(p.spt(geology=["Alluvium"]))
 | `display_units=None` | the units of the values returned | `"US"` or `"SI"`; else the project's `display_units` (§4) |
 
 - **Filters run after the joins**, in the order above, so `geology=` and `depth=` see the joined values. A filter that leaves no rows returns an empty DataFrame with every column, which the plots draw as "No data".
-- **A group that isn't in the file** returns an empty DataFrame with every column and a warning that names the group ("No ISPT group in site.ags, so there are no SPT results."). This isn't an error, so a script run over many projects doesn't stop.
+- **A group that isn't in the file** returns an empty DataFrame with every column and a warning that names the group ("No ISPT group in site.ags, so there are no SPT results."; for `p.permeability()`, "No PTST, FGHG or IPRG group"). This isn't an error, so a script run over many projects doesn't stop.
 - **Errors** (SPEC §11) say what is wrong and what to do: an unknown hole or unit lists the ones that exist; a `depth=` that isn't a pair, or a quantity string of the wrong dimension, shows an example; an unknown column in `where=` lists the columns; a `geology_fields=` heading that isn't a GEOL heading lists the ones in §5.3.
 
 ## 3. `p.locations`
@@ -61,7 +61,7 @@ One row per `LOCA` row, in file order.
 | `location_type` | `LOCA_TYPE` | The code as written (`CP`, `RC`, …) |
 | `ground_level` | `LOCA_GL` | |
 | `final_depth` | `LOCA_FDEP` | |
-| `easting`, `northing` | `LOCA_NATE`, `LOCA_NATN` | In the file's grid; no CRS conversion |
+| `easting`, `northing` | `LOCA_NATE`, `LOCA_NATN` | In the file's grid, in display units like any length; no CRS conversion |
 | `latitude`, `longitude` | `LOCA_LAT`, `LOCA_LON` | Decimal degrees (ingest.md §7) |
 | `remarks` | `LOCA_REM` | |
 | `source_line` | `_line` | The line in the AGS file |

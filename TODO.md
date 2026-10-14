@@ -153,6 +153,10 @@ Open research points:
   - How do the stats box and `describe()` show these counts?
 - **Timing:** before P06 (water content profile with Atterberg limits), where NP values are common.
 
+### 18. A point exactly on the axis limit · Claude · plots README "Out-of-range data"
+- **Seen in the M7 hand check:** P07 with PI values 26 and 30 sets the x-axis to 0–30, so the point at 30 sits on the right spine and is hard to see. It's drawn, not dropped, so no data is lost.
+- **To decide:** pad the data limits so the extreme points sit inside the frame (P00 §8, axis limits), for P01 and P07 alike.
+
 ### 16. Other summaries in P07 · You + Claude · P07; SPEC §5
 - **Problem:** in its first version, P07 (property by geology unit) summarizes each unit only with percentiles. `percentiles=` chooses which ones, and `percentile_method=` passes any NumPy method through (default `"linear"`). A report's baseline may have been summarized some other way, so the data bar and the baseline bar aren't always like for like.
 - **Wanted:** a way to match how the report summarized its data:

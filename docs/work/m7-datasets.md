@@ -188,3 +188,19 @@ Implementation choices the spec leaves open. Any choice that changes what a user
   - on `joins.ags`, read each warning: does it say what is wrong, where, and what to do?
 
 ### Results
+- 1500 tests pass on Python 3.12 and with the lowest dependency versions.
+- **Commits:** one per build step, plus `analysis: allow for conversion rounding in the SPT refusal rule` between Build 11's code and its commit. Build 10 (the shared pipeline) went past the ~300-line guide and was left as one commit, since the joins, filters and warnings share `finish()` and its tests.
+- **Changes from the plan and spec**, each recorded in `datasets.md` (or `analysis.md`) in the commit that made it:
+  - The SPT refusal rule compares with a 1e-6 mm slack: 450 mm written in inches to 10 significant figures converts back to 449.99999992 mm, which the twin-file test caught as a refusal (analysis.md §1.3).
+  - BH1's refusal in the site files has increments 75, 75, 75 and 50 mm, so its golden depth is 6.2125 m (`mid_drive`), not the spec draft's 6.225 m.
+  - Two `LNMC` rows on one specimen break AGS Rule 10a, so that case is built in a test rather than kept in `joins.ags` (§12).
+  - `specimen_id` stays text (the registry type), holding the project's specimen key.
+  - The map check also rejects a column hangtu doesn't read, a blank code or unit, a non-numeric `order`, and one unit with two orders (§5.2).
+  - An NP specimen keeps a liquid limit the file gives; only the flagged values are blank (§6.2).
+  - `sample_reference` without `SAMP_ID` quotes `SAMP_TOP` as the file wrote it, in its unit (`U1 at 1.50 m`). `SAMP_ID` is part of the required sample key, so that case appears only with `include_incomplete=True`.
+  - Warnings count in the singular or plural (`1 SPT result`), and `elevation=` warns about rows it leaves out for having no elevation.
+  - G004 isn't in `qc_defects.ags`, since it needs a map; its case is `joins.ags` with `strata.csv`.
+- **Read by hand** on `site_us.ags` with `strata.csv` (US): depths and elevations in ft with `mid_drive`/`mid_drive_nominal`, N60 sources, NP as `non_plastic`, units and palette in `attrs`. On `joins.ags`, each warning says what, where and what to do. `spt_profile` and `geology_unit_comparison` draw with the map's colors and order. Two things noted:
+  - the test map's `tan` and `#d9b26f` are hard to tell apart; it's test data only;
+  - a point exactly on P07's axis limit sits on the spine (TODO #18).
+- **For M9:** the examples can use `site_us.ags` and `strata.csv` for the AGS → QC → plot path.
