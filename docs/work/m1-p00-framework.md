@@ -1,13 +1,56 @@
-# M1: P00 framework — plan
+# M1: P00 framework
 
-Intent: [intent.md](intent.md). Spec: [`docs/plots/P00-framework.md`](../../plots/P00-framework.md) (section numbers below are P00's unless marked SPEC).
+## Intent
+
+### Goal
+Build the shared plot framework from `docs/plots/P00-framework.md`: settings, units on DataFrames, the column registry and CSV templates, house style, labels, axis limits, out-of-range markers and notes, palette, legends, hints, errors and `Sheet`. Then P01–P07 only have to describe their own drawing.
+
+### Why
+- It's the next milestone in SPEC §12.4. M2 (P01) can't start without it.
+- Every plot depends on the cross-cutting rules: unit resolution (SPEC §2.6), registry names (§10.3), and "never drop data silently" (§3). If each plot reimplements them, they will drift apart. Building them once, with tests, keeps the plots consistent.
+
+### Constraints
+- **The feature spec is P00**, which is already approved. Build to it and to its acceptance criteria (P00 §14). If the build shows the spec is wrong, change P00 in the same commit as the code.
+- SPEC §2.6: the order units are resolved in, never guessing a unit, an error for analyses and "(units unknown)" plus a warning for plots.
+- SPEC §3: the plot contract. Never change global matplotlib state.
+- SPEC §10.3 and CLAUDE.md "Naming": the registry is the only source of column names, and names are written out in full.
+- SPEC §11: error messages say what is wrong, where, and what to do.
+- SPEC §12.1: only the Phase 1 dependencies. `pytest-mpl` is optional and isn't needed for M1.
+- SPEC §12.2: data files ship inside the package (`columns.yaml`, `config/defaults.yaml`, `units/aliases.yaml`), and tests mirror the package.
+- **Done when** (SPEC §12.4): the framework tests pass and a dummy plot composes on a `Sheet` without creating another figure.
+
+### Decisions to confirm
+- **No separate `spec.md`.** P00 is the spec, so the spec step is a review of P00 against this intent. That step promotes the two drafts:
+  - `docs/drafts/columns.yaml` becomes `src/ags_kit/columns.yaml`, including the Batch 1 entries beyond P01, which stay provisional (the file's header says so). Shipping them now means the registry test covers them and `ak.template()` works for every template. Each later plot spec may still change its own entries.
+  - `docs/drafts/units-aliases.yaml` becomes `src/ags_kit/units/aliases.yaml`. Its comments that refer to Phase 2 (U002, "SPEC 2.5 #2") are rewritten to point at P00 §4.3.
+
+  Both drafts are deleted from `docs/drafts/` when they are promoted, so there is only one copy of each.
+- **`config/defaults.yaml` holds only what M1 uses:** the display unit for each quantity kind (P00 §4.1) and the default settings. Presets and classification tables arrive with the plots that use them (M2–M4).
+- **The settings for later milestones** (`hammer_efficiency`, `spt_cap`) are added and validated now, because P00 §3 lists them, but nothing reads them until M3.
+- **TODO #1 (pcf) and #2 (SPT N)** stay open. M1 implements what P00 §4.3 says now (pcf converts according to the column's quantity kind, and N is never converted). Both are covered by tests, so if either decision changes, the change is small and visible.
+- **One unit of work, not two.** M1 is big, but the parts depend on each other: plots need units, units need the registry, and `Sheet` needs style. The plan splits it into build commits of about 300 lines or less, in dependency order: errors and settings → units → registry and templates → style and labels → limits → notes and edge markers → palette and legend → hints → `Sheet` and shared test helpers.
+
+### Out of scope
+- Any real plot (P01 is M2), plot presets, and analyses (M3–M4).
+- AGS ingest and the unit rules that apply only on ingest (`docs/drafts/phase2-data.md`).
+- `Sheet` title blocks, inch display for particle sizes, and per-project settings files (P00 §16).
+- Examples, the README and the tutorial (M5).
+- Publishing the repo and the CI matrix (TODO #0c).
+
+### SPEC sections touched
+- None expected. M1 implements §2.6, §3 and §10.3 as written.
+- §10.3 links to `docs/drafts/columns.yaml`. When the drafts are promoted, that link is pointed at the shipped file. The same goes for the links in P00 (§4.2, §5) and the drafts line in CLAUDE.md.
+
+## Plan
+
+Spec: [`docs/plots/P00-framework.md`](../plots/P00-framework.md) (section numbers below are P00's unless marked SPEC).
 
 Each build step is one commit, with ruff and pytest passing. A step that grows past about 300 changed lines is split.
 
-## Order
+### Order
 The intent listed units before the registry. The registry goes first instead, because the units dimension check (§4.3 #5) needs each column's quantity kind.
 
-## Package layout
+### Package layout
 ```
 src/ags_kit/
   __init__.py          re-exports the public API (§2)
@@ -30,7 +73,7 @@ src/ags_kit/
 - `tests/conftest.py` has an autouse fixture that resets settings after each test. Later builds add aliases and palette assignments to it, and closing all figures.
 - Tests run with `--import-mode=importlib`, so shared helpers can't be imported from `tests/`. They are fixtures in `tests/plot/conftest.py`.
 
-## Build 1: `M1: add errors and settings`
+### Build 1: `M1: add errors and settings`
 - `errors.py`:
   - `AgsKitError(Exception)`; `UnitsError(AgsKitError, ValueError)`; `ColumnError(AgsKitError, ValueError)`; `AgsKitHint(UserWarning)` (§12).
   - `warn(message, category)` walks the stack to the first frame outside `ags_kit`, so warnings point at the user's line (§11).
@@ -39,14 +82,14 @@ src/ags_kit/
   - Validation: `display_units` must be `"US"` or `"SI"`. `figure_sizes` values must be pairs of positive numbers. `palette` colors must pass `matplotlib.colors.is_color_like`. `hammer_efficiency` must be in (0, 100] or None. `spt_cap` must be a positive int. `display_overrides` keys must be quantity kinds; their units are checked in Build 3.
 - Tests (§14 Settings): defaults; each validation error; `override()` restores values when the block raises; `reset()`.
 
-## Build 2: `M1: load the column registry and build templates`
+### Build 2: `M1: load the column registry and build templates`
 - The quantity-kind table goes into `config/defaults.yaml`: canonical unit, US and SI display unit, and the label text for each (§4.1). Density in US is `pound / foot**3` (mass) with the text `pcf`. It lands here, not in Build 3, because `ak.columns()` shows each column's display units. `_config.py` loads and caches the package's YAML files.
 - `registry.py`: loads `columns.yaml` once. `column_info(name)` returns the entry or None.
   - `ak.columns(template=None)` returns one row per column: name, description, quantity, US unit, SI unit, used by. The display units come from the quantity-kind table.
   - `ak.template(name)` returns an empty DataFrame in template order, with dtypes `float64` for number, `object` for text and `bool` for bool. An unknown name raises `ColumnError` listing the templates.
 - Tests (§14 Registry): the file loads; every number column has quantity, scale and label; every quantity is a kind in §4.1; every template column exists; names are unique `snake_case`; no name is a bare symbol from the CLAUDE.md "Naming" list (`su`, `cu`, `k`, `ll`, `unit`, …). Plus `columns("spt")` rows and `template()` columns, and the error for an unknown template.
 
-## Build 3: `M1: parse unit strings and check their dimensions`, then `M1: convert values to display units`
+### Build 3: `M1: parse unit strings and check their dimensions`, then `M1: convert values to display units`
 This step is two commits, because together they come to about 470 lines: parsing, aliases and the dimension check first, then `to_display`. The tests are split the same way (`tests/units/test_parse.py`, `tests/units/test_display.py`).
 - `units/__init__.py`: one `pint.UnitRegistry`.
   - `parse_unit(text, column=None)` runs the lookup order in §4.2: the alias table; then pint with a `UserWarning` saying what the string was read as; then `UnitsError` showing `ak.add_unit_alias(...)`.
@@ -56,46 +99,46 @@ This step is two commits, because together they come to about 470 lines: parsing
 - `settings.display_overrides` now checks each unit's dimension against its kind.
 - Tests (§14 Units): the golden values (10 ft, 2,000 psf, 1e-5 m/s, 120 pcf as unit weight and as density, 6 in); a US value shown in SI and converted back by hand matches; "ft" passes silently, "feet" warns, "Ft" raises; `add_unit_alias` and `define_unit`; every alias in `aliases.yaml` parses; overrides (`{"stress": "ksf"}`).
 
-## Build 4: `M1: declare units on DataFrames`
+### Build 4: `M1: declare units on DataFrames`
 - `set_units(df, units)` checks each string with `parse_unit`. An unknown column raises `ColumnError`. A registered column whose unit has the wrong dimension raises `UnitsError` (§4.3 #5). The units are merged into `attrs["units"]` on a shallow copy, so the input frame is never changed.
 - `read_csv(path, units=None, **pandas_kwargs)` is `pd.read_csv` followed by `set_units`. `units_of(df)` returns a copy of the dict.
 - `resolve_units(df, columns, units=None, *, quantities=None, analysis=False)` runs the order in §4.4. `quantities` gives the kind of an unregistered column (from a plot preset). `needs_units(column, quantity=None)` tells plots whether a None unit means "unknown" or "not needed". For a plot, unknown units give `None` plus one `UserWarning` per column showing the `ak.set_units` call that fixes it. With `analysis=True` it raises `UnitsError`.
 - §4.3 #3 and #4: `parse_quantity("3 m")` parses overlay strings through the same alias table. There is no elevation helper yet; P01 adds one when it needs it.
 - Tests: `depth: "kPa"` raises; the input frame isn't changed; attrs survive filtering, column selection, `.copy()` and sorting; after `merge`, `resolve_units` warns. The plot-level part of that criterion is covered in Build 11.
 
-## Build 5: `M1: add house style and axis labels`
+### Build 5: `M1: add house style and axis labels`
 - `plot/ags_kit.mplstyle` (§6) and `style.context(**style_overrides)`, which nests `matplotlib.style.context` and `rc_context`.
 - `_labels.axis_label(text, unit=None, datum=None, unknown=False)` (§7).
 - Tests: rcParams are unchanged after the context exits, including when the block raises; overrides apply inside it; label cases from §7 (`"Elevation (ft, NAVD88)"`, `"SPT N60"`, `"... (units unknown)"`, `kN/m³`).
 
-## Build 6: `M1: compute nice axis limits and log ticks`
+### Build 6: `M1: compute nice axis limits and log ticks`
 - `_limits.nice_limits(vmin, vmax, *, start_at_zero, typical=None)`: steps of 1, 2 or 5 × 10ⁿ, picking the smallest step that gives 4–8 major ticks. If `start_at_zero` is set and all values are ≥ 0, the lower limit is 0; otherwise both ends are padded by 5%. A zero range gets ± one step around the value, or `typical` if given.
 - `log_limits(vmin, vmax, min_decades=2)` (≤ 0 raises `ValueError`; callers count those values first). `nice_step(lo, hi)`, `set_linear_axis(ax, axis, limits)` and `set_log_axis(ax, axis, limits)` set limits together with matching ticks, so matplotlib's own tick choice can't disagree with the limits. `apply_vertical_axis(ax, vs, vmin, vmax)` for depth and elevation (§8).
 - Tests (§14 Limits): a table with the three cases in §14 and more. Hypothesis properties: the limits enclose the data, and there are 4–8 ticks.
 
-## Build 7: `M1: count excluded values and mark values beyond limits`
+### Build 7: `M1: count excluded values and mark values beyond limits`
 - `_notes.Notes`: `add(reason, n)` and `count(mask, reason)` for the reasons in §9, with singular and plural wording. `render(ax)` writes one 7 pt gray footnote in axes coordinates below the legend, listing only non-zero counts, and sets `ax.ags_notes`. `add_text()` is for the legend's "see legend_handles()" note.
 - `edge_markers(ax, x, y, limits, color)` draws values beyond the limits at the limit, as open markers with outward arrows. Arrow length is in points, so it doesn't depend on the data scale. It returns a mask of the values drawn at the edge, not just the count, so the plot can draw the rest normally.
 - Tests (§14 Notes): a synthetic frame with NaN, ≤ 0 and beyond-limit values gives the right counts in `ax.ags_notes` and the footnote text; marker positions sit at the limit.
 
-## Build 8: `M1: assign stable geology unit colors`
+### Build 8: `M1: assign stable geology unit colors`
 - `_palette.resolve_palette(units, palette=None, order=None)` resolves `palette=`, then `settings.palette`, then automatic colors (§10). Automatic colors are `tab20`, darker shades first, assigned in `order` or else sorted names, and remembered for the session. More than 20 units repeat colors with a warning.
 - `palette_cmap(units=None)`, `legend_handles(units=None)` and `reset_palette()` are public in `ak.plot`.
 - Tests (§14 Palette): the same color across two calls; `order` is respected; `reset_palette()` clears assignments; explicit and settings palettes win; 21 units warn.
 
-## Build 9: `M1: add legend layout and missing-column hints`
+### Build 9: `M1: add legend layout and missing-column hints`
 - `_legend.add_legend(ax, sections, notes)`: sections go in the order units → marker groups → special markers. The legend sits outside on the right, has no frame and uses 8 pt text. Columns hold up to 12 entries. With more than 30 entries there is no legend, and a note goes through `notes.add_text`.
 - `_hints.hint_missing(df, optional)`: one `AgsKitHint` per call, sent through `errors.warn`, and none when `settings.hints` is False.
 - Tests (§14 Legend, Hints): 12, 13 and 31 entries give 1 column, 2 columns, and no legend plus a note; one hint per call that points at the test file; no hint when hints are off.
 
-## Build 10: `M1: add Sheet for multi-panel pages`
+### Build 10: `M1: add Sheet for multi-panel pages`
 - `sheet.py` (§13): `Sheet(size, layout, title, orientation)` uses `plt.figure` with constrained layout. The 0.5 in margins come from the engine's `rect`, and the title from `suptitle` at the top left (12 pt bold). Panels are created on first access through int, `(r, c)` or slice keys, and the same Axes comes back for the same cells. An overlapping span raises `AgsKitError`. `save(path, dpi=300)` accepts `.pdf`, `.png` and `.svg` and raises `AgsKitError` naming them otherwise. An unknown size or orientation raises an error that lists the valid ones.
 - Tests (§14 Sheet): figure size for each size and orientation; spans; the same Axes returned twice; overlap errors; `save` writes all three formats to `tmp_path`.
 
-## Build 10b: `M1: style axes created outside the style context`
+### Build 10b: `M1: style axes created outside the style context`
 Found while planning Build 11: rcParams only reach axes created inside `style.context()`, so `Sheet` panels and a user's `ax=` would miss the house grid, ticks and spines. `style.style_axes(ax)` applies them from the current rcParams. P00 §6 is updated.
 
-## Build 11 (close-out): `M1: add shared plot test helpers and close out P00`
+### Build 11 (close-out): `M1: add shared plot test helpers and close out P00`
 - `tests/plot/conftest.py` fixtures (§14):
   - `dummy_plot`: a minimal plot following the contract. It uses `resolve_units`, `to_display`, the style context, labels, limits, notes, edge markers, palette, legend and hints, and returns `(fig, ax)`.
   - `assert_no_global_state(plot_fn, ...)`: rcParams are unchanged; with `ax=` no figure is added; the input frame and its attrs are unchanged.
@@ -109,7 +152,7 @@ Found while planning Build 11: rcParams only reach axes created inside `style.co
   - P00: change any spec details the build changed.
   - `TODO.md`: no change expected.
 
-## Verification
+### Verification
 - After each build: `uv run ruff check . && uv run ruff format --check . && uv run pytest`.
 - At close-out:
   - Run the tests on Python 3.13 and 3.14: `uv run --isolated --python 3.1x pytest`.
@@ -117,7 +160,7 @@ Found while planning Build 11: rcParams only reach axes created inside `style.co
   - `uv build`, then check that the wheel contains `columns.yaml`, `config/defaults.yaml`, `units/aliases.yaml` and `ags_kit.mplstyle`.
 - Look at a saved Tabloid `Sheet` PNG with the dummy plot in two panels, as a visual check of the style, legend placement and footnote.
 
-## Results
+### Results
 - 320 tests pass on Python 3.12, 3.13 and 3.14, and with the lowest dependency versions (matplotlib 3.8 supports the layout engine's `rect`, so no fallback was needed). The lowest run needed two more pyparsing ignore rules, committed on their own.
 - The wheel contains all four data files.
 - The visual check of a Tabloid sheet showed legends outside on the right, footnotes below them, depth pointing down, SI conversion in the second panel, and an edge marker at a fixed 100% limit.

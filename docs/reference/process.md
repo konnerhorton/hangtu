@@ -8,23 +8,24 @@ Personal reference notes. Adapted from Anthropic's [AI-native SDLC playbook](htt
 |---|---|---|---|
 | `SPEC.md` | Whole product | Permanent; changes with the product | What is hangtu, and what holds for every feature? |
 | `CLAUDE.md` | Whole repo | Permanent; under a page | How do I work in this repo (commands, conventions, recurring mistakes)? |
-| `docs/work/<id>/intent.md` | One unit of work | Frozen once done | What do we want and why? |
+| `docs/work/<id>.md` | One unit of work | `## Intent` frozen once done, `## Plan` frozen once merged | What do we want and why (Intent)? Which files, in what order, proven by which tests (Plan)? |
 | Feature spec | One feature | Kept while the feature exists | What exactly does it do, and how do we know it works? |
-| `docs/work/<id>/plan.md` | One unit of work | Frozen once merged | Which files, in what order, proven by which tests? |
 | `docs/drafts/` | Upcoming features and future phases | Until promoted to a feature spec | Draft feature specs and early notes. Input for intents; only items marked "decided" are decisions |
 | `docs/plots/drafts/` | Plots not yet specified | Until promoted to `docs/plots/PXX-*.md` | Draft plot specs in the TEMPLATE format. Input for a plot's spec step; not decisions |
 | `TODO.md` | Backlog | Permanent | What hasn't been decided or researched yet? |
 
-The **feature spec** for a plot is `docs/plots/PXX-*.md`. For other work it is `docs/work/<id>/spec.md`, or a new topic doc under `docs/` when it will outlive the change, such as the Phase 2 data model.
+The **feature spec** for a plot is `docs/plots/PXX-*.md`. For other work it is the `## Spec` section of `docs/work/<id>.md`, or a new topic doc under `docs/` when it will outlive the change, such as the Phase 2 data model.
+
+Each unit of work is one file, `docs/work/<id>.md`, named after its branch. The intent commit creates it with `## Intent`, and each later loop step's commit adds its section (`## Spec` when needed, then `## Plan`), so nothing is merged at the close-out.
 
 ## The loop for each unit of work
 
 A unit of work is a milestone, a plot, a fix or a decision. Keep it small enough to review in one sitting.
 
-1. **Intent**: create the unit's branch, then write a short `intent.md` covering goal, why, constraints, what's out of scope, and the SPEC sections it touches. Brainstorm it with Claude and review it yourself before committing.
-2. **Spec**: write or update the feature spec. Check it against `SPEC.md`. If it needs a cross-cutting decision changed, change `SPEC.md` now, deliberately, rather than letting the code drift from it.
-3. **Plan**: Claude Code plan mode, then commit `plan.md`. It names the files, the order, and the tests that prove each acceptance criterion.
-4. **Build**: implement the plan. If the plan has to change, update `plan.md` in the same commit.
+1. **Intent**: create the unit's branch, then create `docs/work/<id>.md` with a short `## Intent` section covering goal, why, constraints, what's out of scope, and the SPEC sections it touches. Brainstorm it with Claude and review it yourself before committing.
+2. **Spec**: write or update the feature spec (or add the `## Spec` section when there is no other home for it). Check it against `SPEC.md`. If it needs a cross-cutting decision changed, change `SPEC.md` now, deliberately, rather than letting the code drift from it.
+3. **Plan**: Claude Code plan mode, then add the `## Plan` section and commit it. It names the files, the order, and the tests that prove each acceptance criterion.
+4. **Build**: implement the plan. If the plan has to change, update the `## Plan` section in the same commit.
 5. **Test**: check against the acceptance criteria and golden values, and look at the figure yourself.
 6. **Close**: merge. In the same PR, update `SPEC.md` (decisions), the plot status in `docs/plots/README.md`, `TODO.md`, and `CLAUDE.md` if a mistake recurred or a convention emerged.
 

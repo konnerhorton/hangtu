@@ -7,7 +7,7 @@
 | **Type** | plot (percentiles only, no analysis module) |
 | **Target version** | v0.1 |
 | **Depends on** | P00 (framework); reuses the P01 presets and overlay helpers (`plot/_overlays.py`) |
-| **Related** | SPEC §2.6 (units), §3 (plot contract), §5 (P07 doesn't need the statistics module). TODO #15 (text in value columns), TODO #16 (other summaries). Intent: `docs/work/p07-geology-unit-comparison/intent.md` |
+| **Related** | SPEC §2.6 (units), §3 (plot contract), §5 (P07 doesn't need the statistics module). TODO #15 (text in value columns), TODO #16 (other summaries). Intent: `docs/work/p07-geology-unit-comparison.md` |
 
 ---
 

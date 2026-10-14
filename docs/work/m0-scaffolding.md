@@ -1,10 +1,45 @@
-# M0: Scaffolding — plan
+# M0: Scaffolding
 
-Intent: [intent.md](intent.md). There is no separate spec; SPEC §12 is the spec.
+## Intent
+
+### Goal
+An installable, empty `ags_kit` package with lint, tests and a CI workflow, so that M1 (the P00 framework) can start writing code straight away.
+
+### Why
+- M0 is the first run through the loop (`docs/reference/process.md`, "Starting from zero").
+- Every later milestone assumes there is a package to import, a test runner, a linter and a CI matrix.
+
+### Constraints
+- SPEC §12.1, environment and distribution:
+  - Python ≥ 3.12 and `uv`.
+  - MIT license.
+  - CI on Windows, macOS and Linux × Python 3.12–3.14, running ruff and pytest.
+  - The Phase 1 dependencies only.
+- SPEC §12.2: `src/` layout, package `ags_kit`, and tests that mirror the package.
+- SPEC §12.4: M0 is done when CI is green.
+- CLAUDE.md conventions: naming, American spelling, and commits.
+
+### Decisions taken while planning
+- **Dependency floors.** Every Phase 1 dependency gets a lower bound, and a CI job tests the oldest allowed versions (`--resolution lowest-direct`). Without that job, a floor is never actually checked. SPEC §12.1 is updated in the same commit.
+- **CI is checked locally for now.** There is no GitHub repo yet, so the workflow is written and validated locally, and the full matrix runs later. A TODO item tracks creating the repo and confirming that CI is green. Until then, M0's "done when" is only partly met.
+- **No separate `spec.md`.** SPEC §12 is the specification for scaffolding.
+
+### Out of scope
+- Any P00 code: settings, units, registry, style, `Sheet` (M1).
+- The PyPI release workflow. It moves to M5, because the package name isn't settled (TODO 0) and publishing can't be tested before then.
+- Creating the GitHub repo and pushing.
+- A docs site (SPEC §13 Q3) and a README rewrite.
+
+### SPEC sections touched
+§12.1 (dependency floors).
+
+## Plan
+
+There is no separate spec; SPEC §12 is the spec.
 
 Each build step is one commit, with ruff and pytest passing.
 
-## Build 1: `M0: add package skeleton, dependencies and tool config`
+### Build 1: `M0: add package skeleton, dependencies and tool config`
 - `pyproject.toml`:
   - `version = "0.1.0.dev0"`. 0.1.0 is the release target.
   - `[build-system]` uses `uv_build`. It's uv-native, so there's no extra tool, and it includes package data files under `src/ags_kit/` by default, as needed for `columns.yaml` at M1.
@@ -33,7 +68,7 @@ Each build step is one commit, with ruff and pytest passing.
 - `uv.lock` regenerated with `uv lock`.
 - **SPEC §12.1:** write the new floors (Phase 1 and dev) into the spec, in the same commit as the pyproject change (CLAUDE.md workflow rule).
 
-## Build 2: `M0: add CI workflow`
+### Build 2: `M0: add CI workflow`
 - `.github/workflows/ci.yml`:
   - Runs on push to `main` and on pull requests.
   - **`test` job:** matrix of `ubuntu-latest`, `windows-latest` and `macos-latest` × Python `3.12`, `3.13`, `3.14`, with `fail-fast: false`. Steps:
@@ -45,14 +80,14 @@ Each build step is one commit, with ruff and pytest passing.
   - **`lowest` job:** ubuntu, Python 3.12, `uv sync --resolution lowest-direct`, then `uv run pytest`. This proves the floors.
   - Set `MPLBACKEND: Agg` at the workflow level, ready for M1 plots.
 
-## Build 3 (close-out): `M0: record commands and close out scaffolding`
+### Build 3 (close-out): `M0: record commands and close out scaffolding`
 - `CLAUDE.md`:
   - Replace "Pre-code: M0 (scaffolding) is next." with the current status.
   - Update the Commands section: remove "Set up at M0", and keep or adjust the three commands to match what landed. Use `ruff format --check` in the CI-equivalent check line.
 - `TODO.md`: add an item, owned by You and Claude: "Create the public GitHub repo, push, and confirm M0 CI is green on the full matrix and the lowest job". It references SPEC §12.1 and §12.4.
 - `pyproject.toml` `description`: leave as is. It's renamed with TODO 0.
 
-## Verification (local, since there's no remote)
+### Verification (local, since there's no remote)
 - `uv sync && uv run ruff check . && uv run ruff format --check . && uv run pytest` passes on 3.12.
 - Run the other Python versions installed locally: `uv run --isolated --python 3.13 pytest` and `uv run --isolated --python 3.14 pytest`.
 - Run the lowest job locally in a scratch environment: `UV_PROJECT_ENVIRONMENT=<scratchpad>/lowest uv sync --resolution lowest-direct --python 3.12 && UV_PROJECT_ENVIRONMENT=... uv run pytest`. If a floor fails to resolve or build, raise it, and update both SPEC §12.1 and `plan.md` in that commit. Note: `uv sync --resolution lowest-direct` rewrites `uv.lock`, so run `uv lock` afterward (and never use `--locked` in the lowest job).
