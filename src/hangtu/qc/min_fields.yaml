@@ -3,10 +3,12 @@
 # in the file aren't checked. Override with p.qc(min_fields=...), which replaces
 # a group's required or recommended list as a whole.
 #
-# spec_key is the key of a specimen; a list that starts with *spec_key is read
-# as if the key headings were written out in its place.
+# sample_key is the key of the sample a specimen comes from; a list that starts
+# with *sample_key is read as if the key headings were written out in its place.
+# SPEC_REF and SPEC_DPTH are recommended, not required (M7, datasets.md §14): a
+# lab result without a specimen depth is placed at its sample (SPEC §8.2).
 
-spec_key: &spec_key [LOCA_ID, SAMP_TOP, SAMP_REF, SAMP_TYPE, SAMP_ID, SPEC_REF, SPEC_DPTH]
+sample_key: &sample_key [LOCA_ID, SAMP_TOP, SAMP_REF, SAMP_TYPE, SAMP_ID]
 
 min_fields:
   LOCA:
@@ -24,18 +26,20 @@ min_fields:
                   ISPT_INC1, ISPT_INC2, ISPT_INC3, ISPT_INC4, ISPT_INC5, ISPT_INC6,
                   ISPT_PEN1, ISPT_PEN2, ISPT_PEN3, ISPT_PEN4, ISPT_PEN5, ISPT_PEN6]
   LLPL:
-    required: [*spec_key, LLPL_LL, LLPL_PL]
-    recommended: [LLPL_PI, LLPL_425, LLPL_PREP]
+    required: [*sample_key, LLPL_LL, LLPL_PL]
+    recommended: [SPEC_REF, SPEC_DPTH, LLPL_PI, LLPL_425, LLPL_PREP]
   LNMC:
-    required: [*spec_key, LNMC_MC]
+    required: [*sample_key, LNMC_MC]
+    recommended: [SPEC_REF, SPEC_DPTH]
   GRAG:
-    required: [*spec_key]
-    recommended: [GRAG_GRAV, GRAG_SAND, GRAG_SILT, GRAG_CLAY, GRAG_FINE, GRAG_UC]
+    required: [*sample_key]
+    recommended: [SPEC_REF, SPEC_DPTH, GRAG_GRAV, GRAG_SAND, GRAG_SILT, GRAG_CLAY, GRAG_FINE, GRAG_UC]
   GRAT:
-    required: [*spec_key, GRAT_SIZE, GRAT_PERP]
+    required: [*sample_key, GRAT_SIZE, GRAT_PERP]
+    recommended: [SPEC_REF, SPEC_DPTH]
   PTST:
-    required: [*spec_key, PTST_K]
-    recommended: [PTST_TYPE, PTST_COND, PTST_TSTR]
+    required: [*sample_key, PTST_K]
+    recommended: [SPEC_REF, SPEC_DPTH, PTST_TYPE, PTST_COND, PTST_TSTR]
   FGHG:
     required: [LOCA_ID, FGHG_TOP, FGHG_BASE, FGHG_IPRM]
     recommended: [FGHG_TYPE]

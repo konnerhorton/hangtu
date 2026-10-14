@@ -61,7 +61,7 @@ def test_default_min_fields_are_in_the_dictionaries():
             ), (group, heading)
 
 
-def test_spec_key_anchor_is_written_out():
+def test_sample_key_anchor_is_written_out():
     llpl = load().min_fields["LLPL"]["required"]
     assert llpl == (
         "LOCA_ID",
@@ -69,12 +69,17 @@ def test_spec_key_anchor_is_written_out():
         "SAMP_REF",
         "SAMP_TYPE",
         "SAMP_ID",
-        "SPEC_REF",
-        "SPEC_DPTH",
         "LLPL_LL",
         "LLPL_PL",
     )
-    assert load().min_fields["LNMC"]["recommended"] == ()
+
+
+def test_specimen_reference_and_depth_are_recommended():
+    # datasets.md §14: a lab result without them falls back to its sample.
+    for group in ("LLPL", "LNMC", "GRAG", "GRAT", "PTST"):
+        fields = load().min_fields[group]
+        assert {"SPEC_REF", "SPEC_DPTH"} <= set(fields["recommended"])
+        assert not {"SPEC_REF", "SPEC_DPTH"} & set(fields["required"])
 
 
 def test_threshold_in_feet_equals_meters():
