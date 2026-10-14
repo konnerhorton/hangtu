@@ -144,11 +144,11 @@ Written for engineers (SPEC §11):
 - Schema version mismatch: the hangtu version that wrote it, and the re-ingest call.
 
 ## 11. Test files
-Synthetic, hand-written, in `tests/data/ags/` (SPEC §12.3). Small: 3 locations, enough rows to hit every rule.
+Synthetic, in `tests/data/ags/` (SPEC §12.3), written by a script there from hand-typed SI data. Small: 3 locations, enough rows to hit every rule.
 - `site_si.ags` (4.2, SI): PROJ, TRAN, UNIT, TYPE, ABBR, DICT (one user-defined group), LOCA, GEOL, SAMP, ISPT, LLPL, LNMC, GRAG, GRAT, PTST, FGHG, FGHS. Includes `NP`, `Dry`, a refusal, `<0.1`, `#2.65`, blanks, and two lab groups on one specimen.
 - `site_us.ags`: the same data in US units (ft, in, psf, tsf, pcf in a density and a unit-weight heading, cm/s), with values hand-converted.
 - `site_v404.ags` (4.0.4): the same locations, with `IPRG`/`IPRT` in place of `FGHG`/`FGHS`, a removed `RUCS` heading, and the old unit spellings (`degC`, `Bar`).
-- `defects.ags`: one case per ingest rule in §9, plus an orphan sample.
+- `defects.ags`: one case per ingest rule in §9 except `M001`, plus an orphan sample.
 All but `defects.ags` pass python-ags4 validation with no errors.
 
 ## 12. Acceptance criteria
@@ -158,7 +158,7 @@ All but `defects.ags` pass python-ags4 validation with no errors.
 4. **Keys:** every child row in the good files has its keys; `LLPL` and `LNMC` on one specimen share `specimen_id`; the orphan in `defects.ags` has NULL `sample_id` and a `V10` finding.
 5. **Units:** pcf resolves to Mg/m³ in a density heading and kN/m³ in a unit-weight heading; every `U001`–`U004` case in `defects.ags` raises its finding, leaves the canonical column NULL and keeps the raw text.
 6. **Flags:** each recognized string gives its flag and value/bound; unrecognized text gives `OTHER` + `T001`; blank gives NULL with no flag.
-7. **Findings:** each rule in §9 is raised by `defects.ags`, with group, heading and line.
+7. **Findings:** each rule in §9 is raised by `defects.ags` (`M001` by `site_v404.ags`, since a removed group needs an older version), with group, heading and line.
 8. **Open:** `Project.open` reads back the same tables; a changed source file warns; a schema mismatch errors; `from_ags` on an existing database errors without `overwrite=True`.
 9. **Atomic:** a parse failure leaves no database file and no existing database changed.
 10. **Read-only SQL:** `p.sql()` rejects a write.

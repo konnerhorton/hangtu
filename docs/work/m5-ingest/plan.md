@@ -37,7 +37,8 @@ tests/data/ags/
 ## Decisions the build makes
 Implementation choices the spec leaves open. Any that changes what a user sees goes into `ingest.md` in the commit that builds it.
 1. **python-ags4 floor is 1.2.0**, the first release that ships the 4.2 dictionary (1.1.0 has 4.0.3–4.1.1 only). It requires `pandas>=2.1,<3`, which fits ours. Its dictionaries are found with `importlib.resources.files("python_ags4")`, never copied into hangtu.
-2. **python-ags4 results become findings like this:** `AGS Format Rule <n>` → `V<n>` (`V10b`, …), severity error; `FYI (…)` → `V<n>` of the related rule, or `VFYI`, severity info; `Warning`/`General` → warning; `Validator Process Error` → error. `Summary of data` and `Metadata` aren't findings. The line comes from the result's `line` where it is a number.
+2. **An unrecognized `TRAN_AGS`** makes python-ags4 fall back to the 4.1.1 dictionary, so ingest passes `standard_AGS4_dictionary="4.2"` in that case, to match §6.
+   **python-ags4 results become findings like this:** `AGS Format Rule <n>` → `V<n>` (`V10b`, …), severity error; `FYI (…)` → `V<n>` of the related rule, or `VFYI`, severity info; `Warning`/`General` → warning; `Validator Process Error` → error. `Summary of data` and `Metadata` aren't findings. The line comes from the result's `line` where it is a number.
 3. **Captured output:** stdout and stderr are redirected, and python-ags4's `logger` gets a temporary handler with propagation switched off, for the duration of each call. Messages that carry information (`DICT group not found…`) are dropped when `check_file` already reports the same thing. Any other message becomes a `V` warning, so nothing is lost.
 4. **Line numbers** come from `AGS4_to_dataframe(..., get_line_numbers=True)`, which returns a third dict and a `line_number` column. The `UNIT` and `TYPE` rows go into `meta_heading`, and only `DATA` rows reach `raw_<GROUP>`.
 5. **Encoding:** the file is read as UTF-8, with a BOM accepted. If it isn't valid UTF-8, the error names the first bad line and says to save the file as UTF-8. Nothing falls back to another encoding, which would be a guess. This adds a bullet to `ingest.md` §10.
@@ -55,8 +56,8 @@ Implementation choices the spec leaves open. Any that changes what a user sees g
 
 ## Build 1: `M5: add python-ags4 and the synthetic AGS test files`
 - `pyproject.toml`: `python-ags4>=1.2.0`; `uv.lock`.
-- `tests/data/ags/`: the four files in §11. They're written by hand: SI first, then the US twin from it (decision 15), the 4.0.4 file and the defects file. A comment line can't go in an AGS file, so each file's purpose is in `tests/data/ags/README.md`.
-- `tests/ags/test_files.py`: `site_si`, `site_us` and `site_v404` pass `check_file` with no `AGS Format Rule` entries. `defects.ags` produces the python-ags4 rules it was built to trigger, including the orphan sample (Rule 10).
+- `tests/data/ags/`: the four files in §11, written by `_make_files.py` from SI data typed in by hand. The US twin divides by exact factors from their definitions (0.3048 m/ft, 0.45359237 kg/lb, standard gravity), not by pint, so the twin test checks hangtu against independent arithmetic (decision 15). AGS files can't hold comments, so each file's purpose is in `tests/data/ags/README.md`. A test fails if a committed file differs from what the script writes.
+- `tests/ags/test_files.py`: `site_si`, `site_us` and `site_v404` pass `check_file` with no findings at all. `defects.ags` produces the python-ags4 rules it was built to trigger, including the orphan sample (Rule 10).
 
 ## Build 2: `M5: read AGS files into text tables and findings`
 - `ags/_read.py`: SHA-256 and size from the bytes; decoding (decision 5); `check_file` → findings (decision 2); `AGS4_to_dataframe` with line numbers (decision 4); capture (decision 3). Errors from §10: file not found, not AGS4 (no `GROUP` line), parse failure with line and reason, not UTF-8.
