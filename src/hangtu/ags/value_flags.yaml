@@ -1,0 +1,24 @@
+# Recognized text in numeric AGS columns (docs/data/ingest.md §8, SPEC §6.2).
+# Matched case-sensitively after trimming spaces. Anything else in a numeric
+# column is blank with flag OTHER and finding T001.
+
+# The value is blank, and the cell gets the flag.
+blank:
+  NP: NP          # non-plastic
+  Dry: DRY        # no water found
+
+# A number after the prefix is kept, and the cell gets the flag. For LT and GT
+# the number is also stored as the flag's bound.
+prefix:
+  "<": LT
+  ">": GT
+  "#": ASSUMED    # e.g. GRAG_PDEN "#2.65": particle density assumed
+
+# An SPT reported as blows/penetration ("25/75 50/75") didn't complete the test
+# drive. The flag goes on the N value, which is kept as given. In the N value
+# itself, "50/75" keeps the blows (50).
+refusal:
+  group: ISPT
+  value: ISPT_NVAL
+  report: ISPT_REP
+  pattern: '(\d+)\s*/\s*\d+'

@@ -1,62 +1,15 @@
 # Phase 2 (data) — draft notes
 
 **Status:** working notes, not a spec. **Parent:** SPEC §6, §7, §9 and §10, which hold the decided constraints.
-**Use:** input for the Phase 2 intents at M4 (ingest, QC, datasets). Each intent's spec takes what it needs from here, and the decisions that end up applying to all of Phase 2 go back into `SPEC.md`.
+**Use:** input for the Phase 2 intents (QC at M6, datasets at M7; ingest is specified in `docs/data/ingest.md`). Each intent's spec takes what it needs from here, and the decisions that end up applying to all of Phase 2 go back into `SPEC.md`.
 Decisions marked **(decided)** were agreed in review. Everything else is a draft.
 
 ---
 
 ## Ingestion (SPEC §6)
-
-### Pipeline
-```
-AGS file
-  → python-ags4: check_file()                    → validation findings (stored, never blocking)
-  → python-ags4: AGS4_to_dataframe()             → {group: DataFrame of text}, plus UNIT/TYPE rows
-  → raw layer writer                             → raw_<GROUP> tables (TEXT, exactly as in the file, + _line)
-  → version mapping to AGS 4.2                   → older versions mapped up (e.g. IPRG → FGHG)
-  → typing + unit conversion + value flags       → canonical layer (SI) + value flags   [AGS 4.2-shaped, SPEC §7]
-  → metadata writer                              → meta_* tables
-```
-
-### Versions
-- Version notes: `ISPT_N60`, `SPEC_BASE` and `GRAG_CC` exist only in 4.1+.
-- Field permeability is `IPRG` (4.0.x) or `FGHG`/`FGHS` (4.1+).
-- Re-ingest with `overwrite=True` (proposed). The file's SHA-256 is stored and checked on open.
-
-### Type mapping
-| AGS TYPE | Stored as | Notes |
-|---|---|---|
-| `ID`, `PA`, `PT`, `PU`, `X`, `RL`, `RECORD LINK` | TEXT | Except numeric-text headings listed in `heading_quantities.yaml` (e.g. `LNMC_MC` is type `X`) |
-| `XN` | REAL + value flags | e.g. `LLPL_PL` ("38 or NP"), `ISPT_WAT` ("Dry"), `GRAG_PDEN` ("#2.65") |
-| `nDP`, `nSF`, `nSCI`, `MC`, `U` | REAL | |
-| `DT` / `T` / `YN` / `DMS` | ISO text / seconds / 0-1 / decimal degrees | |
-
-### Value flags (decided)
-- Flags: `NP`, `DRY`, `REFUSAL`, `LT`/`GT` (bound kept), `ASSUMED` (value kept).
-- Unrecognized text → flag `OTHER` + QC `T001`.
-- Datasets expose flags as columns (`non_plastic`, `water_dry`, `spt_refusal`, `qualifier`).
-
-### Dependency notes
-- `python-ags4` 1.2.0 requires `pandas >=2.1,<3`.
-- SQLite `STRICT` tables need SQLite ≥ 3.37.
-
-### Units on ingest
-Phase 1 unit rules (quantity kinds, aliases, pcf, SPT N) are in `docs/plots/P00-framework.md` §4. These apply only to AGS files:
-1. **"ton"** (decided): short ton in an imperial context, metric tonne in a metric context.
-   - Explicit strings resolve directly (`tsf` → short ton; `t/m2` → tonne).
-   - A bare `ton`/`t` follows the file's unit system, inferred from the length unit of `LOCA_GL`/`GEOL_TOP`.
-   - Each resolution is recorded (QC `U002`).
-2. **Mixed units in one file** are handled per column.
-3. **Vertical datum:** AGS4 has **no field for the datum of `LOCA_GL`**. It is implied by `LOCA_GREF`; `LOCA_DATM` is the local datum for `LOCA_LOCZ` only. The datum label (e.g. NAVD88) is therefore a setting. One datum per project; multiple datums are a Later item.
-4. **Project settings:** the same keys as the session settings (P00 §3), stored in the project database. `to_yaml()`/`load_yaml()` export and import them.
-5. **pcf in AGS headings** (open): `pcf` is read by the heading's quantity kind (P00 §4.3 #1). Check real US files for unit weights put into AGS *density* headings (`RDEN_BDEN`, `PTST_BDEN`, dictionary unit Mg/m³), or the reverse. References: ASTM D7263, ASTM D2937, FHWA NHI-16-072.
-6. **SPT penetrations** (open): check whether US files fill `ISPT_PEN*` as 6-in increments (152.4 mm) or as nominal 150 mm values. They drive the mid-drive depth (SPEC §8.2), and are converted as lengths either way (P00 §4.3 #2).
-
-**Acceptance tests:**
-- **twin-file test**: the same data in an SI AGS file and a US AGS file ingests to identical canonical tables;
-- the synthetic files pass python-ags4 validation (except the defects file);
-- every `U002` resolution is tested.
+Moved to [`docs/data/ingest.md`](../data/ingest.md) (M5). Research items still open, not blocking ingest:
+- **pcf in AGS headings:** check real US files for unit weights put into AGS *density* headings (`RDEN_BDEN`, `PTST_BDEN`, dictionary unit Mg/m³), or the reverse. References: ASTM D7263, ASTM D2937, FHWA NHI-16-072.
+- **SPT penetrations:** check whether US files fill `ISPT_PEN*` as 6-in increments (152.4 mm) or as nominal 150 mm values. They drive the mid-drive depth (SPEC §8.2), and are converted as lengths either way (P00 §4.3 #2).
 
 ---
 

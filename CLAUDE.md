@@ -1,9 +1,10 @@
 # hangtu
 
-Python library of plots, analyses and (later) AGS4 ingest/QC for geotechnical engineers. M0 (scaffolding), M1 (P00 framework), M2 (P01 property profile), M2b (P07 property by geology unit) and M3 (SPT analysis, P02 SPT profile, P03 SPT class histogram) done, and the package renamed from ags-kit to hangtu. Phase 2 comes next, ahead of the remaining plots (SPEC §1.3): M4 decided the data model (AGS 4.2-shaped tables, SPEC §7), and M5 (AGS4 ingest) is next.
+Python library of plots, analyses and (later) AGS4 ingest/QC for geotechnical engineers. M0 (scaffolding), M1 (P00 framework), M2 (P01 property profile), M2b (P07 property by geology unit) and M3 (SPT analysis, P02 SPT profile, P03 SPT class histogram) done, and the package renamed from ags-kit to hangtu. Phase 2 comes next, ahead of the remaining plots (SPEC §1.3): M4 decided the data model (AGS 4.2-shaped tables, SPEC §7), M5 (AGS4 ingest into SQLite, `ht.Project`) is done, and M6 (QC level 1, report and `diff()`) is next.
 
 ## Where things are
 - `SPEC.md`: product spec and cross-cutting decisions. Read the relevant section before designing anything.
+- `docs/data/`: data-layer specs that outlive a unit of work (`ingest.md`, M5).
 - `docs/plots/PXX-*.md`: one spec per figure, with acceptance criteria. `docs/plots/README.md` has the shared plot conventions.
 - `docs/plots/drafts/`: draft notes for plots not yet specified, in the TEMPLATE format, including proposed IDs P24–P30. They are not decisions. When a plot's unit of work starts, promote its draft to `docs/plots/PXX-*.md` in the spec step.
 - `docs/work/<id>-<slug>/`: intent and plan for each unit of work (see `docs/reference/process.md`).

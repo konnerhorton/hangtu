@@ -22,3 +22,55 @@
 "deg": "degree"                          # angle (friction angle, inclination), not temperature
 "DegC": "degC"                           # temperature; AGS uses DegC, never bare "deg"
 "DegF": "degF"                           # temperature; may appear in US files
+
+# Unit strings of the AGS4 standard dictionaries, 4.0.3 to 4.2 (docs/data/ingest.md §7).
+# Every one is listed, so units from the dictionaries never fall back to pint's parser.
+# Date and time formats (yyyy-mm-dd, hh:mm:ss, ...) aren't units and never come here.
+"s": "second"
+"ms": "millisecond"
+"min": "minute"
+"day": "day"
+"Hz": "hertz"
+"rpm": "revolutions_per_minute"
+"g": "gram"
+"kg": "kilogram"
+"kg/m": "kilogram / meter"
+"kg/m3": "kilogram / meter**3"
+"N": "newton"
+"kN": "kilonewton"
+"N/s": "newton / second"
+"Nm": "newton * meter"
+"GPa": "gigapascal"
+"bar": "bar"
+"Bar": "bar"                             # AGS 4.0.x spelling
+"kPa/s": "kilopascal / second"
+"MPa/s": "megapascal / second"
+"MPa/m": "megapascal / meter"
+"m2/MN": "meter**2 / meganewton"         # coefficient of volume compressibility, m_v
+"m2/yr": "meter**2 / year"               # coefficient of consolidation, c_v
+"cm3/MPa": "centimeter**3 / megapascal"
+"MJ/m3": "megajoule / meter**3"
+"mm2": "millimeter**2"
+"cm2": "centimeter**2"
+"cm3": "centimeter**3"
+"ml": "milliliter"
+"l": "liter"
+"l/s": "liter / second"
+"l/min": "liter / minute"
+"m/hr": "meter / hour"
+"mm/s": "millimeter / second"
+"mm/min": "millimeter / minute"
+"%/hr": "percent / hour"
+"%/min": "percent / minute"
+"degC": "degC"                           # AGS 4.0.x spelling of DegC
+"mV": "millivolt"
+"uV": "microvolt"
+"ohm m": "ohm * meter"
+"uS/cm": "microsiemens / centimeter"
+"µS/cm": "microsiemens / centimeter"     # AGS 4.0.x spelling
+"nT": "nanotesla"
+"nT/cm": "nanotesla / centimeter"
+"W/(K-m)": "watt / (kelvin * meter)"     # thermal conductivity
+"(K-m)/W": "kelvin * meter / watt"       # thermal resistivity
+"counts/s": "count / second"
+"ppmv": "ppm"                            # parts per million by volume
