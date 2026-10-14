@@ -149,7 +149,7 @@ One row per `ISPT` row. Built from the file, then passed through `ht.analysis.sp
   - **This changes the proposal for short drives.** SPEC's `top + total − 150 mm` puts the point at the *end* of the test drive's first half-length, and inside the seating drive for totals under 300 mm (`top + 50 mm` for 200 mm). The rule above is the same mid-drive formula with nominal increments: 200 mm gives `top + 175 mm`, the middle of the 50 mm test drive.
   - Nominal values are 150 mm in every file: a US file's 6 in (152.4 mm) differs by under 5 mm, less than a depth's precision.
 
-**Golden values** (hand-calculated, `site_si.ags`): BH1 at 3.00 m, `NPEN` 450 → depth 3.30 m, `mid_drive_nominal`, elevation 12.40 − 3.30 = 9.10 m. BH1 at 6.00 m, `NPEN` 300 (refusal) → 6.00 + 0.150 + 0.150 / 2 = 6.225 m. Test cases with increments are added to the test files (§12).
+**Golden values** (hand-calculated, `site_si.ags`): BH1 at 3.00 m, `NPEN` 450 → depth 3.30 m, `mid_drive_nominal`, elevation 12.40 − 3.30 = 9.10 m. BH1 at 6.00 m, a refusal with increments 75, 75, 75 and 50 mm → 6.00 + 0.150 + 0.125 / 2 = 6.2125 m, `mid_drive`. BH2 at 2.00 m, no increments → 2.30 m. `joins.ags` holds the rest (§12).
 
 ### 6.2 `p.atterberg()`
 One row per `LLPL` row.
@@ -231,7 +231,7 @@ The good files (`site_si.ags`, `site_us.ags`, `site_v404.ags`) get, through the 
 - SPT increments on some tests: a complete drive, and a refusal in the test drive;
 - a `GEOL_GEOL` heading next to `GEOL_FORM`, so the default key works.
 
-A new `joins.ags` (4.2, SI, passes python-ags4) holds the edge cases: a test exactly on a layer boundary and at the base of the deepest layer; overlapping layers; a gap in the log; a hole with no GEOL; a test with no `LOCA_GL`; an SPT refusal in the seating drive; a sample with no base; a specimen with no `SPEC_DPTH`; two `LNMC` rows on one specimen; a code missing from the test map; an incomplete record. A test map `strata.csv` sits next to it.
+A new `joins.ags` (4.2, SI, passes python-ags4) holds the edge cases: a test exactly on a layer boundary and at the base of the deepest layer; overlapping layers; a gap in the log; a hole with no GEOL; a test with no `LOCA_GL`; an SPT refusal in the seating drive; a sample with no base; a specimen with no `SPEC_DPTH`; a code missing from the test map; an incomplete record. Two `LNMC` rows on one specimen break AGS Rule 10a (duplicate key), so that case is built in the test instead of in a file that passes python-ags4. A test map `strata.csv` sits next to it.
 
 ## 13. Acceptance criteria
 1. **Feeds the plots unchanged:** `ht.plot.spt_profile(p.spt())`, `ht.plot.spt_histogram(p.spt())`, `ht.plot.profile(p.permeability(), "hydraulic_conductivity")`, `ht.plot.profile(p.atterberg(), "liquid_limit")` and `ht.plot.geology_unit_comparison(p.atterberg(), "plasticity_index")` run on the good files with no error, no warning and no hint, and with the map's colors and order.
