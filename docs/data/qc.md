@@ -35,7 +35,7 @@ p.diff("ISPT", changed_only=True)            # only cells ingest changed (§7)
 - QC is computed on demand and never writes to the database (SPEC §9.2). Running it twice gives the same report.
 - Depths and values in findings are in the **project's** display units (`p.settings.display_units`), not the session's.
 - `report.to_csv(path)` writes the findings to `path` and the rules next to it as `<stem>_rules.csv`. Both are UTF-8 with a header row.
-- **Errors** (SPEC §11), raised before any rule runs: an override file that isn't there or isn't YAML; an unknown rule ID (lists the IDs); an unknown key in a rule (lists `enabled`, `severity`, `thresholds`); an unknown threshold name (lists the rule's thresholds); an unknown severity (lists `error`, `warning`, `info`); a threshold of the wrong kind (§3.2); an unknown group or heading in `min_fields` (lists the ones in the 4.2 dictionary and the file). `p.diff()` on an unknown group or heading lists the ones that exist.
+- **Errors** (SPEC §11), raised before any rule runs: an override file that isn't there or isn't YAML; an unknown rule ID (lists the IDs); an unknown key in a rule (lists `enabled`, `severity`, `thresholds`); an unknown threshold name (lists the rule's thresholds); an unknown severity (lists `error`, `warning`, `info`); a threshold of the wrong kind (§3.2); an unknown group or heading in `min_fields` (lists the ones in the AGS 4 dictionaries: 4.2, then the older versions ingest reads, since `IPRG` is 4.0.x only; and, once a project is open, the file). `p.diff()` on an unknown group or heading lists the ones that exist.
 
 ## 3. Rule settings
 ### 3.1 Files
@@ -73,7 +73,7 @@ rules:
 ### 3.3 Overrides
 - `rules=` and `min_fields=` take a path to a YAML file or a dict, of the same shape as the default file but holding only what changes. A file may have the top-level `rules:` key or not.
 - **Merged rule by rule, key by key:** an override of one threshold keeps the rule's other thresholds and its severity. `min_fields` overrides replace a group's `required` or `recommended` list as a whole.
-- **Ingest rules** (V, M, U, T; §4.1) take `severity` and `enabled` only, applied when the report is built. The stored findings don't change.
+- **Ingest rules** (V, M, U, T; §4.1) take `severity` and `enabled` only, applied when the report is built. The stored findings don't change. In `rules.yaml`, `V*` and `VLOG` have `severity: null`, meaning the severity stored at ingest, since python-ags4's rules differ.
 - **`V*`** sets every python-ags4 rule at once; a single V rule ID given alongside it wins.
 - Overrides are passed to each call and not stored with the project (M7).
 

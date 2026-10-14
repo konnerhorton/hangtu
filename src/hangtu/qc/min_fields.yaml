@@ -1,0 +1,44 @@
+# Minimally useful fields per group (docs/data/qc.md §4.10). A blank required
+# field raises C001 (warning), a blank recommended field C002 (info). Groups not
+# in the file aren't checked. Override with p.qc(min_fields=...), which replaces
+# a group's required or recommended list as a whole.
+#
+# spec_key is the key of a specimen; a list that starts with *spec_key is read
+# as if the key headings were written out in its place.
+
+spec_key: &spec_key [LOCA_ID, SAMP_TOP, SAMP_REF, SAMP_TYPE, SAMP_ID, SPEC_REF, SPEC_DPTH]
+
+min_fields:
+  LOCA:
+    required: [LOCA_ID, LOCA_GL, LOCA_FDEP]
+    recommended: [LOCA_TYPE, LOCA_NATE, LOCA_NATN, LOCA_GREF, LOCA_STAR]
+  GEOL:
+    required: [LOCA_ID, GEOL_TOP, GEOL_BASE, GEOL_DESC]
+    recommended: [GEOL_LEG, GEOL_GEOL]
+  SAMP:
+    required: [LOCA_ID, SAMP_TOP, SAMP_TYPE]
+    recommended: [SAMP_REF, SAMP_ID, SAMP_BASE]
+  ISPT:
+    required: [LOCA_ID, ISPT_TOP, ISPT_NVAL]
+    recommended: [ISPT_REP, ISPT_NPEN, ISPT_ERAT, ISPT_TYPE, ISPT_HAM, ISPT_WAT, ISPT_CAS,
+                  ISPT_INC1, ISPT_INC2, ISPT_INC3, ISPT_INC4, ISPT_INC5, ISPT_INC6,
+                  ISPT_PEN1, ISPT_PEN2, ISPT_PEN3, ISPT_PEN4, ISPT_PEN5, ISPT_PEN6]
+  LLPL:
+    required: [*spec_key, LLPL_LL, LLPL_PL]
+    recommended: [LLPL_PI, LLPL_425, LLPL_PREP]
+  LNMC:
+    required: [*spec_key, LNMC_MC]
+  GRAG:
+    required: [*spec_key]
+    recommended: [GRAG_GRAV, GRAG_SAND, GRAG_SILT, GRAG_CLAY, GRAG_FINE, GRAG_UC]
+  GRAT:
+    required: [*spec_key, GRAT_SIZE, GRAT_PERP]
+  PTST:
+    required: [*spec_key, PTST_K]
+    recommended: [PTST_TYPE, PTST_COND, PTST_TSTR]
+  FGHG:
+    required: [LOCA_ID, FGHG_TOP, FGHG_BASE, FGHG_IPRM]
+    recommended: [FGHG_TYPE]
+  IPRG:
+    required: [LOCA_ID, IPRG_TOP, IPRG_BASE, IPRG_IPRM]
+    recommended: [IPRG_TYPE]
