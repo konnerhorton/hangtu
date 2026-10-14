@@ -1,0 +1,5 @@
+# Test and example data are compared byte for byte with the scripts that
+# write them, so Git must keep their line endings as committed on every
+# platform (AGS files use CRLF, CSV files LF).
+tests/data/** -text
+src/hangtu/examples/data/** -text
