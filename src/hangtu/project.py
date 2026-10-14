@@ -9,7 +9,7 @@ from typing import Any
 import pandas as pd
 
 import hangtu.db as database
-from hangtu import ags, qc
+from hangtu import ags, datasets, qc
 from hangtu._settings import Settings, settings
 from hangtu.datasets import _geology_map
 from hangtu.errors import HangtuError, warn
@@ -255,6 +255,17 @@ class Project:
         >>> p.diff("ISPT", changed_only=True)
         """
         return qc.diff(self._path, group, heading, changed_only)
+
+    # --- Datasets (datasets.md) -------------------------------------------------
+
+    @property
+    def locations(self) -> pd.DataFrame:
+        """One row per hole: ID, type, ground level, final depth, coordinates.
+
+        In the project's display units, with ``df.attrs["units"]`` set
+        (datasets.md §3).
+        """
+        return datasets.locations(self._path)
 
     # --- Geology map (datasets.md §5.2) -----------------------------------------
 

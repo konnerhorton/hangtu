@@ -15,7 +15,10 @@ def fresh(tmp_path):
     def build(name="site_si", **settings):
         settings.setdefault("display_units", "SI")
         return ht.Project.from_ags(
-            DATA / f"{name}.ags", db=tmp_path / f"{name}.sqlite", **settings
+            DATA / f"{name}.ags",
+            db=tmp_path / f"{name}.sqlite",
+            overwrite=True,
+            **settings,
         )
 
     return build
