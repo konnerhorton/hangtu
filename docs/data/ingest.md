@@ -64,6 +64,7 @@ AGS file
 | `meta_heading` | heading in the file | `group`, `heading`, `file_unit`, `file_type`, `unit` (canonical), `quantity`, `status`, `standard` (in the 4.2 dictionary) |
 
 - The canonical table for `UNIT`, `TYPE`, `ABBR`, `DICT` and `TRAN` is written like any other group; `meta_heading` is the typed summary.
+- `meta_heading.status` is `converted` (to `unit`), `as_is` (a number with no unit, such as a count), `raw_only` (a `U001`, `U003` or `U004` column, NULL in the canonical table) or `not_numeric` (text, dates, yes/no).
 - Canonical group names and headings are the file's (§6). A user-defined group keeps its own name.
 - Tables are `STRICT` (SQLite ≥ 3.37; Python 3.12's bundled SQLite is newer on all CI platforms, checked in the build).
 

@@ -53,6 +53,7 @@ class AgsText:
     types: dict[str, dict[str, str]]
     group_lines: dict[str, int]
     heading_lines: dict[str, int]
+    unit_lines: dict[str, int | None]
     findings: list[Finding] = field(default_factory=list)
 
 
@@ -105,6 +106,7 @@ def read(path: str | PathLike[str]) -> AgsText:
         types={},
         group_lines={},
         heading_lines={},
+        unit_lines={},
         findings=findings,
     )
     for group, table in tables.items():
@@ -229,6 +231,8 @@ def _add_group(result: AgsText, group: str, table: pd.DataFrame, lines: dict) ->
     result.types[group] = row_of("TYPE")
     result.group_lines[group] = lines.get("GROUP")
     result.heading_lines[group] = lines.get("HEADING")
+    unit_rows = table.loc[rows == "UNIT", "line_number"]
+    result.unit_lines[group] = int(unit_rows.iloc[0]) if len(unit_rows) else None
 
 
 _NOT_HEADINGS = ("HEADING", "line_number")
