@@ -105,7 +105,7 @@ ht.units_of(spt)                                                        # -> {"d
   3. the column registry plus the session/project display system (Phase 2 datasets only);
   4. otherwise **error for an analysis**, or **"(units unknown)" label plus a warning for a plot**. Nothing is silently guessed.
 - **Where attrs get lost:** `df.attrs` survives filtering, column selection, `.copy()` and sorting. It is **lost or unreliable** after `merge`/`join`, `concat` of frames with different attrs, `groupby().agg()`, file round trips, and user-built frames. Hence the explicit-argument fallback, and the clear error or label when units are unknown.
-- **CSV templates:** `ht.template("spt")` returns an empty DataFrame with the registry columns. `ht.template("spt").to_csv(...)` gives users a file to fill in. Each template column's description and expected quantity are listed by `ht.columns("spt")`.
+- **CSV templates:** `ht.template("spt")` returns an empty DataFrame with the registry columns. `ht.template("spt").to_csv(...)` gives users a file to fill in. Each template column's description and expected quantity are listed by `ht.columns("spt")`. The `spt`, `atterberg`, `grain_size` and `permeability` templates are their Phase 2 dataset's columns in the same order, without those only hangtu produces (`source_line`, `energy_source`, `spt_n_capped`, `liquidity_index`, `consistency_index`), so CSV and AGS data reach the plots in the same shape (decided 2026-10-14, `docs/work/m9-release.md`).
 
 ### 2.7–2.8 Settings and acceptance tests
 Settings and Phase 1 tests: P00 §3 and §14. Phase 2 tests: the drafts file above.
@@ -312,8 +312,9 @@ ht.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
 ### 12.1 Environment and distribution
 - Python ≥ 3.12, developed with `uv`.
 - PyPI + public GitHub, MIT license.
-- **CI:** GitHub Actions on Windows, macOS and Linux × Python 3.12–3.14 (ruff + pytest). Release to PyPI on a `v*` tag (trusted publishing, `release.yml`): the tag must match the version in `pyproject.toml`, and the test suite runs against the built wheel on all three operating systems before upload. A manual run publishes to TestPyPI instead.
+- **CI:** GitHub Actions on Windows, macOS and Linux × Python 3.12–3.14 (ruff + pytest). Release to PyPI on a `v*` tag (trusted publishing, `release.yml`): the tag must match the version in `pyproject.toml`, and the test suite runs against the built wheel on all three operating systems before upload. A manual run publishes to TestPyPI instead. Before either upload, the scripts in `examples/` run against the built wheel in an empty directory on all three operating systems.
 - **0.0.1** is a placeholder release that claims the name on PyPI before v0.1 (decided 2026-10-12). It contains the M2b state: P00, P01 and P07.
+- **Docs (decided 2026-10-14):** the README and `examples/` for v0.1. A docs site comes later, built with Zensical.
 - **Phase 1 dependencies:** `pandas>=2.1.1,<3`, `numpy>=1.26`, `matplotlib>=3.8`, `pint>=0.24.4`, `pyyaml>=6.0.1`. Each floor is the oldest release that installs and imports on Python 3.12 with current transitive dependencies, and a lowest-version CI job keeps it honest.
 - **Phase 2 adds** `python-ags4>=1.2.0` (LGPL-3.0, used unmodified, which is compatible with MIT; 1.2.0 is the first release with the 4.2 dictionary). It brings `click`, `rich`, `openpyxl` and `defusedxml` with it; its standard dictionaries (4.0.3–4.2) are what ingest reads units, types and keys from. The project database uses the `sqlite3` module with STRICT tables, which need SQLite ≥ 3.37; a test checks it on every CI platform.
 - **Phase 3 adds** `scipy>=1.11`.
@@ -321,9 +322,9 @@ ht.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
 
 ### 12.2 Package layout
 - `src/` layout, package `hangtu`.
-- Top-level namespaces: `ht.plot`, `ht.analysis`, `ht.stats` (Phase 3), `ht.Project` (Phase 2), `ht.Sheet`, `ht.settings`, plus `read_csv`, `set_units`, `units_of`, `columns`, `template`.
+- Top-level namespaces: `ht.plot`, `ht.analysis`, `ht.stats` (Phase 3), `ht.Project` (Phase 2), `ht.Sheet`, `ht.settings`, `ht.examples` (example data files), plus `read_csv`, `set_units`, `units_of`, `columns`, `template`.
 - Phase 2 modules: `ags/` (the ingest pipeline), `qc/` (QC rules and report), `datasets/` (joins and datasets), `db.py` (the only module that talks to SQLite, §7) and `project.py`.
-- Data files ship inside the package: `columns.yaml` (registry), `config/defaults.yaml`, `units/*.yaml`, `ags/value_flags.yaml`, `qc/rules.yaml`, `qc/min_fields.yaml`.
+- Data files ship inside the package: `columns.yaml` (registry), `config/defaults.yaml`, `units/*.yaml`, `ags/value_flags.yaml`, `qc/rules.yaml`, `qc/min_fields.yaml`, and the example data in `examples/data/`.
 - Tests mirror the package (`tests/plot/`, `tests/units/`, …), with synthetic data in `tests/data/`. Runnable scripts go in `examples/`.
 
 ### 12.3 Testing
@@ -360,4 +361,3 @@ Rows are in build order. M8 comes after M9 and M10 since v0.1 moved ahead of P04
 
 ## 13. Open questions
 2. **`index_properties()` specimen combining:** when one sample has several specimens of a test, use the one nearest the other test's depth and flag it, or keep every combination?
-3. **Docs site** for v0.1.0, or README + examples only?

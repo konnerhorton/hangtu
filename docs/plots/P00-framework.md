@@ -142,6 +142,7 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 | Elevation axis | normal direction, nice floor/ceiling with 5% padding |
 | Single point / zero range | ± one nice step around the value, or the preset's typical range if there is one |
 | Fixed limits (`xlim=`, presets with fixed limits) | used as given; data beyond them handled by §9 |
+| A value exactly on a limit hangtu picks | the limit moves out one step (a tick step, or a decade on a log axis), so no point sits on the frame. A lower limit of 0 stays at 0, and fixed limits are used as given (decided 2026-10-14, TODO #18) |
 
 Helpers: `nice_limits(vmin, vmax, *, start_at_zero)`, `log_limits(vmin, vmax, min_decades=2)`, `apply_vertical_axis(ax, vs)`.
 
