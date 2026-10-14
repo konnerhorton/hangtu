@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from hangtu.ags import Ingest
 
 # Raise whenever the layout changes; open() compares it for equality.
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 # STRICT tables need SQLite 3.37 (2021).
 MINIMUM_SQLITE = (3, 37, 0)
 

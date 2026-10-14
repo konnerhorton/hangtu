@@ -37,6 +37,13 @@ def test_converted_on_the_us_file(projects):
     assert first["display_unit"] == "ft"
 
 
+def test_particle_size_shows_in_mm_in_us(projects):
+    # datasets.md §10: GRAT_SIZE is a particle size, kept in mm (TODO #17).
+    df = projects["site_us"].diff("GRAT", heading="GRAT_SIZE")
+    assert set(df["display_unit"]) == {"mm"}
+    assert list(df["display_value"]) == pytest.approx(list(df["value"]))
+
+
 def test_pcf_density_converted(projects):
     df = projects["site_us"].diff("PTST", heading="PTST_BDEN")
     assert set(df["change"]) == {"converted"}
