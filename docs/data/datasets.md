@@ -70,6 +70,7 @@ It's a property, takes no filters, and has `df.attrs["units"]` like a dataset (�
 
 ## 4. Values, units and columns
 - **Units:** values come back in the display units, `display_units=` if given, else the project's `p.settings.display_units` (and its `display_overrides`), converted from SI by each column's quantity kind in the registry. `df.attrs["units"]` names the unit of every numeric column, so the plots and `ht.units_of` read them (SPEC §2.6). The SI and US twin files give the same dataset for the same `display_units=`.
+- **Vertical datum:** when the project has one (`p.settings.vertical_datum`), `df.attrs["vertical_datum"]` holds it, and the plots put it on elevation labels ahead of `ht.settings.vertical_datum` (P00 §7). Added in M9, when the examples showed a project's datum missing from its figures.
 - **Columns** are registry names (SPEC §10.3), in the order of the tables in §6. New columns are added to `columns.yaml` (§11).
 - **Rows** are in file order of the dataset's source group, then by group for `p.permeability()` (PTST, FGHG, IPRG). Nothing is sorted by depth; the plots don't need it.
 - **`source_line`** on every row is the line of its record in the AGS file, so any value can be checked against the file and `p.diff()`.

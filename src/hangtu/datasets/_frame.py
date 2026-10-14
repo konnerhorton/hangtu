@@ -57,6 +57,7 @@ class Build:
         self.system = _display_units(display_units or stored["display_units"])
         self.overrides = stored.get("display_overrides", {})
         self.geology_key = stored.get("geology_key", "GEOL_GEOL")
+        self.datum = stored.get("vertical_datum")
         self.include_incomplete = include_incomplete
         self.file = Path(database.read_source(path)["path"]).name
         self._left_out: list[tuple[str, int, int, dict[str, list[int]]]] = []
@@ -176,6 +177,8 @@ class Build:
         frame.attrs["units"] = self._units(frame)
         if palette:
             frame.attrs["palette"] = palette
+        if self.datum:
+            frame.attrs["vertical_datum"] = self.datum
         return frame
 
     def _ground_level(self, frame: pd.DataFrame) -> None:

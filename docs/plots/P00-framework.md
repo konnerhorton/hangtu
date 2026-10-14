@@ -129,7 +129,7 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 - `axis_label(text, unit=None, datum=None, unknown=False)` → `"Elevation (ft, NAVD88)"`, `"Depth (m)"`, `"Liquid limit, LL (%)"`, `"SPT N60"` (no unit for counts and dimensionless), `"k (units unknown)"`.
 - Unit text uses display forms: `kN/m³`, `Mg/m³`, `cm/s`, `psf`, `°`, with Unicode superscripts.
 - Label text comes from the registry `label`, a preset, or `label=`; only the unit part is generated.
-- The datum is added only to elevation labels and only when `settings.vertical_datum` is set.
+- The datum is added only to elevation labels, from the data's `df.attrs["vertical_datum"]` (a project dataset carries its project's), else `settings.vertical_datum`. The data's wins because a datum is a fact about the data, not a preference (decided 2026-10-14, M9).
 
 ## 8. Axis limits and ticks
 | Case | Rule |

@@ -74,6 +74,18 @@ def test_elevation_label_carries_the_datum(frame):
     assert ax.get_ylabel() == "Elevation (ft, NAVD88)"
 
 
+def test_the_datas_datum_beats_the_session_datum(frame):
+    df = frame()
+    df.attrs["vertical_datum"] = "NGVD29"  # as a project dataset carries it
+    _, ax = ht.plot.profile(df, "undrained_shear_strength")
+    assert ax.get_ylabel() == "Elevation (ft, NGVD29)"
+    with ht.settings.override(vertical_datum="NAVD88"):
+        _, ax = ht.plot.profile(df, "undrained_shear_strength")
+    assert ax.get_ylabel() == "Elevation (ft, NGVD29)"
+    _, ax = ht.plot.profile(df, "undrained_shear_strength", vs="depth")
+    assert ax.get_ylabel() == "Depth (ft)"
+
+
 # --- value axis ---------------------------------------------------------------
 
 
