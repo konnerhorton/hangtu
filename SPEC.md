@@ -162,11 +162,11 @@ P07 (property by geology unit against a report's baseline ranges) is a Phase 1 *
 Decided constraints only. The pipeline, database layout, keys, version mapping, typing and units are in [`docs/data/ingest.md`](docs/data/ingest.md).
 
 ### 6.1 Pipeline
-- `python-ags4` validates and parses the file. hangtu writes a raw layer, maps older versions up to 4.2, then types, converts units and flags values into the canonical layer.
+- `python-ags4` validates and parses the file. hangtu writes a raw layer, then types, converts units and flags values into the canonical layer, reading each heading through the 4.2 dictionary.
 
 ### 6.2 Rules
 - **Validation** (decided): *ingest with warnings*. Each python-ags4 finding becomes a QC finding `V<rule>`. Ingest fails only if the file can't be parsed.
-- **Versions:** 4.0.3, 4.0.4, 4.1, 4.1.1 and 4.2. **The reference version is 4.2.** Older versions are mapped up.
+- **Versions:** 4.0.3, 4.0.4, 4.1, 4.1.1 and 4.2. **The reference version is 4.2.** No group or heading was renamed from 4.0.3 to 4.2, only removed, so older files need no mapping: groups and headings that 4.2 removed (`IPRG`, `IPRT`, `ERES`, a few headings) are kept under their own names and read through their own version's dictionary (decided 2026-10-14).
 - **One file per project** (decided). The file's SHA-256 is stored and checked on open.
 - **User-defined groups and headings** are kept in the raw layer, and typed where the unit is known.
 - **Blank vs flagged** (decided): blank → NULL, no flag. Recognized text (`NP`, `Dry`, refusal, `<x`, `>x`) → NULL or bound + a value flag. Unrecognized text → flag `OTHER` + QC `T001`. NP is never the same as blank.
@@ -184,7 +184,7 @@ Decided constraints only. The pipeline, database layout, keys, version mapping, 
 **Rules:**
 - **SQLite only.** All access goes through `db.py`.
 - **Raw layer:** `raw_<GROUP>`, every heading as TEXT exactly as in the file, plus `_line`. Used by validation and `diff()`.
-- **Canonical layer:** one table per group, named after it (`ISPT`), with the AGS 4.2 heading names. Older versions are mapped up to 4.2 (§6.2), and DIGGS will later be mapped into the same shape.
+- **Canonical layer:** one table per group, named after it (`ISPT`), with the AGS 4.2 heading names. Groups and headings from older versions that 4.2 removed keep their own names (§6.2), and DIGGS will later be mapped into the same shape.
 - **Integer surrogate keys** for locations, samples and specimens. Every child table carries `location_id`, `sample_id` and `specimen_id` as they apply, resolved at ingest. Joins use them, never the AGS key columns, which are kept as columns. A child record whose parent can't be found is a QC finding.
 - **Value flags** live in a table of their own, one row per flagged cell (table, row, heading, flag, bound), so a flag can be attached to any numeric heading. Datasets expose them as columns (`non_plastic`, `spt_refusal`).
 - **Only what the file says.** Values hangtu calculates (N60, classifications, Dx) are not stored; the datasets and analyses compute them. A value given in the file (e.g. `ISPT_N60`) is stored as given.
