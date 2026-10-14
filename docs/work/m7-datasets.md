@@ -45,3 +45,146 @@ Turn a project's canonical tables into the DataFrames the Phase 1 plots take: `p
 - §11: the Phase 2 sketch checked against the real API.
 - §12.4: M7 done at close-out; M8 picks up the deferred datasets.
 - `docs/data/ingest.md` (decision 6), `docs/data/qc.md` (G004), `docs/drafts/phase2-data.md` (dataset section moves out), `columns.yaml` (new columns), TODO #17.
+
+## Plan
+
+Spec: [`docs/data/datasets.md`](../data/datasets.md).
+
+Each build step below is one commit with ruff and pytest passing. A step that goes past about 300 changed lines (not counting test data) is split.
+
+### Package layout
+```
+src/hangtu/
+  datasets/__init__.py        locations(), spt(), atterberg(), grain_size(), permeability()
+  datasets/_geology_map.py    read and check a map (CSV or DataFrame), errors (§5.2)
+  datasets/_joins.py          spt_depth(), lab_depth(), zone_depth(), place_in_geology(), elevation (§5.4, §6)
+  datasets/_frame.py          shared pipeline: incomplete rows, geology columns, filters,
+                              display units + attrs, warnings, empty frame (§2, §4, §7, §8)
+  datasets/_spt.py  _lab.py  _permeability.py   one builder per dataset (§6.1–§6.4)
+  project.py                  + locations, set_geology_map(), geology_map, spt(), atterberg(), ...
+  db.py                       + meta_geology_map table, write/read helpers; SCHEMA_VERSION 2
+  ags/_units.py               particle-size headings → particle_size kind (§10)
+  _settings.py, config/defaults.yaml   + geology_key
+  qc/_fields.py               incomplete-record helper shared with datasets
+  qc/_geology.py, qc/rules.yaml        + G004
+  qc/min_fields.yaml          SPEC_REF, SPEC_DPTH → recommended
+  plot/_palette.py (+ callers) df.attrs["palette"] and categorical order
+  columns.yaml                new and changed columns (§11)
+tests/datasets/               test_geology_map.py  test_joins.py  test_frame.py  test_spt.py
+                              test_lab.py  test_permeability.py  test_datasets_acceptance.py
+tests/data/ags/               joins.ags, strata.csv (new); site_* gain GEOL_GEOL and SPT increments
+```
+
+### Decisions the build makes
+Implementation choices the spec leaves open. Any choice that changes what a user sees goes into `datasets.md` in the commit that builds it.
+1. **Datasets read through `qc._data.Data`.** It already caches canonical tables, flags, raw text (for blank vs flagged) and headings. That was M6's handoff; it gets no copy and no move. Datasets construct a `Data` for each call.
+2. **The joins work in SI with no I/O.** `_joins.py` functions take DataFrames in m/mm and return depth, `depth_basis` and the geology row index. The golden tests call them directly. Conversion to display units happens once, last, in `_frame.py`.
+3. **Display conversion** uses `units.to_display` per numeric column, with the registry's quantity kind, inside `settings.override(display_overrides=<project's>)`. That way the project's overrides apply rather than the session's, as in QC. `df.attrs["units"]` gets a unit string that `units.parse_unit` reads back. A test checks the round trip for every column.
+4. **The incomplete-record helper** comes out of C001 as `incomplete_rows(data, group, required) -> Series[bool]` in `qc/_fields.py`. C001 and the datasets both use it, so they can't disagree. This is a refactor in its own commit.
+5. **SPT refusal and N60** go through `ht.analysis.spt()` unchanged:
+   - `spt_refusal` is True where the `REFUSAL` flag is set, else NA.
+   - `spt_n60` is pre-filled from `ISPT_N60`.
+   - `energy_source` is set from which input was used, before and after the call.
+6. **`geology_unit`** is an ordered `pd.Categorical`: mapped units in map order, then unmapped codes in order of first appearance. With no map it's a plain object column (no order is known).
+7. **Plots:** `resolve_palette(units, palette, order, data_palette=None)` takes the data's colors after `settings.palette`. Each caller passes `df.attrs.get("palette")` and, when `order` isn't given and the color column is categorical, its categories. The callers are `_values.py` (P01/P02), `_spt_histogram.py` (P03) and `_geology_units.py` (P07). The strata overlay keeps its own table.
+8. **The schema version goes to 2** in the particle-size step. The `meta_geology_map` table is created by every ingest in the map step, so the same version covers both.
+
+### Build 1: `M7: make SPEC_REF and SPEC_DPTH recommended fields`
+- `qc/min_fields.yaml`: the anchor becomes the sample key, and `SPEC_REF`/`SPEC_DPTH` lead each lab group's `recommended` list (qc.md §4.10, already updated).
+- Update the QC tests whose C001/C002 expectations change.
+
+### Build 2: `M7: give particle-size headings the particle_size kind`
+- `ags/_units.py`: `GRAT_SIZE`, `LLPL_SIZE` and `PTST_SZUN` → `particle_size`. `db.SCHEMA_VERSION = 2`.
+- Tests: the quantity in `meta_heading`; `p.diff("GRAT")` and a P-rule message in US show mm; opening a version-1 database asks for a re-ingest.
+
+### Build 3: `M7: add the geology_key setting`
+- `_settings.py` validator (the five GEOL headings; an error lists them), `config/defaults.yaml`. It is stored per project through `from_ags` like the other settings.
+- Tests in `tests/test_settings.py` and `tests/test_project.py`.
+
+### Build 4: `qc: share the incomplete-record check` (refactor, decision 4)
+- C001 output is unchanged; the existing tests pass as they are.
+
+### Build 5: `M7: add the M7 cases to the AGS test files`
+- `_make_files.py`:
+  - `GEOL_GEOL` in `site_si`, `site_us` and `site_v404`;
+  - `ISPT_INC1–6`/`ISPT_PEN1–6` on BH1 and BH2: a complete drive, and a refusal in the test drive, with exact inch values in the US twin;
+  - new `joins.ags` with the spec §12 edge cases, and `strata.csv`.
+- `tests/data/ags/README.md` gets the new rows. `test_files.py` checks that `joins.ags` passes python-ags4.
+- Update the existing M5/M6 expectations the new headings change (C002 counts, twin comparisons).
+
+### Build 6: `M7: add the dataset columns to the registry`
+- `columns.yaml`: the spec §11 new and changed entries. The registry naming test covers them.
+
+### Build 7: `M7: add the geology map`
+- `db.py`: `meta_geology_map` (`code`, `geology_unit`, `soil_class`, `order`, `color`), plus `write_geology_map`/`read_geology_map`.
+- `datasets/_geology_map.py`: read and check the map (§5.2 errors, with CSV line numbers).
+- `Project.set_geology_map()`/`geology_map`.
+- Tests (`test_geology_map.py`): round trip; `None` clears it; each error; a DataFrame input; `overwrite=True` drops the map.
+
+### Build 8: `M7: check for unmapped geology codes (G004)`
+- `qc/_geology.py` G004 and `rules.yaml`, through `Data` reading the map.
+- Tests: no map → 0 checked; one finding per code with its count, at the first line; a blank code isn't a finding. The `qc_defects`/good-file QC expectations are unchanged without a map.
+
+### Build 9: `M7: add depth and geology joins`
+- `datasets/_joins.py` (decision 2).
+- Tests (`test_joins.py`), golden values hand-calculated in comments:
+  - mid-drive with increments: complete drive and stopped drive;
+  - nominal fallback with `NPEN` 450 (`+300 mm`), 300 (BH1 6.00 → 6.225 m), 200 (`+175 mm`), 100 (seating only → `+100 mm`) and blank (`+300 mm`);
+  - lab depth through all three fallbacks;
+  - zone midpoint, and one end blank;
+  - `top ≤ d < base`, the deepest layer's base, a gap, overlaps resolving to the deepest top, and no GEOL.
+
+### Build 10: `M7: add p.locations and the shared dataset pipeline`
+- `datasets/_frame.py` (decisions 3, 6) and `Project.locations`.
+- Tests (`test_frame.py`):
+  - each common filter, including quantity strings and `None` ends;
+  - every §2 error;
+  - `where=`/`contains=`;
+  - the geology key absent, with its warning;
+  - unmapped codes and the overlap warning;
+  - incomplete rows left out, and kept with `include_incomplete=True`;
+  - the empty frame with its warning;
+  - attrs units in US and SI.
+
+### Build 11: `M7: add p.spt()`
+- `datasets/_spt.py`, `Project.spt()` (decision 5).
+- Tests: §6.1 golden rows from `site_si`; refusal and `spt_n` as written; `energy_source` in all four cases; a file `ISPT_N60` kept.
+
+### Build 12: `M7: add p.atterberg() and p.grain_size()`
+- `datasets/_lab.py`.
+- Tests:
+  - PI filled from LL − PL;
+  - NP gives blank limits and `non_plastic`;
+  - the water content join, and the several-LNMC warning;
+  - LI and Ic golden values, blank cases and PI ≤ 0;
+  - `sample_reference` text;
+  - grading points in file order, `qualifier` from `LT`.
+
+### Build 13: `M7: add p.permeability()`
+- `datasets/_permeability.py`.
+- Tests: PTST, FGHG and IPRG rows with `source`/`test_type`/`depth_basis`; `<1` → qualifier; IPRG one row per stage from `site_v404`; FGHS not included.
+
+### Build 14: `M7: color plots by the geology map` (decision 7)
+- `plot/_palette.py` and its three callers.
+- Tests in `tests/plot/`: a map color is used; `ht.settings.palette` wins over it; categorical order is respected in P03/P07 and in the P01 legend; no change without attrs.
+
+### Build 15: `M7: test datasets against the acceptance criteria`
+- `test_datasets_acceptance.py`: spec §13 #1–#13 end to end, on fixtures built once per session. #1 calls the five plots with `pytest.warns` not expected (warnings are errors).
+
+### Build 16 (close-out): `M7: close out depth/geology joins and datasets`
+- `datasets.md` status → done, with any user-visible decision above;
+- SPEC §12.4 M7 done, and the §11 sketch checked against the API;
+- `CLAUDE.md` state line (M7 done, M9 next);
+- `README.md` if the v0.1 row needs it, and `TODO.md` if anything came up;
+- this plan's Results.
+- Not a plot unit, so no `docs/plots/img` figure. The hand check below looks at plots from `p.spt()` instead.
+
+### Verification
+- `uv run ruff check . && uv run ruff format --check . && uv run pytest` at every commit.
+- Before the close-out: the lowest-version run (CLAUDE.md, Commands), then `git checkout uv.lock`.
+- By hand:
+  - ingest `site_us.ags`, set `geology_key`, set `strata.csv`, then print `p.spt()` and `p.atterberg()` and read them as an engineer (depths, `depth_basis`, units in attrs);
+  - draw `spt_profile(p.spt())` and `geology_unit_comparison(p.atterberg(), "plasticity_index")` to PNGs in the scratchpad, and look at the colors and order;
+  - on `joins.ags`, read each warning: does it say what is wrong, where, and what to do?
+
+### Results
