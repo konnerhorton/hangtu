@@ -7,7 +7,7 @@
 | **Type** | plot (percentiles only, no analysis module) |
 | **Target version** | v0.1 |
 | **Depends on** | P00 (framework); reuses the P01 presets and overlay helpers (`plot/_overlays.py`) |
-| **Related** | SPEC §2.6 (units), §3 (plot contract), §5 (P07 doesn't need the statistics module). TODO #15 (text in value columns), TODO #16 (other summaries). Intent: `docs/work/p07-geology-unit-comparison/intent.md` |
+| **Related** | SPEC §2.6 (units), §3 (plot contract), §5 (P07 doesn't need the statistics module). TODO #15 (text in value columns), TODO #16 (other summaries). Intent: `docs/work/p07-geology-unit-comparison.md` |
 
 ---
 
@@ -20,7 +20,7 @@ Compares the measured values of one property, grouped by geology unit, with the 
 It ends up in GBR compliance reviews, differing site condition assessments, phase-to-phase data reports and design checks. Several properties are usually shown together on one page, so a second function lays out one panel per property.
 
 ## 2. Reference figure
-The built figure, from the test data: [`visual-check.png`](../work/p07-geology-unit-comparison/visual-check.png) (SI) and [`visual-check-us.png`](../work/p07-geology-unit-comparison/visual-check-us.png) (US).
+The built figure, from the test data: [`P07-si.png`](img/P07-si.png) (SI) and [`P07-us.png`](img/P07-us.png) (US).
 
 ```
             Water content, w (%)

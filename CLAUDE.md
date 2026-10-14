@@ -7,7 +7,7 @@ Python library of plots, analyses and (later) AGS4 ingest/QC for geotechnical en
 - `docs/data/`: data-layer specs that outlive a unit of work (`ingest.md`, M5; `qc.md`, M6).
 - `docs/plots/PXX-*.md`: one spec per figure, with acceptance criteria. `docs/plots/README.md` has the shared plot conventions.
 - `docs/plots/drafts/`: draft notes for plots not yet specified, in the TEMPLATE format, including proposed IDs P24–P30. They are not decisions. When a plot's unit of work starts, promote its draft to `docs/plots/PXX-*.md` in the spec step.
-- `docs/work/<id>-<slug>/`: intent and plan for each unit of work (see `docs/reference/process.md`).
+- `docs/work/<id>.md`: intent, plan and (when there is no other feature spec) spec for each unit of work, as `## Intent`, `## Spec` and `## Plan` sections (see `docs/reference/process.md`). `docs/work/` files for merged units are history. Read one only when the task or a spec points to it.
 - `src/hangtu/columns.yaml` and `src/hangtu/units/aliases.yaml`: the column registry and unit aliases.
 - `docs/drafts/`: the analyses draft spec (`analysis.md`, M3 and M8) and notes for later phases. Items marked "decided" are decided; the rest is not. Finish the relevant draft as the feature spec before building from it.
 - `TODO.md`: research items and pending decisions, referenced as "TODO #n".
@@ -51,6 +51,6 @@ Explicit is better than implicit. Names are written out in full, or full enough 
 - If a change alters a decision recorded in `SPEC.md` or a plot spec, update that file **in the same commit**.
 - Don't renumber `SPEC.md` sections. `TODO.md` and the plot specs refer to them by number.
 - Test against the acceptance criteria in the feature's spec, and hand-calculate golden values for analyses.
-- **Visual check:** at the end of each plot unit of work, save a PNG of the plot's output (100 dpi, realistic data, both US and SI when units matter) as `docs/work/<id>/visual-check.png`, look at it, and commit it in the close-out so a reviewer sees the figure without running code. Plot specs and later docs may reuse these images.
+- **Visual check:** at the end of each plot unit of work, save a PNG of the plot's output (100 dpi, realistic data, both US and SI when units matter) as `docs/plots/img/PXX.png` (or `PXX-si.png` and `PXX-us.png` when US and SI need separate figures), look at it, and commit it in the close-out so a reviewer sees the figure without running code. Plot specs and later docs may reuse these images.
 - Don't add dependencies beyond those in SPEC §12.1 without asking.
 - **The repo is public.** Don't name private sources, contacts or their companies in docs, TODOs, code or commit messages. Describe the idea, not who said it ("AGS is often criticized as a storage model"); the user keeps the source in their own notes.

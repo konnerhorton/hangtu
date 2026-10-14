@@ -1,10 +1,57 @@
-# M2: P01 property profile — plan
+# M2: P01 property profile
 
-Intent: [intent.md](intent.md). Spec: [`docs/plots/P01-property-profile.md`](../../plots/P01-property-profile.md) (section numbers below are P01's unless marked SPEC or P00).
+## Intent
+
+### Goal
+Build `ak.plot.profile()` from `docs/plots/P01-property-profile.md`: any property against depth or elevation, on a linear or log axis, colored by geology unit, with the four presets and all the overlays in P01 §8.
+
+### Why
+- It's the next milestone in SPEC §12.4, and the most-used plot in a report.
+- P02 (SPT profile), P06 (water content profile) and P09 (characteristic profile) build on it. Getting the vertical axis, the overlays and the exclusion counts right once means those plots only add their own marks.
+
+### Constraints
+- **The feature spec is P01.** Build to it and to its acceptance criteria (P01 §12). If the build shows the spec is wrong, change P01 in the same commit as the code.
+- Use the M1 framework (P00) for units, labels, limits, notes, edge markers, palette, legend, hints and errors. Don't reimplement any of it in the plot.
+- SPEC §2.6: unit resolution order, and "(units unknown)" plus a warning, never a guess.
+- SPEC §3: the plot contract, and no change to global matplotlib state.
+- SPEC §8.1: elevation = ground level − depth.
+- SPEC §10.3 and CLAUDE.md "Naming": column names come from the registry.
+- SPEC §11: error messages say what is wrong, where, and what to do.
+- SPEC §12.1: no new dependencies.
+- **Done when** (SPEC §12.4): the P01 acceptance criteria pass, and `visual-check.png` (US and SI) is committed in the close-out.
+
+### Decisions to confirm
+- **No separate `spec.md`.** P01 is the spec. The spec step reviews it against this intent, fixes the points below and moves it from `draft` to `approved`.
+- **Overlay column names follow the registry.** P01 §8 currently uses bare `unit, top, base`, which breaks the naming rule.
+  - `strata`: `geology_unit` plus **either** `depth_top, depth_base` **or** `elevation_top, elevation_base`. Both pairs, or neither, is a clear error. When the pair matches `vs`, it is drawn as given. When it doesn't, it is converted using `ground_level`, which must then be a single value (the same rule as `secondary="depth"`, P01 §6); with several ground levels this is a clear error. Elevation strata are what make an idealized site profile over several holes possible, so depth-only isn't enough.
+  - In elevation, top > base. A row with its top and base swapped is not drawn, and a warning names it (as for intervals, P01 §11).
+  - `ranges`: `low, high, label, source`, plus an optional depth or elevation pair, handled the same way.
+  - `elevation_top` and `elevation_base` are new registry columns (quantity length). They were checked against the whole registry and collide with nothing.
+  - `design_lines`: `label, depth|elevation, value` (unchanged).
+  - `low`, `high`, `label` and `source` are fields of an overlay table, not data columns, so they stay as they are.
+- **Overlays are built for reuse.** Each overlay is a private function in a shared module (`plot/_overlays.py`). It takes the axes, the vertical reference and the display units, so P02, P06 and P09 can call it without going through `profile()`. P09 will produce `design_lines` tables in the same format.
+- **Overlay templates.** Add `strata`, `ranges` and `design_lines` to the `templates:` section of `columns.yaml`, so `ak.template("strata")` gives users the exact columns. This is how we guide naming without adding classes (see "Out of scope").
+- **Presets go in `config/defaults.yaml`**, as P00 planned: `hydraulic_conductivity`, `undrained_shear_strength`, `water_content` and `bulk_unit_weight`, with the values in P01 §6.
+- **One unit of work.** The build commits are about 300 lines or less, in this order: presets → core scatter and axes (depth/elevation, linear/log, exclusions) → intervals and qualifiers → `marker_by` and `connect` → overlays (two or three commits) → secondary depth axis and stats box → test data and visual check.
+
+### Out of scope
+- `facet_by`, several properties side by side, trend lines, and strata built from GEOL data (P01 §15).
+- P02, P06 and P09 themselves.
+- **Typed overlay objects** (for example a `Strata` dataclass). Overlays stay plain DataFrames, checked against the registry with clear errors. We'll look at this again if overlays multiply in Batch 2.
+- Examples, the README and the tutorial (M5).
+
+### SPEC sections touched
+- None expected. M2 implements §2.6, §3, §8.1 and §10.3 as written.
+- P01 (§3, §8, §11, status) and `docs/plots/README.md` (P01 status) change in the spec and close-out commits.
+- `columns.yaml` gains `elevation_top`, `elevation_base` and the three overlay templates.
+
+## Plan
+
+Spec: [`docs/plots/P01-property-profile.md`](../plots/P01-property-profile.md) (section numbers below are P01's unless marked SPEC or P00).
 
 Each build step is one commit, with ruff and pytest passing. A step that grows past about 300 changed lines is split.
 
-## Package layout
+### Package layout
 ```
 src/ags_kit/
   config/defaults.yaml   + presets: (§6)
@@ -24,7 +71,7 @@ tests/data/
 - The module is `_profile.py`, not `profile.py`, so `ak.plot.profile` is the function and not a submodule that hides it (the same reason as `registry.py` in M1).
 - `_vertical.py` and `_overlays.py` are private and take plain arguments (axes, a `Vertical` reference, the display system), so P02, P06 and P09 can call them without going through `profile()` (intent, "Overlays are built for reuse").
 
-## Decisions the build makes
+### Decisions the build makes
 These fill gaps in P01. Each one goes into P01 in the commit that builds it.
 1. **Overlay fields in templates.** `low`, `high`, `label` and `value` are overlay fields, not data columns (P01 §8), so they don't go in `columns:`. A new `fields:` section of `columns.yaml` lists them with a type and description. `ak.template()` and the registry test accept a name from either section; `ak.columns()` still lists columns only.
 2. **Overlay units.** An overlay's units come from its own `df.attrs` (P01 §8), read with `units_of`, not `resolve_units`, whose warning talks about axis labels. Otherwise values are assumed to be in the main data's units: `low`, `high`, `value` and reference lines in the value column's unit, vertical pairs in the vertical column's unit. One warning per overlay names the assumption and shows the `ak.set_units` call. A number given for `water_level` or `reference_lines` is in the main data's units. A string such as `"112.5 ft"` goes through `parse_quantity` (P00 §4.3 #4).
@@ -35,13 +82,13 @@ These fill gaps in P01. Each one goes into P01 in the commit that builds it.
 7. **Preset valid ranges** aren't stored. Nothing in P01 uses them, and QC level 2 (v0.4) will have its own ranges (plots README, "Presets").
 8. **Overlay marks are lines, patches and text, never scatter collections.** `assert_us_si_equivalent` compares scatter offsets, and a ▽ drawn at an axes-fraction x would break it. Overlay positions get their own US/SI tests.
 
-## Build 1: `P01: add profile presets and overlay templates`
+### Build 1: `P01: add profile presets and overlay templates`
 - `config/defaults.yaml`: `presets:` with the four presets in §6: `column`, `label`, `quantity`, `log`, `start_at_zero`, `typical` (in the canonical unit, converted to display units when used).
 - `plot/_presets.py`: `preset(name)` returns the entry. An unknown name raises `AgsKitError` listing the presets.
 - `columns.yaml`: `elevation_top`, `elevation_base` (length, interval scale); `fields:` (decision 1); templates `strata`, `ranges`, `design_lines`. `registry.py` accepts fields in templates.
 - Tests: each preset loads and its column and quantity match the registry; typical ranges have the right dimension; unknown preset error; `ak.template("strata")` columns and dtypes; the registry naming test covers fields.
 
-## Build 2: `P01: resolve the vertical reference`
+### Build 2: `P01: resolve the vertical reference`
 - `plot/_vertical.py`:
   - `choose_vs(df, vs)`: `None` → elevation if there is an `elevation` column or `depth` + `ground_level`, else depth. Errors for neither column (§11) and for `vs="elevation"` without a way to get it, each naming both ways to provide it.
   - `vertical_values(df, vs, units)`: returns the vertical values in display units, computing `ground_level − depth` after converting both (P00 §4.3 #3).
@@ -50,7 +97,7 @@ These fill gaps in P01. Each one goes into P01 in the commit that builds it.
   - `convert_pair(top, base, from_vs, vertical)`: draws a pair as given when it matches `vs`, converts it with the single ground level otherwise, and raises the §11 error when it can't.
 - Tests: golden values (GL 120.0 ft, depth 15.0 ft → 105.0 ft; 10.0 ft ↔ 3.048 m); depth in ft and GL in m convert before subtracting; each error message; the conversion rules for pairs.
 
-## Build 3: `P01: draw the core property profile`
+### Build 3: `P01: draw the core property profile`
 - `plot/_profile.py`: `profile()` with the full §10 signature. Arguments built in later steps raise `NotImplementedError` until then, so no step ships a silent no-op.
 - Units through `resolve_units` (with `quantities` from the preset), `to_display`, labels from the preset, the registry, `label=` or the column name; the datum on elevation labels only.
 - Axes: linear or log x (`log=` over the preset), `nice_limits` with `start_at_zero` from the preset or the registry scale and `typical` for a single point; `log_limits`; `apply_vertical_axis`; `xlim=` / `ylim=` with edge markers on both axes; `xaxis_position`.
@@ -59,35 +106,35 @@ These fill gaps in P01. Each one goes into P01 in the commit that builds it.
 - Errors: missing value column lists the available columns; a non-numeric value column says which rows aren't numbers.
 - Tests: renders for every preset and both `vs`; depth axis 0 at top, elevation up; whole log decades with `10ⁿ` labels; x-axis at the bottom by default; labels contain units and the datum; "(units unknown)" plus warning; log exclusion and edge counts; unit colors match `legend_handles()`; `assert_no_global_state` (also with `ax=` on a `Sheet` panel); `assert_us_si_equivalent` for every preset; empty and single-point input.
 
-## Build 4: `P01: draw test intervals and qualified values`
+### Build 4: `P01: draw test intervals and qualified values`
 - Intervals (`intervals="auto"` draws when `depth_top` and `depth_base` exist; `True` without them is a `ColumnError`): `vlines` in the marker color, 1.0 pt, round caps, converted to elevation with decision 4. A row with top > base isn't drawn, and a warning names it. Bounds count toward the vertical limits.
 - Qualifiers: `<` and `>` drawn as ◁ / ▷ (6 pt) instead of the marker, counted in notes, with legend entries "less than (n)" / "greater than (n)". A qualifier other than `<`, `>` or blank raises an error listing the bad rows.
 - Tests: interval golden value (top 10.0, base 20.0 ft, GL 120.0 ft → 110.0 to 100.0 ft); swapped row warns and isn't drawn; carets point the right way (marker paths); counts in notes and the legend.
 
-## Build 5: `P01: group markers and connect points by hole`
+### Build 5: `P01: group markers and connect points by hole`
 - `marker_by=`: marker cycle ● ■ ▲ ◆ ▼ ✚ ✖ ⬟ ⬢ ★, legend section of gray markers after the unit colors. More than 10 groups repeat shapes, with a warning suggesting `connect=True` or splitting the data.
 - `connect=True`: one gray line per `loca_id` (0.6 pt, alpha 0.6), sorted by vertical position (decision 5 for a missing `loca_id`).
 - Tests: shapes per group; 11 groups warn; one line per hole with sorted y; legend section order.
 
-## Build 6: `P01: add strata and water level overlays`
+### Build 6: `P01: add strata and water level overlays`
 - `plot/_overlays.py`: overlay units (decision 2), and `draw_strata`, `draw_water_level`.
 - Strata: one pair required (§11 error for both or neither), converted with `convert_pair`; full-width bands at alpha 0.12 in palette colors, unit name at the right edge inside the axes, 7 pt. Swapped rows warn and aren't drawn.
 - Water level: a number, a `(value, label)` list or a per-hole DataFrame (decision 3). Dashed blue 0.8 pt line with ▽ and label at the right end; per hole, a short ▽ tick at the right edge, labeled with `loca_id` for ≤ 6 holes.
 - Tests: depth strata drawn in elevation with one ground level; the error with several; elevation strata over several holes; swapped row; strata colors match the point colors; water level in each form; positions in US and SI.
 
-## Build 7: `P01: add ranges, design lines and reference lines`
+### Build 7: `P01: add ranges, design lines and reference lines`
 - Ranges: `low, high, label, source` plus an optional pair (same rules as strata); a translucent hatched band (alpha 0.15) over the pair or the full height, label at the top. A CSV path is read with `read_csv`.
 - Design lines: one dashed 1.5 pt dark-gray polyline per `label`, with the vertical column matching or converted like a pair; label at the line end.
 - Reference lines: dotted 0.6 pt vertical lines, label at the top. `note=`: lower-left text, 7 pt.
 - Draw order from §7, set with `zorder` constants in one place.
 - Tests: each overlay on and off; a range in psf drawn in kPa (2,000 psf → 95.76 kPa); design line in depth drawn in elevation; the draw order; positions in US and SI.
 
-## Build 8: `P01: add the secondary depth axis and stats box`
+### Build 8: `P01: add the secondary depth axis and stats box`
 - `secondary="depth"`: `ax.secondary_yaxis("right", functions=...)` mapping elevation ↔ depth with the single ground level; inverted and labeled `Depth (ft)`. Several ground levels raise the §6 error.
 - Stats box (decision 6): `count, mean, std, cov, median, min, max`; default without `cov`; std "—" when n < 2; per unit up to 6 units, else overall only; lower left, 7 pt. An unknown statistic raises an error listing the allowed ones.
 - Tests: secondary tick positions match GL − elevation; the error; stats golden values on a hand-calculated frame; n = 1; 7 units gives overall only.
 
-## Build 9 (close-out): `P01: add test data, acceptance tests and close out P01`
+### Build 9 (close-out): `P01: add test data, acceptance tests and close out P01`
 - `tests/data/`: the three CSVs in §12.
 - `test_profile_acceptance.py`: every §12 automated criterion against the CSVs, with the footnote counts checked by hand.
 - `docs/work/m2-p01-property-profile/visual-check.png` (100 dpi): `profile_perm.csv` in US with strata, water level, ranges and the stats box, beside `profile_su.csv` in SI with a design line and the secondary depth axis, on one `Sheet`. Look at it before committing.
@@ -99,7 +146,7 @@ These fill gaps in P01. Each one goes into P01 in the commit that builds it.
   - `TODO.md`: no change expected.
   - This plan: a Results section.
 
-## Verification
+### Verification
 - After each build: `uv run ruff check . && uv run ruff format --check . && uv run pytest`.
 - At close-out:
   - Python 3.13 and 3.14: `uv run --isolated --python 3.1x pytest`.
@@ -107,7 +154,7 @@ These fill gaps in P01. Each one goes into P01 in the commit that builds it.
   - `uv build`, and check that the wheel's `defaults.yaml` contains the presets.
 - Look at `visual-check.png` against the §2 reference figure and the "A good version" list.
 
-## Results
+### Results
 - 608 tests pass on Python 3.12, 3.13 and 3.14, and with the lowest dependency versions (matplotlib 3.8.0, numpy 1.26.0, pandas 2.1.1, pint 0.24.4). `secondary_yaxis(functions=...)` works on matplotlib 3.8. The wheel's `defaults.yaml` has the four presets, and its `columns.yaml` has `fields:` and the three overlay templates.
 - **Build 3 was split in two** because it came to about 900 lines: the linear profile (`60fbc39`), then log axes and fixed limits (`c0ca924`). A further commit (`54daea3`) fixed the label clashes the visual check showed.
 - **Changes from the plan**, each recorded in P01 (or P00) in its commit:

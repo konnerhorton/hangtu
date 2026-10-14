@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | done (M6) |
-| **Intent** | [`docs/work/m6-qc/intent.md`](../work/m6-qc/intent.md) |
+| **Intent** | [`docs/work/m6-qc.md`](../work/m6-qc.md#intent) |
 | **Parent** | SPEC §2.6 (units), §7 (data model), §8 (depth and geology), §9 (data quality), §11 (errors) |
 | **Related** | [`ingest.md`](ingest.md) §8–§9 (value flags, findings raised at ingest). TODO #6 (P001/P003 tolerances), #7 (minimally useful fields) |
 

@@ -7,7 +7,7 @@
 | **Type** | plot + light analysis |
 | **Target version** | v0.1 (milestone M3) |
 | **Depends on** | P00, P01, the SPT analysis (`docs/drafts/analysis.md` §1) |
-| **Related** | SPEC §4 (refusals, N60), §8.2 (test depth). P03 (shown beside it). M3 intent: `docs/work/m3-spt/intent.md` |
+| **Related** | SPEC §4 (refusals, N60), §8.2 (test depth). P03 (shown beside it). M3 intent: `docs/work/m3-spt.md` |
 
 ---
 
@@ -174,7 +174,7 @@ As P01, plus:
   - `assert_us_si_equivalent` on the vertical axis; `assert_no_global_state`, also with `ax=` on a `Sheet` panel;
   - empty input gives "No data".
 - **Acceptance against test data** `tests/data/spt.csv`: four holes, three units plus fill, about 80 tests over 30 m, ER on two holes only, a few refusals (one with blank N, some found from `spt_penetration`), and blank N rows. The footnote counts are worked out by hand.
-- **Visual check:** [`docs/work/m3-p02/visual-check.png`](../work/m3-p02/visual-check.png), a `Sheet` with N in US (with `connect=True`) and N60 in SI side by side, with strata and a water level.
+- **Visual check:** [`img/P02.png`](img/P02.png), a `Sheet` with N in US (with `connect=True`) and N60 in SI side by side, with strata and a water level.
 
 ## 13. References
 - `docs/drafts/analysis.md` §1 and its references.
