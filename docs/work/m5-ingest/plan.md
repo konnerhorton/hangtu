@@ -18,8 +18,9 @@ src/hangtu/
   project.py                  Project: from_ags, open, settings, groups, table, sql, repr
   db.py                       the only module that talks to SQLite (SPEC §7): schema, writers, read-only reads
   ags/__init__.py             ingest(path, ...) -> the tables db.py writes
-  ags/_read.py                hash, decode, python-ags4 parse and check, output capture, findings V…
-  ags/_dictionary.py          heading info from 4.2 → file version → DICT (§6); version, V000, M001
+  ags/_findings.py            the Finding record
+  ags/_read.py                hash, decode, python-ags4 parse and check, output capture, version, findings V…
+  ags/_dictionary.py          heading info from 4.2 → file version → DICT (§6); M001
   ags/_units.py               heading units: U001–U004, pcf, ton (§7)
   ags/_values.py              typing and value flags (§7, §8), T001
   ags/_keys.py                location_id, sample_id, specimen table (§5)
@@ -39,7 +40,7 @@ Implementation choices the spec leaves open. Any that changes what a user sees g
 1. **python-ags4 floor is 1.2.0**, the first release that ships the 4.2 dictionary (1.1.0 has 4.0.3–4.1.1 only). It requires `pandas>=2.1,<3`, which fits ours. Its dictionaries are found with `importlib.resources.files("python_ags4")`, never copied into hangtu.
 2. **An unrecognized `TRAN_AGS`** makes python-ags4 fall back to the 4.1.1 dictionary, so ingest passes `standard_AGS4_dictionary="4.2"` in that case, to match §6.
    **python-ags4 results become findings like this:** `AGS Format Rule <n>` → `V<n>` (`V10b`, …), severity error; `FYI (…)` → `V<n>` of the related rule, or `VFYI`, severity info; `Warning`/`General` → warning; `Validator Process Error` → error. `Summary of data` and `Metadata` aren't findings. The line comes from the result's `line` where it is a number.
-3. **Captured output:** stdout and stderr are redirected, and python-ags4's `logger` gets a temporary handler with propagation switched off, for the duration of each call. Messages that carry information (`DICT group not found…`) are dropped when `check_file` already reports the same thing. Any other message becomes a `V` warning, so nothing is lost.
+3. **Captured output:** stdout and stderr are redirected, and python-ags4's `logger` gets a temporary handler with propagation switched off, for the duration of each call. Each logged warning or error becomes a `VLOG` finding, once (`check_file` parses the file again, so messages come twice), except `DICT group not found…`, which is normal for a file without user-defined groups. Some problems are only logged: python-ags4 renames a duplicate heading and reports it nowhere else.
 4. **Line numbers** come from `AGS4_to_dataframe(..., get_line_numbers=True)`, which returns a third dict and a `line_number` column. The `UNIT` and `TYPE` rows go into `meta_heading`, and only `DATA` rows reach `raw_<GROUP>`.
 5. **Encoding:** the file is read as UTF-8, with a BOM accepted. If it isn't valid UTF-8, the error names the first bad line and says to save the file as UTF-8. Nothing falls back to another encoding, which would be a guess. This adds a bullet to `ingest.md` §10.
 6. **Date and time formats never reach the unit parser.** For `DT` and `T` headings the `UNIT` row is a format, read by `_values.py` (pint reads `hh:mm` as hectohours × millimeters). An unparseable date or time → NULL + `OTHER` + `T001`.
@@ -60,12 +61,12 @@ Implementation choices the spec leaves open. Any that changes what a user sees g
 - `tests/ags/test_files.py`: `site_si`, `site_us` and `site_v404` pass `check_file` with no findings at all. `defects.ags` produces the python-ags4 rules it was built to trigger, including the orphan sample (Rule 10).
 
 ## Build 2: `M5: read AGS files into text tables and findings`
-- `ags/_read.py`: SHA-256 and size from the bytes; decoding (decision 5); `check_file` → findings (decision 2); `AGS4_to_dataframe` with line numbers (decision 4); capture (decision 3). Errors from §10: file not found, not AGS4 (no `GROUP` line), parse failure with line and reason, not UTF-8.
+- `ags/_read.py`: SHA-256 and size from the bytes; decoding (decision 5); `AGS4_to_dataframe` with line numbers (decision 4); the version from `TRAN_AGS` and `V000`, here rather than in build 3 because `check_file` needs the version; `check_file` → findings (decision 2); capture (decision 3). Errors from §10: file not found, not AGS4 (no `GROUP` line), parse failure with line and reason, not UTF-8.
 - Tests: the line numbers of a few known DATA rows; a BOM file reads the same as one without; nothing is printed or logged (`capsys`, `caplog`); each error's text says what, where and what to do.
 
 ## Build 3: `M5: read heading types, units and keys from the dictionaries`
-- `ags/_dictionary.py`: reads the five python-ags4 dictionaries (cached), the version from `TRAN_AGS` (`V000`), and the lookup order 4.2 → file version → `DICT` (§6). For each heading it gives the type, unit, key status and parent group. `M001` for removals (decision 8).
-- Tests: `ISPT_NVAL` from 4.2; `IPRG_IPRM` (m/s) and `RUCS_E` from 4.0.4, each with `M001`; a user-defined group's parent and keys from `DICT`; a user-defined group with no `DICT` entry; `TRAN_AGS` missing and `"4.9"` → read as 4.2 + `V000`.
+- `ags/_dictionary.py`: reads the five python-ags4 dictionaries (cached) and applies the lookup order 4.2 → file version → `DICT` (§6). For each heading it gives the type, unit, key status and parent group. `M001` for removals (decision 8).
+- Tests: `ISPT_NVAL` from 4.2; `IPRG_IPRM` (m/s) and `RUCS_E` from 4.0.4, each with `M001`; a user-defined group's parent and keys from `DICT`; a user-defined group with no `DICT` entry.
 
 ## Build 4: `units: add the AGS4 dictionary unit spellings`
 - `units/aliases.yaml`: decision 7. This is a separate commit because it changes what `ht.read_csv`/`set_units` accept too. Each entry is checked against pint.

@@ -125,7 +125,8 @@ As decided in SPEC §6.2:
 ## 9. Findings raised at ingest
 | Rule | Severity | When |
 |---|---|---|
-| `V<rule>` | python-ags4's | Each python-ags4 finding, rule name kept (`V10b`, …) |
+| `V<rule>` | python-ags4's | Each python-ags4 finding, rule name kept (`V10b`, …); `FYI` → info, `Warning`/`General` → warning, the rest error. Results with no rule number: `VFYI`, `VWARNING`, `VGENERAL`, `VPROCESS` |
+| `VLOG` | warning or error | A problem python-ags4 only logs (e.g. a duplicate heading it renamed) |
 | `V000` | warning | `TRAN_AGS` missing or unrecognized; read as 4.2 |
 | `M001` | info | Group or heading from an older version that 4.2 removed; kept under its own name (§6) |
 | `U001` | error | Unit unknown or ambiguous; column raw only |
@@ -140,6 +141,8 @@ As decided in SPEC §6.2:
 Written for engineers (SPEC §11):
 - File not found, or not an AGS4 file (no `GROUP` line): what was read, and what an AGS4 file starts with.
 - Parse failure: the line number and python-ags4's reason.
+- Not UTF-8: the first line that can't be read, and to save the file as UTF-8. No other encoding is tried, because that would be a guess.
+- An AGS3 file: hangtu reads AGS4 only.
 - Database exists: `Project.open(...)` or `overwrite=True`.
 - Schema version mismatch: the hangtu version that wrote it, and the re-ingest call.
 

@@ -18,6 +18,10 @@ class ColumnError(HangtuError, ValueError):
     """A column or template is missing or unknown."""
 
 
+class AgsFileError(HangtuError, ValueError):
+    """An AGS file can't be read at all (docs/data/ingest.md §10)."""
+
+
 class HangtuHint(UserWarning):
     """A suggestion about optional data that would improve a plot.
 
