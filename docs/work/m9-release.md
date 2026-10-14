@@ -160,3 +160,95 @@ Made in the spec commit, except the two marked close-out.
 6. The CSV and AGS examples give the same `spt_n` and `plasticity_index` values per hole and depth.
 7. Axis limits follow §5, with table-driven tests covering each listed example and each exclusion.
 8. Every Python block in the README runs.
+
+## Plan
+
+Spec: the `## Spec` section above.
+
+Each build step below is one commit with ruff and pytest passing. A step that goes past about 300 changed lines (not counting test data and the shipped example files) is split.
+
+### Layout
+```
+src/hangtu/
+  plot/_limits.py             nice_limits/log_limits move a limit off the data (§5)
+  columns.yaml                spt, atterberg, grain_size, permeability templates (§2)
+  examples/__init__.py        path(), names() (§1)
+  examples/data/              site.ags, strata.csv, spt.csv, atterberg.csv, permeability.csv
+  __init__.py                 + examples
+tests/data/_make_examples.py  writes examples/data/ (reuses tests/data/ags/_make_files.py helpers)
+tests/test_examples.py        ht.examples, generator check, both scripts run clean
+tests/test_readme.py          every Python block in README.md runs
+examples/csv_to_plot.py  examples/ags_qc_plot.py
+.github/workflows/release.yml + examples job; publish jobs wait for it
+README.md, docs/img/readme-spt.png
+```
+
+### Decisions the build makes
+1. **The limit rule sits at the end of `nice_limits` and `log_limits`.** Every plot already gets its limits through them, so no caller changes.
+   - **Linear:** if the upper limit equals the largest value, extend it by one step and recompute the nice limits for the wider range. The extra tick can change the step (0–140 in steps of 20 gives 9 ticks), so the limits are re-snapped to the new step, and the 4–8 ticks rule still holds.
+   - **The lower end** only moves when it isn't 0 and equals the smallest value. That only happens on the depth axis with negative depths, or with a typical range.
+   - **Log:** a decade equal to `vmin` or `vmax` moves out one decade, and `min_decades` applies after that.
+2. **Golden limits that change** are updated in the same commit, each with a comment giving the reason: `(0, 100) → (0, 120)`, the exact-decade log case and the single-value typical-range case. Plot tests that assert limits on whole-step data are updated the same way. Any other change shows up as a failure, and I list it in the commit body.
+3. **`ht.examples` is a module, not data on `Project`:** `importlib.resources.files("hangtu.examples") / "data" / name`, returned as a `Path`. The wheel is installed unzipped, so a real path works for `from_ags` and `read_csv`.
+4. **The example site** is its own set of values in `_make_examples.py`, not the test files: 6 holes, about 60 SPT, 15 Atterberg, 8 gradings and 10 permeability results, enough to draw realistic figures. It reuses `group`, `write_file`, `dict_group` and `to_us` from `_make_files.py` (loaded with `importlib`, as the test conftests do), so it is written in SI and converted to US with the same exact factors. The planted QC findings are a missing `LOCA_GL` on one hole and one SPT below its `LOCA_FDEP`.
+5. **CSV files are written** by ingesting `site.ags` into a temporary database, taking each dataset with `display_units="US"`, keeping the template's columns, and writing them with `to_csv(index=False)`, with floats to 6 significant figures so the files read cleanly. Writing depends on pandas' CSV output, so the check against the generator (acceptance criterion 3) compares parsed frames for the CSV files and bytes for `site.ags`.
+6. **The scripts run as subprocesses in the tests,** with Python's default warning filters, as a user would run them. The test fails if anything is written to stderr. QC findings go to stdout as part of the printed summary, so they don't count.
+
+### Build 1: `M9: keep axis limits off the data`
+- `plot/_limits.py` (decision 1); golden tables in `tests/plot/test_limits.py` (decision 2), plus the §5 cases:
+  - PI 30 → 0–35;
+  - depth 6.0 → 7;
+  - k 1e-5 to 3e-4 → 1e-6 to 1e-3;
+  - 0 stays at 0;
+  - `xlim=` used as given;
+  - a single value unchanged.
+- The property test gets stricter: `lo < vmin` unless `lo == 0`, and `hi > vmax`.
+- Update any P01/P02/P03/P07 test whose limits move.
+
+### Build 2: `M9: make the dataset templates follow the datasets`
+- `columns.yaml`: the four templates (spec §2).
+- `tests/test_registry.py`:
+  - each template equals its dataset's columns minus the excluded list, using `tests/data/ags/site_si.ags`;
+  - a filled template read back with `ht.read_csv` feeds P01/P02/P03/P07 with no warning.
+- Fix `read_csv` dtype handling if blank `spt_refusal`/`non_plastic` columns trip it (likely `boolean` with NA).
+
+### Build 3: `M9: add the example site generator and site.ags`
+- `tests/data/_make_examples.py` (decision 4), `src/hangtu/examples/data/site.ags` and `strata.csv`.
+- Tests in `tests/test_examples.py`:
+  - python-ags4 passes;
+  - `p.qc()` gives exactly the two planted findings;
+  - the generator reproduces the files.
+
+### Build 4: `M9: add ht.examples and the example CSV files`
+- `examples/__init__.py`, the `ht.examples` export, and the three CSV files (decision 5).
+- Tests:
+  - `path()` for every name;
+  - the unknown-name error text;
+  - CSV and AGS give the same `spt_n` and `plasticity_index` per hole and depth (criterion 6).
+
+### Build 5: `M9: add the CSV and AGS examples`
+- `examples/csv_to_plot.py`, `examples/ags_qc_plot.py` (spec §3).
+- `tests/test_examples.py`: both run in `tmp_path`, exit 0, write their files and print no warning (decision 6).
+- Look at both PDFs.
+
+### Build 6: `M9: run the examples against the wheel before release`
+- `release.yml`: an `examples` job (3 operating systems × Python 3.12), with `publish-pypi` and `publish-testpypi` needing both `test-wheel` and `examples`.
+- It can't be checked locally beyond `uv build`, then running each script with `uv run --isolated --no-project --with dist/*.whl` in an empty directory. I do that by hand and record it in Results.
+
+### Build 7: `M9: rewrite the README for v0.1`
+- `README.md` (spec §6), `docs/img/readme-spt.png` (100 dpi, from the AGS example, looked at before committing).
+- `tests/test_readme.py`: extracts the ```` ```python ```` blocks and runs them in `tmp_path`.
+
+### Build 8 (close-out): `M9: close out examples, templates and v0.1.0`
+- `pyproject.toml` `version = "0.1.0"` (and `uv.lock`).
+- SPEC §12.1: 0.1.0 is the current release, with the 0.0.1 line kept as history. SPEC §12.4: M9 done.
+- TODO #18: closed. CLAUDE.md state line: M9 done, M10 next. Plan Results.
+- The release itself (push, TestPyPI, tag) follows the merge, with approval at each step (spec §7).
+
+### Verification
+- At every commit: `uv run ruff check . && uv run ruff format --check . && uv run pytest`.
+- Before the close-out:
+  - the lowest-version run, then `git checkout uv.lock`;
+  - `uv build`, then both scripts run against the wheel from an empty directory outside the repo;
+  - look at both example PDFs and the README figure.
+- After merge, with approval: a TestPyPI rehearsal, then `pip install hangtu` in a fresh environment and run one example.
