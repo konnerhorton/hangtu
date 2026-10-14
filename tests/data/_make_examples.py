@@ -17,7 +17,10 @@ Two QC findings are planted, so the QC example has something to report:
 import importlib.util
 import math
 import random
+import tempfile
 from pathlib import Path
+
+import hangtu as ht
 
 HERE = Path(__file__).parent
 OUT = HERE.parents[1] / "src" / "hangtu" / "examples" / "data"
@@ -406,12 +409,39 @@ def write_site(path):
     path.write_text(out, encoding="utf-8", newline="")
 
 
+def write_csvs(out):
+    """Write each dataset's template columns, as a CSV user would type them.
+
+    Depths and levels are in ft and hydraulic conductivity in cm/s, the
+    display units of the US datasets. A reader declares them with
+    ``ht.read_csv(..., units={...})``. ``spt_n60`` is left blank, as in most
+    users' files: the plots work it out from ``energy_ratio``.
+    """
+    with tempfile.TemporaryDirectory() as folder:
+        p = ht.Project.from_ags(
+            out / "site.ags", db=Path(folder) / "site.sqlite", display_units="US"
+        )
+        p.set_geology_map(out / "strata.csv")
+        for name in ("spt", "atterberg", "permeability"):
+            dataset = getattr(p, name)()
+            frame = dataset[list(ht.template(name).columns)]
+            if name == "spt":
+                frame = frame.assign(spt_n60=float("nan"))
+            frame.to_csv(
+                out / f"{name}.csv",
+                index=False,
+                float_format="%.6g",
+                lineterminator="\n",
+            )
+
+
 def main(out=OUT):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     rng.seed(2026)
     write_site(out / "site.ags")
     (out / "strata.csv").write_text(STRATA, encoding="utf-8", newline="")
+    write_csvs(out)
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@
 import importlib.util
 from pathlib import Path
 
+import pandas as pd
 import pytest
 from python_ags4 import AGS4
 
@@ -10,6 +11,8 @@ import hangtu as ht
 
 ROOT = Path(__file__).parents[1]
 DATA = ROOT / "src" / "hangtu" / "examples" / "data"
+FILES = ["atterberg.csv", "permeability.csv", "site.ags", "spt.csv", "strata.csv"]
+CSVS = ["atterberg.csv", "permeability.csv", "spt.csv"]
 NOT_FINDINGS = {"Metadata", "Summary of data"}
 
 
@@ -49,5 +52,42 @@ def test_qc_finds_only_the_planted_defects(site):
 
 def test_generator_reproduces_the_shipped_files(tmp_path):
     _load_generator().main(tmp_path)
+    assert sorted(path.name for path in tmp_path.iterdir()) == FILES
     for name in ("site.ags", "strata.csv"):
         assert (tmp_path / name).read_bytes() == (DATA / name).read_bytes(), name
+    # The CSV files go through pandas' writer, so compare what they hold.
+    for name in CSVS:
+        made, shipped = pd.read_csv(tmp_path / name), pd.read_csv(DATA / name)
+        pd.testing.assert_frame_equal(made, shipped, obj=name)
+
+
+# --- ht.examples ------------------------------------------------------------------
+
+
+def test_names_and_paths():
+    assert ht.examples.names() == FILES
+    for name in FILES:
+        path = ht.examples.path(name)
+        assert path.is_file()
+        assert path.read_bytes() == (DATA / name).read_bytes()
+
+
+def test_unknown_name_lists_the_files():
+    with pytest.raises(ht.HangtuError) as caught:
+        ht.examples.path("site.csv")
+    assert str(caught.value) == (
+        "No example file 'site.csv'. Files: atterberg.csv, permeability.csv, "
+        "site.ags, spt.csv, strata.csv."
+    )
+
+
+@pytest.mark.parametrize(
+    ("name", "value"), [("spt", "spt_n"), ("atterberg", "plasticity_index")]
+)
+def test_csv_and_ags_hold_the_same_tests(site, name, value):
+    from_ags = getattr(site, name)()
+    from_csv = ht.read_csv(ht.examples.path(f"{name}.csv"), units={"depth": "ft"})
+    key = ["loca_id", "depth", value]
+    pd.testing.assert_frame_equal(
+        from_csv[key], from_ags[key].reset_index(drop=True), check_dtype=False
+    )

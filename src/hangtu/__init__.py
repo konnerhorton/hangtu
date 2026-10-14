@@ -2,7 +2,7 @@
 
 from importlib.metadata import version
 
-from hangtu import analysis, plot
+from hangtu import analysis, examples, plot
 from hangtu._settings import settings
 from hangtu.errors import AgsFileError, ColumnError, HangtuError, HangtuHint, UnitsError
 from hangtu.project import Project
@@ -30,6 +30,7 @@ __all__ = [
     "analysis",
     "columns",
     "define_unit",
+    "examples",
     "plot",
     "read_csv",
     "set_units",
