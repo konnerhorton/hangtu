@@ -6,6 +6,8 @@ from ``qc/min_fields.yaml`` and ``p.qc(min_fields=...)``; groups not in the
 file aren't checked.
 """
 
+import pandas as pd
+
 from hangtu.qc._data import Data
 from hangtu.qc._registry import Finding, RuleResult, rule
 from hangtu.qc._settings import RuleSettings
@@ -18,6 +20,22 @@ def _absent(group: str, heading: str, rule_id: str, why: str) -> Finding:
         "minimally useful fields with p.qc(min_fields=...).",
         group=group,
         heading=heading,
+    )
+
+
+def blank_required(data: Data, group: str, required: tuple[str, ...]) -> pd.DataFrame:
+    """Return True where a required field of a ``group`` record is missing.
+
+    One bool column per required heading, indexed like ``data.table(group)``.
+    An absent heading is missing on every record. A record with any True is
+    incomplete: C001 reports it, and the datasets leave it out by default
+    (datasets.md §7).
+    """
+    table = data.table(group)
+    return pd.DataFrame(
+        {heading: data.blank(group, heading) for heading in required},
+        index=table.index,
+        dtype=bool,
     )
 
 
@@ -40,9 +58,9 @@ def required_missing(data: Data, settings: RuleSettings) -> RuleResult:
                         "which is required, so none of its records are complete",
                     )
                 )
-        blank = {heading: data.blank(group, heading) for heading in present}
+        blank = blank_required(data, group, tuple(present))
         for i, row in zip(table.index, table.to_dict("records"), strict=True):
-            missing = [heading for heading in present if blank[heading][i]]
+            missing = [heading for heading in present if blank.at[i, heading]]
             if not missing:
                 continue
             where = f" for {row['LOCA_ID']}" if "LOCA_ID" in row else ""
