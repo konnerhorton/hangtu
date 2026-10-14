@@ -22,7 +22,7 @@ Items to think through or research. Each item notes who owns it and the SPEC.md 
   - Is rock (weathered, IGM) worth separating?
 
 ### 5. Plasticity and gradation systems · Claude (verify) · docs/drafts/analysis.md §2–3 · needed for P04–P05 (Phase 1)
-Verify against the source standards during M9:
+Verify against the source standards during M8:
 - BS 5930:2015+A1:2020 plasticity terms (low < 35, intermediate 35–50, high 50–70, very high 70–90, extremely high > 90 LL);
 - AASHTO M 145 / ASTM D3282 group and group-index rules;
 - ASTM D2487-17 USCS;

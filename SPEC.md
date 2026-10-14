@@ -47,12 +47,14 @@
 ### 1.3 Phases and roadmap
 **Why plots came first (decided):** plots are what users will use first, so building them first gets feedback soonest. Plot and analysis functions take DataFrames, so they don't need the AGS ingest or database to be useful.
 
-**Build order (decided 2026-10-13):** after M3 (P01–P03 and P07), Phase 2 is built before the rest of Phase 1 (P04–P06 and the v0.1 release, §12.4). The data layer is the more useful piece for current work, and the remaining plots don't depend on it, so either order works. The table below lists versions by content; §12.4 has the build order.
+**Build order (decided 2026-10-13):** after M3 (P01–P03 and P07), Phase 2 is built before the rest of Phase 1 (P04–P06, §12.4). The data layer is the more useful piece for current work, and the remaining plots don't depend on it, so either order works.
+
+**First release (decided 2026-10-14):** v0.1 ships after M7, with the plots built so far and the whole data layer, rather than with all of Phase 1 and no AGS. Testers can then try hangtu on their own AGS files, which tells us more than CSV input alone. P04–P06 move to v0.2. Phases name content; versions name releases, so Phase 1 spans v0.1 and v0.2. The table below lists versions by content; §12.4 has the build order.
 
 | Version | Phase | Content |
 |---|---|---|
-| **v0.1** | **1: Plots** | - Plot framework (P00): style, palette, unit-aware labels, out-of-range markers, `Sheet`.<br>- Batch 1 plots **P01–P07**: property profile, SPT profile, SPT histograms, plasticity chart, grain size, water content profile, property by geology unit.<br>- The analyses they need: SPT N60/refusal/classes, plasticity classification, Dx/Cu/Cc/gradation.<br>- Units handling for DataFrames (§2.6), the column registry, CSV templates.<br>- **First PyPI release; feedback round.** |
-| **v0.2** | **2: Data** | - AGS4 ingest (units on ingest, value flags) into SQLite.<br>- QC level 1 with CSV report and diff tool.<br>- Depth/elevation/geology conventions and joins.<br>- Ready-made datasets (SPT, Atterberg/index properties, grain size, permeability) that feed the Phase 1 plots directly. |
+| **v0.1** | **1: Plots** (part) and **2: Data** | - Plot framework (P00): style, palette, unit-aware labels, out-of-range markers, `Sheet`.<br>- Plots **P01–P03 and P07**: property profile, SPT profile, SPT histograms, property by geology unit.<br>- SPT analysis: N60, refusal, classes.<br>- Units handling for DataFrames (§2.6), the column registry, CSV templates.<br>- AGS4 ingest (units on ingest, value flags) into SQLite.<br>- QC level 1 with CSV report and diff tool.<br>- Depth/elevation/geology conventions and joins.<br>- Datasets (SPT, Atterberg, grain size curves, permeability) that feed the plots directly.<br>- **First PyPI release; feedback round.** |
+| **v0.2** | **1: Plots** (rest) | - Plots **P04–P06**: plasticity chart, grain size, water content profile.<br>- The analyses they need: plasticity classification, Dx/Cu/Cc/gradation.<br>- The datasets that need them: classification columns, `grain_size_summary()`, `index_properties()`.<br>- Changes from the feedback round. |
 | **v0.3** | **3: Statistics** | - `describe`, `fit` (bounded and censored), `compare`, `compare_groups`, `crosstab`, EC7 `characteristic`.<br>- Plots P08 (distribution fit) and P09 (characteristic value profile). |
 | v0.4 | | - Clogging (P17–P18; Thewes & Burger 2004, Hollmann & Thewes 2013).<br>- QC level 2 (engineering-judgment ranges).<br>- Standards comparison with a library of published ranges.<br>- User-defined PSD regions; plasticity-chart data region.<br>- Compaction curve (P16). |
 | v0.5 | | - Triaxial failure envelope (P11) and consolidation (P13–P15) analyses and plots.<br>- **AGSi export** (`to_agsi()`): 1D model elements per geology unit, carrying property summaries and parameters (including depth-trend design lines), with codes from the column registry. |
@@ -131,7 +133,7 @@ Full conventions are in [`docs/plots/README.md`](docs/plots/README.md); each fig
   - Exports to PDF, PNG or SVG.
   - Simple title only; no title block (Later).
 - **Plot list and status:** see `docs/plots/README.md`.
-  - Batch 1 (P00–P07) is v0.1.
+  - Batch 1 (P00–P07): P00–P03 and P07 are v0.1, P04–P06 are v0.2 (§1.3).
   - P08–P09 are v0.3.
   - Batch 2 lab analyses (P11, P13–P16) are v0.4–v0.5; P12 is Later.
 
@@ -158,7 +160,7 @@ P07 (property by geology unit against a report's baseline ranges) is a Phase 1 *
 
 ---
 
-## 6. Ingestion (Phase 2, v0.2)
+## 6. Ingestion (Phase 2, v0.1)
 Decided constraints only. The pipeline, database layout, keys, version mapping, typing and units are in [`docs/data/ingest.md`](docs/data/ingest.md).
 
 ### 6.1 Pipeline
@@ -228,7 +230,7 @@ Apply in both phases. In Phase 1 they are applied by the analysis functions to t
 ### 9.1 Levels
 | Level | What | When |
 |---|---|---|
-| 1: Integrity | Format, units, structure, internal consistency | v0.2 |
+| 1: Integrity | Format, units, structure, internal consistency | v0.1 |
 | 2: Engineering judgment | User-defined plausible ranges per unit and property | v0.4 |
 
 ### 9.2 Framework (decided)
@@ -265,7 +267,7 @@ Apply in both phases. In Phase 1 they are applied by the analysis functions to t
 
 ## 11. API sketch
 
-**Phase 1 (v0.1): plots on your own data**
+**Phase 1 (v0.1–v0.2): plots on your own data**
 ```python
 import hangtu as ht
 
@@ -286,7 +288,7 @@ ht.plot.profile(k, value="hydraulic_conductivity", preset="hydraulic_conductivit
 sheet.save("site_x.pdf")
 ```
 
-**Phase 2 (v0.2): the same plots, fed from AGS**
+**Phase 2 (v0.1): the same plots, fed from AGS**
 ```python
 p = ht.Project.from_ags("site.ags", db="site.sqlite", display_units="US")   # later: ht.Project.open("site.sqlite")
 p.set_geology_map("strata.csv")
@@ -335,6 +337,8 @@ ht.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
 - **Phase 3:** JRC worked examples for EC7; scipy reference values.
 
 ### 12.4 Milestones
+Rows are in build order. M8 comes after M9 and M10 since v0.1 moved ahead of P04–P06 (§1.3); it keeps its number because other documents refer to it.
+
 | M | Deliverable | Done when |
 |---|---|---|
 | M0 | Scaffolding: src layout, deps, ruff, pytest, CI matrix, MIT license | CI green |
@@ -346,9 +350,9 @@ ht.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
 | M5 | AGS4 ingest: raw and canonical layers in SQLite, units on ingest, value flags (§6, §7) | Twin-file test and ingest acceptance criteria met |
 | M6 | QC level 1, CSV report and `diff()` (§9) | One defects-file test per rule |
 | M7 | Depth/elevation/geology joins and ready-made datasets (§8, §10) | Datasets feed the Phase 1 plots directly |
-| M8 | **P04–P06** + classification and gradation analyses | P04–P06 criteria + classification/Dx golden tests |
-| M9 | Examples, CSV templates, README/tutorial → **v0.1.0 on PyPI** | Examples run from a clean `pip install` |
+| M9 | Examples (CSV → plot and AGS → QC → plot), CSV templates, README → **v0.1.0 on PyPI** | Examples run from a clean `pip install` |
 | M10 | Feedback round | Feedback recorded in TODO |
+| M8 | **P04–P06** + classification and gradation analyses, and the datasets that need them → **v0.2** | P04–P06 criteria + classification/Dx golden tests |
 | M11+ | Phase 3 | Defined at M10 |
 
 ---
@@ -357,4 +361,3 @@ ht.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
 1. **SPT nominal mid-drive fallback** (§8.2): OK as proposed? Deferred to Phase 2, since CSV input uses `depth` as given.
 2. **`index_properties()` specimen combining:** when one sample has several specimens of a test, use the one nearest the other test's depth and flag it, or keep every combination?
 3. **Docs site** for v0.1.0, or README + examples only?
-4. **Phase 1 data entry beyond CSV:** is `read_csv` + templates enough for the first feedback round? Or should v0.1 include a thin `ht.read_ags()` that returns python-ags4 tables converted to SI, without the database or QC, so testers can try plots on real AGS files? This would mean building part of Phase 2 (units on ingest) early. 🟡 Lean: CSV first; add `read_ags` only if testers ask.

@@ -5,7 +5,7 @@
 | **ID / function** | P04 · `ht.plot.plasticity_chart()` (+ `ht.analysis.classify_fines()`) |
 | **Status** | idea (draft notes) |
 | **Type** | plot + classification |
-| **Target version** | v0.1 (milestone M8) |
+| **Target version** | v0.2 (milestone M8) |
 | **Depends on** | P00 |
 | **Related** | `docs/drafts/analysis.md` §2, TODO #5 |
 
@@ -108,7 +108,7 @@ At M8. Expected: `plasticity_chart(df, *, system="uscs", regions=None, labels=Fa
 - BS 5930:2015+A1:2020.
 
 ## 14. Open questions
-- Does `regions=` belong in v0.1 or stay with the v0.4 user-defined region item? Project group definitions on the chart are common in practice.
+- Does `regions=` belong in v0.2 or stay with the v0.4 user-defined region item? Project group definitions on the chart are common in practice.
 
 **Pitfalls:**
 - Starting the U-line at (16, 7.2) and leaving out its vertical segment at LL = 16.
