@@ -33,7 +33,7 @@ p.sql("select * from ISPT where ISPT_NVAL > 50")   # read-only query, returns a 
 - **`from_ags` on an existing database** raises an error unless `overwrite=True`; the message names `Project.open` and `overwrite=True`.
 - **The database is self-contained.** `open` works without the AGS file. If the file is still at its stored path and its SHA-256 has changed, `open` warns that the database is out of date and shows the `from_ags(..., overwrite=True)` call.
 - **Schema version:** if the database was written by an incompatible hangtu version, `open` raises an error saying to re-ingest.
-- `p.sql()` opens the connection read-only (`mode=ro`). `p.table()` on an unknown group lists the groups that exist.
+- `p.sql(query, params=())` opens the connection read-only (`mode=ro`); `?` placeholders take `params`. `p.table()` on an unknown group lists the groups that exist; key columns and `YN` headings are nullable integers (`Int64`).
 
 ## 3. Pipeline
 ```
