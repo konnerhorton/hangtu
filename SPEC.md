@@ -86,7 +86,7 @@
 | Canonical units | One SI unit per quantity kind. SPT N and blow counts are counts and never converted |
 
 ### 2.3–2.5 Unit table, aliases, traps
-Phase 1: [`docs/plots/P00-framework.md`](docs/plots/P00-framework.md) §4. Rules that only apply on AGS ingest: [`docs/drafts/phase2-data.md`](docs/drafts/phase2-data.md) (Units on ingest).
+Phase 1: [`docs/plots/P00-framework.md`](docs/plots/P00-framework.md) §4. Rules that only apply on AGS ingest: [`docs/data/ingest.md`](docs/data/ingest.md) §7.
 
 ### 2.6 Units for DataFrames (Phase 1)
 Plots and analyses work on DataFrames that may come from anywhere, so the units of each column must be declared or known:
@@ -159,7 +159,7 @@ P07 (property by geology unit against a report's baseline ranges) is a Phase 1 *
 ---
 
 ## 6. Ingestion (Phase 2, v0.2)
-Decided constraints only. The pipeline, type mapping and version notes are in [`docs/drafts/phase2-data.md`](docs/drafts/phase2-data.md).
+Decided constraints only. The pipeline, database layout, keys, version mapping, typing and units are in [`docs/data/ingest.md`](docs/data/ingest.md).
 
 ### 6.1 Pipeline
 - `python-ags4` validates and parses the file. hangtu writes a raw layer, maps older versions up to 4.2, then types, converts units and flags values into the canonical layer.
@@ -288,7 +288,7 @@ sheet.save("site_x.pdf")
 
 **Phase 2 (v0.2): the same plots, fed from AGS**
 ```python
-p = ht.Project.from_ags("site.ags", db="site.sqlite", display_units="US")
+p = ht.Project.from_ags("site.ags", db="site.sqlite", display_units="US")   # later: ht.Project.open("site.sqlite")
 p.set_geology_map("strata.csv")
 p.qc().to_csv("qc_report.csv")
 fig, ax = ht.plot.spt_profile(p.spt(geology=["Alluvium"]))
@@ -312,7 +312,7 @@ ht.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
 - **CI:** GitHub Actions on Windows, macOS and Linux × Python 3.12–3.14 (ruff + pytest). Release to PyPI on a `v*` tag (trusted publishing, `release.yml`): the tag must match the version in `pyproject.toml`, and the test suite runs against the built wheel on all three operating systems before upload. A manual run publishes to TestPyPI instead.
 - **0.0.1** is a placeholder release that claims the name on PyPI before v0.1 (decided 2026-10-12). It contains the M2b state: P00, P01 and P07.
 - **Phase 1 dependencies:** `pandas>=2.1.1,<3`, `numpy>=1.26`, `matplotlib>=3.8`, `pint>=0.24.4`, `pyyaml>=6.0.1`. Each floor is the oldest release that installs and imports on Python 3.12 with current transitive dependencies, and a lowest-version CI job keeps it honest.
-- **Phase 2 adds** `python-ags4` (LGPL-3.0, used unmodified, which is compatible with MIT).
+- **Phase 2 adds** `python-ags4` (LGPL-3.0, used unmodified, which is compatible with MIT). It brings `click`, `rich`, `openpyxl` and `defusedxml` with it; its standard dictionaries (4.0.3–4.2) are what ingest reads units, types and keys from.
 - **Phase 3 adds** `scipy>=1.11`.
 - **Dev dependencies:** `pytest>=8.0`, `ruff>=0.17`, `hypothesis>=6.100`, optionally `pytest-mpl`.
 
