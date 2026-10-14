@@ -88,7 +88,7 @@ Implementation choices the spec leaves open. Any that changes what a user sees g
 - `db.py`: the §4 layout (decisions 10, 11, 12, 16); writers for the raw, canonical and meta tables; `read_table`, `read_sql`.
 - `ags/__init__.py`: `ingest()` chains build 2 → 7 into the tables `db.py` writes.
 - Tests: AC 2 (every raw cell equals the file's text, `_line` correct); AC 9 (a parse failure leaves no file, and an existing database is byte-identical afterwards); STRICT tables; the SQLite version.
-- If this step goes past 300 lines, `ingest()` and its tests become a commit of their own.
+- Split in two, since it goes past 300 lines: `M5: chain the ingest steps into canonical tables` (`ags.ingest()` and its tests) first, then `db.py`.
 
 ## Build 9: `M5: add ht.Project to build and open a project database`
 - `project.py`: §2 in full, with decisions 13 and 14; the §10 errors; `repr` summary. Exported as `ht.Project`.

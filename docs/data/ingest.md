@@ -56,7 +56,7 @@ AGS file
 |---|---|---|
 | `raw_<GROUP>` | DATA row in the file | `_line`, then every heading as TEXT, as in the file |
 | `<GROUP>` (canonical) | DATA row | `_row` (primary key), `_line`, the surrogate keys that apply (§5), then the 4.2 headings, typed (§7) |
-| `specimen` | distinct specimen (§5) | `specimen_id`, `sample_id`, `SPEC_REF`, `SPEC_DPTH` |
+| `specimen` | distinct specimen (§5) | `specimen_id`, `sample_id`, `SPEC_REF`, `SPEC_DPTH` (in m, from the first row that names it) |
 | `value_flag` | flagged cell | `group`, `_row`, `heading`, `flag`, `bound`, `text` |
 | `finding` | finding | `rule`, `severity`, `group`, `heading`, `_line`, `message` |
 | `meta_project` | setting | `key`, `value` |
