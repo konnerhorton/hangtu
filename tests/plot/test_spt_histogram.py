@@ -53,7 +53,7 @@ def legend_texts(ax):
     return [t.get_text() for t in ax.get_legend().texts]
 
 
-# --- classes and bars --------------------------------------------------------------
+# --- classes and bars -------------------------------------------------------------
 
 
 def test_golden_heights_lower_bound_inclusive():
@@ -149,7 +149,7 @@ def test_unknown_color_by_column_is_an_error():
         ht.plot.spt_histogram(spt_frame(), color_by="soil")
 
 
-# --- blank values and N60 ------------------------------------------------------------
+# --- blank values and N60 ---------------------------------------------------------
 
 
 def test_blank_n_is_counted_not_classified():
@@ -188,7 +188,7 @@ def test_no_n60_anywhere_is_an_error():
     assert 'n="spt_n"' in str(caught.value)
 
 
-# --- errors, hints and the contract --------------------------------------------------
+# --- errors, hints and the contract -----------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -255,3 +255,118 @@ def test_empty_input_shows_no_data():
     _, ax = ht.plot.spt_histogram(spt_frame().iloc[0:0])
     assert "No data" in [t.get_text() for t in ax.texts]
     assert ax.get_ylim() == (0.0, 100.0)
+
+
+# --- refusals ---------------------------------------------------------------------
+
+
+def with_refusal():
+    """The golden N plus a refusal at N = 12: 8 tests."""
+    return spt_frame(
+        n=[*GOLDEN_N, 12.0], spt_refusal=[False] * 7 + [True], geology_unit=["A"] * 8
+    )
+
+
+def test_refusal_is_in_its_own_class_only():
+    _, ax = ht.plot.spt_histogram(with_refusal())
+    # 1, 1, 2, 1, 2 and 1 refusal of 8; N = 12 doesn't add to medium dense.
+    assert heights(ax, "A") == [12.5, 12.5, 25.0, 12.5, 25.0, 12.5]
+    assert legend_texts(ax) == ["A (n = 8)", "refusal"]
+    assert ax.ags_notes == {}
+
+
+def test_refusal_bar_is_hatched_in_the_unit_color():
+    _, ax = ht.plot.spt_histogram(with_refusal(), palette={"A": "tan"})
+    (bars,) = ax.containers
+    tan = (210 / 255, 180 / 255, 140 / 255)
+    assert bars.patches[-1].get_hatch() == "////"
+    assert bars.patches[-1].get_edgecolor()[:3] == pytest.approx(tan)
+    assert bars.patches[-1].get_facecolor()[:3] == pytest.approx(tan)
+    assert all(p.get_hatch() is None for p in bars.patches[:-1])
+
+
+def test_one_shared_refusal_legend_entry():
+    df = pd.concat([with_refusal(), with_refusal().assign(geology_unit="B")])
+    _, ax = ht.plot.spt_histogram(df.reset_index(drop=True))
+    assert legend_texts(ax) == ["A (n = 8)", "B (n = 8)", "refusal"]
+    (entry,) = [h for h in ax.get_legend().get_patches() if h.get_hatch()]
+    assert entry.get_label() == "refusal"
+
+
+def test_no_refusal_legend_entry_without_refusals():
+    _, ax = ht.plot.spt_histogram(spt_frame())
+    assert legend_texts(ax) == ["A (n = 7)"]
+
+
+def test_refusal_with_blank_n_is_a_refusal():
+    df = spt_frame(n=[5.0, np.nan], spt_refusal=[False, True])
+    _, ax = ht.plot.spt_histogram(df)
+    assert heights(ax, "A") == [0.0, 50.0, 0.0, 0.0, 0.0, 50.0]
+    assert ax.ags_notes == {}
+
+
+def test_exclude_leaves_refusals_out_and_counts_them():
+    _, ax = ht.plot.spt_histogram(with_refusal(), refusal="exclude")
+    assert tick_labels(ax) == COHESIONLESS[:-1]
+    assert heights(ax, "A") == [14.3, 14.3, 28.6, 14.3, 28.6]
+    assert legend_texts(ax) == ["A (n = 7)"]
+    assert ax.ags_notes == {"refusal_excluded": 1}
+    assert "1 refusal not shown" in footnote(ax)
+
+
+def test_refusals_are_counted_with_n60():
+    # The refusal has no energy ratio, but it is still a refusal.
+    df = spt_frame(
+        n=[30.0, 9.0, 60.0], energy_ratio=[80, 80, None], spt_refusal=[0, 0, 1]
+    )
+    _, ax = ht.plot.spt_histogram(df, n="spt_n60")
+    assert legend_texts(ax) == ["A (n = 3)", "refusal"]
+    assert ax.ags_notes == {}
+
+
+# --- bar labels and notes ---------------------------------------------------------
+
+
+def footnote(ax):
+    return "\n".join(t.get_text() for t in ax.texts)
+
+
+def test_bar_labels_on_non_zero_bars_only():
+    _, ax = ht.plot.spt_histogram(with_refusal(), bar_labels=True)
+    labels = [t for t in ax.texts if t.get_text().isdigit()]
+    assert [t.get_text() for t in labels] == ["1", "1", "2", "1", "2", "1"]
+    (bars,) = ax.containers
+    assert [t.xy for t in labels] == pytest.approx(
+        [(p.get_x() + p.get_width() / 2, p.get_height()) for p in bars.patches]
+    )
+    assert ax.get_ylim()[1] > 25.0
+
+
+def test_no_bar_labels_by_default():
+    _, ax = ht.plot.spt_histogram(spt_frame())
+    assert not [t for t in ax.texts if t.get_text().isdigit()]
+
+
+def test_note_is_in_the_footnote():
+    _, ax = ht.plot.spt_histogram(spt_frame(), note="Sands only")
+    assert "Sands only" in footnote(ax)
+
+
+def test_unit_in_order_with_no_tests_is_noted():
+    _, ax = ht.plot.spt_histogram(two_units(), order=["C", "B", "A"])
+    assert [c.get_label() for c in ax.containers] == ["B", "A"]
+    assert "No classified tests: C" in footnote(ax)
+
+
+def test_unit_with_only_blank_n_is_noted():
+    df = spt_frame(n=[5.0, np.nan, np.nan], geology_unit=["A", "B", "B"])
+    _, ax = ht.plot.spt_histogram(df)
+    assert [c.get_label() for c in ax.containers] == ["A"]
+    assert legend_texts(ax) == ["A (n = 1)"]
+    assert "No classified tests: B" in footnote(ax)
+    assert ax.ags_notes == {"nan": 2}
+
+
+def test_no_note_when_every_unit_has_tests():
+    _, ax = ht.plot.spt_histogram(two_units(), order=["B", "A"])
+    assert "No classified tests" not in footnote(ax)

@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
-from matplotlib.patches import Patch
+from matplotlib.patches import Patch, Rectangle
 from matplotlib.ticker import FixedLocator, NullLocator
 
 from hangtu import analysis
@@ -28,6 +28,9 @@ REFUSAL_OPTIONS = ("separate", "exclude")
 GROUP_WIDTH = 0.8  # of a class slot, split evenly between the units (P03 §7)
 REFUSAL_HATCH = "////"
 REFUSAL_FILL_ALPHA = 0.25  # the refusal bar's fill, so the hatch shows
+BAR_LABEL_SIZE = 7
+BAR_LABEL_GAP = 1.5  # points above the bar
+BAR_LABEL_ROOM = 1.1  # the y limit clears the tallest bar's label
 
 
 def _range_text(lowers: np.ndarray, i: int) -> str:
@@ -55,6 +58,30 @@ def _groups(
         groups = np.where(blank, _values.BLANK_GROUP, groups)
         colors[_values.BLANK_GROUP] = _values.NEUTRAL
     return groups, colors
+
+
+def _hatch(bar: Rectangle, color: Any, outlined: bool) -> None:
+    """Hatch a refusal bar in its unit color, over a light fill of that color."""
+    bar.set_facecolor((*bar.get_facecolor()[:3], REFUSAL_FILL_ALPHA))
+    bar.set_edgecolor(color)  # the hatch follows an explicit edge color
+    bar.set_linewidth(0.8 if outlined else 0.0)
+    bar.set_hatch(REFUSAL_HATCH)
+
+
+def _label_bars(ax: Axes, bars: list[Rectangle], counts: np.ndarray) -> None:
+    """Write each non-zero bar's count just above it."""
+    for bar, count in zip(bars, counts, strict=True):
+        if count:
+            ax.annotate(
+                str(int(count)),
+                xy=(bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                xytext=(0, BAR_LABEL_GAP),
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                fontsize=BAR_LABEL_SIZE,
+                zorder=_layers.ANNOTATIONS,
+            )
 
 
 def _set_class_axis(ax: Axes, slots: list[str], title: str) -> None:
@@ -123,9 +150,9 @@ def spt_histogram(
         Energy ratio in percent for tests without ``energy_ratio``, for N60.
         Defaults to ``ht.settings.hammer_efficiency``.
     bar_labels : bool
-        Write the number of tests above each bar.
+        Write the number of tests above each bar that has any.
     note : str, optional
-        Free text, written inside the axes.
+        Free text, added to the footnote.
     palette : dict, optional
         ``{unit: color}``, overriding the session's colors.
     units : dict, optional
@@ -192,7 +219,12 @@ def spt_histogram(
 
         codes = analysis.spt_class(data, n=n, table=table).cat.codes.to_numpy()
         slots = [f"{name}\n{_range_text(lowers, i)}" for i, name in enumerate(names)]
-        slots.append(REFUSAL_CLASS)
+        separate = refusal == "separate"
+        if separate:
+            slots.append(REFUSAL_CLASS)
+        else:
+            notes.count(refused, "refusal_excluded")
+            codes = np.where(refused, -1, codes)
         groups, colors = _groups(data, color_by, order, palette)
 
         counts = {}
@@ -201,6 +233,13 @@ def spt_histogram(
             these = these[these >= 0]
             counts[unit] = np.bincount(these, minlength=len(slots))
         drawn = {unit: c for unit, c in counts.items() if c.sum() > 0}
+        listed = [] if color_by is None or color_by not in data else (order or [])
+        missing = [u for u in listed if u not in counts]
+        missing += [u for u in counts if u not in drawn]
+        if missing:
+            notes.add_text(f"No classified tests: {', '.join(map(str, missing))}")
+        if note is not None:
+            notes.add_text(str(note))
 
         if ax is None:
             fig, ax = plt.subplots(
@@ -229,20 +268,27 @@ def spt_histogram(
                 label=str(unit),
                 zorder=_layers.MARKERS,
             )
-            refusal_bar = bars.patches[-1]
-            refusal_bar.set_facecolor(
-                (*refusal_bar.get_facecolor()[:3], REFUSAL_FILL_ALPHA)
-            )
-            refusal_bar.set_edgecolor(color)
-            refusal_bar.set_linewidth(0.8 if unit_counts[-1] else 0.0)
-            refusal_bar.set_hatch(REFUSAL_HATCH)
+            if separate:
+                _hatch(bars.patches[-1], color, bool(unit_counts[-1]))
+            if bar_labels:
+                _label_bars(ax, bars.patches, unit_counts)
             text = "All tests" if unit is None else str(unit)
             handles.append(
                 Patch(facecolor=color, edgecolor="none", label=f"{text} (n = {total})")
             )
 
+        if separate and refused.any() and drawn:
+            handles.append(
+                Patch(
+                    facecolor="white",
+                    edgecolor=_values.NEUTRAL,
+                    linewidth=0.8,
+                    hatch=REFUSAL_HATCH,
+                    label="refusal",
+                )
+            )
         _set_class_axis(ax, slots, f"{column_info(n)['label']} class ({table})")
-        _set_percent_axis(ax, tallest)
+        _set_percent_axis(ax, tallest * BAR_LABEL_ROOM if bar_labels else tallest)
         if not drawn:
             ax.text(
                 0.5,

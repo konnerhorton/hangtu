@@ -115,8 +115,8 @@ The "Refusal" slot is there only with `refusal="separate"`. The ranges in the ti
 ## 8. Overlays and annotations
 | Overlay | Argument | Default | Notes |
 |---|---|---|---|
-| Counts on bars | `bar_labels=` | off | The count (not the percent) above each non-zero bar |
-| Note | `note=` | off | Free text in the footnote, as P01 |
+| Counts on bars | `bar_labels=` | off | The count (not the percent) above each non-zero bar. The y limit leaves room for the tallest label |
+| Note | `note=` | off | Free text, added to the footnote. P01 writes its note inside the axes, where here it would cover the bars |
 | Exclusion footnote | automatic | on | P02's reasons: "n blank values not shown", "n tests without an energy ratio not shown", "n refusals not shown" |
 | No-tests note | automatic | on | "No classified tests: Unit C" for a unit in `order=` with no tests, or a unit whose tests are all left out |
 
