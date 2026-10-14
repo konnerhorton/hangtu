@@ -33,11 +33,16 @@ def test_defects_file_breaks_the_rules_it_was_built_for(capsys):
     assert any("4.9" in row["desc"] for row in errors["FYI"])
 
 
+def test_qc_defects_file_is_clean_for_python_ags4(capsys):
+    # Its cases are engineering defects for QC (qc.md §8), not format ones.
+    assert _check("qc_defects.ags", capsys) == {}
+
+
 def test_files_match_the_script_that_writes_them(tmp_path):
     script = DATA / "_make_files.py"
     spec = importlib.util.spec_from_file_location("_make_files", script)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     module.main(tmp_path)
-    for name in [*GOOD, "defects.ags"]:
+    for name in [*GOOD, "defects.ags", "qc_defects.ags"]:
         assert (tmp_path / name).read_bytes() == (DATA / name).read_bytes(), name

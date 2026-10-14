@@ -1,4 +1,4 @@
-"""Write the synthetic AGS4 test files in this folder (docs/data/ingest.md §11).
+"""Write the synthetic AGS4 test files in this folder (ingest.md §11, qc.md §8).
 
 Run from the repository root after changing the data below:
 
@@ -60,6 +60,7 @@ UNIT_DESCRIPTIONS = {
     "hh:mm:ss": "hours minutes seconds",
     "mm:ss": "minutes seconds",
     "MPa": "megapascal",
+    "deg": "degree",
     "GPa": "gigapascal",
     "Ft": "foot (wrong case)",
     "feet": "foot (not an AGS spelling)",
@@ -652,6 +653,177 @@ def defects_groups():
     return [loca, GEOL, samp, ispt, llpl, lnmc, xund]
 
 
+def qc_defects_groups():
+    """One case per computed QC rule (qc.md §8), on five holes.
+
+    BH1 to BH4 sit on a 50 m grid; BH4's ground level is 8 m above the median of
+    the other three (L005). BH5 has no coordinates, ground level, final depth or
+    geology (L001, L002, L003, G001). Some cases necessarily raise a second
+    rule; tests/qc/test_qc_acceptance.py lists them.
+    """
+    loca = group(
+        "LOCA",
+        [
+            ("LOCA_ID", "ID", ""),
+            ("LOCA_NATE", "2DP", "m"),
+            ("LOCA_NATN", "2DP", "m"),
+            ("LOCA_GL", "2DP", "m"),
+            ("LOCA_FDEP", "2DP", "m"),
+        ],  # no LOCA_TYPE (C002)
+        [
+            ["BH1", 1000.00, 1000.00, 10.00, 10.00],
+            ["BH2", 1050.00, 1000.00, 10.50, 8.00],
+            ["BH3", 1000.00, 1050.00, 9.50, 6.00],
+            ["BH4", 1050.00, 1050.00, 18.00, 6.00],  # L005
+            ["BH5", None, None, None, None],  # L001, L002, L003
+        ],
+    )
+    horn = group(
+        "HORN",
+        [
+            ("LOCA_ID", "ID", ""),
+            ("HORN_TOP", "2DP", "m"),
+            ("HORN_BASE", "2DP", "m"),
+            ("HORN_ORNT", "0DP", "deg"),
+            ("HORN_INCL", "0DP", "deg"),
+        ],
+        [["BH2", 0.00, 3.00, 0, 80]],  # L004
+    )
+    geol = group(
+        "GEOL",
+        [
+            ("LOCA_ID", "ID", ""),
+            ("GEOL_TOP", "2DP", "m"),
+            ("GEOL_BASE", "2DP", "m"),
+            ("GEOL_DESC", "X", ""),
+        ],
+        [
+            ["BH1", 0.00, 2.50, "Brown sandy CLAY (fill)"],
+            ["BH1", 3.00, 10.00, "Soft gray silty CLAY"],  # G002: 2.50 to 3.00 missing
+            ["BH2", 0.00, 3.00, "Brown sandy CLAY (fill)"],
+            ["BH2", 3.00, 7.50, "Soft gray silty CLAY"],  # G002: stops 0.50 m short
+            ["BH3", 0.00, 2.00, "Brown sandy CLAY (fill)"],
+            ["BH3", 2.00, 4.00, "Medium dense SAND"],
+            ["BH3", 3.50, 6.00, "Dense GRAVEL"],  # G003: overlaps 3.50 to 4.00
+            ["BH4", 0.00, 2.50, None],  # C001: GEOL_DESC blank
+            ["BH4", 2.50, 6.00, "Stiff brown CLAY"],
+        ],
+    )
+    samp = group(
+        "SAMP",
+        [
+            ("LOCA_ID", "ID", ""),
+            ("SAMP_TOP", "2DP", "m"),
+            ("SAMP_REF", "X", ""),
+            ("SAMP_TYPE", "PA", ""),
+            ("SAMP_ID", "ID", ""),
+            ("SAMP_BASE", "2DP", "m"),
+        ],
+        [
+            ["BH1", 1.00, "1", "U", "BH1-U1", 1.45],
+            ["BH1", 5.00, "2", "D", "BH1-D2", 4.50],  # D001
+            ["BH2", 1.00, "1", "U", "BH2-U1", 1.45],
+            ["BH2", 4.00, "2", "D", "BH2-D2", 4.45],
+            ["BH3", 1.00, "1", "B", "BH3-B1", 1.50],
+            ["BH4", 2.30, "1", "U", "BH4-U1", 2.80],  # D005: across 2.50
+            ["BH4", 4.00, "2", "U", "BH4-U2", 4.45],
+        ],
+    )
+    ispt = group(
+        "ISPT",
+        [
+            ("LOCA_ID", "ID", ""),
+            ("ISPT_TOP", "2DP", "m"),
+            ("ISPT_NVAL", "0DP", ""),
+            ("ISPT_REP", "X", ""),
+            ("ISPT_ERAT", "0DP", "%"),
+            ("ISPT_INC3", "0DP", ""),
+            ("ISPT_INC4", "0DP", ""),
+            ("ISPT_INC5", "0DP", ""),
+            ("ISPT_INC6", "0DP", ""),
+            ("ISPT_N60", "0DP", ""),
+        ],
+        [
+            ["BH1", -0.50, 10, "N=10", 60, None, None, None, None, None],  # D002
+            ["BH1", 1.50, 15, "hard", 60, None, None, None, None, None],  # S001
+            ["BH1", 2.75, 12, "N=12", 60, None, None, None, None, None],  # D004
+            ["BH1", 6.00, 150, "N=150", 60, None, None, None, None, None],  # S002
+            ["BH2", 2.00, 20, "N=20", 60, 4, 5, 5, 5, None],  # S004
+            ["BH2", 5.00, 20, "N=20", 75, None, None, None, None, 30],  # S005
+            ["BH3", 1.50, 8, "N=8", 60, None, None, None, None, None],
+            ["BH3", 7.00, 30, "N=30", 60, None, None, None, None, None],  # D003
+            ["BH4", 1.50, 10, "N=10", None, None, None, None, None, None],  # S003
+            ["BH4", 4.50, 14, "N=14", None, None, None, None, None, None],  # S003
+            ["BH5", 1.00, 6, "N=6", 60, None, None, None, None, None],  # G001
+        ],
+    )
+    bh1_u1 = ["BH1", 1.00, "1", "U", "BH1-U1", "1", 1.10]
+    bh2_u1 = ["BH2", 1.00, "1", "U", "BH2-U1", "1", 1.10]
+    bh2_d2 = ["BH2", 4.00, "2", "D", "BH2-D2", "1", 4.10]
+    bh3_b1 = ["BH3", 1.00, "1", "B", "BH3-B1", "1", 1.10]
+    bh4_u1 = ["BH4", 2.30, "1", "U", "BH4-U1", "1", 2.40]
+    bh4_u2 = ["BH4", 4.00, "2", "U", "BH4-U2", "1", 4.75]  # D007: 0.30 below base
+    llpl = group(
+        "LLPL",
+        [
+            *SPECIMEN,
+            ("LLPL_LL", "0DP", "%"),
+            ("LLPL_PL", "XN", "%"),
+            ("LLPL_PI", "0DP", ""),
+        ],
+        [
+            [*bh1_u1, 30, "35", None],  # A001
+            [*bh2_u1, 50, "20", 25],  # A002: 50 - 20 = 30, not 25
+            [*bh2_d2, 8, "5", 3],  # A003
+            [*bh3_b1, 25, "NP", None],  # A004
+            [*bh4_u2, 40, "20", 20],
+        ],
+    )
+    grag = group(
+        "GRAG",
+        [
+            *SPECIMEN,
+            ("GRAG_GRAV", "1DP", "%"),
+            ("GRAG_SAND", "1DP", "%"),
+            ("GRAG_FINE", "1DP", "%"),
+        ],
+        [
+            [*bh1_u1, 0.0, 30.0, 70.0],
+            [*bh2_d2, 5.0, 40.0, 55.0],
+            [*bh3_b1, 10.0, 60.0, 24.0],  # P003: sums to 94
+            [*bh4_u1, 0.0, 45.0, 55.0],
+        ],
+    )
+    grat = group(
+        "GRAT",
+        [*SPECIMEN, ("GRAT_SIZE", "3SF", "mm"), ("GRAT_PERP", "0DP", "%")],
+        [
+            [*bh1_u1, 20.0, 104],  # P002
+            [*bh1_u1, 2.00, 90],
+            [*bh1_u1, 0.425, 75],
+            [*bh1_u1, 0.0630, 70],
+            [*bh2_d2, 20.0, 100],
+            [*bh2_d2, 2.00, 80],
+            [*bh2_d2, 0.425, 85],  # P001: rises
+            [*bh2_d2, 0.0630, 55],
+            [*bh4_u1, 2.00, 100],  # P004: three points
+            [*bh4_u1, 0.425, 80],
+            [*bh4_u1, 0.0630, 55],
+        ],
+    )
+    ptst = group(
+        "PTST",
+        [*SPECIMEN, ("PTST_TESN", "X", ""), ("PTST_K", "1SCI", "m/s")],
+        [[*bh2_u1, "1", 0.0]],  # K001: zero
+    )
+    fghg = group(
+        "FGHG",
+        [*FGHG_KEY, ("FGHG_IPRM", "1SCI", "m/s")],
+        [["BH4", 3.00, 4.00, "1", 5.0]],  # K001: above 1 m/s
+    )
+    return [loca, horn, geol, samp, ispt, llpl, grag, grat, ptst, fghg]
+
+
 def main(out=HERE):
     out = Path(out)
     write_file(out / "site_si.ags", "4.2", site_groups())
@@ -675,6 +847,7 @@ def main(out=HERE):
     ]
     write_file(out / "site_v404.ags", "4.0.4", v404)
     write_file(out / "defects.ags", "4.9", defects_groups())  # V000: unknown version
+    write_file(out / "qc_defects.ags", "4.2", qc_defects_groups())
 
 
 if __name__ == "__main__":
