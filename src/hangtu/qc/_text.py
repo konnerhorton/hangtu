@@ -18,7 +18,12 @@ from hangtu.qc._settings import Threshold
 
 
 def number(value: float, decimals: int | None = None) -> str:
-    """Write ``value`` with ``decimals`` places, else to 3 significant figures."""
+    """Write ``value`` with ``decimals`` places, else to 3 significant figures.
+
+    Values below 0.001 or from 100 000 up are written as ``1.00e-10``.
+    """
+    if decimals is None and value and not 1e-3 <= abs(value) < 1e5:
+        return f"{value:.2e}"
     if decimals is None:
         magnitude = math.floor(math.log10(abs(value))) if value else 0
         decimals = max(0, 2 - magnitude)
@@ -28,6 +33,14 @@ def number(value: float, decimals: int | None = None) -> str:
 def _decimals(file_type: str | None) -> int | None:
     match = re.fullmatch(r"(\d+)DP", file_type or "")
     return int(match[1]) if match else None
+
+
+def _in_file(value: float, file_type: str | None) -> str:
+    """Write a value as the file's TYPE does: ``2DP`` -> ``6.00``, ``1SCI``."""
+    scientific = re.fullmatch(r"(\d+)SCI", file_type or "")
+    if scientific:
+        return f"{value:.{int(scientific[1])}E}"
+    return number(value, _decimals(file_type))
 
 
 def _unit(text: str):
@@ -55,7 +68,7 @@ def values(data: Data, group: str, heading: str, si: Sequence[float]) -> str:
         return f"{joined(written)} {file_unit}"
     canonical = units.ureg.Unit(canonical)
     in_file = units.convert(si, canonical, kind, source)
-    text = f"{joined(number(v, _decimals(info['file_type'])) for v in in_file)}"
+    text = joined(_in_file(v, info["file_type"]) for v in in_file)
     text += f" {file_unit}"
     target = units.quantity_kind(kind)[data.display_units]
     target_unit = units.ureg.Unit(target["unit"])

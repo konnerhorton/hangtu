@@ -1,8 +1,9 @@
-"""Test result rules: SPT (S), Atterberg limits (A), qc.md §4.5 and §4.6.
+"""Test result rules S, A, P and K (qc.md §4.5 to §4.8).
 
 Range checks skip blank and flagged values (qc.md §4, "General behavior").
 """
 
+import itertools
 import re
 
 import numpy as np
@@ -293,3 +294,201 @@ def non_plastic(data: Data, settings: RuleSettings) -> RuleResult:
             )
         )
     return RuleResult(findings, len(llpl))
+
+
+# --- Particle size -----------------------------------------------------------------
+
+_PERCENTAGES = {
+    "GRAT": ("GRAT_PERP",),
+    "GRAG": (
+        "GRAG_VCRE",
+        "GRAG_GRAV",
+        "GRAG_SAND",
+        "GRAG_SILT",
+        "GRAG_CLAY",
+        "GRAG_FINE",
+    ),
+}
+
+
+def _curves(data: Data) -> list[pd.DataFrame] | None:
+    """Each specimen's grading points, coarsest first; None without GRAT."""
+    if not data.has("GRAT", "GRAT_SIZE", "GRAT_PERP"):
+        return None
+    grat = data.table("GRAT")
+    if "specimen_id" not in grat:  # a surrogate key, so not in meta_heading
+        return None
+    return [
+        points.sort_values("GRAT_SIZE", ascending=False, kind="stable")
+        for _, points in grat.groupby("specimen_id", sort=False)
+    ]
+
+
+@rule("P001")
+def curve_rises(data: Data, settings: RuleSettings) -> RuleResult:
+    curves = _curves(data)
+    if curves is None:
+        return RuleResult()
+    tolerance = settings.thresholds["percent_passing_tolerance"]
+    findings = []
+    for points in curves:
+        points = points[_unflagged(data, "GRAT", points, "GRAT_SIZE", "GRAT_PERP")]
+        rows = points.to_dict("records")
+        for coarser, row in itertools.pairwise(rows):
+            if row["GRAT_PERP"] <= coarser["GRAT_PERP"] + tolerance.value + SLACK:
+                continue
+            findings.append(
+                Finding(
+                    "P001",
+                    f"The grading curve {_where(row, data, 'GRAT', 'SPEC_DPTH')} "
+                    f"rises at {_value(data, 'GRAT', 'GRAT_SIZE', row['GRAT_SIZE'])}: "
+                    f"{_value(data, 'GRAT', 'GRAT_PERP', row['GRAT_PERP'])} passing, "
+                    f"more than the {coarser['GRAT_PERP']:g} % passing the coarser "
+                    f"sieve ({coarser['GRAT_SIZE']:g} mm). Percent passing can't "
+                    "increase as the size decreases; check the two points.",
+                    group="GRAT",
+                    heading="GRAT_PERP",
+                    line=row["_line"],
+                )
+            )
+            break  # one finding per specimen, at the first point that rises
+    return RuleResult(findings, len(curves))
+
+
+@rule("P002")
+def percentage_out_of_range(data: Data, settings: RuleSettings) -> RuleResult:
+    findings, checked = [], 0
+    for group, candidates in _PERCENTAGES.items():
+        headings = [h for h in candidates if data.has(group, h)]
+        if not headings:
+            continue
+        table = data.table(group)
+        for row in table.to_dict("records"):
+            values = [
+                h
+                for h in headings
+                if not np.isnan(row[h]) and data.flag(group, row["_row"], h) is None
+            ]
+            if not values:
+                continue
+            checked += 1
+            outside = [h for h in values if not 0 <= row[h] <= 100]
+            if not outside:
+                continue
+            heading = outside[0]
+            findings.append(
+                Finding(
+                    "P002",
+                    f"{_value(data, group, heading, row[heading])} "
+                    f"{_where(row, data, group, 'SPEC_DPTH')} is outside 0 to 100 %. "
+                    "Check the value.",
+                    group=group,
+                    heading=heading,
+                    line=row["_line"],
+                )
+            )
+    return RuleResult(findings, checked)
+
+
+@rule("P003")
+def fractions_dont_add_up(data: Data, settings: RuleSettings) -> RuleResult:
+    if not data.has("GRAG", "GRAG_GRAV", "GRAG_SAND"):
+        return RuleResult()
+    grag = data.table("GRAG")
+
+    def column(heading: str) -> pd.Series:
+        if heading not in grag:
+            return pd.Series(np.nan, index=grag.index)
+        return grag[heading]
+
+    fines = column("GRAG_FINE").fillna(column("GRAG_SILT") + column("GRAG_CLAY"))
+    total = (
+        column("GRAG_VCRE").fillna(0) + grag["GRAG_GRAV"] + grag["GRAG_SAND"] + fines
+    )
+    checked = total.notna()
+    tolerance = settings.thresholds["fraction_sum_tolerance"]
+    findings = [
+        Finding(
+            "P003",
+            f"The grading fractions {_where(row, data, 'GRAG', 'SPEC_DPTH')} add up "
+            f"to {total[i]:g} %, more than {tolerance.text} from 100 %. Check "
+            "GRAG_VCRE, GRAG_GRAV, GRAG_SAND and the fines (GRAG_FINE, or "
+            "GRAG_SILT and GRAG_CLAY).",
+            group="GRAG",
+            line=row["_line"],
+        )
+        for i, row in zip(grag.index, grag.to_dict("records"), strict=True)
+        if checked[i] and abs(total[i] - 100) > tolerance.value + SLACK
+    ]
+    return RuleResult(findings, int(checked.sum()))
+
+
+@rule("P004")
+def too_few_points(data: Data, settings: RuleSettings) -> RuleResult:
+    curves = _curves(data)
+    if curves is None:
+        return RuleResult()
+    fewest = settings.thresholds["fewest_points"]
+    findings = [
+        Finding(
+            "P004",
+            f"The grading curve {_where(row, data, 'GRAT', 'SPEC_DPTH')} has "
+            f"{len(points)} point{'s' if len(points) != 1 else ''}, fewer than "
+            f"{fewest.text}, so D10, D30 and D60 may not be readable from it.",
+            group="GRAT",
+            line=row["_line"],
+        )
+        for points in curves
+        if len(points) < fewest.value
+        for row in points.head(1).to_dict("records")
+    ]
+    return RuleResult(findings, len(curves))
+
+
+# --- Permeability ------------------------------------------------------------------
+
+#: Hydraulic conductivity headings (IPRG is 4.0.x).
+_CONDUCTIVITY = {
+    "PTST": "PTST_K",
+    "FGHG": "FGHG_IPRM",
+    "FGHS": "FGHS_IPRM",
+    "IPRG": "IPRG_IPRM",
+}
+
+
+@rule("K001")
+def conductivity_out_of_range(data: Data, settings: RuleSettings) -> RuleResult:
+    lowest = settings.thresholds["lowest_hydraulic_conductivity"]
+    highest = settings.thresholds["highest_hydraulic_conductivity"]
+    findings, checked = [], 0
+    for group, heading in _CONDUCTIVITY.items():
+        if not data.has(group, heading):
+            continue
+        table = data.table(group).dropna(subset=[heading])
+        for row in table.to_dict("records"):
+            flag = data.flag(group, row["_row"], heading)
+            if flag is not None and flag.flag not in ("LT", "GT"):
+                continue  # an LT/GT value is checked at its bound
+            checked += 1
+            value = row[heading]
+            if lowest.value <= value <= highest.value:
+                continue
+            where = _where(row, data, group, data.depth_heading(group))
+            if value <= 0:
+                why = "isn't greater than zero"
+            else:
+                why = (
+                    f"is outside {_text.threshold(data, lowest)} to "
+                    f"{_text.threshold(data, highest)}"
+                )
+            findings.append(
+                Finding(
+                    "K001",
+                    f"{_value(data, group, heading, value)} {where} {why}. Check the "
+                    "value and its unit.",
+                    group=group,
+                    heading=heading,
+                    line=row["_line"],
+                )
+            )
+    return RuleResult(findings, checked)

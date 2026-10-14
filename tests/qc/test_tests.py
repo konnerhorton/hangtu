@@ -112,3 +112,79 @@ def test_a001_and_a003_messages(report):
 def test_np_is_not_compared(report):
     # BH3's PL is NP: A004 says so, and A001 doesn't compare it.
     assert [f[0] for f in found(report, "A001")] == ["BH1"]
+
+
+# --- Particle size -----------------------------------------------------------------
+
+
+def test_particle_size_rules_at_their_lines(report):
+    assert found(report, "P001") == [("BH2", "GRAT_PERP", 137)]
+    assert found(report, "P002") == [("BH1", "GRAT_PERP", 131)]
+    assert found(report, "P003") == [("BH3", None, 124)]
+    assert found(report, "P004") == [("BH4", None, 139)]
+
+
+def test_p001_names_the_two_points(report):
+    message = _message(report, "P001")
+    assert "rises at GRAT_SIZE 0.425 mm" in message
+    assert "GRAT_PERP 85 % passing, more than the 80 % passing" in message
+
+
+def test_p003_golden(report):
+    # 10.0 + 60.0 + 24.0 = 94, 6 from 100.
+    assert "add up to 94 %, more than 2 % from 100 %" in _message(report, "P003")
+
+
+def _specimen_group(name, headings, rows):
+    key = [
+        ("LOCA_ID", "ID", ""),
+        ("SAMP_TOP", "2DP", "m"),
+        ("SAMP_REF", "X", ""),
+        ("SAMP_TYPE", "PA", ""),
+        ("SAMP_ID", "ID", ""),
+        ("SPEC_REF", "X", ""),
+        ("SPEC_DPTH", "2DP", "m"),
+    ]
+    specimen = ["BH1", 1.0, "1", "B", "BH1-B1", "1", 1.0]
+    return group(name, key + headings, [specimen + row for row in rows])
+
+
+def test_p003_uses_silt_and_clay_without_fines(build):
+    headings = [
+        ("GRAG_VCRE", "1DP", "%"),
+        ("GRAG_GRAV", "1DP", "%"),
+        ("GRAG_SAND", "1DP", "%"),
+        ("GRAG_SILT", "1DP", "%"),
+        ("GRAG_CLAY", "1DP", "%"),
+    ]
+    # 0 (blank cobbles) + 20 + 40 + 25 + 10 = 95.
+    grag = _specimen_group("GRAG", headings, [[None, 20.0, 40.0, 25.0, 10.0]])
+    report = build(loca(["BH1", 0, 0, 10, 5]), grag).qc()
+    assert "add up to 95 %" in _message(report, "P003")
+
+
+def test_p001_tolerance(build):
+    headings = [("GRAT_SIZE", "3SF", "mm"), ("GRAT_PERP", "1DP", "%")]
+    rows = [[2.0, "80.0"], [0.425, "80.5"], [0.063, "50.0"]]
+    report = build(loca(["BH1", 0, 0, 10, 5]), _specimen_group("GRAT", headings, rows))
+    assert found(report.qc(), "P001") == []
+
+
+# --- Permeability ------------------------------------------------------------------
+
+
+def test_k001_at_its_lines(report):
+    assert found(report, "K001") == [
+        ("BH2", "PTST_K", 147),
+        ("BH4", "FGHG_IPRM", 153),
+    ]
+    assert "isn't greater than zero" in _message(report, "K001")
+
+
+def test_k001_lt_value_is_checked_at_its_bound(build):
+    headings = [("PTST_TESN", "X", ""), ("PTST_K", "XN", "m/s")]
+    rows = [["1", "<1E-13"], ["2", "<1E-9"], ["3", ">2"], ["4", "OTHER"]]
+    project = build(loca(["BH1", 0, 0, 10, 5]), _specimen_group("PTST", headings, rows))
+    report = project.qc()
+    assert list(report.findings.query("rule_id == 'K001'")["value"]) == ["<1E-13", ">2"]
+    assert report.rules.set_index("rule_id").loc["K001", "records_checked"] == 3
