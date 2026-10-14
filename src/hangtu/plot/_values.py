@@ -16,7 +16,7 @@ from matplotlib.lines import Line2D
 from hangtu import units as _units
 from hangtu._data import rows_text
 from hangtu.errors import ColumnError, HangtuError
-from hangtu.plot._limits import log_limits, nice_limits
+from hangtu.plot._limits import clear_of_data, log_limits, nice_limits
 from hangtu.plot._notes import Notes
 from hangtu.plot._palette import data_order, resolve_palette
 from hangtu.plot._presets import Preset
@@ -125,13 +125,18 @@ def value_limits(
     if not x.size:
         if typical is not None:
             if log:
-                return log_limits(*typical)
-            return nice_limits(*typical, start_at_zero=start_at_zero)
+                return log_limits(*typical, clear=False)
+            return nice_limits(*typical, start_at_zero=start_at_zero, clear=False)
         return (1.0, 100.0) if log else (0.0, 1.0)
     vmin, vmax = float(x.min()), float(x.max())
     if vmin == vmax and typical is not None:
         # A single value: the typical range, widened to include it (P01 §11).
-        vmin, vmax = min(typical[0], vmin), max(typical[1], vmax)
+        low, high = min(typical[0], vmin), max(typical[1], vmax)
+        if log:
+            limits = log_limits(low, high, clear=False)
+        else:
+            limits = nice_limits(low, high, start_at_zero=start_at_zero, clear=False)
+        return clear_of_data(limits, vmin, vmax, log=log)
     if log:
         return log_limits(vmin, vmax)
     return nice_limits(vmin, vmax, start_at_zero=start_at_zero)

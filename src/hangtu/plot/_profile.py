@@ -104,7 +104,7 @@ def _set_vertical_axis(
     elif y.size:
         apply_vertical_axis(ax, vs, float(y.min()), float(y.max()))
     else:
-        apply_vertical_axis(ax, vs, 0.0, 1.0)
+        apply_vertical_axis(ax, vs, 0.0, 1.0, clear=False)
 
 
 def _intervals(
@@ -527,7 +527,10 @@ def _draw_profile(
         if clear_of is not None and xlim is None and not log:
             # Leave room beyond clear_of so markers there aren't on the frame.
             clear = nice_limits(
-                limits[0], CLEAR_FACTOR * clear_of, start_at_zero=limits[0] >= 0
+                limits[0],
+                CLEAR_FACTOR * clear_of,
+                start_at_zero=limits[0] >= 0,
+                clear=False,
             )[1]
             limits = (limits[0], max(limits[1], clear))
         if log:

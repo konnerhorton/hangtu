@@ -93,3 +93,15 @@ def test_us_and_si_count_the_same(assert_us_si_equivalent, frame):
     df = frame("hydraulic_conductivity", [1e-5, np.nan, 0.0, 2e-4], "cm/s")
     plot = partial(ht.plot.profile, value="hydraulic_conductivity", **K_PRESET)
     assert_us_si_equivalent(plot, df, ("hydraulic_conductivity", "length"))
+
+
+def test_a_single_log_point_on_a_typical_decade_is_kept_off_it(frame):
+    df = frame("hydraulic_conductivity", [1.0] * 4, "cm/s").iloc[:1]
+    _, ax = ht.plot.profile(df, "hydraulic_conductivity", **K_PRESET)
+    assert ax.get_xlim() == pytest.approx((1e-9, 10.0))  # P00 §8
+
+
+def test_a_value_on_a_limit_the_user_set_stays_there(frame):
+    # P00 §8: limits the user sets are used as given, even with 2,000 on one.
+    _, ax = ht.plot.profile(frame(), "undrained_shear_strength", xlim=(0, 2000))
+    assert ax.get_xlim() == (0.0, 2000.0)

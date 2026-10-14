@@ -83,7 +83,7 @@ def test_intervals_count_toward_the_vertical_limits(frame):
     _, ax = ht.plot.profile(
         interval_frame(frame), "undrained_shear_strength", vs="depth"
     )
-    assert ax.get_ylim() == (30.0, 0.0)
+    assert ax.get_ylim() == (35.0, 0.0)  # the deepest base, 30 ft, kept off
 
 
 def test_intervals_are_the_marker_color(frame):

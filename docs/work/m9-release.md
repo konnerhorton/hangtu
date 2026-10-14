@@ -184,7 +184,7 @@ README.md, docs/img/readme-spt.png
 ```
 
 ### Decisions the build makes
-1. **The limit rule sits at the end of `nice_limits` and `log_limits`.** Every plot already gets its limits through them, so no caller changes.
+1. **The limit rule sits at the end of `nice_limits` and `log_limits`.** Every plot already gets its limits through them. A `clear=False` keyword turns it off where the range isn't data: the typical range with no data, the empty vertical axis, and P01's room beyond `clear_of`. A single value inside a preset's typical range is kept off the limits by `clear_of_data`, so only the value moves a limit, not the typical range.
    - **Linear:** if the upper limit equals the largest value, extend it by one step and recompute the nice limits for the wider range. The extra tick can change the step (0–140 in steps of 20 gives 9 ticks), so the limits are re-snapped to the new step, and the 4–8 ticks rule still holds.
    - **The lower end** only moves when it isn't 0 and equals the smallest value. That only happens on the depth axis with negative depths, or with a typical range.
    - **Log:** a decade equal to `vmin` or `vmax` moves out one decade, and `min_decades` applies after that.
