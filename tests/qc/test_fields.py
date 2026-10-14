@@ -67,8 +67,6 @@ def test_absent_required_heading_is_one_finding(build):
         "SAMP_REF",
         "SAMP_TYPE",
         "SAMP_ID",
-        "SPEC_REF",
-        "SPEC_DPTH",
     }
     assert absent["source_line"].isna().all()
 

@@ -12,7 +12,7 @@ Check a project's data for integrity problems (SPEC §9.1, level 1) and report t
 - `p.qc()` runs the level 1 rules over the canonical layer, adds the findings ingest stored, and returns a **report** that prints a summary and exports to CSV;
 - `p.diff(group)` compares the file's text with the canonical value, cell by cell.
 
-**Not in scope:** level 2 rules (v0.4); G004 (unmapped geology code), the geology map, `p.locations`, joins, datasets and excluding incomplete records (M7); storing rule overrides in the project (M7, with `to_yaml()`); HTML or Excel reports; changing data (SPEC §1.4).
+**Not in scope:** level 2 rules (v0.4); the geology map, `p.locations`, joins, datasets and excluding incomplete records (M7, [`datasets.md`](datasets.md)); storing rule overrides in the project (M7, with `to_yaml()`); HTML or Excel reports; changing data (SPEC §1.4).
 
 ## 2. Public API
 ```python
@@ -110,10 +110,11 @@ As in `ingest.md` §9, read back from the `finding` table: `V<rule>`, `VLOG`, `V
 | G001 | A location with records in other groups has no `GEOL` rows | warning | |
 | G002 | Gap in a hole's geology: between consecutive intervals, above the first interval (top > 0), or below the last (base < `LOCA_FDEP`) | warning | `depth_tolerance: 0.01 m` |
 | G003 | Overlapping geology intervals in a hole | error | `depth_tolerance: 0.01 m` |
+| G004 | A geology code isn't in the project's geology map (M7) | warning | |
 
 - Intervals sorted by top. A gap or overlap is reported when it exceeds `depth_tolerance`.
 - G001 is a warning, not the draft's error: CPT soundings and probe holes often have no geology log, and that isn't wrong.
-- G004 (unmapped geology code) is M7's.
+- G004 runs only when the project has a geology map, against the codes of `p.settings.geology_key`: one finding per code, at its first GEOL row, with the count (`datasets.md` §9). A blank code isn't a finding.
 
 ### 4.4 Depths (D)
 | ID | Rule | Severity | Thresholds |
@@ -186,7 +187,7 @@ As in `ingest.md` §9, read back from the `finding` table: `V<rule>`, `VLOG`, `V
 - **Missing** means the heading isn't in the group, or the cell is blank. A flagged value (`NP`, `Dry`, `<x`) is not missing.
 - **C001:** one finding per record with a blank required field (these are the records M7 leaves out unless `include_incomplete=True`), or one per group when the heading is absent.
 - **C002:** one finding per group and heading, with the count of blank records ("ISPT_ERAT is blank in 1 of 5 records"), so recommended fields don't flood the report.
-- Groups not in the file aren't checked. The default list, from the draft (TODO #7), with `SPEC_REF`/`SPEC_DPTH` required (decided), `IPRG` added for 4.0.x files, and `GRAT`'s point count moved to P004:
+- Groups not in the file aren't checked. The default list, from the draft (TODO #7), with `SPEC_REF`/`SPEC_DPTH` recommended (M7, so a lab result without a specimen depth is placed at its sample; `datasets.md` §14), `IPRG` added for 4.0.x files, and `GRAT`'s point count moved to P004:
 
 ```yaml
 LOCA: {required: [LOCA_ID, LOCA_GL, LOCA_FDEP], recommended: [LOCA_TYPE, LOCA_NATE, LOCA_NATN, LOCA_GREF, LOCA_STAR]}
@@ -202,7 +203,7 @@ GRAT: {required: [<SPEC_KEY>, GRAT_SIZE, GRAT_PERP]}
 PTST: {required: [<SPEC_KEY>, PTST_K], recommended: [PTST_TYPE, PTST_COND, PTST_TSTR]}
 FGHG: {required: [LOCA_ID, FGHG_TOP, FGHG_BASE, FGHG_IPRM], recommended: [FGHG_TYPE]}
 IPRG: {required: [LOCA_ID, IPRG_TOP, IPRG_BASE, IPRG_IPRM], recommended: [IPRG_TYPE]}
-# <SPEC_KEY> = LOCA_ID, SAMP_TOP, SAMP_REF, SAMP_TYPE, SAMP_ID, SPEC_REF, SPEC_DPTH
+# <SPEC_KEY> = LOCA_ID, SAMP_TOP, SAMP_REF, SAMP_TYPE, SAMP_ID (the sample key); SPEC_REF and SPEC_DPTH lead each lab group's recommended list (M7)
 ```
 In the shipped file the lists are written out in full; `<SPEC_KEY>` is a YAML anchor.
 

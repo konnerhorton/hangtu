@@ -78,6 +78,9 @@ rules:
     severity: error
     thresholds:
       depth_tolerance: 0.01 m
+  G004:
+    title: Geology code not in the geology map
+    severity: warning
 
   # Depths (§4.4)
   D001:

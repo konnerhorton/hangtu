@@ -36,6 +36,10 @@ CONVERTED, AS_IS, RAW_ONLY, NOT_NUMERIC = (
     "not_numeric",
 )
 
+#: Particle sizes: mm like a small length, but kept in mm in US output too, as
+#: US practice does (datasets.md §10, P00 §4.1).
+PARTICLE_SIZE_HEADINGS = frozenset({"GRAT_SIZE", "LLPL_SIZE", "PTST_SZUN"})
+
 _NUMERIC_TYPE = re.compile(r"\d+(DP|SF|SCI)")
 _TEXT_TYPES = {"ID", "PA", "PT", "PU", "RL", "RECORD LINK"}
 _PERCENT = ureg.Unit("percent")
@@ -220,7 +224,9 @@ def resolve_heading(
     result = HeadingUnit(
         **base,
         unit=target_text,
-        quantity=_quantity(target),
+        quantity=(
+            "particle_size" if heading in PARTICLE_SIZE_HEADINGS else _quantity(target)
+        ),
         status=CONVERTED,
         source=unit,
         target=target,

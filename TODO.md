@@ -22,7 +22,7 @@ Items to think through or research. Each item notes who owns it and the SPEC.md 
   - Is rock (weathered, IGM) worth separating?
 
 ### 5. Plasticity and gradation systems · Claude (verify) · docs/drafts/analysis.md §2–3 · needed for P04–P05 (Phase 1)
-Verify against the source standards during M9:
+Verify against the source standards during M8:
 - BS 5930:2015+A1:2020 plasticity terms (low < 35, intermediate 35–50, high 50–70, very high 70–90, extremely high > 90 LL);
 - AASHTO M 145 / ASTM D3282 group and group-index rules;
 - ASTM D2487-17 USCS;
@@ -39,13 +39,8 @@ Revisit as real files are tested:
 
 ### 7. Minimally useful fields · You · docs/data/qc.md §4.10
 - Review the default list group by group against real files.
-- **Decided for now:** `SPEC_REF` and `SPEC_DPTH` are required.
+- **Decided for now:** `SPEC_REF` and `SPEC_DPTH` are recommended, not required (M7, docs/data/datasets.md §14), so lab results without them fall back to the sample depth.
 - **Later (Roadmap):** conditional requirements, e.g. `SPEC_*` only required when a sample has more than one specimen.
-
-### 17. Particle size shown in inches · Claude + You · SPEC §2.6, P00 §4.1; docs/data/ingest.md §6
-- **Problem:** ingest gives `GRAT_SIZE` the `small_length` kind, so a US project shows sieve sizes in inches (`0.425 mm (0.0167 in)` in a QC message, and in `p.diff()`). The `particle_size` kind exists to keep mm in both systems, as US practice does.
-- **To decide:** map `GRAT_SIZE` (and other particle-size headings) to `particle_size` at ingest, and check which other headings need a kind other than the one their unit implies.
-- **Timing:** M7, where the datasets map headings to registry names, and before P05 (gradation curves).
 
 ---
 
@@ -158,6 +153,10 @@ Open research points:
   - How do the stats box and `describe()` show these counts?
 - **Timing:** before P06 (water content profile with Atterberg limits), where NP values are common.
 
+### 18. A point exactly on the axis limit · Claude · plots README "Out-of-range data"
+- **Seen in the M7 hand check:** P07 with PI values 26 and 30 sets the x-axis to 0–30, so the point at 30 sits on the right spine and is hard to see. It's drawn, not dropped, so no data is lost.
+- **To decide:** pad the data limits so the extreme points sit inside the frame (P00 §8, axis limits), for P01 and P07 alike.
+
 ### 16. Other summaries in P07 · You + Claude · P07; SPEC §5
 - **Problem:** in its first version, P07 (property by geology unit) summarizes each unit only with percentiles. `percentiles=` chooses which ones, and `percentile_method=` passes any NumPy method through (default `"linear"`). A report's baseline may have been summarized some other way, so the data bar and the baseline bar aren't always like for like.
 - **Wanted:** a way to match how the report summarized its data:
@@ -200,6 +199,7 @@ You are also looking. Candidates found so far:
 - A helper for deciding cohesive vs cohesionless from lab data (fines %, PI).
 
 ## Done
+- ✅ #17 Particle size shown in inches decided (2026-10-14): `GRAT_SIZE`, `LLPL_SIZE` and `PTST_SZUN` get the `particle_size` kind at ingest, so US output keeps mm. In docs/data/datasets.md §10 and ingest.md §7.
 - ✅ #6 QC thresholds kept as the defaults (2026-10-14): L005 (3 m from the median of the 5 nearest holes within 200 m), S002 (N > 100), A003 (LL < 10 or > 150), G002/G003 (0.01 m; a project can set any unit, and imperial rounding doesn't cause false gaps). In docs/data/qc.md §4. P001/P003 stay open.
 - ✅ #4 SPT classification tables decided (2026-10-13): the Terzaghi & Peck / Peck, Hanson & Thornburn boundaries, lower bound inclusive, classified on whichever N column the user names (default `spt_n`). In `src/hangtu/config/spt_classes.yaml`; spec in docs/drafts/analysis.md §1.4. User-defined bins come later.
 - ✅ #0c Repo published on GitHub; the full CI matrix (Windows, macOS, Linux × Python 3.12–3.14) and the `lowest` job are green, so M0 is done (2026-10-12). 0.0.1 is on PyPI, released by `release.yml` (SPEC §12.1).

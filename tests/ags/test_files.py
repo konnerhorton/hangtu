@@ -7,7 +7,7 @@ import pytest
 from python_ags4 import AGS4
 
 DATA = Path(__file__).parents[1] / "data" / "ags"
-GOOD = ["site_si.ags", "site_us.ags", "site_v404.ags"]
+GOOD = ["site_si.ags", "site_us.ags", "site_v404.ags", "joins.ags"]
 NOT_FINDINGS = {"Metadata", "Summary of data"}
 
 
@@ -44,5 +44,5 @@ def test_files_match_the_script_that_writes_them(tmp_path):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     module.main(tmp_path)
-    for name in [*GOOD, "defects.ags", "qc_defects.ags"]:
+    for name in [*GOOD, "defects.ags", "qc_defects.ags", "strata.csv"]:
         assert (tmp_path / name).read_bytes() == (DATA / name).read_bytes(), name

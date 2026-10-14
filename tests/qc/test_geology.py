@@ -1,6 +1,8 @@
 import pytest
 
-from .conftest import found, geol, group, loca
+import hangtu as ht
+
+from .conftest import DATA, found, geol, group, loca
 
 
 @pytest.fixture(scope="module")
@@ -77,3 +79,36 @@ def test_g001_skipped_without_geol(build):
     report = build(loca(["BH1", 0, 0, 10, 5]), ispt).qc()
     assert found(report, "G001") == []
     assert report.rules.set_index("rule_id").loc["G001", "records_checked"] == 0
+
+
+def _joins(tmp_path, geology_map=True, **settings):
+    project = ht.Project.from_ags(
+        DATA / "joins.ags", db=tmp_path / "joins.sqlite", **settings
+    )
+    if geology_map:
+        project.set_geology_map(DATA / "strata.csv")
+    return project.qc()
+
+
+def test_g004_one_finding_per_unmapped_code(tmp_path):
+    report = _joins(tmp_path)
+    g004 = report.findings.query("rule_id == 'G004'")
+    assert list(
+        zip(g004["loca_id"], g004["heading"], g004["source_line"], strict=True)
+    ) == [("J1", "GEOL_GEOL", 60)]
+    message = g004["message"].iloc[0]
+    assert "GEOL_GEOL 'BED' (1 layer, first in J1) isn't in the geology map" in message
+    rules = report.rules.set_index("rule_id")
+    assert rules.loc["G004", "records_checked"] == 5
+
+
+def test_g004_checks_nothing_without_a_map(tmp_path):
+    report = _joins(tmp_path, geology_map=False)
+    assert "G004" not in set(report.findings["rule_id"])
+    assert report.rules.set_index("rule_id").loc["G004", "records_checked"] in (0, "")
+
+
+def test_g004_reads_the_projects_geology_key(tmp_path):
+    # joins.ags has no GEOL_FORM, so with that key there is nothing to check.
+    report = _joins(tmp_path, geology_key="GEOL_FORM")
+    assert "G004" not in set(report.findings["rule_id"])

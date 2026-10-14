@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from hangtu.ags import Ingest
 
 # Raise whenever the layout changes; open() compares it for equality.
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 # STRICT tables need SQLite 3.37 (2021).
 MINIMUM_SQLITE = (3, 37, 0)
 
@@ -51,6 +51,13 @@ _META_TABLES = {
         ("message", "TEXT"),
     ],
     "meta_project": [("key", "TEXT PRIMARY KEY"), ("value", "TEXT")],
+    "meta_geology_map": [
+        ("code", "TEXT PRIMARY KEY"),
+        ("geology_unit", "TEXT"),
+        ("soil_class", "TEXT"),
+        ("order", "REAL"),
+        ("color", "TEXT"),
+    ],
     "meta_source": [
         ("path", "TEXT"),
         ("sha256", "TEXT"),
@@ -227,6 +234,23 @@ def write_settings(path: str | os.PathLike[str], settings: Mapping[str, Any]) ->
         _write_settings(connection, settings)
 
 
+def write_geology_map(path: str | os.PathLike[str], rows: pd.DataFrame | None) -> None:
+    """Replace the stored geology map with ``rows``, or remove it for None."""
+    with closing(sqlite3.connect(path)) as connection, connection:
+        connection.execute("DELETE FROM meta_geology_map")
+        if rows is not None:
+            names = [c for c, _ in _META_TABLES["meta_geology_map"]]
+            _insert(
+                connection,
+                "meta_geology_map",
+                names,
+                (
+                    [None if pd.isna(value) else value for value in row]
+                    for row in rows[names].itertuples(index=False)
+                ),
+            )
+
+
 # --- Reading ---------------------------------------------------------------------
 
 
@@ -281,3 +305,8 @@ def read_flags(path: str | os.PathLike[str]) -> pd.DataFrame:
 def read_headings(path: str | os.PathLike[str]) -> pd.DataFrame:
     """Return ``meta_heading``: each heading's file unit, type, unit and kind."""
     return read_table(path, "meta_heading")
+
+
+def read_geology_map(path: str | os.PathLike[str]) -> pd.DataFrame:
+    """Return the stored geology map, in the order it was given (may be empty)."""
+    return read_table(path, "meta_geology_map")

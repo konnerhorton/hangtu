@@ -5,7 +5,7 @@
 | **ID / function** | P05 · `ht.plot.grain_size()` (+ `ht.analysis.gradation()`) |
 | **Status** | idea (draft notes) |
 | **Type** | plot + analysis (Dx, Cu, Cc, gradation) |
-| **Target version** | v0.1 (milestone M8) |
+| **Target version** | v0.2 (milestone M8) |
 | **Depends on** | P00 |
 | **Related** | `docs/drafts/analysis.md` §3, TODO #5. P25 (size-fraction comparison) |
 

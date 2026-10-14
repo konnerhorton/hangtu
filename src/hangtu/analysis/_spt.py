@@ -14,6 +14,9 @@ from hangtu._settings import settings
 from hangtu.errors import ColumnError, HangtuError
 
 REFUSAL_PENETRATION = 450.0  # mm: seating plus test drive (§1.3)
+#: Slack on the refusal comparison, so 450 mm written in another unit (17.71653543
+#: in) isn't a refusal because of rounding in the conversion.
+SLACK = 1e-6  # mm
 REFUSAL_CLASS = "Refusal"
 N_COLUMNS = ("spt_n", "spt_n60", "spt_n_capped")
 _TRUE = {"true", "yes", "1", "1.0"}
@@ -179,7 +182,7 @@ def spt(
     refusal = np.array([flag is True for flag in flags], dtype=bool)
     if "spt_penetration" in df.columns and blank.any():
         penetration = _penetration_mm(df, blank, units)
-        refusal |= blank & (penetration < REFUSAL_PENETRATION)
+        refusal |= blank & (penetration < REFUSAL_PENETRATION - SLACK)
 
     energy = np.full(len(df), np.nan)
     if "energy_ratio" in df.columns:

@@ -52,6 +52,24 @@ def test_quantity_kind_of_the_canonical_unit():
     assert resolve("%", standard("%"))[0].quantity == "percent"
 
 
+@pytest.mark.parametrize(
+    ("group", "heading"),
+    [("GRAT", "GRAT_SIZE"), ("LLPL", "LLPL_SIZE"), ("PTST", "PTST_SZUN")],
+)
+def test_particle_sizes_are_the_particle_size_kind(group, heading):
+    # datasets.md §10: mm in US output too, not inches (TODO #17).
+    entry = Heading(group, heading, "OTHER", "3SF", "mm", "4.2")
+    result, finding = u.resolve_heading(group, heading, "in", "3SF", entry, "US", 7)
+    assert (result.quantity, result.unit, finding) == ("particle_size", "mm", None)
+    assert result.convert([1.0])[0] == pytest.approx(25.4)
+
+
+def test_other_mm_headings_stay_small_lengths():
+    entry = Heading("ISPT", "ISPT_NPEN", "OTHER", "0DP", "mm", "4.2")
+    result, _ = u.resolve_heading("ISPT", "ISPT_NPEN", "mm", "0DP", entry, "SI", 7)
+    assert result.quantity == "small_length"
+
+
 def test_pcf_in_a_density_heading_is_pounds_per_cubic_foot():
     # P00 §4.3 #1: 125 lb/ft³ = 2.0023 Mg/m³.
     value, heading, finding = converted("pcf", standard("Mg/m3"), 125.0)

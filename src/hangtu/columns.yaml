@@ -60,11 +60,66 @@ columns:
     type: text
     ags: [LOCA.LOCA_ID]
     used_by: [P01, P02, P03, P04, P05, P06, P07]
+  location_type:
+    description: Type of exploratory hole, as the code the file gives (CP, RC, ...)
+    type: text
+    ags: [LOCA.LOCA_TYPE]
+    used_by: []
+  easting:
+    description: Easting of the hole, in the file's grid
+    type: number
+    quantity: length
+    scale: interval
+    label: Easting
+    ags: [LOCA.LOCA_NATE]
+    used_by: []
+  northing:
+    description: Northing of the hole, in the file's grid
+    type: number
+    quantity: length
+    scale: interval
+    label: Northing
+    ags: [LOCA.LOCA_NATN]
+    used_by: []
+  latitude:
+    description: Latitude of the hole, in decimal degrees
+    type: number
+    quantity: angle
+    scale: interval
+    label: Latitude
+    ags: [LOCA.LOCA_LAT]
+    used_by: []
+  longitude:
+    description: Longitude of the hole, in decimal degrees
+    type: number
+    quantity: angle
+    scale: interval
+    label: Longitude
+    ags: [LOCA.LOCA_LON]
+    used_by: []
+  final_depth:
+    description: Final depth of the hole
+    type: number
+    quantity: length
+    scale: ratio
+    label: Final depth
+    ags: [LOCA.LOCA_FDEP]
+    used_by: []
   specimen_id:
-    description: Specimen identifier, unique within a hole
+    description: Specimen identifier, unique in the project (a project's specimen key)
     type: text
     ags: ["derived: SAMP_TOP, SAMP_REF, SAMP_TYPE, SAMP_ID, SPEC_REF, SPEC_DPTH"]
     used_by: [P04, P05, P06]
+  sample_reference:
+    description: The sample a result comes from, as the file names it (SAMP_ID, else type and reference at its top)
+    type: text
+    ags: [SAMP.SAMP_ID, "derived: SAMP_TYPE, SAMP_REF, SAMP_TOP"]
+    used_by: []
+  specimen_reference:
+    description: Specimen reference within its sample
+    type: text
+    ags: [SPEC_REF]
+    used_by: []
   depth:
     description: Depth of the observation below ground level (the plotted point for interval tests)
     type: number
@@ -79,7 +134,7 @@ columns:
     quantity: length
     scale: ratio
     label: Depth to top
-    ags: [FGHG.FGHG_TOP, SAMP.SAMP_TOP]
+    ags: [FGHG.FGHG_TOP, IPRG.IPRG_TOP, SPEC_DPTH]
     used_by: [P01]
   depth_base:
     description: Base of the tested interval
@@ -87,7 +142,7 @@ columns:
     quantity: length
     scale: ratio
     label: Depth to base
-    ags: [FGHG.FGHG_BASE, SAMP.SAMP_BASE]
+    ags: [FGHG.FGHG_BASE, IPRG.IPRG_BASE, SPEC_BASE]
     used_by: [P01]
   depth_basis:
     description: How depth was chosen (mid_drive, sample_mid, zone_mid, ...)
@@ -133,6 +188,36 @@ columns:
     type: text
     ags: ["derived: GEOL key or mapping file, SPEC §8.3"]
     used_by: [P01, P02, P03, P04, P05, P06, P07]
+  geology_description:
+    description: Description of the geology layer the result is in
+    type: text
+    ags: [GEOL.GEOL_DESC]
+    used_by: []
+  geology_code:
+    description: Geology code as written in GEOL_GEOL, unmapped
+    type: text
+    ags: [GEOL.GEOL_GEOL]
+    used_by: []
+  geology_code_secondary:
+    description: Second geology code as written in GEOL_GEO2, unmapped
+    type: text
+    ags: [GEOL.GEOL_GEO2]
+    used_by: []
+  legend_code:
+    description: Legend code as written in GEOL_LEG, unmapped
+    type: text
+    ags: [GEOL.GEOL_LEG]
+    used_by: []
+  geology_formation:
+    description: Formation as written in GEOL_FORM, unmapped
+    type: text
+    ags: [GEOL.GEOL_FORM]
+    used_by: []
+  bgs_lexicon_code:
+    description: BGS Lexicon code as written in GEOL_BGS, unmapped
+    type: text
+    ags: [GEOL.GEOL_BGS]
+    used_by: []
   soil_class:
     description: Cohesive / cohesionless class of the unit (categories TODO #3)
     type: text
@@ -146,8 +231,21 @@ columns:
   test_type:
     description: Test method, e.g. falling head, packer, UU, torvane
     type: text
-    ags: [PTST.PTST_TYPE, FGHG.FGHG_TYPE]
+    ags: [PTST.PTST_TYPE, FGHG.FGHG_TYPE, IPRG.IPRG_TYPE]
     used_by: [P01]
+  remarks:
+    description: Remarks the file gives for the record
+    type: text
+    ags: [LOCA.LOCA_REM, ISPT.ISPT_REM]
+    used_by: []
+  source_line:
+    description: Line of the record in the AGS file, to check a value against the file
+    type: number
+    quantity: count
+    scale: ratio
+    label: Source line
+    ags: ["derived: the record's line in the file"]
+    used_by: []
   qualifier:
     description: '"<" or ">" when the true value is below or above the reported value; empty otherwise'
     type: text
@@ -161,7 +259,7 @@ columns:
     quantity: hydraulic_conductivity
     scale: ratio
     label: Hydraulic conductivity, k
-    ags: [PTST.PTST_K, FGHG.FGHG_IPRM]
+    ags: [PTST.PTST_K, FGHG.FGHG_IPRM, IPRG.IPRG_IPRM]
     used_by: [P01, P07]
   undrained_shear_strength:
     description: Undrained shear strength
@@ -221,6 +319,11 @@ columns:
     label: Energy ratio, ER
     ags: [ISPT.ISPT_ERAT]
     used_by: [P02]
+  energy_source:
+    description: "Where N60 came from: file_n60, file_energy_ratio or hammer_efficiency"
+    type: text
+    ags: ["derived: docs/data/datasets.md §6.1"]
+    used_by: []
   spt_penetration:
     description: Total penetration of the seating and test drives
     type: number

@@ -87,6 +87,16 @@ def test_settings_are_stored_and_checked(site):
     assert "figure_sizes" in repr(p.settings)
 
 
+def test_geology_key_is_a_project_setting(site):
+    with ht.settings.override(geology_key="GEOL_LEG"):
+        p = ht.Project.from_ags(site, geology_key="GEOL_FORM")
+    assert p.settings.geology_key == "GEOL_FORM"
+    p.settings.geology_key = "GEOL_GEOL"
+    assert ht.Project.open(p.path).settings.geology_key == "GEOL_GEOL"
+    with pytest.raises(ht.HangtuError, match="must be one of GEOL_GEOL"):
+        p.settings.geology_key = "GEOL_DESC"
+
+
 def test_unknown_setting(site):
     with pytest.raises(ht.HangtuError, match="no setting 'colour'"):
         ht.Project.from_ags(site, colour="red")

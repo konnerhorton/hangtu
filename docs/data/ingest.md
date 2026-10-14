@@ -5,7 +5,7 @@
 | **Status** | done (M5) |
 | **Intent** | [`docs/work/m5-ingest.md`](../work/m5-ingest.md#intent) |
 | **Parent** | SPEC §2.2 (units), §6 (ingestion), §7 (data model), §11 (errors) |
-| **Related** | P00 §4 (quantity kinds, aliases, pcf). [`qc.md`](qc.md) (M6) reports these findings; `docs/drafts/phase2-data.md` keeps the dataset notes for M7 |
+| **Related** | P00 §4 (quantity kinds, aliases, pcf). [`qc.md`](qc.md) (M6) reports these findings; [`datasets.md`](datasets.md) (M7) reads the canonical layer |
 
 ## 1. Purpose and scope
 Read one AGS4 file (4.0.3 to 4.2) into a project SQLite database, and open that database again later:
@@ -13,7 +13,7 @@ Read one AGS4 file (4.0.3 to 4.2) into a project SQLite database, and open that 
 - a **canonical layer**: AGS 4.2-shaped, typed, in SI, with value flags and surrogate keys (SPEC §7);
 - the **findings** raised while reading, stored for the QC report (M6).
 
-**Not in scope:** the QC report, rules beyond ingest and `diff()` (M6, [`qc.md`](qc.md)); `p.locations`, the geology map, joins and datasets (M7); mid-drive SPT depth (SPEC §8.2, M7); DIGGS, AGS3 and more than one file per project; writing AGS (SPEC §1.4).
+**Not in scope:** the QC report, rules beyond ingest and `diff()` (M6, [`qc.md`](qc.md)); `p.locations`, the geology map, joins, datasets and mid-drive SPT depth (M7, [`datasets.md`](datasets.md)); DIGGS, AGS3 and more than one file per project; writing AGS (SPEC §1.4).
 
 ## 2. Public API
 ```python
@@ -104,15 +104,16 @@ AGS file
 **Units** from the file's `UNIT` row, per column (mixed units in one file are fine):
 1. **Parse** the unit string with the hangtu alias table, then pint (P00 §4.2), case-sensitively. AGS spellings (`DegC`, `degC`, `Bar`, `ohm m`, `uS/cm`, `Mg/m3`, `kN/m3`) are added to `aliases.yaml`. A string pint reads without an alias is accepted with finding `U002` instead of a `UserWarning`.
 2. **Expected dimension:** for a heading in a standard dictionary (4.2, or the file's version for headings 4.2 removed; §6), the dimension of its dictionary unit; for a user-defined heading, the dimension of its own unit.
-3. **Canonical unit:** the dictionary unit for a heading in a standard dictionary. They're all SI and match the P00 canonical units (m, mm, kPa, kN/m³, Mg/m³, m/s, %, deg). For a user-defined heading, the P00 canonical unit with the same dimension, or else SI base units.
-4. **Conversion:**
+3. **Quantity kind:** the P00 kind the unit implies, except particle sizes (`GRAT_SIZE`, `LLPL_SIZE`, `PTST_SZUN`), which are `particle_size` so US output keeps mm (M7, TODO #17; `datasets.md` §10).
+4. **Canonical unit:** the dictionary unit for a heading in a standard dictionary. They're all SI and match the P00 canonical units (m, mm, kPa, kN/m³, Mg/m³, m/s, %, deg). For a user-defined heading, the P00 canonical unit with the same dimension, or else SI base units.
+5. **Conversion:**
    - file unit understood, dimension matches → converted, `status = converted`;
    - **pcf** (P00 §4.3 #1) resolved by the expected dimension: density → Mg/m³, unit weight → kN/m³. Finding `U002` (info). In a user-defined heading, where nothing says which, the column isn't converted: `U001`;
    - **ton** (SPEC §2.2 and the draft's "ton" rule): explicit strings directly; a bare `ton`/`t` follows the file's unit system, from the length unit of `LOCA_GL` (else `GEOL_TOP`). Finding `U002`;
    - unit unknown or ambiguous → canonical column NULL, raw kept, `U001` (error);
    - dimension doesn't match the dictionary (e.g. `kPa` in a depth heading) → canonical column NULL, raw kept, `U004` (error);
    - a numeric heading with an empty unit, where the dictionary gives one → canonical column NULL, raw kept, `U003` (warning). Where the dictionary gives none (counts such as `ISPT_NVAL`), it's stored as is.
-5. **Never guessed** (SPEC §2.2): a column is converted only from what the file declares, read through the dictionary.
+6. **Never guessed** (SPEC §2.2): a column is converted only from what the file declares, read through the dictionary.
 - SPT N and other counts are never converted (P00 §4.3 #2).
 - The vertical datum is a project setting (`meta_project`), not read from the file; AGS4 has no field for it (draft, "Units on ingest" #3).
 

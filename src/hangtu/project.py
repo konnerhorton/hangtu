@@ -9,8 +9,9 @@ from typing import Any
 import pandas as pd
 
 import hangtu.db as database
-from hangtu import ags, qc
+from hangtu import ags, datasets, qc
 from hangtu._settings import Settings, settings
+from hangtu.datasets import _geology_map
 from hangtu.errors import HangtuError, warn
 
 _KEY_COLUMNS = ("_row", "_line", "location_id", "sample_id", "specimen_id")
@@ -254,6 +255,302 @@ class Project:
         >>> p.diff("ISPT", changed_only=True)
         """
         return qc.diff(self._path, group, heading, changed_only)
+
+    # --- Datasets (datasets.md) -------------------------------------------------
+
+    @property
+    def locations(self) -> pd.DataFrame:
+        """One row per hole: ID, type, ground level, final depth, coordinates.
+
+        In the project's display units, with ``df.attrs["units"]`` set
+        (datasets.md §3).
+        """
+        return datasets.locations(self._path)
+
+    def spt(
+        self,
+        *,
+        hammer_efficiency: float | None = None,
+        cap: int | None = None,
+        holes: "str | list[str] | None" = None,
+        geology: "str | list[str] | None" = None,
+        depth: "tuple | None" = None,
+        elevation: "tuple | None" = None,
+        where: dict | None = None,
+        contains: "str | list[str] | None" = None,
+        geology_fields: "str | list[str] | None" = None,
+        include_incomplete: bool = False,
+        display_units: str | None = None,
+    ) -> pd.DataFrame:
+        """Return the SPT results, one row per test, ready for P02 and P03.
+
+        Each test is placed at the middle of its test drive (SPEC §8.2):
+        ``depth_basis`` says ``mid_drive`` when the file gives the increment
+        penetrations, ``mid_drive_nominal`` when hangtu assumed the nominal
+        150 mm seating drive. Refusal, N60 and capped N come from
+        ``ht.analysis.spt()``; ``spt_n60`` keeps an N60 the file gives, and
+        ``energy_source`` says where each N60 came from. See
+        ``docs/data/datasets.md`` §6.1.
+
+        Parameters
+        ----------
+        hammer_efficiency, cap
+            Passed to ``ht.analysis.spt()``: the energy ratio (%) for tests
+            without ``ISPT_ERAT``, and the N refusals are capped at.
+        holes, geology
+            Keep these holes (``LOCA_ID``) or geology units.
+        depth, elevation
+            Keep ``low <= value <= high``, given in the dataset's units
+            (``(0, 30)``) or as quantity strings (``("0 ft", "30 ft")``).
+            Either end may be None.
+        where
+            Keep rows matching ``{column: value or list of values}``.
+        contains
+            Keep rows whose geology description contains this text (any
+            case), or any of a list.
+        geology_fields
+            GEOL headings to add as columns, e.g. ``["GEOL_FORM"]``.
+        include_incomplete
+            Keep records with a blank required field (QC C001). By default
+            they're left out, with a warning that counts them.
+        display_units
+            ``"US"`` or ``"SI"``; by default the project's.
+
+        Examples
+        --------
+        >>> spt = p.spt(geology=["Alluvium"], depth=(0, 30))
+        >>> fig, ax = ht.plot.spt_profile(spt)
+        """
+        return datasets.spt(
+            self._path,
+            hammer_efficiency=hammer_efficiency,
+            cap=cap,
+            holes=holes,
+            geology=geology,
+            depth=depth,
+            elevation=elevation,
+            where=where,
+            contains=contains,
+            geology_fields=geology_fields,
+            include_incomplete=include_incomplete,
+            display_units=display_units,
+        )
+
+    def atterberg(
+        self,
+        *,
+        holes: "str | list[str] | None" = None,
+        geology: "str | list[str] | None" = None,
+        depth: "tuple | None" = None,
+        elevation: "tuple | None" = None,
+        where: dict | None = None,
+        contains: "str | list[str] | None" = None,
+        geology_fields: "str | list[str] | None" = None,
+        include_incomplete: bool = False,
+        display_units: str | None = None,
+    ) -> pd.DataFrame:
+        """Return the Atterberg limits, one row per LLPL record, ready for P01 and P07.
+
+        Each result has its specimen's water content (``LNMC``), liquidity
+        index and consistency index. A non-plastic specimen has
+        ``non_plastic = True`` and a blank plastic limit and plasticity index,
+        so plots count it as NP, never as a blank. A blank ``LLPL_PI`` is
+        filled with LL - PL. Depth is the specimen's, else its sample's
+        midpoint, else its top (``depth_basis``). Classification columns come
+        with the M8 analyses. See ``docs/data/datasets.md`` §6.2.
+
+        Parameters
+        ----------
+        holes, geology
+            Keep these holes (``LOCA_ID``) or geology units.
+        depth, elevation
+            Keep ``low <= value <= high``, given in the dataset's units
+            (``(0, 30)``) or as quantity strings (``("0 ft", "30 ft")``).
+            Either end may be None.
+        where
+            Keep rows matching ``{column: value or list of values}``.
+        contains
+            Keep rows whose geology description contains this text (any
+            case), or any of a list.
+        geology_fields
+            GEOL headings to add as columns, e.g. ``["GEOL_FORM"]``.
+        include_incomplete
+            Keep records with a blank required field (QC C001). By default
+            they're left out, with a warning that counts them.
+        display_units
+            ``"US"`` or ``"SI"``; by default the project's.
+
+        Examples
+        --------
+        >>> atterberg = p.atterberg(geology=["Alluvium"])
+        >>> fig, ax = ht.plot.geology_unit_comparison(atterberg, "plasticity_index")
+        """
+        return datasets.atterberg(
+            self._path,
+            holes=holes,
+            geology=geology,
+            depth=depth,
+            elevation=elevation,
+            where=where,
+            contains=contains,
+            geology_fields=geology_fields,
+            include_incomplete=include_incomplete,
+            display_units=display_units,
+        )
+
+    def grain_size(
+        self,
+        *,
+        holes: "str | list[str] | None" = None,
+        geology: "str | list[str] | None" = None,
+        depth: "tuple | None" = None,
+        elevation: "tuple | None" = None,
+        where: dict | None = None,
+        contains: "str | list[str] | None" = None,
+        geology_fields: "str | list[str] | None" = None,
+        include_incomplete: bool = False,
+        display_units: str | None = None,
+    ) -> pd.DataFrame:
+        """Return the grading curves, one row per GRAT point, in file order.
+
+        ``particle_size`` is in mm in US and SI output alike, as US practice
+        keeps it. Each point carries its specimen (``specimen_id``) and depth,
+        so a curve is the rows of one specimen. See ``docs/data/datasets.md``
+        §6.3.
+
+        Parameters
+        ----------
+        holes, geology
+            Keep these holes (``LOCA_ID``) or geology units.
+        depth, elevation
+            Keep ``low <= value <= high``, given in the dataset's units
+            (``(0, 30)``) or as quantity strings (``("0 ft", "30 ft")``).
+            Either end may be None.
+        where
+            Keep rows matching ``{column: value or list of values}``.
+        contains
+            Keep rows whose geology description contains this text (any
+            case), or any of a list.
+        geology_fields
+            GEOL headings to add as columns, e.g. ``["GEOL_FORM"]``.
+        include_incomplete
+            Keep records with a blank required field (QC C001). By default
+            they're left out, with a warning that counts them.
+        display_units
+            ``"US"`` or ``"SI"``; by default the project's.
+
+        Examples
+        --------
+        >>> curves = p.grain_size(holes=["BH3"])
+        >>> curves.groupby("specimen_id")["percent_passing"].min()
+        """
+        return datasets.grain_size(
+            self._path,
+            holes=holes,
+            geology=geology,
+            depth=depth,
+            elevation=elevation,
+            where=where,
+            contains=contains,
+            geology_fields=geology_fields,
+            include_incomplete=include_incomplete,
+            display_units=display_units,
+        )
+
+    def permeability(
+        self,
+        *,
+        holes: "str | list[str] | None" = None,
+        geology: "str | list[str] | None" = None,
+        depth: "tuple | None" = None,
+        elevation: "tuple | None" = None,
+        where: dict | None = None,
+        contains: "str | list[str] | None" = None,
+        geology_fields: "str | list[str] | None" = None,
+        include_incomplete: bool = False,
+        display_units: str | None = None,
+    ) -> pd.DataFrame:
+        """Return hydraulic conductivity from lab and field tests, for P01 and P07.
+
+        One row per result: ``PTST_K`` (``source = "lab"``, at the specimen's
+        depth), ``FGHG_IPRM`` and, in 4.0.x files, each ``IPRG_IPRM`` stage
+        (``source = "field"``, at the middle of the test zone, with
+        ``depth_top`` and ``depth_base``). ``<``/``>`` results keep their
+        bound as the value and the sign in ``qualifier``. See
+        ``docs/data/datasets.md`` §6.4.
+
+        Parameters
+        ----------
+        holes, geology
+            Keep these holes (``LOCA_ID``) or geology units.
+        depth, elevation
+            Keep ``low <= value <= high``, given in the dataset's units
+            (``(0, 30)``) or as quantity strings (``("0 ft", "30 ft")``).
+            Either end may be None.
+        where
+            Keep rows matching ``{column: value or list of values}``.
+        contains
+            Keep rows whose geology description contains this text (any
+            case), or any of a list.
+        geology_fields
+            GEOL headings to add as columns, e.g. ``["GEOL_FORM"]``.
+        include_incomplete
+            Keep records with a blank required field (QC C001). By default
+            they're left out, with a warning that counts them.
+        display_units
+            ``"US"`` or ``"SI"``; by default the project's.
+
+        Examples
+        --------
+        >>> k = p.permeability()
+        >>> fig, ax = ht.plot.profile(k, "hydraulic_conductivity", marker_by="source")
+        """
+        return datasets.permeability(
+            self._path,
+            holes=holes,
+            geology=geology,
+            depth=depth,
+            elevation=elevation,
+            where=where,
+            contains=contains,
+            geology_fields=geology_fields,
+            include_incomplete=include_incomplete,
+            display_units=display_units,
+        )
+
+    # --- Geology map (datasets.md §5.2) -----------------------------------------
+
+    def set_geology_map(
+        self, source: "str | PathLike[str] | pd.DataFrame | None"
+    ) -> None:
+        """Map the geology codes in the file to the units you report on.
+
+        The map is checked and stored with the project, replacing any earlier
+        one, until the database is rebuilt. The codes are values of the
+        ``p.settings.geology_key`` heading (``GEOL_GEOL`` by default), matched
+        exactly and case-sensitively.
+
+        Parameters
+        ----------
+        source
+            A CSV file or a DataFrame with the columns ``code`` and
+            ``geology_unit`` (required) and ``soil_class``, ``order`` and
+            ``color`` (optional). None removes the map.
+
+        Examples
+        --------
+        >>> p.set_geology_map("strata.csv")
+        >>> p.geology_map
+        >>> p.set_geology_map(None)
+        """
+        rows = None if source is None else _geology_map.read(source)
+        database.write_geology_map(self._path, rows)
+
+    @property
+    def geology_map(self) -> pd.DataFrame | None:
+        """The stored geology map, or None if there isn't one."""
+        rows = database.read_geology_map(self._path)
+        return None if rows.empty else rows
 
     def __repr__(self) -> str:
         """Summarize the file, its groups and the findings by severity."""

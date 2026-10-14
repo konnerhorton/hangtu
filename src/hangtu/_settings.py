@@ -132,6 +132,19 @@ def _summary_min_count(value: Any) -> int:
     return value
 
 
+#: GEOL headings that can hold a layer's code (SPEC §8.3, datasets.md §5.1).
+GEOLOGY_KEYS = ("GEOL_GEOL", "GEOL_GEO2", "GEOL_LEG", "GEOL_FORM", "GEOL_BGS")
+
+
+def _geology_key(value: Any) -> str:
+    if value not in GEOLOGY_KEYS:
+        raise HangtuError(
+            f"settings.geology_key must be one of {', '.join(GEOLOGY_KEYS)}, "
+            f'not {value!r}. Example: p.settings.geology_key = "GEOL_FORM"'
+        )
+    return value
+
+
 def _is_number(value: Any) -> bool:
     return isinstance(value, Real) and not isinstance(value, bool)
 
@@ -146,6 +159,7 @@ _VALIDATORS: dict[str, Callable[[Any], Any]] = {
     "hammer_efficiency": _hammer_efficiency,
     "spt_cap": _spt_cap,
     "summary_min_count": _summary_min_count,
+    "geology_key": _geology_key,
 }
 
 

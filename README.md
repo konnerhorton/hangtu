@@ -45,12 +45,12 @@ fig, ax = ht.plot.geology_unit_comparison(k, "hydraulic_conductivity", display_u
 
 ## Roadmap
 
-hangtu is released plot-first: plots are what engineers use day to day, and they only need a DataFrame, so they come before AGS ingest.
+Plots take a plain DataFrame, so they work on your own CSV files. The first release adds AGS4 ingest too, so the same plots can be fed from an AGS file.
 
 | Version | Content |
 |---|---|
-| **v0.1** (in progress) | Plot framework; property profile and property by geology unit (done); SPT profile, SPT histograms, plasticity chart, grain size curves and water content profile; the analyses behind them (SPT N60 and classes, USCS plasticity classes, D10/D30/D60, Cu and Cc) |
-| v0.2 | Read **AGS4** files (4.0.3–4.2) into a SQLite database, with data-quality checks and ready-made SPT, index property, grain size and permeability datasets that feed the plots directly |
+| **v0.1** (in progress) | Plot framework; property profile, property by geology unit, SPT profile and SPT histograms, with SPT N60 and classes. Read **AGS4** files (4.0.3–4.2) into a SQLite database, with data-quality checks and ready-made SPT, Atterberg, grain size and permeability datasets that feed the plots directly |
+| v0.2 | Plasticity chart, grain size curves and water content profile; the analyses behind them (USCS plasticity classes, D10/D30/D60, Cu and Cc) and the index property datasets that use them |
 | v0.3 | Statistics: distribution fitting, group comparisons, Eurocode 7 characteristic values |
 | Later | Triaxial and consolidation, AGSi export, DIGGS input, and more |
 

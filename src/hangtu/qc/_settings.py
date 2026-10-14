@@ -343,7 +343,7 @@ def _merge_min_fields(
 
 
 def _flatten(headings: Any) -> tuple[str, ...]:
-    """Flatten one level, so ``[*spec_key, LLPL_LL]`` reads as a plain list."""
+    """Flatten one level, so ``[*sample_key, LLPL_LL]`` reads as a plain list."""
     if isinstance(headings, str):
         return (headings,)
     flat: list[str] = []

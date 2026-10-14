@@ -127,6 +127,7 @@ def test_particle_size_rules_at_their_lines(report):
 def test_p001_names_the_two_points(report):
     message = _message(report, "P001")
     assert "rises at GRAT_SIZE 0.425 mm" in message
+    assert "0.425 mm (" not in message  # mm in US too (datasets.md §10)
     assert "GRAT_PERP 85 % passing, more than the 80 % passing" in message
 
 

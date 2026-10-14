@@ -255,13 +255,14 @@ GEOL = group(
         ("GEOL_TOP", "2DP", "m"),
         ("GEOL_BASE", "2DP", "m"),
         ("GEOL_DESC", "X", ""),
+        ("GEOL_GEOL", "X", ""),
         ("GEOL_FORM", "X", ""),
     ],
     [
-        ["BH1", 0.00, 2.50, "Brown sandy CLAY with gravel", "Fill"],
-        ["BH1", 2.50, 10.00, "Soft grey silty CLAY", "Alluvium"],
-        ["BH2", 0.00, 8.50, "Soft grey silty CLAY", "Alluvium"],
-        ["BH3", 0.00, 6.00, "Medium dense brown SAND", "Terrace"],
+        ["BH1", 0.00, 2.50, "Brown sandy CLAY with gravel", "FILL", "Fill"],
+        ["BH1", 2.50, 10.00, "Soft grey silty CLAY", "ALV", "Alluvium"],
+        ["BH2", 0.00, 8.50, "Soft grey silty CLAY", "ALV", "Alluvium"],
+        ["BH3", 0.00, 6.00, "Medium dense brown SAND", "TRC", "Terrace"],
     ],
     us=["GEOL_TOP", "GEOL_BASE"],
 )
@@ -287,6 +288,10 @@ SAMP = group(
     us=["SAMP_TOP", "SAMP_BASE"],
 )
 
+# Blows and penetrations (mm) of increments 1 to 6 for a refusal 125 mm into
+# the test drive: 25 seating blows, then 50 test blows.
+REFUSAL = [10, 15, 25, 25, None, None, 75, 75, 75, 50, None, None]
+
 ISPT = group(
     "ISPT",
     [
@@ -298,16 +303,23 @@ ISPT = group(
         ("ISPT_CAS", "2DP", "m"),
         ("ISPT_WAT", "XN", "m"),
         ("ISPT_ERAT", "0DP", "%"),
+        *((f"ISPT_INC{i}", "0DP", "") for i in range(1, 7)),
+        *((f"ISPT_PEN{i}", "0DP", "mm") for i in range(1, 7)),
         ("ISPT_N60", "0DP", ""),
     ],
+    # BH1 has increments (mid_drive, datasets.md §6.1): a complete drive, and a
+    # refusal 125 mm into the test drive. BH2 and BH3 have none (nominal).
     [
-        ["BH1", 3.00, 450, 12, "N=12", 2.50, "2.10", 80, 16],
-        ["BH1", 6.00, 300, 50, "25/75 50/75", 5.50, "2.10", 80, None],
-        ["BH2", 2.00, 450, 8, "N=8", 1.50, None, 80, 11],
-        ["BH2", 5.00, 450, 30, "N=30", 4.50, "1.80", 80, 40],
-        ["BH3", 1.50, 450, 4, "N=4", None, "Dry", None, None],
+        ["BH1", 3.00, 450, 12, "N=12", 2.50, "2.10", 80, 1, 2, 3, 3, 3, 3]
+        + [75] * 6
+        + [16],
+        ["BH1", 6.00, 275, 50, "25/150 50/125", 5.50, "2.10", 80, *REFUSAL, None],
+        ["BH2", 2.00, 450, 8, "N=8", 1.50, None, 80] + [None] * 12 + [11],
+        ["BH2", 5.00, 450, 30, "N=30", 4.50, "1.80", 80] + [None] * 12 + [40],
+        ["BH3", 1.50, 450, 4, "N=4", None, "Dry", None] + [None] * 13,
     ],
-    us=["ISPT_TOP", "ISPT_NPEN", "ISPT_CAS", "ISPT_WAT"],
+    us=["ISPT_TOP", "ISPT_NPEN", "ISPT_CAS", "ISPT_WAT"]
+    + [f"ISPT_PEN{i}" for i in range(1, 7)],
 )
 
 SPECIMEN = [
@@ -824,6 +836,111 @@ def qc_defects_groups():
     return [loca, horn, geol, samp, ispt, llpl, grag, grat, ptst, fghg]
 
 
+def joins_groups():
+    """Edge cases for the depth and geology joins (datasets.md §12), in SI.
+
+    J1's log has an overlap (TRC from 4.50 overlaps ALV to 5.00), a gap (8.00 to
+    9.00) and a code missing from strata.csv (BED). J2 has no ground level, J3
+    no geology. Expected depths are hand-calculated in tests/datasets.
+    """
+    loca = group(
+        "LOCA",
+        [
+            ("LOCA_ID", "ID", ""),
+            ("LOCA_TYPE", "PA", ""),
+            ("LOCA_GL", "2DP", "m"),
+            ("LOCA_FDEP", "2DP", "m"),
+        ],
+        [
+            ["J1", "CP", 10.00, 10.00],
+            ["J2", "CP", None, 5.00],  # no ground level: blank elevation
+            ["J3", "CP", 12.00, 4.00],  # no geology
+        ],
+    )
+    geol = group(
+        "GEOL",
+        [
+            ("LOCA_ID", "ID", ""),
+            ("GEOL_TOP", "2DP", "m"),
+            ("GEOL_BASE", "2DP", "m"),
+            ("GEOL_DESC", "X", ""),
+            ("GEOL_GEOL", "X", ""),
+        ],
+        [
+            ["J1", 0.00, 2.00, "Brown sandy CLAY with gravel", "FILL"],
+            ["J1", 2.00, 5.00, "Soft grey silty CLAY", "ALV"],
+            ["J1", 4.50, 8.00, "Medium dense brown SAND", "TRC"],  # overlap
+            ["J1", 9.00, 10.00, "Weak grey MUDSTONE", "BED"],  # after a gap; unmapped
+            ["J2", 0.00, 5.00, "Soft grey silty CLAY", "ALV"],
+        ],
+    )
+    ispt = group(
+        "ISPT",
+        [
+            ("LOCA_ID", "ID", ""),
+            ("ISPT_TOP", "2DP", "m"),
+            ("ISPT_NPEN", "0DP", "mm"),
+            ("ISPT_NVAL", "0DP", ""),
+            ("ISPT_REP", "X", ""),
+            *((f"ISPT_INC{i}", "0DP", "") for i in range(1, 7)),
+            *((f"ISPT_PEN{i}", "0DP", "mm") for i in range(1, 7)),
+        ],
+        [
+            # Complete drive, mid-drive exactly on the 2.00 m boundary: ALV.
+            ["J1", 1.70, 450, 12, "N=12", 2, 2, 3, 3, 3, 3] + [75] * 6,
+            # Refusal in the seating drive: 3.00 + 0.050 = 3.05 m.
+            ["J1", 3.00, 50, 25, "25/50", 25, *[None] * 5, 50, *[None] * 5],
+            # No increments, NPEN 450: 4.80 m, in the overlap: TRC.
+            ["J1", 4.50, 450, 18, "N=18"] + [None] * 12,
+            # Incomplete (ISPT_NVAL blank, C001): left out by default.
+            ["J1", 6.00, 450, None, None] + [None] * 12,
+            # No increments, NPEN 100 (seating only): 8.10 + 0.100 = 8.20 m, in the gap.
+            ["J1", 8.10, 100, 50, "50/100"] + [None] * 12,
+            # 9.70 + 0.300 = 10.00 m, the base of the deepest layer: BED.
+            ["J1", 9.70, 450, 40, "N=40"] + [None] * 12,
+            # NPEN 200: 1.00 + 0.150 + 0.050 / 2 = 1.175 m; no ground level.
+            ["J2", 1.00, 200, 50, "50/200"] + [None] * 12,
+            # No increments and no NPEN: 1.00 + 0.300 = 1.30 m; no geology.
+            ["J3", 1.00, None, 10, "N=10"] + [None] * 12,
+        ],
+    )
+    samp = group(
+        "SAMP",
+        [
+            ("LOCA_ID", "ID", ""),
+            ("SAMP_TOP", "2DP", "m"),
+            ("SAMP_REF", "X", ""),
+            ("SAMP_TYPE", "PA", ""),
+            ("SAMP_ID", "ID", ""),
+            ("SAMP_BASE", "2DP", "m"),
+        ],
+        [
+            ["J1", 1.00, "1", "U", "J1-U1", 1.50],
+            ["J1", 3.00, "2", "D", "J1-D2", None],  # no base
+        ],
+    )
+    j1_u1 = ["J1", 1.00, "1", "U", "J1-U1"]
+    j1_d2 = ["J1", 3.00, "2", "D", "J1-D2"]
+    llpl = group(
+        "LLPL",
+        [*SPECIMEN, ("LLPL_LL", "0DP", "%"), ("LLPL_PL", "XN", "%")],
+        [
+            [*j1_u1, "1", 1.10, 45, "20"],  # spec_depth 1.10
+            [*j1_u1, "2", None, 50, "22"],  # sample_mid (1.00 + 1.50) / 2 = 1.25
+            [*j1_d2, "1", None, 38, "18"],  # sample_top 3.00
+        ],
+    )
+    return [loca, geol, samp, ispt, llpl]
+
+
+#: Geology map for the test files (datasets.md §5.2). BED is left out on purpose.
+STRATA = """code,geology_unit,soil_class,order,color
+FILL,Fill,fill,1,#a0a0a0
+ALV,Alluvium,fine,2,tan
+TRC,Terrace,coarse,3,#d9b26f
+"""
+
+
 def main(out=HERE):
     out = Path(out)
     write_file(out / "site_si.ags", "4.2", site_groups())
@@ -848,6 +965,8 @@ def main(out=HERE):
     write_file(out / "site_v404.ags", "4.0.4", v404)
     write_file(out / "defects.ags", "4.9", defects_groups())  # V000: unknown version
     write_file(out / "qc_defects.ags", "4.2", qc_defects_groups())
+    write_file(out / "joins.ags", "4.2", joins_groups())
+    (out / "strata.csv").write_text(STRATA, encoding="utf-8", newline="")
 
 
 if __name__ == "__main__":
