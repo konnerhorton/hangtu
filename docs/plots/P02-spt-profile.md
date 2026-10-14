@@ -7,7 +7,7 @@
 | **Type** | plot + light analysis |
 | **Target version** | v0.1 (milestone M3) |
 | **Depends on** | P00, P01, the SPT analysis (`docs/drafts/analysis.md` §1) |
-| **Related** | SPEC §4 (refusals, N60), §8.2 (test depth). P03 (shown beside it). M3 intent: `docs/work/m3-spt/intent.md` |
+| **Related** | SPEC §4 (refusals, N60), §8.2 (test depth). P03 (shown beside it). M3 intent: `docs/work/m3-spt.md` |
 
 ---
 
