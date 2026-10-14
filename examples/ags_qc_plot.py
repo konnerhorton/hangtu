@@ -3,8 +3,8 @@
 Reads the example AGS4 file into a project database, checks it, and draws
 the same four plots as csv_to_plot.py from hangtu's ready-made datasets.
 
-Run this script from any folder. It writes site.sqlite, qc_report.csv and
-ags_example.pdf there.
+Run this script from any folder. It writes site.sqlite, qc_report.csv (with
+the rules it used in qc_report_rules.csv) and ags_example.pdf there.
 """
 
 import hangtu as ht
@@ -49,4 +49,4 @@ ht.plot.profile(
 ht.plot.geology_unit_comparison(atterberg, "plasticity_index", ax=sheet[1, 1])
 
 sheet.save("ags_example.pdf")
-print("Wrote qc_report.csv and ags_example.pdf")
+print("Wrote qc_report.csv, qc_report_rules.csv and ags_example.pdf")

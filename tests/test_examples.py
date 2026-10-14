@@ -103,7 +103,10 @@ def test_csv_and_ags_hold_the_same_tests(site, name, value):
     ("script", "outputs"),
     [
         ("csv_to_plot.py", ["csv_example.pdf"]),
-        ("ags_qc_plot.py", ["site.sqlite", "qc_report.csv", "ags_example.pdf"]),
+        (
+            "ags_qc_plot.py",
+            ["site.sqlite", "qc_report.csv", "qc_report_rules.csv", "ags_example.pdf"],
+        ),
     ],
 )
 def test_example_runs_clean(tmp_path, script, outputs):
