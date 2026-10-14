@@ -51,6 +51,6 @@ Explicit is better than implicit. Names are written out in full, or full enough 
 - If a change alters a decision recorded in `SPEC.md` or a plot spec, update that file **in the same commit**.
 - Don't renumber `SPEC.md` sections. `TODO.md` and the plot specs refer to them by number.
 - Test against the acceptance criteria in the feature's spec, and hand-calculate golden values for analyses.
-- **Visual check:** at the end of each plot unit of work, save a PNG of the plot's output (100 dpi, realistic data, both US and SI when units matter) as `docs/work/<id>/visual-check.png`, look at it, and commit it in the close-out so a reviewer sees the figure without running code. Plot specs and later docs may reuse these images.
+- **Visual check:** at the end of each plot unit of work, save a PNG of the plot's output (100 dpi, realistic data, both US and SI when units matter) as `docs/plots/img/PXX.png` (or `PXX-si.png` and `PXX-us.png` when US and SI need separate figures), look at it, and commit it in the close-out so a reviewer sees the figure without running code. Plot specs and later docs may reuse these images.
 - Don't add dependencies beyond those in SPEC §12.1 without asking.
 - **The repo is public.** Don't name private sources, contacts or their companies in docs, TODOs, code or commit messages. Describe the idea, not who said it ("AGS is often criticized as a storage model"); the user keeps the source in their own notes.

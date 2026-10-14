@@ -20,7 +20,7 @@ Compares the measured values of one property, grouped by geology unit, with the 
 It ends up in GBR compliance reviews, differing site condition assessments, phase-to-phase data reports and design checks. Several properties are usually shown together on one page, so a second function lays out one panel per property.
 
 ## 2. Reference figure
-The built figure, from the test data: [`visual-check.png`](../work/p07-geology-unit-comparison/visual-check.png) (SI) and [`visual-check-us.png`](../work/p07-geology-unit-comparison/visual-check-us.png) (US).
+The built figure, from the test data: [`P07-si.png`](img/P07-si.png) (SI) and [`P07-us.png`](img/P07-us.png) (US).
 
 ```
             Water content, w (%)

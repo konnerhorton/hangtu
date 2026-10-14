@@ -199,7 +199,7 @@ fig, ax = ht.plot.spt_histogram(clay, table="cohesive", refusal="exclude")
   - `assert_no_global_state`, also with `ax=` on a `Sheet` panel;
   - empty input gives "No data".
 - **Acceptance against test data** `tests/data/spt.csv` (P02's): the test splits it on `geology_unit` into a cohesionless set (Fill, Alluvial sand) and a cohesive set (Glacial till, Residual soil), as a user would. The bar counts, n per unit, refusals and footnote counts are worked out by hand.
-- **Visual check:** [`docs/work/m3-p03/visual-check.png`](../work/m3-p03/visual-check.png), a Letter `Sheet` with the cohesionless and cohesive histograms of the test data side by side, with bar labels. One image, since nothing converts between US and SI (§9).
+- **Visual check:** [`img/P03.png`](img/P03.png), a Letter `Sheet` with the cohesionless and cohesive histograms of the test data side by side, with bar labels. One image, since nothing converts between US and SI (§9).
 
 ## 13. References
 - `docs/drafts/analysis.md` §1.4 and its references.
