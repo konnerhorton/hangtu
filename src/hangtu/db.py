@@ -266,3 +266,18 @@ def read_settings(path: str | os.PathLike[str]) -> dict[str, Any]:
         key: json.loads(value)
         for key, value in zip(rows["key"], rows["value"], strict=True)
     }
+
+
+def read_findings(path: str | os.PathLike[str]) -> pd.DataFrame:
+    """Return the findings stored at ingest, in the order they were raised."""
+    return read_table(path, "finding")
+
+
+def read_flags(path: str | os.PathLike[str]) -> pd.DataFrame:
+    """Return the value flags (``NP``, ``LT``, ``REFUSAL``, ...) of every cell."""
+    return read_table(path, "value_flag")
+
+
+def read_headings(path: str | os.PathLike[str]) -> pd.DataFrame:
+    """Return ``meta_heading``: each heading's file unit, type, unit and kind."""
+    return read_table(path, "meta_heading")

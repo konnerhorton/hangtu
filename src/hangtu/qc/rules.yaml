@@ -1,0 +1,180 @@
+# Default QC rule settings (docs/data/qc.md §3, §4). The checks live in code
+# (src/hangtu/qc/), which also declares each threshold's quantity kind
+# (qc/_registry.py, THRESHOLDS). A project can change these settings with
+# p.qc(rules=...) but can't add rules.
+#
+# A threshold with a unit is a quantity string, "<number> <unit>"; a count is a
+# plain number. Ingest rules (§4.1) take severity and enabled only; a severity
+# of null keeps the one stored at ingest.
+
+rules:
+  # From ingest (§4.1), stored in the finding table.
+  V*:
+    title: python-ags4 format rule
+    severity: null
+  VLOG:
+    title: Problem logged by python-ags4
+    severity: null
+  V000:
+    title: AGS version missing or unrecognized
+    severity: warning
+  M001:
+    title: Group or heading removed in AGS 4.2
+    severity: info
+  U001:
+    title: Unknown or ambiguous unit
+    severity: error
+  U002:
+    title: Unit resolved by convention
+    severity: info
+  U003:
+    title: Numeric heading with no unit
+    severity: warning
+  U004:
+    title: Unit of the wrong dimension
+    severity: error
+  T001:
+    title: Unrecognized text in a numeric column
+    severity: info
+
+  # Locations (§4.2)
+  L001:
+    title: Ground level is blank
+    severity: error
+  L002:
+    title: Location has no coordinates
+    severity: warning
+  L003:
+    title: Final depth is blank
+    severity: warning
+  L004:
+    title: Hole section is not vertical
+    severity: warning
+    thresholds:
+      inclination_tolerance: 2 deg
+  L005:
+    title: Ground level is an outlier compared with nearby holes
+    severity: warning
+    thresholds:
+      ground_level_difference: 3 m
+      neighbor_count: 5
+      fewest_neighbors: 2
+      search_radius: 200 m
+  L006:
+    title: Vertical datum is not set
+    severity: info
+
+  # Geology (§4.3)
+  G001:
+    title: Location has no geology log
+    severity: warning
+  G002:
+    title: Gap in the geology log
+    severity: warning
+    thresholds:
+      depth_tolerance: 0.01 m
+  G003:
+    title: Overlapping geology intervals
+    severity: error
+    thresholds:
+      depth_tolerance: 0.01 m
+
+  # Depths (§4.4)
+  D001:
+    title: Interval base is above its top
+    severity: error
+  D002:
+    title: Negative record depth
+    severity: error
+  D003:
+    title: Record depth below the final depth
+    severity: warning
+    thresholds:
+      final_depth_tolerance: 0.1 m
+  D004:
+    title: Record depth outside the logged geology
+    severity: warning
+  D005:
+    title: Interval record crosses a geology boundary
+    severity: info
+  D007:
+    title: Specimen depth outside its sample
+    severity: warning
+    thresholds:
+      depth_tolerance: 0.01 m
+
+  # SPT (§4.5)
+  S001:
+    title: SPT report can't be read
+    severity: warning
+  S002:
+    title: Improbable SPT N
+    severity: warning
+    thresholds:
+      highest_spt_n: 100
+  S003:
+    title: SPT has no energy ratio
+    severity: info
+  S004:
+    title: SPT N doesn't match the blows
+    severity: warning
+  S005:
+    title: File N60 differs from the computed N60
+    severity: warning
+    thresholds:
+      n60_tolerance: 1
+
+  # Atterberg limits (§4.6)
+  A001:
+    title: Liquid limit below plastic limit
+    severity: error
+  A002:
+    title: Plasticity index differs from LL - PL
+    severity: warning
+    thresholds:
+      plasticity_index_tolerance: 1 %
+  A003:
+    title: Improbable liquid limit
+    severity: warning
+    thresholds:
+      lowest_liquid_limit: 10 %
+      highest_liquid_limit: 150 %
+  A004:
+    title: Non-plastic specimen
+    severity: info
+
+  # Particle size (§4.7)
+  P001:
+    title: Grading curve rises as particle size decreases
+    severity: error
+    thresholds:
+      percent_passing_tolerance: 0.5 %
+  P002:
+    title: Percentage outside 0 to 100
+    severity: error
+  P003:
+    title: Grading fractions don't add up to 100
+    severity: warning
+    thresholds:
+      fraction_sum_tolerance: 2 %
+  P004:
+    title: Too few points on a grading curve
+    severity: info
+    thresholds:
+      fewest_points: 4
+
+  # Permeability (§4.8)
+  K001:
+    title: Hydraulic conductivity out of range
+    severity: warning
+    thresholds:
+      lowest_hydraulic_conductivity: 1e-12 m/s
+      highest_hydraulic_conductivity: 1 m/s
+
+  # Minimally useful fields (§4.10); the fields are in min_fields.yaml.
+  C001:
+    title: Required field is missing
+    severity: warning
+  C002:
+    title: Recommended field is missing
+    severity: info

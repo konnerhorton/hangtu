@@ -20,6 +20,14 @@ _TRUE = {"true", "yes", "1", "1.0"}
 _FALSE = {"false", "no", "0", "0.0"}
 
 
+def n60(n: Any, energy_ratio: Any) -> Any:
+    """Return N60 = N * ER / 60, with the energy ratio ER in percent (§1.3).
+
+    Shared with QC rule S005, so the analysis and the check can't disagree.
+    """
+    return n * energy_ratio / 60
+
+
 def _check_energy_ratio(name: str, value: Any) -> float | None:
     if value is None:
         return None
@@ -185,16 +193,16 @@ def spt(
             )
     if hammer_efficiency is not None:
         energy = np.where(np.isnan(energy), hammer_efficiency, energy)
-    n60 = n * energy / 60
+    computed = n60(n, energy)
     if "spt_n60" in df.columns:
         given = numeric_column(df, "spt_n60")
-        n60 = np.where(np.isnan(given), n60, given)
+        computed = np.where(np.isnan(given), computed, given)
 
     capped = np.where(refusal, float(cap), np.minimum(n, cap))
 
     result = df.copy()
     result["spt_refusal"] = refusal
-    result["spt_n60"] = n60
+    result["spt_n60"] = computed
     result["spt_n_capped"] = capped
     return result
 

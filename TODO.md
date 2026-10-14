@@ -32,18 +32,20 @@ Verify against the source standards during M9:
 
 ## Quality control
 
-### 6. QC thresholds — deeper review · You · docs/drafts/phase2-data.md (Level 1 rules)
-The defaults are agreed for now. Revisit as real files are tested:
-- **L005** (ground-level outlier): 3 m / 10 ft, 5 nearest holes within 200 m. Should it be terrain-dependent, or relative to a DEM later?
-- **S002** (improbable N): > 100.
-- **A003** (improbable LL): < 10 or > 150.
-- **G002/G003** (gap/overlap tolerance): 0.01 m. Rounding in imperial files (0.1 ft = 0.03 m) may trigger false gaps. Consider making the tolerance unit-aware: 0.01 m or 0.05 ft.
-- **P001/P003** tolerances.
+### 6. QC thresholds — P001/P003 tolerances · You · docs/data/qc.md §4.7
+Revisit as real files are tested:
+- **P001** (grading curve rises): 0.5 percentage points.
+- **P003** (GRAG fractions don't sum to 100): ±2 percentage points.
 
-### 7. Minimally useful fields · You · docs/drafts/phase2-data.md (Minimally useful fields)
-- Review the YAML draft group by group.
+### 7. Minimally useful fields · You · docs/data/qc.md §4.10
+- Review the default list group by group against real files.
 - **Decided for now:** `SPEC_REF` and `SPEC_DPTH` are required.
 - **Later (Roadmap):** conditional requirements, e.g. `SPEC_*` only required when a sample has more than one specimen.
+
+### 17. Particle size shown in inches · Claude + You · SPEC §2.6, P00 §4.1; docs/data/ingest.md §6
+- **Problem:** ingest gives `GRAT_SIZE` the `small_length` kind, so a US project shows sieve sizes in inches (`0.425 mm (0.0167 in)` in a QC message, and in `p.diff()`). The `particle_size` kind exists to keep mm in both systems, as US practice does.
+- **To decide:** map `GRAT_SIZE` (and other particle-size headings) to `particle_size` at ingest, and check which other headings need a kind other than the one their unit implies.
+- **Timing:** M7, where the datasets map headings to registry names, and before P05 (gradation curves).
 
 ---
 
@@ -198,6 +200,7 @@ You are also looking. Candidates found so far:
 - A helper for deciding cohesive vs cohesionless from lab data (fines %, PI).
 
 ## Done
+- ✅ #6 QC thresholds kept as the defaults (2026-10-14): L005 (3 m from the median of the 5 nearest holes within 200 m), S002 (N > 100), A003 (LL < 10 or > 150), G002/G003 (0.01 m; a project can set any unit, and imperial rounding doesn't cause false gaps). In docs/data/qc.md §4. P001/P003 stay open.
 - ✅ #4 SPT classification tables decided (2026-10-13): the Terzaghi & Peck / Peck, Hanson & Thornburn boundaries, lower bound inclusive, classified on whichever N column the user names (default `spt_n`). In `src/hangtu/config/spt_classes.yaml`; spec in docs/drafts/analysis.md §1.4. User-defined bins come later.
 - ✅ #0c Repo published on GitHub; the full CI matrix (Windows, macOS, Linux × Python 3.12–3.14) and the `lowest` job are green, so M0 is done (2026-10-12). 0.0.1 is on PyPI, released by `release.yml` (SPEC §12.1).
 - ✅ #1 `pcf` and #2 SPT N per 12 in decided (2026-10-11). Recorded in P00 §4.3; the follow-ups that only matter on ingest are in docs/drafts/phase2-data.md (Units on ingest, items 5–6).

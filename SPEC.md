@@ -232,18 +232,18 @@ Apply in both phases. In Phase 1 they are applied by the analysis functions to t
 | 2: Engineering judgment | User-defined plausible ranges per unit and property | v0.4 |
 
 ### 9.2 Framework (decided)
-- `p.qc()` returns a report; findings export to **one flat CSV**.
-- Rules (id, severity, thresholds) live in YAML and can be overridden per project.
+- `p.qc()` returns a report; the findings export to **one flat CSV**, with the rule settings the run used written next to it (`<stem>_rules.csv`), so a report sent on its own says what it was checked against.
+- Rules (id, severity, thresholds) live in YAML and can be overridden per call. **Thresholds are quantity strings with units** (`0.01 m`, `"0.05 ft"`), read like any other unit (§2.6); counts are plain numbers.
 - QC is computed on demand; only ingest validation is persisted.
 - `p.diff(group)` compares raw and canonical values cell by cell.
-- The draft rule list (U/T/L/G/D/S/A/P/K/C) and the minimally-useful-fields YAML are in [`docs/drafts/phase2-data.md`](docs/drafts/phase2-data.md) (TODO #6, #7).
+- Rules, report and diff: [`docs/data/qc.md`](docs/data/qc.md).
 
 ---
 
 ## 10. Datasets and column registry
 
 ### 10.1 Project access (Phase 2)
-`p.groups`, `p.table(group, raw=False)`, `p.locations`, `p.diff(group)`, `p.sql(...)` (read-only, SI).
+`p.groups`, `p.table(group, raw=False)`, `p.locations`, `p.diff(group, heading=None, changed_only=False)`, `p.sql(...)` (read-only, SI).
 
 ### 10.2 Ready-made datasets (Phase 2)
 - `p.spt()`, `p.atterberg()`, `p.grain_size()` / `p.grain_size_summary()`, `p.index_properties()`, `p.permeability()`.
@@ -319,8 +319,8 @@ ht.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
 ### 12.2 Package layout
 - `src/` layout, package `hangtu`.
 - Top-level namespaces: `ht.plot`, `ht.analysis`, `ht.stats` (Phase 3), `ht.Project` (Phase 2), `ht.Sheet`, `ht.settings`, plus `read_csv`, `set_units`, `units_of`, `columns`, `template`.
-- Phase 2 modules: `ags/` (the ingest pipeline), `db.py` (the only module that talks to SQLite, §7) and `project.py`.
-- Data files ship inside the package: `columns.yaml` (registry), `config/defaults.yaml`, `units/*.yaml`, `ags/value_flags.yaml`.
+- Phase 2 modules: `ags/` (the ingest pipeline), `qc/` (QC rules and report), `db.py` (the only module that talks to SQLite, §7) and `project.py`.
+- Data files ship inside the package: `columns.yaml` (registry), `config/defaults.yaml`, `units/*.yaml`, `ags/value_flags.yaml`, `qc/rules.yaml`, `qc/min_fields.yaml`.
 - Tests mirror the package (`tests/plot/`, `tests/units/`, …), with synthetic data in `tests/data/`. Runnable scripts go in `examples/`.
 
 ### 12.3 Testing
