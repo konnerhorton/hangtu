@@ -98,4 +98,21 @@ Implementation choices the spec leaves open. Any that changes what a user sees g
 - Run `p.qc()` and `p.diff("ISPT", changed_only=True)` on `site_us.ags` and `qc_defects.ags` by hand and read the printed summary and messages as an engineer would: does each say what is wrong, where, and what to do?
 
 ## Results
-(Filled in at close-out.)
+- 1351 tests pass on Python 3.12 and with the lowest dependency versions; the QC and ingest tests (296) also pass on 3.13 and 3.14. The wheel has `hangtu/qc/` with `rules.yaml` and `min_fields.yaml`; no `pyproject.toml` change was needed.
+- **Commits:** one per build step, with two split for size: Build 4 (the data layer, then the report and `p.qc()`) and Build 5 (L, then G). Build 7 went in as `(S, A)` then `(P, K)` as planned. Build 1 went past the ~300-line guide and was left as one commit.
+- **Changes from the plan**, each recorded in `qc.md` in the commit that made it:
+  - `min_fields` groups and headings are checked against the older AGS 4 dictionaries too, since the default `IPRG` entry is 4.0.x only, and against the file's own headings (§2).
+  - `V*` and `VLOG` default to the severity stored at ingest; `report.rules` shows `as stored` (§3.3, §5.2). A single V rule is titled `python-ags4 rule 10c`, and V rules sort with their numbers in order (§4.9).
+  - Message numbers (decision 4): unconverted values (percent, counts) are written as the file wrote them, `SCI` values in the file's notation, and very small or large numbers in scientific notation (§4.9).
+  - D002 and D003 give one finding per record at the first offending heading; D007 one per specimen, however many tests share it (§4.4).
+  - The pending rules in the registry test are listed in the test, not marked in `rules.yaml` (Build 5), so the shipped file never carried build markers.
+  - "Blank" in L001–L003 and C001/C002 means empty in the file, so a column ingest kept raw-only (U001) isn't also reported as blank.
+  - Tolerances are compared with a 1e-9 slack, so a value exactly at the tolerance isn't reported because of unit conversion.
+  - §9 #8: the `T` case for `reformatted` is on `site_v404.ags`; no 4.2 good file has a `T` column.
+- **Cascades** on `qc_defects.ags` are listed in `test_qc_acceptance.py`: D004 on lines 96 and 103 (from D002 and D003), and C001 on line 58 (BH5's blank LOCA fields, from L001 and L003).
+- **Read by hand:** `p.qc()` on `site_us.ags` gives only info (A004, C002, L006, S003, U002), and on `qc_defects.ags` every message names the hole, depth, heading and value in the file's unit and the display unit, and says what to check. C002 is most of the info lines, by design (one per heading).
+- **For M7:**
+  - `GRAT_SIZE` gets the `small_length` kind at ingest, so US output shows sieve sizes in inches (TODO #17).
+  - Rules read through `qc/_data.py`, which M7's datasets could reuse for record depths and the row at a line.
+  - C001 is per record, which is the "incomplete" set that `include_incomplete=` will filter.
+- SPEC: §12.2 changed in the spec step; nothing at close-out. The §11 sketch matches `p.qc()`.

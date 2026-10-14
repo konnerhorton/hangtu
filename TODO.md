@@ -42,6 +42,11 @@ Revisit as real files are tested:
 - **Decided for now:** `SPEC_REF` and `SPEC_DPTH` are required.
 - **Later (Roadmap):** conditional requirements, e.g. `SPEC_*` only required when a sample has more than one specimen.
 
+### 17. Particle size shown in inches · Claude + You · SPEC §2.6, P00 §4.1; docs/data/ingest.md §6
+- **Problem:** ingest gives `GRAT_SIZE` the `small_length` kind, so a US project shows sieve sizes in inches (`0.425 mm (0.0167 in)` in a QC message, and in `p.diff()`). The `particle_size` kind exists to keep mm in both systems, as US practice does.
+- **To decide:** map `GRAT_SIZE` (and other particle-size headings) to `particle_size` at ingest, and check which other headings need a kind other than the one their unit implies.
+- **Timing:** M7, where the datasets map headings to registry names, and before P05 (gradation curves).
+
 ---
 
 ## Statistics (research items, with Claude's recommendations)
