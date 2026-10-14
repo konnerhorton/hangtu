@@ -267,6 +267,75 @@ class Project:
         """
         return datasets.locations(self._path)
 
+    def spt(
+        self,
+        *,
+        hammer_efficiency: float | None = None,
+        cap: int | None = None,
+        holes: "str | list[str] | None" = None,
+        geology: "str | list[str] | None" = None,
+        depth: "tuple | None" = None,
+        elevation: "tuple | None" = None,
+        where: dict | None = None,
+        contains: "str | list[str] | None" = None,
+        geology_fields: "str | list[str] | None" = None,
+        include_incomplete: bool = False,
+        display_units: str | None = None,
+    ) -> pd.DataFrame:
+        """Return the SPT results, one row per test, ready for P02 and P03.
+
+        Each test is placed at the middle of its test drive (SPEC §8.2):
+        ``depth_basis`` says ``mid_drive`` when the file gives the increment
+        penetrations, ``mid_drive_nominal`` when hangtu assumed the nominal
+        150 mm seating drive. Refusal, N60 and capped N come from
+        ``ht.analysis.spt()``; ``spt_n60`` keeps an N60 the file gives, and
+        ``energy_source`` says where each N60 came from. See
+        ``docs/data/datasets.md`` §6.1.
+
+        Parameters
+        ----------
+        hammer_efficiency, cap
+            Passed to ``ht.analysis.spt()``: the energy ratio (%) for tests
+            without ``ISPT_ERAT``, and the N refusals are capped at.
+        holes, geology
+            Keep these holes (``LOCA_ID``) or geology units.
+        depth, elevation
+            Keep ``low <= value <= high``, given in the dataset's units
+            (``(0, 30)``) or as quantity strings (``("0 ft", "30 ft")``).
+            Either end may be None.
+        where
+            Keep rows matching ``{column: value or list of values}``.
+        contains
+            Keep rows whose geology description contains this text (any
+            case), or any of a list.
+        geology_fields
+            GEOL headings to add as columns, e.g. ``["GEOL_FORM"]``.
+        include_incomplete
+            Keep records with a blank required field (QC C001). By default
+            they're left out, with a warning that counts them.
+        display_units
+            ``"US"`` or ``"SI"``; by default the project's.
+
+        Examples
+        --------
+        >>> spt = p.spt(geology=["Alluvium"], depth=(0, 30))
+        >>> fig, ax = ht.plot.spt_profile(spt)
+        """
+        return datasets.spt(
+            self._path,
+            hammer_efficiency=hammer_efficiency,
+            cap=cap,
+            holes=holes,
+            geology=geology,
+            depth=depth,
+            elevation=elevation,
+            where=where,
+            contains=contains,
+            geology_fields=geology_fields,
+            include_incomplete=include_incomplete,
+            display_units=display_units,
+        )
+
     # --- Geology map (datasets.md §5.2) -----------------------------------------
 
     def set_geology_map(
