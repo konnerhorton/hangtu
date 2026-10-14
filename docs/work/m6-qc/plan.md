@@ -32,7 +32,7 @@ tests/data/ags/
 
 ## Decisions the build makes
 Implementation choices the spec leaves open. Any that changes what a user sees goes into `qc.md` in the commit that builds it.
-1. **Rules declare themselves in code.** `@rule("L005", thresholds={"ground_level_difference": "length", "neighbor_count": "count", ...})` registers a function `(data, settings) -> RuleResult(findings, records_checked)`. A test checks that the IDs in `rules.yaml` and in the registry are the same set and that each rule's threshold names and kinds match the YAML, so the two can't drift.
+1. **Threshold kinds are a table in code; rules register by ID.** `qc/_registry.py` holds `THRESHOLDS = {"L005": {"ground_level_difference": "length", "neighbor_count": "count", ...}, ...}`, one entry per rule with thresholds, using P00 quantity kinds (`length`, `angle`, `percent`, `hydraulic_conductivity`, `count`). It is written in Build 1, since override checks need the kinds before any rule exists. Rule functions register later with `@rule("L005")`, as `(data, settings) -> RuleResult(findings, records_checked)`. A test checks that `rules.yaml`, `THRESHOLDS` and the registered functions agree: the same rule IDs (functions from Build 5 on, decision below), and the same threshold names. The kinds aren't inferred from the YAML defaults, because pint treats `deg` and `%` as both dimensionless, so `"2 %"` would pass as an angle.
 2. **Thresholds are converted once, before any rule runs:** each quantity string goes through `units.parse_quantity` with its declared kind and then `units.convert` to the kind's canonical unit (m, deg, m/s); percent and counts stay as given. The original text is kept for `report.rules` (§5.2, "in the unit it was given").
 3. **Rules read through `qc/_data.py`**, which reads each canonical table once per run via `db.py` (SPEC §7) and caches it. It also builds:
    - each group's **record depth** headings (§4, "Record depth") from `meta_heading` (name pattern plus `quantity = length`);
@@ -49,9 +49,10 @@ Implementation choices the spec leaves open. Any that changes what a user sees g
 12. **CSV:** `to_csv` writes the findings with `index=False`, and the rules file with the `#` source lines first, then the table. The rules path is `<path stem>_rules.csv` in the same folder. Both overwrite.
 
 ## Build 1: `M6: add the QC rule settings and override checks`
-- `qc/rules.yaml` (every rule in §4 with title, severity and thresholds), `qc/min_fields.yaml` (§4.10, `<SPEC_KEY>` as a YAML anchor), `qc/_settings.py`, `qc/_registry.py` with the decorator only.
+- `qc/rules.yaml` (every rule in §4 with title, severity and thresholds), `qc/min_fields.yaml` (§4.10, `<SPEC_KEY>` as a YAML anchor), `qc/_settings.py`, `qc/_registry.py` with `THRESHOLDS` and the `@rule` decorator (decision 1).
+- Thresholds are checked with `units.parse_quantity(text, kind)`, which runs `check_dimension`; `count` takes a plain number only. `min_fields` groups and headings are checked against the 4.2 dictionary (`ags._dictionary.standard`) here, and against the file's own headings once `p.qc()` exists (Build 4).
 - `pyproject.toml`: package data for the two YAML files if the build config needs it.
-- Tests (`test_settings.py`): defaults load; a threshold override in ft equals the m value; each error in spec §2 (unknown rule, key, threshold, severity, wrong dimension, plain number for a length, unit on a count, missing file, bad YAML, unknown `min_fields` group or heading) with its message; overrides merge key by key; a file and a dict give the same settings; `V*` precedence.
+- Tests (`test_settings.py`): defaults load; `rules.yaml` and `THRESHOLDS` name the same thresholds; a threshold override in ft equals the m value; each error in spec §2 (unknown rule, key, threshold, severity, wrong dimension, plain number for a length, unit on a count, missing file, bad YAML, unknown `min_fields` group or heading) with its message; overrides merge key by key; a file and a dict give the same settings; `V*` precedence.
 
 ## Build 2: `M6: add the QC defects test file`
 - `_make_files.py` writes `qc_defects.ags` (§8): five holes, a `HORN` group, and one case per rule. `tests/data/ags/README.md` gets its row, listing the case and line for each rule.
