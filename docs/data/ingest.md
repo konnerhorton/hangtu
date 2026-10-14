@@ -158,7 +158,7 @@ Synthetic, in `tests/data/ags/` (SPEC §12.3), written by a script there from ha
 All but `defects.ags` pass python-ags4 validation with no errors.
 
 ## 12. Acceptance criteria
-1. **Twin files:** `site_si.ags` and `site_us.ags` give identical canonical tables (values to 1e-9 relative), identical flags and identical keys.
+1. **Twin files:** `site_si.ags` and `site_us.ags` give identical canonical tables (values to 1e-9 relative), identical flags and identical keys. Not compared: `_line`, and the `UNIT`, `TYPE` and `DICT` groups, which describe the file rather than the data.
 2. **Raw fidelity:** every raw cell equals the file's text, and `_line` points at its DATA line.
 3. **Older versions:** `site_v404.ags` gives the same canonical tables as `site_si.ags` for the groups both have; `IPRG`/`IPRT` and the removed `RUCS` heading are kept under their own names, typed and in SI from the 4.0.4 dictionary, each with `M001`; `degC` and `Bar` convert without `U` findings.
 4. **Keys:** every child row in the good files has its keys; `LLPL` and `LNMC` on one specimen share `specimen_id`; the orphan in `defects.ags` has NULL `sample_id` and a `V10` finding.
