@@ -76,6 +76,14 @@ def test_refusal_found_from_penetration_in_inches():
     assert out["spt_refusal"].tolist() == [True, False]
 
 
+def test_450_mm_converted_from_inches_is_not_a_refusal():
+    # 450 mm written to 10 significant figures in inches converts back to
+    # 449.99999992 mm; that is a full drive, not a refusal.
+    df = frame(spt_n=[40, 40], spt_penetration=[17.71653543, 17.6])
+    out = ht.analysis.spt(df, units={"spt_penetration": "in"})
+    assert out["spt_refusal"].tolist() == [False, True]
+
+
 def test_given_refusal_wins_over_penetration():
     df = frame(
         spt_n=[50, 40, 30],

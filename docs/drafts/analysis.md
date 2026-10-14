@@ -34,7 +34,7 @@ Returns a copy of `df` with `spt_refusal`, `spt_n60` and `spt_n_capped` added, o
 
 **Refusal** (`spt_refusal`), for each row:
 1. the row's `spt_refusal`, where it is filled in;
-2. else True if `spt_penetration` < 450 mm (seating plus test drive not completed), False if ≥ 450 mm;
+2. else True if `spt_penetration` < 450 mm (seating plus test drive not completed), False if ≥ 450 mm, compared with a 1e-6 mm slack so 450 mm written in another unit isn't a refusal by rounding;
 3. else False: with neither, the reported N stands.
 
 `spt_refusal` accepts True/False, 1/0 and the text true/false/yes/no in any case; anything else is an error. The units of `spt_penetration` are resolved as SPEC §2.6 and are needed only when step 2 is used.
