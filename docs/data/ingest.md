@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | spec (M5) |
+| **Status** | done (M5) |
 | **Intent** | [`docs/work/m5-ingest/intent.md`](../work/m5-ingest/intent.md) |
 | **Parent** | SPEC §2.2 (units), §6 (ingestion), §7 (data model), §11 (errors) |
 | **Related** | P00 §4 (quantity kinds, aliases, pcf). `docs/drafts/phase2-data.md` keeps the QC and dataset notes for M6 and M7 |

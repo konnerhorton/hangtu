@@ -108,3 +108,19 @@ Implementation choices the spec leaves open. Any that changes what a user sees g
 - After each build: `uv run ruff check . && uv run ruff format --check . && uv run pytest`.
 - At close-out: Python 3.13 and 3.14 (`uv run --isolated --python 3.1x pytest`); the lowest dependency versions, as in CLAUDE.md (python-ags4 1.2.0 is then the floor actually tested); `uv build`, and check that the wheel has `ags/value_flags.yaml` and the new aliases.
 - Not visual: M5 has no figure, so there's no `visual-check.png`.
+
+## Results
+- 1218 tests pass on Python 3.12, 3.13 and 3.14, and with the lowest dependency versions (pandas 2.1.1, numpy 1.26.0, matplotlib 3.8.0, pint 0.24.4, pyyaml 6.0.1, python-ags4 1.2.0). The wheel has `hangtu/ags/` with `value_flags.yaml`, `db.py`, `project.py`, and the new aliases.
+- **Commits:** one per build step as planned, with build 8 split in two (`ags.ingest()`, then `db.py`).
+- **Changes from the plan**, each recorded in `ingest.md` in the commit that made it:
+  - The test files are written by `tests/data/ags/_make_files.py` from hand-typed SI data, not by hand, and a test checks the committed files match it. The US twin divides by exact factors from their definitions, not by pint.
+  - `M001` can't come from a 4.2 file, so AC 7 takes it from `site_v404.ags` (§11, §12).
+  - `V000` is raised by the reader, because `check_file` needs the version: python-ags4 falls back to the 4.1.1 dictionary for an unknown version, so ingest passes 4.2 explicitly (decision 2).
+  - python-ags4 reports some problems only in its log (a duplicate heading it renamed). Those become `VLOG` findings, so decision 3's idea of dropping log messages that `check_file` repeats was dropped. The rule names for results without a rule number (`VFYI`, `VWARNING`, `VGENERAL`, `VPROCESS`) are in §9.
+  - Refusal: a blows/penetration pair in `ISPT_REP` flags `ISPT_NVAL` (§8). Date, time, DMS and yes/no parsing rules are in §8 too.
+  - `specimen.SPEC_DPTH` is in canonical units, so the twins give the same table (§4). `meta_heading.status` values are listed in §4.
+  - AC 1 doesn't compare `_line` or the `UNIT`, `TYPE` and `DICT` groups, which describe the file rather than the data.
+  - `p.sql()` takes `params` for `?` placeholders; key and `YN` columns come back as `Int64` (§2).
+- **For M6:** findings are in the `finding` table with rule, severity, group, heading and line. The new rules for the QC list are `M001`, `U004`, `VLOG` and the `V` names without a rule number. `diff()` can pair `raw_<GROUP>` and `<GROUP>` rows on `_line`.
+- **For M7:** canonical columns are AGS headings, and `df.attrs["units"]` uses the dictionary's unit strings, which all resolve through the aliases. The datasets map headings to registry names. `IPRG_IPRM` sits next to `FGHG_IPRM` for permeability (§6).
+- SPEC: §6.1, §6.2 and §7 changed in the plan commit (no version mapping); §12.1 and §12.2 at close-out.
