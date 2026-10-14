@@ -64,14 +64,61 @@ The library must keep these concepts separate and traceable, which means recordi
 ### 3.2 Types of estimate (spatial variability)
 Whether the mean or a fractile is appropriate depends on the size of the failure volume (L) compared with the **scale of fluctuation** (θ) of the property.
 
-| Type | When | What it estimates | Sensitivity index Γ² = θ/L |
+| Type | When | What it estimates | Variance reduction factor Γ² |
 |---|---|---|---|
 | **A** | Large failure volume averages out variability (e.g. long slip surface in one unit, pile shaft) | Mean value (95% confidence) | Γ² = 0 |
-| **B** | Local failure; failure zone ≤ scale of fluctuation (e.g. pile base) | 5% or 95% fractile | Γ² = 1 (capped) |
+| **B** | Local failure; failure zone ≤ scale of fluctuation | 5% or 95% fractile | Γ² = 1 |
 | **C** | Intermediate: most real cases | Between A and B | 0 < Γ² < 1 |
 
 - The JRC guidance suggests using **Type A only when θ/L < 0.05**, **Type B only when θ/L > 0.85**, and Type C otherwise.
 - The Type C generalization (Γ²) comes from the JRC report (following Vanmarcke 1983), not from the standard's main formula. The standard itself gives Types A and B.
+
+**Where k_n comes from.** Failure depends on the *average* property over the failure surface or volume (length L), not on a point value. The characteristic value bounds that average, which has two sources of uncertainty:
+- the sample mean is uncertain, with variance σ²/n;
+- the average over a finite L differs from the population mean, with variance Γ²·σ².
+
+Together these give σ²(Γ² + 1/n), hence k_n = t·√(Γ² + 1/n) in section 3.3. Type A (Γ² = 0) assumes infinite averaging. Type B (Γ² = 1) assumes none.
+
+**Scale of fluctuation θ.** Split a profile into a trend and a fluctuation about it: value(z) = trend(z) + fluctuation(z). θ describes the fluctuation only: roughly the distance over which deviations from the trend stay correlated.
+- A **low θ** means short-range scatter: strong and weak patches alternate quickly, so nearby points are nearly independent. A low θ_v does **not** mean the property doesn't change with depth. A soft clay can have a strong c_u trend and still have a small θ_v.
+- A **high θ** means thick zones that sit above or below the trend, so nearby points move together.
+- Rule of thumb (Vanmarcke): θ ≈ 0.8 × the average distance between the points where the profile crosses its trend line.
+- With the common exponential correlation model, ρ(Δz) = exp(−2·Δz/θ). At Δz = 1.5 m (a typical SPT interval), ρ ≈ 0.05 for θ = 1 m but ≈ 0.47 for θ = 4 m.
+- θ_h is usually much larger than θ_v, often 10–40 times, because soil is deposited in horizontal layers. Typical ranges are θ_v ≈ 0.5–3 m and θ_h ≈ 10–80 m or more. ⚠️ (Phoon & Kulhawy 1999, from memory; check before use)
+- L and θ must be in the **same direction**: use θ_v for a pile shaft and θ_h for a long, mostly horizontal slip surface.
+
+**Variance function.** For the exponential correlation model:
+
+```
+Γ²(L) = (θ/L)² / 2 · (2L/θ − 1 + e^(−2L/θ))
+```
+
+When L ≫ θ, it tends to θ/L. When L ≪ θ, it tends to 1, so it never needs capping. The simple ratio θ/L is only the large-L approximation, and it goes above 1 when L < θ.
+
+**Why the type matters.** Case 2, n = 10, V_X = 0.30, t₉₅,₉ = 1.833:
+
+| Type | Γ² | k_n | X_k / X_mean |
+|---|---|---|---|
+| A | 0 | 0.580 | 0.83 |
+| C | 0.2 | 1.004 | 0.70 |
+| B | 1 | 1.922 | 0.42 |
+
+The same data spans a factor of two, which usually outweighs the choice of distribution or method. θ alone matters too. For a 15 m pile shaft with the same data, θ_v = 0.5 m gives Γ² = 0.033 and X_k/X_mean = 0.80, while θ_v = 3 m gives Γ² = 0.18 and X_k/X_mean = 0.71.
+
+**Where θ comes from.** θ is a physical property of the deposit, so geology sets it. In practice it is pinned down in one of three ways:
+1. **Measured on site** (best): take a dense profile, usually a CPT, detrend it within one unit, and fit a correlation model to the residuals. The record must be several times longer than θ, so a 3 m thick unit can't distinguish θ_v = 2 m from 5 m.
+2. **Taken from published values** for a comparable deposit (e.g. "NC marine clay", "fluvial sand with lenses"), chosen by geological judgment. For θ_h this is usually the only realistic option, because few sites have holes close enough to measure it.
+3. **Bracketed**: compute X_k at both ends of the plausible range and see whether the answer changes much. Often it doesn't.
+
+A θ estimate also depends on the engineer's choices: the detrending (linear or curved trend), where the unit boundaries are drawn (lumping interbedded layers makes the layer contrast part of the "fluctuation"), the direction, and the test's own averaging volume. In short, geology gives the plausible range, site data narrows it, and the engineer picks the value and records why.
+
+**Caveats:**
+- **The 1/n term assumes independent samples.** Samples spaced closer than θ are correlated, so the effective n is smaller than the count. A CPT logged every 2 cm through a 10 m unit gives about 500 points but only a handful of independent ones. Used naively, the 1/n term vanishes and the result looks far more certain than it is.
+- **SPT spacing can't resolve θ_v.** At 1.5 m (5 ft) intervals, the sampling interval is about the same as θ_v, so θ_v has to come from CPT data or published values.
+- **An unremoved trend inflates θ.** A c_u trend that increases with depth looks like long-range correlation. Estimate θ after detrending (section 3.5).
+- **Idealized examples mislead.** A pile base failure zone of 2–3 m with θ_v ≈ 1 m gives θ/L ≈ 0.4, which is Type C, not B.
+
+**hangtu relevance:** only the engineer knows L, the limit state and a defensible θ, so these are inputs, not defaults. The output should record θ (with its source and direction), L and Γ². A possible later helper could estimate θ_v from CPT data, warning when the unit is too thin compared with θ.
 
 ### 3.3 Formula (normal distribution) ✅
 EN 1997-1, Formula (4.5):
@@ -215,6 +262,11 @@ res = ht.stats.characteristic(
 res.value      # X_k
 res.summary()  # n, mean, s, V_X, k_n, case/type combination (e.g. "B2"), warnings (small n, negative X_k, high V_X)
 ```
+
+**Open points from section 3.2:**
+- The `estimate="mean"` default is the least conservative option and hides the main judgment call. Consider making `estimate` required.
+- Consider taking `scale_of_fluctuation` and `failure_length` (with units and direction) and computing Γ² with the variance function, keeping `gamma2=` as an override. Accepting a range of θ and reporting X_k at both ends would show the sensitivity.
+- Warn when the sample spacing is less than θ, because the effective n is then below the count.
 
 **Golden tests:** the JRC report's worked examples (Annexes I–III: Coca slope, Göta älv c_u, Perniö clay) give published inputs and outputs we can use for regression tests.
 
