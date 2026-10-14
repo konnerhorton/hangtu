@@ -1,6 +1,6 @@
 # hangtu
 
-Python library of plots, analyses and (later) AGS4 ingest/QC for geotechnical engineers. M0 (scaffolding), M1 (P00 framework), M2 (P01 property profile) and M2b (P07 property by geology unit) done, and the package renamed from ags-kit to hangtu. M3 is split into three units: the SPT analysis (`ht.analysis`) and P02 SPT profile are done; P03 SPT class histogram is next.
+Python library of plots, analyses and (later) AGS4 ingest/QC for geotechnical engineers. M0 (scaffolding), M1 (P00 framework), M2 (P01 property profile), M2b (P07 property by geology unit) and M3 (SPT analysis, P02 SPT profile, P03 SPT class histogram) done, and the package renamed from ags-kit to hangtu. M4 (P04–P06 with the classification and gradation analyses) is next.
 
 ## Where things are
 - `SPEC.md`: product spec and cross-cutting decisions. Read the relevant section before designing anything.

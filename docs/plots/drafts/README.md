@@ -11,7 +11,7 @@ Each draft ends with **pitfalls**: mistakes that are easy to make when implement
 | Draft | What it draws | Status in `docs/plots/README.md` | Target |
 |---|---|---|---|
 | [P02](../P02-spt-profile.md) | SPT N against elevation, colored by unit | built (promoted) | v0.1 |
-| [P03](P03-spt-histograms.md) | % of tests per density or consistency class, per unit | listed | v0.1 |
+| [P03](../P03-spt-histogram.md) | % of tests per density or consistency class, per unit | built (promoted) | v0.1 |
 | [P04](P04-plasticity-chart.md) | Plasticity chart with A/U lines and optional user regions | listed | v0.1 |
 | [P05](P05-grain-size.md) | Grain size curves, fraction header band, envelopes, D-values | listed | v0.1 |
 | [P11](P11-stress-path.md) | s′–t paths, including idealized drained paths from failure stresses | listed | v0.5 |
