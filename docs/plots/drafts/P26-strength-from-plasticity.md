@@ -67,7 +67,7 @@ P07: x `Effective friction angle, φ′ (degrees)` or `Effective cohesion, c′ 
 P07 marks. Color stays with the unit; the method goes in the row label.
 
 ## 8. Overlays and annotations
-P07 baseline: triaxial results per unit (from P12) could be the "baseline" to compare against.
+P07 baseline: triaxial results per unit (from P11) could be the "baseline" to compare against.
 
 ## 9. Units behavior
 φ′ in degrees in both; c′ converts (kPa ↔ psf). The c′ formula is in kPa and is applied in kPa before conversion.
