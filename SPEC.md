@@ -55,9 +55,9 @@
 | **v0.2** | **2: Data** | - AGS4 ingest (units on ingest, value flags) into SQLite.<br>- QC level 1 with CSV report and diff tool.<br>- Depth/elevation/geology conventions and joins.<br>- Ready-made datasets (SPT, Atterberg/index properties, grain size, permeability) that feed the Phase 1 plots directly. |
 | **v0.3** | **3: Statistics** | - `describe`, `fit` (bounded and censored), `compare`, `compare_groups`, `crosstab`, EC7 `characteristic`.<br>- Plots P08 (distribution fit) and P09 (characteristic value profile). |
 | v0.4 | | - Clogging (P17–P18; Thewes & Burger 2004, Hollmann & Thewes 2013).<br>- QC level 2 (engineering-judgment ranges).<br>- Standards comparison with a library of published ranges.<br>- User-defined PSD regions; plasticity-chart data region.<br>- Compaction curve (P16). |
-| v0.5 | | - Triaxial (P10, P11) and consolidation (P13–P15) analyses and plots.<br>- **AGSi export** (`to_agsi()`): 1D model elements per geology unit, carrying property summaries and parameters (including depth-trend design lines), with codes from the column registry. |
+| v0.5 | | - Triaxial failure envelope (P11) and consolidation (P13–P15) analyses and plots.<br>- **AGSi export** (`to_agsi()`): 1D model elements per geology unit, carrying property summaries and parameters (including depth-trend design lines), with codes from the column registry. |
 | v0.6 | | - Soil modulus from multiple sources (P20).<br>- Pressuremeter → Hardening Soil parameters (P19).<br>- (N1)60. |
-| Later | | - **AGSi import** (unit definitions and design parameters, compared with hangtu statistics).<br>- Multiple AGS files per project (merging, LOCA_ID conflicts, multiple datums).<br>- DIGGS ingestion; AGS3 → AGS4; CPT (P22).<br>- GeoPackage export; simple location plan (P21).<br>- Lateral earth pressure with depth (P23).<br>- Measured triaxial stress paths (P12), once there is a source of readings during shearing.<br>- Better UI; regex/fuzzy text matching; conditional minimally-useful-field rules.<br>- Cohesive/cohesionless helper; inch display for coarse particle sizes.<br>- Title block and drafting templates. |
+| Later | | - **AGSi import** (unit definitions and design parameters, compared with hangtu statistics).<br>- Multiple AGS files per project (merging, LOCA_ID conflicts, multiple datums).<br>- DIGGS ingestion; AGS3 → AGS4; CPT (P22).<br>- GeoPackage export; simple location plan (P21).<br>- Lateral earth pressure with depth (P23).<br>- Triaxial shearing: stress–strain curves and measured stress paths (P12), once there is a source of readings.<br>- Better UI; regex/fuzzy text matching; conditional minimally-useful-field rules.<br>- Cohesive/cohesionless helper; inch display for coarse particle sizes.<br>- Title block and drafting templates. |
 
 ### 1.4 Non-goals (through v0.3)
 - Writing or editing AGS files (except test fixtures).
@@ -133,7 +133,7 @@ Full conventions are in [`docs/plots/README.md`](docs/plots/README.md); each fig
 - **Plot list and status:** see `docs/plots/README.md`.
   - Batch 1 (P00–P07) is v0.1.
   - P08–P09 are v0.3.
-  - Batch 2 lab analyses (P10–P16) are v0.4–v0.5.
+  - Batch 2 lab analyses (P11, P13–P16) are v0.4–v0.5; P12 is Later.
 
 ---
 
