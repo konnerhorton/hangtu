@@ -457,6 +457,67 @@ class Project:
             display_units=display_units,
         )
 
+    def permeability(
+        self,
+        *,
+        holes: "str | list[str] | None" = None,
+        geology: "str | list[str] | None" = None,
+        depth: "tuple | None" = None,
+        elevation: "tuple | None" = None,
+        where: dict | None = None,
+        contains: "str | list[str] | None" = None,
+        geology_fields: "str | list[str] | None" = None,
+        include_incomplete: bool = False,
+        display_units: str | None = None,
+    ) -> pd.DataFrame:
+        """Return hydraulic conductivity from lab and field tests, for P01 and P07.
+
+        One row per result: ``PTST_K`` (``source = "lab"``, at the specimen's
+        depth), ``FGHG_IPRM`` and, in 4.0.x files, each ``IPRG_IPRM`` stage
+        (``source = "field"``, at the middle of the test zone, with
+        ``depth_top`` and ``depth_base``). ``<``/``>`` results keep their
+        bound as the value and the sign in ``qualifier``. See
+        ``docs/data/datasets.md`` §6.4.
+
+        Parameters
+        ----------
+        holes, geology
+            Keep these holes (``LOCA_ID``) or geology units.
+        depth, elevation
+            Keep ``low <= value <= high``, given in the dataset's units
+            (``(0, 30)``) or as quantity strings (``("0 ft", "30 ft")``).
+            Either end may be None.
+        where
+            Keep rows matching ``{column: value or list of values}``.
+        contains
+            Keep rows whose geology description contains this text (any
+            case), or any of a list.
+        geology_fields
+            GEOL headings to add as columns, e.g. ``["GEOL_FORM"]``.
+        include_incomplete
+            Keep records with a blank required field (QC C001). By default
+            they're left out, with a warning that counts them.
+        display_units
+            ``"US"`` or ``"SI"``; by default the project's.
+
+        Examples
+        --------
+        >>> k = p.permeability()
+        >>> fig, ax = ht.plot.profile(k, "hydraulic_conductivity", marker_by="source")
+        """
+        return datasets.permeability(
+            self._path,
+            holes=holes,
+            geology=geology,
+            depth=depth,
+            elevation=elevation,
+            where=where,
+            contains=contains,
+            geology_fields=geology_fields,
+            include_incomplete=include_incomplete,
+            display_units=display_units,
+        )
+
     # --- Geology map (datasets.md §5.2) -----------------------------------------
 
     def set_geology_map(
