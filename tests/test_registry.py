@@ -1,6 +1,9 @@
 import re
+import warnings
 from importlib.resources import files
+from pathlib import Path
 
+import matplotlib.pyplot as plt
 import pytest
 
 import hangtu as ht
@@ -156,3 +159,62 @@ def test_template_csv_has_one_header_row(tmp_path):
 def test_unknown_template_lists_the_templates(call):
     with pytest.raises(ht.ColumnError, match=r"no template named 'sptt'.*spt"):
         call("sptt")
+
+
+# --- Dataset templates (SPEC §2.6) ------------------------------------------------
+
+DATA = Path(__file__).parent / "data" / "ags"
+DATASETS = ("spt", "atterberg", "grain_size", "permeability")
+# Columns only hangtu can produce, so a CSV template leaves them out.
+ONLY_HANGTU = {
+    "source_line",
+    "energy_source",
+    "spt_n_capped",
+    "liquidity_index",
+    "consistency_index",
+}
+
+
+@pytest.fixture(scope="module")
+def site(tmp_path_factory):
+    db = tmp_path_factory.mktemp("templates") / "site.sqlite"
+    p = ht.Project.from_ags(DATA / "site_us.ags", db=db, display_units="US")
+    p.set_geology_map(DATA / "strata.csv")
+    return p
+
+
+@pytest.mark.parametrize("name", DATASETS)
+def test_dataset_templates_follow_their_dataset(site, name):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        dataset = getattr(site, name)()
+    expected = [column for column in dataset.columns if column not in ONLY_HANGTU]
+    assert list(ht.template(name).columns) == expected
+
+
+def test_filled_templates_feed_the_plots(site, tmp_path):
+    read = {}
+    for name in DATASETS:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            dataset = getattr(site, name)()
+        path = tmp_path / f"{name}.csv"
+        dataset[list(ht.template(name).columns)].to_csv(path, index=False)
+        units = {
+            column: unit
+            for column, unit in dataset.attrs["units"].items()
+            if column in ht.template(name).columns
+        }
+        read[name] = ht.read_csv(path, units=units)
+    calls = [
+        (ht.plot.spt_profile, read["spt"]),
+        (ht.plot.spt_histogram, read["spt"]),
+        (ht.plot.profile, read["permeability"], "hydraulic_conductivity"),
+        (ht.plot.profile, read["atterberg"], "liquid_limit"),
+        (ht.plot.geology_unit_comparison, read["atterberg"], "plasticity_index"),
+    ]
+    for plot, *args in calls:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            fig, _ax = plot(*args)
+        plt.close(fig)
