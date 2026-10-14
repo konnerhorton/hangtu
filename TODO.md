@@ -7,43 +7,6 @@ Items to think through or research. Each item notes who owns it and the SPEC.md 
 
 ---
 
-## Project
-
-### 0b. Canonical data model: AGS-shaped or observation-based? · You · SPEC §6, §7 · **Decide before Phase 2 starts (milestone M6)**
-**Background:** AGS is often criticized as a *storage* model, as opposed to a transfer format. Claude's guesses at why (unconfirmed):
-1. Depths are part of record identity: correcting a depth re-keys every child test, and the keys are formatted decimals.
-2. No history or versioning.
-3. `LOCA_ID` is unique only within a project.
-4. One group per test type, a layout that changes between versions, and awkward generic queries.
-5. Values stored as text, with per-file units and display-precision types.
-6. Raw, derived and interpreted values mixed together, with no record of how values were derived.
-7. Weak geometry: no CRS or vertical datum, inclined holes only via HORN.
-8. Code lists (ABBR) that vary by file.
-
-**Options:**
-- **A. AGS 4.2-shaped canonical tables.**
-  - Older AGS versions are mapped up to 4.2, and DIGGS is mapped into the same shape.
-  - Extension tables hold datum/CRS, flags, provenance and integer surrogate keys.
-  - Simplest to build; `p.sql()` users see familiar AGS names.
-  - Generic cross-test queries and DIGGS mapping are harder.
-- **B. Hybrid (Claude's lean, pending confirmation of the reasons):**
-  - The **raw layer** stays AGS-shaped (faithful to the file; used by `p.diff()` and validation).
-  - The **canonical layer** has:
-    - entity tables with surrogate keys: `location`, `sample`, `specimen`, `geology_interval`;
-    - a generic `observation` table: entity, depth, property, value_si, flag, method, source row;
-    - structured tables where shape matters: PSD curves, SPT increments, and later triaxial stages and consolidation increments.
-  - DIGGS (which follows the OGC Observations & Measurements pattern) maps naturally.
-  - A new test type means new rows, not a layout change.
-  - Costs a bit more design up front, and raw SQL becomes harder.
-
-**Either way:** the public API (the friendly column registry, plot and stats functions) is the same, so this decision is internal.
-
-**Next step:** confirm which reasons are decisive, especially identity/keys (#1, #3) vs layout and the observation model (#4).
-
-**Timing:** with plots first (SPEC §1.3), nothing in Phase 1 depends on this decision. It must be settled at M6, before Phase 2 (ingest and database) starts.
-
----
-
 ## Geology and classification
 
 ### 3. `soil_class` categories · You · SPEC §8.3
@@ -59,7 +22,7 @@ Items to think through or research. Each item notes who owns it and the SPEC.md 
   - Is rock (weathered, IGM) worth separating?
 
 ### 5. Plasticity and gradation systems · Claude (verify) · docs/drafts/analysis.md §2–3 · needed for P04–P05 (Phase 1)
-Verify against the source standards during M5:
+Verify against the source standards during M9:
 - BS 5930:2015+A1:2020 plasticity terms (low < 35, intermediate 35–50, high 50–70, very high 70–90, extremely high > 90 LL);
 - AASHTO M 145 / ASTM D3282 group and group-index rules;
 - ASTM D2487-17 USCS;

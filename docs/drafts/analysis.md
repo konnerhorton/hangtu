@@ -1,6 +1,6 @@
 # Phase 1 analyses — feature spec
 
-**Status:** §1 SPT is decided (M3). §2–3 are drafts, to be finished with P04–P06 (M4). Analyses are specified here, apart from the plot specs, so they can be used without a plot.
+**Status:** §1 SPT is decided (M3). §2–3 are drafts, to be finished with P04–P06 (M8). Analyses are specified here, apart from the plot specs, so they can be used without a plot.
 **Parent:** SPEC §4. The cross-cutting analysis decisions are there. This file holds the detail. Depth conventions are in SPEC §8.
 
 ---

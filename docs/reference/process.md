@@ -36,8 +36,8 @@ The playbook's loop needs something for each intent to point at. In an existing 
 
 1. **Product spec first.** Write down the scope, phasing and cross-cutting decisions (done: `SPEC.md`).
 2. **M0 (scaffolding) is the first run through the loop.** Once it lands, fill in the commands section of `CLAUDE.md`.
-3. **Each later milestone or plot is one run through the loop.** Milestones in SPEC §12.4 map onto intents. A milestone can be split into several intents, for example M4 into P04, P05 and P06.
-4. **Phase boundaries are where the spec is redesigned.** At M6, turn `docs/drafts/phase2-data.md` into intents and specs, and move the decisions that apply across Phase 2 into `SPEC.md`.
+3. **Each later milestone or plot is one run through the loop.** Milestones in SPEC §12.4 map onto intents. A milestone can be split into several intents, for example M8 into P04, P05 and P06.
+4. **Phase boundaries are where the spec is redesigned.** At M4 (the start of Phase 2), turn `docs/drafts/phase2-data.md` into intents and specs, and move the decisions that apply across Phase 2 into `SPEC.md`.
 
 ## How detailed should SPEC.md be?
 

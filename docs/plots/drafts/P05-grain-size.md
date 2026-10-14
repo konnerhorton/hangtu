@@ -5,7 +5,7 @@
 | **ID / function** | P05 · `ht.plot.grain_size()` (+ `ht.analysis.gradation()`) |
 | **Status** | idea (draft notes) |
 | **Type** | plot + analysis (Dx, Cu, Cc, gradation) |
-| **Target version** | v0.1 (milestone M4) |
+| **Target version** | v0.1 (milestone M8) |
 | **Depends on** | P00 |
 | **Related** | `docs/drafts/analysis.md` §3, TODO #5. P25 (size-fraction comparison) |
 
@@ -80,7 +80,7 @@ Single panel plus the header band (a thin axes on top, sharing x). Default size:
 Particle size stays in mm in both systems (registry decision). Sieve labels switch between the US and ISO lists.
 
 ## 10. API
-At M4. Expected: `grain_size(df, *, fractions="astm_uscs", d_values=False, envelopes=None, color_by="geology_unit", ...) -> (fig, ax)`.
+At M8. Expected: `grain_size(df, *, fractions="astm_uscs", d_values=False, envelopes=None, color_by="geology_unit", ...) -> (fig, ax)`.
 
 ## 11. Edge cases and data quality
 | Situation | Behavior |
