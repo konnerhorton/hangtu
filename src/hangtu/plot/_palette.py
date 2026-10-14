@@ -34,16 +34,30 @@ def _ordered(units: Iterable[Any], order: Sequence[Any] | None) -> list[Any]:
     return known + rest
 
 
+def data_order(values: pd.Series) -> list[Any] | None:
+    """Return the categories of a categorical column, as a unit order, else None.
+
+    A project's datasets give ``geology_unit`` the geology map's order this way
+    (datasets.md §5.2).
+    """
+    if isinstance(values.dtype, pd.CategoricalDtype):
+        return list(values.cat.categories)
+    return None
+
+
 def resolve_palette(
     units: Iterable[Any],
     palette: Mapping[Any, Any] | None = None,
     order: Sequence[Any] | None = None,
+    data_palette: Mapping[Any, Any] | None = None,
 ) -> dict[Any, Any]:
     """Return ``{unit: color}`` for ``units``, in stratigraphic or name order.
 
-    Colors come from ``palette``, then ``ht.settings.palette``, then automatic
-    colors from tab20. Automatic colors are remembered, so a unit keeps its
-    color in later plots until ``ht.plot.reset_palette()``.
+    Colors come from ``palette``, then ``ht.settings.palette``, then
+    ``data_palette`` (a project's geology map, carried in
+    ``df.attrs["palette"]``), then automatic colors from tab20. Automatic
+    colors are remembered, so a unit keeps its color in later plots until
+    ``ht.plot.reset_palette()``.
 
     Parameters
     ----------
@@ -53,6 +67,8 @@ def resolve_palette(
         Colors given in the plot call.
     order
         Units in stratigraphic order. Units not in it follow, sorted by name.
+    data_palette
+        Colors that came with the data; a session color still wins.
     """
     palette = palette or {}
     bad = [unit for unit, color in palette.items() if not is_color_like(color)]
@@ -68,6 +84,8 @@ def resolve_palette(
             resolved[unit] = palette[unit]
         elif unit in settings.palette:
             resolved[unit] = settings.palette[unit]
+        elif data_palette and unit in data_palette:
+            resolved[unit] = data_palette[unit]
         else:
             if unit not in _assigned:
                 repeated |= len(_assigned) >= len(AUTOMATIC)

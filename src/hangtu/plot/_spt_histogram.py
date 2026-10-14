@@ -19,7 +19,7 @@ from hangtu.plot._hints import hint_missing
 from hangtu.plot._legend import add_legend
 from hangtu.plot._limits import nice_limits, set_linear_axis
 from hangtu.plot._notes import Notes
-from hangtu.plot._palette import resolve_palette
+from hangtu.plot._palette import data_order, resolve_palette
 from hangtu.plot._spt_profile import _check_choice
 from hangtu.registry import column_info
 
@@ -53,7 +53,12 @@ def _groups(
         return np.full(len(df), None, dtype=object), {None: _values.NEUTRAL}
     groups = df[color_by].to_numpy(dtype=object)
     blank = pd.isna(groups)
-    colors = resolve_palette(groups[~blank], palette, order)
+    colors = resolve_palette(
+        groups[~blank],
+        palette,
+        order or data_order(df[color_by]),
+        df.attrs.get("palette"),
+    )
     if blank.any():
         groups = np.where(blank, _values.BLANK_GROUP, groups)
         colors[_values.BLANK_GROUP] = _values.NEUTRAL

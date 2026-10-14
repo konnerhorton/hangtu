@@ -28,7 +28,7 @@ from hangtu.plot._legend import add_legend
 from hangtu.plot._limits import set_linear_axis, set_log_axis
 from hangtu.plot._notes import ARROW_LENGTH, Notes, edge_markers
 from hangtu.plot._overlays import ValueScale, draw_note, draw_reference_lines
-from hangtu.plot._palette import resolve_palette
+from hangtu.plot._palette import data_order, resolve_palette
 from hangtu.plot._presets import Preset
 
 POINT_SIZE = 3.0  # points
@@ -199,7 +199,12 @@ def _rows(
     """
     groups = df["geology_unit"].to_numpy(dtype=object)
     blank = pd.isna(groups)
-    colors = resolve_palette([*groups[~blank], *extra], palette, order)
+    colors = resolve_palette(
+        [*groups[~blank], *extra],
+        palette,
+        order or data_order(df["geology_unit"]),
+        df.attrs.get("palette"),
+    )
     if blank.any():
         groups = np.where(blank, _values.BLANK_GROUP, groups)
         colors[_values.BLANK_GROUP] = _values.NEUTRAL

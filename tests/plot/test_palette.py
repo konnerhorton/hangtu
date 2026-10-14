@@ -82,3 +82,13 @@ def test_legend_handles():
 def test_nothing_colored_yet_raises(call):
     with pytest.raises(ht.HangtuError, match="No geology units have colors yet"):
         call()
+
+
+def test_data_palette_comes_after_settings():
+    # A project's geology map rides in df.attrs["palette"] (datasets.md §5.2).
+    ht.settings.palette = {"Till": "gray"}
+    colors = resolve_palette(
+        ["Till", "Fill", "Alluvium"],
+        data_palette={"Till": "red", "Fill": "tan"},
+    )
+    assert colors == {"Alluvium": AUTOMATIC[0], "Fill": "tan", "Till": "gray"}

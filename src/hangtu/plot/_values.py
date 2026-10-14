@@ -18,7 +18,7 @@ from hangtu._data import rows_text
 from hangtu.errors import ColumnError, HangtuError
 from hangtu.plot._limits import log_limits, nice_limits
 from hangtu.plot._notes import Notes
-from hangtu.plot._palette import resolve_palette
+from hangtu.plot._palette import data_order, resolve_palette
 from hangtu.plot._presets import Preset
 from hangtu.registry import column_info
 
@@ -148,7 +148,12 @@ def color_groups(
         return np.full(len(df), None, dtype=object), {None: NEUTRAL}
     groups = df[color_by].to_numpy(dtype=object)
     blank = pd.isna(groups)
-    colors = resolve_palette(groups[~blank], palette)
+    colors = resolve_palette(
+        groups[~blank],
+        palette,
+        data_order(df[color_by]),
+        df.attrs.get("palette"),
+    )
     groups = np.where(blank, BLANK_GROUP, groups)
     if blank.any():
         colors[BLANK_GROUP] = NEUTRAL
