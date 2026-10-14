@@ -1,7 +1,7 @@
 # Phase 2 (data) — draft notes
 
 **Status:** working notes, not a spec. **Parent:** SPEC §6, §7, §9 and §10, which hold the decided constraints.
-**Use:** input for the Phase 2 intents at M6 (ingest, QC, datasets). Each intent's spec takes what it needs from here, and the decisions that end up applying to all of Phase 2 go back into `SPEC.md`.
+**Use:** input for the Phase 2 intents at M4 (ingest, QC, datasets). Each intent's spec takes what it needs from here, and the decisions that end up applying to all of Phase 2 go back into `SPEC.md`.
 Decisions marked **(decided)** were agreed in review. Everything else is a draft.
 
 ---
@@ -15,7 +15,7 @@ AGS file
   → python-ags4: AGS4_to_dataframe()             → {group: DataFrame of text}, plus UNIT/TYPE rows
   → raw layer writer                             → raw_<GROUP> tables (TEXT, exactly as in the file, + _line)
   → version mapping to AGS 4.2                   → older versions mapped up (e.g. IPRG → FGHG)
-  → typing + unit conversion + value flags       → canonical layer (SI) + value flags   [shape: TODO 0b]
+  → typing + unit conversion + value flags       → canonical layer (SI) + value flags   [AGS 4.2-shaped, SPEC §7]
   → metadata writer                              → meta_* tables
 ```
 
@@ -60,7 +60,7 @@ Phase 1 unit rules (quantity kinds, aliases, pcf, SPT N) are in `docs/plots/P00-
 
 ---
 
-## Data model (SPEC §7, pending TODO 0b)
+## Data model (SPEC §7)
 
 **Metadata tables:**
 - `meta_project` (settings);
@@ -70,12 +70,7 @@ Phase 1 unit rules (quantity kinds, aliases, pcf, SPT N) are in `docs/plots/P00-
 - `meta_geology_map`;
 - `qc_validation`.
 
-**Options for the canonical layer:**
-- **A. AGS 4.2-shaped tables** in SI.
-- **B. Hybrid:**
-  - entity tables (`location`, `sample`, `specimen`, `geology_interval`);
-  - a generic `observation` table;
-  - structured tables for curves, increments and stages.
+**Canonical layer** (decided): AGS 4.2-shaped tables in SI. The rules are in SPEC §7.
 
 ---
 

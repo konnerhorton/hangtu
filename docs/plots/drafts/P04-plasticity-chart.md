@@ -5,7 +5,7 @@
 | **ID / function** | P04 · `ht.plot.plasticity_chart()` (+ `ht.analysis.classify_fines()`) |
 | **Status** | idea (draft notes) |
 | **Type** | plot + classification |
-| **Target version** | v0.1 (milestone M4) |
+| **Target version** | v0.1 (milestone M8) |
 | **Depends on** | P00 |
 | **Related** | `docs/drafts/analysis.md` §2, TODO #5 |
 
@@ -87,7 +87,7 @@ Single panel. Equal aspect forces a 100 × 60 data box; the figure is sized so t
 Nothing converts (LL in %, PI dimensionless).
 
 ## 10. API
-At M4. Expected: `plasticity_chart(df, *, system="uscs", regions=None, labels=False, color_by="geology_unit", ...) -> (fig, ax)`.
+At M8. Expected: `plasticity_chart(df, *, system="uscs", regions=None, labels=False, color_by="geology_unit", ...) -> (fig, ax)`.
 
 ## 11. Edge cases and data quality
 | Situation | Behavior |

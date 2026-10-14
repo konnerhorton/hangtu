@@ -45,12 +45,14 @@
 | **CSV / DataFrame** | Input for plots and statistics, using the documented column names. CSV only (decided): no Excel reader; users convert their own workbooks | **Phase 1** |
 
 ### 1.3 Phases and roadmap
-**Why plots come first (decided):** plots are what users will use first, so building them first gets feedback soonest. Plot and analysis functions take DataFrames, so they don't need the AGS ingest or database to be useful.
+**Why plots came first (decided):** plots are what users will use first, so building them first gets feedback soonest. Plot and analysis functions take DataFrames, so they don't need the AGS ingest or database to be useful.
+
+**Build order (decided 2026-10-13):** after M3 (P01–P03 and P07), Phase 2 is built before the rest of Phase 1 (P04–P06 and the v0.1 release, §12.4). The data layer is the more useful piece for current work, and the remaining plots don't depend on it, so either order works. The table below lists versions by content; §12.4 has the build order.
 
 | Version | Phase | Content |
 |---|---|---|
 | **v0.1** | **1: Plots** | - Plot framework (P00): style, palette, unit-aware labels, out-of-range markers, `Sheet`.<br>- Batch 1 plots **P01–P07**: property profile, SPT profile, SPT histograms, plasticity chart, grain size, water content profile, property by geology unit.<br>- The analyses they need: SPT N60/refusal/classes, plasticity classification, Dx/Cu/Cc/gradation.<br>- Units handling for DataFrames (§2.6), the column registry, CSV templates.<br>- **First PyPI release; feedback round.** |
-| **v0.2** | **2: Data** | - AGS4 ingest (units on ingest, value flags) into SQLite.<br>- QC level 1 with CSV report and diff tool.<br>- Depth/elevation/geology conventions and joins.<br>- Ready-made datasets (SPT, Atterberg/index properties, grain size, permeability) that feed the Phase 1 plots directly.<br>- **Blocked by TODO 0b (internal data model).** |
+| **v0.2** | **2: Data** | - AGS4 ingest (units on ingest, value flags) into SQLite.<br>- QC level 1 with CSV report and diff tool.<br>- Depth/elevation/geology conventions and joins.<br>- Ready-made datasets (SPT, Atterberg/index properties, grain size, permeability) that feed the Phase 1 plots directly. |
 | **v0.3** | **3: Statistics** | - `describe`, `fit` (bounded and censored), `compare`, `compare_groups`, `crosstab`, EC7 `characteristic`.<br>- Plots P08 (distribution fit) and P09 (characteristic value profile). |
 | v0.4 | | - Clogging (P17–P18; Thewes & Burger 2004, Hollmann & Thewes 2013).<br>- QC level 2 (engineering-judgment ranges).<br>- Standards comparison with a library of published ranges.<br>- User-defined PSD regions; plasticity-chart data region.<br>- Compaction curve (P16). |
 | v0.5 | | - Triaxial (P10–P12) and consolidation (P13–P15) analyses and plots.<br>- **AGSi export** (`to_agsi()`): 1D model elements per geology unit, carrying property summaries and parameters (including depth-trend design lines), with codes from the column registry. |
@@ -136,7 +138,7 @@ Full conventions are in [`docs/plots/README.md`](docs/plots/README.md); each fig
 ---
 
 ## 4. Analyses (Phase 1 unless noted)
-Analysis code lives in `ht.analysis.*`, as plain functions usable without plotting. Detail is in [`docs/drafts/analysis.md`](docs/drafts/analysis.md): §1 SPT (refusal, N60, cap, classes) is decided; §2 Atterberg and §3 grain size are drafts until M4. Decisions that more than one plot depends on:
+Analysis code lives in `ht.analysis.*`, as plain functions usable without plotting. Detail is in [`docs/drafts/analysis.md`](docs/drafts/analysis.md): §1 SPT (refusal, N60, cap, classes) is decided; §2 Atterberg and §3 grain size are drafts until M8. Decisions that more than one plot depends on:
 - **SPT refusals** are included by default at the cap value (`spt_cap = 100`) with a note. Statistics treat them as censored.
 - **N60** stays NULL until an energy ratio or `hammer_efficiency` is given. There is no default.
 - **NP** is distinct from blank everywhere and shown as a count on plots.
@@ -171,17 +173,26 @@ Decided constraints only. The pipeline, type mapping and version notes are in [`
 
 ---
 
-## 7. Data model (Phase 2) — ❓ pending TODO 0b
+## 7. Data model (Phase 2)
 
-**Decided, whichever option is chosen:**
+**Canonical layer** (decided 2026-10-13, was TODO 0b): **AGS 4.2-shaped tables**, typed and in SI, rather than a hybrid entity/observation model.
+- **Why:** most criticisms of AGS as a storage model assume a long-lived database that people edit. hangtu reads one file per project (§6.2), never writes AGS (§1.4), and can rebuild the database from the file at any time. Correcting a depth means a new file and a re-ingest, not re-keying child records, and the file is the history.
+- An observation model would need a property vocabulary for every heading, user-defined groups included. AGS-shaped tables take every group, user-defined ones too, as they come.
+- Queries across test types (all undrained strengths, whatever the test) and the method behind each value are handled by the datasets (§10.2), which combine groups into rows with `source` and `test_type` columns.
+- **The choice can be reversed.** If an observation model is needed later (for DIGGS, or generic queries), it can be built as a view or a generated table on top of these tables, using the AGS sources in the column registry, followed by a re-ingest. Nothing needs migrating.
+
+**Rules:**
 - **SQLite only.** All access goes through `db.py`.
 - **Raw layer:** `raw_<GROUP>`, every heading as TEXT exactly as in the file, plus `_line`. Used by validation and `diff()`.
+- **Canonical layer:** one table per group, named after it (`ISPT`), with the AGS 4.2 heading names. Older versions are mapped up to 4.2 (§6.2), and DIGGS will later be mapped into the same shape.
+- **Integer surrogate keys** for locations, samples and specimens. Every child table carries `location_id`, `sample_id` and `specimen_id` as they apply, resolved at ingest. Joins use them, never the AGS key columns, which are kept as columns. A child record whose parent can't be found is a QC finding.
+- **Value flags** live in a table of their own, one row per flagged cell (table, row, heading, flag, bound), so a flag can be attached to any numeric heading. Datasets expose them as columns (`non_plastic`, `spt_refusal`).
+- **Only what the file says.** Values hangtu calculates (N60, classifications, Dx) are not stored; the datasets and analyses compute them. A value given in the file (e.g. `ISPT_N60`) is stored as given.
+- **Provenance:** every canonical row keeps its source file and `_line`, for `diff()` and QC messages.
+- **Schema version** is stored in the metadata. If it doesn't match the installed hangtu on open, the user is told to re-ingest.
 - **Metadata tables** (`meta_*`) for settings, source files, heading units, value flags and the geology map.
-- **Integer surrogate keys** for locations, samples and specimens. AGS keys are kept as columns.
 - **Extension tables** for things AGS lacks: datum/CRS, flags, provenance.
 - **The public API never depends on the canonical layout.** Users see the column registry (§10.3), datasets and functions. Only `sql()` and `table()` expose internal names.
-
-**Pending choice:** AGS 4.2-shaped tables vs. a hybrid entity/observation model (TODO 0b; options in the drafts file).
 
 ---
 
@@ -330,10 +341,14 @@ ht.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
 | M2 | **P01** property profile | P01 acceptance criteria met |
 | M2b | **P07** property by geology unit (moved ahead of M3 from M5) | P07 acceptance criteria met |
 | M3 | **P02–P03** + SPT analysis | P02/P03 criteria + SPT golden tests |
-| M4 | **P04–P06** + classification and gradation analyses | P04–P06 criteria + classification/Dx golden tests |
-| M5 | Examples, CSV templates, README/tutorial → **v0.1.0 on PyPI** | Examples run from a clean `pip install` |
-| M6 | Feedback round; Phase 2 design closed (**TODO 0b**) | Decisions recorded in SPEC |
-| M7+ | Phase 2 milestones (ingest → QC → joins/datasets), then Phase 3 | Defined at M6 |
+| M4 | Phase 2 design: data model decided (§7) and build order changed (§1.3). Each later Phase 2 unit turns its part of `docs/drafts/phase2-data.md` into its own intent and spec | Decisions recorded in SPEC |
+| M5 | AGS4 ingest: raw and canonical layers in SQLite, units on ingest, value flags (§6, §7) | Twin-file test and ingest acceptance criteria met |
+| M6 | QC level 1, CSV report and `diff()` (§9) | One defects-file test per rule |
+| M7 | Depth/elevation/geology joins and ready-made datasets (§8, §10) | Datasets feed the Phase 1 plots directly |
+| M8 | **P04–P06** + classification and gradation analyses | P04–P06 criteria + classification/Dx golden tests |
+| M9 | Examples, CSV templates, README/tutorial → **v0.1.0 on PyPI** | Examples run from a clean `pip install` |
+| M10 | Feedback round | Feedback recorded in TODO |
+| M11+ | Phase 3 | Defined at M10 |
 
 ---
 
