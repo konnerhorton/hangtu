@@ -92,7 +92,7 @@ No depth or elevation is needed. `soil_class` isn't read: the user picks the tab
 |---|---|---|
 | Quantity | class, categorical, in table order, then "Refusal" | percent of the unit's classified tests |
 | Title | "SPT N class (cohesionless)" or "SPT N60 class (cohesive)": the registry label of `n` and the table | "Tests in unit (%)" |
-| Tick labels | class name and range on two lines, built from the table: "Very loose\n< 4", "Dense\n30–50", "Very dense\n≥ 50", "Refusal" | numbers |
+| Tick labels | class name, one word per line, then the range, built from the table: "Very\nloose\n< 4", "Dense\n30–50", "Very\ndense\n≥ 50", "Refusal". One word per line keeps the labels apart on a half-page `Sheet` panel | numbers |
 | Limits | one slot per class | 0 to a nice number at or above the tallest bar (never above 100) |
 | Gridlines | none | horizontal, major |
 

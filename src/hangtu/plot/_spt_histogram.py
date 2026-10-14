@@ -218,7 +218,11 @@ def spt_histogram(
             notes.count(np.isnan(values) & ~refused, "nan")
 
         codes = analysis.spt_class(data, n=n, table=table).cat.codes.to_numpy()
-        slots = [f"{name}\n{_range_text(lowers, i)}" for i, name in enumerate(names)]
+        # One word per line, then the range, so the labels fit narrow panels.
+        slots = [
+            "\n".join([*name.split(), _range_text(lowers, i)])
+            for i, name in enumerate(names)
+        ]
         separate = refusal == "separate"
         if separate:
             slots.append(REFUSAL_CLASS)

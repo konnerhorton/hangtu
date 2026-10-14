@@ -11,11 +11,11 @@ import hangtu as ht
 DASH = "\N{EN DASH}"
 GOLDEN_N = [0.0, 4.0, 10.0, 29.0, 30.0, 50.0, 51.0]
 COHESIONLESS = [
-    "Very loose\n< 4",
+    "Very\nloose\n< 4",
     f"Loose\n4{DASH}10",
-    f"Medium dense\n10{DASH}30",
+    f"Medium\ndense\n10{DASH}30",
     f"Dense\n30{DASH}50",
-    "Very dense\n≥ 50",
+    "Very\ndense\n≥ 50",
     "Refusal",
 ]
 
@@ -77,11 +77,11 @@ def test_cohesive_table():
     df = spt_frame(n=[0.0, 1.0, 2.0, 4.0, 8.0, 14.0, 15.0, 30.0])
     _, ax = ht.plot.spt_histogram(df, table="cohesive")
     assert tick_labels(ax) == [
-        "Very soft\n< 2",
+        "Very\nsoft\n< 2",
         f"Soft\n2{DASH}4",
-        f"Medium stiff\n4{DASH}8",
+        f"Medium\nstiff\n4{DASH}8",
         f"Stiff\n8{DASH}15",
-        f"Very stiff\n15{DASH}30",
+        f"Very\nstiff\n15{DASH}30",
         "Hard\n≥ 30",
         "Refusal",
     ]
