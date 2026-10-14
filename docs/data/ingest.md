@@ -122,6 +122,8 @@ As decided in SPEC §6.2:
 - `NP` → NULL + `NP`; `Dry` → NULL + `DRY`; refusal text in `ISPT_NVAL`/`ISPT_REP` → value kept + `REFUSAL`; `<x` / `>x` → `x` kept + `LT` / `GT` (with `bound`); `#x` (`GRAG_PDEN` "assumed") → `x` kept + `ASSUMED`.
 - Anything else in a numeric column → NULL + `OTHER` + `T001` (info), with the text kept in `value_flag.text`.
 - The recognized strings live in `src/hangtu/ags/value_flags.yaml`, matched case-sensitively after trimming spaces.
+- **Refusal:** an `ISPT_REP` with a blows/penetration pair (`25/75 50/75`) means the test drive wasn't completed, so `ISPT_NVAL` on that row gets `REFUSAL`, with its value as given. `50/75` in `ISPT_NVAL` itself keeps the blows (50). A complete test is reported as `N=12`.
+- **Dates, times and coordinates** that don't match their format are NULL + `OTHER` + `T001` like any other text. Dates are read with the `UNIT` row's format (`mm` is a month before `T` and minutes after it); a `DT` heading with no format accepts ISO 8601 only. `T` values are summed from `hh`, `mm` and `ss` (hours may exceed 24). `DMS` accepts a leading `-` or a trailing `N`/`S`/`E`/`W`. `YN` accepts `Y` and `N` only.
 
 ## 9. Findings raised at ingest
 | Rule | Severity | When |

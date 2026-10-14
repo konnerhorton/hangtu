@@ -69,6 +69,8 @@ class HeadingUnit:
     """How one heading's values reach the canonical layer (``meta_heading``).
 
     ``unit`` is the canonical unit string, or None when values have no unit.
+    ``format`` is the date or time format (``yyyy-mm-dd``, ``hh:mm:ss``) of a
+    date or time heading: the file's UNIT row, else the dictionary's.
     ``quantity`` is the P00 quantity kind where one matches. ``standard`` says
     whether the heading is in the 4.2 dictionary.
     """
@@ -82,6 +84,7 @@ class HeadingUnit:
     quantity: str | None
     status: str
     standard: bool
+    format: str | None = None
     source: pint.Unit | None = None
     target: pint.Unit | None = None
 
@@ -150,6 +153,8 @@ def resolve_heading(
         "kind": kind,
         "standard": entry is not None and entry.source == "4.2",
     }
+    if kind in (DATE, TIME):
+        base["format"] = file_unit or dictionary_unit or None
     if kind == TIME:
         return HeadingUnit(**base, unit="s", quantity=None, status=CONVERTED), None
     if kind == DMS:
