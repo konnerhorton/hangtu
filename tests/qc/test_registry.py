@@ -4,8 +4,6 @@ from hangtu.qc._settings import is_ingest_rule
 
 # Rules in rules.yaml whose code comes in a later build step (plan Builds 7-8).
 PENDING = {
-    *("S001", "S002", "S003", "S004", "S005"),
-    *("A001", "A002", "A003", "A004"),
     *("P001", "P002", "P003", "P004", "K001"),
     *("C001", "C002"),
 }

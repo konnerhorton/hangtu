@@ -49,7 +49,10 @@ def values(data: Data, group: str, heading: str, si: Sequence[float]) -> str:
     canonical = units.quantity_kind(kind)["canonical"]
     source = _unit(file_unit)
     if canonical is None or source is None:
-        return f"{joined(number(v) for v in si)} {file_unit}"
+        # Not converted, so the number is as the file wrote it (XN has no places).
+        places = _decimals(info["file_type"])
+        written = (f"{v:g}" if places is None else number(v, places) for v in si)
+        return f"{joined(written)} {file_unit}"
     canonical = units.ureg.Unit(canonical)
     in_file = units.convert(si, canonical, kind, source)
     text = f"{joined(number(v, _decimals(info['file_type'])) for v in in_file)}"

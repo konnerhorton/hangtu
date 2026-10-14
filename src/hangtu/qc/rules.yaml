@@ -129,7 +129,7 @@ rules:
     title: Liquid limit below plastic limit
     severity: error
   A002:
-    title: Plasticity index differs from LL − PL
+    title: Plasticity index differs from LL - PL
     severity: warning
     thresholds:
       plasticity_index_tolerance: 1 %
