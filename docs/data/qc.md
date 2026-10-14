@@ -173,7 +173,7 @@ As in `ingest.md` §9, read back from the `finding` table: `V<rule>`, `VLOG`, `V
 
 ### 4.9 Ordering, wording
 - Findings are sorted by severity (error, warning, info), then rule ID with its number in order (`V7` before `V10c`), then source line.
-- Messages follow SPEC §11 and name the hole and depth, the heading, the value as the file wrote it and the threshold in display units, and what to check: "ISPT_TOP 6.00 m (19.7 ft) in BH1 is below the final depth of the hole, LOCA_FDEP 5.00 m (16.4 ft). Check the test depth or the final depth."
+- Messages follow SPEC §11 and name the hole and depth, the heading, the value as the file wrote it and the threshold in display units, and what to check. A value is written in the file's unit first, so the supplier sees the number they wrote, then in the project's display unit when that differs: `6.00 m (19.7 ft)`. File values keep the file's decimal places where its TYPE gives them (`2DP`); other numbers have 3 significant figures. A threshold is written as given, then in the display unit: "ISPT_TOP 6.00 m (19.7 ft) in BH1 is below the final depth of the hole, LOCA_FDEP 5.00 m (16.4 ft). Check the test depth or the final depth."
 
 ### 4.10 Minimally useful fields (C)
 | ID | Rule | Severity |

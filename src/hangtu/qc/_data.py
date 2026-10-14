@@ -75,9 +75,19 @@ class Data:
         return set(headings) <= present
 
     def table(self, group: str) -> pd.DataFrame:
-        """Return the canonical table of ``group``: typed, in SI, with ``_line``."""
+        """Return the canonical table of ``group``: typed, in SI, with ``_line``.
+
+        Numeric headings are float, including a ``raw_only`` one (U001, U003,
+        U004), which is all blank.
+        """
         if group not in self._tables:
-            self._tables[group] = database.read_table(self.path, group)
+            table = database.read_table(self.path, group)
+            rows = self.headings[self.headings["group"] == group]
+            numeric = rows.loc[rows["status"] != "not_numeric", "heading"]
+            for heading in numeric:
+                if heading in table:
+                    table[heading] = pd.to_numeric(table[heading], errors="coerce")
+            self._tables[group] = table
         return self._tables[group]
 
     def raw(self, group: str) -> pd.DataFrame:
@@ -99,6 +109,34 @@ class Data:
     def flag(self, group: str, row: int, heading: str) -> Flag | None:
         """Return the value flag of one cell, or None if it has none."""
         return self._flags.get((group, int(row), heading))
+
+    def heading_info(self, group: str, heading: str) -> dict[str, Any]:
+        """Return a heading's ``file_unit``, ``file_type`` and ``quantity``."""
+        rows = self.headings[
+            (self.headings["group"] == group) & (self.headings["heading"] == heading)
+        ]
+        if rows.empty:
+            return {"file_unit": None, "file_type": None, "quantity": None}
+        row = rows.iloc[0]
+        return {
+            key: None if pd.isna(row[key]) or row[key] == "" else row[key]
+            for key in ("file_unit", "file_type", "quantity")
+        }
+
+    def blank(self, group: str, heading: str) -> pd.Series:
+        """Return True for each row of ``group`` whose cell is empty in the file.
+
+        Indexed like ``table(group)``. An absent heading counts as blank. A
+        flagged value (``NP``, ``Dry``) isn't blank.
+        """
+        table = self.table(group)
+        raw = self.raw(group)
+        if heading not in raw.columns:
+            return pd.Series(True, index=table.index)
+        text = raw.set_index("_line")[heading].reindex(table["_line"])
+        return pd.Series(
+            (text.fillna("").str.strip() == "").to_numpy(), index=table.index
+        )
 
     def record_depths(self, group: str) -> list[str]:
         """Return the group's own depth headings (qc.md §4, "Record depth").
@@ -156,14 +194,16 @@ class Data:
         return self._rows.get(int(line))
 
     def text_at(self, group: str, line: Any, heading: str) -> str | None:
-        """Return a cell's text exactly as in the file, or None if there isn't one."""
+        """Return a cell's text exactly as in the file, or None if it is blank."""
         if line is None or pd.isna(line) or group not in self.groups:
             return None
         raw = self.raw(group)
         if heading not in raw.columns:
             return None
         cells = raw.loc[raw["_line"] == int(line), heading]
-        return None if cells.empty else str(cells.iloc[0])
+        if cells.empty or pd.isna(cells.iloc[0]) or str(cells.iloc[0]) == "":
+            return None
+        return str(cells.iloc[0])
 
     def to_display_length(self, values: Any) -> tuple[np.ndarray, str]:
         """Convert lengths in m to the project's display unit, ``ft`` or ``m``.

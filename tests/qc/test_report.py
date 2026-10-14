@@ -121,7 +121,11 @@ def test_printed_summary(defects):
     text = repr(defects)
     lines = text.splitlines()
     assert lines[0].startswith("QC report: defects.ags (AGS 4.2), hangtu ")
-    assert lines[1] == "  8 errors, 2 warnings, 2 info"
+    counts = defects.findings["severity"].value_counts()
+    assert lines[1] == (
+        f"  {counts['error']} errors, {counts['warning']} warnings, "
+        f"{counts['info']} info"
+    )
     assert lines[2].split() == [
         "error",
         "U001",

@@ -2,6 +2,8 @@
 
 from os import PathLike
 
+# The rule modules register their rules with @rule when imported.
+from hangtu.qc import _locations  # noqa: F401
 from hangtu.qc._data import Data
 from hangtu.qc._registry import RULES, RuleResult
 from hangtu.qc._report import Report, build
