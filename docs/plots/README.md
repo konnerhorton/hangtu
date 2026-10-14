@@ -86,9 +86,9 @@ Data for all of these already exists in the MVP scope. P00 is the foundation the
 |---|---|---|---|---|
 | P08 | **Distribution fit**: histogram + fitted PDFs + Q-Q plot (2 panels) | `fit_plot` (also `FitResult.plot()`) | plot + analysis (statistics) | P00; statistics research in TODO #8–12 | idea |
 | P09 | **Characteristic value profile**: data, mean and characteristic lines (constant or depth trend) against depth | `characteristic_profile` | plot + analysis (EC7) | P01; TODO #13 | idea |
-| P10 | Triaxial: deviator stress and pore pressure against axial strain | `triaxial_stress_strain` | Per specimen or stage; failure criterion choice | idea |
+| P10 | *Merged into P12* (stress–strain curves draw the same readings as measured stress paths) | — | ID not reused | — |
 | P11 | Triaxial: **failure envelope** with Mohr-Coulomb fit, drawn as Mohr circles, s′–t or p′–q (`space=`); optional idealized drained paths | `failure_envelope` | **Equal aspect required** in all spaces; total vs effective | idea |
-| P12 | Triaxial: measured stress paths (s′–t, p′–q) with P11's envelope | `stress_path` | Needs readings during shearing, which AGS doesn't carry; later | idea |
+| P12 | Triaxial shearing: stress–strain curves and measured stress paths (s′–t, p′–q) with P11's envelope (`space=`) | `triaxial_shearing` | Needs readings during shearing, which AGS doesn't carry; later | idea |
 | P13 | Consolidation: e (or strain) against log σ′v, with σ′p by Casagrande and/or other methods, Cc/Cr | `consolidation_curve` | | idea |
 | P14 | Consolidation: c_v and m_v against log σ′v | `consolidation_coefficients` | | idea |
 | P15 | Consolidation: settlement against √t and log t per load increment (Taylor / Casagrande fitting) | `time_settlement` | | idea |

@@ -15,7 +15,7 @@ Each draft ends with **pitfalls**: mistakes that are easy to make when implement
 | [P04](P04-plasticity-chart.md) | Plasticity chart with A/U lines and optional user regions | listed | v0.1 |
 | [P05](P05-grain-size.md) | Grain size curves, fraction header band, envelopes, D-values | listed | v0.1 |
 | [P11](P11-failure-envelope.md) | Failure envelope with fitted c′–φ′: Mohr circles, s′–t or p′–q, optional idealized drained paths | listed | v0.5 |
-| [P12](P12-stress-path.md) | Measured stress paths with P11's envelope | listed | Later |
+| [P12](P12-triaxial-shearing.md) | Stress–strain curves and measured stress paths, with P11's envelope (P10 merged in) | listed | Later |
 | [P17](P17-clogging.md) | Clogging potential zones against consistency index | listed | v0.4 |
 | [P19](P19-pmt-hardening-soil.md) | E50 against elevation from pressuremeter tests | listed | v0.6 |
 | [P23](P23-lateral-earth-pressure.md) | PMT p0, σv, u, σ′v, σ′h and K0 against depth | listed | Later |

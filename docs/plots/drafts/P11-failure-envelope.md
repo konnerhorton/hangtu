@@ -7,7 +7,7 @@
 | **Type** | plot + analysis |
 | **Target version** | v0.5 |
 | **Depends on** | P00 |
-| **Related** | P10 (stress–strain curves), P12 (measured stress paths, reuses this fit), P26 and P27 (fitted c′, φ′ compared with correlations and published values) |
+| **Related** | P12 (stress–strain curves and measured stress paths, reuses this fit), P26 and P27 (fitted c′, φ′ compared with correlations and published values) |
 
 ---
 
@@ -19,7 +19,7 @@ One function draws the same failure points and the same fit in any of three spac
 - `"s_t"`: failure points in MIT s′–t, with the K_f line.
 - `"p_q"`: failure points in Cambridge p′–q, with the same envelope transformed.
 
-The views differ in interpretation, not in data, so they share one input table, one fit, one set of overlays and one set of edge cases. Merged from the former P11 (stress paths) and P12 (Mohr circles) drafts. Paths measured during shearing need readings at each strain step, which AGS doesn't carry; they are P12.
+The views differ in interpretation, not in data, so they share one input table, one fit, one set of overlays and one set of edge cases. Merged from the former P11 (stress paths) and P12 (Mohr circles) drafts. Stress–strain curves and paths measured during shearing need readings at each strain step, which AGS doesn't carry; they are P12.
 
 Two scopes are both useful: **per sample**, and **per geology unit** (all specimens of the unit on one chart, with one fit). Per-sample c′, φ′ also feed comparisons with published values (P27).
 
