@@ -1,6 +1,9 @@
-"""The example data that ships with hangtu (docs/work/m9-release.md, spec §1)."""
+"""The example data and scripts (docs/work/m9-release.md, spec §1 and §3)."""
 
 import importlib.util
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 import pandas as pd
@@ -91,3 +94,32 @@ def test_csv_and_ags_hold_the_same_tests(site, name, value):
     pd.testing.assert_frame_equal(
         from_csv[key], from_ags[key].reset_index(drop=True), check_dtype=False
     )
+
+
+# --- The example scripts (spec §3, §4) ----------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("script", "outputs"),
+    [
+        ("csv_to_plot.py", ["csv_example.pdf"]),
+        ("ags_qc_plot.py", ["site.sqlite", "qc_report.csv", "ags_example.pdf"]),
+    ],
+)
+def test_example_runs_clean(tmp_path, script, outputs):
+    # Run as a user would: a fresh Python, default warning filters, any folder.
+    env = {**os.environ, "MPLBACKEND": "Agg"}
+    env.pop("PYTHONWARNINGS", None)
+    done = subprocess.run(
+        [sys.executable, str(ROOT / "examples" / script)],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=300,
+    )
+    assert done.returncode == 0, done.stderr
+    assert done.stderr == ""  # no warning, no traceback
+    for name in outputs:
+        assert (tmp_path / name).is_file(), name
+    assert "Wrote" in done.stdout

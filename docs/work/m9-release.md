@@ -83,14 +83,15 @@ Two scripts in `examples/`, each a short header comment, then straight-line code
 
 **`examples/csv_to_plot.py`:**
 1. Read `spt.csv`, `atterberg.csv` and `permeability.csv` with `ht.read_csv(ht.examples.path(...), units={...})`, declaring ft and cm/s.
-2. Draw the SPT profile (P02, N60 from `hammer_efficiency=`), the SPT histogram (P03), hydraulic conductivity with depth (P01, log axis) and PI by geology unit (P07).
-3. Put the four on a tabloid `ht.Sheet` and save `csv_example.pdf`.
+2. Set the unit colors with `ht.settings.palette`, the CSV counterpart of a geology map.
+3. Draw the SPT profile (P02, N60 from each test's `energy_ratio`, since the CSV leaves `spt_n60` blank), the SPT histogram of the coarse soil (P03), hydraulic conductivity with depth (P01, log axis) and PI by geology unit (P07).
+4. Put the four on a tabloid `ht.Sheet` and save `csv_example.pdf`.
 
 **`examples/ags_qc_plot.py`:**
 1. `ht.Project.from_ags(ht.examples.path("site.ags"), db="site.sqlite", display_units="US")`.
 2. `p.set_geology_map(ht.examples.path("strata.csv"))`.
 3. `p.qc()`: print the summary, save `qc_report.csv`.
-4. Draw the same four plots from `p.spt()`, `p.atterberg()` and `p.permeability()`, and save `ags_example.pdf`.
+4. Draw the same four plots from `p.spt()` (the histogram from `p.spt(geology=["Terrace"])`), `p.atterberg()` and `p.permeability()`, and save `ags_example.pdf`. `from_ags` gets `overwrite=True`, so the script can be run again.
 
 - The two PDFs show the same tests at the same depths. The CSV files were written from the AGS datasets, so their depths are already mid-drive and their `depth_basis` says so.
 - **No warnings in normal use:** each script runs with warnings shown and prints none, apart from what QC reports on purpose. A warning in an example would teach users to ignore warnings.
