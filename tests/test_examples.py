@@ -13,7 +13,9 @@ from python_ags4 import AGS4
 import hangtu as ht
 
 ROOT = Path(__file__).parents[1]
-DATA = ROOT / "src" / "hangtu" / "examples" / "data"
+# The installed package's copy, not src/, so the release workflow's wheel test
+# (which deletes src/) checks the files the wheel ships.
+DATA = Path(ht.examples.__file__).parent / "data"
 FILES = ["atterberg.csv", "permeability.csv", "site.ags", "spt.csv", "strata.csv"]
 CSVS = ["atterberg.csv", "permeability.csv", "spt.csv"]
 NOT_FINDINGS = {"Metadata", "Summary of data"}
