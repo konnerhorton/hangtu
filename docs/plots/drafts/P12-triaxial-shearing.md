@@ -5,7 +5,7 @@
 | **ID / function** | P12 · `ht.plot.triaxial_shearing()` |
 | **Status** | idea (draft notes) |
 | **Type** | plot + light analysis |
-| **Target version** | Later (needs a source of readings) |
+| **Target version** | v0.2 (M11) |
 | **Depends on** | P00, P11's `mohr_coulomb_fit` |
 | **Related** | P11 |
 
@@ -18,7 +18,7 @@ Shows how each specimen behaved during shearing, from readings at each strain st
 
 Answers: did the specimens contract or dilate, how did pore pressure develop, where did they fail and by which criterion, and does a single envelope fit.
 
-**Why it's later.** AGS carries only the stresses at failure (to verify against the 4.2 dictionary). Readings usually arrive as exports from the lab's software. P11 covers the failure points, with idealized drained paths, and is likely the most common case.
+**Where the readings come from.** AGS carries only the values at failure: TRET and TRIT have one row per test or stage (checked against the 4.1–4.2 dictionaries, 2026-10-15). Readings usually arrive as exports from the lab's software, so the user shapes them into a CSV (§3; decided 2026-10-15). P11 covers the failure points, with idealized drained paths, and is likely the most common case.
 
 ## 2. Reference figure
 `space="s_t"`:
@@ -45,12 +45,29 @@ Answers: did the specimens contract or dilate, how did pore pressure develop, wh
 ```
 
 ## 3. Input data
-**Row grain:** one row per reading: `specimen_id`, axial strain, deviator stress, pore pressure, cell pressure, and volumetric strain for drained tests. Column names to be proposed against the registry.
+**Source (decided 2026-10-15):** a CSV the user shapes outside hangtu, from the lab's export. No reader for lab software formats.
 
-**Source:** not decided. Options: a CSV template like the Phase 1 ones, a reader for common lab software exports, or a user-defined AGS group if one becomes common.
+**Row grain:** one row per reading. Values that belong to the specimen repeat on each of its rows, so the file is one sheet.
+
+**Minimum columns** (names *proposed*, to check against the registry):
+
+| Column | Per | Unit | Req.? | Notes |
+|---|---|---|---|---|
+| `specimen_id` | specimen | | ✔ | Groups readings into one curve or path |
+| `test_type` | specimen | | ✔ | `UU`, `CU` or `CD`. Picks total or effective stress, and pore pressure or volume change |
+| *proposed* `effective_consolidation_stress` | specimen | stress | ✔ CU, CD | σ′3c: cell pressure minus back pressure at the start of shearing (AGS `TRET_CONP`). Where the effective path starts |
+| *proposed* `cell_pressure` | specimen | stress | ✔ UU | σ3. UU is total stress only |
+| *proposed* `axial_strain` | reading | % | ✔ | |
+| *proposed* `deviator_stress` | reading | stress | ✔ | Already corrected for area and membrane. hangtu doesn't redo the lab's corrections |
+| *proposed* `excess_pore_pressure` | reading | stress | ✔ CU | Δu from the start of shearing. Asked for as excess, not total, so the two can't be confused |
+| *proposed* `volumetric_strain` | reading | % | ✔ CD | Δu = 0 |
+| `loca_id`, `depth`, `geology_unit` | specimen | | – | Grouping, labels, a fit per unit |
+| *proposed* `failure_point` | reading | bool | – | The lab's failure reading, one per specimen. Without it, `failure_criterion=` picks one |
+
+**Assumptions:** isotropic consolidation and triaxial compression. Anisotropic consolidation (`TRET_CVP`, `TRET_CRP`) and extension are enhancements (§15).
 
 ## 4. Analysis / calculations
-- Per reading: σ′3 = σ3 − u, σ′1 = σ′3 + q; then s′, t (or p′, q) as P11 §4.
+- Per reading: σ′3 = σ′3c − Δu (Δu = 0 for CD), σ′1 = σ′3 + q; UU uses σ3 and σ1 = σ3 + q in total stress. Then s′, t (or p′, q) as P11 §4.
 - Failure point per specimen: by the failure criterion (`failure_criterion="max_deviator_stress"` or `"max_stress_ratio"`), marked in every view so they agree.
 - Envelope: P11's `mohr_coulomb_fit` on the failure points, drawn as P11 §4.
 
@@ -94,7 +111,6 @@ To be written when the data source is decided.
 - ASTM D4767 (CU), D7181 (CD).
 
 ## 14. Open questions
-- Where readings come from (§3).
 - `stress_strain`: second y axis or a second panel for pore pressure? A second panel breaks the `(fig, ax)` contract.
 
 **Pitfalls:**

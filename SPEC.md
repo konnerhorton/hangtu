@@ -49,17 +49,19 @@
 
 **Build order (decided 2026-10-13):** after M3 (P01–P03 and P07), Phase 2 is built before the rest of Phase 1 (P04–P06, §12.4). The data layer is the more useful piece for current work, and the remaining plots don't depend on it, so either order works.
 
-**First release (decided 2026-10-14):** v0.1 ships after M7, with the plots built so far and the whole data layer, rather than with all of Phase 1 and no AGS. Testers can then try hangtu on their own AGS files, which tells us more than CSV input alone. P04–P06 move to v0.2. Phases name content; versions name releases, so Phase 1 spans v0.1 and v0.2. The table below lists versions by content; §12.4 has the build order.
+**First release (decided 2026-10-14):** v0.1 ships after M7, with the plots built so far and the whole data layer, rather than with all of Phase 1 and no AGS. Testers can then try hangtu on their own AGS files, which tells us more than CSV input alone. P04–P06 move to v0.2.
+
+**v0.2 widened (decided 2026-10-15):** the triaxial plots (P11–P12), the clogging diagram (P17) and published SPT correlations (§4) join P04–P06 in v0.2. They are what current work needs next. (N1)60 comes with them, because several correlations use it. Phases name content; versions name releases, so Phase 1 spans v0.1 and v0.2. The table below lists versions by content; §12.4 has the build order.
 
 | Version | Phase | Content |
 |---|---|---|
-| **v0.1** | **1: Plots** (part) and **2: Data** | - Plot framework (P00): style, palette, unit-aware labels, out-of-range markers, `Sheet`.<br>- Plots **P01–P03 and P07**: property profile, SPT profile, SPT histograms, property by geology unit.<br>- SPT analysis: N60, refusal, classes.<br>- Units handling for DataFrames (§2.6), the column registry, CSV templates.<br>- AGS4 ingest (units on ingest, value flags) into SQLite.<br>- QC level 1 with CSV report and diff tool.<br>- Depth/elevation/geology conventions and joins.<br>- Datasets (SPT, Atterberg, grain size curves, permeability) that feed the plots directly.<br>- **First PyPI release; feedback round.** |
-| **v0.2** | **1: Plots** (rest) | - Plots **P04–P06**: plasticity chart, grain size, water content profile.<br>- The analyses they need: plasticity classification, Dx/Cu/Cc/gradation.<br>- The datasets that need them: classification columns, `grain_size_summary()`, `index_properties()`.<br>- Changes from the feedback round. |
+| **v0.1** | **1: Plots** (part) and **2: Data** | - Plot framework (P00): style, palette, unit-aware labels, out-of-range markers, `Sheet`.<br>- Plots **P01–P03 and P07**: property profile, SPT profile, SPT histograms, property by geology unit.<br>- SPT analysis: N60, refusal, classes.<br>- Units handling for DataFrames (§2.6), the column registry, CSV templates.<br>- AGS4 ingest (units on ingest, value flags) into SQLite.<br>- QC level 1 with CSV report and diff tool.<br>- Depth/elevation/geology conventions and joins.<br>- Datasets (SPT, Atterberg, grain size curves, permeability) that feed the plots directly.<br>- **First PyPI release.** |
+| **v0.2** | **1: Plots** (rest) and lab and in-situ analyses | - Plots **P04–P06**: plasticity chart, grain size, water content profile.<br>- The analyses they need: plasticity classification, Dx/Cu/Cc/gradation.<br>- The datasets that need them: classification columns, `grain_size_summary()`, `index_properties()`.<br>- Triaxial: failure envelope with the Mohr–Coulomb fit (P11); stress–strain curves and measured stress paths (P12).<br>- Clogging: Thewes & Burger (2004) diagram (P17), from the consistency index.<br>- **SPT correlations** (§4): published correlations from SPT N to other properties, each with its applicability, compared on P01 and P07.<br>- (N1)60. |
 | **v0.3** | **3: Statistics** | - `describe`, `fit` (bounded and censored), `compare`, `compare_groups`, `crosstab`, EC7 `characteristic`.<br>- Plots P08 (distribution fit) and P09 (characteristic value profile). |
-| v0.4 | | - Clogging (P17–P18; Thewes & Burger 2004, Hollmann & Thewes 2013).<br>- QC level 2 (engineering-judgment ranges).<br>- Standards comparison with a library of published ranges.<br>- User-defined PSD regions; plasticity-chart data region.<br>- Compaction curve (P16). |
-| v0.5 | | - Triaxial failure envelope (P11) and consolidation (P13–P15) analyses and plots.<br>- **AGSi export** (`to_agsi()`): 1D model elements per geology unit, carrying property summaries and parameters (including depth-trend design lines), with codes from the column registry. |
-| v0.6 | | - Soil modulus from multiple sources (P20).<br>- Pressuremeter → Hardening Soil parameters (P19).<br>- (N1)60. |
-| Later | | - **AGSi import** (unit definitions and design parameters, compared with hangtu statistics).<br>- Multiple AGS files per project (merging, LOCA_ID conflicts, multiple datums).<br>- DIGGS ingestion; AGS3 → AGS4; CPT (P22).<br>- GeoPackage export; simple location plan (P21).<br>- Lateral earth pressure with depth (P23).<br>- Triaxial shearing: stress–strain curves and measured stress paths (P12), once there is a source of readings.<br>- Better UI; regex/fuzzy text matching; conditional minimally-useful-field rules.<br>- Cohesive/cohesionless helper; inch display for coarse particle sizes.<br>- Title block and drafting templates. |
+| v0.4 | | - Clogging: Hollmann & Thewes (2013) diagram (P18).<br>- QC level 2 (engineering-judgment ranges).<br>- Standards comparison with a library of published ranges.<br>- User-defined PSD regions; plasticity-chart data region.<br>- Compaction curve (P16). |
+| v0.5 | | - Consolidation (P13–P15) analyses and plots.<br>- **AGSi export** (`to_agsi()`): 1D model elements per geology unit, carrying property summaries and parameters (including depth-trend design lines), with codes from the column registry. |
+| v0.6 | | - Soil modulus from multiple sources (P20).<br>- Pressuremeter → Hardening Soil parameters (P19). |
+| Later | | - **AGSi import** (unit definitions and design parameters, compared with hangtu statistics).<br>- Multiple AGS files per project (merging, LOCA_ID conflicts, multiple datums).<br>- DIGGS ingestion; AGS3 → AGS4; CPT (P22).<br>- GeoPackage export; simple location plan (P21).<br>- Lateral earth pressure with depth (P23).<br>- Better UI; regex/fuzzy text matching; conditional minimally-useful-field rules.<br>- Cohesive/cohesionless helper; inch display for coarse particle sizes.<br>- Title block and drafting templates. |
 
 ### 1.4 Non-goals (through v0.3)
 - Writing or editing AGS files (except test fixtures).
@@ -135,16 +137,22 @@ Full conventions are in [`docs/plots/README.md`](docs/plots/README.md); each fig
 - **Plot list and status:** see `docs/plots/README.md`.
   - Batch 1 (P00–P07): P00–P03 and P07 are v0.1, P04–P06 are v0.2 (§1.3).
   - P08–P09 are v0.3.
-  - Batch 2 lab analyses (P11, P13–P16) are v0.4–v0.5; P12 is Later.
+  - P11–P12 and P17 are v0.2; P13–P16 are v0.4–v0.5.
 
 ---
 
 ## 4. Analyses (Phase 1 unless noted)
-Analysis code lives in `ht.analysis.*`, as plain functions usable without plotting. Detail is in [`docs/drafts/analysis.md`](docs/drafts/analysis.md): §1 SPT (refusal, N60, cap, classes) is decided; §2 Atterberg and §3 grain size are drafts until M8. Decisions that more than one plot depends on:
+Analysis code lives in `ht.analysis.*`, as plain functions usable without plotting. Detail is in [`docs/drafts/analysis.md`](docs/drafts/analysis.md): §1 SPT (refusal, N60, cap, classes) is decided; §2 Atterberg and §3 grain size are drafts until M8; §4 SPT correlations is a draft until M13. Decisions that more than one plot depends on:
 - **SPT refusals** are included by default at the cap value (`spt_cap = 100`) with a note. Statistics treat them as censored.
 - **N60** stays NULL until an energy ratio or `hammer_efficiency` is given. There is no default.
 - **NP** is distinct from blank everywhere and shown as a count on plots.
 - **Classification systems** (plasticity chart, size fractions, sieve axis) are selectable per call and defined in the config.
+- **Correlations** (decided 2026-10-15; SPT first, in v0.2) live in `ht.analysis.correlations`, one function per published correlation. Each one:
+  - states its equation and cites its source, with constants kept in the source's units;
+  - says when it applies and when it doesn't: soil types, input range, which N it was derived with (field N, N60 or (N1)60), the data and region behind it, and known biases. This is in the docstring and in metadata attached to the result, so a plot or report can show it;
+  - returns NaN with a count outside its range, and never clips or extrapolates the input;
+  - returns rows that name the correlation, so several estimates of one property compare on P01 (`color_by=`) or P07.
+- **Effective vertical stress** (decided 2026-10-15) comes from `ht.analysis.vertical_stress()`, with the unit weight (a value or a profile, step or linear) and the groundwater level for each hole given in the call. (N1)60 and the correlations take its σ′v column. Detail in analysis draft §4.1.
 
 ---
 
@@ -340,7 +348,7 @@ ht.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
 - **Phase 3:** JRC worked examples for EC7; scipy reference values.
 
 ### 12.4 Milestones
-Rows are in build order. M8 comes after M9 and M10 since v0.1 moved ahead of P04–P06 (§1.3); it keeps its number because other documents refer to it.
+Rows are in build order. M8 comes after M9 since v0.1 moved ahead of P04–P06 (§1.3); it keeps its number because other documents refer to it. M10 (a feedback round) was dropped, and its number isn't reused.
 
 | M | Deliverable | Done when |
 |---|---|---|
@@ -354,9 +362,11 @@ Rows are in build order. M8 comes after M9 and M10 since v0.1 moved ahead of P04
 | M6 | QC level 1, CSV report and `diff()` (§9) | One defects-file test per rule |
 | M7 | Depth/elevation/geology joins and ready-made datasets (§8, §10) | Datasets feed the Phase 1 plots directly |
 | M9 | Examples (CSV → plot and AGS → QC → plot), CSV templates, README → **v0.1.0 on PyPI** | Examples run from a clean `pip install` |
-| M10 | Feedback round | Feedback recorded in TODO |
-| M8 | **P04–P06** + classification and gradation analyses, and the datasets that need them → **v0.2** | P04–P06 criteria + classification/Dx golden tests |
-| M11+ | Phase 3 | Defined at M10 |
+| M8 | **P04–P06** + classification and gradation analyses, and the datasets that need them | P04–P06 criteria + classification/Dx golden tests |
+| M11 | **P11–P12** triaxial: Mohr–Coulomb fit, failure envelope, stress–strain curves and measured stress paths | P11/P12 criteria + fit golden tests |
+| M12 | **P17** clogging diagram (Thewes & Burger 2004) | P17 criteria; zones match the source |
+| M13 | **SPT correlations** and (N1)60 → **v0.2** | Golden values from each source; out-of-range counts |
+| M14+ | Phase 3 | Defined when Phase 3 starts |
 
 ---
 

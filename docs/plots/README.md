@@ -88,7 +88,7 @@ Data for all of these already exists in the MVP scope. P00 is the foundation the
 | P09 | **Characteristic value profile**: data, mean and characteristic lines (constant or depth trend) against depth | `characteristic_profile` | plot + analysis (EC7) | P01; TODO #13 | idea |
 | P10 | *Merged into P12* (stress–strain curves draw the same readings as measured stress paths) | — | ID not reused | — |
 | P11 | Triaxial: **failure envelope** with Mohr-Coulomb fit, drawn as Mohr circles, s′–t or p′–q (`space=`); optional idealized drained paths | `failure_envelope` | **Equal aspect required** in all spaces; total vs effective | idea |
-| P12 | Triaxial shearing: stress–strain curves and measured stress paths (s′–t, p′–q) with P11's envelope (`space=`) | `triaxial_shearing` | Needs readings during shearing, which AGS doesn't carry; later | idea |
+| P12 | Triaxial shearing: stress–strain curves and measured stress paths (s′–t, p′–q) with P11's envelope (`space=`) | `triaxial_shearing` | Needs readings during shearing, which AGS doesn't carry: a user CSV | idea |
 | P13 | Consolidation: e (or strain) against log σ′v, with σ′p by Casagrande and/or other methods, Cc/Cr | `consolidation_curve` | | idea |
 | P14 | Consolidation: c_v and m_v against log σ′v | `consolidation_coefficients` | | idea |
 | P15 | Consolidation: settlement against √t and log t per load increment (Taylor / Casagrande fitting) | `time_settlement` | | idea |
@@ -100,10 +100,10 @@ Data for all of these already exists in the MVP scope. P00 is the foundation the
 | P19 | Pressuremeter curve with moduli (E_M, unload/reload) → Hardening Soil parameters | |
 | P20 | Modulus against depth from multiple sources (SPT correlation, PMT, triaxial, oedometer) | Builds on P01 |
 | P21 | Simple location plan (hole positions and labels, colored by type) | Not GIS: plain x/y scatter |
-| P17 | Clogging: Thewes & Burger (2004) diagram | Needs Ic; v0.4 |
+| P17 | Clogging: Thewes & Burger (2004) diagram | Needs Ic; v0.2 |
 | P18 | Clogging: Hollmann & Thewes (2013) diagram | v0.4 |
 | P22 | CPT profiles (qc, fs, Rf, u2; SBT chart) | CPT is on the Later roadmap |
 | P23 | Lateral earth pressure with depth (coefficient K and/or σ′h profile) | Probably builds on P01; scope to define |
 
 ### Suggested order
-**P00 → P01 → P07 → P02 → P03 → P04 → P05 → P06**: the core index and SPT set, enough for a first feedback release. Then P08–P09 once the statistics research items are settled, then Batch 2.
+**P00 → P01 → P07 → P02 → P03 → P04 → P05 → P06**: the core index and SPT set, enough for a first release. Then P11–P12 and P17 (v0.2), P08–P09 once the statistics research items are settled, then the rest of Batch 2.

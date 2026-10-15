@@ -5,7 +5,7 @@
 | **ID / function** | P17 · `ht.plot.clogging_diagram()` |
 | **Status** | idea (draft notes) |
 | **Type** | plot + light analysis (consistency index) |
-| **Target version** | v0.4 |
+| **Target version** | v0.2 (M12) |
 | **Depends on** | P00 |
 | **Related** | P18 (Hollmann & Thewes 2013). Registry `consistency_index` (`used_by: [P17]`) |
 
@@ -90,7 +90,7 @@ Nothing converts.
 - Hollmann, F.S. & Thewes, M. (2013). Assessment method for clay clogging and disintegration of fines in mechanised tunnelling. *Tunnelling and Underground Space Technology* 37, 96–106.
 
 ## 14. Open questions
-- **Axes and zones of the published diagram.** The roadmap says P17 is Thewes & Burger (2004), whose diagram (from memory, to verify) plots **PI against Ic**, not LL against Ic as in the working layout above. Confirm the axes and zone coordinates against the paper before building; if the working layout turns out to be a variant, it becomes a user `zones=` table rather than the built-in.
+- **Axes and zones of the published diagram** (TODO #21). The roadmap says P17 is Thewes & Burger (2004), whose diagram (from memory, to verify) plots **PI against Ic**, not LL against Ic as in the working layout above. Confirm the axes and zone coordinates against the paper before building; if the working layout turns out to be a variant, it becomes a user `zones=` table rather than the built-in.
 
 **Pitfalls:**
 - Dropping specimens with Ic < 0 or outside the axes instead of drawing them at the edge.

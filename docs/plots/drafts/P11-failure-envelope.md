@@ -5,7 +5,7 @@
 | **ID / function** | P11 · `ht.plot.failure_envelope()` (+ `ht.analysis.mohr_coulomb_fit()`) |
 | **Status** | idea (draft notes) |
 | **Type** | plot + analysis |
-| **Target version** | v0.5 |
+| **Target version** | v0.2 (M11) |
 | **Depends on** | P00 |
 | **Related** | P12 (stress–strain curves and measured stress paths, reuses this fit), P26 and P27 (fitted c′, φ′ compared with correlations and published values) |
 
@@ -53,7 +53,7 @@ Two scopes are both useful: **per sample**, and **per geology unit** (all specim
 **A good version:** equal aspect, so circles are circles and slopes read true; upper half only; the envelope drawn across the whole plot; the fit's numbers in a box.
 
 ## 3. Input data
-**Row grain:** one row per specimen (or stage) at failure. This is what AGS carries: the triaxial groups report the stresses at failure, not readings during shearing (to verify against the 4.2 dictionary).
+**Row grain:** one row per specimen (or stage) at failure. This is what AGS carries: the triaxial groups report the stresses at failure, not readings during shearing (checked against the 4.1–4.2 dictionaries, 2026-10-15: TRET and TRIT have one row per test or stage, `TRET_TESN`, at failure).
 
 | Column | Description | Quantity kind | Unit | Req.? | Notes |
 |---|---|---|---|---|---|
@@ -66,7 +66,7 @@ Two scopes are both useful: **per sample**, and **per geology unit** (all specim
 
 Proposed names are to be checked against the registry. Long but explicit, per CLAUDE.md naming.
 
-**Where the principal stresses come from.** The file gives the cell pressure σ3, the deviator stress q_f and the pore pressure u_f at failure. Under "only what the file says" (SPEC §7) the principal stresses aren't stored: a Phase 2 dataset (`p.triaxial()`, not yet specified) derives σ′3 = σ3 − u_f and σ′1 = σ′3 + q_f, and the plot takes the principal stresses. Which failure criterion the lab used (maximum deviator stress or maximum stress ratio) is the lab's choice, carried as given.
+**Where the principal stresses come from.** The file gives the cell pressure σ3 (`TRET_CELL`, `TRIT_CELL`), the deviator stress q_f (`TRET_DEVF`, `TRIT_DEVF`) and the pore pressure u_f (`TRET_PWPF`) at failure. Under "only what the file says" (SPEC §7) the principal stresses aren't stored: a Phase 2 dataset (`p.triaxial()`, not yet specified) derives σ′3 = σ3 − u_f and σ′1 = σ′3 + q_f, and the plot takes the principal stresses. Which failure criterion the lab used (maximum deviator stress or maximum stress ratio) is the lab's choice, carried as given.
 
 **Minimum data:** 1 specimen to draw; ≥ 2 to fit c′ and φ′; 1 with `cohesion=0` fixed.
 
