@@ -391,6 +391,16 @@ columns:
     label: Consistency index, Ic
     ags: ["derived"]
     used_by: [P07, P17]
+  plasticity_class_uscs:
+    description: USCS fine-grained class from LL and PI (CL, CL-ML, ML, CH, MH; never OL or OH)
+    type: text
+    ags: ["derived: docs/drafts/analysis.md §2.5"]
+    used_by: [P04]
+  plasticity_class_bs5930:
+    description: BS 5930 plasticity class (C or M, then L, I, H, V or E by LL)
+    type: text
+    ags: ["derived: docs/drafts/analysis.md §2.5"]
+    used_by: [P04]
 
   # --- Grain size (P05) ---------------------------------------------------------------------
   particle_size:

@@ -1,0 +1,30 @@
+# Plasticity chart systems (docs/drafts/analysis.md §2.3). ht.analysis.plasticity()
+# and the plasticity chart (P04) both read this file, so the classes and the
+# drawn lines can't disagree. Values marked "verify" are checked against the
+# standard before release (TODO #5).
+#
+# a_line: PI = slope * (LL - intercept). A point on the line is on the clay side.
+
+uscs:
+  description: Unified Soil Classification System, fine-grained soils (inorganic)
+  source: ASTM D2487-17, Figure 4      # verify
+  a_line: {slope: 0.73, intercept: 20}
+  u_line:                              # drawn only; no class uses it
+    slope: 0.9
+    intercept: 8
+    vertical: {liquid_limit: 16, up_to: 7}
+  high_plasticity_from: 50             # LL at and above this is H
+  silty_clay: {lower: 4, upper: 7}     # CL-ML: PI from lower to upper, both inclusive, on or above the A-line
+  clay_above: 7                        # CL: PI above this, on or above the A-line
+
+bs5930:
+  description: BS 5930 plasticity chart
+  source: BS 5930:2015+A1:2020         # verify the bands
+  a_line: {slope: 0.73, intercept: 20}
+  # Plasticity terms by LL, lower bound inclusive; the last has no upper bound.
+  bands:
+    - {name: L, term: Low, lower: 0}
+    - {name: I, term: Intermediate, lower: 35}
+    - {name: H, term: High, lower: 50}
+    - {name: V, term: Very high, lower: 70}
+    - {name: E, term: Extremely high, lower: 90}

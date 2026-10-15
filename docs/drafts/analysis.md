@@ -250,6 +250,9 @@ NP counts as PI = 0 against the PI limits. A-3 needs NP.
 Each says what is wrong, where (the rows) and what to do (SPEC §11).
 - No `liquid_limit` column (`plasticity()`): list the columns available.
 - LL, PL, PI or w not numeric; any negative.
+- PL above LL on a specimen not marked NP (impossible; the error suggests checking the columns or marking it NP).
+- A specimen marked `non_plastic` that also has a PI: NP has no PI, so the user blanks one or the other.
+- `non_plastic` holding something other than true/false (read as `spt_refusal`).
 - `uscs()`/`aashto()`: a required column missing, or `fraction_system` missing or naming another system.
 
 **Warnings** (one per kind per call): PI > LL (impossible, kept); PI given and more than 1 percentage point from LL − PL (the PI given is kept; QC A002 does the same check on AGS files); classes and symbols left blank, by reason.
