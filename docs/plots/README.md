@@ -39,6 +39,7 @@ Each figure is a separate feature with its own spec file in this folder, written
 ### Out-of-range data
 - **Never drop data silently.** A point beyond a fixed axis limit is drawn **at the edge as an open marker with an arrow**, with a count noted in the legend or a footnote (e.g. "3 values > 100 shown at limit").
 - **Flagged values** (refusal, NP, `<x`, `>x`) get a distinct marker, and are counted in a note when they can't be plotted at all.
+- **Text in a value column** (`NP`, `dry`) has no position on the value axis: it is drawn at the axis edge at its depth, one marker shape per distinct text, with a legend entry and a count (P01 §3, §7). Unrecognized text is also warned about.
 
 ### Color and markers
 - Color encodes the **geology unit** by default (the session or project palette, SPEC §3; stable across all plots). Marker shape encodes a secondary grouping (e.g. `loca_id` or test type) when requested.
@@ -76,9 +77,9 @@ Data for all of these already exists in the MVP scope. P00 is the foundation the
 | P01 | **Property profile**: any property against depth or elevation, linear or log axis. Presets for permeability (log), undrained shear strength, moisture content, unit weight | `profile` | plot | Foundation for P02, P06 and P09 | [built](P01-property-profile.md) |
 | P02 | **SPT N profile**: N or N60 against elevation or depth, refusal markers, optional per-hole lines | `spt_profile` | plot + light analysis (`ht.analysis.spt`) | P01 | [built](P02-spt-profile.md) |
 | P03 | **SPT class histogram**: share of tests per class and unit, cohesionless (relative density) or cohesive (consistency) | `spt_histogram` | plot + classification (`ht.analysis.spt_class`) | P00 | [built](P03-spt-histogram.md) |
-| P04 | **Plasticity chart**: USCS or BS 5930, A/U lines, zones, NP count | `plasticity_chart` | plot + classification | P00 | idea |
-| P05 | **Grain size distribution**: curves, envelope per unit, sieve axis, D-value markers | `grain_size` | plot + analysis (Dx, Cu, Cc, gradation) | P00 | idea |
-| P06 | **Water content profile with Atterberg limits**: w against depth, with a PL–LL bar for each specimen | `water_content_profile` | plot | P01 | idea |
+| P04 | **Plasticity chart**: USCS or BS 5930, A/U lines, zones, NP count | `plasticity_chart` | plot + classification | P00 | [approved](P04-plasticity-chart.md) |
+| P05 | **Grain size distribution**: curves, envelope per unit, sieve axis, D-value markers | `grain_size` | plot + analysis (Dx, Cu, Cc, gradation) | P00 | [approved](P05-grain-size.md) |
+| P06 | **Water content profile with Atterberg limits**: w against depth, with a PL–LL bar for each specimen | `water_content_profile` | plot | P01 | [approved](P06-water-content-profile.md) |
 | P07 | **Property by geology unit**: values per unit with percentile bars (or boxes), against a report's baseline range per unit; one panel or a grid of properties | `geology_unit_comparison`, `geology_unit_comparisons` | plot | P00, P01 presets | [built](P07-geology-unit-comparison.md) |
 
 ### Batch 2: laboratory analysis plots (each is a substantial analysis)

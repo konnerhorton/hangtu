@@ -258,6 +258,7 @@ Apply in both phases. In Phase 1 they are applied by the analysis functions to t
 
 ### 10.2 Ready-made datasets (Phase 2)
 - `p.spt()`, `p.atterberg()`, `p.grain_size()` and `p.permeability()` (M7, v0.1); `p.grain_size_summary()`, `p.index_properties()` and the classification columns with the M8 analyses (v0.2).
+- **Several specimens of a test in one sample** (decided 2026-10-15, M8): `p.index_properties()` uses the one nearest in depth to the water content specimen and names it in a column, with a warning. No row is multiplied (`docs/data/datasets.md` §6.6).
 - They return DataFrames in **exactly the shape the Phase 1 plots expect**: the same registry column names, with units attached, in the project's display units unless `display_units=` says otherwise. Columns and rules: [`docs/data/datasets.md`](docs/data/datasets.md).
 - **Common filters:** `where=`, `contains=`, `elevation=`, `depth=`, `holes=`, `geology=`, `geology_fields=`, `include_incomplete=`, `display_units=` (naming decided).
 
@@ -371,4 +372,4 @@ Rows are in build order. M8 comes after M9 since v0.1 moved ahead of P04–P06 (
 ---
 
 ## 13. Open questions
-2. **`index_properties()` specimen combining:** when one sample has several specimens of a test, use the one nearest the other test's depth and flag it, or keep every combination?
+None open. #1 (SPT mid-drive fallback) was settled in M7 and #2 (specimen combining) in M8, §10.2.

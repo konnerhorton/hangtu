@@ -1,7 +1,7 @@
 # Phase 2 (data) — draft notes
 
 **Status:** working notes, not a spec. **Parent:** SPEC §6, §7, §9 and §10, which hold the decided constraints.
-**Use:** input for the Phase 2 intents (ingest, QC and the M7 datasets are specified in `docs/data/ingest.md`, `qc.md` and `datasets.md`; the M8 datasets are still here). Each intent's spec takes what it needs from here, and the decisions that end up applying to all of Phase 2 go back into `SPEC.md`.
+**Use:** input for the Phase 2 intents (ingest, QC and the datasets are specified in `docs/data/ingest.md`, `qc.md` and `datasets.md`). Each intent's spec takes what it needs from here, and the decisions that end up applying to all of Phase 2 go back into `SPEC.md`.
 Decisions marked **(decided)** were agreed in review. Everything else is a draft.
 
 ---
@@ -33,10 +33,4 @@ Moved to [`docs/data/qc.md`](../data/qc.md) (M6).
 ---
 
 ## Project access and datasets (SPEC §10)
-Project access and the M7 datasets (`p.spt()`, `p.atterberg()`, `p.grain_size()`, `p.permeability()`) moved to [`docs/data/datasets.md`](../data/datasets.md). What's left waits for the M8 analyses:
-
-| Method | Columns |
-|---|---|
-| `p.atterberg()` | adds plasticity_class_uscs, plasticity_class_bs5930 |
-| `p.grain_size_summary()` | One row per specimen: d10, d30, d60, uniformity_coefficient, curvature_coefficient, the fraction columns and fraction_system (analysis draft §3.4) |
-| `p.index_properties()` | One row per sample: Atterberg + water_content + PSD summary, uscs_symbol, aashto_group, aashto_group_index. Specimen combining rule: SPEC §13 #2 |
+Project access and the datasets moved to [`docs/data/datasets.md`](../data/datasets.md): the M7 datasets, and from M8 the classification columns, `p.grain_size_summary()` and `p.index_properties()`.
