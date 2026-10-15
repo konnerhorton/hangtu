@@ -157,6 +157,7 @@ The principles are decided in SPEC §4. The rest is a draft.
 - **Groundwater** is a single depth or elevation for every hole, or `{loca_id: level}`. With a dict, every hole in the data must be in it; the error lists the missing holes. The user picks a level for holes without a record (to rethink later).
 - **Pore pressure** is hydrostatic: u = γw (z − z_w) below the water level and 0 above it. Perched water and artesian pressure are out of scope. γw is a new setting, `ht.settings.water_unit_weight` (9.81 kN/m³, 62.4 pcf; plot drafts cross-cutting finding 4).
 - **Auditability:** the profile, the interpolation and the water level used for each hole go in `df.attrs`.
+- **Assumptions**, stated in the docstring as for the correlations: level ground with laterally uniform layers; geostatic stress only, with no surcharge, structures or arching (near trenches, tunnels, walls and slopes σv isn't γz); hydrostatic pore pressure. The result isn't conservative in a fixed direction: a σ′v that's too high lowers (N1)60 (safe for strength) but also lowers OCR (unsafe for settlement), so the docstring says so instead of claiming conservatism.
 
 Open: which C_N (Liao & Whitman 1986; others) and its cap.
 
