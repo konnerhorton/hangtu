@@ -188,6 +188,13 @@ You are also looking. Candidates found so far:
     - property-based unit tests with `hypothesis`.
 - **To find:** large files with good SPT, Atterberg, PSD and permeability coverage.
 
+### 20. Which SPT correlations for v0.2 · You + Claude · docs/drafts/analysis.md §4.2 · needed for M13
+- **You:** which properties and correlations you use, and any you'd exclude.
+- **Claude:** verify each equation, its constants, the N it was derived with and its stated range against the source.
+
+### 21. Thewes & Burger (2004) diagram · Claude (verify) · P17 draft §14 · needed for M12
+Confirm the axes (PI or LL against Ic) and the zone coordinates against the paper.
+
 ---
 
 ## Later / far future (also on the Roadmap)
@@ -195,6 +202,7 @@ You are also looking. Candidates found so far:
 - A helper for deciding cohesive vs cohesionless from lab data (fines %, PI).
 
 ## Done
+- ✅ #19 Source of triaxial readings decided (2026-10-15): a CSV the user shapes from the lab's export, one row per reading, minimum columns in the P12 draft §3. AGS 4.1–4.2 `TRET` and `TRIT` carry values at failure only, which feed P11.
 - ✅ #18 A point exactly on the axis limit decided and built (2026-10-14, M9): a value on a limit hangtu picks moves that limit out one step (a tick step, or a decade on a log axis). A lower limit of 0 stays, and limits the user sets are used as given. In P00 §8.
 - ✅ #17 Particle size shown in inches decided (2026-10-14): `GRAT_SIZE`, `LLPL_SIZE` and `PTST_SZUN` get the `particle_size` kind at ingest, so US output keeps mm. In docs/data/datasets.md §10 and ingest.md §7.
 - ✅ #6 QC thresholds kept as the defaults (2026-10-14): L005 (3 m from the median of the 5 nearest holes within 200 m), S002 (N > 100), A003 (LL < 10 or > 150), G002/G003 (0.01 m; a project can set any unit, and imperial rounding doesn't cause false gaps). In docs/data/qc.md §4. P001/P003 stay open.

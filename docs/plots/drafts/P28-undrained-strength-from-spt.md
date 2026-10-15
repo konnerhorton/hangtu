@@ -5,7 +5,7 @@
 | **ID / function** | P28 (proposed ID) · `ht.plot.spt_strength_chart()` (+ `ht.analysis.correlations.sowers_1979()`) |
 | **Status** | idea (draft notes) |
 | **Type** | reference chart + analysis (correlation); results drawn with P07 or P01 |
-| **Target version** | v0.4 or later (open) |
+| **Target version** | correlation v0.2 (M13, analysis draft §4); reference chart open |
 | **Depends on** | P00; P02 data; P07/P01 for the results |
 | **Related** | Cross-cutting finding 2 |
 

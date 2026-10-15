@@ -1,6 +1,6 @@
 # Phase 1 analyses — feature spec
 
-**Status:** §1 SPT is decided (M3). §2–3 are drafts, to be finished with P04–P06 (M8). Analyses are specified here, apart from the plot specs, so they can be used without a plot.
+**Status:** §1 SPT is decided (M3). §2–3 are drafts, to be finished with P04–P06 (M8). §4 is a draft, to be finished with M13. Analyses are specified here, apart from the plot specs, so they can be used without a plot.
 **Parent:** SPEC §4. The cross-cutting analysis decisions are there. This file holds the detail. Depth conventions are in SPEC §8.
 
 ---
@@ -134,3 +134,41 @@ Worked by hand.
 - **Sieve axis is configurable** (decided). Default US list: 3", 1½", ¾", ⅜", #4, #10, #20, #40, #60, #100, #140, #200. An ISO list is used in SI display.
 - In Phase 2, fractions are always recomputed from the sieve data (AGS GRAG fractions use ISO boundaries).
 - User-defined PSD regions are a v0.4 item.
+
+## 4. SPT correlations (draft, M13)
+The principles are decided in SPEC §4. The rest is a draft.
+
+- **Module:** `ht.analysis.correlations`, one function per published correlation, named after the source (`sowers_1979`, `hatanaka_uchida_1996`). The docstring follows the same headings for every correlation: equation, source, applies to, doesn't apply to, input N, range, derived from, notes.
+- **Metadata:** the same facts as a YAML entry in the config (proposed `config/correlations.yaml`), so the docstring, the result's `df.attrs` and a plot footnote all come from one place. Constants are kept in the source's units and converted with pint.
+- **Input N is explicit.** Each correlation declares which N it was derived with. If the column the user passes doesn't match (field N into an N60 correlation), the function raises an error that names the expected column, rather than guessing a correction.
+- **Out of range:** NaN plus a count, by reason (outside the N range, wrong soil type, refusal, missing input). Refusals give no estimate.
+- **Output:** long format, one row per test and correlation, with the estimate in the target property's registry column and a column naming the correlation, so `profile(est, "friction_angle", color_by=<that column>)` compares several correlations against depth. Correlations that give a range (Sowers) return lower and upper values. Column names are to be checked against the registry (`method` is already the test method).
+- **Comparison:** P01 and P07 draw the results. Overlaying measured values (lab s_u, φ′ from P11) on the estimates is the main use, so it should be one call.
+
+### 4.1 Vertical stress and (N1)60
+(N1)60 = N60 × C_N, with C_N from the effective vertical stress σ′v. Some correlations (Kulhawy & Mayne 1990) also take σ′v. So σ′v is its own function, and (N1)60 and the correlations take a σ′v column as input.
+
+`ht.analysis.vertical_stress(df, *, unit_weight, groundwater, interpolation="step")` adds total vertical stress, hydrostatic pore pressure and σ′v (names to check against the registry). Decided 2026-10-15:
+- **Unit weight** is a single value or a profile table (`depth` or `elevation`, `bulk_unit_weight`), passed in the call. It's a design profile, not raw lab data: one value per depth, otherwise an error that names the repeated depths.
+  - `interpolation="step"`: each row applies from its depth down to the next row (discrete properties per interval, as design profiles usually are). `"linear"`: linear between rows (a trend).
+  - The first row applies from the ground surface, and the last row continues down. Both are stated in the docstring.
+  - Total (bulk) unit weight throughout; σ′v = σv − u. A submerged unit weight is never asked for.
+  - A profile in elevation is converted to depth with each hole's `ground_level` (SPEC §8). A hole without one is an error.
+- **Groundwater** is a single depth or elevation for every hole, or `{loca_id: level}`. With a dict, every hole in the data must be in it; the error lists the missing holes. The user picks a level for holes without a record (to rethink later).
+- **Pore pressure** is hydrostatic: u = γw (z − z_w) below the water level and 0 above it. Perched water and artesian pressure are out of scope. γw is a new setting, `ht.settings.water_unit_weight` (9.81 kN/m³, 62.4 pcf; plot drafts cross-cutting finding 4).
+- **Auditability:** the profile, the interpolation and the water level used for each hole go in `df.attrs`.
+
+Open: which C_N (Liao & Whitman 1986; others) and its cap.
+
+**Later:** unit weight by geology unit, `unit_weight={"Fill": 19, "Clay": 18}`, integrated layer by layer through each hole's log (the M7 geology joins already give the intervals). A suggested value per unit could come from the lab data (the median `bulk_unit_weight`, as P07 shows it), for the user to accept or change.
+
+### 4.2 Candidate correlations (TODO #20)
+To choose and verify against the sources:
+
+| Property | Candidates |
+|---|---|
+| Undrained shear strength | Terzaghi & Peck (1967); Sowers (1979) (P28 draft); Stroud (1974), f1 × N60 by PI |
+| Friction angle | Peck, Hanson & Thornburn (1974), as fitted by Wolff (1989); Hatanaka & Uchida (1996); Kulhawy & Mayne (1990) |
+| Relative density | Skempton (1986); Meyerhof (1957) |
+| Young's modulus | Kulhawy & Mayne (1990), by soil type |
+| Shear wave velocity | Imai & Tonouchi (1982) |
