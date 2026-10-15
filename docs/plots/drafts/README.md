@@ -13,7 +13,7 @@ Each draft ends with **pitfalls**: mistakes that are easy to make when implement
 | [P02](../P02-spt-profile.md) | SPT N against elevation, colored by unit | built (promoted) | v0.1 |
 | [P03](../P03-spt-histogram.md) | % of tests per density or consistency class, per unit | built (promoted) | v0.1 |
 | [P04](../P04-plasticity-chart.md) | Plasticity chart with A/U lines and optional user regions | approved (promoted) | v0.2 |
-| [P05](P05-grain-size.md) | Grain size curves, fraction header band, envelopes, D-values | listed | v0.2 |
+| [P05](../P05-grain-size.md) | Grain size curves, fraction header band, envelopes, D-values | approved (promoted) | v0.2 |
 | [P11](P11-failure-envelope.md) | Failure envelope with fitted c′–φ′: Mohr circles, s′–t or p′–q, optional idealized drained paths | listed | v0.2 |
 | [P12](P12-triaxial-shearing.md) | Stress–strain curves and measured stress paths, with P11's envelope (P10 merged in) | listed | v0.2 |
 | [P17](P17-clogging.md) | Clogging potential zones against consistency index | listed | v0.2 |

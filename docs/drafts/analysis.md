@@ -377,7 +377,7 @@ Worked by hand on curve A: sizes 0.075, 0.15, 0.3, 0.6, 1.18, 2.36, 4.75 mm pass
 - `particle_size` in inches is converted before interpolating (1 in = 25.4 mm).
 - A user system with an overlap is an error naming both fractions.
 
-**Pitfalls** (P05 draft):
+**Pitfalls** (from the P05 draft):
 - Sorting `particle_size` and `percent_passing` independently, which re-pairs the points.
 - Typos in boundaries: fine/medium sand is 0.425 mm, not 0.475; fine/coarse gravel is 19 mm, not 20. The config test checks every boundary against the table above.
 - Interpolating linearly in size instead of log size.
