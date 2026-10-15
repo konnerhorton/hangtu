@@ -406,6 +406,19 @@ columns:
     type: text
     ags: ["derived: docs/drafts/analysis.md §2.6"]
     used_by: [P04, P05]
+  aashto_group:
+    description: AASHTO soil group (AASHTO M 145), A-1-a to A-7-6
+    type: text
+    ags: ["derived: docs/drafts/analysis.md §2.7"]
+    used_by: []
+  aashto_group_index:
+    description: AASHTO group index (AASHTO M 145), a whole number, 0 or more
+    type: number
+    quantity: count
+    scale: ratio
+    label: AASHTO group index
+    ags: ["derived: docs/drafts/analysis.md §2.7"]
+    used_by: []
 
   # --- Grain size (P05) ---------------------------------------------------------------------
   particle_size:

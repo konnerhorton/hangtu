@@ -1,9 +1,12 @@
-"""USCS group symbols (docs/drafts/analysis.md §2.6)."""
+"""USCS group symbols and AASHTO groups (docs/drafts/analysis.md §2.6 to 2.7)."""
+
+import operator
+from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
 
-from hangtu._data import numeric_column, rows_text
+from hangtu._data import flag_column, numeric_column, rows_text
 from hangtu.analysis._plasticity import plasticity
 from hangtu.errors import ColumnError, HangtuError, warn
 
@@ -13,6 +16,37 @@ from hangtu.errors import ColumnError, HangtuError, warn
 SLACK = 1e-9
 _USCS_FRACTIONS = ("gravel_content", "sand_content", "fines_content")
 _OVERSIZE = ("cobbles_content", "boulders_content")
+_AASHTO_FRACTIONS = (
+    "silt_clay_content",
+    "fine_sand_content",
+    "coarse_sand_content",
+    "gravel_content",
+)
+_LE, _GE, _LT = operator.le, operator.ge, operator.lt
+#: AASHTO M 145 groups, tested left to right (§2.7): each condition is
+#: (input, comparison, limit). "pi" is 0 for NP; "np" is 1 for NP, else 0.
+_AASHTO_GROUPS: list[tuple[str, list[tuple[str, Callable, float]]]] = [
+    ("A-1-a", [("p10", _LE, 50), ("p40", _LE, 30), ("p200", _LE, 15), ("pi", _LE, 6)]),
+    ("A-1-b", [("p40", _LE, 50), ("p200", _LE, 25), ("pi", _LE, 6)]),
+    ("A-3", [("p40", _GE, 51), ("p200", _LE, 10), ("np", _GE, 1)]),
+    ("A-2-4", [("p200", _LE, 35), ("ll", _LE, 40), ("pi", _LE, 10)]),
+    ("A-2-5", [("p200", _LE, 35), ("ll", _GE, 41), ("pi", _LE, 10)]),
+    ("A-2-6", [("p200", _LE, 35), ("ll", _LE, 40), ("pi", _GE, 11)]),
+    ("A-2-7", [("p200", _LE, 35), ("ll", _GE, 41), ("pi", _GE, 11)]),
+    ("A-4", [("p200", _GE, 36), ("ll", _LE, 40), ("pi", _LE, 10)]),
+    ("A-5", [("p200", _GE, 36), ("ll", _GE, 41), ("pi", _LE, 10)]),
+    ("A-6", [("p200", _GE, 36), ("ll", _LE, 40), ("pi", _GE, 11)]),
+    # A-7-5 when PI <= LL - 30, i.e. LL - PI >= 30; A-7-6 when PI > LL - 30.
+    (
+        "A-7-5",
+        [("p200", _GE, 36), ("ll", _GE, 41), ("pi", _GE, 11), ("ll_pi", _GE, 30)],
+    ),
+    (
+        "A-7-6",
+        [("p200", _GE, 36), ("ll", _GE, 41), ("pi", _GE, 11), ("ll_pi", _LT, 30)],
+    ),
+]
+_NO_GROUP_INDEX = {"A-1-a", "A-1-b", "A-2-4", "A-2-5", "A-3"}
 
 
 def _column(df: pd.DataFrame, column: str) -> np.ndarray:
@@ -204,4 +238,147 @@ def uscs(df: pd.DataFrame) -> pd.DataFrame:
         )
     result = df.copy()
     result["uscs_symbol"] = np.array(symbols, dtype=object)
+    return result
+
+
+def _half_up(values: np.ndarray) -> np.ndarray:
+    """Round to whole numbers, halves up (AASHTO M 145 limits are whole numbers)."""
+    return np.floor(values + 0.5)
+
+
+def _aashto_group(values: dict[str, float]) -> str | None:
+    """Return the first group whose conditions all hold.
+
+    None if a missing value could decide a group before it.
+    """
+    for group, conditions in _AASHTO_GROUPS:
+        known = [not np.isnan(values[name]) for name, _, _ in conditions]
+        fails = any(
+            is_known and not compare(values[name], limit)
+            for is_known, (name, compare, limit) in zip(known, conditions, strict=True)
+        )
+        if fails:
+            continue
+        return group if all(known) else None
+    return None
+
+
+def _group_index(group: str, fines: float, liquid: float, index: float) -> float:
+    """AASHTO group index (§2.7): whole number, 0 or more."""
+    if group in _NO_GROUP_INDEX:
+        return 0.0
+    plastic_part = 0.01 * (fines - 15) * (index - 10)
+    if group in ("A-2-6", "A-2-7"):
+        value = plastic_part
+    else:
+        value = (fines - 35) * (0.2 + 0.005 * (liquid - 40)) + plastic_part
+    return float(max(_half_up(np.array(value)), 0.0))
+
+
+def aashto(df: pd.DataFrame) -> pd.DataFrame:
+    """Add the AASHTO group and group index (AASHTO M 145, analysis.md §2.7).
+
+    Returns a copy of ``df`` with ``aashto_group`` (A-1-a to A-7-6) and
+    ``aashto_group_index`` (a whole number, 0 or more) added.
+
+    - **Inputs**: the percent passing 2.00, 0.425 and 0.075 mm, from the
+      ``aashto`` fractions of ``ht.analysis.gradation()`` and rescaled to the
+      part finer than 75 mm; LL and PI. NP counts as PI = 0, and A-3 needs NP.
+    - **Rounding**: M 145's limits are whole numbers with gaps (LL 40 or less,
+      41 or more), so LL, PI and the passing percentages are rounded to whole
+      numbers, halves up, before they're compared.
+    - **Groups** are tested left to right, and the first that fits is the group.
+    - **Group index**: (F - 35)[0.2 + 0.005 (LL - 40)] + 0.01 (F - 15)(PI - 10),
+      with F the passing 0.075 mm; only the PI term for A-2-6 and A-2-7; 0 for
+      A-1-a, A-1-b, A-2-4, A-2-5 and A-3; never below 0.
+
+    A group that a missing value could change is left blank, counted in a
+    warning, rather than guessed.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        One row per specimen with the ``aashto`` fractions and
+        ``fraction_system`` (from ``gradation(curves, fractions="aashto")``),
+        and ``liquid_limit`` with ``plasticity_index`` or ``plastic_limit``
+        and ``non_plastic``.
+
+    Returns
+    -------
+    pandas.DataFrame
+
+    Examples
+    --------
+    >>> summary = ht.analysis.gradation(curves, fractions="aashto")
+    >>> soils = summary.merge(limits, on=["loca_id", "specimen_id"], how="left")
+    >>> ht.analysis.aashto(soils)[["specimen_id", "aashto_group", "aashto_group_index"]]
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise HangtuError(f"df must be a pandas DataFrame, not {type(df).__name__}.")
+    missing = [column for column in _AASHTO_FRACTIONS if column not in df.columns]
+    if missing:
+        raise ColumnError(
+            f"Column{'s' if len(missing) > 1 else ''} {', '.join(map(repr, missing))} "
+            "not found. AASHTO needs the aashto fractions from "
+            'ht.analysis.gradation(curves, fractions="aashto"). Available '
+            f"columns: {', '.join(map(str, df.columns)) or 'none'}."
+        )
+    _check_system(df, "aashto", (*_AASHTO_FRACTIONS, "boulders_content"))
+    silt_clay, fine_sand, coarse_sand, _ = (
+        _column(df, column) for column in _AASHTO_FRACTIONS
+    )
+    oversize = _column(df, "boulders_content") if "boulders_content" in df else 0.0
+    with np.errstate(divide="ignore", invalid="ignore"):
+        scale = 100 / (100 - oversize)
+    passing_200 = silt_clay * scale
+    passing_40 = passing_200 + fine_sand * scale
+    passing_10 = passing_40 + coarse_sand * scale
+
+    if "liquid_limit" in df.columns:
+        limits = plasticity(df)
+        liquid = numeric_column(limits, "liquid_limit")
+        index = numeric_column(limits, "plasticity_index")
+    else:
+        liquid = index = np.full(len(df), np.nan)
+    non_plastic = np.array(
+        [
+            flag is True
+            for flag in flag_column(
+                df, "non_plastic", "Leave the cell blank, or False, if it is plastic."
+            )
+        ],
+        dtype=bool,
+    )
+    index = np.where(non_plastic, 0.0, index)
+    rounded = {
+        "p10": _half_up(passing_10),
+        "p40": _half_up(passing_40),
+        "p200": _half_up(passing_200),
+        "ll": _half_up(liquid),
+        "pi": _half_up(index),
+        "np": non_plastic.astype(float),
+    }
+    rounded["ll_pi"] = rounded["ll"] - rounded["pi"]
+
+    groups: list[str | None] = []
+    indices: list[float] = []
+    for i in range(len(df)):
+        values = {name: float(column[i]) for name, column in rounded.items()}
+        group = _aashto_group(values)
+        groups.append(group)
+        indices.append(
+            np.nan
+            if group is None
+            else _group_index(group, values["p200"], values["ll"], values["pi"])
+        )
+    blank = sum(group is None for group in groups)
+    if blank:
+        warn(
+            f"aashto_group is blank for {blank} of {len(df)} specimens: a passing "
+            "percentage, LL or PI that could decide the group is missing. A "
+            "group the data can't decide is left blank rather than guessed."
+        )
+    result = df.copy()
+    result["aashto_group"] = np.array(groups, dtype=object)
+    result["aashto_group_index"] = np.array(indices, dtype=float)
     return result

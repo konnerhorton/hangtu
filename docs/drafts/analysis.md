@@ -244,7 +244,7 @@ NP counts as PI = 0 against the PI limits. A-3 needs NP.
 - A-1-a, A-1-b, A-2-4, A-2-5 and A-3: 0.
 - Negative → 0. Rounded to the nearest whole number. No upper limit.
 
-**Blank, counted in one warning:** a passing percentage, LL or PI the group needs is missing.
+**Blank, counted in one warning:** a missing passing percentage, LL or PI could decide the group. Groups are tested left to right; one that a known value rules out is skipped, so a soil with F = 60 needs no passing 2.00 mm, but one that might be A-1-b with the passing 0.425 mm missing is blank.
 
 ### 2.8 Errors
 Each says what is wrong, where (the rows) and what to do (SPEC §11).
