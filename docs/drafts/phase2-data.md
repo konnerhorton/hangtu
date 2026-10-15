@@ -38,5 +38,5 @@ Project access and the M7 datasets (`p.spt()`, `p.atterberg()`, `p.grain_size()`
 | Method | Columns |
 |---|---|
 | `p.atterberg()` | adds plasticity_class_uscs, plasticity_class_bs5930 |
-| `p.grain_size_summary()` | One row per specimen: d10, d30, d60, uniformity_coefficient, curvature_coefficient, fractions, gradation_uscs |
+| `p.grain_size_summary()` | One row per specimen: d10, d30, d60, uniformity_coefficient, curvature_coefficient, the fraction columns and fraction_system (analysis draft §3.4) |
 | `p.index_properties()` | One row per sample: Atterberg + water_content + PSD summary, uscs_symbol, aashto_group, aashto_group_index. Specimen combining rule: SPEC §13 #2 |

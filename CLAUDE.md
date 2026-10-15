@@ -1,6 +1,6 @@
 # hangtu
 
-Python library of plots, analyses and AGS4 ingest/QC for geotechnical engineers. M0 (scaffolding), M1 (P00 framework), M2 (P01 property profile), M2b (P07 property by geology unit) and M3 (SPT analysis, P02 SPT profile, P03 SPT class histogram) done, and the package renamed from ags-kit to hangtu. Phase 2 comes next, ahead of the remaining plots (SPEC §1.3): M4 decided the data model (AGS 4.2-shaped tables, SPEC §7), M5 (AGS4 ingest into SQLite, `ht.Project`) and M6 (QC level 1: `p.qc()`, the report and `p.diff()`) M7 (depth, elevation and geology joins, datasets: `p.spt()`, `p.atterberg()`, `p.grain_size()`, `p.permeability()`) and M9 (examples, `ht.examples`, templates that follow the datasets, README; version 0.1.0) are done. Releasing 0.1.0 to PyPI comes next, then v0.2 (SPEC §1.3, §12.4): P04–P06 (M8), triaxial P11–P12 (M11), clogging P17 (M12) and SPT correlations with (N1)60 (M13).
+Python library of plots, analyses and AGS4 ingest/QC for geotechnical engineers. M0 (scaffolding), M1 (P00 framework), M2 (P01 property profile), M2b (P07 property by geology unit) and M3 (SPT analysis, P02 SPT profile, P03 SPT class histogram) done, and the package renamed from ags-kit to hangtu. Phase 2 comes next, ahead of the remaining plots (SPEC §1.3): M4 decided the data model (AGS 4.2-shaped tables, SPEC §7), M5 (AGS4 ingest into SQLite, `ht.Project`) and M6 (QC level 1: `p.qc()`, the report and `p.diff()`) M7 (depth, elevation and geology joins, datasets: `p.spt()`, `p.atterberg()`, `p.grain_size()`, `p.permeability()`) and M9 (examples, `ht.examples`, templates that follow the datasets, README; version 0.1.0) are done. Releasing 0.1.0 to PyPI comes next, then v0.2 (SPEC §1.3, §12.4): P04–P06 (M8), triaxial P11–P12 (M11), clogging P17 (M12) and SPT correlations with (N1)60 (M13). In M8, the analyses are done (`ht.analysis.plasticity()`, `gradation()`, `uscs()`, `aashto()`; [`docs/work/m8-index-plots.md`](docs/work/m8-index-plots.md)), and P04 is next.
 
 ## Where things are
 - `SPEC.md`: product spec and cross-cutting decisions. Read the relevant section before designing anything.
@@ -34,7 +34,7 @@ Explicit is better than implicit. Names are written out in full, or full enough 
 - **Prefix test-specific quantities with the test**: `spt_n`, `spt_n60`, `spt_refusal`.
 - **Symbols belong in labels**, not names: the registry `label` says "Undrained shear strength, s_u".
 - **Units never appear in names** (`particle_size`, not `size_mm`). Units live in `df.attrs["units"]`.
-- **Accepted short forms** are notation that is unambiguous in geotechnical work (`d10`, `d30`, `d60`) and AGS identifiers (`loca_id`). Add a short form to this list only after checking it can't collide with another quantity.
+- **Accepted short forms** are notation that is unambiguous in geotechnical work (`d10`, `d30`, `d60`, and `d<x>` generally), AGS identifiers (`loca_id`), and the names of classification standards (`uscs`, `aashto`, `bs5930`). Add a short form to this list only after checking it can't collide with another quantity.
 - New names are checked against the whole registry before they are added.
 
 ## Git and commits

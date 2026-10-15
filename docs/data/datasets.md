@@ -14,7 +14,7 @@ Turn a project's canonical tables into the DataFrames the plots take:
 - **the geology map**: `p.set_geology_map(path)` maps the codes in the file to the units an engineer reports on;
 - **QC G004**, unmapped geology code, deferred here from M6.
 
-**Not in scope:** classification columns (`plasticity_class_*`, `gradation_uscs`, `uscs_symbol`, AASHTO), `p.grain_size_summary()` and `p.index_properties()`, which wait for the M8 analyses (SPEC §1.3, §13 #2); settings export (`to_yaml()`) and stored QC overrides; datasets for other tests (undrained strength, consolidation); inclined holes (QC L004); changing the data (SPEC §1.4).
+**Not in scope:** classification columns (`plasticity_class_*`, `uscs_symbol`, AASHTO), `p.grain_size_summary()` and `p.index_properties()`, which wait for the M8 analyses (SPEC §1.3, §13 #2); settings export (`to_yaml()`) and stored QC overrides; datasets for other tests (undrained strength, consolidation); inclined holes (QC L004); changing the data (SPEC §1.4).
 
 ## 2. Public API
 ```python

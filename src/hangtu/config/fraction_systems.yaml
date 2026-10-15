@@ -1,0 +1,66 @@
+# Size-fraction systems (docs/drafts/analysis.md §3.5). ht.analysis.gradation()
+# and the grain size plot's header band (P05) both read this file, so the
+# fractions and the band can't disagree. Sizes in mm. Each fraction runs from
+# its lower size up to its upper size; the last has no upper size. Parts split a
+# fraction for the header band only, each up to its upper size. Values marked
+# "verify" are checked against the standard before release (TODO #5).
+
+astm_uscs:
+  description: Unified Soil Classification System
+  source: ASTM D2487-17                # verify
+  fractions:
+    - {name: fines, lower: 0, upper: 0.075}
+    - name: sand
+      lower: 0.075
+      upper: 4.75
+      parts:
+        - {name: fine, upper: 0.425}
+        - {name: medium, upper: 2.0}
+        - {name: coarse, upper: 4.75}
+    - name: gravel
+      lower: 4.75
+      upper: 75
+      parts:
+        - {name: fine, upper: 19}
+        - {name: coarse, upper: 75}
+    - {name: cobbles, lower: 75, upper: 300}
+    - {name: boulders, lower: 300, upper: null}
+
+aashto:
+  description: AASHTO soil classification
+  source: AASHTO M 145                 # verify
+  fractions:
+    - {name: silt_clay, lower: 0, upper: 0.075}
+    - {name: fine_sand, lower: 0.075, upper: 0.425}
+    - {name: coarse_sand, lower: 0.425, upper: 2.0}
+    - {name: gravel, lower: 2.0, upper: 75}
+    - {name: boulders, lower: 75, upper: null}
+
+iso14688:
+  description: ISO soil identification and classification
+  source: ISO 14688-1:2017             # verify
+  fractions:
+    - {name: clay, lower: 0, upper: 0.002}
+    - name: silt
+      lower: 0.002
+      upper: 0.063
+      parts:
+        - {name: fine, upper: 0.0063}
+        - {name: medium, upper: 0.02}
+        - {name: coarse, upper: 0.063}
+    - name: sand
+      lower: 0.063
+      upper: 2.0
+      parts:
+        - {name: fine, upper: 0.2}
+        - {name: medium, upper: 0.63}
+        - {name: coarse, upper: 2.0}
+    - name: gravel
+      lower: 2.0
+      upper: 63
+      parts:
+        - {name: fine, upper: 6.3}
+        - {name: medium, upper: 20}
+        - {name: coarse, upper: 63}
+    - {name: cobbles, lower: 63, upper: 200}
+    - {name: boulders, lower: 200, upper: null}

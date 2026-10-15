@@ -9,7 +9,7 @@ import pandas as pd
 
 from hangtu import _config
 from hangtu import units as _units
-from hangtu._data import numeric_column, rows_text
+from hangtu._data import flag_column, numeric_column, rows_text
 from hangtu._settings import settings
 from hangtu.errors import ColumnError, HangtuError
 
@@ -19,8 +19,6 @@ REFUSAL_PENETRATION = 450.0  # mm: seating plus test drive (§1.3)
 SLACK = 1e-6  # mm
 REFUSAL_CLASS = "Refusal"
 N_COLUMNS = ("spt_n", "spt_n60", "spt_n_capped")
-_TRUE = {"true", "yes", "1", "1.0"}
-_FALSE = {"false", "no", "0", "0.0"}
 
 
 def n60(n: Any, energy_ratio: Any) -> Any:
@@ -55,50 +53,14 @@ def _check_cap(value: Any) -> int:
     return value
 
 
-def _flag(value: Any) -> bool | None:
-    """Read one ``spt_refusal`` cell: True, False, or None for blank."""
-    if (
-        value is None
-        or value is pd.NA
-        or (isinstance(value, float) and np.isnan(value))
-    ):
-        return None
-    if isinstance(value, bool | np.bool_):
-        return bool(value)
-    if isinstance(value, Real) and value in (0, 1):
-        return bool(value)
-    if isinstance(value, str):
-        text = value.strip().lower()
-        if text == "":
-            return None
-        if text in _TRUE:
-            return True
-        if text in _FALSE:
-            return False
-    raise ValueError(value)
-
-
 def _refusal_flags(df: pd.DataFrame) -> list[bool | None]:
     """Return each row's ``spt_refusal``: True, False or None for blank."""
-    if "spt_refusal" not in df.columns:
-        return [None] * len(df)
-    flags, bad, found = [], [], []
-    for row, value in df["spt_refusal"].items():
-        try:
-            flags.append(_flag(value))
-        except ValueError:
-            flags.append(None)
-            bad.append(row)
-            found.append(repr(value))
-    if bad:
-        shown = ", ".join(dict.fromkeys(found[:5]))
-        raise ColumnError(
-            "Column 'spt_refusal' must hold True or False (or 1/0, yes/no), or be "
-            f"blank, but rows {rows_text(pd.Index(bad))} hold {shown}. Leave the "
-            "cell blank when you don't know: refusal is then found from "
-            "'spt_penetration'."
-        )
-    return flags
+    return flag_column(
+        df,
+        "spt_refusal",
+        "Leave the cell blank when you don't know: refusal is then found from "
+        "'spt_penetration'.",
+    )
 
 
 def _penetration_mm(

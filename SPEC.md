@@ -142,7 +142,7 @@ Full conventions are in [`docs/plots/README.md`](docs/plots/README.md); each fig
 ---
 
 ## 4. Analyses (Phase 1 unless noted)
-Analysis code lives in `ht.analysis.*`, as plain functions usable without plotting. Detail is in [`docs/drafts/analysis.md`](docs/drafts/analysis.md): §1 SPT (refusal, N60, cap, classes) is decided; §2 Atterberg and §3 grain size are drafts until M8; §4 SPT correlations is a draft until M13. Decisions that more than one plot depends on:
+Analysis code lives in `ht.analysis.*`, as plain functions usable without plotting. Detail is in [`docs/drafts/analysis.md`](docs/drafts/analysis.md): §1 SPT (refusal, N60, cap, classes) is decided; §2 Atterberg and classification and §3 grain size are decided (M8), with values to verify against the standards (TODO #5); §4 SPT correlations is a draft until M13. Decisions that more than one plot depends on:
 - **SPT refusals** are included by default at the cap value (`spt_cap = 100`) with a note. Statistics treat them as censored.
 - **N60** stays NULL until an energy ratio or `hammer_efficiency` is given. There is no default.
 - **NP** is distinct from blank everywhere and shown as a count on plots.
