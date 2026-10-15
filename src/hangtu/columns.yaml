@@ -483,3 +483,88 @@ columns:
     label: Coefficient of curvature, Cc
     ags: [GRAG.GRAG_CC]
     used_by: [P05]
+  fraction_system:
+    description: Size-fraction system the *_content columns follow (astm_uscs, aashto, iso14688 or the user's)
+    type: text
+    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    used_by: [P05]
+  fines_content:
+    description: Percentage of the sample that is finer than 0.075 mm (USCS)
+    type: number
+    quantity: percent
+    scale: ratio
+    label: Fines content
+    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    used_by: [P05]
+  sand_content:
+    description: Percentage of the sample that is sand, by the row's fraction_system
+    type: number
+    quantity: percent
+    scale: ratio
+    label: Sand content
+    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    used_by: [P05]
+  gravel_content:
+    description: Percentage of the sample that is gravel, by the row's fraction_system
+    type: number
+    quantity: percent
+    scale: ratio
+    label: Gravel content
+    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    used_by: [P05]
+  cobbles_content:
+    description: Percentage of the sample that is cobbles, by the row's fraction_system
+    type: number
+    quantity: percent
+    scale: ratio
+    label: Cobbles content
+    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    used_by: [P05]
+  boulders_content:
+    description: Percentage of the sample that is boulders, by the row's fraction_system
+    type: number
+    quantity: percent
+    scale: ratio
+    label: Boulders content
+    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    used_by: [P05]
+  silt_content:
+    description: Percentage of the sample that is silt, by the row's fraction_system (ISO 14688)
+    type: number
+    quantity: percent
+    scale: ratio
+    label: Silt content
+    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    used_by: [P05]
+  clay_content:
+    description: Percentage of the sample that is clay, by the row's fraction_system (ISO 14688)
+    type: number
+    quantity: percent
+    scale: ratio
+    label: Clay content
+    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    used_by: [P05]
+  silt_clay_content:
+    description: Percentage of the sample that is finer than 0.075 mm (AASHTO silt-clay)
+    type: number
+    quantity: percent
+    scale: ratio
+    label: Silt-clay content
+    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    used_by: [P05]
+  fine_sand_content:
+    description: Percentage of the sample that is fine sand, 0.075 to 0.425 mm (AASHTO)
+    type: number
+    quantity: percent
+    scale: ratio
+    label: Fine sand content
+    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    used_by: [P05]
+  coarse_sand_content:
+    description: Percentage of the sample that is coarse sand, 0.425 to 2.0 mm (AASHTO)
+    type: number
+    quantity: percent
+    scale: ratio
+    label: Coarse sand content
+    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    used_by: [P05]

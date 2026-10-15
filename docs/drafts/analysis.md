@@ -343,7 +343,7 @@ A **fraction system** is one data structure (M8 intent, decision 5): a name, a c
 | `iso14688` (ISO 14688-1:2017) | clay < 0.002; silt 0.002–0.063; sand 0.063–2.0; gravel 2.0–63; cobbles 63–200; boulders ≥ 200 | silt, sand and gravel: fine, medium, coarse at 0.0063/0.02, 0.2/0.63, 6.3/20 |
 
   USCS has no clay–silt boundary, so `astm_uscs` has one fines fraction (M8 intent, decision 5).
-- **The user's own:** `fractions=` takes a dict in the same structure, or the path to a YAML file holding one. It is checked (sizes increasing, no gaps or overlaps, names unique) and errors say which fraction is wrong. Its fraction names make columns `<name>_content`, which must not collide with an existing registry column.
+- **The user's own:** `fractions=` takes a dict in the same structure, or the path to a YAML file holding one, with a `name` that goes in `fraction_system` and isn't one of the built-in names (so `uscs()` can't mistake it for `astm_uscs`). It is checked (sizes increasing, no gaps or overlaps, names unique) and errors say which fraction is wrong. Its fraction names make columns `<name>_content`, which must not collide with an existing registry column.
 
 **A fraction's percentage** = P(upper) − P(lower), where P(size) is the passing at that size:
 - interpolated log-linearly on the curve (as §3.3), and given exactly at a point;

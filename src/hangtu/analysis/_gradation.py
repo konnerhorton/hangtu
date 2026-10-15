@@ -1,4 +1,4 @@
-"""Grain size: D-values, Cu and Cc (docs/drafts/analysis.md §3)."""
+"""Grain size: D-values, Cu, Cc and size fractions (docs/drafts/analysis.md §3)."""
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -12,6 +12,7 @@ import pandas as pd
 from hangtu import _config
 from hangtu import units as _units
 from hangtu._data import numeric_column, rows_text
+from hangtu.analysis._fractions import content_column, fraction_system, passing_at
 from hangtu.errors import ColumnError, HangtuError, warn
 
 _REQUIRED = ("specimen_id", "particle_size", "percent_passing")
@@ -227,6 +228,32 @@ def _d_values(curves: list[_Curve], wanted: tuple[int, ...]) -> None:
         )
 
 
+def _fractions(curves: list[_Curve], fractions: list[dict[str, Any]]) -> None:
+    """Find each curve's fractions, and warn about those left blank (§3.5)."""
+    unreached: dict[str, int] = {}
+    for curve in curves:
+        for fraction in fractions:
+            column = content_column(fraction["name"])
+            value = np.nan
+            if curve.usable:
+                upper = passing_at(curve.sizes, curve.passing, fraction["upper"])
+                lower = passing_at(curve.sizes, curve.passing, fraction["lower"])
+                value = upper - lower
+                if np.isnan(value):
+                    unreached[fraction["name"]] = unreached.get(fraction["name"], 0) + 1
+            curve.values[column] = value
+    if unreached:
+        counts = ", ".join(
+            f"{name} in {count} curve{'s' if count > 1 else ''}"
+            for name, count in unreached.items()
+        )
+        warn(
+            f"Fractions left blank because the curve doesn't reach their sizes: "
+            f"{counts}. Fractions are never extrapolated (e.g. clay and silt need a "
+            "hydrometer test)."
+        )
+
+
 def _carried(df: pd.DataFrame, keys: list[str], groups: list[np.ndarray]) -> list[str]:
     """Columns other than the points' that are constant within every curve."""
     others = [c for c in df.columns if c not in keys and c not in _POINT_COLUMNS]
@@ -240,10 +267,11 @@ def _carried(df: pd.DataFrame, keys: list[str], groups: list[np.ndarray]) -> lis
 def gradation(
     df: pd.DataFrame,
     *,
+    fractions: Any = "astm_uscs",
     d_values: Sequence[int] = (10, 30, 60),
     units: Mapping[str, str] | None = None,
 ) -> pd.DataFrame:
-    """Summarize grading curves: D-values, Cu and Cc (analysis.md §3.3 to 3.4).
+    """Summarize grading curves: D-values, Cu, Cc and fractions (analysis.md §3).
 
     Returns one row per curve (specimen), in order of first appearance.
 
@@ -254,6 +282,11 @@ def gradation(
       once, the finest crossing is used.
     - **uniformity_coefficient** Cu = D60 / D10; **curvature_coefficient**
       Cc = D30² / (D10 · D60).
+    - **Size fractions**: one column ``<fraction>_content`` (% of the whole
+      sample) per fraction of the system, and ``fraction_system`` naming it.
+      A fraction's percentage is the passing at its upper size minus the
+      passing at its lower size. It is blank where the curve doesn't reach
+      those sizes (clay and silt need a hydrometer test); it is never estimated.
 
     Points are sorted by size as rows, never one column at a time. A curve
     whose percent passing rises by more than 0.5 percentage points toward finer
@@ -270,6 +303,13 @@ def gradation(
     df : pandas.DataFrame
         One row per point on a curve, as ``ht.template("grain_size")`` or
         ``p.grain_size()``.
+    fractions : str, dict or path
+        The size-fraction system: ``"astm_uscs"`` (fines, sand, gravel, cobbles,
+        boulders; USCS has no clay-silt boundary), ``"aashto"`` or
+        ``"iso14688"``; or your own, as a dict or the path to a YAML file in the
+        structure of ``config/fraction_systems.yaml``, with a ``name``. A
+        fraction name means different sizes in different systems (gravel starts
+        at 4.75 mm in USCS and 2 mm in ISO), so check ``fraction_system``.
     d_values : sequence of int
         Percentages passing to find sizes for, each a whole number from 1 to 99.
         Each gives a column ``d<x>``. ``d10``, ``d15``, ``d30``, ``d50``,
@@ -291,6 +331,7 @@ def gradation(
     if not isinstance(df, pd.DataFrame):
         raise HangtuError(f"df must be a pandas DataFrame, not {type(df).__name__}.")
     wanted = _check_d_values(d_values)
+    system, system_fractions = fraction_system(fractions)
     _check_columns(df)
     keys = _keys(df)
     sizes = _sizes_mm(df, units)
@@ -307,14 +348,17 @@ def gradation(
     curves = _build_curves(df, keys, groups, sizes, passing)
     _check_curves(curves)
     _d_values(curves, wanted)
+    _fractions(curves, system_fractions)
 
     first_rows = [rows[0] for rows in groups]
     result = df.iloc[first_rows][[*keys, *_carried(df, keys, groups)]]
     result = result.reset_index(drop=True)
     columns = [*(f"d{percent}" for percent in wanted), "uniformity_coefficient"]
     columns.append("curvature_coefficient")
+    columns += [content_column(fraction["name"]) for fraction in system_fractions]
     for column in columns:
         result[column] = [curve.values[column] for curve in curves]
+    result["fraction_system"] = system
 
     declared = _units.units_of(df)
     result.attrs["units"] = {

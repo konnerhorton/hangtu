@@ -82,7 +82,10 @@ def test_other_d_values():
 
 
 def test_curve_starting_above_ten_percent_has_blank_d10():
-    with pytest.warns(UserWarning, match="D10 in 1 curve"):
+    with (
+        pytest.warns(UserWarning, match="D10 in 1 curve"),
+        pytest.warns(UserWarning, match="Fractions left blank"),
+    ):
         row = one(curve(SIZES[1:], PASSING[1:]))
     assert np.isnan(row["d10"])
     assert np.isnan(row["uniformity_coefficient"])
@@ -90,7 +93,10 @@ def test_curve_starting_above_ten_percent_has_blank_d10():
 
 
 def test_curve_not_reaching_sixty_percent_has_blank_d60():
-    with pytest.warns(UserWarning, match="D60 in 1 curve"):
+    with (
+        pytest.warns(UserWarning, match="D60 in 1 curve"),
+        pytest.warns(UserWarning, match="Fractions left blank"),
+    ):
         row = one(curve(SIZES[:4], PASSING[:4]))
     assert np.isnan(row["d60"])
 
