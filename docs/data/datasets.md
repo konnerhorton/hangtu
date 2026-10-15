@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Status** | done (M7) |
-| **Intent** | [`docs/work/m7-datasets.md`](../work/m7-datasets.md#intent) |
+| **Status** | done (M7); the M8 additions (classification columns in §6.2, §6.5 and §6.6) approved, to build |
+| **Intent** | [`docs/work/m7-datasets.md`](../work/m7-datasets.md#intent); M8: [`docs/work/m8-index-plots.md`](../work/m8-index-plots.md#intent) |
 | **Parent** | SPEC §2.6 (units), §7 (data model), §8 (depth, elevation, geology), §10 (datasets, registry), §11 (errors) |
-| **Related** | [`ingest.md`](ingest.md) (canonical layer, value flags), [`qc.md`](qc.md) (C001, G004, D004/D005). `docs/drafts/analysis.md` §1 (SPT). P01, P02, P03, P07 (the plots these feed) |
+| **Related** | [`ingest.md`](ingest.md) (canonical layer, value flags), [`qc.md`](qc.md) (C001, G004, D004/D005). `docs/drafts/analysis.md` §1 (SPT), §2–3 (classification, gradation). P01–P07 (the plots these feed) |
 
 ## 1. Purpose and scope
 Turn a project's canonical tables into the DataFrames the plots take:
@@ -14,7 +14,9 @@ Turn a project's canonical tables into the DataFrames the plots take:
 - **the geology map**: `p.set_geology_map(path)` maps the codes in the file to the units an engineer reports on;
 - **QC G004**, unmapped geology code, deferred here from M6.
 
-**Not in scope:** classification columns (`plasticity_class_*`, `uscs_symbol`, AASHTO), `p.grain_size_summary()` and `p.index_properties()`, which wait for the M8 analyses (SPEC §1.3, §13 #2); settings export (`to_yaml()`) and stored QC overrides; datasets for other tests (undrained strength, consolidation); inclined holes (QC L004); changing the data (SPEC §1.4).
+**Added in M8:** the plasticity class columns in `p.atterberg()` (§6.2), `p.grain_size_summary()` (§6.5) and `p.index_properties()` (§6.6), built on the analyses in `docs/drafts/analysis.md` §2–3.
+
+**Not in scope:** settings export (`to_yaml()`) and stored QC overrides; datasets for other tests (undrained strength, consolidation); inclined holes (QC L004); changing the data (SPEC §1.4).
 
 ## 2. Public API
 ```python
@@ -30,6 +32,8 @@ spt = p.spt(hammer_efficiency=80)        # passed to ht.analysis.spt()
 atterberg = p.atterberg()                # §6.2
 curves = p.grain_size()                  # §6.3
 k = p.permeability()                     # §6.4
+summary = p.grain_size_summary()         # §6.5, fractions="astm_uscs"
+index = p.index_properties()             # §6.6, one row per sample
 
 fig, ax = ht.plot.spt_profile(p.spt(geology=["Alluvium"]))
 ```
@@ -169,8 +173,9 @@ One row per `LLPL` row.
 | `water_content` | `LNMC_MC` of the same specimen (`specimen_id`), where there is exactly one; a specimen with several `LNMC` rows gets a blank and one warning per call that names them |
 | `liquidity_index` | `(w − PL) / PI` |
 | `consistency_index` | `(LL − w) / PI` |
+| `plasticity_class_uscs`, `plasticity_class_bs5930` | `ht.analysis.plasticity()` (analysis §2.5), M8 |
 
-- LI and Ic are blank when a value they need is blank, when the specimen is NP, or when PI ≤ 0.
+- PI (where blank), LI, Ic and the two classes come from `ht.analysis.plasticity()` (from M8), so they are computed in one place. LI and Ic are blank when a value they need is blank, when the specimen is NP, or when PI ≤ 0.
 - An NP specimen has `non_plastic = True` and blanks where the file wrote `NP` (ingest.md §8); a liquid limit the file gives is kept, and its PI isn't filled in. P07 counts it as NP, not as a blank (SPEC §4).
 
 **Lab depth** (SPEC §8.2), for every lab dataset: `SPEC_DPTH` (`spec_depth`), else the sample's midpoint `(SAMP_TOP + SAMP_BASE) / 2` from `SAMP` (`sample_mid`), else `SAMP_TOP` (`sample_top`).
@@ -200,6 +205,44 @@ One row per hydraulic conductivity result, from three groups:
 Columns: `loca_id`, `ground_level`, `depth`, `depth_top`, `depth_base`, `depth_basis`, `elevation`, `hydraulic_conductivity`, `qualifier`, `source`, `test_type`, then the geology columns and `source_line`.
 - `FGHS` stage values aren't included: `FGHG_IPRM` is the test's result. An `IPRG` file has one row per stage (ingest.md §6), and each is a result, so each is a row.
 - A zone with only one of top and base gets a blank depth; it isn't guessed.
+
+### 6.5 `p.grain_size_summary()` (M8)
+```python
+p.grain_size_summary(*, fractions="astm_uscs", d_values=(10, 30, 60), **common)
+```
+`ht.analysis.gradation(p.grain_size(**common), fractions=, d_values=)`: one row per specimen (analysis §3.4). The common arguments (§2) filter the curve points first, so `depth=` and `geology=` act on the specimen's depth and unit, which every point of a curve shares.
+
+Columns: `loca_id`, `specimen_id`, `sample_reference`, `specimen_reference`, `ground_level`, `depth`, `depth_basis`, `elevation`, the D-values, `uniformity_coefficient`, `curvature_coefficient`, the fraction columns of the system, `fraction_system`, then the geology columns. `qualifier` and `source_line` change within a curve, so they aren't carried (analysis §3.4). D-values are in mm in both systems.
+
+### 6.6 `p.index_properties()` (M8)
+```python
+p.index_properties(**common)
+```
+One row per **sample** (`SAMP`) that has a water content, an Atterberg test or a grading, combining them so that each sample can be classified. Settles SPEC §13 #2 (M8 intent, decision 7).
+
+**Which specimen** of each test, where a sample has several:
+1. The **reference depth** is the water content specimen's depth when the sample has exactly one, else the sample's lab depth (§6.2, without `SPEC_DPTH`).
+2. For each test, the specimen nearest the reference depth is used; a specimen with no depth counts as at the sample's lab depth. Ties go to the lowest `SPEC_REF` (as text), then the lowest specimen key, so the choice doesn't change between runs.
+3. One warning per call counts the samples where a choice was made: "4 samples had more than one specimen of a test; the one nearest in depth was used. The *_specimen_id columns say which."
+4. No row is multiplied, and no other specimen's values are mixed in. A specimen with both a water content and an Atterberg test is at distance 0 from itself, so the water content and limits of the same specimen stay together.
+
+**Columns:**
+
+| Column | From |
+|---|---|
+| `loca_id`, `sample_reference` | The sample (§6.2) |
+| `ground_level`, `depth`, `depth_basis`, `elevation` | The reference depth; `depth_basis` is `spec_depth` when it is the water content specimen's, else the sample's (§6.2) |
+| `water_content` | The chosen `LNMC` specimen |
+| `liquid_limit`, `plastic_limit`, `plasticity_index`, `non_plastic` | The chosen `LLPL` specimen, as §6.2 |
+| `liquidity_index`, `consistency_index`, `plasticity_class_uscs`, `plasticity_class_bs5930` | `ht.analysis.plasticity()` on the combined row: LI and Ic use the chosen water content, which may be another specimen's |
+| `d10`, `d30`, `d60`, `uniformity_coefficient`, `curvature_coefficient`, `fines_content`, `sand_content`, `gravel_content`, `cobbles_content`, `boulders_content`, `fraction_system` | `gradation(fractions="astm_uscs")` on the chosen `GRAT` specimen |
+| `uscs_symbol` | `ht.analysis.uscs()` on the combined row |
+| `aashto_group`, `aashto_group_index` | `ht.analysis.aashto()` on the `aashto` fractions of the same specimen, which aren't returned |
+| `water_content_specimen_id`, `atterberg_specimen_id`, `grain_size_specimen_id` | The specimen key (`specimen_id`) used for each test, blank where the sample has none |
+| geology columns | The geology at the reference depth (§5.4) |
+
+- The common arguments (§2) act on the combined rows: `depth=` on the reference depth, `geology=` on its unit. `include_incomplete=` is passed to each test's records.
+- The classifications' own warnings (blank symbols by reason) are passed on, once per call.
 
 ## 7. Incomplete records
 - A record is **incomplete** when QC C001 says so (with `SPEC_REF` and `SPEC_DPTH` recommended, §14): a `required` field of its own group in `qc/min_fields.yaml` is blank (qc.md §4.10). Only the dataset's source group is checked, not its parents: a hole with no `LOCA_GL` keeps its tests, with a blank elevation.
@@ -248,6 +291,9 @@ A new `joins.ags` (4.2, SI, passes python-ags4) holds the edge cases: a test exa
 11. **N60 provenance:** `energy_source` is right for a file N60, a file ER, `hammer_efficiency=` and none.
 12. **Units:** `df.attrs["units"]` covers every numeric column, and US output shows `particle_size` in mm.
 13. **Empty:** a project with no `ISPT` gives an empty `p.spt()` with every column and the warning.
+14. **M8 datasets feed the plots:** `ht.plot.plasticity_chart(p.atterberg())`, `ht.plot.grain_size(p.grain_size())` and `ht.plot.water_content_profile(p.index_properties())` run on the good files with no error, warning or hint.
+15. **Summary:** `p.grain_size_summary()` gives one row per GRAT specimen, with the D-values and fractions `gradation()` gives on `p.grain_size()`, and the same on the SI and US twins.
+16. **Combining:** on a test sample with two Atterberg specimens and one water content specimen, the Atterberg specimen nearest the water content specimen is used, named in `atterberg_specimen_id`, with the warning; a tie goes to the lower `SPEC_REF`; a sample with only a grading gets a row with blank limits; a specimen with both tests keeps its own water content and limits together.
 
 ## 14. Decisions in review
 1. **`SPEC_REF` and `SPEC_DPTH` move to `recommended`** in `qc/min_fields.yaml` (decided 2026-10-14, TODO #7). Required, they made §7 leave out every lab result without a specimen depth, so the lab depth fallback (`sample_mid`, `sample_top`, SPEC §8.2) could never run by default. A blank one is still reported, by C002.

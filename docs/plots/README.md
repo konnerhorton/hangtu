@@ -39,6 +39,7 @@ Each figure is a separate feature with its own spec file in this folder, written
 ### Out-of-range data
 - **Never drop data silently.** A point beyond a fixed axis limit is drawn **at the edge as an open marker with an arrow**, with a count noted in the legend or a footnote (e.g. "3 values > 100 shown at limit").
 - **Flagged values** (refusal, NP, `<x`, `>x`) get a distinct marker, and are counted in a note when they can't be plotted at all.
+- **Text in a value column** (`NP`, `dry`) has no position on the value axis: it is drawn at the axis edge at its depth, one marker shape per distinct text, with a legend entry and a count (P01 §3, §7). Unrecognized text is also warned about.
 
 ### Color and markers
 - Color encodes the **geology unit** by default (the session or project palette, SPEC §3; stable across all plots). Marker shape encodes a secondary grouping (e.g. `loca_id` or test type) when requested.

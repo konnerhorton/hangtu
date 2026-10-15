@@ -52,7 +52,7 @@ It ends up in ground investigation reports (data presentation), interpretive and
 
 | Column | Description | Quantity kind | Canonical unit | US display | SI display | Req.? | Typical range | Valid range | AGS source (Phase 2) | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| *`value`* (any column, named by the `value=` argument) | The property plotted | from the preset or registry | per quantity | per quantity | per quantity | ✔ | per preset (§6) | per preset | e.g. `PTST.PTST_K`, `FGHG.FGHG_IPRM` | Must be numeric. NaN rows dropped and counted |
+| *`value`* (any column, named by the `value=` argument) | The property plotted | from the preset or registry | per quantity | per quantity | per quantity | ✔ | per preset (§6) | per preset | e.g. `PTST.PTST_K`, `FGHG.FGHG_IPRM` | Numbers. Blank rows are dropped and counted; text is drawn as a text value (below, §7) |
 | `depth` | Test depth below ground level | length | m | ft | m | ✔ one of `depth` / `elevation` | 0–60 m | ≥ 0 | SPEC §8.2 | The point plotted for interval tests (e.g. the zone midpoint) |
 | `elevation` | Elevation of the test | length | m | ft | m | ✔ one of `depth` / `elevation` | site-dependent | any | derived | Computed from `ground_level − depth` if absent and both are given |
 | `ground_level` | Ground level at the hole | length | m | ft | m | – | site-dependent | any | `LOCA.LOCA_GL` | With `depth` and no `elevation` column, elevation = `ground_level − depth` is computed |
@@ -68,6 +68,7 @@ It ends up in ground investigation reports (data presentation), interpretive and
 - `qualifier="<"`: drawn as a left-pointing caret ◁ at the value;
 - `qualifier=">"`: a right-pointing caret ▷;
 - both are counted in the legend.
+- **Text values** (TODO #15, M8): a cell of the value column that holds text rather than a number (after trimming spaces) has no x position, so it is drawn at the left edge of the axes at its depth (§7) and counted. `NP` and `refusal` (any case) are recognized flags, counted as non-plastic and refusal. Any other text (`dry`, `n/a`, `12 ft`) is drawn the same way, counted under its own text, and warned about once per call: "Column 'water_content' has text in rows 4, 9: 'dry' (1), 'n/a' (1). They are drawn at the left edge and counted; clean the column to remove them." Recognized flags give no warning. Text in a length column (`depth`, `elevation`, …) is still an error.
 
 **Minimum data:** ≥ 1 valid point. With 0 points the plot shows empty axes and a "No data" note, without raising an error.
 
@@ -121,6 +122,7 @@ Presets live in `config/defaults.yaml`, with the typical range in the quantity's
 | Observations | scatter | `geology_unit` (palette); a single neutral color if `color_by=None` or the column is absent | `marker_by=` column (default: all circles) | 5 pt markers | ✔ per unit, ✔ per marker group | Filled markers |
 | Test intervals | thin vertical line from `depth_top` to `depth_base` at x = value | same as the marker | — | 1.0 pt, round caps | — | `intervals="auto"`: drawn when both columns exist; `True` without them is an error. In elevation, each row uses its own ground level (`ground_level`, or `elevation + depth`); with neither, bars aren't drawn and a warning says why. Bounds count toward the vertical limits. No bar for a value drawn at the edge |
 | Connecting lines | line through each hole's points, sorted by vertical position | neutral gray (holes cross units) | — | 0.6 pt, alpha 0.6 | — | Only with `connect=True`; off by default |
+| Text values | open marker at the left edge of the axes (4 pt inside it) at the row's depth, one shape per distinct text from ◇ □ △ ▽ ⬠ ⬡ (then repeating), in the unit color | unit color | — | 5 pt | ✔ one gray entry per text: "NP (3)", "refusal (1)", "'dry' (1)" | Order: NP, refusal, then other text by first appearance. They don't move the x limits, and on a log axis they stay at the edge too. With more than 6 distinct texts, the legend shows 6 and the footnote counts the rest |
 | Qualified values | caret ◁ / ▷ at the value | unit color | — | 6 pt | ✔ "less than (n)" / "greater than (n)" | Replaces the normal marker. Also counted in the footnote. Beyond a fixed limit, the caret is drawn open at the edge and counted both ways |
 | Out-of-range (fixed limits) | open marker at the axis edge + small arrow pointing outward | unit color | — | 5 pt | ✔ footnote "n values beyond axis limit" | README policy |
 
@@ -137,8 +139,8 @@ Presets live in `config/defaults.yaml`, with the typical range in the quantity's
 | Published ranges | `ranges=` DataFrame or CSV | off | User: `low, high, label`, an optional `source`, and an optional depth or elevation pair (formats below) | Vertical translucent band (alpha 0.15, light hatching) from low to high, over top–base or the full height. Label "label (source)" at the top, starting at the left of the part inside the axes; for a full-height band it sits just above the axes when the x-axis is at the bottom, clear of the strata labels | Values converted from the declared units. A CSV path is read with `ht.read_csv`. A row whose pair is blank covers the full height, so one table can mix both. On a log axis, a `low` ≤ 0 starts at the axis edge |
 | Design lines | `design_lines=` DataFrame | off | User or P09: `label, <vs column>, value` (one polyline per label) | Bold dashed 1.5 pt, dark gray; label at the deepest point inside the axes | Same idea as AGSi parameter profiles; P09 produces these |
 | Reference lines | `reference_lines=` list of `(value, label)` | off | User | Thin vertical line 0.6 pt, dotted; label at the top (just above the axes when the x-axis is at the bottom) | e.g. a code limit. A number is in the main data's units; a string such as `"2000 psf"` carries its own |
-| Stats box | `stats_box=True`, or a list of statistics | off | pandas (no scipy needed). Default: count, mean, std, median, min, max per unit. A list chooses the statistics, e.g. `stats_box=["count", "mean", "cov"]`; allowed: `count, mean, std, cov, median, min, max` | Text box, lower left, 7 pt, above any `note`. By default (`stats_box_room=True`) the bottom of the vertical axis moves out to a nice value so the box sits below the lowest point or interval bar instead of covering data; `stats_box_room=False` or `ylim=` leaves the limits alone | ≤ 6 units listed in legend order, then an "All" row when there are several; otherwise "All" only. Statistics are of the values drawn, in display units: blanks and values ≤ 0 on a log axis are left out, values drawn at the edge count at their true value and qualified values at their reported value. On a log axis, statistics are of the plotted values (not log values). std is the sample standard deviation, shown as "—" when n < 2; CoV is "—" on an interval scale (TODO #9). Numbers have 3 significant figures (`1,290`, `0.0123`), in scientific notation below 0.01 or from a million (`2.30e-05`) |
-| Exclusion notes | automatic | **on** | Counts of NaN, ≤ 0 on log, beyond-limit, qualified | Footnote below the legend, 7 pt gray | **Always shown when non-zero** (no silent drops) |
+| Stats box | `stats_box=True`, or a list of statistics | off | pandas (no scipy needed). Default: count, mean, std, median, min, max per unit. A list chooses the statistics, e.g. `stats_box=["count", "mean", "cov"]`; allowed: `count, mean, std, cov, median, min, max` | Text box, lower left, 7 pt, above any `note`. By default (`stats_box_room=True`) the bottom of the vertical axis moves out to a nice value so the box sits below the lowest point or interval bar instead of covering data; `stats_box_room=False` or `ylim=` leaves the limits alone | ≤ 6 units listed in legend order, then an "All" row when there are several; otherwise "All" only. Text values (§3) aren't in the statistics; a last line counts them: "Also: NP 3, 'dry' 1". Statistics are of the values drawn, in display units: blanks and values ≤ 0 on a log axis are left out, values drawn at the edge count at their true value and qualified values at their reported value. On a log axis, statistics are of the plotted values (not log values). std is the sample standard deviation, shown as "—" when n < 2; CoV is "—" on an interval scale (TODO #9). Numbers have 3 significant figures (`1,290`, `0.0123`), in scientific notation below 0.01 or from a million (`2.30e-05`) |
+| Exclusion notes | automatic | **on** | Counts of NaN, ≤ 0 on log, beyond-limit, qualified, text values ("3 non-plastic (NP) values and 2 text values shown at the left edge") | Footnote below the legend, 7 pt gray | **Always shown when non-zero** (no silent drops) |
 | Note | `note=` str | off | User | Lower-left text, 7 pt | |
 
 **User-supplied overlay formats** (`ht.template("strata")`, `"ranges"` and `"design_lines"` give the exact columns; the templates list both the depth and the elevation form, so fill in one and leave the other blank. A pair whose columns are all blank counts as absent):
@@ -234,7 +236,8 @@ fig, ax = ht.plot.profile(su, "undrained_shear_strength", preset="undrained_shea
 | A `geology_unit` value not in the palette | Auto-assigned a color, which is remembered for the session |
 | Rows with a blank `geology_unit` (or `color_by` column) | Drawn in the neutral gray and listed as "(blank)" at the end of the unit legend. A unit with no point drawn gets no legend entry |
 | `preset=` for a different quantity than a registered `value` column (e.g. `preset="water_content"` on `undrained_shear_strength`) | Error naming both quantities |
-| Text in the `value` or a length column (`"NP"`, `"12 ft"`) | Error naming the rows. Counting flagged text such as `NP` is TODO #15 |
+| Text in the `value` column (`"NP"`, `"dry"`, `"12 ft"`) | Drawn at the left edge and counted (§3, §7); a warning names unrecognized text |
+| Text in a length column | Error naming the rows |
 | More than 12 / 30 legend entries | README legend rules (columns / note) |
 | Duplicate rows | Plotted as given (no de-duplication in plots) |
 | `connect=True` without `loca_id` | Error: it was asked for explicitly, so a hint isn't enough |
@@ -259,7 +262,9 @@ fig, ax = ht.plot.profile(su, "undrained_shear_strength", preset="undrained_shea
   - the x-axis is at the bottom by default;
   - unit colors match the colors from `ht.plot.legend_handles()`;
   - carets point the right way;
-  - footnote counts are correct.
+  - footnote counts are correct;
+  - text values sit at the left edge at their depths, one shape per text.
+- **Text values** (TODO #15): a column of 10 numbers, 2 `NP`, 1 `np `, 1 `refusal` and 2 `dry` draws 10 points and 6 edge markers; the legend reads "NP (3)", "refusal (1)", "'dry' (2)"; one warning names `dry`; the stats box counts 10 values, with "Also: NP 3, refusal 1, 'dry' 2"; nothing about NP or refusal is warned.
 - **Automated:**
   - renders for every preset, and for `vs` = depth/elevation;
   - labels contain units (and the datum when set);
@@ -280,7 +285,7 @@ fig, ax = ht.plot.profile(su, "undrained_shear_strength", preset="undrained_shea
 - NAVFAC (1986). *Design Manual 7.01: Soil Mechanics*. Typical unit weights.
 
 ## 14. Open questions
-None open. Review decisions are recorded in the body: overlay column names and the depth-or-elevation pairs for strata and ranges (§8), k shown in cm/s in US units (§9), x-axis at the bottom (§6), stats box contents (§8), `connect=` off by default (§7), per-hole water levels (§8), and only `value` plus depth or elevation required (§3).
+None open. Text values in the value column (TODO #15) were decided in M8 (§3, §7). Review decisions are recorded in the body: overlay column names and the depth-or-elevation pairs for strata and ranges (§8), k shown in cm/s in US units (§9), x-axis at the bottom (§6), stats box contents (§8), `connect=` off by default (§7), per-hole water levels (§8), and only `value` plus depth or elevation required (§3).
 
 ## 15. Future enhancements
 - `facet_by="loca_id"`: one panel per hole with a shared vertical axis (a borehole-by-borehole profile sheet).
