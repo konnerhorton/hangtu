@@ -79,7 +79,7 @@ Data for all of these already exists in the MVP scope. P00 is the foundation the
 | P03 | **SPT class histogram**: share of tests per class and unit, cohesionless (relative density) or cohesive (consistency) | `spt_histogram` | plot + classification (`ht.analysis.spt_class`) | P00 | [built](P03-spt-histogram.md) |
 | P04 | **Plasticity chart**: USCS or BS 5930, A/U lines, zones, NP count | `plasticity_chart` | plot + classification | P00 | [approved](P04-plasticity-chart.md) |
 | P05 | **Grain size distribution**: curves, envelope per unit, sieve axis, D-value markers | `grain_size` | plot + analysis (Dx, Cu, Cc, gradation) | P00 | [approved](P05-grain-size.md) |
-| P06 | **Water content profile with Atterberg limits**: w against depth, with a PL–LL bar for each specimen | `water_content_profile` | plot | P01 | idea |
+| P06 | **Water content profile with Atterberg limits**: w against depth, with a PL–LL bar for each specimen | `water_content_profile` | plot | P01 | [approved](P06-water-content-profile.md) |
 | P07 | **Property by geology unit**: values per unit with percentile bars (or boxes), against a report's baseline range per unit; one panel or a grid of properties | `geology_unit_comparison`, `geology_unit_comparisons` | plot | P00, P01 presets | [built](P07-geology-unit-comparison.md) |
 
 ### Batch 2: laboratory analysis plots (each is a substantial analysis)
