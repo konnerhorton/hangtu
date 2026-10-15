@@ -28,6 +28,12 @@ Verify against the source standards during M8:
 - ASTM D2487-17 USCS;
 - ISO 14688-1 size fractions.
 
+### 22. Organic soils (OL, OH) in USCS · You · docs/drafts/analysis.md §2; P04
+- **Problem:** USCS splits OL from ML and OH from MH by the oven-dried LL, which isn't in AGS LLPL. In M8 the analysis gives only the inorganic symbol (M8 intent, decision 3).
+- **To decide:**
+  - Where a user records that a specimen is organic: a per-specimen column, `soil_class = organic` (#3), or a field the user names.
+  - How P04 marks organic specimens so they read differently from the rest (e.g. hollow markers with a legend entry).
+
 ---
 
 ## Quality control
@@ -148,10 +154,10 @@ Open research points:
 - **Problem:** text in a value column (`NP`, `refusal`, `-`, …) can't be drawn. In M2, P01 raises an error naming the non-numeric rows, so nothing is dropped silently, but the user has to clean the column before plotting.
 - **Wanted:** draw the numeric values, count the rest in the footnote, and optionally in the stats box (e.g. "n = 12, plus 2 NP"), keeping flagged values distinct from blanks (CLAUDE.md, "Never drop data silently").
 - **To decide:**
-  - Which strings are recognized flags (NP, refusal, …) and how they map to the existing `Notes` reasons (`non_plastic`, `refusal`)?
-  - Is unrecognized text counted under a generic reason, or still an error?
-  - How do the stats box and `describe()` show these counts?
-- **Timing:** before P06 (water content profile with Atterberg limits), where NP values are common.
+  - Which strings are recognized flags (NP, refusal, …) and how they map to the existing `Notes` reasons (`non_plastic`, `refusal`)? **Answer:** `NP` and `refusal` for now.
+  - Is unrecognized text counted under a generic reason, or still an error? **Answer:** counted, with a warning. The plot's legend has an entry for each unique text value, and the user cleans the data and reruns to remove them.
+  - How do the stats box and `describe()` show these counts? **Answer:** the same way as the plot.
+- **Timing:** built in M8, in its own unit before P06 (M8 intent, decision 6). Closed at that unit's close-out.
 
 ### 16. Other summaries in P07 · You + Claude · P07; SPEC §5
 - **Problem:** in its first version, P07 (property by geology unit) summarizes each unit only with percentiles. `percentiles=` chooses which ones, and `percentile_method=` passes any NumPy method through (default `"linear"`). A report's baseline may have been summarized some other way, so the data bar and the baseline bar aren't always like for like.

@@ -5,7 +5,7 @@
 | **ID / function** | P25 (proposed ID) · `ht.plot.size_fractions()` (+ fractions from `ht.analysis.gradation()`) |
 | **Status** | idea (draft notes) |
 | **Type** | plot (+ fractions from the P05 analysis) |
-| **Target version** | v0.2, with P05 (M8) |
+| **Target version** | open. Not in v0.2 (M8 intent); the M8 fractions can be drawn on P07 until then |
 | **Depends on** | P00, P05 analysis (fraction systems), P07 (summary marks) |
 | **Related** | P05, P07 |
 
