@@ -34,7 +34,7 @@ Explicit is better than implicit. Names are written out in full, or full enough 
 - **Prefix test-specific quantities with the test**: `spt_n`, `spt_n60`, `spt_refusal`.
 - **Symbols belong in labels**, not names: the registry `label` says "Undrained shear strength, s_u".
 - **Units never appear in names** (`particle_size`, not `size_mm`). Units live in `df.attrs["units"]`.
-- **Accepted short forms** are notation that is unambiguous in geotechnical work (`d10`, `d30`, `d60`) and AGS identifiers (`loca_id`). Add a short form to this list only after checking it can't collide with another quantity.
+- **Accepted short forms** are notation that is unambiguous in geotechnical work (`d10`, `d30`, `d60`, and `d<x>` generally), AGS identifiers (`loca_id`), and the names of classification standards (`uscs`, `aashto`, `bs5930`). Add a short form to this list only after checking it can't collide with another quantity.
 - New names are checked against the whole registry before they are added.
 
 ## Git and commits
