@@ -57,3 +57,69 @@ Finish Phase 1's plots: P04 plasticity chart, P05 grain size distribution and P0
 - §12.4: M8 is marked done at close-out.
 - §13 #2: settled (decision 7) and removed.
 - `docs/drafts/analysis.md` §2–3; `docs/plots/P01-property-profile.md` §3, §8 and `docs/plots/README.md` "Out-of-range data" (decision 6); `docs/plots/README.md` (P04–P06 status); `docs/data/datasets.md` (its out-of-scope line, plus the new datasets); `docs/drafts/phase2-data.md` (the M8 datasets move out); `columns.yaml`; `config/defaults.yaml` or new config files for the systems; TODO #5 and #15 (closed), #22 (new).
+
+## Plan: analyses
+
+Spec: [`docs/drafts/analysis.md`](../drafts/analysis.md) §2–3, finished in the spec step (intent decision 1).
+
+Each build step is one commit, with ruff and pytest passing. A step that grows past about 300 changed lines (not counting tests' data) is split.
+
+### Package layout
+```
+src/hangtu/
+  _data.py                        + flag_column(): reads a true/false column (moved from analysis/_spt.py)
+  analysis/__init__.py            exports plasticity, gradation, uscs, aashto
+  analysis/_plasticity.py         plasticity(), on_or_above_a_line(), the class rules (§2.4–2.5)
+  analysis/_gradation.py          gradation(), passing_at(), d_value(), fraction systems (§3)
+  analysis/_classification.py     uscs(), aashto() (§2.6–2.7)
+  config/plasticity_systems.yaml  uscs and bs5930 lines and bands, with sources (§2.3)
+  config/fraction_systems.yaml    astm_uscs, aashto, iso14688, with sources (§3.5)
+  columns.yaml                    the new columns (decision 5)
+tests/analysis/
+  test_plasticity.py  test_gradation.py  test_fraction_systems.py  test_uscs.py  test_aashto.py
+```
+The modules are private (`_plasticity.py`), so `ht.analysis.plasticity` is the function and not a submodule, as with `_spt.py`.
+
+### Decisions the build makes
+Implementation choices §2–3 leave open. Any that changes what a user sees goes into the spec in the commit that builds it.
+1. **One true/false reader.** `spt()` already reads `spt_refusal` cell by cell (true/false, 1/0, yes/no). It moves to `hangtu/_data.py` as `flag_column(df, column, hint)` in a refactor commit of its own, and `plasticity()` uses it for `non_plastic`.
+2. **One A-line test.** `on_or_above_a_line(liquid_limit, plasticity_index, system)` in `_plasticity.py`, with the 1e-9 slack, is used by both class columns, by `uscs()` through them, and by P04 later.
+3. **One passing function.** `passing_at(sizes, passing, size)` gives P(size) by the §3.5 rules (log-linear, exact at a point, P(0) = 0, the 100% and 0% ends, blank otherwise). `d_value(sizes, passing, x)` gives the finest crossing (§3.3). Fractions and D-values share the sorting and the monotonic check, so they can't disagree.
+4. **The non-monotonic tolerance** is read from P001's default in `qc/rules.yaml` (0.5 %), not repeated, so it can't drift from QC. A project's QC override doesn't change it.
+5. **Registry:** `plasticity_class_uscs`, `plasticity_class_bs5930`, `uscs_symbol`, `aashto_group` (text); `aashto_group_index` (number, count); `fraction_system` (text); `d15`, `d50`, `d85` (particle_size); `fines_content`, `sand_content`, `gravel_content`, `cobbles_content`, `boulders_content`, `silt_content`, `clay_content`, `silt_clay_content`, `fine_sand_content`, `coarse_sand_content` (percent, ratio). Each is checked against the whole registry by the naming test, with `ags: ["derived: docs/drafts/analysis.md §…"]`. GRAG fractions aren't read (analysis draft §3: always recomputed).
+6. **Curves are grouped** on (`loca_id`, `specimen_id`) when `loca_id` is present, else `specimen_id`, keeping blanks in the keys and the order of first appearance (`groupby(..., sort=False, dropna=False)`). A curve whose key is blank is an error naming its rows, since its points can't be told apart.
+7. **Fraction systems are checked by one validator**, run on the built-ins by a test and on a user's system at each call: names unique and unused in the registry (except the built-in fraction names), sizes in mm increasing, each lower = the previous upper, the first lower 0, the last upper `null` (open), parts inside their fraction.
+8. **Units:** `particle_size` is resolved as SPEC §2.6 with `analysis=True` and converted to mm. The output's `attrs["units"]` lists the D-value columns in mm and keeps the input's other declared units.
+
+### Build 1: `analysis: move the true/false column reader to _data`
+- Refactor only (decision 1): `spt()` behaves the same, and its tests pass unchanged.
+
+### Build 2: `analysis: add plasticity systems and ht.analysis.plasticity`
+- `config/plasticity_systems.yaml`; `_plasticity.py` (§2.3–2.5; decisions 1–2); `columns.yaml`: the two class columns.
+- Errors and warnings as §2.8 (the `plasticity()` ones).
+- Tests, with the §2.9 golden values: the indices (LL 45, PL 20, w 30 → PI 25, LI 0.40, Ic 0.60); PI kept and warned when 1 point off; NP blanks; every USCS and BS 5930 class case listed; on the A-line → clay; PI > LL kept and warned; rows, order, `attrs` and `df` unchanged.
+
+### Build 3: `analysis: add ht.analysis.gradation with D-values, Cu and Cc`
+- `_gradation.py`: sorting, grouping, units, the monotonic check, `d_value()`, Cu and Cc, the carried columns (§3.3–3.4; decisions 3, 4, 6, 8). `columns.yaml`: `d15`, `d50`, `d85`.
+- Tests on curve A (§3.7): D10 0.1261, D30 0.300, D60 0.7105 mm; Cu 5.633, Cc 1.004; D30 with the point at 30% removed; D10 blank on a curve starting at 15%; drops of 0.4 and 2 points; inches converted; rows shuffled give the same answer; fewer than two points; `d_values=(15, 85)`; the errors of §3.6.
+
+### Build 4: `analysis: add fraction systems to ht.analysis.gradation`
+- `config/fraction_systems.yaml`; the validator (decision 7); `passing_at()`; the `<fraction>_content` and `fraction_system` columns; `fractions=` as a name, a dict or a YAML path. `columns.yaml`: the fraction columns and `fraction_system`.
+- Tests: curve A's fractions in all three systems (§3.7), including the blank ISO fractions; the fractions sum to 100 when none is blank; every built-in boundary against the §3.5 table (catches 0.475 and 20); a user system from a dict and from a file; an overlap, a gap and a name clash are errors naming the fraction.
+
+### Build 5: `analysis: add ht.analysis.uscs`
+- `_classification.py`: `uscs()` (§2.6): the `fraction_system` check, rescaling to the part finer than 75 mm, G/S, W/P, M/C, the dual symbols, the blanks counted by reason. `columns.yaml`: `uscs_symbol`.
+- Tests: every §2.9 USCS symbol case; Cu and Cc from `d10`/`d30`/`d60` when blank; a missing or wrong `fraction_system` is an error; `gradation()` on curve A joined with its Atterberg row classifies end to end (SP).
+
+### Build 6: `analysis: add ht.analysis.aashto`
+- `aashto()` (§2.7): rounding, groups left to right, the group index, blanks counted. `columns.yaml`: `aashto_group`, `aashto_group_index`.
+- Tests: every §2.9 AASHTO case, including A-2-4 against A-1 order, the A-7-5/A-7-6 split, a negative GI → 0, LL 40.4 rounding; a wrong `fraction_system` is an error.
+
+### Build 7 (close-out): `analysis: close out the classification and gradation analyses`
+- `docs/drafts/analysis.md` §2–3: any detail the build changed. The 🔬 values stay marked until TODO #5 is done.
+- `CLAUDE.md`: the status line says the M8 analyses are done and P04 is next.
+- This plan: a Results section, with notes for P04, P05 and the data unit.
+
+### Verification
+- After each build: `uv run ruff check . && uv run ruff format --check . && uv run pytest`.
+- At close-out: Python 3.13 and 3.14 (`uv run --isolated --python 3.1x pytest`); the lowest dependency versions, as in CLAUDE.md; `uv build`, and check that the wheel has both new config files and the new registry columns.
