@@ -96,6 +96,11 @@ jobs:
       - run: rm -rf src
       - run: |
           mkdir run && cd run
+          # A fresh runner has no matplotlib font cache, and building it prints
+          # "Matplotlib is building the font cache" to stderr. Build it here so
+          # the stderr check below sees only what the examples write.
+          uv run --quiet --isolated --no-project --with ../dist/*.whl \
+            python -c "import matplotlib.font_manager"
           for script in ../examples/*.py; do
             echo "::group::$script"
             uv run --quiet --isolated --no-project --with ../dist/*.whl \
