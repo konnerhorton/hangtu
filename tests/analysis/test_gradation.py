@@ -127,7 +127,7 @@ def test_drop_beyond_the_qc_tolerance_blanks_the_curve():
 def test_one_row_per_curve_with_constant_columns_carried():
     first = curve(specimen="S1", loca_id="BH1", depth=2.0, qualifier=None)
     second = curve(specimen="S1", loca_id="BH2", depth=4.0)
-    second.loc[0, "qualifier"] = "<"
+    second["qualifier"] = ["<", *[None] * (len(second) - 1)]
     df = pd.concat([second, first], ignore_index=True)
     df = ht.set_units(df, {"particle_size": "mm", "depth": "ft"})
     out = ht.analysis.gradation(df)

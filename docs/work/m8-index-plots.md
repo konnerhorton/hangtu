@@ -123,3 +123,18 @@ Implementation choices §2–3 leave open. Any that changes what a user sees goe
 ### Verification
 - After each build: `uv run ruff check . && uv run ruff format --check . && uv run pytest`.
 - At close-out: Python 3.13 and 3.14 (`uv run --isolated --python 3.1x pytest`); the lowest dependency versions, as in CLAUDE.md; `uv build`, and check that the wheel has both new config files and the new registry columns.
+
+### Results
+- 1664 tests pass on Python 3.12, 3.13 and 3.14, and with the lowest dependency versions (matplotlib 3.8.0, numpy 1.26.0, pandas 2.1.1, pint 0.24.4, pyyaml 6.0.1). The wheel has both new config files and the new registry columns.
+- **Commits:** one per build step as planned, Build 1 being the refactor.
+- **Changes from the plan:**
+  - The fraction systems are in their own module, `analysis/_fractions.py`, rather than in `_gradation.py`, which was already about 300 lines (Build 4).
+  - Two input errors in `plasticity()` that §2.8 didn't list: PL above LL on a plastic specimen, and a specimen marked NP with a PI. Recorded in §2.8.
+  - A blank `specimen_id` in `gradation()` is an error (decision 6), recorded in §3.6.
+  - A user's fraction system needs a `name`, not one of the built-in ones, so `uscs()` can't take it for `astm_uscs` (§3.5).
+  - The Cu, Cc and fines limits in `uscs()` are compared with the A-line's 1e-9 slack: Cc = 0.3²/(0.1 × 0.9) computed as 0.9999999999999999 and made a well-graded sand poorly graded (§2.6).
+  - `aashto()` leaves a group blank only when a missing value could decide it; a group a known value rules out is skipped (§2.7).
+- **For P04:** draw the lines from `config/plasticity_systems.yaml` (`plasticity_system()`, `a_line()`, `on_or_above_a_line()` in `_plasticity.py`). The U-line's vertical part ends at PI = 7, as D2487 states it, while the sloped part starts at (16, 7.2); P04's spec decides how to join them.
+- **For P05:** the header band reads the fraction system's `parts`; `fraction_system()` in `_fractions.py` resolves `fractions=` the same way `gradation()` does.
+- **For the data unit:** `p.atterberg()` still computes LI and Ic itself (`datasets/_lab.py`); switch it to `plasticity()` there (§2.4). `index_properties()` runs `gradation()` twice (astm_uscs for `uscs()`, aashto for `aashto()`).
+- **Still open:** the 🔬 values (TODO #5), including whether D2487 takes Cu and Cc from the curve rescaled to the part finer than 75 mm.
