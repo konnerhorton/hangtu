@@ -358,6 +358,7 @@ A fraction needing a blank P is blank, never estimated: without a hydrometer, IS
 ### 3.6 Errors
 - A required column missing; `particle_size` with no units (`UnitsError`, with the `set_units` example).
 - `particle_size` ≤ 0; `percent_passing` outside 0–100; two points at the same size in one curve (rows listed).
+- A blank `specimen_id` (rows listed): its points can't be put on a curve.
 - An unknown `fractions` name (list the three); a malformed user system; `d_values` outside 1–99.
 
 **Warnings** (one per kind per call): points with a blank size or passing; curves with fewer than two points; non-monotonic curves; D-values or fractions left blank because the curve doesn't reach them.

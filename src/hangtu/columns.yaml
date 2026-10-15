@@ -427,6 +427,14 @@ columns:
     label: D10
     ags: ["derived: docs/drafts/analysis.md §3"]
     used_by: [P05]
+  d15:
+    description: Particle size at 15% passing (filter criteria)
+    type: number
+    quantity: particle_size
+    scale: ratio
+    label: D15
+    ags: ["derived: docs/drafts/analysis.md §3.3"]
+    used_by: [P05]
   d30:
     description: Particle size at 30% passing
     type: number
@@ -435,6 +443,14 @@ columns:
     label: D30
     ags: ["derived"]
     used_by: [P05]
+  d50:
+    description: Particle size at 50% passing (median size)
+    type: number
+    quantity: particle_size
+    scale: ratio
+    label: D50
+    ags: ["derived: docs/drafts/analysis.md §3.3"]
+    used_by: [P05]
   d60:
     description: Particle size at 60% passing
     type: number
@@ -442,6 +458,14 @@ columns:
     scale: ratio
     label: D60
     ags: ["derived"]
+    used_by: [P05]
+  d85:
+    description: Particle size at 85% passing (filter criteria)
+    type: number
+    quantity: particle_size
+    scale: ratio
+    label: D85
+    ags: ["derived: docs/drafts/analysis.md §3.3"]
     used_by: [P05]
   uniformity_coefficient:
     description: Coefficient of uniformity, D60 / D10
