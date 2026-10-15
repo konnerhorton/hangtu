@@ -198,7 +198,7 @@ Adds `uscs_symbol`, the USCS group symbol (ASTM D2487-17, Figures 1 and 3) 🔬.
 
 **Coarse-grained** (fines < 50%):
 - **G or S:** G when gravel > sand, otherwise S (D2487: more than half of the coarse fraction retained on the 4.75 mm sieve).
-- **W or P:** W when Cu ≥ 4 (gravel) or Cu ≥ 6 (sand), and 1 ≤ Cc ≤ 3; otherwise P. Cu and Cc come from `uniformity_coefficient` and `curvature_coefficient`, or from `d10`, `d30` and `d60` where those are blank.
+- **W or P:** W when Cu ≥ 4 (gravel) or Cu ≥ 6 (sand), and 1 ≤ Cc ≤ 3; otherwise P. The limits and the 5% and 12% fines boundaries are compared with a 1e-9 slack, as the A-line is, so a value exactly on one (Cc = 0.3²/(0.1 × 0.9)) stays on the inclusive side. Cu and Cc come from `uniformity_coefficient` and `curvature_coefficient`, or from `d10`, `d30` and `d60` where those are blank.
 - **M or C** from the fines' USCS plasticity class: ML or MH → M; CL or CH → C; CL-ML → C-M.
 
 | Fines | Symbol |

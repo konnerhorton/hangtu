@@ -401,6 +401,11 @@ columns:
     type: text
     ags: ["derived: docs/drafts/analysis.md §2.5"]
     used_by: [P04]
+  uscs_symbol:
+    description: USCS group symbol (ASTM D2487), e.g. SP-SM or CL; never OL or OH
+    type: text
+    ags: ["derived: docs/drafts/analysis.md §2.6"]
+    used_by: [P04, P05]
 
   # --- Grain size (P05) ---------------------------------------------------------------------
   particle_size:
