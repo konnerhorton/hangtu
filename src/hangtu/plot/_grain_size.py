@@ -46,8 +46,12 @@ DEFAULT_D_VALUES = (10, 30, 60)
 
 
 def _decade_label(value: float, _position: Any) -> str:
-    """Write a decade in plain numbers: 0.001, 0.01, ..., 100."""
-    return np.format_float_positional(value, trim="-")
+    """Write a decade in plain numbers: 0.001, 0.01, ..., 100.
+
+    Rounded to 12 significant figures first, since a tick can arrive as
+    0.09999999999999999 (matplotlib 3.8).
+    """
+    return np.format_float_positional(float(f"{value:.12g}"), trim="-")
 
 
 def x_limits(xlim: Any, sizes: np.ndarray) -> tuple[float, float]:
