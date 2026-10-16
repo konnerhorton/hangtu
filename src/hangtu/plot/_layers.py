@@ -1,11 +1,15 @@
-"""Draw order of plot marks, bottom to top (P01 §7, P07 §7).
+"""Draw order of plot marks, bottom to top (P01 §7, P04 §7, P07 §7).
 
 Gridlines sit below everything (``axes.axisbelow``).
 """
 
 STRATA = 1.0
+REGIONS = 1.05  # P04 user regions
 RANGES = 1.1
+ZONES = 1.15  # P04 CL-ML hatch
 LINES = 1.2  # reference and design lines
+CHART_LINES = 1.2  # P04 A-line, U-line, dividers and PI = LL
+ZONE_LABELS = 1.3  # P04 zone, line and band labels
 WATER_LEVEL = 1.3
 BASELINE = 1.4  # P07 baseline bars
 INTERVALS = 2.0
