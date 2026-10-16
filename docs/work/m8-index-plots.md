@@ -138,3 +138,81 @@ Implementation choices §2–3 leave open. Any that changes what a user sees goe
 - **For P05:** the header band reads the fraction system's `parts`; `fraction_system()` in `_fractions.py` resolves `fractions=` the same way `gradation()` does.
 - **For the data unit:** `p.atterberg()` still computes LI and Ic itself (`datasets/_lab.py`); switch it to `plasticity()` there (§2.4). `index_properties()` runs `gradation()` twice (astm_uscs for `uscs()`, aashto for `aashto()`).
 - **Still open:** the 🔬 values (TODO #5), including whether D2487 takes Cu and Cc from the curve rescaled to the part finer than 75 mm.
+
+## Plan: P04
+
+Spec: [`docs/plots/P04-plasticity-chart.md`](../plots/P04-plasticity-chart.md) (section numbers below are P04's unless marked otherwise).
+
+Each build step is one commit, with ruff and pytest passing. A step that grows past about 300 changed lines (not counting tests' data) is split.
+
+### Package layout
+```
+src/hangtu/
+  columns.yaml               + template plasticity_regions: [label, liquid_limit, plasticity_index]
+  plot/__init__.py           exports plasticity_chart
+  plot/_values.py            color_groups() gains order= (Build 0)
+  plot/_plasticity_chart.py  plasticity_chart(): zones, lines, labels, specimens
+  plot/_regions.py           reads and checks the regions table, draws the polygons
+  plot/_notes.py             + reason non_plastic_excluded
+  plot/_layers.py            + P04 draw order
+tests/plot/
+  test_plasticity_chart.py              lines, zones, axes, specimens, counts
+  test_plasticity_regions.py            the regions table
+  test_plasticity_chart_acceptance.py   §12 against the example project and synthetic frames
+```
+- The module is `_plasticity_chart.py`, so `ht.plot.plasticity_chart` is the function and not a submodule (as `_profile.py`).
+- `_regions.py` is separate because the table has its own rules (§8) and tests, as `_baseline.py` is for P07.
+
+### Decisions the build makes
+These fill gaps in P04. Any that changes what a user sees goes into P04 in the commit that builds it.
+1. **Zones are polygons built from config.** Each zone is a list of half-planes in LL–PI space (left of LL = 50, on or above the A-line, PI ≥ 4, …) taken from `plasticity_systems.yaml` through `plasticity_system()` and `a_line()`. The polygon is the axes box clipped by those half-planes (Sutherland–Hodgman; every zone is convex). The same polygons give the CL-ML hatch, the zone label positions (their centroids) and the agreement test, so the drawing can't drift from the classes. No number from the standard is repeated in the plot module.
+2. **USCS U-line:** the vertical part runs from PI = 0 to the sloped line's value at LL = 16 (0.9 × 8 = 7.2), computed from `u_line`, not from `vertical.up_to` (7, D2487's rounding). The config keeps `up_to: 7` as the standard writes it, with a comment pointing to P04 §14 #1. The left edge of the USCS zones is the U-line, so the region left of it (impossible soils) belongs to no zone and gets no label.
+3. **BS 5930** zones are each band × (C on or above the A-line, M below), bounded above by PI = LL. Dividers at LL 70 and 90 end at PI = LL in data and are clipped by the 0–60 box, so the test reads their data, not their visible length.
+4. **Equal aspect** with `ax.set_aspect("equal", adjustable="box")`, so in a `Sheet` panel the box shrinks rather than the limits changing. Line labels use `transform_rotates_text=True` with the line's angle in data, which stays right on screen when the aspect holds.
+5. **x extension:** with no `xlim=`, the upper limit is 100, or `ceil(max LL / 20) × 20` when an LL is above 100 (115 → 120, 120 → 120). y is 0–60. Points beyond the limits (only possible with `xlim=`/`ylim=`, or PI > 60) go through `edge_markers` and are counted as `beyond_limit`.
+6. **Zero rows** draw the empty chart with "No data", whatever the columns, without running the analysis, so `plasticity_chart(pd.DataFrame(), ax=panel)` works as a base. Any row needs `liquid_limit` (the analysis error).
+7. **Counts:** NP rows get a new reason, `non_plastic_excluded` ("n non-plastic (NP) specimens not shown"), since the existing `non_plastic` wording is P07's ("n non-plastic (NP) values"). A row that isn't NP and has a blank LL or PI is one `nan` count, not one per column. The legend's n counts the specimens drawn, at the edge or not.
+8. **Grouping:** `color_by` is any column (§15: `plasticity_class_uscs` works). `_values.color_groups()` gains `order=`, and P03's private `_groups()`, which is the same function with `order=`, is replaced by it in a refactor commit. Units in `order=` first, then the rest by name, then "(blank)" in gray. A `color_by` that isn't a column is an error, except `"geology_unit"`, which gives the hint (§3) and one color.
+9. **`labels=True`** without a `specimen_id` column is an error naming the column. Blank IDs get no label.
+10. **Regions table** (§8): read from a DataFrame or a CSV path (`ht.read_csv`), as P07's baseline. `label`, `liquid_limit` and `plasticity_index` are required. A blank `label`, a blank or non-numeric vertex, or fewer than three vertices is an error naming the region (or the rows, for a blank label). Vertices keep the table's row order. The centroid is the polygon's area centroid. `region_colors` keys not in the table warn, naming them; colors must be matplotlib colors (the palette check's wording).
+11. **Draw order** in `_layers.py`: `REGIONS` 1.05, `ZONES` (CL-ML hatch) 1.15, `CHART_LINES` 1.2 (PI = LL, A-line, U-line, dividers), `ZONE_LABELS` 1.3, then `MARKERS`, `EDGE` and `ANNOTATIONS` as before (§7).
+12. **No `units=` argument.** §10's signature has none: LL and PI are percentages, and `plasticity()` doesn't convert. `display_units` is checked like the other plots' and changes nothing.
+
+### Build 0 (refactor): `plot: give color_groups an order and use it in P03`
+- `_values.color_groups(df, color_by, palette, order=None)`; `_spt_histogram._groups()` removed in favor of it. No change in behavior.
+- Tests: the P01 and P03 tests pass unchanged.
+
+### Build 1: `P04: draw the plasticity chart's lines and zones`
+- `_plasticity_chart.py`: `plasticity_chart()` with the full §10 signature. `regions=`/`region_colors=` raise `NotImplementedError` until Build 3, so no step ships a silent no-op.
+- Zone polygons (decisions 1–3) for `uscs` and `bs5930`; the A-line, U-line, LL = 50 divider or the BS 5930 dividers, the PI = LL line; the CL-ML hatch; zone labels (`zone_labels=`) and line labels; band letters along the top for BS 5930.
+- Axes (§6): labels, limits 0–100 × 0–60, ticks every 10, light major grid, equal aspect (decision 4). `xlim=`/`ylim=` checked with `_values.check_limits`. `system=` and `display_units=` checked. Empty input gives "No data" (decision 6).
+- `_layers.py`: decision 11.
+- Tests: every §12 geometry criterion for both systems, read back from the drawn lines and the hatch patch; the zone labels' text per system, and none with `zone_labels=False`; aspect 1 on the rendered axes, with default and user limits and in a `Sheet` panel; an unknown system is an error listing the systems; `assert_no_global_state`.
+
+### Build 2: `P04: draw the specimens and count what isn't drawn`
+- `plasticity()` on the data; scatter 5 pt in unit colors (decision 8), legend "Unit A (n = 24)" or "All specimens (n = …)"; the `geology_unit` hint.
+- Footnote: NP (decision 7, new reason in `_notes.py`), blank LL or PI, `beyond_limit`; `note=`.
+- x extension and edge markers (decision 5); `labels=` (decision 9).
+- Tests: §12 agreement (a grid of points strictly inside the zones, right of the U-line and below PI = LL, falls in the zone polygon named by `plasticity_class_uscs` and `_bs5930`); §12 limits (LL 115 → 0–120, LL 100 → 0–100, PI 65 at the top edge and counted); NP and blank counts; `xlim=` edge markers and count; the analysis's warnings (PI > LL) pass through; text in `liquid_limit` is the analysis's error; `order=`, `palette=`, `color_by=None` and a `color_by` column that doesn't exist; `labels=True` text and its missing-column error; the hint once, and none with `geology_unit`; `assert_us_si_equivalent` with `("dimensionless", "dimensionless")`.
+
+### Build 3: `P04: draw user regions from a table`
+- `columns.yaml`: template `plasticity_regions` (§8), fields already in the registry.
+- `_regions.py` (decision 10): read, check, draw outline 1 pt and fill alpha 0.12 in gray or `region_colors`, label at the centroid.
+- Tests: a five-vertex non-rectangular region drawn closed, with its label at the hand-calculated centroid; the same from a CSV path; two regions; each error in decision 10; the `region_colors` warning and a bad color; `ht.template("plasticity_regions")` columns.
+
+### Build 4 (close-out): `P04: add acceptance tests and close out P04`
+- `test_plasticity_chart_acceptance.py`: every §12 automated criterion, on the example project (`ht.examples`: `atterberg.csv`, and `ht.plot.plasticity_chart(p.atterberg())` with no error, warning or hint, datasets.md §13 #14) and on synthetic frames.
+- Visual check: `docs/plots/img/P04.png` (100 dpi) from the example project's Atterberg data with one region, looked at before committing. One file, since nothing converts (§9). The example data have no NP specimen, so the footnote count is checked in the synthetic tests.
+- Close-out:
+  - `docs/plots/README.md`: P04 status `built`.
+  - P04: any detail the build changed, and the decisions above that aren't in it.
+  - `README.md`: a `plasticity_chart` line in the plot examples (run by `test_readme.py`).
+  - `CLAUDE.md`: the status line says P04 is done and P05 is next.
+  - SPEC: no change expected (§11 already has the call; §12.4 waits for P06).
+  - `TODO.md`: no change expected (#5 and #22 stay open).
+  - This plan: a Results section.
+
+### Verification
+- After each build: `uv run ruff check . && uv run ruff format --check . && uv run pytest`.
+- At close-out: Python 3.13 and 3.14 (`uv run --isolated --python 3.1x pytest`); the lowest dependency versions, as in CLAUDE.md (`transform_rotates_text` needs matplotlib ≥ 3.6, so 3.8.0 is fine; check it there); `uv build`, and check that the wheel's `columns.yaml` has the `plasticity_regions` template.
+- Look at `P04.png` against the §2 reference figure and the "A good version" list.
