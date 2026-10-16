@@ -35,6 +35,8 @@ templates:
   baseline:       [geology_unit, property, low, central, high, source]
   # Plasticity chart regions (P04 §8): one row per vertex, in order around each polygon.
   plasticity_regions: [label, liquid_limit, plasticity_index]
+  # Grain size envelopes (P05 §8): one row per size, with rows sharing a label making one band.
+  envelopes:      [label, particle_size, low, high]
 
 fields:
   low:

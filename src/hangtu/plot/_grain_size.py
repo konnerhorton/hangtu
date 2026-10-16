@@ -12,6 +12,7 @@ from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.ticker import FuncFormatter, MultipleLocator
 
+from hangtu import units as _units
 from hangtu._settings import _display_units, settings
 from hangtu.analysis._fractions import fraction_system
 from hangtu.analysis._gradation import (
@@ -22,7 +23,7 @@ from hangtu.analysis._gradation import (
     grading_curves,
 )
 from hangtu.errors import ColumnError, HangtuError, warn
-from hangtu.plot import _fraction_band, _layers, _values, style
+from hangtu.plot import _envelopes, _fraction_band, _layers, _values, style
 from hangtu.plot._hints import hint_missing
 from hangtu.plot._legend import add_legend
 from hangtu.plot._limits import clear_of_data, log_limits, set_log_axis
@@ -396,8 +397,19 @@ def grain_size(
     if not isinstance(df, pd.DataFrame):
         raise HangtuError(f"df must be a pandas DataFrame, not {type(df).__name__}.")
     percents = _d_percents(d_values)
-    if envelopes is not None or envelope_colors:
-        raise NotImplementedError("Envelopes come next (P05).")
+    data_unit = (units or {}).get("particle_size") or _units.units_of(df).get(
+        "particle_size"
+    )
+    bands = (
+        _envelopes.read_envelopes(envelopes, data_unit) if envelopes is not None else []
+    )
+    band_colors = _values.label_colors(
+        [band.label for band in bands],
+        envelope_colors,
+        "envelope_colors",
+        "envelopes",
+        _envelopes.COLOR,
+    )
     system_fractions = fraction_system(fractions)[1] if fractions is not None else []
     sieve_list = _fraction_band.sieve_list(sieves, system)
     _check_color_by(df, color_by)
@@ -435,6 +447,7 @@ def grain_size(
             ax.grain_size_header = _fraction_band.add_header(ax)
             _fraction_band.draw_band(ax.grain_size_header, ax, system_fractions, limits)
         _fraction_band.draw_sieves(ax, sieve_list, limits)
+        envelope_handles = _envelopes.draw_envelopes(ax, bands, band_colors)
         handles = _draw_curves(
             ax,
             curves,
@@ -456,6 +469,6 @@ def grain_size(
                 color="0.4",
                 zorder=_layers.ANNOTATIONS,
             )
-        add_legend(ax, [handles], notes)
+        add_legend(ax, [handles, envelope_handles], notes)
         notes.render(ax)
     return fig, ax
