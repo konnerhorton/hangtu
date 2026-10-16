@@ -12,12 +12,15 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Polygon
 from matplotlib.ticker import MultipleLocator
 
+from hangtu import analysis
+from hangtu._data import flag_column
 from hangtu._settings import _display_units, settings
-from hangtu.analysis._plasticity import plasticity_system
-from hangtu.errors import HangtuError
+from hangtu.analysis._plasticity import _NOT_PLASTIC_HINT, plasticity_system
+from hangtu.errors import ColumnError, HangtuError
 from hangtu.plot import _layers, _values, style
+from hangtu.plot._hints import hint_missing
 from hangtu.plot._legend import add_legend
-from hangtu.plot._notes import Notes
+from hangtu.plot._notes import Notes, edge_markers
 from hangtu.plot._spt_profile import _check_choice
 
 SYSTEMS = ("uscs", "bs5930")
@@ -31,6 +34,8 @@ EQUALITY_COLOR = "0.6"  # the PI = LL line
 LABEL_SIZE = 8
 LABEL_COLOR = "0.4"
 HATCH = "////"
+MARKER_SIZE = 5.0  # points
+SPECIMEN_LABEL_SIZE = 6
 
 #: A half-plane a * LL + b * PI <= c.
 HalfPlane = tuple[float, float, float]
@@ -328,10 +333,113 @@ def _set_axes(ax: Axes, box: Box) -> None:
     ax.set_ylabel("Plasticity index, PI")
 
 
-def _box(xlim: Any, ylim: Any) -> Box:
-    x0, x1 = _values.check_limits("xlim", xlim) if xlim is not None else X_LIMITS
+def _box(xlim: Any, ylim: Any, liquid: np.ndarray) -> Box:
+    """Return the axes box: ``xlim``/``ylim`` exactly, else 0-100 x 0-60 (§6).
+
+    With no ``xlim``, x extends to the next multiple of 20 above an LL over 100.
+    """
+    if xlim is not None:
+        x0, x1 = _values.check_limits("xlim", xlim)
+    else:
+        x0, x1 = X_LIMITS
+        if liquid.size and liquid.max() > x1:
+            x1 = math.ceil(liquid.max() / X_STEP) * X_STEP
     y0, y1 = _values.check_limits("ylim", ylim) if ylim is not None else Y_LIMITS
     return x0, x1, y0, y1
+
+
+def _check_color_by(df: pd.DataFrame, color_by: str | None) -> None:
+    if color_by is not None and color_by != "geology_unit" and color_by not in df:
+        raise ColumnError(
+            f"color_by={color_by!r} isn't a column. Available columns: "
+            f"{', '.join(map(str, df.columns)) or 'none'}. Or use color_by=None."
+        )
+
+
+def _specimens(
+    df: pd.DataFrame, labels: bool
+) -> tuple[pd.DataFrame, np.ndarray, np.ndarray, Notes]:
+    """Run the analysis; return its rows, their LL and PI, and the counts.
+
+    LL and PI are NaN for rows that aren't drawn: NP, or a blank LL or PI.
+    """
+    notes = Notes()
+    if not len(df):
+        return df, np.empty(0), np.empty(0), notes
+    if labels and "specimen_id" not in df.columns:
+        raise ColumnError(
+            "labels=True writes each specimen's 'specimen_id', but there is no "
+            "such column. Available columns: "
+            f"{', '.join(map(str, df.columns))}. Add it, or use labels=False."
+        )
+    data = analysis.plasticity(df)
+    liquid = data["liquid_limit"].to_numpy(dtype=float)
+    index = data["plasticity_index"].to_numpy(dtype=float)
+    flags = flag_column(df, "non_plastic", _NOT_PLASTIC_HINT)
+    non_plastic = np.array([flag is True for flag in flags], dtype=bool)
+    notes.count(non_plastic, "non_plastic_excluded")
+    blank = ~non_plastic & (np.isnan(liquid) | np.isnan(index))
+    notes.count(blank, "nan")
+    hidden = non_plastic | blank
+    liquid = np.where(hidden, np.nan, liquid)
+    return data, liquid, np.where(hidden, np.nan, index), notes
+
+
+def _draw_specimens(
+    ax: Axes,
+    data: pd.DataFrame,
+    liquid: np.ndarray,
+    index: np.ndarray,
+    groups: np.ndarray,
+    colors: dict[Any, Any],
+    box: Box,
+    labels: bool,
+    notes: Notes,
+) -> list[Any]:
+    """Scatter the specimens by group; return the legend handles."""
+    x0, x1, y0, y1 = box
+    limits = {"x": (x0, x1), "y": (y0, y1)}
+    drawn = np.isfinite(liquid) & np.isfinite(index)
+    edge = np.zeros(len(liquid), dtype=bool)
+    handles = []
+    for group, color in colors.items():
+        rows = drawn & (groups == group) if group is not None else drawn
+        if not rows.any():
+            continue
+        edge[rows] = edge_markers(ax, liquid[rows], index[rows], limits, color)
+        inside = rows & ~edge
+        ax.scatter(
+            liquid[inside],
+            index[inside],
+            s=MARKER_SIZE**2,
+            color=color,
+            linewidths=0,
+            zorder=_layers.MARKERS,
+        )
+        text = "All specimens" if group is None else str(group)
+        handles.append(
+            _values.legend_marker(
+                "o", color, f"{text} (n = {int(rows.sum())})", MARKER_SIZE
+            )
+        )
+    notes.count(edge, "beyond_limit")
+    if labels:
+        x = np.clip(liquid, x0, x1)
+        y = np.clip(index, y0, y1)
+        for row in np.flatnonzero(drawn):
+            specimen = data["specimen_id"].iloc[row]
+            if pd.isna(specimen):
+                continue
+            ax.annotate(
+                str(specimen),
+                xy=(x[row], y[row]),
+                xytext=(3, 3),
+                textcoords="offset points",
+                fontsize=SPECIMEN_LABEL_SIZE,
+                gid="specimen_label",
+                zorder=_layers.ANNOTATIONS,
+            )
+    return handles
 
 
 def plasticity_chart(
@@ -355,20 +463,38 @@ def plasticity_chart(
 ) -> tuple[Figure, Axes]:
     """Plot liquid limit against plasticity index on the Casagrande chart (P04).
 
+    PI, NP and the checks come from ``ht.analysis.plasticity()``: PI is
+    LL - PL where it is blank, and the zones are the areas of its classes, so
+    a point is drawn in the zone of its ``plasticity_class_uscs`` (or
+    ``_bs5930``). Zone labels are the inorganic classes; OL and OH are never
+    shown. NP specimens and blank LL or PI are counted in the footnote, not
+    drawn. The aspect is equal, so the A-line's slope reads true.
+
     Parameters
     ----------
     df : pandas.DataFrame
         One row per specimen, as ``ht.template("atterberg")`` or
-        ``p.atterberg()``.
+        ``p.atterberg()``. Only ``liquid_limit`` is required, with
+        ``plasticity_index`` or ``plastic_limit``. An empty frame draws the
+        chart alone, e.g. as a base on a ``Sheet``.
     system : {"uscs", "bs5930"}
         The lines and zones: ASTM D2487 or BS 5930, from
         ``config/plasticity_systems.yaml``.
+    color_by : str or None
+        The column points are colored by; None for one color.
+    order : list of str, optional
+        Units in stratigraphic order, for the legend. Units not in it follow,
+        by name.
+    labels : bool
+        Write each specimen's ``specimen_id`` beside its point.
     zone_labels : bool
         Name each zone (CL, CH, ML, ...).
     xlim, ylim : tuple, optional
         Axis limits, exactly. The aspect stays equal.
     note : str, optional
         Free text, added to the footnote.
+    palette : dict, optional
+        ``{unit: color}``, overriding the session's colors.
     display_units : {"US", "SI"}, optional
         Accepted for the plot contract. LL and PI are percentages, so it
         changes nothing.
@@ -382,6 +508,12 @@ def plasticity_chart(
     Returns
     -------
     fig, ax
+
+    Examples
+    --------
+    >>> limits = p.atterberg()
+    >>> fig, ax = ht.plot.plasticity_chart(limits, system="uscs")
+    >>> fig, ax = ht.plot.plasticity_chart(limits, system="bs5930", labels=True)
     """
     _check_choice("system", system, SYSTEMS)
     _display_units(display_units or settings.display_units)
@@ -389,14 +521,14 @@ def plasticity_chart(
         raise HangtuError(f"df must be a pandas DataFrame, not {type(df).__name__}.")
     if regions is not None or region_colors is not None:
         raise NotImplementedError("regions= is not built yet.")
-    if labels:
-        raise NotImplementedError("labels= is not built yet.")
-    if len(df):
-        raise NotImplementedError("Drawing specimens is not built yet.")
-    box = _box(xlim, ylim)
+    _check_color_by(df, color_by)
 
     with style.context(**style_overrides):
-        notes = Notes()
+        if len(df) and color_by == "geology_unit":
+            hint_missing(df, {"geology_unit": "all specimens are drawn in one color"})
+        data, liquid, index, notes = _specimens(df, labels)
+        box = _box(xlim, ylim, liquid[np.isfinite(liquid) & np.isfinite(index)])
+        groups, colors = _values.color_groups(data, color_by, palette, order)
         if note is not None:
             notes.add_text(str(note))
         if ax is None:
@@ -424,16 +556,20 @@ def plasticity_chart(
         if zone_labels:
             _draw_zone_labels(ax, system, box)
 
-        ax.text(
-            0.5,
-            0.5,
-            "No data",
-            transform=ax.transAxes,
-            ha="center",
-            va="center",
-            color="0.4",
-            zorder=_layers.ANNOTATIONS,
+        handles = _draw_specimens(
+            ax, data, liquid, index, groups, colors, box, labels, notes
         )
-        add_legend(ax, [[]], notes)
+        if not handles:
+            ax.text(
+                0.5,
+                0.5,
+                "No data",
+                transform=ax.transAxes,
+                ha="center",
+                va="center",
+                color="0.4",
+                zorder=_layers.ANNOTATIONS,
+            )
+        add_legend(ax, [handles], notes)
         notes.render(ax)
     return fig, ax

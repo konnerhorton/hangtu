@@ -216,3 +216,232 @@ def test_no_global_state(assert_no_global_state):
 def test_no_global_state_on_a_sheet_panel(assert_no_global_state):
     sheet = ht.Sheet("letter", layout=(1, 2))
     assert_no_global_state(ht.plot.plasticity_chart, EMPTY, ax=sheet[1])
+
+
+# --- specimens ---------------------------------------------------------------
+
+
+def limits(**columns):
+    """Atterberg rows in two units; ``columns`` replace or add columns."""
+    data = {
+        "specimen_id": ["S1", "S2", "S3", "S4"],
+        "geology_unit": ["Fill", "Fill", "Clay", "Clay"],
+        "liquid_limit": [30.0, 45.0, 60.0, 80.0],
+        "plastic_limit": [18.0, 20.0, 25.0, 40.0],
+        **columns,
+    }
+    return pd.DataFrame(data)
+
+
+def drawn(ax):
+    """Filled specimen points, as an (n, 2) array (edge markers are open)."""
+    offsets = [
+        c.get_offsets()
+        for c in ax.collections
+        if len(c.get_offsets()) and len(c.get_facecolors())
+    ]
+    return np.concatenate(offsets) if offsets else np.empty((0, 2))
+
+
+def legend_texts(ax):
+    legend = ax.get_legend()
+    return [t.get_text() for t in legend.get_texts()] if legend else []
+
+
+def test_specimens_drawn_at_ll_and_pi():
+    _, ax = ht.plot.plasticity_chart(limits())
+    np.testing.assert_allclose(
+        sorted(map(tuple, drawn(ax))), [(30, 12), (45, 25), (60, 35), (80, 40)]
+    )
+    assert "No data" not in [t.get_text() for t in ax.texts]
+
+
+def test_legend_counts_per_unit_in_order():
+    _, ax = ht.plot.plasticity_chart(limits())
+    assert legend_texts(ax) == ["Clay (n = 2)", "Fill (n = 2)"]
+    _, ax = ht.plot.plasticity_chart(limits(), order=["Fill", "Clay"])
+    assert legend_texts(ax) == ["Fill (n = 2)", "Clay (n = 2)"]
+
+
+def test_one_color_without_grouping():
+    _, ax = ht.plot.plasticity_chart(limits(), color_by=None)
+    assert legend_texts(ax) == ["All specimens (n = 4)"]
+
+
+def test_palette_colors_the_units():
+    _, ax = ht.plot.plasticity_chart(limits(), palette={"Fill": "tan"})
+    from matplotlib.colors import to_rgba
+
+    fill = [c for c in ax.collections if len(c.get_offsets()) == 2]
+    assert to_rgba("tan") in [tuple(c.get_facecolors()[0]) for c in fill]
+
+
+def test_blank_unit_is_gray_and_last():
+    df = limits(geology_unit=["Fill", None, "Clay", "Clay"])
+    _, ax = ht.plot.plasticity_chart(df)
+    assert legend_texts(ax) == ["Clay (n = 2)", "Fill (n = 1)", "(blank) (n = 1)"]
+
+
+def test_color_by_any_column():
+    df = ht.analysis.plasticity(limits())
+    _, ax = ht.plot.plasticity_chart(df, color_by="plasticity_class_uscs")
+    assert legend_texts(ax) == ["CH (n = 1)", "CL (n = 2)", "MH (n = 1)"]
+
+
+def test_color_by_missing_column_is_an_error():
+    with pytest.raises(ht.ColumnError, match="color_by='lab'"):
+        ht.plot.plasticity_chart(limits(), color_by="lab")
+
+
+def test_hint_without_geology_unit():
+    df = limits().drop(columns="geology_unit")
+    with pytest.warns(ht.HangtuHint, match="one color") as record:
+        _, ax = ht.plot.plasticity_chart(df)
+    assert len(record) == 1
+    assert legend_texts(ax) == ["All specimens (n = 4)"]
+
+
+def test_no_hint_with_geology_unit_or_without_grouping(recwarn):
+    ht.plot.plasticity_chart(limits())
+    ht.plot.plasticity_chart(limits().drop(columns="geology_unit"), color_by=None)
+    assert not recwarn
+
+
+# --- counts (§7, §12) --------------------------------------------------------
+
+
+def test_non_plastic_counted_not_drawn():
+    df = limits(
+        plastic_limit=[None, 20.0, 25.0, 40.0], non_plastic=[True, False, None, False]
+    )
+    _, ax = ht.plot.plasticity_chart(df)
+    assert ax.ags_notes == {"non_plastic_excluded": 1}
+    assert len(drawn(ax)) == 3
+    footnote = ax.texts[-1].get_text()
+    assert "1 non-plastic (NP) specimen not shown" in footnote
+
+
+def test_blank_ll_or_pi_counted_once():
+    df = limits(
+        liquid_limit=[None, 45.0, 60.0, 80.0],
+        plastic_limit=[18.0, None, 25.0, 40.0],
+    )
+    _, ax = ht.plot.plasticity_chart(df)
+    assert ax.ags_notes == {"nan": 2}
+    assert "2 blank values not shown" in ax.texts[-1].get_text()
+
+
+def test_all_non_plastic_shows_no_data():
+    df = limits(plastic_limit=[None] * 4, non_plastic=[True] * 4)
+    _, ax = ht.plot.plasticity_chart(df)
+    assert "No data" in [t.get_text() for t in ax.texts]
+    assert ax.ags_notes == {"non_plastic_excluded": 4}
+
+
+# --- limits (§6, §12) --------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("highest", "x_limit"), [(100.0, 100), (101.0, 120), (115.0, 120), (120.0, 120)]
+)
+def test_x_extends_in_steps_of_20(highest, x_limit):
+    df = limits(liquid_limit=[30.0, 45.0, 60.0, highest])
+    _, ax = ht.plot.plasticity_chart(df)
+    assert ax.get_xlim() == (0, x_limit)
+    assert ax.get_ylim() == (0, 60)
+
+
+def test_pi_above_60_drawn_at_the_top_edge():
+    df = limits(liquid_limit=[30.0, 45.0, 60.0, 95.0], plastic_limit=[18, 20, 25, 30])
+    _, ax = ht.plot.plasticity_chart(df)
+    assert ax.ags_notes == {"beyond_limit": 1}
+    (edge,) = [c for c in ax.collections if not len(c.get_facecolors())]
+    np.testing.assert_allclose(edge.get_offsets(), [(95, 60)])
+    assert len(drawn(ax)) == 3
+    assert legend_texts(ax) == ["Clay (n = 2)", "Fill (n = 2)"]
+
+
+def test_user_xlim_moves_points_to_the_edge():
+    _, ax = ht.plot.plasticity_chart(limits(), xlim=(20, 70))
+    assert ax.get_xlim() == (20, 70)
+    assert ax.ags_notes == {"beyond_limit": 1}
+    assert "1 value beyond axis limit" in ax.texts[-1].get_text()
+
+
+# --- the analysis's checks pass through --------------------------------------
+
+
+def test_pi_above_ll_is_drawn_with_the_analysis_warning():
+    df = limits(
+        plastic_limit=[None, 20.0, 25.0, 40.0],
+        plasticity_index=[35.0, None, None, None],
+    )
+    with pytest.warns(UserWarning, match="above their liquid_limit"):
+        _, ax = ht.plot.plasticity_chart(df)
+    assert (30, 35) in map(tuple, drawn(ax))
+
+
+def test_text_in_liquid_limit_is_the_analysis_error():
+    df = limits(liquid_limit=["NP", 45.0, 60.0, 80.0])
+    with pytest.raises(ht.ColumnError, match="liquid_limit"):
+        ht.plot.plasticity_chart(df)
+
+
+def test_missing_liquid_limit_is_the_analysis_error():
+    with pytest.raises(ht.ColumnError, match="'liquid_limit' not found"):
+        ht.plot.plasticity_chart(limits().drop(columns="liquid_limit"))
+
+
+# --- specimen labels ---------------------------------------------------------
+
+
+def test_labels_name_each_specimen():
+    df = limits(specimen_id=["S1", None, "S3", "S4"])
+    _, ax = ht.plot.plasticity_chart(df, labels=True)
+    assert texts(ax, "specimen_label") == ["S1", "S3", "S4"]
+
+
+def test_labels_without_specimen_id_is_an_error():
+    with pytest.raises(ht.ColumnError, match="specimen_id"):
+        ht.plot.plasticity_chart(limits().drop(columns="specimen_id"), labels=True)
+
+
+# --- agreement with the analysis (§12) ---------------------------------------
+
+
+@pytest.mark.parametrize("system", ["uscs", "bs5930"])
+def test_each_point_is_drawn_in_the_zone_of_its_class(system):
+    from matplotlib.path import Path
+
+    from hangtu.analysis._plasticity import a_line
+
+    liquid, index = np.meshgrid(np.arange(0.3, 100, 1.0), np.arange(0.2, 60, 0.5))
+    liquid, index = liquid.ravel(), index.ravel()
+    keep = (index < liquid) & (np.abs(index - a_line(liquid, system)) > 1e-6)
+    if system == "uscs":
+        keep &= (liquid > 16) & (index < 0.9 * (liquid - 8))
+    liquid, index = liquid[keep], index[keep]
+    df = pd.DataFrame({"liquid_limit": liquid, "plasticity_index": index})
+    classes = ht.analysis.plasticity(df)[f"plasticity_class_{system}"]
+
+    _, ax = ht.plot.plasticity_chart(df, system=system, color_by=None)
+    points = drawn(ax)
+    np.testing.assert_allclose(points[:, 0], liquid)
+    box = (0, 100, 0, 60)
+    found = np.full(len(df), None, dtype=object)
+    for zone in zones(system):
+        for polygon in zone_polygons(zone, box):
+            inside = Path(polygon).contains_points(points)
+            assert not (inside & (found != None)).any()  # noqa: E711
+            found[inside] = zone.name
+    assert (found == classes.to_numpy()).all()
+
+
+def test_us_and_si_are_the_same(assert_us_si_equivalent):
+    assert_us_si_equivalent(
+        ht.plot.plasticity_chart, limits(), ("dimensionless", "dimensionless")
+    )
+
+
+def test_no_global_state_with_data(assert_no_global_state):
+    assert_no_global_state(ht.plot.plasticity_chart, limits())

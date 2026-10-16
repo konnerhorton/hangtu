@@ -96,7 +96,7 @@ A second use: a project's own soil groups, drawn as regions in LL–PI space, so
 ## 7. Data marks
 | Series | Mark | Color by | Legend entry | Notes |
 |---|---|---|---|---|
-| Specimens | scatter, 5 pt filled markers | `geology_unit` (palette) | ✔ per unit, "Unit A (n = 24)" | `color_by=None`: one neutral color, "All specimens (n = …)" |
+| Specimens | scatter, 5 pt filled markers | `geology_unit` (palette) | ✔ per unit, "Unit A (n = 24)": the specimens drawn, at the edge or not | `color_by=None`: one neutral color, "All specimens (n = …)" |
 | Beyond `xlim`/`ylim` | open marker at the edge + arrow | unit color | footnote count | README policy |
 | NP | none | — | — | Footnote "n non-plastic (NP) specimens not shown" |
 | Blank LL or PI | none | — | — | Footnote "n blank values not shown" |
@@ -157,6 +157,8 @@ fig, ax = ht.plot.plasticity_chart(limits, regions="project_groups.csv")
 | PI given and more than 1 point from LL − PL | Drawn as given; the analysis warns |
 | PL > LL, or negative values | Error from the analysis |
 | Text such as "NP" in `liquid_limit` | Error naming the rows (the analysis); use `non_plastic` |
+| `color_by` names a column that isn't there | Error listing the columns (`"geology_unit"` gives the hint instead) |
+| `labels=True` and no `specimen_id` column | Error naming the column; blank IDs get no label |
 | A region with fewer than three vertices, or `label` missing | Error naming the region |
 | A region in `region_colors` that isn't in `regions` | Warning naming it |
 | More than 12 / 30 units | README legend rules |
