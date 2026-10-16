@@ -43,6 +43,7 @@ Explicit is better than implicit. Names are written out in full, or full enough 
 - **During a build, commit at each green, coherent point.** Usually that's one plan step, with ruff and pytest passing. Use judgment: a commit is one idea a reviewer can follow in a single read. If a step goes past roughly 300 changed lines (not counting test data), split it.
 - **Don't mix kinds of change.** A refactor or rename gets its own commit, separate from new behavior.
 - **Never commit failing tests or lint errors.** Work in progress waits in the working tree.
+- **Stage files by name** (`git add <path> ...`), never with `git add -A`, `git add .` or `git commit -a`. The working tree can hold local files that aren't ignored, and a broad add sweeps them into a public commit.
 - **Message:** `<scope>: <imperative summary>`, at most 72 characters. The scope is the work item (`M0`, `P01`) or an area (`spec`, `docs`, `registry`, `units`). The body says *why* and names any SPEC section or TODO item a decision touched. No attribution lines.
   Example: `P01: count values beyond axis limits in the footnote`
 - **Approval:** Claude commits intermediate build steps of an approved plan without asking. Everything else needs the user's approval first: intent, spec and plan commits, docs-only commits, branch creation and merges, pushes, and anything that rewrites history. For a commit, show the message and wait.
