@@ -19,7 +19,6 @@ from hangtu.plot._hints import hint_missing
 from hangtu.plot._legend import add_legend
 from hangtu.plot._limits import nice_limits, set_linear_axis
 from hangtu.plot._notes import Notes
-from hangtu.plot._palette import data_order, resolve_palette
 from hangtu.plot._spt_profile import _check_choice
 from hangtu.registry import column_info
 
@@ -40,29 +39,6 @@ def _range_text(lowers: np.ndarray, i: int) -> str:
     if i == len(lowers) - 1:
         return f"≥ {lowers[i]:g}"
     return f"{lowers[i]:g}\N{EN DASH}{lowers[i + 1]:g}"
-
-
-def _groups(
-    df: pd.DataFrame,
-    color_by: str | None,
-    order: list[str] | None,
-    palette: dict[str, str] | None,
-) -> tuple[np.ndarray, dict[Any, Any]]:
-    """Return each row's group, and ``{group: color}`` in unit order (P07)."""
-    if color_by is None or color_by not in df.columns:
-        return np.full(len(df), None, dtype=object), {None: _values.NEUTRAL}
-    groups = df[color_by].to_numpy(dtype=object)
-    blank = pd.isna(groups)
-    colors = resolve_palette(
-        groups[~blank],
-        palette,
-        order or data_order(df[color_by]),
-        df.attrs.get("palette"),
-    )
-    if blank.any():
-        groups = np.where(blank, _values.BLANK_GROUP, groups)
-        colors[_values.BLANK_GROUP] = _values.NEUTRAL
-    return groups, colors
 
 
 def _hatch(bar: Rectangle, color: Any, outlined: bool) -> None:
@@ -234,7 +210,7 @@ def spt_histogram(
         else:
             notes.count(refused, "refusal_excluded")
             codes = np.where(refused, -1, codes)
-        groups, colors = _groups(data, color_by, order, palette)
+        groups, colors = _values.color_groups(data, color_by, palette, order)
 
         counts = {}
         for unit in colors:
