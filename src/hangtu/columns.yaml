@@ -33,6 +33,8 @@ templates:
   design_lines:   [label, depth, elevation, value]
   # Baseline ranges per geology unit (P07 §8): one row per unit and property.
   baseline:       [geology_unit, property, low, central, high, source]
+  # Plasticity chart regions (P04 §8): one row per vertex, in order around each polygon.
+  plasticity_regions: [label, liquid_limit, plasticity_index]
 
 fields:
   low:

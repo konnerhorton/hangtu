@@ -17,7 +17,7 @@ from hangtu._data import flag_column
 from hangtu._settings import _display_units, settings
 from hangtu.analysis._plasticity import _NOT_PLASTIC_HINT, plasticity_system
 from hangtu.errors import ColumnError, HangtuError
-from hangtu.plot import _layers, _values, style
+from hangtu.plot import _layers, _regions, _values, style
 from hangtu.plot._hints import hint_missing
 from hangtu.plot._legend import add_legend
 from hangtu.plot._notes import Notes, edge_markers
@@ -489,6 +489,12 @@ def plasticity_chart(
         Write each specimen's ``specimen_id`` beside its point.
     zone_labels : bool
         Name each zone (CL, CH, ML, ...).
+    regions : DataFrame or str, optional
+        Your own polygons in LL-PI space, e.g. a project's soil groups: a
+        table or CSV path with one row per vertex, in order around each
+        polygon (``ht.template("plasticity_regions")``). Drawn in gray.
+    region_colors : dict, optional
+        ``{region label: color}``.
     xlim, ylim : tuple, optional
         Axis limits, exactly. The aspect stays equal.
     note : str, optional
@@ -514,13 +520,14 @@ def plasticity_chart(
     >>> limits = p.atterberg()
     >>> fig, ax = ht.plot.plasticity_chart(limits, system="uscs")
     >>> fig, ax = ht.plot.plasticity_chart(limits, system="bs5930", labels=True)
+    >>> fig, ax = ht.plot.plasticity_chart(limits, regions="project_groups.csv")
     """
     _check_choice("system", system, SYSTEMS)
     _display_units(display_units or settings.display_units)
     if not isinstance(df, pd.DataFrame):
         raise HangtuError(f"df must be a pandas DataFrame, not {type(df).__name__}.")
-    if regions is not None or region_colors is not None:
-        raise NotImplementedError("regions= is not built yet.")
+    shapes = _regions.read_regions(regions) if regions is not None else []
+    shape_colors = _regions.region_color_map(shapes, region_colors)
     _check_color_by(df, color_by)
 
     with style.context(**style_overrides):
@@ -540,6 +547,7 @@ def plasticity_chart(
             fig = ax.figure
         style.style_axes(ax)
         _set_axes(ax, box)
+        _regions.draw_regions(ax, shapes, shape_colors)
 
         x0, x1, y0, y1 = box
         top = min(x1, y1)
