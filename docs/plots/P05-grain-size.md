@@ -167,7 +167,7 @@ fig, ax = ht.plot.grain_size(curves, fractions="iso14688", envelopes="filter_ban
 - **Direction:** `reverse=True` puts 100 mm left of 0.1 mm.
 - **Counts:** the footnote counts short curves, blank points and unreached D-values.
 - **Automated:** renders with each built-in system and a user's; `fractions=None` hides the band; `ax=` composes on a `Sheet`, header included; no `rcParams` change; US and SI differ only in sieve labels.
-- **Visual check:** `docs/plots/img/P05-us.png` and `P05-si.png` from the example project's eight grading curves, with `d_values=True` (ticks, since there are several curves) and an envelope. The single-curve labels are checked by eye but not committed.
+- **Visual check:** `docs/plots/img/P05-us.png` and `P05-si.png` from the example project's 14 grading curves (the fill and alluvium ones continuing into the fines from hydrometer tests) and an envelope, with D-values off, their default. The D-value ticks and the single-curve labels are checked by eye but not committed.
 - **Test data:** the example project and synthetic curves (curve A, shuffled, inches, non-monotonic, short).
 
 ## 13. References

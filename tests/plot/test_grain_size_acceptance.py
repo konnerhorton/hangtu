@@ -76,7 +76,7 @@ def _sieves(ax):
 
 @pytest.fixture(scope="module")
 def example(tmp_path_factory):
-    """The example project's grading curves (8 curves, US units)."""
+    """The example project's grading curves (14 curves, US units)."""
     folder = tmp_path_factory.mktemp("example")
     p = ht.Project.from_ags(ht.examples.path("site.ags"), db=folder / "site.sqlite")
     p.set_geology_map(ht.examples.path("strata.csv"))
@@ -174,13 +174,27 @@ def test_fractions_none_hides_the_band():
 
 
 def test_example_project_renders(example):
-    fig, ax = _quiet(ht.plot.grain_size, example, d_values=True)
-    assert len(_drawn(ax)) == 8
+    fig, ax = _quiet(ht.plot.grain_size, example)
+    curves = _drawn(ax)
+    assert len(curves) == 14
     texts = [t.get_text() for t in ax.get_legend().get_texts()]
-    assert texts == ["Fill (n = 2 curves)", "Terrace (n = 6 curves)"]  # map order
-    # The two fill curves stop at 24 % and 25 % passing, so D10 isn't reached.
-    assert ax.ags_notes == {"d_value_unreached": 2}
+    assert texts == [  # the map's order
+        "Fill (n = 2 curves)",
+        "Alluvium (n = 6 curves)",
+        "Terrace (n = 6 curves)",
+    ]
+    # The fill and alluvium curves continue below the #200 sieve (hydrometer).
+    assert sum(xy[:, 0].min() < 0.075 for xy in curves.values()) == 8
+    np.testing.assert_allclose(ax.get_xlim(), (0.001, 100))
+    assert ax.ags_notes == {}
+    assert not [line for line in ax.lines if line.get_gid() == "d_value"]
     fig.canvas.draw()
+
+
+def test_example_project_d_values(example):
+    _, ax = _quiet(ht.plot.grain_size, example, d_values=True)
+    # The alluvium's finest hydrometer points pass more than 10 %.
+    assert ax.ags_notes == {"d_value_unreached": 6}
 
 
 def test_sheet_panel_and_global_state(example, assert_no_global_state):
