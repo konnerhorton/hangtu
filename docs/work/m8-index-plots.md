@@ -313,3 +313,17 @@ Two commits, no change in behavior:
 - After each build: `uv run ruff check . && uv run ruff format --check . && uv run pytest`.
 - At close-out: Python 3.13 and 3.14 (`uv run --isolated --python 3.1x pytest`); the lowest dependency versions, as in CLAUDE.md (check the `append_axes` header and `sharex` on matplotlib 3.8.0); `uv build`, and check that the wheel has `config/sieves.yaml` and the `envelopes` template.
 - Look at `P05-us.png` and `P05-si.png` against the §2 reference figure and the "A good version" list.
+
+### Results
+- 1844 tests pass on Python 3.12, 3.13 and 3.14, and with the lowest dependency versions (matplotlib 3.8.0, numpy 1.26.0, pandas 2.1.1), where the `append_axes` header and `sharex` work as on 3.11. The wheel has `config/sieves.yaml`, `_grain_size.py`, `_fraction_band.py`, `_envelopes.py` and the `envelopes` template.
+- **Commits:** the two refactors (Build 0), then one per build step, with Build 3 split in two (`P05: draw D-values`, `P05: draw envelopes from a table`) because it passed 300 lines. One fix the lowest-versions run found: `P05: label decades without floating-point noise` (matplotlib 3.8 gave the 0.1 tick as 0.09999999999999999).
+- **Changes from the plan**, each recorded in P05 in its commit or the close-out:
+  - The label color check went to `_values.label_colors()` rather than staying in `_regions.py`, so `_envelopes.py` doesn't import from P04's module.
+  - A fraction name is left out when its visible part is narrower than 0.25 decade, not 0.15: at 0.15, "Cobbles" (63–100 mm in view) ran past its cell (§8).
+  - The US sieve designations are written in ASCII (`1-1/2"`, `3/4"`, `3/8"`), so a font without the fraction glyphs can't raise a missing-glyph warning, which the tests treat as an error (§8).
+  - A D-value beyond `xlim=` isn't drawn and is counted as beyond the axis limit (§11).
+  - `README.md` gets a `grain_size()` line in the AGS example (it runs with no warning), and its "Plots" line now names the plasticity chart and the grain size curves.
+- **Example project:** `grain_size(p.grain_size(), d_values=True)` runs with no warning or hint; its footnote counts D10 not reached by the two Fill curves, which stop at 24 % and 25 % passing. On the datasets' good files (datasets.md §13 #14) it runs with no warning or hint.
+- SPEC §11 has the `grain_size()` call. `TODO.md` #5 lists the sieve lists to verify; it stays open.
+- **Visual check** (`docs/plots/img/P05-us.png` and `P05-si.png`, the default figure saved at 100 dpi with `bbox_inches="tight"`): the eight example curves in the map's colors and order, D-value ticks, a sand-filter envelope under the gridlines, the USCS band with its dividers, and the footnote count. The two figures differ only in the sieve labels. A single-curve figure was checked too: the dashed leaders and labels sit right. One thing to know:
+  - The sieve labels sit inside the top edge (§8), so curves near 100 % passing at gravel sizes cross the `3/8"`, `3/4"` and `1-1/2"` labels. They stay readable at this size. Putting the labels above the frame, under the band, would clear them; that changes §8 and is left for review.

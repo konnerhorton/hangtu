@@ -29,6 +29,7 @@ report.to_csv("qc_report.csv")  # every finding, with its hole, depth and line i
 
 fig, ax = ht.plot.spt_profile(p.spt(), n="spt_n60")
 fig.savefig("spt_profile.png")
+fig, ax = ht.plot.grain_size(p.grain_size(), d_values=True)  # D10, D30 and D60 marked
 ```
 
 <img src="https://raw.githubusercontent.com/konnerhorton/hangtu/main/docs/img/readme-spt.png" alt="SPT N60 against elevation, colored by geology unit, with refusals drawn at the cap and counted" width="440">
@@ -56,7 +57,7 @@ fig, ax = ht.plot.spt_histogram(spt[spt["soil_class"] == "coarse"], n="spt_n60")
 - **AGS4 ingest** (versions 4.0.3 to 4.2) into a SQLite project database, with units read from the file and converted on the way in. Values such as `NP`, `<0.1` and refusals are kept as flags, never as blanks.
 - **Data checks** (`p.qc()`): about 40 rules on locations, geology, depths, SPT, Atterberg limits, grading and permeability, plus required fields. Results come as a summary and a CSV report, and `p.diff()` compares two versions of a file.
 - **Datasets** for SPT, Atterberg limits, grain size curves and permeability. Each test gets its depth (SPT at mid-drive), elevation and geology unit, and a geology map gives the units their order and colors.
-- **Plots:** property profile (any property against depth or elevation, linear or log), SPT profile, SPT class histograms, and property by geology unit against a report's baseline. Each is an ordinary matplotlib figure.
+- **Plots:** property profile (any property against depth or elevation, linear or log), SPT profile, SPT class histograms, property by geology unit against a report's baseline, plasticity chart (USCS or BS 5930) and grain size curves with the soil fractions. Each is an ordinary matplotlib figure.
 - **SPT analysis:** N60 from the energy ratio, refusals and N classes.
 - **Units that follow the data:** each column's units are declared once, and every plot converts to US or SI. hangtu never guesses a unit.
 - **Nothing is dropped silently:** values beyond the axis limits, blanks and "less than" values are drawn or counted on the figure.
