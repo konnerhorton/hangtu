@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **ID / function** | P04 · `ht.plot.plasticity_chart()` (uses `ht.analysis.plasticity()`) |
-| **Status** | approved |
+| **Status** | built |
 | **Type** | plot + classification |
 | **Target version** | v0.2 (milestone M8) |
 | **Depends on** | P00, the plasticity analysis (`docs/drafts/analysis.md` §2) |
@@ -77,6 +77,7 @@ A second use: a project's own soil groups, drawn as regions in LL–PI space, so
 ## 5. Figure layout
 - **Panels:** single.
 - **Default size:** `default` (6.5 × 4.5 in). Equal aspect makes the 100 × 60 box fill the width.
+  - For information: with the legend on the right, the box doesn't fill the height, so the figure has white space above and below. Saved with `bbox_inches="tight"`, the default figure with two units in the legend comes out at about 6.6 × 3.3 in (`docs/plots/img/P04.png`). The size depends on the legend's width.
 - **Orientation:** landscape.
 
 ## 6. Axes
@@ -96,7 +97,7 @@ A second use: a project's own soil groups, drawn as regions in LL–PI space, so
 ## 7. Data marks
 | Series | Mark | Color by | Legend entry | Notes |
 |---|---|---|---|---|
-| Specimens | scatter, 5 pt filled markers | `geology_unit` (palette) | ✔ per unit, "Unit A (n = 24)" | `color_by=None`: one neutral color, "All specimens (n = …)" |
+| Specimens | scatter, 5 pt filled markers | `geology_unit` (palette) | ✔ per unit, "Unit A (n = 24)": the specimens drawn, at the edge or not | `color_by=None`: one neutral color, "All specimens (n = …)" |
 | Beyond `xlim`/`ylim` | open marker at the edge + arrow | unit color | footnote count | README policy |
 | NP | none | — | — | Footnote "n non-plastic (NP) specimens not shown" |
 | Blank LL or PI | none | — | — | Footnote "n blank values not shown" |
@@ -107,7 +108,7 @@ A second use: a project's own soil groups, drawn as regions in LL–PI space, so
 | Overlay | Argument | Default | Source | Style | Notes |
 |---|---|---|---|---|---|
 | Lines and zones | `system=` | `"uscs"` | config, cited | black 0.8 pt; PI = LL light gray dotted | §4 |
-| Zone labels | `zone_labels=` | on | config | 8 pt gray, inside each zone | |
+| Zone labels | `zone_labels=` | on | config | 8 pt gray on a white background (over the gridlines), at the centroid of the zone's largest convex piece, so it is inside the zone | CL-ML is too small to hold its label, so the label sits just left of the U-line, level with the zone (inside it when `xlim=` leaves no room). BS 5930 band letters sit just above the axes |
 | Line labels | (with the lines) | on | | "A-line", "U-line" along the line, rotated to its angle on screen | |
 | User regions | `regions=` | off | user table (below) | outline 1 pt and fill alpha 0.12, gray unless `region_colors=` names a color; label at the polygon's centroid | Any shape (M8 intent, decision 4) |
 | Specimen labels | `labels=` | off | `specimen_id` | 6 pt beside each point | |
@@ -157,6 +158,8 @@ fig, ax = ht.plot.plasticity_chart(limits, regions="project_groups.csv")
 | PI given and more than 1 point from LL − PL | Drawn as given; the analysis warns |
 | PL > LL, or negative values | Error from the analysis |
 | Text such as "NP" in `liquid_limit` | Error naming the rows (the analysis); use `non_plastic` |
+| `color_by` names a column that isn't there | Error listing the columns (`"geology_unit"` gives the hint instead) |
+| `labels=True` and no `specimen_id` column | Error naming the column; blank IDs get no label |
 | A region with fewer than three vertices, or `label` missing | Error naming the region |
 | A region in `region_colors` that isn't in `regions` | Warning naming it |
 | More than 12 / 30 units | README legend rules |

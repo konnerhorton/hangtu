@@ -23,6 +23,7 @@ REASONS = {
     "refusal_excluded": "{n} refusal{s} not shown",
     "no_energy_ratio": "{n} test{s} without an energy ratio not shown",
     "non_plastic": "{n} non-plastic (NP) value{s}",
+    "non_plastic_excluded": "{n} non-plastic (NP) specimen{s} not shown",
 }
 
 FOOTNOTE_SIZE = 7

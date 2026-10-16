@@ -5,7 +5,7 @@ refusals) for the axis that carries the plotted property.
 """
 
 import math
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from numbers import Real
 from typing import Any, NamedTuple
 
@@ -143,11 +143,16 @@ def value_limits(
 
 
 def color_groups(
-    df: pd.DataFrame, color_by: str | None, palette: Mapping[Any, Any] | None
+    df: pd.DataFrame,
+    color_by: str | None,
+    palette: Mapping[Any, Any] | None,
+    order: Sequence[Any] | None = None,
 ) -> tuple[np.ndarray, dict[Any, Any]]:
     """Return each row's group, and ``{group: color}`` in legend order.
 
-    Rows with a blank group are grouped as ``BLANK_GROUP`` in a neutral color.
+    Groups in ``order`` come first, then the rest by name (a categorical
+    column's categories stand in for ``order``). Rows with a blank group are
+    grouped as ``BLANK_GROUP`` in a neutral color, last.
     """
     if color_by is None or color_by not in df.columns:
         return np.full(len(df), None, dtype=object), {None: NEUTRAL}
@@ -156,7 +161,7 @@ def color_groups(
     colors = resolve_palette(
         groups[~blank],
         palette,
-        data_order(df[color_by]),
+        order or data_order(df[color_by]),
         df.attrs.get("palette"),
     )
     groups = np.where(blank, BLANK_GROUP, groups)

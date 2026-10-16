@@ -12,7 +12,7 @@ uscs:
   u_line:                              # drawn only; no class uses it
     slope: 0.9
     intercept: 8
-    vertical: {liquid_limit: 16, up_to: 7}
+    vertical: {liquid_limit: 16, up_to: 7}   # as D2487 writes it; P04 draws it to 0.9 x (16 - 8) = 7.2 (P04 §14 #1)
   high_plasticity_from: 50             # LL at and above this is H
   silty_clay: {lower: 4, upper: 7}     # CL-ML: PI from lower to upper, both inclusive, on or above the A-line
   clay_above: 7                        # CL: PI above this, on or above the A-line
