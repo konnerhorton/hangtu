@@ -537,7 +537,13 @@ def plasticity_chart(
     if not isinstance(df, pd.DataFrame):
         raise HangtuError(f"df must be a pandas DataFrame, not {type(df).__name__}.")
     shapes = _regions.read_regions(regions) if regions is not None else []
-    shape_colors = _regions.region_color_map(shapes, region_colors)
+    shape_colors = _values.label_colors(
+        [shape.label for shape in shapes],
+        region_colors,
+        "region_colors",
+        "regions",
+        _regions.COLOR,
+    )
     _check_color_by(df, color_by)
 
     with style.context(**style_overrides):

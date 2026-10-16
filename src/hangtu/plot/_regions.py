@@ -12,12 +12,12 @@ from os import PathLike
 import numpy as np
 import pandas as pd
 from matplotlib.axes import Axes
-from matplotlib.colors import is_color_like, to_rgba
+from matplotlib.colors import to_rgba
 from matplotlib.patches import Polygon
 
 from hangtu import units as _units
 from hangtu._data import rows_text
-from hangtu.errors import ColumnError, HangtuError, warn
+from hangtu.errors import ColumnError, HangtuError
 from hangtu.plot import _layers
 
 FIELDS = ("label", "liquid_limit", "plasticity_index")
@@ -97,28 +97,6 @@ def read_regions(regions: pd.DataFrame | str | PathLike[str]) -> list[Region]:
             )
         result.append(Region(str(label), vertices.to_numpy(dtype=float)))
     return result
-
-
-def region_color_map(
-    regions: list[Region], region_colors: Mapping[str, str] | None
-) -> dict[str, str]:
-    """Return ``{label: color}``: gray unless ``region_colors`` names a color."""
-    region_colors = dict(region_colors or {})
-    bad = [label for label, color in region_colors.items() if not is_color_like(color)]
-    if bad:
-        raise HangtuError(
-            f"region_colors has colors matplotlib doesn't recognize for {bad}. "
-            'Use a color name ("tan"), a hex string ("#d2b48c") or an RGB tuple.'
-        )
-    labels = [region.label for region in regions]
-    unknown = [label for label in region_colors if label not in labels]
-    if unknown:
-        warn(
-            f"region_colors names {', '.join(map(repr, unknown))}, which "
-            f"{'is' if len(unknown) == 1 else 'are'} not in the regions table. "
-            f"Regions: {', '.join(map(repr, labels)) or 'none'}."
-        )
-    return {label: region_colors.get(label, COLOR) for label in labels}
 
 
 def draw_regions(ax: Axes, regions: list[Region], colors: Mapping[str, str]) -> None:
