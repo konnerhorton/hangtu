@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **ID / function** | P04 · `ht.plot.plasticity_chart()` (uses `ht.analysis.plasticity()`) |
-| **Status** | approved |
+| **Status** | built |
 | **Type** | plot + classification |
 | **Target version** | v0.2 (milestone M8) |
 | **Depends on** | P00, the plasticity analysis (`docs/drafts/analysis.md` §2) |

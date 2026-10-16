@@ -216,3 +216,17 @@ These fill gaps in P04. Any that changes what a user sees goes into P04 in the c
 - After each build: `uv run ruff check . && uv run ruff format --check . && uv run pytest`.
 - At close-out: Python 3.13 and 3.14 (`uv run --isolated --python 3.1x pytest`); the lowest dependency versions, as in CLAUDE.md (`transform_rotates_text` needs matplotlib ≥ 3.6, so 3.8.0 is fine; check it there); `uv build`, and check that the wheel's `columns.yaml` has the `plasticity_regions` template.
 - Look at `P04.png` against the §2 reference figure and the "A good version" list.
+
+### Results
+- 1745 tests pass on Python 3.12, 3.13 and 3.14, and with the lowest dependency versions (matplotlib 3.8.0, numpy 1.26.0, pandas 2.1.1, pint 0.24.4, pyyaml 6.0.1). The wheel has `_plasticity_chart.py`, `_regions.py` and the `plasticity_regions` template.
+- **Commits:** the refactor (Build 0), one commit per build step as planned, and one fix the visual check showed: `P04: label CL-ML beside its zone`. At the default size the CL-ML zone is narrower than its label, whose white background hid the hatch. The label now sits just left of the U-line, level with the zone.
+- **Changes from the plan**, each recorded in P04 in its commit:
+  - Zone labels have a white background, so they read over the gridlines. BS 5930 band letters sit just above the axes rather than inside, where they ran into the CE and CV labels (§8).
+  - The legend's n counts the specimens drawn, at the edge or not (§7). `color_by` that isn't a column, and `labels=True` without `specimen_id`, are errors (§11).
+  - The lines read the slopes from `plasticity_system()` directly; `a_line()` isn't needed in the plot.
+  - `README.md` has no `plasticity_chart` line. The example `atterberg.csv` carries the planted PI slip (QC A002, M9), which `plasticity()` warns about, and `test_readme.py` treats warnings as errors. A README example can come with the v0.2 release, on data without the slip or with the warning shown.
+- **Example project:** `plasticity_chart(p.atterberg())` warns once, for the planted A002 row, and nothing else; the acceptance test asserts exactly that. On the datasets' good files (datasets.md §13 #14) it runs with no warning or hint.
+- SPEC and `TODO.md`: no change (#5 and #22 stay open).
+- **Visual check** (`docs/plots/img/P04.png`, 6.5 × 4.5 in at 100 dpi): the example project's 14 specimens in the map's colors and order, with one five-vertex region. The A-line and U-line labels lie along their lines, CL-ML is hatched and labeled beside it, and the zone labels sit inside their zones. One thing to know:
+  - With equal aspect, the 100 × 60 box doesn't fill the default figure's height once the legend takes its width, so there is white space above and below. `bbox_inches="tight"` on save trims it, or the user passes `figsize=`.
+- **For P05:** `_values.color_groups(..., order=)` is the shared grouping now (P01, P03, P04).
