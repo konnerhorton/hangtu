@@ -19,8 +19,11 @@ Draws particle-size distribution curves, one per specimen, on a log size axis, w
      ┌──────┬───────────────────────┬────────────────┬────────┐
      │      │         Sand          │     Gravel     │        │   ← fractions
      │Fines │ fine │ medium │ coarse│  fine  │ coarse│Cobbles │   ← parts
-     ├──────┴──────┴────────┴───────┴────────┴───────┴────────┤
- 100 ┤   #200   #100  #40  #20 #10 #4   ⅜"  ¾"  1½" 3"        │   ← sieve labels
+     └──────┴──────┴────────┴───────┴────────┴───────┴────────┘
+            #140  #60      #10    3/8"   1-1/2"                    ← sieve labels,
+          #200  #100  #40  #20  #4   3/4"   3"                       two rows when crowded
+     ┌─────┴────┴─────┴─────┴────┴───┴─────┴────┴──────────────┐
+ 100 ┤                                                          │
      │                          __________________/           │
      │                   ______/ ░░░░ envelope ░░░░           │
   %  │            ______/ ┊D60                                │
@@ -59,10 +62,10 @@ Draws particle-size distribution curves, one per specimen, on a log size axis, w
 - Nothing else is computed.
 
 ## 5. Figure layout
-- **Panels:** the main axes, plus a thin header axes above it sharing x (the fraction band, about 0.45 in high). It's one figure element: with `ax=`, the header is carved from the top of the axes given, so the plot still composes on a `Sheet`.
+- **Panels:** the main axes, plus two thin axes above it sharing x: the sieve strip on the frame (0.05 in, plus 0.12 in per row of labels) and the fraction band above that (0.45 in). It's one figure element: with `ax=`, both are carved from the top of the axes given, so the plot still composes on a `Sheet`.
 - **Legend and footnote** go below the x label, centered, the legend in up to four columns and the footnote under it, rather than on the right as on other plots: a column beside the axes squeezes the log axis, which needs its width to read sizes.
 - **Default size:** `default` (6.5 × 4.5 in), landscape. `figsize=` covers a full Letter landscape sheet.
-- `fig, ax` returns the main axes; the header is `ax.grain_size_header` (None with `fractions=None`). It is made with `make_axes_locatable(ax).append_axes("top", size=0.45, pad=0, sharex=ax)`, which works under constrained layout.
+- `fig, ax` returns the main axes; the header is `ax.grain_size_header` (None with `fractions=None`) and the strip `ax.grain_size_sieves` (None with no sieve in the x range). Both come from one `make_axes_locatable(ax)` divider with `append_axes("top", ..., pad=0, sharex=ax)`, the strip first, which works under constrained layout.
 
 ## 6. Axes
 | | X axis | Y axis |
@@ -74,7 +77,7 @@ Draws particle-size distribution curves, one per specimen, on a log size axis, w
 | Limits | whole decades covering the data, and at least 0.001–100 mm; a point on a whole decade moves that limit out one decade (P00 §8); `xlim=` overrides, exactly | 0–100, fixed |
 | Ticks | decades labeled in plain numbers (0.001, 0.01, …, 100) | every 10 |
 | Gridlines | major and minor (2–9) | every 10 |
-| Secondary | sieve labels along the top inside edge (`sieves=`) | — |
+| Secondary | sieve labels above the frame, under the band (`sieves=`) | — |
 
 **Range constraints:**
 - [x] Fixed y limits (0–100).
@@ -96,7 +99,7 @@ More than 20 curves with `color_by="specimen_id"`: the README legend rules apply
 | Overlay | Argument | Default | Source | Style | Notes |
 |---|---|---|---|---|---|
 | Fraction band | `fractions=` | `"astm_uscs"` | `config/fraction_systems.yaml` or the user's system | two rows: fraction names in the upper row, their parts (fine, medium, coarse) in the lower; a fraction without parts spans both, and a system without parts (`aashto`) has one row. Names are the fraction names with underscores as spaces, capitalized ("Silt clay"). Dividers at each boundary down through the main axes as light vertical lines (fraction boundaries solid, part boundaries dashed) | `None` hides the band and the dividers. Only fractions inside the x range are named, each centered on its visible part; a name narrower than 0.25 decade in view is left out |
-| Sieve labels | `sieves=` | `"auto"`: US list in US display, ISO list in SI | `config/sieves.yaml` (new), cited | 6.5 pt, rotated 90°, along the top inside edge, with a short tick | `"us"`, `"iso"`, `None`, or a list of `(size_mm, label)` |
+| Sieve labels | `sieves=` | `"auto"`: US list in US display, ISO list in SI | `config/sieves.yaml` (new), cited | 6.5 pt, horizontal, in a strip above the frame and under the band, each over a short tick up from the frame. When any two neighbors are closer than 0.25 decade (the US list near #200), the labels alternate between two rows in size order; otherwise one row. Above the frame, so no curve crosses them | `"us"`, `"iso"`, `None`, or a list of `(size_mm, label)`; only sizes inside the x range are labeled |
 | D-values | `d_values=` | off | `gradation()` | §7 | |
 | Envelopes | `envelopes=` | off | user table (below) | §7 | |
 | Note | `note=` | off | user | added to the footnote | |
@@ -180,7 +183,7 @@ None open. Decided in review:
 1. **Axis direction:** coarse on the right (size increasing to the right), the same default in US and SI display, so one figure serves both. `reverse=True` gives the coarse-on-the-left layout of some US forms (§6).
 2. **Fraction dividers** run down through the main axes as light lines, so a curve can be read against the boundaries (§8).
 3. **D-value labels** only for a single curve; ticks without labels for several (§7).
-4. **Sieve lists** in a new `config/sieves.yaml`, with the ISO list at the fraction boundaries (§8).
+4. **Sieve lists** in a new `config/sieves.yaml`, with the ISO list at the fraction boundaries (§8). The labels sit above the frame and are horizontal (changed in the build's review from rotated labels inside the top edge, which curves near 100 % passing crossed).
 5. **Envelope and fraction-system colors** are gray unless given, apart from geology unit colors (§7).
 
 ## 15. Future enhancements

@@ -380,8 +380,9 @@ def grain_size(
     figsize : tuple, optional
         Figure size in inches. Defaults to ``ht.settings.figure_sizes["default"]``.
     ax : matplotlib.axes.Axes, optional
-        Draw into this axes, e.g. a ``Sheet`` panel. The band's axes is carved
-        from its top and kept as ``ax.grain_size_header``.
+        Draw into this axes, e.g. a ``Sheet`` panel. The band's axes and the
+        sieve strip are carved from its top and kept as
+        ``ax.grain_size_header`` and ``ax.grain_size_sieves``.
     **style_overrides
         matplotlib rcParams for this plot, e.g. ``font_size=10``.
 
@@ -446,11 +447,12 @@ def grain_size(
             fig = ax.figure
         style.style_axes(ax)
         _set_axes(ax, limits, reverse)
+        # The strip first, so it sits between the frame and the band.
+        ax.grain_size_sieves = _fraction_band.add_sieve_strip(ax, sieve_list, limits)
         ax.grain_size_header = None
         if fractions is not None:
             ax.grain_size_header = _fraction_band.add_header(ax)
             _fraction_band.draw_band(ax.grain_size_header, ax, system_fractions, limits)
-        _fraction_band.draw_sieves(ax, sieve_list, limits)
         envelope_handles = _envelopes.draw_envelopes(ax, bands, band_colors)
         handles = _draw_curves(
             ax,

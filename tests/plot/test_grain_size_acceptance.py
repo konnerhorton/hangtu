@@ -71,7 +71,8 @@ def _dividers(ax):
 
 
 def _sieves(ax):
-    return {t.get_text(): t.xy[0] for t in ax.texts if t.get_gid() == "sieve_label"}
+    texts = ax.grain_size_sieves.texts
+    return {t.get_text(): t.get_position()[0] for t in texts}
 
 
 @pytest.fixture(scope="module")

@@ -7,6 +7,7 @@ import pytest
 
 import hangtu as ht
 from hangtu.errors import HangtuError
+from hangtu.plot._fraction_band import sieve_rows
 
 EMPTY = pd.DataFrame()
 
@@ -20,7 +21,10 @@ def texts(ax, gid):
 
 
 def sieve_labels(ax):
-    return {t.get_text(): t.xy[0] for t in ax.texts if t.get_gid() == "sieve_label"}
+    if ax.grain_size_sieves is None:
+        return {}
+    texts = ax.grain_size_sieves.texts
+    return {t.get_text(): t.get_position()[0] for t in texts}
 
 
 # --- Band (§12) --------------------------------------------------------------
@@ -100,7 +104,7 @@ def test_unknown_system_is_the_analysis_error():
 def test_fractions_none_hides_band_and_dividers():
     fig, ax = ht.plot.grain_size(EMPTY, fractions=None)
     assert ax.grain_size_header is None
-    assert len(fig.axes) == 1
+    assert fig.axes == [ax, ax.grain_size_sieves]  # the sieves stay
     assert dividers(ax, "fraction_divider") == []
     assert dividers(ax, "part_divider") == []
 
@@ -121,7 +125,10 @@ def test_header_is_045_in_and_shares_x():
     box = header.get_window_extent()
     assert box.height / fig.dpi == pytest.approx(0.45, abs=0.01)
     assert header.get_xlim() == ax.get_xlim()
-    assert box.y0 == pytest.approx(ax.get_window_extent().y1, abs=1)
+    # Above the sieve strip, which sits on the frame.
+    strip = ax.grain_size_sieves.get_window_extent()
+    assert strip.y0 == pytest.approx(ax.get_window_extent().y1, abs=1)
+    assert box.y0 == pytest.approx(strip.y1, abs=1)
 
 
 def test_header_composes_on_a_sheet():
@@ -235,3 +242,35 @@ def test_no_global_state(assert_no_global_state):
     sheet = ht.Sheet("letter")
     assert_no_global_state(ht.plot.grain_size, EMPTY, ax=sheet[0])
     plt.close(sheet.figure)
+
+
+def test_sieve_labels_are_horizontal_above_the_frame():
+    fig, ax = ht.plot.grain_size(EMPTY, display_units="US")
+    fig.canvas.draw()
+    frame_top = ax.get_window_extent().y1
+    texts = ax.grain_size_sieves.texts
+    assert texts
+    for text in texts:
+        assert text.get_rotation() == 0
+        assert text.get_window_extent().y0 >= frame_top
+    assert ax.grain_size_sieves.get_xlim() == ax.get_xlim()
+
+
+def test_crowded_sieves_alternate_between_two_rows():
+    _, us = ht.plot.grain_size(EMPTY, display_units="US")
+    rows = {t.get_text(): t.get_position()[1] for t in us.grain_size_sieves.texts}
+    assert rows["#200"] == rows["#100"] != rows["#140"]
+    _, si = ht.plot.grain_size(EMPTY, display_units="SI")
+    assert len({t.get_position()[1] for t in si.grain_size_sieves.texts}) == 1
+
+
+def test_sieve_rows():
+    assert sieve_rows([2.0, 0.2, 20.0]) == [0, 0, 0]
+    assert sieve_rows([0.15, 0.075, 0.106]) == [0, 0, 1]
+
+
+def test_no_sieves_means_no_strip():
+    _, ax = ht.plot.grain_size(EMPTY, sieves=None)
+    assert ax.grain_size_sieves is None
+    _, ax = ht.plot.grain_size(EMPTY, sieves=[(500, "big")])
+    assert ax.grain_size_sieves is None
