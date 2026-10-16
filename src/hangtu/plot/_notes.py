@@ -15,6 +15,7 @@ from numpy.typing import ArrayLike
 # {where} optional detail a plot sets with Notes.set_where (P02: the cap).
 REASONS = {
     "nan": "{n} blank value{s} not shown",
+    "short_curve": "{n} curve{s} with fewer than two points not shown",
     "log_nonpositive": "{n} value{s} ≤ 0 not shown on log axis",
     "beyond_limit": "{n} value{s} beyond axis limit, shown at the edge",
     "less_than": "{n} value{s} reported as less than (<)",
