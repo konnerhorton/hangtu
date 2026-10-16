@@ -62,14 +62,38 @@ def _largest_drop(passing: np.ndarray) -> float:
 
 
 @dataclass
-class _Curve:
-    """One specimen's points, sorted by size as rows, in mm."""
+class Curve:
+    """One specimen's points, sorted by size as rows, in mm.
+
+    ``rows`` are the points' positions in the input frame, in the same order.
+    ``usable`` is False for a curve with fewer than two points or one that
+    rises toward finer sizes (§3.3); its D-values and fractions are blank.
+    """
 
     name: str
     sizes: np.ndarray
     passing: np.ndarray
+    rows: np.ndarray
     usable: bool = True
     values: dict[str, float] = field(default_factory=dict)
+
+
+@dataclass
+class GradingCurves:
+    """The curves of a grading table, checked and sorted (§3.3, §3.4).
+
+    ``keys`` tell the curves apart; ``groups`` are each curve's row positions
+    in the input frame, in input order; ``blank`` marks the points left out
+    for a blank size or passing; ``short`` and ``falling`` name the curves
+    with fewer than two points and those that rise toward finer sizes.
+    """
+
+    curves: list[Curve]
+    keys: list[str]
+    groups: list[np.ndarray]
+    blank: np.ndarray
+    short: list[str]
+    falling: list[str]
 
 
 def _check_d_values(d_values: Any) -> tuple[int, ...]:
@@ -153,9 +177,9 @@ def _build_curves(
     groups: list[np.ndarray],
     sizes: np.ndarray,
     passing: np.ndarray,
-) -> list[_Curve]:
+) -> list[Curve]:
     """Group the points into curves, sorted by size as rows (§3.3)."""
-    curves: list[_Curve] = []
+    curves: list[Curve] = []
     duplicates: list[Any] = []
     for rows in groups:
         name = _curve_name(df, keys, rows)
@@ -165,7 +189,7 @@ def _build_curves(
         repeated = np.flatnonzero(np.diff(curve_sizes) == 0)
         if repeated.size:
             duplicates.extend(df.index[order[np.union1d(repeated, repeated + 1)]])
-        curves.append(_Curve(name, curve_sizes, curve_passing))
+        curves.append(Curve(name, curve_sizes, curve_passing, order))
     if duplicates:
         raise HangtuError(
             f"Rows {rows_text(pd.Index(duplicates))} are two points at the same "
@@ -175,8 +199,8 @@ def _build_curves(
     return curves
 
 
-def _check_curves(curves: list[_Curve]) -> None:
-    """Mark the curves the D-values can't use, and warn about them (§3.3)."""
+def _mark_curves(curves: list[Curve]) -> tuple[list[str], list[str]]:
+    """Mark the curves the D-values can't use; return the short and falling ones."""
     tolerance = drop_tolerance()
     short, falling = [], []
     for curve in curves:
@@ -187,6 +211,32 @@ def _check_curves(curves: list[_Curve]) -> None:
         else:
             continue
         curve.usable = False
+    return short, falling
+
+
+def grading_curves(
+    df: pd.DataFrame, units: Mapping[str, str] | None = None
+) -> GradingCurves:
+    """Check a grading table and group its points into sorted curves, silently.
+
+    Raises the input errors of ``gradation()`` (§3.6). Blank points, short
+    curves and curves that rise toward finer sizes are reported in the result,
+    not warned about, so each caller words them its own way (P05 counts them).
+    """
+    _check_columns(df)
+    keys = _keys(df)
+    sizes = _sizes_mm(df, units)
+    passing = _passing(df)
+    blank = np.isnan(sizes) | np.isnan(passing)
+    groups = _groups(df, keys)
+    curves = _build_curves(df, keys, groups, sizes, passing)
+    short, falling = _mark_curves(curves)
+    return GradingCurves(curves, keys, groups, blank, short, falling)
+
+
+def _warn_curves(short: list[str], falling: list[str]) -> None:
+    """Warn about the curves the D-values can't use (§3.3)."""
+    tolerance = drop_tolerance()
     if short:
         warn(
             f"{len(short)} curve{'s have' if len(short) > 1 else ' has'} fewer than "
@@ -203,7 +253,7 @@ def _check_curves(curves: list[_Curve]) -> None:
         )
 
 
-def _d_values(curves: list[_Curve], wanted: tuple[int, ...]) -> None:
+def _d_values(curves: list[Curve], wanted: tuple[int, ...]) -> None:
     """Find each curve's D-values, Cu and Cc, and warn about those left blank."""
     unreached: dict[int, int] = {}
     for curve in curves:
@@ -228,7 +278,7 @@ def _d_values(curves: list[_Curve], wanted: tuple[int, ...]) -> None:
         )
 
 
-def _fractions(curves: list[_Curve], fractions: list[dict[str, Any]]) -> None:
+def _fractions(curves: list[Curve], fractions: list[dict[str, Any]]) -> None:
     """Find each curve's fractions, and warn about those left blank (§3.5)."""
     unreached: dict[str, int] = {}
     for curve in curves:
@@ -332,21 +382,15 @@ def gradation(
         raise HangtuError(f"df must be a pandas DataFrame, not {type(df).__name__}.")
     wanted = _check_d_values(d_values)
     system, system_fractions = fraction_system(fractions)
-    _check_columns(df)
-    keys = _keys(df)
-    sizes = _sizes_mm(df, units)
-    passing = _passing(df)
-
-    blank = np.isnan(sizes) | np.isnan(passing)
+    found = grading_curves(df, units)
+    curves, keys, groups, blank = found.curves, found.keys, found.groups, found.blank
     if blank.any():
         warn(
             f"Left out {int(blank.sum())} point{'s' if blank.sum() > 1 else ''} "
             f"with a blank particle_size or percent_passing (rows "
             f"{rows_text(df.index[blank])})."
         )
-    groups = _groups(df, keys)
-    curves = _build_curves(df, keys, groups, sizes, passing)
-    _check_curves(curves)
+    _warn_curves(found.short, found.falling)
     _d_values(curves, wanted)
     _fractions(curves, system_fractions)
 
