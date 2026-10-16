@@ -5,8 +5,10 @@ counted here and listed in a footnote.
 """
 
 from collections.abc import Mapping
+from typing import Literal
 
 import numpy as np
+from matplotlib.artist import Artist
 from matplotlib.axes import Axes
 from matplotlib.text import Annotation
 from numpy.typing import ArrayLike
@@ -86,8 +88,18 @@ class Notes:
         ]
         return counts + self.texts
 
-    def render(self, ax: Axes, offset: float = 0.0) -> Annotation | None:
+    def render(
+        self,
+        ax: Axes,
+        offset: float = 0.0,
+        where: Literal["right", "bottom"] = "right",
+        below: Artist | None = None,
+    ) -> Annotation | None:
         """Write the footnote to the right of the axes, below the legend.
+
+        With ``where="bottom"`` it goes under the axes instead, centered
+        below ``below`` (the bottom legend) or, without one, below the x
+        label, ``offset`` points under the axes.
 
         Also sets ``ax.ags_notes`` to the counts, so users and tests can read
         them. ``offset`` is extra space in points between the axes and the
@@ -98,6 +110,23 @@ class Notes:
         lines = self.lines()
         if not lines:
             return None
+        if where == "bottom":
+            anchor = {"xy": (0.5, 0.0), "xytext": (0.0, -4.0)}
+            if below is None:
+                anchor["xycoords"] = "axes fraction"
+                anchor["xytext"] = (0.0, -offset)
+            else:
+                anchor["xycoords"] = below
+            return ax.annotate(
+                "\n".join(lines),
+                textcoords="offset points",
+                ha="center",
+                va="top",
+                fontsize=FOOTNOTE_SIZE,
+                color=FOOTNOTE_COLOR,
+                annotation_clip=False,
+                **anchor,
+            )
         return ax.annotate(
             "\n".join(lines),
             xy=(1.02, 0.0),

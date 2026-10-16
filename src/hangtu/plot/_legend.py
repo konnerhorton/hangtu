@@ -2,6 +2,7 @@
 
 import math
 from collections.abc import Sequence
+from typing import Literal
 
 from matplotlib.artist import Artist
 from matplotlib.axes import Axes
@@ -12,6 +13,9 @@ from hangtu.plot._notes import Notes
 
 MAX_ROWS = 12
 MAX_ENTRIES = 30
+BOTTOM_COLUMNS = 4  # legend columns below the axes
+#: Points from the bottom of the axes to below the tick labels and the x label.
+BELOW_X_LABEL = 32.0
 
 
 def add_legend(
@@ -19,8 +23,9 @@ def add_legend(
     sections: Sequence[Sequence[Artist]],
     notes: Notes,
     offset: float = 0.0,
+    where: Literal["right", "bottom"] = "right",
 ) -> Legend | None:
-    """Add the legend outside the axes on the right.
+    """Add the legend outside the axes, on the right or below the x label.
 
     Parameters
     ----------
@@ -35,6 +40,9 @@ def add_legend(
     offset
         Extra space in points between the axes and the legend, e.g. for a
         secondary axis on the right.
+    where
+        ``"right"`` (the default), or ``"bottom"``: centered under the x
+        label in up to four columns, for plots whose width is precious (P05).
 
     Returns
     -------
@@ -51,6 +59,19 @@ def add_legend(
             else f"{len(handles)} legend entries not shown"
         )
         return None
+    if where == "bottom":
+        return ax.legend(
+            handles=handles,
+            loc="upper center",
+            bbox_to_anchor=(0.5, 0.0),
+            bbox_transform=offset_copy(
+                ax.transAxes, ax.figure, y=-BELOW_X_LABEL - offset, units="points"
+            ),
+            borderaxespad=0.0,
+            frameon=False,
+            fontsize=8,
+            ncols=min(len(handles), BOTTOM_COLUMNS),
+        )
     return ax.legend(
         handles=handles,
         loc="upper left",

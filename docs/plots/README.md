@@ -43,7 +43,7 @@ Each figure is a separate feature with its own spec file in this folder, written
 
 ### Color and markers
 - Color encodes the **geology unit** by default (the session or project palette, SPEC §3; stable across all plots). Marker shape encodes a secondary grouping (e.g. `loca_id` or test type) when requested.
-- The legend sits outside the plotting area on the right. With more than 12 entries it splits into columns, and with more than 30 it is replaced by a note.
+- The legend sits outside the plotting area on the right (P05: below the x label, with the footnote under it). With more than 12 entries it splits into columns, and with more than 30 it is replaced by a note.
 - Color is never the only carrier of meaning that matters. Zones and lines are also labeled.
 
 ### Overlays and annotations

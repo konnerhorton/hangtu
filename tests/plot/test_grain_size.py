@@ -255,3 +255,30 @@ def test_on_a_sheet_and_no_global_state(assert_no_global_state):
     sheet = ht.Sheet("letter", layout=(1, 2))
     assert_no_global_state(ht.plot.grain_size, df, ax=sheet[1])
     plt.close(sheet.figure)
+
+
+# --- Legend and footnote below the axes (§5) ---------------------------------
+
+
+def test_legend_and_footnote_sit_below_the_x_label():
+    df = curves(("A", *CURVE_A), ("S", [0.075], [10]))
+    fig, ax = ht.plot.grain_size(df)
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    label = ax.xaxis.label.get_window_extent(renderer)
+    legend = ax.get_legend().get_window_extent(renderer)
+    footnote = ax.texts[-1].get_window_extent(renderer)
+    assert legend.y1 <= label.y0
+    assert footnote.y1 <= legend.y0
+    # Nothing beside the axes on the right.
+    assert legend.x1 <= ax.get_window_extent().x1
+    assert footnote.x1 <= ax.get_window_extent().x1
+
+
+def test_footnote_without_a_legend_sits_below_the_x_label():
+    fig, ax = ht.plot.grain_size(pd.DataFrame(), note="No grading tests")
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    assert ax.get_legend() is None
+    footnote = ax.texts[-1].get_window_extent(renderer)
+    assert footnote.y1 <= ax.xaxis.label.get_window_extent(renderer).y0

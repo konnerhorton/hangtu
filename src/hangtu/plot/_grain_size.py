@@ -25,7 +25,7 @@ from hangtu.analysis._gradation import (
 from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.plot import _envelopes, _fraction_band, _layers, _values, style
 from hangtu.plot._hints import hint_missing
-from hangtu.plot._legend import add_legend
+from hangtu.plot._legend import BELOW_X_LABEL, add_legend
 from hangtu.plot._limits import clear_of_data, log_limits, set_log_axis
 from hangtu.plot._notes import Notes, edge_markers
 from hangtu.plot._palette import AUTOMATIC
@@ -473,6 +473,7 @@ def grain_size(
                 color="0.4",
                 zorder=_layers.ANNOTATIONS,
             )
-        add_legend(ax, [handles, envelope_handles], notes)
-        notes.render(ax)
+        # Below the axes: a legend on the right crowds the log axis (§5).
+        legend = add_legend(ax, [handles, envelope_handles], notes, where="bottom")
+        notes.render(ax, BELOW_X_LABEL, where="bottom", below=legend)
     return fig, ax

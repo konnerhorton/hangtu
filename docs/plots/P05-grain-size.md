@@ -60,6 +60,7 @@ Draws particle-size distribution curves, one per specimen, on a log size axis, w
 
 ## 5. Figure layout
 - **Panels:** the main axes, plus a thin header axes above it sharing x (the fraction band, about 0.45 in high). It's one figure element: with `ax=`, the header is carved from the top of the axes given, so the plot still composes on a `Sheet`.
+- **Legend and footnote** go below the x label, centered, the legend in up to four columns and the footnote under it, rather than on the right as on other plots: a column beside the axes squeezes the log axis, which needs its width to read sizes.
 - **Default size:** `default` (6.5 × 4.5 in), landscape. `figsize=` covers a full Letter landscape sheet.
 - `fig, ax` returns the main axes; the header is `ax.grain_size_header` (None with `fractions=None`). It is made with `make_axes_locatable(ax).append_axes("top", size=0.45, pad=0, sharex=ax)`, which works under constrained layout.
 

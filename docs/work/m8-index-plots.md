@@ -315,13 +315,14 @@ Two commits, no change in behavior:
 - Look at `P05-us.png` and `P05-si.png` against the §2 reference figure and the "A good version" list.
 
 ### Results
-- 1844 tests pass on Python 3.12, 3.13 and 3.14, and with the lowest dependency versions (matplotlib 3.8.0, numpy 1.26.0, pandas 2.1.1), where the `append_axes` header and `sharex` work as on 3.11. The wheel has `config/sieves.yaml`, `_grain_size.py`, `_fraction_band.py`, `_envelopes.py` and the `envelopes` template.
+- 1844 tests (1846 after the legend move) pass on Python 3.12, 3.13 and 3.14, and with the lowest dependency versions (matplotlib 3.8.0, numpy 1.26.0, pandas 2.1.1), where the `append_axes` header and `sharex` work as on 3.11. The wheel has `config/sieves.yaml`, `_grain_size.py`, `_fraction_band.py`, `_envelopes.py` and the `envelopes` template.
 - **Commits:** the two refactors (Build 0), then one per build step, with Build 3 split in two (`P05: draw D-values`, `P05: draw envelopes from a table`) because it passed 300 lines. One fix the lowest-versions run found: `P05: label decades without floating-point noise` (matplotlib 3.8 gave the 0.1 tick as 0.09999999999999999).
 - **Changes from the plan**, each recorded in P05 in its commit or the close-out:
   - The label color check went to `_values.label_colors()` rather than staying in `_regions.py`, so `_envelopes.py` doesn't import from P04's module.
   - A fraction name is left out when its visible part is narrower than 0.25 decade, not 0.15: at 0.15, "Cobbles" (63–100 mm in view) ran past its cell (§8).
   - The US sieve designations are written in ASCII (`1-1/2"`, `3/4"`, `3/8"`), so a font without the fraction glyphs can't raise a missing-glyph warning, which the tests treat as an error (§8).
   - A D-value beyond `xlim=` isn't drawn and is counted as beyond the axis limit (§11).
+  - After review, the legend and footnote moved below the x label (`add_legend(..., where="bottom")` and `Notes.render(..., where="bottom")`, P00 §11, P05 §5): on the right they took width the log axis needs. The images were redrawn.
   - `README.md` gets a `grain_size()` line in the AGS example (it runs with no warning), and its "Plots" line now names the plasticity chart and the grain size curves.
 - **Example project:** `grain_size(p.grain_size(), d_values=True)` runs with no warning or hint; its footnote counts D10 not reached by the two Fill curves, which stop at 24 % and 25 % passing. On the datasets' good files (datasets.md §13 #14) it runs with no warning or hint.
 - SPEC §11 has the `grain_size()` call. `TODO.md` #5 lists the sieve lists to verify; it stays open.
