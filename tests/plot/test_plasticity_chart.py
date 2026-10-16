@@ -128,7 +128,25 @@ def test_zone_labels_sit_inside_their_zone(system):
         if text.get_gid() != "zone_label":
             continue
         pieces = zone_polygons(by_name[text.get_text()], box)
+        if text.get_text() == "CL-ML":
+            continue  # beside its zone: test_cl_ml_label_sits_left_of_its_zone
         assert any(Path(p).contains_point(text.get_position()) for p in pieces)
+
+
+def test_cl_ml_label_sits_left_of_its_zone():
+    _, ax = ht.plot.plasticity_chart(EMPTY)
+    (label,) = [t for t in ax.texts if t.get_text() == "CL-ML"]
+    # Level with the trapezoid's centroid: bottom 9.479 wide at PI 4, top
+    # 13.589 at PI 7, so 4 + 3 (9.479 + 2 x 13.589) / (3 (9.479 + 13.589)).
+    bottom, top = 20 + 4 / 0.73 - 16, 20 + 7 / 0.73 - 16
+    level = 4 + 3 * (bottom + 2 * top) / (3 * (bottom + top))
+    assert label.get_position() == pytest.approx((15, level))
+    assert level == pytest.approx(5.589, abs=1e-3)
+    assert label.get_horizontalalignment() == "right"
+    _, ax = ht.plot.plasticity_chart(EMPTY, xlim=(15.5, 60))  # no room: inside
+    (label,) = [t for t in ax.texts if t.get_text() == "CL-ML"]
+    assert label.get_horizontalalignment() == "center"
+    assert 16 < label.get_position()[0] < 29.59
 
 
 def test_zones_do_not_overlap():

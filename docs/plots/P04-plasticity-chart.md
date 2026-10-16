@@ -107,7 +107,7 @@ A second use: a project's own soil groups, drawn as regions in LL–PI space, so
 | Overlay | Argument | Default | Source | Style | Notes |
 |---|---|---|---|---|---|
 | Lines and zones | `system=` | `"uscs"` | config, cited | black 0.8 pt; PI = LL light gray dotted | §4 |
-| Zone labels | `zone_labels=` | on | config | 8 pt gray on a white background, at the centroid of the zone's largest convex piece, so it is inside the zone | The background keeps CL-ML legible on its hatch. BS 5930 band letters sit just above the axes |
+| Zone labels | `zone_labels=` | on | config | 8 pt gray on a white background (over the gridlines), at the centroid of the zone's largest convex piece, so it is inside the zone | CL-ML is too small to hold its label, so the label sits just left of the U-line, level with the zone (inside it when `xlim=` leaves no room). BS 5930 band letters sit just above the axes |
 | Line labels | (with the lines) | on | | "A-line", "U-line" along the line, rotated to its angle on screen | |
 | User regions | `regions=` | off | user table (below) | outline 1 pt and fill alpha 0.12, gray unless `region_colors=` names a color; label at the polygon's centroid | Any shape (M8 intent, decision 4) |
 | Specimen labels | `labels=` | off | `specimen_id` | 6 pt beside each point | |

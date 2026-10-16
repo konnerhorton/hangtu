@@ -34,6 +34,8 @@ EQUALITY_COLOR = "0.6"  # the PI = LL line
 LABEL_SIZE = 8
 LABEL_COLOR = "0.4"
 HATCH = "////"
+BESIDE = ("CL-ML",)  # zones labeled beside, not inside
+BESIDE_GAP = 1.0  # LL units between the zone and its label
 MARKER_SIZE = 5.0  # points
 SPECIMEN_LABEL_SIZE = 6
 
@@ -306,16 +308,24 @@ def _draw_zone_labels(ax: Axes, system: str, box: Box) -> None:
         position = zone_label_position(zone, box)
         if position is None:
             continue
+        align = "center"
+        if zone.name in BESIDE:
+            # Too small to hold its label: write it left of the zone, level
+            # with it, where the impossible area left of the U-line is free.
+            left = min(polygon[:, 0].min() for polygon in zone_polygons(zone, box))
+            if left - BESIDE_GAP > box[0]:
+                position = np.array([left - BESIDE_GAP, position[1]])
+                align = "right"
         ax.text(
             *position,
             zone.name,
-            ha="center",
+            ha=align,
             va="center",
             fontsize=LABEL_SIZE,
             color=LABEL_COLOR,
             gid="zone_label",
             clip_on=True,
-            # The CL-ML label sits on the hatch.
+            # Keeps the label legible over gridlines.
             bbox={"facecolor": "white", "edgecolor": "none", "pad": 1.0},
             zorder=_layers.ZONE_LABELS,
         )
