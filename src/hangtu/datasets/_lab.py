@@ -6,7 +6,9 @@ from os import PathLike
 import numpy as np
 import pandas as pd
 
-from hangtu.analysis import plasticity
+from hangtu.analysis import gradation, plasticity
+from hangtu.analysis._fractions import content_column, fraction_system
+from hangtu.analysis._gradation import _check_d_values
 from hangtu.datasets import _joins
 from hangtu.datasets._frame import Build
 from hangtu.errors import warn
@@ -263,3 +265,90 @@ def grain_size(
     frame["percent_passing"] = build.numbers(rows, "GRAT_PERP")
     frame["qualifier"] = build.qualifier("GRAT", rows, "GRAT_PERP")
     return build.finish(frame, GRAIN_SIZE_COLUMNS, group="GRAT", **common)
+
+
+def grain_size_summary(
+    path: str | PathLike[str],
+    *,
+    fractions="astm_uscs",
+    d_values=(10, 30, 60),
+    display_units: str | None = None,
+    include_incomplete: bool = False,
+    **common,
+) -> pd.DataFrame:
+    """Build the grading summary; see ``Project.grain_size_summary``.
+
+    ``gradation()`` on the finished ``grain_size()`` dataset (§6.5), so the
+    filters, units and warnings are those of the curves.
+    """
+    curves = grain_size(
+        path,
+        display_units=display_units,
+        include_incomplete=include_incomplete,
+        **common,
+    )
+    geology = list(curves.columns[curves.columns.get_loc("qualifier") + 1 : -1])
+    return summarize_curves(curves, SPECIMEN_COLUMNS, geology, fractions, d_values)
+
+
+def summarize_curves(
+    curves: pd.DataFrame,
+    first: list[str],
+    last: list[str],
+    fractions="astm_uscs",
+    d_values=(10, 30, 60),
+) -> pd.DataFrame:
+    """Return ``gradation()`` of a ``grain_size()`` frame, one row per specimen.
+
+    The columns are ``first``, the D-values, Cu, Cc, the fractions and
+    ``fraction_system``, then ``last``. A curve with a percent passing outside
+    0 to 100, or a size of 0 or less, which ``gradation()`` rejects, is kept
+    with blank values and one warning, since a dataset doesn't stop on the
+    file's data (QC P002 reports it).
+    """
+    wanted = _check_d_values(d_values)
+    system, system_fractions = fraction_system(fractions)
+    contents = [content_column(fraction["name"]) for fraction in system_fractions]
+    computed = [
+        *(f"d{percent}" for percent in wanted),
+        "uniformity_coefficient",
+        "curvature_coefficient",
+        *contents,
+    ]
+    passing, size = curves["percent_passing"], curves["particle_size"]
+    bad = curves.loc[(passing < 0) | (passing > 100) | (size <= 0), "specimen_id"]
+    if not bad.empty:
+        named = curves.drop_duplicates("specimen_id").loc[
+            lambda df: df["specimen_id"].isin(bad)
+        ]
+        warn(
+            "Grading curves with a percent passing outside 0 to 100 or a "
+            f"particle size of 0 or less: {', '.join(_curve_names(named))}. Their "
+            "D-values and fractions are left blank. p.qc() lists them (P002)."
+        )
+    good = curves[~curves["specimen_id"].isin(bad)]
+    summary = (
+        curves.drop_duplicates("specimen_id")
+        .reindex(columns=[*first, *computed, "fraction_system", *last])
+        .reset_index(drop=True)
+    )
+    summary[computed] = summary[computed].astype(float)
+    summary["fraction_system"] = system if len(summary) else None
+    if not good.empty:
+        found = gradation(good, fractions=fractions, d_values=wanted)
+        found = found.set_index("specimen_id")
+        for column in computed:
+            summary[column] = summary["specimen_id"].map(found[column]).astype(float)
+    summary.attrs = {
+        **curves.attrs,
+        "units": {
+            **{c: u for c, u in curves.attrs["units"].items() if c in summary},
+            **{f"d{percent}": "mm" for percent in wanted},
+            **dict.fromkeys(contents, "%"),
+        },
+    }
+    return summary
+
+
+def _curve_names(frame: pd.DataFrame) -> list[str]:
+    return list(frame["loca_id"].astype(str) + " " + _specimen_names(frame))

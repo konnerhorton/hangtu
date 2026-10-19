@@ -214,6 +214,8 @@ p.grain_size_summary(*, fractions="astm_uscs", d_values=(10, 30, 60), **common)
 `ht.analysis.gradation(p.grain_size(**common), fractions=, d_values=)`: one row per specimen (analysis §3.4). The common arguments (§2) filter the curve points first, so `depth=` and `geology=` act on the specimen's depth and unit, which every point of a curve shares.
 
 Columns: `loca_id`, `specimen_id`, `sample_reference`, `specimen_reference`, `ground_level`, `depth`, `depth_basis`, `elevation`, the D-values, `uniformity_coefficient`, `curvature_coefficient`, the fraction columns of the system, `fraction_system`, then the geology columns. `qualifier` and `source_line` change within a curve, so they aren't carried (analysis §3.4). D-values are in mm in both systems.
+- With no `GRAT`, or no curve left after the filters, it is an empty frame with these columns; the missing-group warning is `p.grain_size()`'s.
+- `gradation()` stops on a percent passing outside 0 to 100 or a size of 0 or less (analysis §3.6). A dataset doesn't stop on the file's data (as §6.2), so such a curve keeps its row with blank D-values and fractions, and one warning per call names it and points to `p.qc()` (P002).
 
 ### 6.6 `p.index_properties()` (M8)
 ```python

@@ -459,6 +459,77 @@ class Project:
             display_units=display_units,
         )
 
+    def grain_size_summary(
+        self,
+        *,
+        fractions: "str | dict | PathLike[str]" = "astm_uscs",
+        d_values: "tuple[int, ...]" = (10, 30, 60),
+        holes: "str | list[str] | None" = None,
+        geology: "str | list[str] | None" = None,
+        depth: "tuple | None" = None,
+        elevation: "tuple | None" = None,
+        where: dict | None = None,
+        contains: "str | list[str] | None" = None,
+        geology_fields: "str | list[str] | None" = None,
+        include_incomplete: bool = False,
+        display_units: str | None = None,
+    ) -> pd.DataFrame:
+        """Return one row per grading curve: D-values, Cu, Cc and size fractions.
+
+        ``ht.analysis.gradation()`` on ``p.grain_size()``, so each specimen
+        keeps its depth and geology unit, and the filters act on the curves'
+        points (a whole curve, since its points share a depth). D-values are
+        in mm in US and SI output alike. A curve that doesn't reach a
+        percentage or a fraction's sizes gets a blank, with a warning; nothing
+        is extrapolated. See ``docs/data/datasets.md`` §6.5.
+
+        Parameters
+        ----------
+        fractions
+            The size-fraction system: ``"astm_uscs"`` (default), ``"aashto"``,
+            ``"iso14688"``, or your own (see ``ht.analysis.gradation()``).
+        d_values
+            Percentages passing to find sizes for, e.g. ``(10, 30, 60)``.
+        holes, geology
+            Keep these holes (``LOCA_ID``) or geology units.
+        depth, elevation
+            Keep ``low <= value <= high``, given in the dataset's units
+            (``(0, 30)``) or as quantity strings (``("0 ft", "30 ft")``).
+            Either end may be None.
+        where
+            Keep rows matching ``{column: value or list of values}``, among
+            ``p.grain_size()``'s columns.
+        contains
+            Keep rows whose geology description contains this text (any
+            case), or any of a list.
+        geology_fields
+            GEOL headings to add as columns, e.g. ``["GEOL_FORM"]``.
+        include_incomplete
+            Keep records with a blank required field (QC C001). By default
+            they're left out, with a warning that counts them.
+        display_units
+            ``"US"`` or ``"SI"``; by default the project's.
+
+        Examples
+        --------
+        >>> summary = p.grain_size_summary(fractions="aashto", d_values=(15, 85))
+        >>> summary[["sample_reference", "d15", "d85", "silt_clay_content"]]
+        """
+        return datasets.grain_size_summary(
+            self._path,
+            fractions=fractions,
+            d_values=d_values,
+            holes=holes,
+            geology=geology,
+            depth=depth,
+            elevation=elevation,
+            where=where,
+            contains=contains,
+            geology_fields=geology_fields,
+            include_incomplete=include_incomplete,
+            display_units=display_units,
+        )
+
     def permeability(
         self,
         *,
