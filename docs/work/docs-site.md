@@ -131,7 +131,7 @@ Plot pages are added in the same unit as their plot (P04–P06 in M8), and the p
 ### 5. `docs/prepare_site.py`
 Run before every build. It:
 1. runs each `docs/site/examples/*.py` (§4) and collects the figures. An example that fails stops the script with the example's name and error;
-2. writes `reference/columns.md` from the registry: one table per dataset, with each column's name, description, quantity and US and SI units, as `ht.columns()` reports them. The `used_by` field is left out, since plot IDs (P01) mean nothing to a user;
+2. writes `reference/columns.md` from the registry: one table of every column, then each template's columns in order, with each column's name, description, quantity and US and SI units, as `ht.columns()` reports them. The `used_by` field is left out, since plot IDs (P01) mean nothing to a user;
 3. writes `img/generated/logo.svg` and `img/generated/favicon.svg` from `docs/img/logo.txt` (§6).
 
 It uses only hangtu and its runtime dependencies, so the `docs` group adds nothing to it.
@@ -190,7 +190,7 @@ Each step is one commit (two where noted), green under ruff and pytest and under
 
 ### 4. Reference pages (`docs: generate the API and column reference`)
 - `docs/site/reference/{project,plot,analysis,data,errors}.md` with `:::` directives (spec §3). `ht.settings` is documented through its class (`hangtu._settings.Settings`), titled `ht.settings`.
-- `prepare_site.py`: `write_columns_page()` from `ht.columns()`: one table per template/dataset, columns name, description, quantity, US unit, SI unit (no `used_by`).
+- `prepare_site.py`: `write_columns_page()` from `ht.columns()`: one table of every column (a table per template would repeat most rows), then each template's column list; table columns name, description, quantity, US unit, SI unit (no `used_by`).
 - Tests: every name in `ht.__all__`, `ht.plot.__all__`, `ht.analysis.__all__`, `ht.examples.__all__` has a `:::` directive (criterion 2); `columns.md` has every registry column (criterion 5).
 - Docstrings that render badly or warn under `--strict` are fixed in their own commits (`docs: fix the <name> docstring`), before this step's commit.
 

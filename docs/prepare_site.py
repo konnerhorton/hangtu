@@ -99,10 +99,53 @@ def write_logo() -> None:
     print("Wrote logo.svg and favicon.svg")
 
 
+def _cell(text: str) -> str:
+    """Make ``text`` safe inside a Markdown table cell."""
+    return text.replace("|", "\\|")
+
+
+def write_columns_page() -> None:
+    """Write ``reference/columns.md`` from the column registry."""
+    import hangtu as ht
+    from hangtu.registry import _registry
+
+    lines = [
+        "# Columns",
+        "",
+        "Every column hangtu knows, from its column registry. A DataFrame's columns"
+        " take these names, and a column with a quantity needs units: hangtu"
+        " converts it to the US or SI unit listed here for display. This page is"
+        " generated from `ht.columns()`.",
+        "",
+        "| Column | Description | Quantity | US unit | SI unit |",
+        "|---|---|---|---|---|",
+    ]
+    for row in ht.columns().itertuples():
+        lines.append(
+            f"| `{row.name}` | {_cell(row.description)} | {row.quantity} "
+            f"| {_cell(row.us_unit)} | {_cell(row.si_unit)} |"
+        )
+    lines += [
+        "",
+        "## Templates",
+        "",
+        "`ht.template(name)` returns an empty DataFrame with these columns, in"
+        " this order, to save as a CSV file and fill in.",
+        "",
+    ]
+    for name, columns in _registry()["templates"].items():
+        listed = ", ".join(f"`{column}`" for column in columns)
+        lines.append(f"- **`{name}`**: {listed}")
+    page = SITE / "reference" / "columns.md"
+    page.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print("Wrote reference/columns.md")
+
+
 def main() -> None:
     """Write every generated file."""
     run_examples()
     write_logo()
+    write_columns_page()
 
 
 if __name__ == "__main__":
