@@ -8,7 +8,7 @@
 - **Decided**: agreed in review.
 - 🟡 **Proposed**: Claude's proposed default, awaiting review.
 - ❓ **Open**: needs input (collected in §13).
-- 🔬 **Research**: tracked in [TODO.md](TODO.md).
+- 🔬 **Research**: tracked in [TODO.md](docs/TODO.md).
 
 **Document map**
 | Document | Contents |
@@ -18,7 +18,7 @@
 | `docs/plots/PXX-*.md` | One spec per figure, from [`TEMPLATE.md`](docs/plots/TEMPLATE.md) |
 | [`docs/drafts/`](docs/drafts/) | The analyses draft spec and notes for later phases (Phase 2 data, Phase 3 statistics) |
 | [`docs/reference/eurocode7-summary.md`](docs/reference/eurocode7-summary.md) | Background for characteristic values |
-| [`TODO.md`](TODO.md) | Research items and pending decisions |
+| [`docs/TODO.md`](docs/TODO.md) | Research items and pending decisions |
 | [`CLAUDE.md`](CLAUDE.md) | Working conventions and commands for Claude Code |
 | [`docs/reference/process.md`](docs/reference/process.md) | How work moves from intent to merged code |
 

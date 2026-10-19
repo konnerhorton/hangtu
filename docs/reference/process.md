@@ -12,7 +12,7 @@ Personal reference notes. Adapted from Anthropic's [AI-native SDLC playbook](htt
 | Feature spec | One feature | Kept while the feature exists | What exactly does it do, and how do we know it works? |
 | `docs/drafts/` | Upcoming features and future phases | Until promoted to a feature spec | Draft feature specs and early notes. Input for intents; only items marked "decided" are decisions |
 | `docs/plots/drafts/` | Plots not yet specified | Until promoted to `docs/plots/PXX-*.md` | Draft plot specs in the TEMPLATE format. Input for a plot's spec step; not decisions |
-| `TODO.md` | Backlog | Permanent | What hasn't been decided or researched yet? |
+| `docs/TODO.md` | Backlog | Permanent | What hasn't been decided or researched yet? |
 
 The **feature spec** for a plot is `docs/plots/PXX-*.md`. For other work it is the `## Spec` section of `docs/work/<id>.md`, or a new topic doc under `docs/` when it will outlive the change, such as the Phase 2 data model.
 
@@ -27,7 +27,7 @@ A unit of work is a milestone, a plot, a fix or a decision. Keep it small enough
 3. **Plan**: Claude Code plan mode, then add the `## Plan` section and commit it. It names the files, the order, and the tests that prove each acceptance criterion.
 4. **Build**: implement the plan. If the plan has to change, update the `## Plan` section in the same commit.
 5. **Test**: check against the acceptance criteria and golden values, and look at the figure yourself.
-6. **Close**: merge. In the same PR, update `SPEC.md` (decisions), the plot status in `docs/plots/README.md`, `TODO.md`, and `CLAUDE.md` if a mistake recurred or a convention emerged.
+6. **Close**: merge. In the same PR, update `SPEC.md` (decisions), the plot status in `docs/plots/README.md`, `docs/TODO.md`, and `CLAUDE.md` if a mistake recurred or a convention emerged.
 
 For a trivial fix, skip the intent and plan and just write a good commit message. Use the full loop when a decision is involved.
 
