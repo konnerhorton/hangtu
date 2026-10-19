@@ -328,3 +328,61 @@ Two commits, no change in behavior:
 - SPEC §11 has the `grain_size()` call. `TODO.md` #5 lists the sieve lists to verify; it stays open.
 - **Visual check** (`docs/plots/img/P05.png`, the default figure saved at 100 dpi with `bbox_inches="tight"`): the 14 example curves in the map's colors and order (D-values and sieve labels off, their defaults), a sand-filter envelope under the gridlines, the USCS band with its dividers, and the footnote count. One figure rather than US and SI ones: with the sieve labels off the two are the same. A single-curve figure was checked too: the dashed leaders and labels sit right.
   - In review the sieve labels moved from rotated, inside the top edge, where curves near 100 % passing crossed them, to horizontal in a strip above the frame, on two alternating rows where crowded (the US list near #200) (P05 §5, §8). Then the default became `sieves=None` (P05 §8, §9, §14 #4), so the visual check is one `P05.png` in place of `P05-us.png` and `P05-si.png`. Putting the labels above the frame, under the band, would clear them; that changes §8 and is left for review.
+
+## Plan: text values
+
+Spec: [`docs/plots/P01-property-profile.md`](../plots/P01-property-profile.md) §3, §7, §8, §11 and §12 (TODO #15; intent decision 6), and `docs/plots/README.md` "Out-of-range data". The index datasets on this branch get their own plan section after this one.
+
+Each build step is one commit, with ruff and pytest passing. A step that grows past about 300 changed lines (not counting tests' data) is split.
+
+### Package layout
+```
+src/hangtu/
+  _data.py                   + text_values(): numbers and text keys of a value column; TEXT_FLAGS
+  plot/_notes.py             + "text_value" reason; edge_markers() takes a transform (Build 0)
+  plot/_values.py            legend_marker() can draw an open marker
+  plot/_text_values.py       new: draws text values at the left edge, legend entries, the "Also" line
+  plot/_profile.py           reads the value column with text_values() and draws them
+  plot/_overlays.py          draw_stats_box() takes the "Also" line
+tests/
+  test_data.py               new: text_values()
+  plot/test_profile_text_values.py
+  plot/test_profile.py       the "text is an error" test becomes "text in a length column is an error"
+```
+`_profile.py` is already 650 lines, so the drawing goes in its own module, which P06 also uses through `_draw_profile`.
+
+### Decisions the build makes
+Implementation choices the spec leaves open. Any that changes what a user sees goes into P01 in the commit that builds it.
+1. **One reader.** `text_values(df, column) -> (numbers, texts)` in `_data.py`, next to `numeric_column()`, so P06 and `describe()` (Phase 3) read text the same way. `numbers` is NaN for blanks and text; `texts` is `""` for numbers and blanks, `"NP"` or `"refusal"` for the recognized flags (trimmed, any case: `TEXT_FLAGS`), and the trimmed text otherwise, case kept (`dry` and `Dry` are two texts, since the user cleans them). A cell that is only spaces is blank, not text. `numeric_column()` is unchanged, so length columns, P02, P07 and the overlays still raise on text.
+2. **Footnote wording.** One line per reason, as every other count: "3 non-plastic (NP) values, shown at the left edge", "1 refusal, shown at the left edge", "2 text values shown at the left edge" (a new `text_value` reason; the first two through `Notes.set_where`). P01 §8's example joins them into one sentence; it is changed to these lines in Build 1.
+3. **Drawing.** A blended transform (x in axes, y in data) plus a 4 pt offset puts the markers just inside the left edge on linear and log axes alike, with `clip_on=False`. Shapes ◇ □ △ ▽ ⬠ ⬡ (`D s ^ v p h`), open, edge in the unit color, 5 pt, in the order NP, refusal, then other text by first appearance; one collection per (text, unit). They ignore `marker_by` (the shape is the text), aren't connected by `connect=` and get no interval bar.
+4. **Vertical limits** include the text rows' depths, as any drawn point, and so does the stats box's room below the data. With `ylim=`, a text value beyond it is drawn at the limit with an outward arrow and also counted as beyond the axis limit, as qualified carets are. Build 0 lets `edge_markers()` take a `transform`, so the arrow code isn't copied.
+5. **Not drawn:** a text row with a blank depth or elevation is counted as blank, as a number would be. A text row with a `qualifier` is an error naming the rows ("a qualifier needs a number"), since `<` with `NP` has no meaning and guessing which to keep would hide a data problem.
+6. **Legend:** after the qualifier entries, gray open markers "NP (3)", "refusal (1)", "'dry' (2)". With more than 6 texts, 6 are listed and a footnote line names the rest with their counts ("Not in the legend: 'x' (1), 'y' (2)").
+7. **Warning:** once per call, listing unrecognized texts in order of appearance, with the rows from `rows_text()` (at most five, "and n more"), in the spec's wording.
+8. **Stats box:** the statistics are unchanged (text rows are already NaN). `draw_stats_box(..., also=None)` writes the "Also: NP 3, refusal 1, 'dry' 2" line under the table, not aligned with its columns. It lists all texts, at most 6, then "and n more".
+9. **`ht.read_csv`** uses pandas' default blank markers, so `n/a`, `NA` and `null` in a CSV arrive as blanks and are counted as blank, not as text. That is still a count, not a silent drop, and is left as it is; the docstring says so. From a DataFrame they are text.
+10. **P07** keeps its error on text (out of scope, intent "Out of scope"). P07's spec says "TODO #15 will change this for every plot"; at close-out that line points to a new TODO item for P07 instead.
+
+### Build 0 (refactor): `plot: let edge_markers draw in any transform`
+- `edge_markers(..., transform=None)`: the markers and arrows use it (data coordinates by default). Behavior unchanged; existing tests pass as they are.
+
+### Build 1: `P01: draw text in the value column at the left edge`
+- `text_values()` and `TEXT_FLAGS` (decision 1); the `text_value` reason (decision 2); `legend_marker(..., filled=True)`; `_text_values.py` (decisions 3, 4, 6, 7); `_profile.py` reads the value with `text_values()`, adds the text rows to the vertical limits, errors on a qualifier with text (decision 5) and draws them after the qualifiers.
+- P01 §8's footnote example, as decision 2.
+- Tests: `text_values()` (numbers, blanks, spaces, `NP`/`np `/`Refusal`, other text kept as written, numeric strings such as `" 12 "`); markers at the left edge at their depths on a linear and a log axis, in depth and elevation; shapes and order; unit colors; the legend text; 7 texts → 6 entries and the footnote line; the warning once and its wording, none for NP and refusal only; `ax.ags_notes` counts; a text row with a blank depth counted blank; a qualifier on a text row is an error; `ylim=` edge and count; `marker_by=` and `connect=True` with text rows; all-text column draws only text markers and no "No data"; text in `depth` is still an error.
+
+### Build 2: `P01: count text values in the stats box`
+- `draw_stats_box(..., also=)`; `_text_values.also_line()`; `_profile.py` passes it.
+- Tests: the "Also" line's text and order; none without text; more than 6 texts; the room below the data still clears the box with the extra line.
+
+### Build 3 (close-out): `P01: add text value acceptance tests and close out TODO #15`
+- The P01 §12 "Text values" criterion as one acceptance test (10 numbers, 2 `NP`, 1 `np `, 1 `refusal`, 2 `dry`: 10 points, 6 edge markers, the legend, one warning, the stats box).
+- **Visual check:** `docs/plots/img/P01-text-values.png` (100 dpi), a water content profile from the example site with NP, refusal and one stray text added, looked at before committing. One image: % isn't converted, so US and SI are the same.
+- `docs/TODO.md`: #15 to Done; a new item for text values on P07. `docs/plots/P07-geology-unit-comparison.md`: its TODO #15 lines point to the new item. P01: any detail the build changed.
+- `CLAUDE.md`: the status line says text values are done and the index datasets are next.
+- This plan: a Results section, with notes for P06.
+
+### Verification
+- After each build: `uv run ruff check . && uv run ruff format --check . && uv run pytest`.
+- At close-out: Python 3.13 and 3.14 (`uv run --isolated --python 3.1x pytest`); the lowest dependency versions, as in CLAUDE.md (blended transforms and `offset_copy` are old matplotlib API, but check the markers' positions there).
