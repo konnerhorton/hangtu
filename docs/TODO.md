@@ -151,14 +151,10 @@ Open research points:
 
 ## Plots
 
-### 15. Count non-numeric values in the value column · You + Claude · P01 §3, §8; plots README "Out-of-range data"
-- **Problem:** text in a value column (`NP`, `refusal`, `-`, …) can't be drawn. In M2, P01 raises an error naming the non-numeric rows, so nothing is dropped silently, but the user has to clean the column before plotting.
-- **Wanted:** draw the numeric values, count the rest in the footnote, and optionally in the stats box (e.g. "n = 12, plus 2 NP"), keeping flagged values distinct from blanks (CLAUDE.md, "Never drop data silently").
-- **To decide:**
-  - Which strings are recognized flags (NP, refusal, …) and how they map to the existing `Notes` reasons (`non_plastic`, `refusal`)? **Answer:** `NP` and `refusal` for now.
-  - Is unrecognized text counted under a generic reason, or still an error? **Answer:** counted, with a warning. The plot's legend has an entry for each unique text value, and the user cleans the data and reruns to remove them.
-  - How do the stats box and `describe()` show these counts? **Answer:** the same way as the plot.
-- **Timing:** built in M8, in its own unit before P06 (M8 intent, decision 6). Closed at that unit's close-out.
+### 23. Text in P07's value column · You + Claude · P07 §3, §11
+- **Problem:** P01 draws text values (`NP`, `refusal`, other text) at the left edge and counts them (TODO #15, done in M8), but P07 still raises an error naming the rows, so the user cleans the column first.
+- **To decide:** P07 has no depth axis, so the left-edge markers don't carry over. Count them under each unit (a line under the axis, or in the summary), or keep the error?
+- **Reuse:** `hangtu._data.text_values()` reads the column, and `plot/_text_values.py` orders and labels the texts and builds the stats box's "Also" line.
 
 ### 16. Other summaries in P07 · You + Claude · P07; SPEC §5
 - **Problem:** in its first version, P07 (property by geology unit) summarizes each unit only with percentiles. `percentiles=` chooses which ones, and `percentile_method=` passes any NumPy method through (default `"linear"`). A report's baseline may have been summarized some other way, so the data bar and the baseline bar aren't always like for like.
@@ -209,6 +205,7 @@ Confirm the axes (PI or LL against Ic) and the zone coordinates against the pape
 - A helper for deciding cohesive vs cohesionless from lab data (fines %, PI).
 
 ## Done
+- ✅ #15 Text in a value column built (2026-10-19, M8): P01 draws each text value as an open marker at the left edge at its depth, one shape per text, with a legend entry and a footnote count. `NP` and `refusal` (any case) are recognized; other text is counted with a warning naming it. The stats box adds "Also: NP 3, 'dry' 2". In P01 §3, §7, §8. P07 is TODO #23.
 - ✅ #19 Source of triaxial readings decided (2026-10-15): a CSV the user shapes from the lab's export, one row per reading, minimum columns in the P12 draft §3. AGS 4.1–4.2 `TRET` and `TRIT` carry values at failure only, which feed P11.
 - ✅ #18 A point exactly on the axis limit decided and built (2026-10-14, M9): a value on a limit hangtu picks moves that limit out one step (a tick step, or a decade on a log axis). A lower limit of 0 stays, and limits the user sets are used as given. In P00 §8.
 - ✅ #17 Particle size shown in inches decided (2026-10-14): `GRAT_SIZE`, `LLPL_SIZE` and `PTST_SZUN` get the `particle_size` kind at ingest, so US output keeps mm. In docs/data/datasets.md §10 and ingest.md §7.

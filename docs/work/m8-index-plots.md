@@ -386,3 +386,14 @@ Implementation choices the spec leaves open. Any that changes what a user sees g
 ### Verification
 - After each build: `uv run ruff check . && uv run ruff format --check . && uv run pytest`.
 - At close-out: Python 3.13 and 3.14 (`uv run --isolated --python 3.1x pytest`); the lowest dependency versions, as in CLAUDE.md (blended transforms and `offset_copy` are old matplotlib API, but check the markers' positions there).
+
+### Results
+- 1876 tests pass on Python 3.12, 3.13 and 3.14, and with the lowest dependency versions (matplotlib 3.8.0), where the blended, offset text markers sit as on 3.11.
+- **Commits:** the refactor (Build 0), then one per build step as planned.
+- **Changes from the plan**, each recorded in P01 in its commit:
+  - The `non_plastic` reason gained a `{where}` slot, so its line reads ", shown at the left edge" like the others. P07, the other user of that reason, doesn't set it, so its wording is unchanged.
+  - The footnote lines all take the comma: "2 text values, shown at the left edge" (P01 §8).
+  - P01 §7 now says text values set the vertical limits, are drawn at a `ylim=` edge with an arrow, and ignore `marker_by` and `connect=`; §11 has the blank-depth and qualifier rows.
+  - The visual check is the example site's liquid limit rather than water content, since NP belongs to the Atterberg limits: two specimens set to NP and one to `n/r` ("not run"), with a four-statistic stats box. Refusal isn't in it, as a refusal has no meaning for a liquid limit; the tests cover it.
+- **Found, not fixed:** with all six statistics, P01's stats box is wider than a 4 in profile and covers the start of a right-hand footnote. This was there before this unit (it depends on the unit names and statistics, not on text values), so `P01-text-values.png` uses four statistics. It needs its own fix: narrower numbers, or the footnote placed clear of the box.
+- **For P06:** `_draw_profile` reads the value column with `text_values()`, so P06 gets text values without doing anything. P06's NP from the `non_plastic` column (intent decision 6) can count under the same `non_plastic` reason with `set_where`, so the two sources read alike.
