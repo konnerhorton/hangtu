@@ -711,6 +711,11 @@ def geology_unit_comparison(
         sorted by name.
     color_by : {"geology_unit", None}
         None draws every unit in one neutral color.
+    reference_lines : list of (value, label), optional
+        Vertical lines at fixed values, such as a code limit. A string such
+        as ``"2000 psf"`` carries its own unit.
+    note : str, optional
+        Free text, added to the footnote.
     palette : dict, optional
         ``{geology unit: color}`` for this plot.
     units : dict, optional
@@ -909,6 +914,9 @@ def geology_unit_comparisons(
     Each panel is a ``geology_unit_comparison``. The panels share one legend,
     below the grid, and one footnote that names the panel of each note.
 
+    The arguments not listed below are those of ``geology_unit_comparison``
+    and apply to every panel.
+
     Parameters
     ----------
     data : DataFrame or dict
@@ -927,9 +935,6 @@ def geology_unit_comparisons(
     figsize : (width, height), optional
         The whole figure, in inches. By default the settings ``grid`` size
         per panel, plus room for the legend.
-
-    The other arguments are those of ``geology_unit_comparison`` and apply to
-    every panel.
 
     Returns
     -------

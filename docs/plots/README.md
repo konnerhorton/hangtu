@@ -66,6 +66,8 @@ Each figure is a separate feature with its own spec file in this folder, written
 
 **Status:** `idea` → `draft` (spec written) → `review` → `approved` → `built`.
 
+A plot's close-out also adds its page to the docs site: `docs/site/plots/<name>.md`, opening with an example from `docs/site/examples/`, plus its entry in `docs/site/reference/plot.md` and the `nav` in `zensical.toml`.
+
 Draft notes for plots that are still at `idea`, and seven proposed new plots (P24–P30), are in [`drafts/`](drafts/README.md). The proposed IDs aren't in the tables below until each one is picked up.
 
 ### Batch 1: index and in-situ plots (start here)

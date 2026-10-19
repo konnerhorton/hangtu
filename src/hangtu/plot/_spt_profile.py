@@ -75,6 +75,13 @@ def spt_profile(
     the depth of the middle of the test drive when you know it: a test's top
     depth plots it up to 0.45 m (1.5 ft) high.
 
+    The arguments not listed below (``label``, ``color_by``, ``marker_by``,
+    ``connect``, ``xlim``, ``ylim``, ``xaxis_position``, ``secondary``, the
+    overlays ``strata``, ``water_level``, ``ranges``, ``design_lines``,
+    ``reference_lines``, ``stats_box``, ``stats_box_room`` and ``note``,
+    ``palette``, ``display_units``, ``figsize``, ``ax`` and style overrides)
+    are as ``ht.plot.profile()``. Ranges and reference lines are in blows.
+
     Parameters
     ----------
     df : pandas.DataFrame
@@ -96,13 +103,6 @@ def spt_profile(
     units : dict, optional
         ``{column: unit}``, overriding the units declared on ``df``.
         ``spt_penetration`` needs units only when refusals are found from it.
-    **kwargs
-        ``label``, ``color_by``, ``marker_by``, ``connect``, ``xlim``,
-        ``ylim``, ``xaxis_position``, ``secondary``, the overlays (``strata``,
-        ``water_level``, ``ranges``, ``design_lines``, ``reference_lines``,
-        ``stats_box``, ``stats_box_room``, ``note``), ``palette``,
-        ``display_units``, ``figsize``, ``ax`` and style overrides: as
-        ``ht.plot.profile()``. Ranges and reference lines are in blows.
 
     Returns
     -------

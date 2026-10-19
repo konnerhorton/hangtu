@@ -325,11 +325,37 @@ def profile(
         The x-axis text; units are added automatically.
     color_by : str or None
         Column that colors the points; None for one neutral color.
+    marker_by : str, optional
+        Column whose groups get different marker shapes, e.g. ``"source"``
+        for lab and field tests.
+    connect : bool
+        Join each hole's points (by ``loca_id``) with a thin gray line.
+    intervals : {"auto", True, False}
+        Draw each test's interval, ``depth_top`` to ``depth_base``, as a
+        vertical bar. ``"auto"`` draws them when both columns exist.
     xlim, ylim : (low, high), optional
         Fixed limits in display units. Values beyond them are drawn at the
         edge with an arrow, and counted.
     xaxis_position : {"bottom", "top"}
         ``"top"`` puts the value axis at the top, as on a borehole log.
+    secondary : {"depth"}, optional
+        Add a depth axis to an elevation plot. Needs one ground level for
+        all rows.
+    strata : pandas.DataFrame, optional
+        Geology bands across the plot: ``geology_unit`` with a depth or
+        elevation top and base. See ``ht.template("strata")``.
+    water_level : float, list of (value, label), or pandas.DataFrame, optional
+        A water level line, several labeled ones, or a table of
+        ``loca_id`` and depth or elevation for a level per hole.
+    ranges : pandas.DataFrame or path, optional
+        Published ranges as bands: ``low``, ``high``, ``label``, and an
+        optional depth or elevation pair. See ``ht.template("ranges")``.
+    design_lines : pandas.DataFrame, optional
+        Design lines: ``label``, depth or elevation, and ``value``, one line
+        per label. See ``ht.template("design_lines")``.
+    reference_lines : list of (value, label), optional
+        Vertical lines at fixed values, such as a code limit. A string such
+        as ``"2000 psf"`` carries its own unit.
     stats_box : bool or list of str
         A box of statistics at the lower left: True for count, mean, std,
         median, min and max per unit, or a list chosen from those and
@@ -337,6 +363,8 @@ def profile(
     stats_box_room : bool
         Deepen the vertical axis so the stats box sits below the lowest
         data instead of covering it. Ignored with ``ylim=``.
+    note : str, optional
+        Free text, added to the footnote.
     palette : dict, optional
         ``{geology unit: color}`` for this plot.
     units : dict, optional
