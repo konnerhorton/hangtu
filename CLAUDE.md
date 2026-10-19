@@ -1,6 +1,6 @@
 # hangtu
 
-Python library of plots, analyses and AGS4 ingest/QC for geotechnical engineers. M0 (scaffolding), M1 (P00 framework), M2 (P01 property profile), M2b (P07 property by geology unit) and M3 (SPT analysis, P02 SPT profile, P03 SPT class histogram) done, and the package renamed from ags-kit to hangtu. Phase 2 comes next, ahead of the remaining plots (SPEC §1.3): M4 decided the data model (AGS 4.2-shaped tables, SPEC §7), M5 (AGS4 ingest into SQLite, `ht.Project`) and M6 (QC level 1: `p.qc()`, the report and `p.diff()`) M7 (depth, elevation and geology joins, datasets: `p.spt()`, `p.atterberg()`, `p.grain_size()`, `p.permeability()`) and M9 (examples, `ht.examples`, templates that follow the datasets, README; version 0.1.0) are done. Releasing 0.1.0 to PyPI comes next, then v0.2 (SPEC §1.3, §12.4): P04–P06 (M8), triaxial P11–P12 (M11), clogging P17 (M12) and SPT correlations with (N1)60 (M13). In M8, the analyses are done (`ht.analysis.plasticity()`, `gradation()`, `uscs()`, `aashto()`; [`docs/work/m8-index-plots.md`](docs/work/m8-index-plots.md)), and P04 is next. A docs site with Zensical ([`docs/work/docs-site.md`](docs/work/docs-site.md)) is being built ahead of v0.2.
+Python library of plots, analyses and AGS4 ingest/QC for geotechnical engineers. M0 (scaffolding), M1 (P00 framework), M2 (P01 property profile), M2b (P07 property by geology unit) and M3 (SPT analysis, P02 SPT profile, P03 SPT class histogram) done, and the package renamed from ags-kit to hangtu. Phase 2 comes next, ahead of the remaining plots (SPEC §1.3): M4 decided the data model (AGS 4.2-shaped tables, SPEC §7), M5 (AGS4 ingest into SQLite, `ht.Project`) and M6 (QC level 1: `p.qc()`, the report and `p.diff()`) M7 (depth, elevation and geology joins, datasets: `p.spt()`, `p.atterberg()`, `p.grain_size()`, `p.permeability()`) and M9 (examples, `ht.examples`, templates that follow the datasets, README; version 0.1.0) are done. Releasing 0.1.0 to PyPI comes next, then v0.2 (SPEC §1.3, §12.4): P04–P06 (M8), triaxial P11–P12 (M11), clogging P17 (M12) and SPT correlations with (N1)60 (M13). In M8, the analyses are done (`ht.analysis.plasticity()`, `gradation()`, `uscs()`, `aashto()`; [`docs/work/m8-index-plots.md`](docs/work/m8-index-plots.md)), and P04 is next. The docs site (Zensical, `docs/site/`, [`docs/work/docs-site.md`](docs/work/docs-site.md)) is built and follows `main`.
 
 ## Where things are
 - `SPEC.md`: product spec and cross-cutting decisions. Read the relevant section before designing anything.
@@ -11,12 +11,14 @@ Python library of plots, analyses and AGS4 ingest/QC for geotechnical engineers.
 - `src/hangtu/columns.yaml` and `src/hangtu/units/aliases.yaml`: the column registry and unit aliases.
 - `docs/drafts/`: the analyses draft spec (`analysis.md`, M3 and M8) and notes for later phases. Items marked "decided" are decided; the rest is not. Finish the relevant draft as the feature spec before building from it.
 - `TODO.md`: research items and pending decisions, referenced as "TODO #n".
+- `docs/site/`: the public docs site (Zensical; config in `zensical.toml`). Each page's example is a file in `docs/site/examples/`; `docs/prepare_site.py` runs them and writes the generated files. The rest of `docs/` is internal and not published.
 
 ## Commands
 - `uv sync`: install
 - `uv run pytest`: tests (warnings are errors; assert expected ones with `pytest.warns`)
 - `uv run ruff check . && uv run ruff format .`: lint and format
 - `uv run ruff check . && uv run ruff format --check . && uv run pytest`: what CI runs (`.github/workflows/ci.yml`)
+- `uv sync --group docs && uv run python docs/prepare_site.py && uv run zensical serve`: the docs site locally (`zensical build --clean --strict` is what CI runs)
 - Oldest allowed dependency versions: `UV_RESOLUTION=lowest-direct UV_PROJECT_ENVIRONMENT=<scratch dir> uv run pytest`, then `git checkout uv.lock`, because it rewrites the lock
 
 ## Conventions
@@ -52,5 +54,6 @@ Explicit is better than implicit. Names are written out in full, or full enough 
 - Don't renumber `SPEC.md` sections. `TODO.md` and the plot specs refer to them by number.
 - Test against the acceptance criteria in the feature's spec, and hand-calculate golden values for analyses.
 - **Visual check:** at the end of each plot unit of work, save a PNG of the plot's output (100 dpi, realistic data, both US and SI when units matter) as `docs/plots/img/PXX.png` (or `PXX-si.png` and `PXX-us.png` when US and SI need separate figures), look at it, and commit it in the close-out so a reviewer sees the figure without running code. Plot specs and later docs may reuse these images.
+- **Docs site:** a plot's close-out adds its page (`docs/site/plots/`, with an example in `docs/site/examples/`, linked in the `nav` in `zensical.toml`) and its entry in `docs/site/reference/plot.md`. New public functions get a reference entry; a test fails without one. Docstrings are published in the API reference.
 - Don't add dependencies beyond those in SPEC §12.1 without asking.
 - **The repo is public.** Don't name private sources, contacts or their companies in docs, TODOs, code or commit messages. Describe the idea, not who said it ("AGS is often criticized as a storage model"); the user keeps the source in their own notes.
