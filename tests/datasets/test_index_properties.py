@@ -9,7 +9,12 @@ import hangtu as ht
 
 from .conftest import make_files
 
-CHOSEN = r"^3 samples had more than one specimen of a test; the one nearest"
+CHOSEN = "3 samples had more than one specimen of a test; the one nearest"
+#: J1-B4 has a grading with about 11 % fines and no limits (decision 8).
+UNCLASSIFIED = [
+    "uscs_symbol is blank for 1 of 1 specimens: 1 with no plasticity class.",
+    "aashto_group is blank for 1 of 1 specimens",
+]
 
 
 def _quiet(call, *args, **kwargs):
@@ -23,11 +28,19 @@ def joins(fresh):
     return fresh("joins")
 
 
+def _with_warnings(call, **kwargs):
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        df = call(**kwargs)
+    return df, [str(w.message) for w in caught]
+
+
 @pytest.fixture
 def index(joins):
-    with pytest.warns(UserWarning, match=CHOSEN) as caught:
-        df = joins.index_properties()
-    assert len(caught) == 1
+    df, messages = _with_warnings(joins.index_properties)
+    assert len(messages) == 3
+    for expected in [*UNCLASSIFIED, CHOSEN]:
+        assert sum(m.startswith(expected) for m in messages) == 1, expected
     return df.set_index("sample_reference")
 
 
@@ -101,8 +114,7 @@ def test_source_line_is_the_samples(joins, index):
 
 
 def test_columns_and_units(joins):
-    with pytest.warns(UserWarning, match=CHOSEN):
-        df = joins.index_properties()
+    df, _ = _with_warnings(joins.index_properties)
     assert list(df.columns) == [
         "loca_id",
         "sample_reference",
@@ -115,6 +127,24 @@ def test_columns_and_units(joins):
         "plastic_limit",
         "plasticity_index",
         "non_plastic",
+        "liquidity_index",
+        "consistency_index",
+        "plasticity_class_uscs",
+        "plasticity_class_bs5930",
+        "d10",
+        "d30",
+        "d60",
+        "uniformity_coefficient",
+        "curvature_coefficient",
+        "fines_content",
+        "sand_content",
+        "gravel_content",
+        "cobbles_content",
+        "boulders_content",
+        "fraction_system",
+        "uscs_symbol",
+        "aashto_group",
+        "aashto_group_index",
         "water_content_specimen_id",
         "atterberg_specimen_id",
         "grain_size_specimen_id",
@@ -123,8 +153,9 @@ def test_columns_and_units(joins):
         "geology_description",
         "source_line",
     ]
-    assert df.attrs["units"]["depth"] == "m"
-    assert df.attrs["units"]["water_content"] == "%"
+    units = df.attrs["units"]
+    assert (units["depth"], units["water_content"], units["d10"]) == ("m", "%", "mm")
+    assert units["fines_content"] == "%"
 
 
 def test_the_good_files(fresh):
@@ -153,9 +184,54 @@ def test_filters_act_on_the_reference_depth(joins):
 
 
 def test_the_chosen_count_follows_the_filters(joins):
-    with pytest.warns(UserWarning, match=r"^1 sample had more than one"):
-        joins.index_properties(holes=["J2"])
     _quiet(joins.index_properties, where={"sample_reference": "J1-D2"})
+
+
+def test_good_file_sample_is_classified(fresh):
+    p = fresh("site_si")
+    row = _quiet(p.index_properties).set_index("sample_reference").loc["BH3-B1"]
+    # About 11 % fines (5 to 12 %), sand over gravel, Cu 11.4 but Cc 0.95
+    # (under 1): SP, and NP fines (ML): SP-SM. AASHTO: 40 % passing 0.425 mm
+    # and about 11 % passing 0.075 mm, NP: A-1-b, group index 0.
+    assert row["uscs_symbol"] == "SP-SM"
+    assert (row["aashto_group"], row["aashto_group_index"]) == ("A-1-b", 0)
+    summary = _quiet(p.grain_size_summary).iloc[0]
+    for column in [
+        "d10",
+        "d30",
+        "d60",
+        "uniformity_coefficient",
+        "curvature_coefficient",
+        "fines_content",
+        "sand_content",
+        "gravel_content",
+        "cobbles_content",
+        "boulders_content",
+        "fraction_system",
+    ]:
+        assert row[column] == summary[column], column
+
+
+def test_classes_use_another_specimens_water_content(index):
+    # J1-U1: water content 28 (specimen 3), limits LL 45, PL 20 (specimen 1).
+    row = index.loc["J1-U1"]
+    assert row["plasticity_index"] == 25
+    assert row["liquidity_index"] == pytest.approx((28 - 20) / 25)
+    assert row["consistency_index"] == pytest.approx((45 - 28) / 25)
+    assert (row["plasticity_class_uscs"], row["plasticity_class_bs5930"]) == (
+        "CL",
+        "CI",
+    )
+
+
+def test_only_samples_with_a_grading_are_classified(index):
+    # Samples with only limits get no symbol and aren't counted in the
+    # warnings (1 of 1 specimens, the fixture's messages).
+    assert index["uscs_symbol"].isna().all()
+    assert index.drop("J1-B4")["fraction_system"].isna().all()
+    assert index.loc["J1-B4", "fraction_system"] == "astm_uscs"
+    # 5 to 12 % fines need the fines' plasticity, which J1-B4 hasn't.
+    assert 5 < index.loc["J1-B4", "fines_content"] < 12
 
 
 def test_no_lab_groups_is_empty_with_one_warning(tmp_path):
@@ -240,3 +316,16 @@ def test_include_incomplete(tmp_path):
     with pytest.warns(UserWarning, match=r"^1 sample had more than one"):
         row = p.index_properties(include_incomplete=True).iloc[0]
     assert pd.isna(row["liquid_limit"]) and row["plastic_limit"] == 20
+
+
+def test_where_can_name_a_symbol(fresh):
+    df = _quiet(fresh("site_si").index_properties, where={"uscs_symbol": "SP-SM"})
+    assert df["sample_reference"].tolist() == ["BH3-B1"]
+
+
+def test_classification_warnings_follow_the_filters(joins):
+    # J1-B4 can't be classified, but holes= leaves it out, so only the chosen
+    # count (J2-U1) is warned about.
+    _, messages = _with_warnings(joins.index_properties, holes=["J2"])
+    assert len(messages) == 1
+    assert messages[0].startswith("1 sample had more than one specimen")

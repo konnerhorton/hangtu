@@ -6,14 +6,22 @@ the sample's reference depth is used, so no row is multiplied and no other
 specimen's values are mixed in.
 """
 
+import warnings
 from dataclasses import dataclass, field
 from os import PathLike
 
 import numpy as np
 import pandas as pd
 
+from hangtu.analysis import aashto, uscs
 from hangtu.datasets._frame import Build
-from hangtu.datasets._lab import limits, specimen_names, specimens
+from hangtu.datasets._lab import (
+    classify_plasticity,
+    limits,
+    specimen_names,
+    specimens,
+    summarize_curves,
+)
 from hangtu.errors import warn
 
 COLUMNS = [
@@ -28,9 +36,37 @@ COLUMNS = [
     "plastic_limit",
     "plasticity_index",
     "non_plastic",
+    "liquidity_index",
+    "consistency_index",
+    "plasticity_class_uscs",
+    "plasticity_class_bs5930",
+    "d10",
+    "d30",
+    "d60",
+    "uniformity_coefficient",
+    "curvature_coefficient",
+    "fines_content",
+    "sand_content",
+    "gravel_content",
+    "cobbles_content",
+    "boulders_content",
+    "fraction_system",
+    "uscs_symbol",
+    "aashto_group",
+    "aashto_group_index",
     "water_content_specimen_id",
     "atterberg_specimen_id",
     "grain_size_specimen_id",
+]
+#: Columns ``gradation(fractions="astm_uscs")`` gives each grading (§6.6).
+GRADATION_COLUMNS = COLUMNS[COLUMNS.index("d10") : COLUMNS.index("fraction_system")]
+#: The aashto fractions ``aashto()`` reads, which aren't returned.
+AASHTO_FRACTIONS = [
+    "silt_clay_content",
+    "fine_sand_content",
+    "coarse_sand_content",
+    "gravel_content",
+    "boulders_content",
 ]
 #: The test groups, in the order samples are listed (decision 3), and the
 #: column naming each one's chosen specimen.
@@ -53,6 +89,7 @@ ROW_COLUMNS = [
     "plasticity_index",
     "non_plastic",
     *TESTS.values(),
+    "_grading",
 ]
 #: The AGS key fields of a sample, which every lab row carries.
 SAMPLE_KEY = ["LOCA_ID", "SAMP_TOP", "SAMP_TYPE", "SAMP_REF", "SAMP_ID"]
@@ -88,6 +125,8 @@ def index_properties(
             pd.DataFrame(), COLUMNS, group="LNMC, LLPL or GRAT", **common
         )
     tables = {group: _specimens(build, group) for group in TESTS if build.has(group)}
+    points = tables.get("GRAT")
+    tables = {g: table.drop_duplicates("_specimen") for g, table in tables.items()}
     samples = _samples(tables)
     rows, chosen = [], []
     for sample in samples.values():
@@ -97,20 +136,33 @@ def index_properties(
             chosen.append(tuple(row[column] for column in TESTS.values()))
     frame = pd.DataFrame(rows, columns=ROW_COLUMNS)
     frame["_line"] = _sample_lines(build, frame.pop("sample_id"))
-    result = build.finish(frame, COLUMNS, **common)
+    # Classified before finish(), so where= can name the classes, but its
+    # warnings are given for the rows the filters return, like the others.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        classified = _classify(frame, points)
+    classified["_row"] = np.arange(len(frame))
+    result = build.finish(classified, [*COLUMNS, "_row"], **common)
+    _classify(frame.iloc[result.pop("_row").to_numpy()], points)
     _warn_chosen(result, chosen)
     return result
 
 
 def _specimens(build: Build, group: str) -> pd.DataFrame:
-    """One row per specimen of ``group``: its depth, sample and values, in SI."""
+    """Return the rows of ``group`` with their specimen, sample and values, in SI.
+
+    ``_specimen`` tells the specimens apart: the specimen key, or for a sample
+    with no ``SAMP`` row (no key), its sample, ``SPEC_REF`` and ``SPEC_DPTH``.
+    """
     rows = build.rows(group)
     frame = specimens(build, group, rows)
     frame["sample_id"] = rows.get("sample_id", pd.NA)
     frame["_sample"] = _sample_keys(build, rows)
     frame["_specimen"] = frame["specimen_id"].where(
         frame["specimen_id"].notna(),
-        frame["specimen_reference"].fillna("").astype(str)
+        frame["_sample"].astype(str)
+        + "/"
+        + frame["specimen_reference"].fillna("").astype(str)
         + "@"
         + build.numbers(rows, "SPEC_DPTH").astype(str),
     )
@@ -119,7 +171,10 @@ def _specimens(build: Build, group: str) -> pd.DataFrame:
     if group == "LNMC":
         frame["water_content"] = build.numbers(rows, "LNMC_MC")
         frame = _one_water_content(frame)
-    return frame.drop_duplicates("_specimen")
+    if group == "GRAT":
+        frame["particle_size"] = build.numbers(rows, "GRAT_SIZE")
+        frame["percent_passing"] = build.numbers(rows, "GRAT_PERP")
+    return frame
 
 
 def _sample_keys(build: Build, rows: pd.DataFrame) -> pd.Series:
@@ -193,6 +248,7 @@ def _combine(sample: Sample) -> tuple[dict, bool]:
     row["non_plastic"] = False if atterberg is None else bool(atterberg["non_plastic"])
     for group, column in TESTS.items():
         row[column] = None if picked[group] is None else picked[group]["specimen_id"]
+    row["_grading"] = None if picked["GRAT"] is None else picked["GRAT"]["_specimen"]
     several = any(len(found) > 1 for found in sample.tests.values())
     return row, several
 
@@ -242,3 +298,59 @@ def _warn_chosen(result: pd.DataFrame, chosen: list[tuple]) -> None:
             "of a test; the one nearest in depth was used. The *_specimen_id "
             "columns say which."
         )
+
+
+def _classify(frame: pd.DataFrame, points: pd.DataFrame | None) -> pd.DataFrame:
+    """Add the plasticity columns, gradings, USCS symbol and AASHTO group.
+
+    Plasticity as ``p.atterberg()`` (§6.2), on the combined row. Only rows
+    with a grading are classified: a sample with only a water content or
+    limits gets blank symbols without a warning, since no test was run to
+    classify it. ``gradation()`` runs twice on the chosen curves, for
+    the astm_uscs fractions (returned) and the aashto ones (not returned); the
+    second run's warnings would repeat the first's, so they aren't shown.
+    """
+    labels = frame["loca_id"].astype(str) + " " + frame["sample_reference"].astype(str)
+    frame = classify_plasticity(frame, labels)
+    for column in [*GRADATION_COLUMNS, "aashto_group_index"]:
+        frame[column] = np.nan
+    for column in ("fraction_system", "uscs_symbol", "aashto_group"):
+        frame[column] = None
+    graded = frame["_grading"].notna()
+    if points is None or not graded.any():
+        return frame
+    chosen = points[points["_specimen"].isin(frame.loc[graded, "_grading"])]
+    curves = pd.DataFrame(
+        {
+            "loca_id": chosen["loca_id"],
+            "specimen_id": chosen["_specimen"],
+            "sample_reference": chosen["sample_reference"],
+            "specimen_reference": chosen["specimen_reference"],
+            "particle_size": chosen["particle_size"],
+            "percent_passing": chosen["percent_passing"],
+        }
+    )
+    curves.attrs["units"] = {"particle_size": "mm", "percent_passing": "%"}
+    grading = summarize_curves(curves, ["specimen_id"], []).set_index("specimen_id")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        fractions = summarize_curves(curves, ["specimen_id"], [], "aashto")
+    fractions = fractions.set_index("specimen_id")
+    on = frame.loc[graded, "_grading"]
+    for column in GRADATION_COLUMNS:
+        frame.loc[graded, column] = on.map(grading[column]).to_numpy()
+    frame.loc[graded, "fraction_system"] = "astm_uscs"
+
+    soils = frame.loc[graded].copy()
+    frame.loc[graded, "uscs_symbol"] = uscs(soils)["uscs_symbol"].to_numpy()
+    soils = soils[["liquid_limit", "plasticity_index", "non_plastic"]].copy()
+    for column in AASHTO_FRACTIONS:
+        soils[column] = on.map(fractions[column]).to_numpy()
+    soils["fraction_system"] = "aashto"
+    with warnings.catch_warnings():
+        # plasticity()'s PI above LL, already warned about on these rows.
+        warnings.filterwarnings("ignore", message=r"Rows .* have a plasticity_index")
+        groups = aashto(soils)
+    frame.loc[graded, "aashto_group"] = groups["aashto_group"].to_numpy()
+    frame.loc[graded, "aashto_group_index"] = groups["aashto_group_index"].to_numpy()
+    return frame

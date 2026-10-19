@@ -553,7 +553,14 @@ class Project:
         own specimen, then the lowest ``SPEC_REF``. The ``*_specimen_id``
         columns name the specimens used, and a warning counts the samples
         where a choice was made. No row is repeated and no specimen's values
-        are mixed with another's. See ``docs/data/datasets.md`` §6.6.
+        are mixed with another's.
+
+        Each row is classified from its combined values: LI, Ic and the
+        plasticity classes (``ht.analysis.plasticity()``), and, where the
+        sample has a grading, its D-values and astm_uscs fractions
+        (``gradation()``), USCS symbol (``uscs()``) and AASHTO group
+        (``aashto()``). A symbol the data can't decide is left blank, with a
+        warning that counts it. See ``docs/data/datasets.md`` §6.6.
 
         Parameters
         ----------

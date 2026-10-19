@@ -247,7 +247,8 @@ One row per **sample** (`SAMP`) that has a water content, an Atterberg test or a
 
 - The common arguments (§2) act on the combined rows: `depth=` on the reference depth, `geology=` on its unit. `include_incomplete=` applies to each test's records before the specimens are chosen, and the warning of rule 3 counts only the samples returned.
 - With none of `LNMC`, `LLPL` and `GRAT`, it is an empty frame with every column and the missing-group warning ("No LNMC, LLPL or GRAT group").
-- The classifications' own warnings (blank symbols by reason) are passed on, once per call.
+- **Classification only where there is a grading.** `uscs()` and `aashto()` run only on rows with a chosen `GRAT` specimen. A sample with only a water content, or only limits, gets blank symbols without a warning, since no test was run to classify it.
+- The classifications' own warnings (blank symbols by reason) are passed on, once per call, and count only the samples returned: they are classified before the filters, so `where=` can name a symbol, and the warnings come from the rows the filters keep. `gradation()` runs twice on the chosen curves (astm_uscs, then aashto); the second run's warnings would repeat the first's, so they aren't shown.
 
 ## 7. Incomplete records
 - A record is **incomplete** when QC C001 says so (with `SPEC_REF` and `SPEC_DPTH` recommended, §14): a `required` field of its own group in `qc/min_fields.yaml` is blank (qc.md §4.10). Only the dataset's source group is checked, not its parents: a hole with no `LOCA_GL` keeps its tests, with a blank elevation.
