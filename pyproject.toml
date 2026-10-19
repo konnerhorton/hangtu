@@ -48,6 +48,8 @@ Specification = "https://github.com/konnerhorton/hangtu/blob/main/SPEC.md"
 
 [dependency-groups]
 dev = ["pytest>=8.0", "ruff>=0.17", "hypothesis>=6.100"]
+# The docs site (docs/work/docs-site.md). Zensical is alpha, so it is pinned exactly.
+docs = ["zensical==0.0.70", "mkdocstrings-python>=2.0.9"]
 
 [build-system]
 requires = ["uv_build>=0.9.9,<0.10"]
