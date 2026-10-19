@@ -8,6 +8,8 @@
 
 *Hangtu* is Chinese for rammed earth, one of the oldest ways of building with soil: it raised city walls in China more than 4,500 years ago. `hangtu` respects the long tradition of humans building with earth materials while automating the mundane and leaving judgment to the engineer.
 
+**Documentation:** [konnerhorton.github.io/hangtu](https://konnerhorton.github.io/hangtu/)
+
 Plots, data checks and analyses for geotechnical engineers, in US or SI units. hangtu reads **AGS4** data files into a project database, checks them, and turns them into ready-made tables of SPT, Atterberg, grain size and permeability results that go straight into its plots. The plots also work on your own CSV files.
 
 > **Status:** early release. Names and arguments may still change before 1.0.
@@ -16,6 +18,12 @@ Plots, data checks and analyses for geotechnical engineers, in US or SI units. h
 
 ```bash
 pip install hangtu      # or: uv add hangtu
+```
+
+For the latest features, which the documentation follows, install from GitHub:
+
+```bash
+pip install git+https://github.com/konnerhorton/hangtu
 ```
 
 hangtu needs Python 3.12 or later and runs on Windows, macOS and Linux.

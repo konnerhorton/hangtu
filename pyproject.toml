@@ -42,6 +42,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/konnerhorton/hangtu"
+Documentation = "https://konnerhorton.github.io/hangtu/"
 Source = "https://github.com/konnerhorton/hangtu"
 Issues = "https://github.com/konnerhorton/hangtu/issues"
 Specification = "https://github.com/konnerhorton/hangtu/blob/main/SPEC.md"

@@ -48,3 +48,20 @@ jobs:
           python-version: "3.12"
       - run: uv sync
       - run: uv run pytest
+
+  docs:
+    # The docs site builds with no warnings (docs/work/docs-site.md, spec §7).
+    name: docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+      - run: uv sync --locked --group docs
+      - run: uv run --locked --group docs python docs/prepare_site.py
+      # --strict stops on broken links; griffe's docstring warnings don't stop
+      # the build, so they are failed here.
+      - run: |
+          uv run --locked --group docs zensical build --clean --strict 2>&1 | tee build.log
+          ! grep -q "griffe:" build.log
