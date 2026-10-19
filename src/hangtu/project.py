@@ -351,13 +351,15 @@ class Project:
     ) -> pd.DataFrame:
         """Return the Atterberg limits, one row per LLPL record, ready for P01 and P07.
 
-        Each result has its specimen's water content (``LNMC``), liquidity
-        index and consistency index. A non-plastic specimen has
+        Each result has its specimen's water content (``LNMC``), and the
+        liquidity index, consistency index and plasticity classes (USCS and
+        BS 5930) from ``ht.analysis.plasticity()``. A non-plastic specimen has
         ``non_plastic = True`` and a blank plastic limit and plasticity index,
         so plots count it as NP, never as a blank. A blank ``LLPL_PI`` is
-        filled with LL - PL. Depth is the specimen's, else its sample's
-        midpoint, else its top (``depth_basis``). Classification columns come
-        with the M8 analyses. See ``docs/data/datasets.md`` §6.2.
+        filled with LL - PL. A plastic limit above the liquid limit is kept as
+        the file gives it, with the computed columns blank and a warning.
+        Depth is the specimen's, else its sample's midpoint, else its top
+        (``depth_basis``). See ``docs/data/datasets.md`` §6.2.
 
         Parameters
         ----------

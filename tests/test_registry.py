@@ -172,6 +172,8 @@ ONLY_HANGTU = {
     "spt_n_capped",
     "liquidity_index",
     "consistency_index",
+    "plasticity_class_uscs",
+    "plasticity_class_bs5930",
 }
 
 

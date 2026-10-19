@@ -351,7 +351,7 @@ LLPL = group(
         [*BH1_U1, 48, "22", 26],
         [*BH2_D1, 31, "NP", None],
         [*BH2_U2, 55, "25", 30],
-        [*BH3_B1, 18, "NP", None],
+        [*BH3_B1, 21, "NP", None],
     ],
     us=SPECIMEN_US,
 )

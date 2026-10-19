@@ -176,6 +176,7 @@ One row per `LLPL` row.
 | `plasticity_class_uscs`, `plasticity_class_bs5930` | `ht.analysis.plasticity()` (analysis §2.5), M8 |
 
 - PI (where blank), LI, Ic and the two classes come from `ht.analysis.plasticity()` (from M8), so they are computed in one place. LI and Ic are blank when a value they need is blank, when the specimen is NP, or when PI ≤ 0.
+- `plasticity()` stops on a plastic specimen with PL above LL, or an NP one with a PI (analysis §2.8), which is right for a table a user typed in. A dataset doesn't stop on the file's data, which QC checks (A001), so those rows keep LL and PL as the file gives them, with PI, LI, Ic and the classes blank, and one warning per call names them. A PI given more than 1 point from LL − PL is used as given, without a warning: QC reports it (A002), and a dataset doesn't repeat QC's findings (as §5.4). `plasticity()`'s other warning, a PI above LL, passes through, naming the specimens.
 - An NP specimen has `non_plastic = True` and blanks where the file wrote `NP` (ingest.md §8); a liquid limit the file gives is kept, and its PI isn't filled in. P07 counts it as NP, not as a blank (SPEC §4).
 
 **Lab depth** (SPEC §8.2), for every lab dataset: `SPEC_DPTH` (`spec_depth`), else the sample's midpoint `(SAMP_TOP + SAMP_BASE) / 2` from `SAMP` (`sample_mid`), else `SAMP_TOP` (`sample_top`).
