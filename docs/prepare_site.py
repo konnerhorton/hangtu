@@ -27,7 +27,12 @@ CELL_WIDTH = 6
 CELL_HEIGHT = 10
 STROKE = 2
 ROWS = (3, 6)  # top of each bar or square in a cell
+BASELINE = 8  # of a letter, from the top of its cell
 LOGO_COLORS = {"logo.svg": "#ffffff", "favicon.svg": "#3c3c3c"}
+# The wordmark is committed, since the README links to it, in an earth tone
+# that reads on light and dark backgrounds alike.
+WORDMARK = SITE / "img" / "wordmark.svg"
+WORDMARK_COLOR = "#8a6a4a"
 
 
 def run_example(script: Path, folder: Path) -> subprocess.CompletedProcess:
@@ -71,39 +76,76 @@ def logo_marks() -> tuple[list[str], list[str]]:
     return wordmark.splitlines(), small_mark.splitlines()
 
 
-def mark_svg(lines: list[str], color: str) -> str:
-    """Draw an ASCII mark of "=" and ":" as SVG shapes on a square canvas."""
+def _glyph_path(char: str, x: float, baseline: float) -> str:
+    """Return the outline of ``char`` as SVG path data, its cell at ``x``.
+
+    The outline comes from DejaVu Sans Mono Bold, which ships with
+    matplotlib, so the SVG holds shapes and needs no font.
+    """
+    from matplotlib.font_manager import FontProperties
+    from matplotlib.path import Path as MplPath
+    from matplotlib.textpath import TextPath
+
+    font = FontProperties(family="DejaVu Sans Mono", weight="bold")
+    glyph = TextPath((0, 0), char, size=CELL_HEIGHT, prop=font)
+    commands = {MplPath.MOVETO: "M", MplPath.LINETO: "L", MplPath.CURVE3: "Q"}
+    commands[MplPath.CURVE4] = "C"
+    parts = []
+    for points, code in glyph.iter_segments(simplify=False, curves=True):
+        if code == MplPath.CLOSEPOLY:
+            parts.append("Z")
+            continue
+        xy = points.reshape(-1, 2)
+        coordinates = " ".join(f"{x + px:.2f} {baseline - py:.2f}" for px, py in xy)
+        parts.append(commands[code] + coordinates)
+    return "".join(parts)
+
+
+def mark_svg(lines: list[str], color: str, square: bool = True) -> str:
+    """Draw an ASCII mark as SVG shapes.
+
+    "=" is two bars across its cell and ":" two stacked squares; any other
+    character but a space is drawn as a letter outline. ``square`` centers
+    the mark on a square canvas, as an icon needs.
+    """
     width = CELL_WIDTH * max(len(line) for line in lines)
     height = CELL_HEIGHT * len(lines)
-    side = max(width, height)
-    left, top = (side - width) / 2, (side - height) / 2
-    shapes = []
+    if square:
+        side = max(width, height)
+        left, top, width, height = (side - width) / 2, (side - height) / 2, side, side
+    else:
+        left = top = 0
+    rects, glyphs = [], []
     for row, line in enumerate(lines):
         for column, char in enumerate(line):
             x = left + column * CELL_WIDTH
-            for offset in ROWS:
-                y = top + row * CELL_HEIGHT + offset
-                if char == "=":
-                    shapes.append((x, y, CELL_WIDTH))
-                elif char == ":":
-                    shapes.append((x + (CELL_WIDTH - STROKE) / 2, y, STROKE))
-    rects = "".join(
+            y = top + row * CELL_HEIGHT
+            if char == "=":
+                rects += [(x, y + offset, CELL_WIDTH) for offset in ROWS]
+            elif char == ":":
+                square_x = x + (CELL_WIDTH - STROKE) / 2
+                rects += [(square_x, y + offset, STROKE) for offset in ROWS]
+            elif char != " ":
+                glyphs.append(_glyph_path(char, x, y + BASELINE))
+    shapes = "".join(
         f'<rect x="{x:g}" y="{y:g}" width="{w:g}" height="{STROKE}"/>'
-        for x, y, w in shapes
-    )
+        for x, y, w in rects
+    ) + "".join(f'<path d="{d}"/>' for d in glyphs)
     return (
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {side} {side}" '
-        f'fill="{color}">{rects}</svg>\n'
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width:g} {height:g}" '
+        f'fill="{color}">{shapes}</svg>\n'
     )
 
 
 def write_logo() -> None:
-    """Write the header logo and the favicon from the small mark."""
+    """Write the wordmark, and the header logo and favicon from the small mark."""
     GENERATED.mkdir(parents=True, exist_ok=True)
-    _, small_mark = logo_marks()
+    wordmark, small_mark = logo_marks()
     for name, color in LOGO_COLORS.items():
         (GENERATED / name).write_text(mark_svg(small_mark, color), encoding="utf-8")
-    print("Wrote logo.svg and favicon.svg")
+    svg = mark_svg(wordmark, WORDMARK_COLOR, square=False)
+    WORDMARK.write_text(svg, encoding="utf-8")
+    print("Wrote wordmark.svg, logo.svg and favicon.svg")
 
 
 def _cell(text: str) -> str:

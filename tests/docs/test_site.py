@@ -35,23 +35,47 @@ def test_page_example_runs_clean(tmp_path, script):
         assert (tmp_path / f"{script.stem}.png").is_file()
 
 
+def _drawn(lines):
+    characters = "".join(lines)
+    marks = characters.count("=") + characters.count(":")
+    letters = len(characters) - marks - characters.count(" ")
+    return 2 * marks, letters
+
+
 def test_logo_svgs_draw_every_character(tmp_path, monkeypatch):
-    # Criterion 6: one pair of shapes for each "=" or ":" in the small mark.
+    # Criterion 6: two shapes for each "=" or ":", one outline per letter,
+    # and no text, so no font is needed.
     monkeypatch.setattr(prepare_site, "GENERATED", tmp_path)
+    monkeypatch.setattr(prepare_site, "WORDMARK", tmp_path / "wordmark.svg")
     prepare_site.write_logo()
-    _, small_mark = prepare_site.logo_marks()
-    characters = sum(line.count("=") + line.count(":") for line in small_mark)
-    for name in prepare_site.LOGO_COLORS:
+    wordmark, small_mark = prepare_site.logo_marks()
+    for name, lines in [
+        ("logo.svg", small_mark),
+        ("favicon.svg", small_mark),
+        ("wordmark.svg", wordmark),
+    ]:
         svg = (tmp_path / name).read_text(encoding="utf-8")
-        assert svg.count("<rect ") == 2 * characters
+        rects, letters = _drawn(lines)
+        assert svg.count("<rect ") == rects, name
+        assert svg.count("<path ") == letters, name
         assert "<text" not in svg
 
 
+def test_committed_wordmark_is_current(tmp_path, monkeypatch):
+    # The README links to the committed wordmark, so it must match logo.txt.
+    monkeypatch.setattr(prepare_site, "GENERATED", tmp_path)
+    monkeypatch.setattr(prepare_site, "WORDMARK", tmp_path / "wordmark.svg")
+    prepare_site.write_logo()
+    committed = ROOT / "docs" / "site" / "img" / "wordmark.svg"
+    assert committed.read_text(encoding="utf-8") == (
+        tmp_path / "wordmark.svg"
+    ).read_text(encoding="utf-8"), "run docs/prepare_site.py and commit the result"
+
+
 def test_readme_opens_with_the_wordmark():
-    # Criterion 6: the README's wordmark is the one in docs/img/logo.txt.
-    wordmark, _ = prepare_site.logo_marks()
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    assert readme.startswith("```\n" + "\n".join(wordmark) + "\n```\n")
+    assert readme.startswith('<img src="https://raw.githubusercontent.com/')
+    assert readme.splitlines()[0].count("docs/site/img/wordmark.svg") == 1
 
 
 def _documented():

@@ -38,9 +38,9 @@ A public docs site for hangtu, built with Zensical, with a simple layout. An eng
 7. **Unit id and branch.** This file is `docs-site.md`. The worktree's branch is `docs`, which is ambiguous with the `docs/` folder in git commands, so the branch is renamed to `docs-site`.
 8. **Logo.** The ASCII logo designed on 2026-10-15 is used as it is: a 20-column wordmark (compacted lifts of `=` and `:` rows, with the name in the middle lift) and a 10-column small mark (an `h` cut from the same lifts). Both are pure 7-bit ASCII, with no frame. In this unit:
    - `logo.txt` moves into the repo as `docs/img/logo.txt`, the single source for both marks;
-   - the wordmark goes at the top of `README.md` in a plain code block, checked on GitHub and in PyPI's rendering of the long description;
-   - the wordmark heads the site's home page, also as text;
-   - the small mark is rendered to SVG for the site's header logo and the favicon. A script generates the SVG from `logo.txt`, drawing each `=` and `:` as shapes rather than font glyphs so it looks the same everywhere, and it is rerun whenever `logo.txt` changes.
+   - both marks are rendered to SVG by a script, from `logo.txt`: each `=` and `:` as shapes and each letter as an outline, rather than font glyphs, so they look the same everywhere. It is rerun whenever `logo.txt` changes;
+   - the wordmark SVG goes at the top of `README.md` as an image, checked on GitHub and in PyPI's rendering of the long description, and heads the site's home page (changed in the build from a code block: an image reads as a logo);
+   - the small mark is the site's header logo and the favicon.
 9. **The name, next to the logo.** The home page and the README explain the name in two lines, under the wordmark:
 
    > *Hangtu* is Chinese for rammed earth, one of the oldest ways of building with soil: it raised city walls in China more than 4,500 years ago. `hangtu` respects the long tradition of humans building with earth materials while automating the mundane and leaving judgment to the engineer.
@@ -70,7 +70,8 @@ The intent's decisions, made exact. The site has no other feature spec, so this 
 | `zensical.toml` | The site configuration (§2) | yes |
 | `docs/site/` | The site source: Markdown pages, by section (§3) | yes |
 | `docs/site/examples/<name>.py` | The example shown on each page (§4) | yes |
-| `docs/site/img/generated/` | Figures, logo and favicon written by `docs/prepare_site.py` | no (gitignored) |
+| `docs/site/img/generated/` | Figures, printed output, header logo and favicon written by `docs/prepare_site.py` | no (gitignored) |
+| `docs/site/img/wordmark.svg` | The wordmark, written by `docs/prepare_site.py` | yes, because the README links to it |
 | `docs/site/reference/columns.md` | The column registry page, written by `docs/prepare_site.py` (§5) | no (gitignored) |
 | `docs/prepare_site.py` | Writes everything generated, before a build (§5) | yes |
 | `docs/img/logo.txt` | The wordmark and the small mark, the one source for both (§6) | yes |
@@ -138,8 +139,9 @@ It uses only hangtu and its runtime dependencies, so the `docs` group adds nothi
 
 ### 6. Logo and name
 - **`docs/img/logo.txt`** holds the two marks from `sandbox/logo/logo.txt`, unchanged: the 20-column wordmark, a blank line, then the 10-column small mark. Every line in each block has the same width.
-- **README:** the wordmark replaces the `# hangtu` heading at the top, in a plain fenced block with no language tag, and the two lines on the name (intent, decision 9) follow it. The existing README test, which runs the two `python` blocks, is unaffected.
-- **Home page:** the same wordmark, in a block with the `no-copy` class so it gets no copy button, then the same two lines.
+- **README:** the wordmark SVG replaces the `# hangtu` heading at the top, linked by its raw GitHub URL so PyPI shows it too, and the two lines on the name (intent, decision 9) follow it.
+- **Home page:** the same SVG, then the same two lines.
+- **Wordmark SVG:** drawn like the small mark, with the letters as outlines of DejaVu Sans Mono Bold (shipped with matplotlib), in an earth tone (`#8a6a4a`) that reads on light and dark backgrounds. A test checks the committed file matches `logo.txt`.
 - **SVG:** the small mark is drawn on a grid of character cells. Each `=` is two horizontal bars across its cell, each `:` is two small squares stacked in the middle of its cell, and spaces are empty. There is no text and no font, so it looks the same in every browser. `logo.svg` is white, for the colored header. `favicon.svg` is dark gray on transparent, for a browser tab.
 
 ### 7. Build and deploy
@@ -154,7 +156,7 @@ It uses only hangtu and its runtime dependencies, so the `docs` group adds nothi
 3. Every file in `docs/site/examples/` runs in an empty folder, and every plot example writes `<name>.png`. A test runs them, so the CI matrix covers them on all three operating systems.
 4. Every Getting started, Guides and Plots page includes an example before its first `##` heading. A test checks the Markdown.
 5. `reference/columns.md` lists every column in the registry. A test checks it.
-6. The SVGs have one shape pair per `=` or `:` in the small mark, and the README's wordmark matches `docs/img/logo.txt`. Tests check both.
+6. The SVGs have one shape pair per `=` or `:` and one outline per letter, with no text, and the committed wordmark SVG that the README shows matches `docs/img/logo.txt`. Tests check both.
 7. Math renders in a browser on a page and in a docstring: checked by eye with `zensical serve` at the close-out.
 8. The wordmark renders monospaced on GitHub, and in PyPI's rendering of the README (checked on TestPyPI at the next release rehearsal).
 9. The first deploy from `main` serves the site at the `site_url`.
@@ -185,7 +187,7 @@ Each step is one commit (two where noted), green under ruff and pytest and under
 ### 3. Logo and name (`docs: add the ASCII logo to the README and site`)
 - Move `sandbox/logo/logo.txt` → `docs/img/logo.txt` (copy; the sandbox is the user's to clean up).
 - `prepare_site.py`: `write_logo()` parses the small mark (second block) and writes `img/generated/logo.svg` (white) and `favicon.svg` (dark gray): `=` → two bars, `:` → two stacked squares, per cell; no text. `zensical.toml`: `theme.logo`, `theme.favicon`.
-- `README.md`: wordmark in a plain fence replacing `# hangtu`, then the two lines on the name (intent decision 9). Home page: same, fence with `{ .text .no-copy }`.
+- `README.md`: wordmark in a plain fence replacing `# hangtu`, then the two lines on the name (intent decision 9). Home page: same, fence with `{ .text .no-copy }`. *Changed after review: both use the wordmark as an SVG image, `docs/site/img/wordmark.svg`.*
 - Tests: SVG has 2 shapes per `=`/`:` in the small mark; README's first fence equals the wordmark block in `logo.txt`; `tests/test_readme.py` still finds two `python` blocks. Criterion 6.
 
 ### 4. Reference pages (`docs: generate the API and column reference`)

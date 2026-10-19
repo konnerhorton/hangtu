@@ -1,10 +1,4 @@
-```
-====================
-::::::::::::::::::::
-======  hangtu  ====
-::::::::::::::::::::
-====================
-```
+<img src="https://raw.githubusercontent.com/konnerhorton/hangtu/main/docs/site/img/wordmark.svg" alt="hangtu" width="360">
 
 *Hangtu* is Chinese for rammed earth, one of the oldest ways of building with soil: it raised city walls in China more than 4,500 years ago. `hangtu` respects the long tradition of humans building with earth materials while automating the mundane and leaving judgment to the engineer.
 
