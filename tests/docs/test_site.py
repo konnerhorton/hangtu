@@ -99,7 +99,11 @@ def _nav_pages(section):
 
 @pytest.mark.parametrize(
     "page",
-    [page for section in ["Guides", "Plots"] for page in _nav_pages(section)],
+    [
+        page
+        for section in ["Getting started", "Guides", "Plots"]
+        for page in _nav_pages(section)
+    ],
 )
 def test_page_opens_with_an_example(page):
     # Criterion 4: the example comes before the first section heading.
