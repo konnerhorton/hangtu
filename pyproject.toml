@@ -72,6 +72,8 @@ convention = "numpy"
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["D"]
+# Page examples are a few lines a user copies, not modules.
+"docs/site/examples/**" = ["D"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
