@@ -306,7 +306,7 @@ def grain_size(
     df: pd.DataFrame,
     *,
     fractions: str | dict | os.PathLike | None = "astm_uscs",
-    sieves: Literal["auto", "us", "iso"] | list[tuple[float, str]] | None = "auto",
+    sieves: Literal["auto", "us", "iso"] | list[tuple[float, str]] | None = None,
     d_values: bool | list[int] = False,
     envelopes: pd.DataFrame | str | None = None,
     envelope_colors: dict[str, str] | None = None,
@@ -346,8 +346,9 @@ def grain_size(
         own as for ``gradation(fractions=)``. None hides the band and the
         dividers.
     sieves : {"auto", "us", "iso"}, list or None
-        Sieve labels along the top: ``"auto"`` is ``"us"`` (ASTM E11) in US
-        display and ``"iso"`` in SI; or your own ``[(size_mm, label), ...]``.
+        Sieve labels above the frame; off by default. ``"auto"`` is ``"us"``
+        (ASTM E11) in US display and ``"iso"`` in SI; or your own
+        ``[(size_mm, label), ...]``.
     d_values : bool or list of int
         Mark D-values: True for D10, D30 and D60, or a list of percentages.
         With one curve, dashed leaders to both axes and a label; with several,
@@ -376,7 +377,8 @@ def grain_size(
     units : dict, optional
         ``{column: unit}``, overriding the units declared on ``df``.
     display_units : {"US", "SI"}, optional
-        Picks the sieve labels with ``sieves="auto"``.
+        Picks the sieve labels with ``sieves="auto"``; otherwise it changes
+        nothing, since particle size is in mm in both systems.
     figsize : tuple, optional
         Figure size in inches. Defaults to ``ht.settings.figure_sizes["default"]``.
     ax : matplotlib.axes.Axes, optional

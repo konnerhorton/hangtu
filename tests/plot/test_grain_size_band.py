@@ -104,7 +104,9 @@ def test_unknown_system_is_the_analysis_error():
 def test_fractions_none_hides_band_and_dividers():
     fig, ax = ht.plot.grain_size(EMPTY, fractions=None)
     assert ax.grain_size_header is None
-    assert fig.axes == [ax, ax.grain_size_sieves]  # the sieves stay
+    assert fig.axes == [ax]
+    _, ax = ht.plot.grain_size(EMPTY, fractions=None, sieves="auto")
+    assert ax.figure.axes == [ax, ax.grain_size_sieves]  # the sieves stay
     assert dividers(ax, "fraction_divider") == []
     assert dividers(ax, "part_divider") == []
 
@@ -120,6 +122,12 @@ def test_only_fractions_in_range_are_named():
 
 def test_header_is_045_in_and_shares_x():
     fig, ax = ht.plot.grain_size(EMPTY)
+    fig.canvas.draw()
+    # On the frame by default, with no sieve strip.
+    assert ax.grain_size_header.get_window_extent().y0 == pytest.approx(
+        ax.get_window_extent().y1, abs=1
+    )
+    fig, ax = ht.plot.grain_size(EMPTY, sieves="auto")
     fig.canvas.draw()
     header = ax.grain_size_header
     box = header.get_window_extent()
@@ -192,8 +200,14 @@ def test_bad_xlim_is_an_error(xlim):
 # --- Sieve labels (§8, §12) --------------------------------------------------
 
 
-def test_us_sieve_labels():
+def test_sieves_are_off_by_default():
     _, ax = ht.plot.grain_size(EMPTY, display_units="US")
+    assert ax.grain_size_sieves is None
+    assert [line for line in ax.lines if line.get_gid() == "sieve_tick"] == []
+
+
+def test_us_sieve_labels():
+    _, ax = ht.plot.grain_size(EMPTY, display_units="US", sieves="auto")
     labels = sieve_labels(ax)
     assert labels["#200"] == 0.075
     assert labels["#4"] == 4.75
@@ -201,7 +215,7 @@ def test_us_sieve_labels():
 
 
 def test_si_sieve_labels():
-    _, ax = ht.plot.grain_size(EMPTY, display_units="SI")
+    _, ax = ht.plot.grain_size(EMPTY, display_units="SI", sieves="auto")
     labels = sieve_labels(ax)
     assert labels["0.063"] == 0.063
     assert "#200" not in labels
@@ -245,7 +259,7 @@ def test_no_global_state(assert_no_global_state):
 
 
 def test_sieve_labels_are_horizontal_above_the_frame():
-    fig, ax = ht.plot.grain_size(EMPTY, display_units="US")
+    fig, ax = ht.plot.grain_size(EMPTY, sieves="us")
     fig.canvas.draw()
     frame_top = ax.get_window_extent().y1
     texts = ax.grain_size_sieves.texts
@@ -257,10 +271,10 @@ def test_sieve_labels_are_horizontal_above_the_frame():
 
 
 def test_crowded_sieves_alternate_between_two_rows():
-    _, us = ht.plot.grain_size(EMPTY, display_units="US")
+    _, us = ht.plot.grain_size(EMPTY, sieves="us")
     rows = {t.get_text(): t.get_position()[1] for t in us.grain_size_sieves.texts}
     assert rows["#200"] == rows["#100"] != rows["#140"]
-    _, si = ht.plot.grain_size(EMPTY, display_units="SI")
+    _, si = ht.plot.grain_size(EMPTY, sieves="iso")
     assert len({t.get_position()[1] for t in si.grain_size_sieves.texts}) == 1
 
 

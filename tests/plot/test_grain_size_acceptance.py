@@ -95,9 +95,15 @@ def test_band_boundaries():
 # Sieve labels (test_grain_size_band.py: test_*_sieve_labels).
 def test_sieve_labels():
     _, ax = _quiet(ht.plot.grain_size, pd.DataFrame(), display_units="US")
+    assert ax.grain_size_sieves is None  # off by default
+    _, ax = _quiet(
+        ht.plot.grain_size, pd.DataFrame(), display_units="US", sieves="auto"
+    )
     assert _sieves(ax)["#200"] == 0.075
     assert _sieves(ax)["#4"] == 4.75
-    _, ax = _quiet(ht.plot.grain_size, pd.DataFrame(), display_units="SI")
+    _, ax = _quiet(
+        ht.plot.grain_size, pd.DataFrame(), display_units="SI", sieves="auto"
+    )
     assert _sieves(ax)["0.063"] == 0.063
 
 
@@ -207,15 +213,19 @@ def test_sheet_panel_and_global_state(example, assert_no_global_state):
     assert header.get_window_extent().y1 <= sheet.figure.bbox.y1
 
 
-def test_us_and_si_differ_only_in_sieve_labels(example):
-    _, us = _quiet(ht.plot.grain_size, example, display_units="US")
-    _, si = _quiet(ht.plot.grain_size, example, display_units="SI")
+@pytest.mark.parametrize("sieves", [None, "auto"])
+def test_us_and_si_differ_only_in_sieve_labels(example, sieves):
+    _, us = _quiet(ht.plot.grain_size, example, display_units="US", sieves=sieves)
+    _, si = _quiet(ht.plot.grain_size, example, display_units="SI", sieves=sieves)
     for label, xy in _drawn(us).items():
         np.testing.assert_allclose(xy, _drawn(si)[label])
     assert _dividers(us) == _dividers(si)
     assert us.ags_notes == si.ags_notes
     assert us.get_xlim() == si.get_xlim()
-    assert set(_sieves(us)) != set(_sieves(si))
+    if sieves is None:  # the same figure
+        assert us.grain_size_sieves is None and si.grain_size_sieves is None
+    else:
+        assert set(_sieves(us)) != set(_sieves(si))
     others = [
         sorted(t.get_text() for t in ax.texts if t.get_gid() != "sieve_label")
         for ax in (us, si)

@@ -99,7 +99,7 @@ More than 20 curves with `color_by="specimen_id"`: the README legend rules apply
 | Overlay | Argument | Default | Source | Style | Notes |
 |---|---|---|---|---|---|
 | Fraction band | `fractions=` | `"astm_uscs"` | `config/fraction_systems.yaml` or the user's system | two rows: fraction names in the upper row, their parts (fine, medium, coarse) in the lower; a fraction without parts spans both, and a system without parts (`aashto`) has one row. Names are the fraction names with underscores as spaces, capitalized ("Silt clay"). Dividers at each boundary down through the main axes as light vertical lines (fraction boundaries solid, part boundaries dashed) | `None` hides the band and the dividers. Only fractions inside the x range are named, each centered on its visible part; a name narrower than 0.25 decade in view is left out |
-| Sieve labels | `sieves=` | `"auto"`: US list in US display, ISO list in SI | `config/sieves.yaml` (new), cited | 6.5 pt, horizontal, in a strip above the frame and under the band, each over a short tick up from the frame. When any two neighbors are closer than 0.25 decade (the US list near #200), the labels alternate between two rows in size order; otherwise one row. Above the frame, so no curve crosses them | `"us"`, `"iso"`, `None`, or a list of `(size_mm, label)`; only sizes inside the x range are labeled |
+| Sieve labels | `sieves=` | `None` (off). `"auto"` gives the US list in US display and the ISO list in SI | `config/sieves.yaml` (new), cited | 6.5 pt, horizontal, in a strip above the frame and under the band, each over a short tick up from the frame. When any two neighbors are closer than 0.25 decade (the US list near #200), the labels alternate between two rows in size order; otherwise one row. Above the frame, so no curve crosses them | `"us"`, `"iso"`, `None`, or a list of `(size_mm, label)`; only sizes inside the x range are labeled |
 | D-values | `d_values=` | off | `gradation()` | §7 | |
 | Envelopes | `envelopes=` | off | user table (below) | §7 | |
 | Note | `note=` | off | user | added to the footnote | |
@@ -112,7 +112,7 @@ More than 20 curves with `color_by="specimen_id"`: the README legend rules apply
 
 ## 9. Units behavior
 - Particle size is converted to mm on input and shown in mm in both systems (P00 §4.1, TODO #17).
-- Only the sieve labels change with the display system (`sieves="auto"`). The curves and the band are the same, so a US and an SI figure differ only in those labels.
+- Only the sieve labels change with the display system, and only with `sieves="auto"`. The curves and the band are the same, so by default a US and an SI figure are the same figure, and with `sieves="auto"` they differ only in those labels.
 
 ## 10. API
 ```python
@@ -120,7 +120,7 @@ def grain_size(
     df: pd.DataFrame,
     *,
     fractions: str | dict | os.PathLike | None = "astm_uscs",
-    sieves: Literal["auto", "us", "iso"] | list[tuple[float, str]] | None = "auto",
+    sieves: Literal["auto", "us", "iso"] | list[tuple[float, str]] | None = None,
     d_values: bool | list[int] = False,
     envelopes: pd.DataFrame | str | None = None,
     envelope_colors: dict[str, str] | None = None,
@@ -169,8 +169,8 @@ fig, ax = ht.plot.grain_size(curves, fractions="iso14688", envelopes="filter_ban
 - **Envelopes:** a band's lower and upper edges pass through the table's points.
 - **Direction:** `reverse=True` puts 100 mm left of 0.1 mm.
 - **Counts:** the footnote counts short curves, blank points and unreached D-values.
-- **Automated:** renders with each built-in system and a user's; `fractions=None` hides the band; `ax=` composes on a `Sheet`, header included; no `rcParams` change; US and SI differ only in sieve labels.
-- **Visual check:** `docs/plots/img/P05-us.png` and `P05-si.png` from the example project's 14 grading curves (the fill and alluvium ones continuing into the fines from hydrometer tests) and an envelope, with D-values off, their default. The D-value ticks and the single-curve labels are checked by eye but not committed.
+- **Automated:** renders with each built-in system and a user's; `fractions=None` hides the band; `ax=` composes on a `Sheet`, header included; no `rcParams` change; sieve labels are off by default, when US and SI give the same figure, and with `sieves="auto"` US and SI differ only in the sieve labels.
+- **Visual check:** `docs/plots/img/P05.png` from the example project's 14 grading curves (the fill and alluvium ones continuing into the fines from hydrometer tests) and an envelope, with D-values and sieve labels off, their defaults. One figure, since with the sieve labels off US and SI give the same one (§9). The D-value ticks, the single-curve labels and the sieve strip are checked by eye but not committed.
 - **Test data:** the example project and synthetic curves (curve A, shuffled, inches, non-monotonic, short).
 
 ## 13. References
@@ -183,7 +183,7 @@ None open. Decided in review:
 1. **Axis direction:** coarse on the right (size increasing to the right), the same default in US and SI display, so one figure serves both. `reverse=True` gives the coarse-on-the-left layout of some US forms (§6).
 2. **Fraction dividers** run down through the main axes as light lines, so a curve can be read against the boundaries (§8).
 3. **D-value labels** only for a single curve; ticks without labels for several (§7).
-4. **Sieve lists** in a new `config/sieves.yaml`, with the ISO list at the fraction boundaries (§8). The labels sit above the frame and are horizontal (changed in the build's review from rotated labels inside the top edge, which curves near 100 % passing crossed).
+4. **Sieve lists** in a new `config/sieves.yaml`, with the ISO list at the fraction boundaries (§8). The labels sit above the frame and are horizontal (changed in the build's review from rotated labels inside the top edge, which curves near 100 % passing crossed). They are off by default (`sieves=None`, decided in review); `sieves="auto"` turns them on.
 5. **Envelope and fraction-system colors** are gray unless given, apart from geology unit colors (§7).
 
 ## 15. Future enhancements
