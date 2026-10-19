@@ -326,3 +326,47 @@ def test_the_secondary_depth_axis_follows_the_deeper_range(frame):
         drawn = depth.transData.transform((0.0, d))[1]
         assert drawn == pytest.approx(ax.transData.transform((0.0, 120.0 - d))[1])
     assert max(depth.get_yticks()) >= 120.0 - ax.get_ylim()[0] - 10.0
+
+
+# --- text values (TODO #15) -----------------------------------------------------------
+
+
+def test_text_values_are_counted_on_a_last_line(frame):
+    df = frame(values=["dry", 1000.0, "NP", "refusal"])
+    with pytest.warns(UserWarning, match="'dry'"):
+        _, ax = ht.plot.profile(
+            df, "undrained_shear_strength", stats_box=["count"], vs="depth"
+        )
+    lines = stats_text(ax).get_text().splitlines()
+    assert lines[-1] == "Also: NP 1, refusal 1, 'dry' 1"
+    assert lines[1].split() == ["Fill", "1"]  # the text isn't in the statistics
+
+
+def test_no_also_line_without_text(frame):
+    _, ax = ht.plot.profile(frame(), "undrained_shear_strength", stats_box=True)
+    assert "Also" not in stats_text(ax).get_text()
+
+
+def test_more_than_six_texts_on_the_also_line(frame):
+    texts = ["a", "b", "c", "d", "e", "f", "g", "h"]
+    df = frame(
+        values=[*texts, 100.0],
+        loca_id=["A"] * 9,
+        depth=[float(i) for i in range(1, 10)],
+        ground_level=[120.0] * 9,
+        geology_unit=["Fill"] * 9,
+    )
+    with pytest.warns(UserWarning):
+        _, ax = ht.plot.profile(df, "undrained_shear_strength", stats_box=["count"])
+    last = stats_text(ax).get_text().splitlines()[-1]
+    assert last == "Also: 'a' 1, 'b' 1, 'c' 1, 'd' 1, 'e' 1, 'f' 1 and 2 more"
+
+
+def test_room_below_the_data_clears_the_box_with_the_also_line(frame):
+    df = deep_frame(frame)
+    df["undrained_shear_strength"] = df["undrained_shear_strength"].astype(object)
+    df.loc[11, "undrained_shear_strength"] = "NP"  # the deepest, at 60 ft
+    _, ax = ht.plot.profile(df, "undrained_shear_strength", vs="depth", stats_box=True)
+    assert stats_text(ax).get_text().splitlines()[-1] == "Also: NP 1"
+    box_top, data = box_and_lowest(ax, 60.0)
+    assert data > box_top

@@ -333,3 +333,41 @@ def test_missing_columns_and_units_are_explained():
 
 def test_no_change_to_global_state(assert_no_global_state):
     assert_no_global_state(ht.plot.profile, perm(), **K, **overlays())
+
+
+# --- text values (TODO #15) ---------------------------------------------------
+
+
+def test_text_values_are_drawn_at_the_edge_and_counted():
+    # 10 numbers, 2 NP, 1 "np ", 1 refusal and 2 "dry", one hole, 1 ft apart.
+    texts = ["NP", "NP", "np ", "refusal", "dry", "dry"]
+    values = [*(20.0 + i for i in range(10)), *texts]
+    df = ht.set_units(
+        pd.DataFrame(
+            {
+                "depth": [float(i) for i in range(1, 17)],
+                "geology_unit": ["Fill"] * 16,
+                "water_content": values,
+            }
+        ),
+        {"depth": "ft"},
+    )
+    with pytest.warns(UserWarning) as record:
+        _, ax = ht.plot.profile(df, "water_content", stats_box=True)
+    messages = [str(w.message) for w in record]
+    text_warnings = [m for m in messages if "has text in rows" in m]
+    assert len(text_warnings) == 1
+    assert "'dry' (2)" in text_warnings[0]
+    assert not any("'NP'" in m or "'refusal'" in m for m in messages)
+
+    in_data = [c for c in ax.collections if c.get_offset_transform() is ax.transData]
+    at_edge = [c for c in ax.collections if c not in in_data]
+    assert sum(len(c.get_offsets()) for c in in_data) == 10
+    assert sum(len(c.get_offsets()) for c in at_edge) == 6
+    legend = [text.get_text() for text in ax.get_legend().get_texts()]
+    assert legend == ["Fill", "NP (3)", "refusal (1)", "'dry' (2)"]
+    box = next(t for t in ax.texts if t.get_bbox_patch() is not None)
+    lines = box.get_text().splitlines()
+    assert lines[1].split()[:2] == ["Fill", "10"]
+    assert lines[-1] == "Also: NP 3, refusal 1, 'dry' 2"
+    assert ax.ags_notes == {"non_plastic": 3, "refusal": 1, "text_value": 2}

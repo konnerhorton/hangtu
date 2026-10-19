@@ -7,7 +7,7 @@
 | **Type** | plot (percentiles only, no analysis module) |
 | **Target version** | v0.1 |
 | **Depends on** | P00 (framework); reuses the P01 presets and overlay helpers (`plot/_overlays.py`) |
-| **Related** | SPEC §2.6 (units), §3 (plot contract), §5 (P07 doesn't need the statistics module). TODO #15 (text in value columns), TODO #16 (other summaries). Intent: `docs/work/p07-geology-unit-comparison.md` |
+| **Related** | SPEC §2.6 (units), §3 (plot contract), §5 (P07 doesn't need the statistics module). TODO #23 (text in value columns), TODO #16 (other summaries). Intent: `docs/work/p07-geology-unit-comparison.md` |
 
 ---
 
@@ -52,7 +52,7 @@ The built figure, from the test data: [`P07-si.png`](img/P07-si.png) (SI) and [`
 
 | Column | Description | Quantity kind | Canonical unit | US display | SI display | Req.? | Typical range | Valid range | AGS source (Phase 2) | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| *`value`* (any column, named by `value=`) | The property compared | from the preset or registry | per quantity | per quantity | per quantity | ✔ | per preset (P01 §6) | — | e.g. `LLPL.LLPL_PI`, `IVAN.IVAN_IVAN` | Must be numeric; text is an error (TODO #15) |
+| *`value`* (any column, named by `value=`) | The property compared | from the preset or registry | per quantity | per quantity | per quantity | ✔ | per preset (P01 §6) | — | e.g. `LLPL.LLPL_PI`, `IVAN.IVAN_IVAN` | Must be numeric; text is an error (TODO #23) |
 | `geology_unit` | Geology unit: one row of the plot per unit | — | — | — | — | ✔ | | | mapped from GEOL | Blank → a "(blank)" row at the bottom |
 | `qualifier` | `"<"`, `">"`, or empty | — | — | — | — | – | | {"", "<", ">"} | value flags `LT`/`GT` | As P01: drawn as a caret, counted, summarized at the reported value |
 | `non_plastic` | True if the specimen was reported NP | — | — | — | — | – | | bool | value flag `NP` | Applies to Atterberg values only (LL, PL, PI, LI, Ic): a row with `True` isn't drawn or summarized, and is counted as "non-plastic (NP)". Its water content and other values still count. Anything other than True, False or blank is an error naming the rows |
@@ -64,7 +64,7 @@ The built figure, from the test data: [`P07-si.png`](img/P07-si.png) (SI) and [`
 **Value flags handled:**
 - `qualifier` `<` / `>`: a caret ◁ / ▷ in place of the point, counted in the legend and the footnote, as P01 §7. The summary uses the reported value.
 - `non_plastic`: counted in the footnote, not drawn. NP is distinct from blank everywhere (SPEC §4).
-- Text in the value column (`"NP"`, `"<5"`): an error naming the rows, as P01. TODO #15 will change this for every plot.
+- Text in the value column (`"NP"`, `"<5"`): an error naming the rows. P01 draws text values at the edge and counts them (TODO #15, M8); doing the same here is TODO #23.
 
 **Minimum data:** none. A unit with no data but a baseline row still gets a row ("n = 0"). With no data and no baseline, the plot shows empty axes and a "No data" note.
 
@@ -258,7 +258,7 @@ fig, axs = ht.plot.geology_unit_comparisons(
 | Values ≤ 0 on a log axis | Not drawn or summarized; counted in the footnote |
 | Blank values | Not drawn, summarized or counted: a test not done (§14) |
 | Values beyond `xlim` | Edge marker + arrow + count; still summarized at their true value |
-| Text in the value column | Error naming the rows (TODO #15) |
+| Text in the value column | Error naming the rows (TODO #23) |
 | `qualifier` other than `"<"`, `">"` or blank | Error listing the rows and values found (as P01) |
 | `percentiles` not three ascending numbers in [0, 100] | Error with an example |
 | Unknown `percentile_method` | Error listing NumPy's methods |

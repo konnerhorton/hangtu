@@ -290,10 +290,10 @@ def test_missing_value_column_lists_the_columns(frame):
         ht.plot.profile(frame(), "k")
 
 
-def test_text_in_the_value_column_names_the_rows(frame):
-    df = frame(values=[500.0, "NP", 1500.0, "2 ksf"])
-    with pytest.raises(ht.ColumnError, match=r"rows 1 \('NP'\), 3 \('2 ksf'\)"):
-        ht.plot.profile(df, "undrained_shear_strength")
+def test_text_in_a_length_column_names_the_rows(frame):
+    df = frame(depth=[5.0, "10 ft", 15.0, 20.0])
+    with pytest.raises(ht.ColumnError, match=r"'depth'.*rows 1 \('10 ft'\)"):
+        ht.plot.profile(df, "undrained_shear_strength", vs="depth")
 
 
 def test_a_preset_for_another_quantity_is_an_error(frame):
