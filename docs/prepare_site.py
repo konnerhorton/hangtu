@@ -28,11 +28,12 @@ CELL_HEIGHT = 10
 STROKE = 2
 ROWS = (3, 6)  # top of each bar or square in a cell
 BASELINE = 8  # of a letter, from the top of its cell
-LOGO_COLORS = {"logo.svg": "#ffffff", "favicon.svg": "#3c3c3c"}
-# The wordmark is committed, since the README links to it, in an earth tone
-# that reads on light and dark backgrounds alike.
+# One earth tone for every mark: it reads on light and dark backgrounds
+# alike, and the site's header follows the page background in both themes.
+LOGO_COLOR = "#8a6a4a"
+SMALL_MARKS = ["logo.svg", "favicon.svg"]  # header logo and browser tab
+# The wordmark is committed, since the README links to it.
 WORDMARK = SITE / "img" / "wordmark.svg"
-WORDMARK_COLOR = "#8a6a4a"
 
 
 def run_example(script: Path, folder: Path) -> subprocess.CompletedProcess:
@@ -141,10 +142,10 @@ def write_logo() -> None:
     """Write the wordmark, and the header logo and favicon from the small mark."""
     GENERATED.mkdir(parents=True, exist_ok=True)
     wordmark, small_mark = logo_marks()
-    for name, color in LOGO_COLORS.items():
-        (GENERATED / name).write_text(mark_svg(small_mark, color), encoding="utf-8")
-    svg = mark_svg(wordmark, WORDMARK_COLOR, square=False)
-    WORDMARK.write_text(svg, encoding="utf-8")
+    for name in SMALL_MARKS:
+        icon = mark_svg(small_mark, LOGO_COLOR)
+        (GENERATED / name).write_text(icon, encoding="utf-8")
+    WORDMARK.write_text(mark_svg(wordmark, LOGO_COLOR, square=False), encoding="utf-8")
     print("Wrote wordmark.svg, logo.svg and favicon.svg")
 
 

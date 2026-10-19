@@ -142,7 +142,7 @@ It uses only hangtu and its runtime dependencies, so the `docs` group adds nothi
 - **README:** the wordmark SVG replaces the `# hangtu` heading at the top, linked by its raw GitHub URL so PyPI shows it too, and the two lines on the name (intent, decision 9) follow it.
 - **Home page:** the same SVG, then the same two lines.
 - **Wordmark SVG:** drawn like the small mark, with the letters as outlines of DejaVu Sans Mono Bold (shipped with matplotlib), in an earth tone (`#8a6a4a`) that reads on light and dark backgrounds. A test checks the committed file matches `logo.txt`.
-- **SVG:** the small mark is drawn on a grid of character cells. Each `=` is two horizontal bars across its cell, each `:` is two small squares stacked in the middle of its cell, and spaces are empty. There is no text and no font, so it looks the same in every browser. `logo.svg` is white, for the colored header. `favicon.svg` is dark gray on transparent, for a browser tab.
+- **SVG:** the small mark is drawn on a grid of character cells. Each `=` is two horizontal bars across its cell, each `:` is two small squares stacked in the middle of its cell, and spaces are empty. There is no text and no font, so it looks the same in every browser. `logo.svg` (the header logo) and `favicon.svg` use the wordmark's earth tone, which reads in both themes: the default theme's header follows the page background, so a white logo disappears in light mode.
 
 ### 7. Build and deploy
 - **CI (`ci.yml`):** a new `docs` job on Ubuntu runs the three build commands in §1 on every push to `main` and every pull request.
