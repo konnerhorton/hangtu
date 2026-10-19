@@ -11,6 +11,7 @@ import numpy as np
 from matplotlib.artist import Artist
 from matplotlib.axes import Axes
 from matplotlib.text import Annotation
+from matplotlib.transforms import Transform
 from numpy.typing import ArrayLike
 
 # Footnote wording by reason. {n} is the count, {s} the plural ending, and
@@ -159,6 +160,7 @@ def edge_markers(
     limits: Mapping[str, tuple[float, float] | None],
     color: str,
     marker: str = "o",
+    transform: Transform | None = None,
 ) -> np.ndarray:
     """Draw values beyond fixed axis limits at the limit, with an outward arrow.
 
@@ -176,6 +178,9 @@ def edge_markers(
         has no fixed limits.
     color, marker
         The series color and marker.
+    transform
+        The coordinates of ``x`` and ``y``; data coordinates by default. P01
+        text values use x in axes coordinates and y in data.
 
     Returns
     -------
@@ -201,6 +206,7 @@ def edge_markers(
         edgecolors=color,
         clip_on=False,
         zorder=3,
+        transform=ax.transData if transform is None else transform,
     )
     for xi, yi, dx, dy in zip(
         x_edge[mask], y_edge[mask], x_dir[mask], y_dir[mask], strict=True
@@ -208,6 +214,7 @@ def edge_markers(
         ax.annotate(
             "",
             xy=(xi, yi),
+            xycoords="data" if transform is None else transform,
             xytext=(dx * ARROW_LENGTH, dy * ARROW_LENGTH),
             textcoords="offset points",
             arrowprops={"arrowstyle": "<-", "color": color, "lw": 0.8, "shrinkB": 3},

@@ -86,6 +86,23 @@ def test_edge_markers_sit_at_the_limit_and_point_outward():
     assert arrows == [((10, 6), (10, 0)), ((0, 7), (-10, 0)), ((4, 20), (0, -10))]
 
 
+def test_edge_markers_draw_in_the_transform_given():
+    _, ax = plt.subplots()
+    ax.set_ylim(20, 0)
+    blended = ax.get_yaxis_transform()  # x in axes, y in data
+    mask = edge_markers(
+        ax, [0.0, 0.0], [5.0, 25.0], {"y": (20, 0)}, color="C1", transform=blended
+    )
+
+    assert mask.tolist() == [False, True]
+    [markers] = ax.collections
+    assert markers.get_offset_transform() == blended
+    assert markers.get_offsets().tolist() == [[0, 20]]
+    [arrow] = ax.texts
+    assert arrow.xycoords == blended
+    assert (arrow.xy, arrow.xyann) == ((0, 20), (0, -10))
+
+
 def test_no_edge_markers_when_everything_fits():
     _, ax = plt.subplots()
     mask = edge_markers(ax, [1.0, 2.0], [1.0, np.nan], {"x": (0, 5)}, color="C0")
