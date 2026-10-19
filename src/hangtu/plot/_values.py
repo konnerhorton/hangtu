@@ -237,13 +237,16 @@ def qualifier_handles(qualifiers: np.ndarray, notes: Notes) -> list[Line2D]:
     return flag_handles(qualifiers, QUALIFIERS, notes)
 
 
-def legend_marker(marker: str, color: Any, label: str, size: float) -> Line2D:
+def legend_marker(
+    marker: str, color: Any, label: str, size: float, filled: bool = True
+) -> Line2D:
     return Line2D(
         [],
         [],
         marker=marker,
         markersize=size,
         color=color,
+        markerfacecolor=color if filled else "none",
         linestyle="none",
         label=label,
     )

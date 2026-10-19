@@ -13,10 +13,10 @@ from matplotlib.patches import Patch
 from matplotlib.text import Text
 
 from hangtu import units as _units
-from hangtu._data import numeric_column, rows_text
+from hangtu._data import rows_text, text_values
 from hangtu._settings import _display_units, settings
 from hangtu.errors import ColumnError, HangtuError, warn
-from hangtu.plot import _layers, _presets, _values, style
+from hangtu.plot import _layers, _presets, _text_values, _values, style
 from hangtu.plot._hints import hint_missing
 from hangtu.plot._labels import axis_label
 from hangtu.plot._legend import add_legend
@@ -298,6 +298,12 @@ def profile(
     values ≤ 0 on a log axis and values beyond fixed limits are counted in a
     footnote, and the counts are in ``ax.ags_notes``.
 
+    Text in the value column is drawn at the left edge at its depth, one
+    marker shape per text, and counted: ``NP`` and ``refusal`` (any case) as
+    flags, any other text (``dry``) with a warning so you can clean it.
+    ``ht.read_csv`` reads ``n/a``, ``NA`` and ``null`` as blanks, so those are
+    counted as blank, not as text.
+
     Parameters
     ----------
     df : pandas.DataFrame
@@ -487,19 +493,29 @@ def _draw_profile(
             units,
             quantities={value: quantity} if quantity else None,
         )
-        raw = numeric_column(df, value)
+        raw, texts = text_values(df, value)
         x, x_unit_text = _units.to_display(raw, resolved[value], quantity, system)
         y, vertical = vertical_values(df, vs, resolved, system)
         if secondary == "depth":
             check_secondary_depth(vertical)
         if flags is None:
             flags = _values.qualifiers(df)
+        qualified_text = (texts != "") & (flags != "")
+        if qualified_text.any():
+            found = ", ".join(map(repr, dict.fromkeys(texts[qualified_text])))
+            raise ColumnError(
+                f"Rows {rows_text(df.index[qualified_text])} have a qualifier and "
+                f"text in {value!r} ({found}). A qualifier needs a number: put the "
+                f"number in {value!r}, or clear 'qualifier' on those rows."
+            )
+        _text_values.warn_unrecognized(df.index, value, texts)
         bounds = _intervals(df, intervals, resolved, vertical)
 
         notes = Notes() if notes is None else notes
-        blank = np.isnan(x) | np.isnan(y)
+        blank = (np.isnan(x) & (texts == "")) | np.isnan(y)
         notes.count(blank, "nan")
-        drawn = ~blank
+        texts = np.where(blank, "", texts)
+        drawn = ~blank & (texts == "")
         if log:
             nonpositive = drawn & (x <= 0)
             notes.count(nonpositive, "log_nonpositive")
@@ -537,9 +553,8 @@ def _draw_profile(
             set_log_axis(ax, "x", limits)
         else:
             set_linear_axis(ax, "x", limits)
-        _set_vertical_axis(
-            ax, vs, np.concatenate([y[drawn], top[bars], base[bars]]), ylim
-        )
+        heights = np.concatenate([y[drawn | (texts != "")], top[bars], base[bars]])
+        _set_vertical_axis(ax, vs, heights, ylim)
         if xaxis_position == "top":
             ax.xaxis.tick_top()
             ax.xaxis.set_label_position("top")
@@ -594,13 +609,16 @@ def _draw_profile(
             edge |= group_edge
             these = bars & rows & ~group_edge
             _draw_intervals(ax, x[these], top[these], base[these], color)
-            if group is not None and rows.any():
+            if group is not None and (rows | ((texts != "") & (groups == group))).any():
                 unit_handles.append(
                     Patch(facecolor=color, edgecolor="none", label=str(group))
                     if shapes
                     else _values.legend_marker("o", color, str(group), MARKER_SIZE)
                 )
-        notes.count(edge, "beyond_limit")
+        text_handles, text_edge = _text_values.draw_text_values(
+            ax, y, texts, groups, colors, ylim, notes
+        )
+        notes.count(edge | text_edge, "beyond_limit")
         shape_handles = [
             _values.legend_marker(shape, _values.NEUTRAL, str(group), MARKER_SIZE)
             for group, shape in shapes.items()
@@ -608,7 +626,7 @@ def _draw_profile(
         ]
         flagged = _values.flag_handles(np.where(drawn, flags, ""), flag_kinds, notes)
 
-        if not drawn.any():
+        if not (drawn | (texts != "")).any():
             ax.text(
                 0.5,
                 0.5,
@@ -638,13 +656,14 @@ def _draw_profile(
                 interval=bool(info) and info.get("scale") == "interval",
             )
             box = draw_stats_box(ax, rows, None if note is None else str(note))
-            heights = np.concatenate([y[drawn], top[bars], base[bars]])
             if stats_box_room and ylim is None and heights.size:
                 lowest = heights.max() if vs == "depth" else heights.min()
                 _room_below_data(ax, box, float(lowest))
         if secondary == "depth":
             add_secondary_depth(ax, vertical)
         offset = SECONDARY_SPACE if secondary else 0.0
-        add_legend(ax, [unit_handles, shape_handles, flagged], notes, offset)
+        add_legend(
+            ax, [unit_handles, shape_handles, flagged, text_handles], notes, offset
+        )
         notes.render(ax, offset)
     return fig, ax
