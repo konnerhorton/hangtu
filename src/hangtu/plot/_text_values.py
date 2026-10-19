@@ -122,3 +122,16 @@ def draw_text_values(
             )
         )
     return handles, edge
+
+
+def also_line(texts: np.ndarray) -> str | None:
+    """Return the stats box's last line, ``"Also: NP 3, refusal 1, 'dry' 2"``."""
+    distinct = order(texts)
+    if not distinct:
+        return None
+    counts = [
+        f"{label(text)} {np.count_nonzero(texts == text)}"
+        for text in distinct[:MAX_LISTED]
+    ]
+    more = len(distinct) - MAX_LISTED
+    return "Also: " + ", ".join(counts) + (f" and {more} more" if more > 0 else "")

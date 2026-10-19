@@ -655,7 +655,12 @@ def _draw_profile(
                 order=list(colors),
                 interval=bool(info) and info.get("scale") == "interval",
             )
-            box = draw_stats_box(ax, rows, None if note is None else str(note))
+            box = draw_stats_box(
+                ax,
+                rows,
+                None if note is None else str(note),
+                _text_values.also_line(texts),
+            )
             if stats_box_room and ylim is None and heights.size:
                 lowest = heights.max() if vs == "depth" else heights.min()
                 _room_below_data(ax, box, float(lowest))

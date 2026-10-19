@@ -721,8 +721,17 @@ def stats_table(
     return rows
 
 
-def draw_stats_box(ax: Axes, rows: Sequence[Sequence[str]], note: str | None) -> Text:
-    """Write the stats table in a box at the lower left, above any ``note``."""
+def draw_stats_box(
+    ax: Axes,
+    rows: Sequence[Sequence[str]],
+    note: str | None,
+    also: str | None = None,
+) -> Text:
+    """Write the stats table in a box at the lower left, above any ``note``.
+
+    ``also`` is a last line under the table, not aligned with its columns
+    (P01: the count of text values).
+    """
     widths = [max(len(row[i]) for row in rows) for i in range(len(rows[0]))]
     lines = [
         "  ".join(
@@ -731,6 +740,8 @@ def draw_stats_box(ax: Axes, rows: Sequence[Sequence[str]], note: str | None) ->
         )
         for row in rows
     ]
+    if also is not None:
+        lines.append(also)
     above_note = 0.0 if note is None else NOTE_LINE_HEIGHT * (note.count("\n") + 1) + 4
     return ax.text(
         0.02,
