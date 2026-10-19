@@ -909,6 +909,9 @@ def geology_unit_comparisons(
     Each panel is a ``geology_unit_comparison``. The panels share one legend,
     below the grid, and one footnote that names the panel of each note.
 
+    The arguments not listed below are those of ``geology_unit_comparison``
+    and apply to every panel.
+
     Parameters
     ----------
     data : DataFrame or dict
@@ -927,9 +930,6 @@ def geology_unit_comparisons(
     figsize : (width, height), optional
         The whole figure, in inches. By default the settings ``grid`` size
         per panel, plus room for the legend.
-
-    The other arguments are those of ``geology_unit_comparison`` and apply to
-    every panel.
 
     Returns
     -------
