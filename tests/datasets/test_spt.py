@@ -106,17 +106,17 @@ def test_joins_file_depths(fresh):
         df = fresh("joins").spt()
     by_line = df.set_index("source_line")
     # Hand-calculated in tests/data/ags/_make_files.py, joins_groups().
-    assert by_line.loc[74, "depth"] == pytest.approx(2.00)  # on the boundary
-    assert by_line.loc[74, "geology_unit"] == "ALV"
-    assert by_line.loc[75, "depth"] == pytest.approx(3.05)  # seating refusal
-    assert by_line.loc[76, "geology_unit"] == "TRC"  # 4.80 m, in the overlap
-    assert pd.isna(by_line.loc[78, "geology_unit"])  # 8.20 m, in the gap
-    assert by_line.loc[79, "depth"] == pytest.approx(10.00)
-    assert by_line.loc[79, "geology_unit"] == "BED"  # base of the deepest layer
-    assert by_line.loc[80, "depth"] == pytest.approx(1.175)
-    assert pd.isna(by_line.loc[80, "elevation"])  # J2 has no ground level
-    assert by_line.loc[81, "depth"] == pytest.approx(1.30)  # no NPEN
-    assert 77 not in by_line.index  # incomplete
+    assert by_line.loc[79, "depth"] == pytest.approx(2.00)  # on the boundary
+    assert by_line.loc[79, "geology_unit"] == "ALV"
+    assert by_line.loc[80, "depth"] == pytest.approx(3.05)  # seating refusal
+    assert by_line.loc[81, "geology_unit"] == "TRC"  # 4.80 m, in the overlap
+    assert pd.isna(by_line.loc[83, "geology_unit"])  # 8.20 m, in the gap
+    assert by_line.loc[84, "depth"] == pytest.approx(10.00)
+    assert by_line.loc[84, "geology_unit"] == "BED"  # base of the deepest layer
+    assert by_line.loc[85, "depth"] == pytest.approx(1.175)
+    assert pd.isna(by_line.loc[85, "elevation"])  # J2 has no ground level
+    assert by_line.loc[86, "depth"] == pytest.approx(1.30)  # no NPEN
+    assert 82 not in by_line.index  # incomplete
 
 
 def test_no_ispt_group(tmp_path):

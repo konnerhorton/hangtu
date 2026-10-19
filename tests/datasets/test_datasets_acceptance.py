@@ -126,12 +126,12 @@ def test_5_to_7_geology_on_joins(tmp_path):
     with pytest.warns(UserWarning) as caught:
         spt = p.spt(display_units="SI", geology_fields=["GEOL_GEOL"])
     by_line = spt.set_index("source_line")
-    assert by_line.loc[74, "geology_unit"] == "Alluvium"  # on the 2.00 m boundary
-    assert by_line.loc[76, "geology_unit"] == "Terrace"  # overlap: deepest top
-    assert pd.isna(by_line.loc[78, "geology_unit"])  # in the gap
-    assert by_line.loc[79, "geology_unit"] == "BED"  # unmapped, kept
-    assert by_line.loc[74, "soil_class"] == "fine"
-    assert by_line.loc[74, "geology_code"] == "ALV"
+    assert by_line.loc[79, "geology_unit"] == "Alluvium"  # on the 2.00 m boundary
+    assert by_line.loc[81, "geology_unit"] == "Terrace"  # overlap: deepest top
+    assert pd.isna(by_line.loc[83, "geology_unit"])  # in the gap
+    assert by_line.loc[84, "geology_unit"] == "BED"  # unmapped, kept
+    assert by_line.loc[79, "soil_class"] == "fine"
+    assert by_line.loc[79, "geology_code"] == "ALV"
     assert list(spt["geology_unit"].cat.categories) == [
         "Fill",
         "Alluvium",
@@ -187,10 +187,10 @@ def test_9_filters(projects):
 def test_10_incomplete(tmp_path):
     p = ht.Project.from_ags(DATA / "joins.ags", db=tmp_path / "i.sqlite")
     with pytest.warns(UserWarning) as caught:
-        assert 77 not in set(p.spt()["source_line"])
+        assert 82 not in set(p.spt()["source_line"])
     assert any("Left out 1 of 8 ISPT records" in str(w.message) for w in caught)
     with pytest.warns(UserWarning, match="overlapping"):
-        assert 77 in set(p.spt(include_incomplete=True)["source_line"])
+        assert 82 in set(p.spt(include_incomplete=True)["source_line"])
 
 
 # 11. N60 provenance (test_spt.py has all four cases).

@@ -41,24 +41,26 @@ def test_non_plastic_is_not_blank(atterberg):
     assert np_row["liquid_limit"] == 31  # given, so kept
     assert pd.isna(np_row["plastic_limit"]) and pd.isna(np_row["plasticity_index"])
     assert pd.isna(np_row["liquidity_index"])
-    assert atterberg["non_plastic"].tolist() == [False, True, False]
+    assert atterberg["non_plastic"].tolist() == [False, True, False, True]
 
 
 def test_water_content_needs_the_same_specimen(atterberg):
-    # BH2-D1 has no LNMC row; BH3-B1 has LNMC but no LLPL.
+    # BH2-D1 has no LNMC row; BH3-B1 has both, on the same specimen.
     assert pd.isna(atterberg.iloc[1]["water_content"])
     assert atterberg.iloc[2]["water_content"] == 41
+    assert atterberg.iloc[3]["water_content"] == 12
 
 
 def test_specimen_ids_are_shared_with_grain_size(fresh):
     p = fresh("site_si")
     curves = _quiet(p.grain_size)
     assert curves["specimen_id"].nunique() == 1
-    assert curves["specimen_id"].iloc[0] not in set(_quiet(p.atterberg)["specimen_id"])
+    # BH3-B1's grading and limits are on one specimen.
+    assert curves["specimen_id"].iloc[0] == _quiet(p.atterberg)["specimen_id"].iloc[3]
 
 
 def test_lab_depth_fallbacks(fresh):
-    df = _quiet(fresh("joins").atterberg)
+    df = _quiet(fresh("joins").atterberg).iloc[:3]
     assert list(df["depth"]) == pytest.approx([1.10, 1.25, 3.00])
     assert list(df["depth_basis"]) == ["spec_depth", "sample_mid", "sample_top"]
     assert df["depth_top"].isna().all()  # no SPEC_BASE

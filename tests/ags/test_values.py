@@ -192,6 +192,7 @@ def test_site_file_flags():
         ("ISPT", "ISPT_NVAL", 2): "REFUSAL",
         ("ISPT", "ISPT_WAT", 5): "DRY",
         ("LLPL", "LLPL_PL", 2): "NP",
+        ("LLPL", "LLPL_PL", 4): "NP",
         ("GRAG", "GRAG_PDEN", 1): "ASSUMED",
         ("FGHG", "FGHG_ILUG", 1): "LT",
         ("FGHS", "FGHS_ILUG", 1): "LT",

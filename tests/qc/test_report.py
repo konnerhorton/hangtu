@@ -21,8 +21,8 @@ def test_ingest_findings_appear_with_their_lines(defects):
     found = defects.findings
     rows = set(zip(found["rule_id"], found["group"], found["source_line"], strict=True))
     assert ("U001", "LOCA", 54) in rows
-    assert ("T001", "LNMC", 105) in rows
-    assert ("V10c", "LLPL", 96) in rows
+    assert ("T001", "LNMC", 106) in rows
+    assert ("V10c", "LLPL", 97) in rows
     assert ("V000", "TRAN", 11) in rows
 
 
