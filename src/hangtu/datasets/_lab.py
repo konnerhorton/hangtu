@@ -137,22 +137,30 @@ def atterberg(
         return build.finish(pd.DataFrame(), ATTERBERG_COLUMNS, group="LLPL", **common)
     rows = build.rows("LLPL")
     frame = specimens(build, "LLPL", rows)
-    liquid = build.numbers(rows, "LLPL_LL")
-    plastic = build.numbers(rows, "LLPL_PL")
-    non_plastic = pd.Series(False, index=rows.index)
-    for heading in ("LLPL_LL", "LLPL_PL", "LLPL_PI"):
-        non_plastic |= build.flagged("LLPL", rows, heading, "NP")
-    frame["liquid_limit"] = liquid
-    frame["plastic_limit"] = plastic
-    frame["plasticity_index"] = build.numbers(rows, "LLPL_PI")
-    frame["non_plastic"] = non_plastic
+    frame = frame.join(limits(build, rows))
     frame["water_content"] = _water_content(build, frame)
-    labels = frame["loca_id"].astype(str) + " " + _specimen_names(frame)
+    labels = frame["loca_id"].astype(str) + " " + specimen_names(frame)
     frame = classify_plasticity(frame, labels)
     return build.finish(frame, ATTERBERG_COLUMNS, group="LLPL", **common)
 
 
-def _specimen_names(frame: pd.DataFrame) -> pd.Series:
+def limits(build: Build, rows: pd.DataFrame) -> pd.DataFrame:
+    """LL, PL, the PI the file gives, and ``non_plastic`` of ``LLPL`` rows (§6.2)."""
+    non_plastic = pd.Series(False, index=rows.index)
+    for heading in ("LLPL_LL", "LLPL_PL", "LLPL_PI"):
+        non_plastic |= build.flagged("LLPL", rows, heading, "NP")
+    return pd.DataFrame(
+        {
+            "liquid_limit": build.numbers(rows, "LLPL_LL"),
+            "plastic_limit": build.numbers(rows, "LLPL_PL"),
+            "plasticity_index": build.numbers(rows, "LLPL_PI"),
+            "non_plastic": non_plastic,
+        },
+        index=rows.index,
+    )
+
+
+def specimen_names(frame: pd.DataFrame) -> pd.Series:
     """``<sample reference>/<SPEC_REF>``, as warnings name a specimen."""
     return (
         frame["sample_reference"].fillna("").astype(str)
@@ -351,4 +359,4 @@ def summarize_curves(
 
 
 def _curve_names(frame: pd.DataFrame) -> list[str]:
-    return list(frame["loca_id"].astype(str) + " " + _specimen_names(frame))
+    return list(frame["loca_id"].astype(str) + " " + specimen_names(frame))
