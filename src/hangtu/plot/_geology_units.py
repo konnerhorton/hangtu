@@ -711,6 +711,11 @@ def geology_unit_comparison(
         sorted by name.
     color_by : {"geology_unit", None}
         None draws every unit in one neutral color.
+    reference_lines : list of (value, label), optional
+        Vertical lines at fixed values, such as a code limit. A string such
+        as ``"2000 psf"`` carries its own unit.
+    note : str, optional
+        Free text, added to the footnote.
     palette : dict, optional
         ``{geology unit: color}`` for this plot.
     units : dict, optional

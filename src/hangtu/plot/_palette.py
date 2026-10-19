@@ -114,7 +114,12 @@ def palette_cmap(units: Sequence[Any] | None = None) -> ListedColormap:
     """Return the geology unit colors as a colormap, one color per unit in order.
 
     Use it to color your own matplotlib plots consistently with hangtu's.
-    Without ``units``, every unit colored so far in this session is included.
+
+    Parameters
+    ----------
+    units : list, optional
+        The geology units, in order. By default every unit colored so far in
+        this session.
     """
     units = _known_units() if units is None else list(units)
     colors = resolve_palette(units, order=units)
@@ -123,6 +128,12 @@ def palette_cmap(units: Sequence[Any] | None = None) -> ListedColormap:
 
 def legend_handles(units: Sequence[Any] | None = None) -> list[Patch]:
     """Return legend patches for geology units, for a stand-alone legend.
+
+    Parameters
+    ----------
+    units : list, optional
+        The geology units, in order. By default every unit colored so far in
+        this session.
 
     Examples
     --------
