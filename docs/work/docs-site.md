@@ -164,3 +164,56 @@ It uses only hangtu and its runtime dependencies, so the `docs` group adds nothi
 - `CLAUDE.md`: the docs commands under Commands, `docs/site/` under Where things are, and the status line.
 - `.gitignore`: the two generated paths in §1, and `/site` removed (§2).
 - `docs/plots/README.md`: a plot's close-out adds its page to the site (§3).
+
+## Plan
+
+Each step is one commit (two where noted), green under ruff and pytest and under about 300 changed lines. Section numbers refer to the Spec above.
+
+
+### 1. Scaffold the site (`docs: scaffold the Zensical site`)
+- `pyproject.toml`: `[dependency-groups] docs = ["zensical==0.0.70", "mkdocstrings-python>=2.0.9"]`; `uv lock`.
+- `zensical.toml` at the root, per spec §2: project keys (`docs_dir = "docs/site"`, `site_dir = "build/site"`, `site_url`, `repo_url`), the theme features and light/dark palette (copied from `zensical new` output), the markdown extensions from `zensical new` plus `pymdownx.arithmatex` and `pymdownx.snippets` (`base_path = ["docs/site/examples", "examples"]`, `check_paths = true`), MathJax `extra_javascript` (pinned 3.2.2), the mkdocstrings Python handler options, and `nav` with only Home for now.
+- `docs/site/index.md` (placeholder), `docs/site/javascripts/mathjax.js` (Zensical's documented config).
+- `.gitignore`: drop `/site`; add `docs/site/img/generated/` and `docs/site/reference/columns.md`.
+- Check: `uv sync --group docs && uv run zensical build --clean --strict`.
+
+### 2. Examples runner (`docs: run the page examples before a build`)
+- `docs/prepare_site.py` with `main()` and one function per job (spec §5). This step: `run_examples()` runs each `docs/site/examples/*.py` in a fresh temp folder with `MPLBACKEND=Agg` (same subprocess pattern as `tests/test_examples.py::test_example_runs_clean`), stops with the example's name and stderr on failure, and copies `<name>.png` to `docs/site/img/generated/`.
+- First example: `docs/site/examples/spt-profile.py` (≤10 lines: `ht.read_csv(ht.examples.path("spt.csv"), units=...)`, `ht.plot.spt_profile(...)`, `fig.savefig("spt-profile.png")`), shown on the placeholder home page.
+- `tests/docs/test_site.py`: parametrized over `docs/site/examples/*.py`, runs each in `tmp_path` like `test_example_runs_clean` (returncode 0, empty stderr, `<name>.png` written for files that call `savefig`). Criterion 3.
+
+### 3. Logo and name (`docs: add the ASCII logo to the README and site`)
+- Move `sandbox/logo/logo.txt` → `docs/img/logo.txt` (copy; the sandbox is the user's to clean up).
+- `prepare_site.py`: `write_logo()` parses the small mark (second block) and writes `img/generated/logo.svg` (white) and `favicon.svg` (dark gray): `=` → two bars, `:` → two stacked squares, per cell; no text. `zensical.toml`: `theme.logo`, `theme.favicon`.
+- `README.md`: wordmark in a plain fence replacing `# hangtu`, then the two lines on the name (intent decision 9). Home page: same, fence with `{ .text .no-copy }`.
+- Tests: SVG has 2 shapes per `=`/`:` in the small mark; README's first fence equals the wordmark block in `logo.txt`; `tests/test_readme.py` still finds two `python` blocks. Criterion 6.
+
+### 4. Reference pages (`docs: generate the API and column reference`)
+- `docs/site/reference/{project,plot,analysis,data,errors}.md` with `:::` directives (spec §3). `ht.settings` is documented through its class (`hangtu._settings.Settings`), titled `ht.settings`.
+- `prepare_site.py`: `write_columns_page()` from `ht.columns()`: one table per template/dataset, columns name, description, quantity, US unit, SI unit (no `used_by`).
+- Tests: every name in `ht.__all__`, `ht.plot.__all__`, `ht.analysis.__all__`, `ht.examples.__all__` has a `:::` directive (criterion 2); `columns.md` has every registry column (criterion 5).
+- Docstrings that render badly or warn under `--strict` are fixed in their own commits (`docs: fix the <name> docstring`), before this step's commit.
+
+### 5. Home, Install, Getting started (`docs: write the home, install and getting-started pages`)
+- `index.md` (wordmark, name, what it does, figure, one example, links), `install.md` (tabs: latest from GitHub first, then PyPI), `getting-started/csv.md` and `ags.md` with short examples from `docs/site/examples/` and the full `examples/*.py` in a collapsed `???` block via snippets.
+- Test: each page under Getting started, Guides and Plots in the `nav` (read with `tomllib`) has a `--8<--` include before its first `## ` (criterion 4).
+
+### 6. Guides (`docs: write the guides`; split in two if over ~300 lines)
+- `guides/units.md`, `templates.md`, `ags-and-qc.md`, `datasets.md`, `spt.md` (N60 formula in MathJax, refusal, cap, classes, the table is the engineer's call), each with its example file.
+
+### 7. Plot pages (`docs: write the plot pages`)
+- `plots/index.md` (shared behavior, `ht.Sheet`), `profile.md`, `spt-profile.md`, `spt-histogram.md`, `geology-unit-comparison.md`, each with an example, its figure and a "Common options" table.
+
+### 8. CI and deploy (`docs: build the site in CI and deploy it from main`)
+- `ci.yml`: `docs` job (Ubuntu, Python 3.12): `uv sync --locked --group docs`, `uv run python docs/prepare_site.py`, `uv run zensical build --clean --strict`.
+- `.github/workflows/docs.yml`: on push to `main` with the `paths` in spec §7, and `workflow_dispatch`; same build, then `actions/configure-pages`, `upload-pages-artifact` (`path: build/site`), `deploy-pages`; `pages: write` and `id-token: write` on that job only.
+- `pyproject.toml`: `Documentation` URL. `README.md`: install from GitHub for the latest features, and a link to the site.
+
+### 9. Close-out (last build commit)
+- SPEC §12.1 docs line; `CLAUDE.md` commands (`uv sync --group docs`, prepare, build/serve), `docs/site/` under Where things are, status line; `docs/plots/README.md`: a plot's close-out adds its page.
+- By eye with `zensical serve`: math on the SPT guide and in a docstring, the header logo and favicon, light and dark (criterion 7).
+- After merge and push (with approval): the user sets Pages to deploy from GitHub Actions; check the site at the `site_url` (criterion 9). README on PyPI is checked at the next TestPyPI rehearsal (criterion 8).
+
+### Verification
+- Every step: `uv run ruff check . && uv run ruff format --check . && uv run pytest`, and from step 1 on `uv run python docs/prepare_site.py && uv run zensical build --clean --strict`.
+- Criteria 1–6 are tests or the strict build; 7 by eye at step 9; 8 and 9 after merge.
