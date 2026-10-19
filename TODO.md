@@ -27,6 +27,7 @@ Verify against the source standards during M8:
 - AASHTO M 145 / ASTM D3282 group and group-index rules;
 - ASTM D2487-17 USCS;
 - ISO 14688-1 size fractions.
+- the sieve lists in `config/sieves.yaml` (ASTM E11 sizes and designations; the ISO list at the ISO 14688-1 boundaries), used by P05.
 
 ### 22. Organic soils (OL, OH) in USCS · You · docs/drafts/analysis.md §2; P04
 - **Problem:** USCS splits OL from ML and OH from MH by the oven-dried LL, which isn't in AGS LLPL. In M8 the analysis gives only the inorganic symbol (M8 intent, decision 3).

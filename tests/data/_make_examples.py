@@ -9,6 +9,9 @@ terrace sand, in US units as a US consultant's file would have them. Values
 come from fixed rules plus a seeded ``random.Random``, whose sequence Python
 keeps the same across versions, so the files are reproduced exactly.
 
+The fill and the upper alluvium tubes have hydrometer tests, so their
+grading curves continue into the fines; the terrace sands are sieved only.
+
 Two QC findings are planted, so the QC example has something to report:
 - G002, a gap in the geology log of B-4 from 9.0 to 10.0 ft;
 - A002, a plasticity index in B-3 that doesn't match LL - PL (an arithmetic slip).
@@ -33,6 +36,9 @@ _spec.loader.exec_module(_files)
 group, write_group = _files.group, _files.write_group
 
 rng = random.Random(2026)
+# Hydrometer values have their own sequence, so adding them left every other
+# value in the files unchanged.
+hydrometer_rng = random.Random(2027)
 
 ABBR = [
     ("LOCA_TYPE", "HSA", "Hollow stem auger"),
@@ -70,6 +76,8 @@ DESCRIPTIONS = {
     "TRC": ("SP", "Terrace", "Medium dense to very dense brown SAND with gravel (SP)"),
 }
 SIEVES = [75.0, 37.5, 19.0, 9.5, 4.75, 2.0, 0.85, 0.425, 0.25, 0.15, 0.075]  # mm
+# Hydrometer particle sizes (mm), as a lab's readings at set times give them.
+HYDROMETER = [0.046, 0.033, 0.021, 0.012, 0.0089, 0.0063, 0.0031, 0.0013]
 
 STRATA = """\
 code,geology_unit,soil_class,order,color
@@ -281,11 +289,32 @@ def curve(d50, slope, fines):
     return passing
 
 
+def fines_curve(fines, d50, slope):
+    """Percent passing each hydrometer size, continuing down from the #200 sieve.
+
+    An S-curve through the fines, scaled to meet ``fines`` at 0.075 mm and
+    never rising as size falls.
+    """
+
+    def share(size):
+        return 1 / (1 + (d50 / size) ** slope)
+
+    passing, last = [], fines
+    for size in HYDROMETER:
+        last = min(last, round(fines * share(size) / share(0.075)))
+        passing.append(last)
+    return passing
+
+
 def grading():
-    """GRAG and GRAT rows for each terrace spoon and fill bulk sample."""
+    """GRAG and GRAT rows for each terrace spoon, fill bulk and upper alluvium tube.
+
+    The fill and alluvium have hydrometer points below the #200 sieve.
+    """
     grag, grat = [], []
     for sample in samples():
-        _, _, _, kind, _ = sample
+        _, top, _, kind, _ = sample
+        hydrometer = None
         if kind == "D":
             passing = curve(
                 rng.uniform(0.5, 1.4), rng.uniform(1.6, 2.4), rng.randint(3, 9)
@@ -294,14 +323,32 @@ def grading():
             passing = curve(
                 rng.uniform(1.5, 3.0), rng.uniform(0.9, 1.2), rng.randint(18, 26)
             )
+            hydrometer = (
+                hydrometer_rng.uniform(0.012, 0.025),
+                hydrometer_rng.uniform(0.8, 1.0),
+            )
+        elif kind == "U" and top == 12.5:
+            passing = curve(
+                hydrometer_rng.uniform(0.12, 0.2),
+                hydrometer_rng.uniform(1.8, 2.4),
+                hydrometer_rng.randint(84, 95),
+            )
+            hydrometer = (
+                hydrometer_rng.uniform(0.004, 0.009),
+                hydrometer_rng.uniform(0.7, 0.9),
+            )
         else:
             continue
         gravel = passing[SIEVES.index(4.75)]
         fines = passing[SIEVES.index(0.075)]
         grag.append([*specimen(sample), 100 - gravel, gravel - fines, fines])
+        sizes = list(SIEVES)
+        if hydrometer is not None:
+            passing = passing + fines_curve(fines, *hydrometer)
+            sizes += HYDROMETER
         grat += [
             [*specimen(sample), size, percent]
-            for size, percent in zip(SIEVES, passing, strict=True)
+            for size, percent in zip(sizes, passing, strict=True)
         ]
     grag_group = group(
         "GRAG",
@@ -439,6 +486,7 @@ def main(out=OUT):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     rng.seed(2026)
+    hydrometer_rng.seed(2027)
     write_site(out / "site.ags")
     (out / "strata.csv").write_text(STRATA, encoding="utf-8", newline="")
     write_csvs(out)

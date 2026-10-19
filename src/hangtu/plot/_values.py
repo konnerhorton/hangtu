@@ -11,11 +11,12 @@ from typing import Any, NamedTuple
 
 import numpy as np
 import pandas as pd
+from matplotlib.colors import is_color_like
 from matplotlib.lines import Line2D
 
 from hangtu import units as _units
 from hangtu._data import rows_text
-from hangtu.errors import ColumnError, HangtuError
+from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.plot._limits import clear_of_data, log_limits, nice_limits
 from hangtu.plot._notes import Notes
 from hangtu.plot._palette import data_order, resolve_palette
@@ -168,6 +169,36 @@ def color_groups(
     if blank.any():
         colors[BLANK_GROUP] = NEUTRAL
     return groups, colors
+
+
+def label_colors(
+    labels: Sequence[str],
+    colors: Mapping[str, str] | None,
+    argument: str,
+    table: str,
+    default: str,
+) -> dict[str, str]:
+    """Return ``{label: color}`` for a user table's labels (P04 regions, P05 envelopes).
+
+    ``colors`` is the plot argument named ``argument``; labels it doesn't name
+    get ``default``. A color matplotlib doesn't recognize is an error, and a
+    label that isn't in the ``table`` table warns.
+    """
+    colors = dict(colors or {})
+    bad = [label for label, color in colors.items() if not is_color_like(color)]
+    if bad:
+        raise HangtuError(
+            f"{argument} has colors matplotlib doesn't recognize for {bad}. "
+            'Use a color name ("tan"), a hex string ("#d2b48c") or an RGB tuple.'
+        )
+    unknown = [label for label in colors if label not in labels]
+    if unknown:
+        warn(
+            f"{argument} names {', '.join(map(repr, unknown))}, which "
+            f"{'is' if len(unknown) == 1 else 'are'} not in the {table} table. "
+            f"{table.capitalize()}: {', '.join(map(repr, labels)) or 'none'}."
+        )
+    return {label: colors.get(label, default) for label in labels}
 
 
 def qualifiers(df: pd.DataFrame) -> np.ndarray:

@@ -1,0 +1,33 @@
+# Sieve labels along the top of the grain size plot (P05 §8). Each entry is
+# [size in mm, label]. ht.plot.grain_size(sieves="auto") uses the US list in US
+# display and the ISO list in SI. Values marked "verify" are checked against
+# the standard before release (TODO #5).
+
+us:
+  description: US standard sieves
+  source: ASTM E11                     # verify
+  sieves:
+    - [75, '3"']
+    - [37.5, '1-1/2"']
+    - [19.0, '3/4"']
+    - [9.5, '3/8"']
+    - [4.75, "#4"]
+    - [2.00, "#10"]
+    - [0.850, "#20"]
+    - [0.425, "#40"]
+    - [0.250, "#60"]
+    - [0.150, "#100"]
+    - [0.106, "#140"]
+    - [0.075, "#200"]
+
+iso:
+  description: Sizes in mm at the ISO 14688-1 fraction boundaries
+  source: ISO 14688-1:2017             # verify
+  sieves:
+    - [63, "63"]
+    - [20, "20"]
+    - [6.3, "6.3"]
+    - [2, "2"]
+    - [0.63, "0.63"]
+    - [0.2, "0.2"]
+    - [0.063, "0.063"]

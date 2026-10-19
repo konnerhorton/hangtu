@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **ID / function** | P05 · `ht.plot.grain_size()` (uses `ht.analysis.gradation()`) |
-| **Status** | approved |
+| **Status** | built |
 | **Type** | plot + analysis (D-values, fractions) |
 | **Target version** | v0.2 (milestone M8) |
 | **Depends on** | P00, the gradation analysis (`docs/drafts/analysis.md` §3) |
@@ -17,10 +17,13 @@ Draws particle-size distribution curves, one per specimen, on a log size axis, w
 ## 2. Reference figure
 ```
      ┌──────┬───────────────────────┬────────────────┬────────┐
-     │      │ fine │ medium │ coarse│  fine  │ coarse│        │   ← parts
-     │Fines │         Sand          │     Gravel     │Cobbles │   ← fractions
-     ├──────┴───────────────────────┴────────────────┴────────┤
- 100 ┤   #200   #100  #40  #20 #10 #4   ⅜"  ¾"  1½" 3"        │   ← sieve labels
+     │      │         Sand          │     Gravel     │        │   ← fractions
+     │Fines │ fine │ medium │ coarse│  fine  │ coarse│Cobbles │   ← parts
+     └──────┴──────┴────────┴───────┴────────┴───────┴────────┘
+            #140  #60      #10    3/8"   1-1/2"                    ← sieve labels,
+          #200  #100  #40  #20  #4   3/4"   3"                       two rows when crowded
+     ┌─────┴────┴─────┴─────┴────┴───┴─────┴────┴──────────────┐
+ 100 ┤                                                          │
      │                          __________________/           │
      │                   ______/ ░░░░ envelope ░░░░           │
   %  │            ______/ ┊D60                                │
@@ -52,16 +55,17 @@ Draws particle-size distribution curves, one per specimen, on a log size axis, w
 **Minimum data:** two points per curve. A curve with fewer is skipped and counted.
 
 ## 4. Analysis / calculations
-- Points are sorted by size **as rows**, with the analysis's sorting (`_gradation.py`), never one column at a time.
+- Points are sorted by size **as rows**, with the analysis's sorting (`grading_curves()` in `_gradation.py`, which `gradation()` also uses), never one column at a time. The plot uses that function rather than `gradation()` itself, so short curves, blank points and unreached D-values are counted in the footnote instead of warned about.
 - **Non-monotonic curves** (a rise of more than 0.5 percentage points toward finer sizes, QC P001's tolerance) are drawn as given, with one warning naming them.
-- **D-values** (`d_values=`) come from `ht.analysis.gradation()`: log-linear, never extrapolated. A D-value a curve doesn't reach isn't drawn and is counted.
+- **D-values** (`d_values=`) come from the gradation analysis's `d_value()`, as in `ht.analysis.gradation()`: log-linear, never extrapolated. A D-value a curve doesn't reach isn't drawn and is counted. Curves the analysis can't use (fewer than two points, or non-monotonic) get none.
 - **Fractions** in the header band come from the same fraction system as `gradation(fractions=)`: built in (`astm_uscs`, `aashto`, `iso14688`) or the user's (analysis §3.5).
 - Nothing else is computed.
 
 ## 5. Figure layout
-- **Panels:** the main axes, plus a thin header axes above it sharing x (the fraction band, about 0.45 in high). It's one figure element: with `ax=`, the header is carved from the top of the axes given, so the plot still composes on a `Sheet`.
+- **Panels:** the main axes, plus two thin axes above it sharing x: the sieve strip on the frame (0.05 in, plus 0.12 in per row of labels) and the fraction band above that (0.45 in). It's one figure element: with `ax=`, both are carved from the top of the axes given, so the plot still composes on a `Sheet`.
+- **Legend and footnote** go below the x label, centered, the legend in up to four columns and the footnote under it, rather than on the right as on other plots: a column beside the axes squeezes the log axis, which needs its width to read sizes.
 - **Default size:** `default` (6.5 × 4.5 in), landscape. `figsize=` covers a full Letter landscape sheet.
-- `fig, ax` returns the main axes; the header is `ax.grain_size_header`.
+- `fig, ax` returns the main axes; the header is `ax.grain_size_header` (None with `fractions=None`) and the strip `ax.grain_size_sieves` (None with no sieve in the x range). Both come from one `make_axes_locatable(ax)` divider with `append_axes("top", ..., pad=0, sharex=ax)`, the strip first, which works under constrained layout.
 
 ## 6. Axes
 | | X axis | Y axis |
@@ -70,10 +74,10 @@ Draws particle-size distribution curves, one per specimen, on a log size axis, w
 | Label | `Particle size (mm)` | `Percent passing (%)` |
 | Scale | log, whole decades | linear |
 | Direction | coarse on the right (increasing to the right), in US and SI display alike; `reverse=True` puts coarse on the left | normal |
-| Limits | whole decades covering the data, and at least 0.001–100 mm; `xlim=` overrides | 0–100, fixed |
+| Limits | whole decades covering the data, and at least 0.001–100 mm; a point on a whole decade moves that limit out one decade (P00 §8); `xlim=` overrides, exactly | 0–100, fixed |
 | Ticks | decades labeled in plain numbers (0.001, 0.01, …, 100) | every 10 |
 | Gridlines | major and minor (2–9) | every 10 |
-| Secondary | sieve labels along the top inside edge (`sieves=`) | — |
+| Secondary | sieve labels above the frame, under the band (`sieves=`) | — |
 
 **Range constraints:**
 - [x] Fixed y limits (0–100).
@@ -82,10 +86,10 @@ Draws particle-size distribution curves, one per specimen, on a log size axis, w
 ## 7. Data marks
 | Series | Mark | Color by | Legend entry | Notes |
 |---|---|---|---|---|
-| Curves | line 1 pt through the points, with 3 pt markers at each point | `geology_unit` (palette) | ✔ per unit, "Unit A (n = 6 curves)" | `color_by="specimen_id"`: one color per curve from the palette cycle, legend per curve |
+| Curves | line 1 pt through the points, with 3 pt markers at each point | `geology_unit` (palette) | ✔ per unit, "Unit A (n = 6 curves)"; "All curves (n = 8)" with one color | `color_by` is any column that is the same for all of a curve's points (one that varies is an error). `color_by="specimen_id"`: one color per curve from the automatic cycle, in curve order and not remembered in the session palette; legend per curve |
 | Points beyond `xlim` | open marker at the edge + arrow | curve color | footnote count | README policy |
-| D-values | one curve: dashed leaders to both axes and a label "D60 = 0.71 mm"; several curves: a small tick across each curve at each D-value, no labels | black | — | `d_values=True` (D10, D30, D60) or a list |
-| Envelopes | filled band between the lower and upper curves, alpha 0.2, outlined | `envelope_colors=`, else gray | ✔ per envelope | |
+| D-values | one curve: dashed leaders to both axes and a label "D60 = 0.711 mm" (3 significant figures); several curves: a small `|` tick across each curve at each D-value, no labels | black | — | `d_values=True` (D10, D30, D60) or a list |
+| Envelopes | filled band between the lower and upper curves, alpha 0.2, outlined, under the gridlines | `envelope_colors=`, else gray | ✔ per envelope, after the curves | |
 
 More than 20 curves with `color_by="specimen_id"`: the README legend rules apply, and the warning suggests coloring by unit.
 
@@ -94,21 +98,21 @@ More than 20 curves with `color_by="specimen_id"`: the README legend rules apply
 ## 8. Overlays and annotations
 | Overlay | Argument | Default | Source | Style | Notes |
 |---|---|---|---|---|---|
-| Fraction band | `fractions=` | `"astm_uscs"` | `config/fraction_systems.yaml` or the user's system | two rows: fraction names, then their parts (fine, medium, coarse) where the system has them; dividers at each boundary down through the main axes as light vertical lines | `None` hides the band and the dividers. Only fractions inside the x range are named |
-| Sieve labels | `sieves=` | `"auto"`: US list in US display, ISO list in SI | `config/sieves.yaml` (new), cited | 6.5 pt, rotated 90°, along the top inside edge, with a short tick | `"us"`, `"iso"`, `None`, or a list of `(size_mm, label)` |
+| Fraction band | `fractions=` | `"astm_uscs"` | `config/fraction_systems.yaml` or the user's system | two rows: fraction names in the upper row, their parts (fine, medium, coarse) in the lower; a fraction without parts spans both, and a system without parts (`aashto`) has one row. Names are the fraction names with underscores as spaces, capitalized ("Silt clay"). Dividers at each boundary down through the main axes as light vertical lines (fraction boundaries solid, part boundaries dashed) | `None` hides the band and the dividers. Only fractions inside the x range are named, each centered on its visible part; a name narrower than 0.25 decade in view is left out |
+| Sieve labels | `sieves=` | `None` (off). `"auto"` gives the US list in US display and the ISO list in SI | `config/sieves.yaml` (new), cited | 6.5 pt, horizontal, in a strip above the frame and under the band, each over a short tick up from the frame. When any two neighbors are closer than 0.25 decade (the US list near #200), the labels alternate between two rows in size order; otherwise one row. Above the frame, so no curve crosses them | `"us"`, `"iso"`, `None`, or a list of `(size_mm, label)`; only sizes inside the x range are labeled |
 | D-values | `d_values=` | off | `gradation()` | §7 | |
 | Envelopes | `envelopes=` | off | user table (below) | §7 | |
 | Note | `note=` | off | user | added to the footnote | |
 
 **Sieve lists** (`config/sieves.yaml`) 🔬:
-- `us` (ASTM E11 designations): 3" 75, 1½" 37.5, ¾" 19.0, ⅜" 9.5, #4 4.75, #10 2.00, #20 0.850, #40 0.425, #60 0.250, #100 0.150, #140 0.106, #200 0.075 mm.
+- `us` (ASTM E11 designations, written in ASCII so every font has them): 3" 75, 1-1/2" 37.5, 3/4" 19.0, 3/8" 9.5, #4 4.75, #10 2.00, #20 0.850, #40 0.425, #60 0.250, #100 0.150, #140 0.106, #200 0.075 mm.
 - `iso` (labels in mm, at the ISO 14688-1 boundaries): 63, 20, 6.3, 2, 0.63, 0.2, 0.063.
 
 **`envelopes=` format** (`ht.template("envelopes")`): one row per size: `label, particle_size, low, high`, with `low` and `high` the percent passing at that size. Rows sharing a `label` make one band, sorted by size as rows. `particle_size` needs units, from the table's own `attrs` (as P01's overlays). `label`, `low` and `high` are the existing overlay fields.
 
 ## 9. Units behavior
 - Particle size is converted to mm on input and shown in mm in both systems (P00 §4.1, TODO #17).
-- Only the sieve labels change with the display system (`sieves="auto"`). The curves and the band are the same, so a US and an SI figure differ only in those labels.
+- Only the sieve labels change with the display system, and only with `sieves="auto"`. The curves and the band are the same, so by default a US and an SI figure are the same figure, and with `sieves="auto"` they differ only in those labels.
 
 ## 10. API
 ```python
@@ -116,7 +120,7 @@ def grain_size(
     df: pd.DataFrame,
     *,
     fractions: str | dict | os.PathLike | None = "astm_uscs",
-    sieves: Literal["auto", "us", "iso"] | list[tuple[float, str]] | None = "auto",
+    sieves: Literal["auto", "us", "iso"] | list[tuple[float, str]] | None = None,
     d_values: bool | list[int] = False,
     envelopes: pd.DataFrame | str | None = None,
     envelope_colors: dict[str, str] | None = None,
@@ -149,9 +153,12 @@ fig, ax = ht.plot.grain_size(curves, fractions="iso14688", envelopes="filter_ban
 | Curve with fewer than two points | Not drawn; footnote "n curves with fewer than two points not shown" |
 | Blank size or passing | Point left out; footnote count |
 | Non-monotonic curve | Drawn as given; one warning naming the curves |
-| D-value the curve doesn't reach | Not drawn; footnote "D10 not reached by n curves" |
+| D-value the curve doesn't reach | Not drawn; footnote "3 D-values not reached (D10 by 2 curves, D60 by 1 curve)" |
+| D-value beyond `xlim` | Not drawn; counted as beyond the axis limit |
+| `color_by` column that changes within a curve | Error naming the curves |
 | A user fraction system | Validated by the analysis; its names and parts go in the band |
-| Envelope with a blank `low` or `high`, or fewer than two sizes | Error naming the envelope |
+| Envelope with a blank or non-numeric size, `low` or `high`, `low` above `high`, values outside 0–100, a size ≤ 0 or twice, or fewer than two sizes | Error naming the envelope and its rows |
+| Envelope table without units for `particle_size` | The plot data's units, with a warning; an error if the data have none either |
 | More than 20 curves colored by specimen | README legend rules; warning suggests `color_by="geology_unit"` |
 
 ## 12. Acceptance criteria and tests
@@ -162,8 +169,8 @@ fig, ax = ht.plot.grain_size(curves, fractions="iso14688", envelopes="filter_ban
 - **Envelopes:** a band's lower and upper edges pass through the table's points.
 - **Direction:** `reverse=True` puts 100 mm left of 0.1 mm.
 - **Counts:** the footnote counts short curves, blank points and unreached D-values.
-- **Automated:** renders with each built-in system and a user's; `fractions=None` hides the band; `ax=` composes on a `Sheet`, header included; no `rcParams` change; US and SI differ only in sieve labels.
-- **Visual check:** `docs/plots/img/P05-us.png` and `P05-si.png` from the example project's grading curves, with D-values on one curve and an envelope.
+- **Automated:** renders with each built-in system and a user's; `fractions=None` hides the band; `ax=` composes on a `Sheet`, header included; no `rcParams` change; sieve labels are off by default, when US and SI give the same figure, and with `sieves="auto"` US and SI differ only in the sieve labels.
+- **Visual check:** `docs/plots/img/P05.png` from the example project's 14 grading curves (the fill and alluvium ones continuing into the fines from hydrometer tests) and an envelope, with D-values and sieve labels off, their defaults. One figure, since with the sieve labels off US and SI give the same one (§9). The D-value ticks, the single-curve labels and the sieve strip are checked by eye but not committed.
 - **Test data:** the example project and synthetic curves (curve A, shuffled, inches, non-monotonic, short).
 
 ## 13. References
@@ -176,7 +183,7 @@ None open. Decided in review:
 1. **Axis direction:** coarse on the right (size increasing to the right), the same default in US and SI display, so one figure serves both. `reverse=True` gives the coarse-on-the-left layout of some US forms (§6).
 2. **Fraction dividers** run down through the main axes as light lines, so a curve can be read against the boundaries (§8).
 3. **D-value labels** only for a single curve; ticks without labels for several (§7).
-4. **Sieve lists** in a new `config/sieves.yaml`, with the ISO list at the fraction boundaries (§8).
+4. **Sieve lists** in a new `config/sieves.yaml`, with the ISO list at the fraction boundaries (§8). The labels sit above the frame and are horizontal (changed in the build's review from rotated labels inside the top edge, which curves near 100 % passing crossed). They are off by default (`sieves=None`, decided in review); `sieves="auto"` turns them on.
 5. **Envelope and fraction-system colors** are gray unless given, apart from geology unit colors (§7).
 
 ## 15. Future enhancements

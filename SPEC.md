@@ -291,6 +291,7 @@ fig, ax = ht.plot.profile(k, value="hydraulic_conductivity", preset="hydraulic_c
 fig, ax = ht.plot.spt_profile(spt, vs="elevation")                   # P02
 fig, ax = ht.plot.spt_histogram(spt, table="cohesionless")           # P03
 fig, ax = ht.plot.plasticity_chart(atterberg, system="uscs")         # P04
+fig, ax = ht.plot.grain_size(curves, d_values=True)                  # P05
 
 sheet = ht.Sheet(size="tabloid", layout=(1, 2), title="Site X")
 ht.plot.spt_profile(spt, ax=sheet[0])

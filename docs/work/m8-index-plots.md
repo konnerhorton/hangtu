@@ -230,3 +230,101 @@ These fill gaps in P04. Any that changes what a user sees goes into P04 in the c
 - **Visual check** (`docs/plots/img/P04.png`, the default 6.5 × 4.5 in figure saved at 100 dpi with `bbox_inches="tight"`, which trims it to 6.6 × 3.3 in): the example project's 14 specimens in the map's colors and order, with one five-vertex region. The A-line and U-line labels lie along their lines, CL-ML is hatched and labeled beside it, and the zone labels sit inside their zones. One thing to know:
   - With equal aspect, the 100 × 60 box doesn't fill the default figure's height once the legend takes its width, so there is white space above and below. `bbox_inches="tight"` on save trims it (P04 §5 notes the trimmed size), or the user passes `figsize=`.
 - **For P05:** `_values.color_groups(..., order=)` is the shared grouping now (P01, P03, P04).
+
+## Plan: P05
+
+Spec: [`docs/plots/P05-grain-size.md`](../plots/P05-grain-size.md) (section numbers below are P05's unless marked otherwise).
+
+Each build step is one commit, with ruff and pytest passing. A step that grows past about 300 changed lines (not counting tests' data) is split.
+
+### Package layout
+```
+src/hangtu/
+  analysis/_gradation.py      grading_curves() split out of gradation() (Build 0)
+  config/sieves.yaml          us and iso sieve lists, cited (Build 1)
+  columns.yaml                + template envelopes: [label, particle_size, low, high]
+  plot/__init__.py            exports grain_size
+  plot/_grain_size.py         grain_size(): axes, curves, D-values
+  plot/_fraction_band.py      the header axes, fraction band, dividers and sieve labels
+  plot/_envelopes.py          reads and checks the envelopes table, draws the bands
+  plot/_regions.py            region_color_map() becomes label_colors() (Build 0)
+  plot/_notes.py              + reasons short_curve, d_value_unreached
+  plot/_layers.py             + P05 draw order
+tests/plot/
+  test_grain_size.py              axes, curves, colors, counts, D-values
+  test_grain_size_band.py         fraction band, dividers, sieve labels, header on a Sheet
+  test_grain_size_envelopes.py    the envelopes table
+  test_grain_size_acceptance.py   §12 against the example project and synthetic curves
+tests/analysis/test_gradation.py  unchanged; it guards the Build 0 refactor
+```
+- The module is `_grain_size.py`, so `ht.plot.grain_size` is the function and not a submodule.
+- The band and the envelopes are separate modules because each has its own rules and tests, as `_regions.py` is for P04. `_grain_size.py` would otherwise pass 600 lines.
+
+### Decisions the build makes
+These fill gaps in P05. Any that changes what a user sees goes into P05 in the commit that builds it.
+1. **Curves come from the analysis's own code.** `gradation()` warns about short curves, blank points and unreached D-values, where P05 counts them in the footnote (§11), and it warns about fractions, which the plot doesn't use. So Build 0 splits the checking, grouping and sorting out of `gradation()` into `grading_curves(df, units)` in `_gradation.py`, which returns the curves (name, sizes in mm, passing, usable, rows) and the blank-point mask without warning. `gradation()` calls it and keeps its warnings exactly; the plot calls it and takes D-values from the same `d_value()`. The errors (§11 row 2) are the analysis's, word for word. P05 §4 says "from the gradation analysis's code" rather than "from `gradation()`".
+2. **Header axes** from `mpl_toolkits.axes_grid1.make_axes_locatable(ax).append_axes("top", size=0.45, pad=0, sharex=ax)`. It is carved from the axes given (the main axes shrinks by 0.45 in) and works under constrained layout, in a figure of its own or a `Sheet` panel; prototyped on matplotlib 3.11 and checked on 3.8.0 at close-out. Stored as `ax.grain_size_header`. With `fractions=None` there is no header axes and the attribute is None.
+3. **Band layout:** fraction names in the upper row, parts (fine, medium, coarse) in the lower row; a fraction without parts spans both rows, as on the usual ASTM form. A system with no parts (`aashto`) has one row. Names are the fraction name with underscores as spaces, first letter capitalized ("Fines", "Silt clay"). A name is centered on the visible part of its fraction (in log space) and is left out when that part is narrower than 0.15 decade, so the edges don't crowd. P05 §2's figure shows the rows the other way round; it is redrawn to match §8's text.
+4. **Dividers:** every fraction boundary and part boundary inside the x range, as light vertical lines through the header and the main axes (fraction boundaries 0.6 pt gray 0.55, part boundaries 0.4 pt gray 0.75 dashed). gids `fraction_divider` and `part_divider`, so the §12 test reads the boundaries back.
+5. **x limits:** with no `xlim=`, `log_limits(min(finest, 0.001), max(coarsest, 100), min_decades=5)`, so a point on a whole decade moves the limit out one decade (P00 §8). `xlim=` is checked with `check_limits(..., log=True)` and used as given; points beyond it go to `edge_markers` and are counted `beyond_limit`, and the curve line is clipped at the frame. y is 0–100, fixed, ticks every 10. Decades are labeled in plain numbers (`0.001`, …, `100`), with a `FuncFormatter`, not 10ⁿ.
+6. **`reverse=True`** inverts the x axis; the header follows through `sharex`.
+7. **Curves:** one `Line2D` per curve, 1 pt, with 3 pt round markers, gid `curve`, label the curve name. Points sorted by size as rows (decision 1). A non-monotonic curve is drawn as given, and one warning names the curves (up to five, then "and n more") and says their D-values aren't drawn (the analysis leaves them blank).
+8. **Colors:** `color_by` is any column that is the same for all of a curve's points; one that varies within a curve is an error naming the curves. A `color_by` that isn't a column is an error, except `"geology_unit"`, which gives the §3 hint and one color (as P04). Groups through `_values.color_groups(..., order=)` on one row per curve; legend "Unit A (n = 6 curves)", or "All curves (n = 8)" with one color. `color_by="specimen_id"` colors each curve (named by `loca_id` and `specimen_id`) from the automatic tab20 cycle in curve order, not through `resolve_palette`, so specimens don't take session unit colors. Legend per curve; more than 20 curves warns that colors repeat and suggests `color_by="geology_unit"`; the README legend rules (columns, then a note past 30) apply.
+9. **Counts** (`Notes`): blank points as `nan`; new reason `short_curve` ("n curves with fewer than two points not shown"); new reason `d_value_unreached` counting curve–D-value pairs, with the detail in `set_where`: "3 D-values not reached (D10 by 2 curves, D60 by 1)". P05 §11's wording changes to this. Qualifiers count as `less_than`/`greater_than` (`_values.qualifiers`), and the points are drawn at their values.
+10. **D-values:** `True` is (10, 30, 60); a list is checked with the analysis's `_check_d_values`. One curve drawn: dashed 0.6 pt black leaders from the point down to the x axis and across to the y axis's side, and a 7 pt label "D60 = 0.711 mm" beside the point, 3 significant figures (P05 §7's example "0.71" becomes "0.711"). Several curves: a black `|` marker at each D-value on each curve, no labels. gid `d_value`.
+11. **Sieve labels:** `config/sieves.yaml` holds `us` and `iso` as `(size in mm, label)` lists with their sources and the "verify" mark (TODO #5). `"auto"` picks `us` in US display and `iso` in SI. A user list must be `(size > 0, text)` pairs; anything else is an error with an example. Only sizes inside the x range are drawn: 6.5 pt, rotated 90°, just inside the top of the main axes, with a 4 pt tick down from the top edge; gid `sieve_label`.
+12. **Envelopes** (`_envelopes.py`): a DataFrame or CSV path (`ht.read_csv`), as P04's regions. `label`, `particle_size`, `low` and `high` are required. Errors, each naming the envelope or the rows: a blank label; a blank or non-numeric size, `low` or `high`; `low` above `high`; values outside 0–100; one size twice; fewer than two sizes. `particle_size` units from the table's `attrs`, else the plot data's with one warning (`_overlays.overlay_units`). Converted to mm, sorted by size as rows, drawn with `fill_between` alpha 0.2 and an outline, gray unless `envelope_colors` names a color, with a legend entry per envelope after the curves. `envelope_colors` goes through the same check as P04's `region_colors`, which Build 0 generalizes.
+13. **Zero rows** draw the axes, the band and "No data", without running the analysis, so `grain_size(pd.DataFrame(), ax=panel)` works as a base. No hint with zero rows.
+14. **Draw order** in `_layers.py`: `ENVELOPES` 0.4 (under the gridlines, which sit at 0.5 with `axes.axisbelow`), `DIVIDERS` 1.2, curves at `MARKERS`, `D_VALUES` 2.9, sieve labels at `ANNOTATIONS`.
+15. **Units:** `units=` goes to the analysis's checks; particle size is in mm in both systems, so `display_units` changes only `sieves="auto"`.
+
+### Build 0 (refactors)
+Two commits, no change in behavior:
+- `analysis: split grading curve building out of gradation()`: `grading_curves()` (decision 1). The gradation tests pass unchanged.
+- `plot: share the label color check between regions and envelopes`: `_regions.region_color_map()` becomes `label_colors(labels, colors, argument, table)`, with the argument and table named in its messages. The P04 region tests pass unchanged.
+
+### Build 1: `P05: draw the grain size axes and fraction band`
+- `_grain_size.py`: `grain_size()` with the full §10 signature. `envelopes=`/`envelope_colors=` raise `NotImplementedError` until Build 3, so no step ships a silent no-op. Axes (§6, decisions 5–6), empty input (decision 13), `fractions=` resolved by `fraction_system()`, `display_units` checked.
+- `_fraction_band.py`: header axes (decision 2), band (decision 3), dividers (decision 4), sieve labels (decision 11). `config/sieves.yaml`.
+- `_layers.py`: decision 14.
+- Tests: §12 band boundaries for `astm_uscs` and `iso14688` read from the dividers, and `aashto`'s one row; a user's system's names and parts; `fractions=None` hides header and dividers; names only inside the x range; sieve labels "#200" at 0.075 and "#4" at 4.75 in US, "0.063" in SI, a user list, `None`, a bad list; decade labels and limits (at least 0.001–100, whole decades); `reverse=True` puts 100 left of 0.1, header included; the header is 0.45 in and inside the panel on a `Sheet`; `assert_no_global_state`.
+
+### Build 2: `P05: draw the curves and count what isn't drawn`
+- `grading_curves()` on the data; curves (decision 7), colors and legend (decision 8), counts (decision 9), `xlim=` edge markers (decision 5), `note=`, the hint.
+- Tests: §12 curves (shuffled rows drawn in size order; a curve in inches lands on the curve in mm); a short curve and blank points counted; the non-monotonic warning names the curves; the analysis's errors pass through (missing column, no units, size ≤ 0, passing outside 0–100, two points at one size, blank `specimen_id`); qualifiers counted; `color_by` per unit, `None`, `specimen_id` (colors per curve, session palette untouched, the >20 warning), a column that varies within a curve, one that doesn't exist; `order=`, `palette=`; the hint once; `xlim=` edge markers and count; US and SI give the same curve data and notes.
+
+### Build 3: `P05: draw D-values and envelopes`
+- D-values (decision 10) with the `d_value_unreached` count; `_envelopes.py` (decision 12); `columns.yaml` template `envelopes`, fields already in the registry.
+- Tests: §12 D-values of curve A at 0.1261, 0.300 and 0.7105 mm read from the leaders, with the labels' text; ticks and no labels on several curves; unreached D-values counted per percentage; D-values skipped on a non-monotonic curve; a bad `d_values`; §12 envelopes (edges through the table's points), from a CSV path, two envelopes, units from the table and the fallback warning, each error in decision 12, `envelope_colors` warning and bad color; `ht.template("envelopes")` columns.
+
+### Build 4 (close-out): `P05: add acceptance tests and close out P05`
+- `test_grain_size_acceptance.py`: every §12 automated criterion, on the example project (`ht.plot.grain_size(p.grain_size())` with no error, warning or hint) and on the synthetic curves (curve A, shuffled, inches, non-monotonic, short), with each built-in system and a user's.
+- Visual check: `docs/plots/img/P05-us.png` and `P05-si.png` (100 dpi), from the example project's eight curves with `d_values=True` and one filter envelope, looked at before committing; the single-curve D-value labels are looked at too, but not committed. §12's "D-values on one curve" is reworded to match.
+- Close-out:
+  - `docs/plots/README.md`: P05 status `built`.
+  - P05: any detail the build changed, and the decisions above that aren't in it.
+  - SPEC §11: a `grain_size()` line in the Phase 1 sketch (intent, "SPEC sections touched").
+  - `README.md`: a `grain_size` line in the plot examples if it runs without a warning (`test_readme.py`).
+  - `CLAUDE.md`: the status line says P05 is done and the text values unit is next.
+  - `TODO.md`: #5 gains the sieve lists to verify; it stays open.
+  - This plan: a Results section.
+
+### Verification
+- After each build: `uv run ruff check . && uv run ruff format --check . && uv run pytest`.
+- At close-out: Python 3.13 and 3.14 (`uv run --isolated --python 3.1x pytest`); the lowest dependency versions, as in CLAUDE.md (check the `append_axes` header and `sharex` on matplotlib 3.8.0); `uv build`, and check that the wheel has `config/sieves.yaml` and the `envelopes` template.
+- Look at `P05-us.png` and `P05-si.png` against the §2 reference figure and the "A good version" list.
+
+### Results
+- 1853 tests pass on Python 3.12, 3.13 and 3.14, and with the lowest dependency versions (matplotlib 3.8.0, numpy 1.26.0, pandas 2.1.1), where the `append_axes` header and `sharex` work as on 3.11. The wheel has `config/sieves.yaml`, `_grain_size.py`, `_fraction_band.py`, `_envelopes.py` and the `envelopes` template.
+- **Commits:** the two refactors (Build 0), then one per build step, with Build 3 split in two (`P05: draw D-values`, `P05: draw envelopes from a table`) because it passed 300 lines. One fix the lowest-versions run found: `P05: label decades without floating-point noise` (matplotlib 3.8 gave the 0.1 tick as 0.09999999999999999).
+- **Changes from the plan**, each recorded in P05 in its commit or the close-out:
+  - The label color check went to `_values.label_colors()` rather than staying in `_regions.py`, so `_envelopes.py` doesn't import from P04's module.
+  - A fraction name is left out when its visible part is narrower than 0.25 decade, not 0.15: at 0.15, "Cobbles" (63–100 mm in view) ran past its cell (§8).
+  - The US sieve designations are written in ASCII (`1-1/2"`, `3/4"`, `3/8"`), so a font without the fraction glyphs can't raise a missing-glyph warning, which the tests treat as an error (§8).
+  - A D-value beyond `xlim=` isn't drawn and is counted as beyond the axis limit (§11).
+  - After review, the legend and footnote moved below the x label (`add_legend(..., where="bottom")` and `Notes.render(..., where="bottom")`, P00 §11, P05 §5): on the right they took width the log axis needs. The images were redrawn.
+  - `README.md` gets a `grain_size()` line in the AGS example (it runs with no warning), and its "Plots" line now names the plasticity chart and the grain size curves.
+- **Example project:** after review, the example site gained hydrometer tests on the fill and the upper alluvium tubes (`tests/data/_make_examples.py`, from their own random sequence, so no other value changed): 14 curves, 8 of them continuing into the fines. `grain_size(p.grain_size())` runs with no warning or hint; with `d_values=True` the footnote counts D10 not reached by the six alluvium curves, whose finest points pass more than 10 %. On the datasets' good files (datasets.md §13 #14) it runs with no warning or hint.
+- SPEC §11 has the `grain_size()` call. `TODO.md` #5 lists the sieve lists to verify; it stays open.
+- **Visual check** (`docs/plots/img/P05.png`, the default figure saved at 100 dpi with `bbox_inches="tight"`): the 14 example curves in the map's colors and order (D-values and sieve labels off, their defaults), a sand-filter envelope under the gridlines, the USCS band with its dividers, and the footnote count. One figure rather than US and SI ones: with the sieve labels off the two are the same. A single-curve figure was checked too: the dashed leaders and labels sit right.
+  - In review the sieve labels moved from rotated, inside the top edge, where curves near 100 % passing crossed them, to horizontal in a strip above the frame, on two alternating rows where crowded (the US list near #200) (P05 §5, §8). Then the default became `sieves=None` (P05 §8, §9, §14 #4), so the visual check is one `P05.png` in place of `P05-us.png` and `P05-si.png`. Putting the labels above the frame, under the band, would clear them; that changes §8 and is left for review.
