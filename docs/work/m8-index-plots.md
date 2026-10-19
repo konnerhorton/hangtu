@@ -9,7 +9,7 @@ Shared intent for five units of work. Each one gets its own branch and is merged
 | Analyses | `m8-index-analysis` | `ht.analysis` plasticity classification, gradation (Dx, Cu, Cc, fractions), full USCS symbol, AASHTO group and group index |
 | P04 | `m8-p04` | `ht.plot.plasticity_chart()` |
 | P05 | `m8-p05` | `ht.plot.grain_size()` |
-| Data for P06 | `m8-text-values` | Text values in a value column on P01 (TODO #15), and the datasets: the classification columns, `p.grain_size_summary()`, `p.index_properties()` |
+| Data for P06 | `m8-text-values`, `m8-index-datasets` | Text values in a value column on P01 (TODO #15), then the datasets: the classification columns, `p.grain_size_summary()`, `p.index_properties()` |
 | P06 | `m8-p06` | `ht.plot.water_content_profile()` |
 
 The analyses are merged first. The other units branch off `main` after them, in the order of the table. This file lives on `m8-index-plots` until the intent is approved.
