@@ -18,6 +18,8 @@ nav = [
 
 [project.theme]
 language = "en"
+logo = "img/generated/logo.svg"
+favicon = "img/generated/favicon.svg"
 features = [
   "content.code.copy",
   "navigation.footer",

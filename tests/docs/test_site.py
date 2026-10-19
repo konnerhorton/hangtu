@@ -28,3 +28,22 @@ def test_page_example_runs_clean(tmp_path, script):
     assert done.stderr == ""  # no warning, no traceback
     if "savefig(" in script.read_text(encoding="utf-8"):
         assert (tmp_path / f"{script.stem}.png").is_file()
+
+
+def test_logo_svgs_draw_every_character(tmp_path, monkeypatch):
+    # Criterion 6: one pair of shapes for each "=" or ":" in the small mark.
+    monkeypatch.setattr(prepare_site, "GENERATED", tmp_path)
+    prepare_site.write_logo()
+    _, small_mark = prepare_site.logo_marks()
+    characters = sum(line.count("=") + line.count(":") for line in small_mark)
+    for name in prepare_site.LOGO_COLORS:
+        svg = (tmp_path / name).read_text(encoding="utf-8")
+        assert svg.count("<rect ") == 2 * characters
+        assert "<text" not in svg
+
+
+def test_readme_opens_with_the_wordmark():
+    # Criterion 6: the README's wordmark is the one in docs/img/logo.txt.
+    wordmark, _ = prepare_site.logo_marks()
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert readme.startswith("```\n" + "\n".join(wordmark) + "\n```\n")
