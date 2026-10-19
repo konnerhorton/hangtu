@@ -466,3 +466,19 @@ Implementation choices the spec leaves open. Any that changes what a user sees g
 ### Verification
 - After each build: `uv run ruff check . && uv run ruff format --check . && uv run pytest`.
 - At close-out: Python 3.13 and 3.14 (`uv run --isolated --python 3.1x pytest`); the lowest dependency versions, as in CLAUDE.md; `uv build`, and check that the wheel's `columns.yaml` has the three `*_specimen_id` columns.
+
+### Results
+- 1920 tests pass on Python 3.12, 3.13 and 3.14, and with the lowest dependency versions (matplotlib 3.8.0, numpy 1.26.0, pandas 2.1.1, pint 0.24.4, pyyaml 6.0.1). The wheel's `columns.yaml` has the three `*_specimen_id` columns.
+- **Commits:** one per build step as planned, plus a refactor before Build 3 that moves the reading of `LLPL` limits into `limits()` in `_lab.py`, shared by both datasets.
+- **Changes from the plan:**
+  - Decision 1, changed in review: a PI more than 1 point from LL − PL is used as given **without** a warning, since QC A002 reports it and a dataset doesn't repeat QC's findings (as datasets.md §5.4). With the warning, the example's planted A002 made `p.atterberg()` warn. `plasticity()`'s PI-above-LL warning still passes through. An NP specimen with a PI, which `plasticity()` also rejects, is kept with blanks like PL above LL, pointing to A004 (§6.2).
+  - Decision 10: BH3-B1's NP liquid limit is 21, not a value under 20. Below LL 20 the A-line's PI is negative, so `plasticity()` puts an NP specimen (classed at PI = 0) on the clay side, and BS 5930 gives `CL`. That follows analysis §2.5 as written, but it is a doubtful class for a non-plastic soil; see "Still open".
+  - `p.grain_size_summary()` doesn't stop on a curve `gradation()` rejects (a percent passing outside 0 to 100, QC P002): it keeps the row with blank values and one warning, as decision 1 does for PL above LL (§6.5). `summarize_curves()` in `_lab.py` does this for both datasets.
+  - The classification warnings in `p.index_properties()` count only the samples the filters return, like the chosen-specimen warning. The rows are classified before `finish()`, silently, so `where=` can name a symbol, and the classification is run again on the returned rows for its warnings (§6.6).
+  - A sample with no `SAMP` row has no specimen keys from ingest. Its specimens are told apart by sample, `SPEC_REF` and `SPEC_DPTH`, and its `*_specimen_id` and `source_line` are blank.
+  - Distances to the reference depth within 1 µm are a tie, so 6.25 − 6.20 and 6.30 − 6.25 compare equal (§6.6).
+- **Example project:** neither new dataset is clean on `site.ags`, and the example data wasn't changed:
+  - `p.grain_size_summary()`: D10 isn't reached in the 6 clay curves (89–95 % fines, no hydrometer points). That is correct, and any project with clay gradings will warn the same way.
+  - `p.index_properties()` adds two: the 6 Terrace sands (6–8 % fines) have no Atterberg test, so their USCS symbol and AASHTO group are blank. NP limits on those samples in `_make_examples.py` would classify them, if the example should show symbols there.
+- **For P06:** `p.index_properties()` gives `water_content`, `liquid_limit`, `plastic_limit`, `liquidity_index` and `depth` at the reference depth, one row per sample. Add `ht.plot.water_content_profile(p.index_properties())` to `test_14_m8_datasets_feed_the_plots` in `tests/datasets/test_datasets_acceptance.py`.
+- **Still open:** whether `plasticity()` should class an NP specimen with LL under 20 as M rather than C in BS 5930 (and in USCS, where it is ML only because PI = 0 is under 4). A decision for the analyses (§2.5), not the datasets.

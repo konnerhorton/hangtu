@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | done (M7); the M8 additions (classification columns in §6.2, §6.5 and §6.6) approved, to build |
+| **Status** | done (M7); the M8 additions (classification columns in §6.2, §6.5 and §6.6) done |
 | **Intent** | [`docs/work/m7-datasets.md`](../work/m7-datasets.md#intent); M8: [`docs/work/m8-index-plots.md`](../work/m8-index-plots.md#intent) |
 | **Parent** | SPEC §2.6 (units), §7 (data model), §8 (depth, elevation, geology), §10 (datasets, registry), §11 (errors) |
 | **Related** | [`ingest.md`](ingest.md) (canonical layer, value flags), [`qc.md`](qc.md) (C001, G004, D004/D005). `docs/drafts/analysis.md` §1 (SPT), §2–3 (classification, gradation). P01–P07 (the plots these feed) |
@@ -297,7 +297,7 @@ A new `joins.ags` (4.2, SI, passes python-ags4) holds the edge cases: a test exa
 11. **N60 provenance:** `energy_source` is right for a file N60, a file ER, `hammer_efficiency=` and none.
 12. **Units:** `df.attrs["units"]` covers every numeric column, and US output shows `particle_size` in mm.
 13. **Empty:** a project with no `ISPT` gives an empty `p.spt()` with every column and the warning.
-14. **M8 datasets feed the plots:** `ht.plot.plasticity_chart(p.atterberg())`, `ht.plot.grain_size(p.grain_size())` and `ht.plot.water_content_profile(p.index_properties())` run on the good files with no error, warning or hint.
+14. **M8 datasets feed the plots:** `ht.plot.plasticity_chart(p.atterberg())`, `ht.plot.grain_size(p.grain_size())` and `ht.plot.water_content_profile(p.index_properties())` run on the good files with no error, warning or hint. The P06 call is tested with P06.
 15. **Summary:** `p.grain_size_summary()` gives one row per GRAT specimen, with the D-values and fractions `gradation()` gives on `p.grain_size()`, and the same on the SI and US twins.
 16. **Combining:** on a test sample with two Atterberg specimens and one water content specimen, the Atterberg specimen nearest the water content specimen is used, named in `atterberg_specimen_id`, with the warning; a tie goes to the lower `SPEC_REF`; a sample with only a grading gets a row with blank limits; a specimen with both tests keeps its own water content and limits together.
 
