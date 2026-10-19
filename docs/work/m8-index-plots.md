@@ -397,3 +397,72 @@ Implementation choices the spec leaves open. Any that changes what a user sees g
   - The visual check is the example site's liquid limit rather than water content, since NP belongs to the Atterberg limits: two specimens set to NP and one to `n/r` ("not run"), with a four-statistic stats box. Refusal isn't in it, as a refusal has no meaning for a liquid limit; the tests cover it.
 - **Found, not fixed:** with all six statistics, P01's stats box is wider than a 4 in profile and covers the start of a right-hand footnote. This was there before this unit (it depends on the unit names and statistics, not on text values), so `P01-text-values.png` uses four statistics. It needs its own fix: narrower numbers, or the footnote placed clear of the box.
 - **For P06:** `_draw_profile` reads the value column with `text_values()`, so P06 gets text values without doing anything. P06's NP from the `non_plastic` column (intent decision 6) can count under the same `non_plastic` reason with `set_where`, so the two sources read alike.
+
+## Plan: index datasets
+
+Spec: [`docs/data/datasets.md`](../data/datasets.md) §6.2 (the class columns), §6.5 `p.grain_size_summary()`, §6.6 `p.index_properties()`, and acceptance criteria §13 #14–16 (section numbers below are datasets.md's unless marked otherwise). Branch `m8-index-datasets`.
+
+Each build step is one commit, with ruff and pytest passing. A step that grows past about 300 changed lines (not counting test data) is split.
+
+### Package layout
+```
+src/hangtu/
+  datasets/_lab.py            atterberg() through ht.analysis.plasticity(); grain_size_summary()
+  datasets/_index.py          new: index_properties(): samples, the nearest specimen, the combined row
+  datasets/__init__.py        exports grain_size_summary, index_properties
+  project.py                  p.grain_size_summary(), p.index_properties()
+  columns.yaml                water_content_specimen_id, atterberg_specimen_id, grain_size_specimen_id
+tests/
+  data/ags/_make_files.py     the good files' NP limits on BH3-B1; the combining cases in joins.ags
+  datasets/test_lab.py        the class columns, PL above LL
+  datasets/test_grain_size_summary.py
+  datasets/test_index_properties.py
+  datasets/test_datasets_acceptance.py   §13 #14–16
+```
+
+### Decisions the build makes
+Implementation choices the spec leaves open. Any that changes what a user sees goes into datasets.md in the commit that builds it.
+1. **`p.atterberg()` and PL above LL.** `plasticity()` raises an error on a plastic specimen with PL above LL (analysis §2.8), which is right for a table a user typed in. A dataset doesn't stop on bad data in the file, though; that's QC A001's job. So `p.atterberg()` runs `plasticity()` on the other rows. Those rows keep LL and PL as the file gives them, with a blank PI, LI, Ic and classes, and one warning that names them and points to `p.qc()`. `plasticity()`'s own warnings (a PI more than 1 point off, PI above LL) pass through.
+2. **`p.grain_size_summary()`** is `gradation(p.grain_size(**common), fractions=, d_values=)`, run on the finished curve dataset, so the filters and units are `p.grain_size()`'s. It keeps the §6.5 column order, and `attrs` comes from `gradation()`, which keeps the declared units. With no `GRAT`, or with no rows after filtering, it returns an empty frame with the §6.5 columns. The missing-group warning comes from `p.grain_size()`.
+3. **A sample** is identified by its AGS key fields (`LOCA_ID`, `SAMP_TOP`, `SAMP_TYPE`, `SAMP_REF`, `SAMP_ID`), which every `LNMC`, `LLPL` and `GRAT` row carries. That works even where ingest found no `SAMP` row for it. Samples are listed in order of their first test row in the file (`LNMC`, then `LLPL`, then `GRAT`).
+4. **The reference depth and `depth_basis`.** When a sample has exactly one water content specimen, the reference is that specimen's lab depth, with its own basis: `spec_depth`, or `sample_mid`/`sample_top` when it has no `SPEC_DPTH`. Otherwise it is the sample's lab depth (§6.2 with no `SPEC_DPTH`). The spec says `spec_depth` "when it is the water content specimen's"; that is the case where the specimen has a `SPEC_DPTH`, and §6.6 is reworded to say so.
+5. **The nearest specimen**, per test: by distance to the reference depth (a specimen with no depth is at the sample's lab depth), then the water content's own specimen first (§6.6 rule 4, so a tie never splits a specimen's water content from its limits), then the lowest `SPEC_REF` as text, then the lowest specimen key. With several water content specimens, the reference is the sample's depth, and the water content specimen is chosen by the same rule.
+6. **Several `LNMC` rows on one specimen** are treated as in §6.2: that specimen's water content is blank, with §6.2's warning. They don't count as several specimens.
+7. **`source_line`** of a combined row is the line of the sample's `SAMP` row, blank when the file has none, so it points at the one record every test of the row shares. §6.6 says so.
+8. **Classification only where there is a grading.** `uscs()` and `aashto()` run only on rows that have a chosen `GRAT` specimen. A sample with only a water content, or only limits, gets blank symbols without a warning, since no test was run to classify it. Their warnings then count only the samples that have a grading but can't be classified, e.g. a sand with 5–12 % fines and no limits. `gradation()` runs twice on the chosen specimens' points, in mm (`astm_uscs` for USCS, whose fractions are returned, and `aashto` for AASHTO, whose aren't). Each analysis's warning arrives once per call.
+9. **One `Build`, one `finish()`.** The combined rows are assembled in SI with `location_id`, `loca_id`, `depth` and `_line`, and then go through `Build.finish()`, so the geology at the reference depth, the filters, the units, the incomplete-record warning (per group) and the empty frame work as for every other dataset. `include_incomplete=` applies to each group's rows before the specimens are chosen.
+10. **Test data.** On the good files, `BH3-B1` has a grading with about 9 % fines and no Atterberg test. Its USCS symbol (SP-SM or SP-SC) and AASHTO group need the fines' plasticity, so §13 #14's "no warning" can't hold. The generator gives `BH3-B1` an NP `LLPL` row in all three good files, which makes it SP-SM and A-1-b. The counts this changes in other tests are updated in the same commit. QC's good-file findings gain one `A004` info, which is already in the allowed list (qc.md §8 #2). The §13 #16 cases go in `joins.ags`:
+   - a sample with one water content specimen and two Atterberg specimens at different depths;
+   - a sample with two Atterberg specimens at the same distance, differing by `SPEC_REF`;
+   - a sample with only a grading;
+   - a specimen with both a water content and an Atterberg test, next to another Atterberg specimen at the same distance.
+11. **§13 #14 and P06.** `water_content_profile()` is P06's, which isn't built yet. Here, #14 is tested as `p.index_properties()` on the good files with no warning, plus the `plasticity_chart()` and `grain_size()` calls. The P06 call is added to the acceptance test in P06's close-out.
+
+### Build 0: `tests: add index-property cases to the AGS test files`
+- `_make_files.py` (decision 10), the regenerated files, and the counts and expected values the change moves (ingest, QC and dataset tests). No library code.
+
+### Build 1: `datasets: classify plasticity in p.atterberg()`
+- `atterberg()` builds PI, LI, Ic and both classes with `plasticity()`, except on PL-above-LL rows (decision 1). This removes the dataset's own LI/Ic arithmetic (analyses' Results, "For the data unit").
+- Tests: the class columns on the good files (BH1-U1 LL 48, PI 26 → CL, CI; BH2-U2 LL 55, PI 30 → CH, CH; BH2-D1 NP with LL 31, classed at PI = 0 → ML, ML, as analysis §2.5); LI and Ic unchanged from M7's golden values; a PL-above-LL row kept with blanks and the warning; the PI warning passes through.
+
+### Build 2: `datasets: add p.grain_size_summary()`
+- `grain_size_summary()` in `_lab.py`, `Project.grain_size_summary()` with the common arguments plus `fractions=` and `d_values=` (decision 2).
+- Tests: one row per GRAT specimen, with values equal to `gradation(p.grain_size())`; §6.5 column order; `fractions="aashto"` and `d_values=(15, 85)`; `depth=` and `geology=` filter whole curves; no `GRAT` gives an empty frame with the columns and one warning; the SI and US twins give the same values (D-values in mm in both).
+
+### Build 3: `datasets: add p.index_properties(), one row per sample`
+- `_index.py`: samples (decision 3), the reference depth (decision 4), the nearest specimen (decisions 5, 6), the combined row without the classification columns, `source_line` (decision 7), `finish()` (decision 9). The registry gets the three `*_specimen_id` columns, checked against the whole registry. `Project.index_properties()`.
+- Tests: the §13 #16 cases from `joins.ags`, each `*_specimen_id` and the one warning with its count; a sample with only a grading has blank limits; `depth_basis` in each case of decision 4; `depth=` and `geology=` act on the reference depth; `include_incomplete=`; no lab groups gives an empty frame with every column.
+
+### Build 4: `datasets: classify samples in p.index_properties()`
+- `plasticity()` on the combined rows (with decision 1's PL-above-LL handling), then `gradation()` twice, `uscs()` and `aashto()` on the rows with a grading (decision 8).
+- Tests: BH3-B1 → SP-SM and A-1-b, with its D-values and fractions equal to `p.grain_size_summary()`'s; LI and Ic from another specimen's water content; no warning for samples without a grading; a grading with no limits and 5–12 % fines warns once, counting it.
+
+### Build 5 (close-out): `datasets: add acceptance tests and close out the M8 datasets`
+- `test_datasets_acceptance.py`: §13 #14 (decision 11), #15 and #16 on the files.
+- `p.index_properties()` and `p.grain_size_summary()` on `ht.examples` `site.ags`: if either warns there, the cause is reported for review rather than changed in the example data.
+- datasets.md: the status line, and any detail the build changed. SPEC §10.2: the M8 datasets move from "v0.2" to built. `CLAUDE.md`: the status line says the index datasets are done and P06 is next.
+- This plan: a Results section, with notes for P06.
+
+### Verification
+- After each build: `uv run ruff check . && uv run ruff format --check . && uv run pytest`.
+- At close-out: Python 3.13 and 3.14 (`uv run --isolated --python 3.1x pytest`); the lowest dependency versions, as in CLAUDE.md; `uv build`, and check that the wheel's `columns.yaml` has the three `*_specimen_id` columns.
