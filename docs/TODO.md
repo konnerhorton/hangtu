@@ -35,6 +35,12 @@ Verify against the source standards during M8:
   - Where a user records that a specimen is organic: a per-specimen column, `soil_class = organic` (#3), or a field the user names.
   - How P04 marks organic specimens so they read differently from the rest (e.g. hollow markers with a legend entry).
 
+### 24. NP specimens with LL under 20 · You · docs/drafts/analysis.md §2.5
+- **Problem:** `plasticity()` classes an NP specimen at PI = 0. Below LL 20 the A-line's PI is negative, so PI = 0 is on or above it, and BS 5930 gives `CL` (a clay) for a non-plastic soil. USCS gives `ML` only because PI = 0 is under 4. Found in the M8 index datasets, where the test file's NP sand has LL 21 to stay clear of it.
+- **To decide:**
+  - Whether an NP specimen is always M (silt) in both systems, whatever its LL.
+  - How a plastic specimen with LL under 20 is classed, where the A-line doesn't reach (both charts start their zones at LL 20 or above).
+
 ---
 
 ## Quality control

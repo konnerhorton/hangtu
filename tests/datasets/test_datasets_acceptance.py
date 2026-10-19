@@ -15,7 +15,14 @@ from hangtu.registry import column_info
 
 from .conftest import DATA, STRATA
 
-DATASETS = ("spt", "atterberg", "grain_size", "permeability")
+DATASETS = (
+    "spt",
+    "atterberg",
+    "grain_size",
+    "permeability",
+    "grain_size_summary",
+    "index_properties",
+)
 
 
 @pytest.fixture(scope="module")
@@ -126,12 +133,12 @@ def test_5_to_7_geology_on_joins(tmp_path):
     with pytest.warns(UserWarning) as caught:
         spt = p.spt(display_units="SI", geology_fields=["GEOL_GEOL"])
     by_line = spt.set_index("source_line")
-    assert by_line.loc[74, "geology_unit"] == "Alluvium"  # on the 2.00 m boundary
-    assert by_line.loc[76, "geology_unit"] == "Terrace"  # overlap: deepest top
-    assert pd.isna(by_line.loc[78, "geology_unit"])  # in the gap
-    assert by_line.loc[79, "geology_unit"] == "BED"  # unmapped, kept
-    assert by_line.loc[74, "soil_class"] == "fine"
-    assert by_line.loc[74, "geology_code"] == "ALV"
+    assert by_line.loc[79, "geology_unit"] == "Alluvium"  # on the 2.00 m boundary
+    assert by_line.loc[81, "geology_unit"] == "Terrace"  # overlap: deepest top
+    assert pd.isna(by_line.loc[83, "geology_unit"])  # in the gap
+    assert by_line.loc[84, "geology_unit"] == "BED"  # unmapped, kept
+    assert by_line.loc[79, "soil_class"] == "fine"
+    assert by_line.loc[79, "geology_code"] == "ALV"
     assert list(spt["geology_unit"].cat.categories) == [
         "Fill",
         "Alluvium",
@@ -187,10 +194,10 @@ def test_9_filters(projects):
 def test_10_incomplete(tmp_path):
     p = ht.Project.from_ags(DATA / "joins.ags", db=tmp_path / "i.sqlite")
     with pytest.warns(UserWarning) as caught:
-        assert 77 not in set(p.spt()["source_line"])
+        assert 82 not in set(p.spt()["source_line"])
     assert any("Left out 1 of 8 ISPT records" in str(w.message) for w in caught)
     with pytest.warns(UserWarning, match="overlapping"):
-        assert 77 in set(p.spt(include_incomplete=True)["source_line"])
+        assert 82 in set(p.spt(include_incomplete=True)["source_line"])
 
 
 # 11. N60 provenance (test_spt.py has all four cases).
@@ -229,3 +236,59 @@ def test_13_empty(tmp_path):
     for name in DATASETS:
         with pytest.warns(UserWarning, match="No .* group in loca_only.ags"):
             assert getattr(p, name)().empty
+
+
+# 14. The M8 datasets feed the plots, with no error, warning or hint. P06's
+# water_content_profile(p.index_properties()) is added with P06.
+@pytest.mark.parametrize("name", ["site_si", "site_us"])
+@pytest.mark.parametrize("system", ["SI", "US"])
+def test_14_m8_datasets_feed_the_plots(projects, name, system):
+    p = projects[name]
+    calls = [
+        (ht.plot.plasticity_chart, _quiet(p.atterberg, display_units=system)),
+        (ht.plot.grain_size, _quiet(p.grain_size, display_units=system)),
+    ]
+    for plot, *args in calls:
+        fig, _ax = _quiet(plot, *args)
+        plt.close(fig)
+    index = _quiet(p.index_properties, display_units=system)
+    assert index["uscs_symbol"].dropna().tolist() == ["SP-SM"]
+
+
+# 15. The summary: one row per GRAT specimen, as gradation() gives it on the
+# curves, and the same on the twins (test 2; test_grain_size_summary.py).
+@pytest.mark.parametrize("name", ["site_si", "site_us"])
+def test_15_summary(projects, name):
+    p = projects[name]
+    summary = _quiet(p.grain_size_summary)
+    curves = _quiet(p.grain_size)
+    assert len(summary) == curves["specimen_id"].nunique()
+    expected = _quiet(ht.analysis.gradation, curves)
+    for column in ("d10", "d30", "d60", "fines_content", "sand_content"):
+        assert summary[column].tolist() == pytest.approx(expected[column].tolist())
+
+
+# 16. Combining a sample's specimens on joins.ags (test_index_properties.py).
+def test_16_combining(tmp_path):
+    p = ht.Project.from_ags(
+        DATA / "joins.ags", db=tmp_path / "joins.sqlite", display_units="SI"
+    )
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        index = p.index_properties().set_index("sample_reference")
+    messages = [str(w.message) for w in caught]
+    assert any(m.startswith("3 samples had more than one specimen") for m in messages)
+    atterberg = _quiet(p.atterberg).set_index(
+        ["sample_reference", "specimen_reference"]
+    )["specimen_id"]
+    # The Atterberg specimen nearest the water content specimen's 1.15.
+    assert index.loc["J1-U1", "atterberg_specimen_id"] == atterberg["J1-U1", "1"]
+    # A tie goes to the lower SPEC_REF.
+    assert index.loc["J1-U3", "atterberg_specimen_id"] == atterberg["J1-U3", "A"]
+    # A sample with only a grading has blank limits.
+    assert pd.isna(index.loc["J1-B4", "liquid_limit"])
+    assert index.loc["J1-B4", "grain_size_specimen_id"] is not None
+    # A specimen with both tests keeps its water content and limits together.
+    row = index.loc["J2-U1"]
+    assert row["water_content_specimen_id"] == row["atterberg_specimen_id"]
+    assert row["atterberg_specimen_id"] == atterberg["J2-U1", "2"]

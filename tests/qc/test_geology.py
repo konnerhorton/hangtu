@@ -95,7 +95,7 @@ def test_g004_one_finding_per_unmapped_code(tmp_path):
     g004 = report.findings.query("rule_id == 'G004'")
     assert list(
         zip(g004["loca_id"], g004["heading"], g004["source_line"], strict=True)
-    ) == [("J1", "GEOL_GEOL", 60)]
+    ) == [("J1", "GEOL_GEOL", 62)]
     message = g004["message"].iloc[0]
     assert "GEOL_GEOL 'BED' (1 layer, first in J1) isn't in the geology map" in message
     rules = report.rules.set_index("rule_id")

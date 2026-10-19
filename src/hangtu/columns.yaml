@@ -116,6 +116,21 @@ columns:
     type: text
     ags: ["derived: SAMP_TOP, SAMP_REF, SAMP_TYPE, SAMP_ID, SPEC_REF, SPEC_DPTH"]
     used_by: [P04, P05, P06]
+  water_content_specimen_id:
+    description: The specimen (specimen_id) whose water content a sample's row uses, chosen by depth
+    type: text
+    ags: ["derived: datasets.md §6.6"]
+    used_by: []
+  atterberg_specimen_id:
+    description: The specimen (specimen_id) whose Atterberg limits a sample's row uses, chosen by depth
+    type: text
+    ags: ["derived: datasets.md §6.6"]
+    used_by: []
+  grain_size_specimen_id:
+    description: The specimen (specimen_id) whose grading a sample's row uses, chosen by depth
+    type: text
+    ags: ["derived: datasets.md §6.6"]
+    used_by: []
   sample_reference:
     description: The sample a result comes from, as the file names it (SAMP_ID, else type and reference at its top)
     type: text

@@ -158,7 +158,7 @@ def test_joins_warnings(fresh):
     )
     assert any(
         "Left out 1 of 8 ISPT records with a blank required field "
-        "(ISPT_NVAL on line 77)"
+        "(ISPT_NVAL on line 82)"
         in m
         and "include_incomplete=True" in m
         for m in messages

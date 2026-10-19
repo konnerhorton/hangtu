@@ -351,13 +351,15 @@ class Project:
     ) -> pd.DataFrame:
         """Return the Atterberg limits, one row per LLPL record, ready for P01 and P07.
 
-        Each result has its specimen's water content (``LNMC``), liquidity
-        index and consistency index. A non-plastic specimen has
+        Each result has its specimen's water content (``LNMC``), and the
+        liquidity index, consistency index and plasticity classes (USCS and
+        BS 5930) from ``ht.analysis.plasticity()``. A non-plastic specimen has
         ``non_plastic = True`` and a blank plastic limit and plasticity index,
         so plots count it as NP, never as a blank. A blank ``LLPL_PI`` is
-        filled with LL - PL. Depth is the specimen's, else its sample's
-        midpoint, else its top (``depth_basis``). Classification columns come
-        with the M8 analyses. See ``docs/data/datasets.md`` §6.2.
+        filled with LL - PL. A plastic limit above the liquid limit is kept as
+        the file gives it, with the computed columns blank and a warning.
+        Depth is the specimen's, else its sample's midpoint, else its top
+        (``depth_basis``). See ``docs/data/datasets.md`` §6.2.
 
         Parameters
         ----------
@@ -445,6 +447,149 @@ class Project:
         >>> curves.groupby("specimen_id")["percent_passing"].min()
         """
         return datasets.grain_size(
+            self._path,
+            holes=holes,
+            geology=geology,
+            depth=depth,
+            elevation=elevation,
+            where=where,
+            contains=contains,
+            geology_fields=geology_fields,
+            include_incomplete=include_incomplete,
+            display_units=display_units,
+        )
+
+    def grain_size_summary(
+        self,
+        *,
+        fractions: "str | dict | PathLike[str]" = "astm_uscs",
+        d_values: "tuple[int, ...]" = (10, 30, 60),
+        holes: "str | list[str] | None" = None,
+        geology: "str | list[str] | None" = None,
+        depth: "tuple | None" = None,
+        elevation: "tuple | None" = None,
+        where: dict | None = None,
+        contains: "str | list[str] | None" = None,
+        geology_fields: "str | list[str] | None" = None,
+        include_incomplete: bool = False,
+        display_units: str | None = None,
+    ) -> pd.DataFrame:
+        """Return one row per grading curve: D-values, Cu, Cc and size fractions.
+
+        ``ht.analysis.gradation()`` on ``p.grain_size()``, so each specimen
+        keeps its depth and geology unit, and the filters act on the curves'
+        points (a whole curve, since its points share a depth). D-values are
+        in mm in US and SI output alike. A curve that doesn't reach a
+        percentage or a fraction's sizes gets a blank, with a warning; nothing
+        is extrapolated. See ``docs/data/datasets.md`` §6.5.
+
+        Parameters
+        ----------
+        fractions
+            The size-fraction system: ``"astm_uscs"`` (default), ``"aashto"``,
+            ``"iso14688"``, or your own (see ``ht.analysis.gradation()``).
+        d_values
+            Percentages passing to find sizes for, e.g. ``(10, 30, 60)``.
+        holes, geology
+            Keep these holes (``LOCA_ID``) or geology units.
+        depth, elevation
+            Keep ``low <= value <= high``, given in the dataset's units
+            (``(0, 30)``) or as quantity strings (``("0 ft", "30 ft")``).
+            Either end may be None.
+        where
+            Keep rows matching ``{column: value or list of values}``, among
+            ``p.grain_size()``'s columns.
+        contains
+            Keep rows whose geology description contains this text (any
+            case), or any of a list.
+        geology_fields
+            GEOL headings to add as columns, e.g. ``["GEOL_FORM"]``.
+        include_incomplete
+            Keep records with a blank required field (QC C001). By default
+            they're left out, with a warning that counts them.
+        display_units
+            ``"US"`` or ``"SI"``; by default the project's.
+
+        Examples
+        --------
+        >>> summary = p.grain_size_summary(fractions="aashto", d_values=(15, 85))
+        >>> summary[["sample_reference", "d15", "d85", "silt_clay_content"]]
+        """
+        return datasets.grain_size_summary(
+            self._path,
+            fractions=fractions,
+            d_values=d_values,
+            holes=holes,
+            geology=geology,
+            depth=depth,
+            elevation=elevation,
+            where=where,
+            contains=contains,
+            geology_fields=geology_fields,
+            include_incomplete=include_incomplete,
+            display_units=display_units,
+        )
+
+    def index_properties(
+        self,
+        *,
+        holes: "str | list[str] | None" = None,
+        geology: "str | list[str] | None" = None,
+        depth: "tuple | None" = None,
+        elevation: "tuple | None" = None,
+        where: dict | None = None,
+        contains: "str | list[str] | None" = None,
+        geology_fields: "str | list[str] | None" = None,
+        include_incomplete: bool = False,
+        display_units: str | None = None,
+    ) -> pd.DataFrame:
+        """Return one row per sample, with its water content, limits and grading.
+
+        A sample with a water content (``LNMC``), an Atterberg test (``LLPL``)
+        or a grading (``GRAT``) gets one row that combines them. Where a test
+        was run on several specimens of the sample, the one nearest the
+        sample's reference depth is used: the water content specimen's depth
+        when there is one, else the sample's. Ties go to the water content's
+        own specimen, then the lowest ``SPEC_REF``. The ``*_specimen_id``
+        columns name the specimens used, and a warning counts the samples
+        where a choice was made. No row is repeated and no specimen's values
+        are mixed with another's.
+
+        Each row is classified from its combined values: LI, Ic and the
+        plasticity classes (``ht.analysis.plasticity()``), and, where the
+        sample has a grading, its D-values and astm_uscs fractions
+        (``gradation()``), USCS symbol (``uscs()``) and AASHTO group
+        (``aashto()``). A symbol the data can't decide is left blank, with a
+        warning that counts it. See ``docs/data/datasets.md`` §6.6.
+
+        Parameters
+        ----------
+        holes, geology
+            Keep these holes (``LOCA_ID``) or geology units.
+        depth, elevation
+            Keep ``low <= value <= high`` of the reference depth, given in the
+            dataset's units (``(0, 30)``) or as quantity strings
+            (``("0 ft", "30 ft")``). Either end may be None.
+        where
+            Keep rows matching ``{column: value or list of values}``.
+        contains
+            Keep rows whose geology description contains this text (any
+            case), or any of a list.
+        geology_fields
+            GEOL headings to add as columns, e.g. ``["GEOL_FORM"]``.
+        include_incomplete
+            Keep test records with a blank required field (QC C001). By
+            default they're left out before the specimens are chosen, with a
+            warning that counts them.
+        display_units
+            ``"US"`` or ``"SI"``; by default the project's.
+
+        Examples
+        --------
+        >>> index = p.index_properties(geology=["Alluvium"])
+        >>> index[["sample_reference", "water_content", "liquid_limit"]]
+        """
+        return datasets.index_properties(
             self._path,
             holes=holes,
             geology=geology,

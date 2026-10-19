@@ -345,7 +345,14 @@ LLPL = group(
         ("LLPL_PL", "XN", "%"),
         ("LLPL_PI", "0DP", ""),
     ],
-    [[*BH1_U1, 48, "22", 26], [*BH2_D1, 31, "NP", None], [*BH2_U2, 55, "25", 30]],
+    # BH3-B1 is NP, so its sand, with about 9 % fines, can be classified
+    # (datasets.md §13 #14: no warning on the good files).
+    [
+        [*BH1_U1, 48, "22", 26],
+        [*BH2_D1, 31, "NP", None],
+        [*BH2_U2, 55, "25", 30],
+        [*BH3_B1, 21, "NP", None],
+    ],
     us=SPECIMEN_US,
 )
 
@@ -917,10 +924,25 @@ def joins_groups():
         [
             ["J1", 1.00, "1", "U", "J1-U1", 1.50],
             ["J1", 3.00, "2", "D", "J1-D2", None],  # no base
+            ["J1", 6.00, "3", "U", "J1-U3", 6.50],
+            ["J1", 7.00, "4", "B", "J1-B4", 7.50],
+            ["J2", 2.00, "1", "U", "J2-U1", 2.50],
         ],
     )
     j1_u1 = ["J1", 1.00, "1", "U", "J1-U1"]
     j1_d2 = ["J1", 3.00, "2", "D", "J1-D2"]
+    j1_u3 = ["J1", 6.00, "3", "U", "J1-U3"]
+    j1_b4 = ["J1", 7.00, "4", "B", "J1-B4"]
+    j2_u1 = ["J2", 2.00, "1", "U", "J2-U1"]
+    # Combining a sample's tests (datasets.md §6.6, §13 #16):
+    # - J1-U1: one water content specimen (3, at 1.15) and two Atterberg
+    #   specimens, 1 at 1.10 (0.05 away) and 2 with no depth (at the sample's
+    #   1.25, 0.10 away): specimen 1 is used.
+    # - J1-U3: two Atterberg specimens 0.05 from the sample's 6.25, B listed
+    #   first and so with the lower specimen key: A is used, by SPEC_REF.
+    # - J1-B4: only a grading, with about 9 % fines and so no USCS symbol.
+    # - J2-U1: specimen 2 has a water content and limits, and specimen 1 limits
+    #   at the same depth: specimen 2 is used, though 1 is the lower SPEC_REF.
     llpl = group(
         "LLPL",
         [*SPECIMEN, ("LLPL_LL", "0DP", "%"), ("LLPL_PL", "XN", "%")],
@@ -928,9 +950,33 @@ def joins_groups():
             [*j1_u1, "1", 1.10, 45, "20"],  # spec_depth 1.10
             [*j1_u1, "2", None, 50, "22"],  # sample_mid (1.00 + 1.50) / 2 = 1.25
             [*j1_d2, "1", None, 38, "18"],  # sample_top 3.00
+            [*j1_u3, "B", 6.30, 42, "21"],
+            [*j1_u3, "A", 6.20, 36, "19"],
+            [*j2_u1, "1", 2.20, 33, "17"],
+            [*j2_u1, "2", 2.20, 40, "20"],
         ],
     )
-    return [loca, geol, samp, ispt, llpl]
+    lnmc = group(
+        "LNMC",
+        [*SPECIMEN, ("LNMC_MC", "0DP", "%")],
+        [[*j1_u1, "3", 1.15, 28], [*j2_u1, "2", 2.20, 30]],
+    )
+    grag = group(  # GRAT's parent (AGS Rule 10c)
+        "GRAG",
+        [*SPECIMEN, ("GRAG_FINE", "1DP", "%")],
+        [[*j1_b4, "1", 7.20, 9.0]],
+    )
+    grat = group(
+        "GRAT",
+        [*SPECIMEN, ("GRAT_SIZE", "3SF", "mm"), ("GRAT_PERP", "0DP", "%")],
+        [
+            [*j1_b4, "1", 7.20, 20.0, 100],
+            [*j1_b4, "1", 7.20, 2.00, 90],
+            [*j1_b4, "1", 7.20, 0.425, 45],
+            [*j1_b4, "1", 7.20, 0.0630, 8],
+        ],
+    )
+    return [loca, geol, samp, ispt, llpl, lnmc, grag, grat]
 
 
 #: Geology map for the test files (datasets.md §5.2). BED is left out on purpose.

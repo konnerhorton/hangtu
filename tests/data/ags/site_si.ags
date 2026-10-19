@@ -108,6 +108,7 @@
 "DATA","BH1","1.50","1","U","BH1-U1","1","1.60","48","22","26"
 "DATA","BH2","2.00","1","D","BH2-D1","1","2.00","31","NP",""
 "DATA","BH2","4.50","2","U","BH2-U2","1","4.60","55","25","30"
+"DATA","BH3","1.00","1","B","BH3-B1","1","1.00","21","NP",""
 
 "GROUP","LNMC"
 "HEADING","LOCA_ID","SAMP_TOP","SAMP_REF","SAMP_TYPE","SAMP_ID","SPEC_REF","SPEC_DPTH","LNMC_MC","LNMC_TEMP"
