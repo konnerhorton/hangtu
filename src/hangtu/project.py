@@ -530,6 +530,71 @@ class Project:
             display_units=display_units,
         )
 
+    def index_properties(
+        self,
+        *,
+        holes: "str | list[str] | None" = None,
+        geology: "str | list[str] | None" = None,
+        depth: "tuple | None" = None,
+        elevation: "tuple | None" = None,
+        where: dict | None = None,
+        contains: "str | list[str] | None" = None,
+        geology_fields: "str | list[str] | None" = None,
+        include_incomplete: bool = False,
+        display_units: str | None = None,
+    ) -> pd.DataFrame:
+        """Return one row per sample, with its water content, limits and grading.
+
+        A sample with a water content (``LNMC``), an Atterberg test (``LLPL``)
+        or a grading (``GRAT``) gets one row that combines them. Where a test
+        was run on several specimens of the sample, the one nearest the
+        sample's reference depth is used: the water content specimen's depth
+        when there is one, else the sample's. Ties go to the water content's
+        own specimen, then the lowest ``SPEC_REF``. The ``*_specimen_id``
+        columns name the specimens used, and a warning counts the samples
+        where a choice was made. No row is repeated and no specimen's values
+        are mixed with another's. See ``docs/data/datasets.md`` §6.6.
+
+        Parameters
+        ----------
+        holes, geology
+            Keep these holes (``LOCA_ID``) or geology units.
+        depth, elevation
+            Keep ``low <= value <= high`` of the reference depth, given in the
+            dataset's units (``(0, 30)``) or as quantity strings
+            (``("0 ft", "30 ft")``). Either end may be None.
+        where
+            Keep rows matching ``{column: value or list of values}``.
+        contains
+            Keep rows whose geology description contains this text (any
+            case), or any of a list.
+        geology_fields
+            GEOL headings to add as columns, e.g. ``["GEOL_FORM"]``.
+        include_incomplete
+            Keep test records with a blank required field (QC C001). By
+            default they're left out before the specimens are chosen, with a
+            warning that counts them.
+        display_units
+            ``"US"`` or ``"SI"``; by default the project's.
+
+        Examples
+        --------
+        >>> index = p.index_properties(geology=["Alluvium"])
+        >>> index[["sample_reference", "water_content", "liquid_limit"]]
+        """
+        return datasets.index_properties(
+            self._path,
+            holes=holes,
+            geology=geology,
+            depth=depth,
+            elevation=elevation,
+            where=where,
+            contains=contains,
+            geology_fields=geology_fields,
+            include_incomplete=include_incomplete,
+            display_units=display_units,
+        )
+
     def permeability(
         self,
         *,

@@ -60,6 +60,8 @@ def specimens(build: Build, group: str, rows: pd.DataFrame) -> pd.DataFrame:
     Depth is ``SPEC_DPTH``, else the sample's midpoint, else its top, with the
     sample's top and base read from ``SAMP``. ``depth_top`` and ``depth_base``
     are the specimen's ``SPEC_DPTH`` and ``SPEC_BASE`` when both are given.
+    ``_sample_depth`` and ``_sample_basis`` are the sample's own lab depth,
+    without ``SPEC_DPTH`` (§6.6); ``finish()`` leaves them out.
     """
     samples = build.samples()
     sample_id = rows["sample_id"] if "sample_id" in rows else pd.Series(pd.NA)
@@ -72,6 +74,8 @@ def specimens(build: Build, group: str, rows: pd.DataFrame) -> pd.DataFrame:
     specimen_depth = build.numbers(rows, "SPEC_DPTH")
     specimen_base = build.numbers(rows, "SPEC_BASE")
     depth, basis = _joins.lab_depth(specimen_depth, top, base)
+    no_specimen = pd.Series(np.nan, index=rows.index, dtype=float)
+    sample_depth, sample_basis = _joins.lab_depth(no_specimen, top, base)
     both = specimen_depth.notna() & specimen_base.notna()
     specimen_id = (
         rows["specimen_id"]
@@ -91,6 +95,8 @@ def specimens(build: Build, group: str, rows: pd.DataFrame) -> pd.DataFrame:
             "depth_basis": basis,
             "depth_top": specimen_depth.where(both),
             "depth_base": specimen_base.where(both),
+            "_sample_depth": sample_depth,
+            "_sample_basis": sample_basis,
             "_line": rows["_line"],
         },
         index=rows.index,

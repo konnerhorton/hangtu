@@ -221,11 +221,11 @@ Columns: `loca_id`, `specimen_id`, `sample_reference`, `specimen_reference`, `gr
 ```python
 p.index_properties(**common)
 ```
-One row per **sample** (`SAMP`) that has a water content, an Atterberg test or a grading, combining them so that each sample can be classified. Settles SPEC §13 #2 (M8 intent, decision 7).
+One row per **sample** (`SAMP`) that has a water content, an Atterberg test or a grading, combining them so that each sample can be classified. Settles SPEC §13 #2 (M8 intent, decision 7). A sample is told apart by its AGS key fields (`LOCA_ID`, `SAMP_TOP`, `SAMP_TYPE`, `SAMP_REF`, `SAMP_ID`), which every test row carries, so a sample with no `SAMP` row is still one. Samples are listed in order of their first test row: `LNMC`, then `LLPL`, then `GRAT`.
 
 **Which specimen** of each test, where a sample has several:
-1. The **reference depth** is the water content specimen's depth when the sample has exactly one, else the sample's lab depth (§6.2, without `SPEC_DPTH`).
-2. For each test, the specimen nearest the reference depth is used; a specimen with no depth counts as at the sample's lab depth. Ties go to the lowest `SPEC_REF` (as text), then the lowest specimen key, so the choice doesn't change between runs.
+1. The **reference depth** is the water content specimen's depth (§6.2) when the sample has exactly one, else the sample's lab depth (§6.2, without `SPEC_DPTH`). A specimen with several `LNMC` rows is one specimen, with a blank water content (§6.2).
+2. For each test, the specimen nearest the reference depth is used; a specimen with no depth counts as at the sample's lab depth. Distances within 1 µm are equal. Ties go to the water content's own specimen (rule 4), then the lowest `SPEC_REF` (as text), then the lowest specimen key, so the choice doesn't change between runs. With several water content specimens, the water content is chosen first, by the same rule.
 3. One warning per call counts the samples where a choice was made: "4 samples had more than one specimen of a test; the one nearest in depth was used. The *_specimen_id columns say which."
 4. No row is multiplied, and no other specimen's values are mixed in. A specimen with both a water content and an Atterberg test is at distance 0 from itself, so the water content and limits of the same specimen stay together.
 
@@ -234,7 +234,7 @@ One row per **sample** (`SAMP`) that has a water content, an Atterberg test or a
 | Column | From |
 |---|---|
 | `loca_id`, `sample_reference` | The sample (§6.2) |
-| `ground_level`, `depth`, `depth_basis`, `elevation` | The reference depth; `depth_basis` is `spec_depth` when it is the water content specimen's, else the sample's (§6.2) |
+| `ground_level`, `depth`, `depth_basis`, `elevation` | The reference depth, with its basis: the water content specimen's (`spec_depth` when it has a `SPEC_DPTH`), else the sample's (`sample_mid` or `sample_top`, §6.2) |
 | `water_content` | The chosen `LNMC` specimen |
 | `liquid_limit`, `plastic_limit`, `plasticity_index`, `non_plastic` | The chosen `LLPL` specimen, as §6.2 |
 | `liquidity_index`, `consistency_index`, `plasticity_class_uscs`, `plasticity_class_bs5930` | `ht.analysis.plasticity()` on the combined row: LI and Ic use the chosen water content, which may be another specimen's |
@@ -243,8 +243,10 @@ One row per **sample** (`SAMP`) that has a water content, an Atterberg test or a
 | `aashto_group`, `aashto_group_index` | `ht.analysis.aashto()` on the `aashto` fractions of the same specimen, which aren't returned |
 | `water_content_specimen_id`, `atterberg_specimen_id`, `grain_size_specimen_id` | The specimen key (`specimen_id`) used for each test, blank where the sample has none |
 | geology columns | The geology at the reference depth (§5.4) |
+| `source_line` | The line of the sample's `SAMP` row, the one record all of the row's tests share; blank when the file has none |
 
-- The common arguments (§2) act on the combined rows: `depth=` on the reference depth, `geology=` on its unit. `include_incomplete=` is passed to each test's records.
+- The common arguments (§2) act on the combined rows: `depth=` on the reference depth, `geology=` on its unit. `include_incomplete=` applies to each test's records before the specimens are chosen, and the warning of rule 3 counts only the samples returned.
+- With none of `LNMC`, `LLPL` and `GRAT`, it is an empty frame with every column and the missing-group warning ("No LNMC, LLPL or GRAT group").
 - The classifications' own warnings (blank symbols by reason) are passed on, once per call.
 
 ## 7. Incomplete records
