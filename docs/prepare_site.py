@@ -45,7 +45,11 @@ def run_example(script: Path, folder: Path) -> subprocess.CompletedProcess:
 
 
 def run_examples() -> None:
-    """Run each page example and copy the figure it saves to ``img/generated/``."""
+    """Run each page example and keep its figure and printed output.
+
+    The figure (``<name>.png``) and the output (``<name>.txt``) go to
+    ``img/generated/``, where a page shows them below the code.
+    """
     GENERATED.mkdir(parents=True, exist_ok=True)
     for script in sorted(EXAMPLES.glob("*.py")):
         with tempfile.TemporaryDirectory() as tmp:
@@ -55,6 +59,9 @@ def run_examples() -> None:
             figure = Path(tmp) / f"{script.stem}.png"
             if figure.is_file():
                 shutil.copy(figure, GENERATED / figure.name)
+            if done.stdout:
+                output = GENERATED / f"{script.stem}.txt"
+                output.write_text(done.stdout, encoding="utf-8")
         print(f"Ran {script.name}")
 
 

@@ -194,15 +194,17 @@ Each step is one commit (two where noted), green under ruff and pytest and under
 - Tests: every name in `ht.__all__`, `ht.plot.__all__`, `ht.analysis.__all__`, `ht.examples.__all__` has a `:::` directive (criterion 2); `columns.md` has every registry column (criterion 5).
 - Docstrings that render badly or warn under `--strict` are fixed in their own commits (`docs: fix the <name> docstring`), before this step's commit.
 
+*Built in the order 6 and 7, then 5, in two commits: the guides and plot pages link to each other, and the home and getting-started pages link to both, so each commit builds with `--strict`. Pages that print a result show the output the examples print, which `docs/prepare_site.py` saves as `<name>.txt` next to the figures.*
+
+### 6. Guides (with step 7: `docs: write the guides and plot pages`)
+- `guides/units.md`, `templates.md`, `ags-and-qc.md`, `datasets.md`, `spt.md` (N60 formula in MathJax, refusal, cap, classes, the table is the engineer's call), each with its example file.
+
+### 7. Plot pages (with step 6)
+- `plots/index.md` (shared behavior, `ht.Sheet`), `profile.md`, `spt-profile.md`, `spt-histogram.md`, `geology-unit-comparison.md`, each with an example, its figure and a "Common options" table.
+
 ### 5. Home, Install, Getting started (`docs: write the home, install and getting-started pages`)
 - `index.md` (wordmark, name, what it does, figure, one example, links), `install.md` (tabs: latest from GitHub first, then PyPI), `getting-started/csv.md` and `ags.md` with short examples from `docs/site/examples/` and the full `examples/*.py` in a collapsed `???` block via snippets.
 - Test: each page under Getting started, Guides and Plots in the `nav` (read with `tomllib`) has a `--8<--` include before its first `## ` (criterion 4).
-
-### 6. Guides (`docs: write the guides`; split in two if over ~300 lines)
-- `guides/units.md`, `templates.md`, `ags-and-qc.md`, `datasets.md`, `spt.md` (N60 formula in MathJax, refusal, cap, classes, the table is the engineer's call), each with its example file.
-
-### 7. Plot pages (`docs: write the plot pages`)
-- `plots/index.md` (shared behavior, `ht.Sheet`), `profile.md`, `spt-profile.md`, `spt-histogram.md`, `geology-unit-comparison.md`, each with an example, its figure and a "Common options" table.
 
 ### 8. CI and deploy (`docs: build the site in CI and deploy it from main`)
 - `ci.yml`: `docs` job (Ubuntu, Python 3.12): `uv sync --locked --group docs`, `uv run python docs/prepare_site.py`, `uv run zensical build --clean --strict`.

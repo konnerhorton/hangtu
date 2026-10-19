@@ -3,6 +3,7 @@
 import importlib.util
 import inspect
 import re
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -86,3 +87,24 @@ def test_columns_page_lists_every_column(tmp_path, monkeypatch):
     page = (tmp_path / "reference" / "columns.md").read_text(encoding="utf-8")
     for name in ht.columns()["name"]:
         assert f"| `{name}` |" in page
+
+
+def _nav_pages(section):
+    config = tomllib.loads((ROOT / "zensical.toml").read_text(encoding="utf-8"))
+    for entry in config["project"]["nav"]:
+        if section in entry:
+            return entry[section]
+    raise AssertionError(f"No {section!r} section in the nav")
+
+
+@pytest.mark.parametrize(
+    "page",
+    [page for section in ["Guides", "Plots"] for page in _nav_pages(section)],
+)
+def test_page_opens_with_an_example(page):
+    # Criterion 4: the example comes before the first section heading.
+    text = (ROOT / "docs" / "site" / page).read_text(encoding="utf-8")
+    example = text.find('--8<-- "')
+    heading = text.find("\n## ")
+    assert example != -1, "no example"
+    assert heading == -1 or example < heading
