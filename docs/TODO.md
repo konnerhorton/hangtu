@@ -56,6 +56,9 @@ Revisit as real files are tested:
 ### 26. Slope-aware L005 · You + Claude · docs/data/qc.md §4.2 (L005)
 On a real file, a valley gave 22 L005 hits that were real topography. Options: compare a hole with a plane fitted through its neighbors rather than their median, or scale the tolerance with the distance to them. The per-project way to accept findings is `qc-review`.
 
+### 27. Writing accepted findings from a report · You + Claude · docs/data/qc.md §2
+Typing accepted-findings entries (`qc-review`) by hand is slow when a reviewer accepts many findings one at a time. A helper such as `report.accept(rows, reason=...)` could write or extend the YAML file from rows of `report.findings`. Left out of `qc-review` because it is a second API; revisit once accepted findings have been used on a real review.
+
 ### 7. Minimally useful fields · You · docs/data/qc.md §4.10
 - Review the default list group by group against real files.
 - **Decided for now:** `SPEC_REF` and `SPEC_DPTH` are recommended, not required (M7, docs/data/datasets.md §14), so lab results without them fall back to the sample depth.
