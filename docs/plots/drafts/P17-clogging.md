@@ -5,7 +5,7 @@
 | **ID / function** | P17 · `ht.plot.clogging_diagram()` |
 | **Status** | idea (draft notes) |
 | **Type** | plot + light analysis (consistency index) |
-| **Target version** | v0.2 (M12) |
+| **Milestone** | M12 (wave 1) |
 | **Depends on** | P00 |
 | **Related** | P18 (Hollmann & Thewes 2013). Registry `consistency_index` (`used_by: [P17]`) |
 

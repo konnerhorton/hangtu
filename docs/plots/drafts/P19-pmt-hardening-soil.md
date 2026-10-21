@@ -5,7 +5,7 @@
 | **ID / function** | P19 · `ht.analysis.pressuremeter_stiffness()`; drawn with `ht.plot.profile()` (P01) or P20 |
 | **Status** | idea (draft notes) |
 | **Type** | analysis + profile plot |
-| **Target version** | v0.6 |
+| **Milestone** | M23 (wave 5) |
 | **Depends on** | P01; P20 for multi-source comparison |
 | **Related** | P20 (modulus from multiple sources), P23 (uses p0) |
 

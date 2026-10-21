@@ -5,7 +5,7 @@
 | **ID / function** | P27 (proposed ID) · `ht.plot.distribution_comparison()` |
 | **Status** | idea (draft notes) |
 | **Type** | plot (+ summary statistics) |
-| **Target version** | v0.3, alongside P08 |
+| **Milestone** | M15, alongside P08 |
 | **Depends on** | P24 (histogram), P08 (PDF drawing), P07 (baseline table) |
 | **Related** | P07 (same question with percentile bars), TODO #8 (bounded data) |
 

@@ -5,7 +5,7 @@
 | **ID / function** | P23 · `ht.plot.lateral_stress_profile()` (+ `ht.analysis.in_situ_stress()`) |
 | **Status** | idea (draft notes) |
 | **Type** | plot + analysis |
-| **Target version** | Later (roadmap) |
+| **Milestone** | Later (roadmap) |
 | **Depends on** | P01 |
 | **Related** | P19 (same PMT data). Cross-cutting finding 4 (`water_unit_weight`) |
 

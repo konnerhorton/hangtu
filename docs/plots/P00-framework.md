@@ -5,7 +5,7 @@
 | **ID / module** | P00 · `ht.settings`, units functions, column registry, `ht.plot` helpers, `ht.Sheet` |
 | **Status** | built |
 | **Type** | infrastructure (no user-facing plot) |
-| **Target version** | v0.1, milestone M1 |
+| **Milestone** | M1 (0.1.0) |
 | **Depends on** | M0 scaffolding |
 | **Related** | SPEC §2 (units), §3 (plotting), §10.3 (registry); plots README (shared conventions); registry [`src/hangtu/columns.yaml`](../../src/hangtu/columns.yaml); aliases [`src/hangtu/units/aliases.yaml`](../../src/hangtu/units/aliases.yaml) |
 

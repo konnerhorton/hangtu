@@ -8,24 +8,24 @@ Each draft ends with **pitfalls**: mistakes that are easy to make when implement
 
 ## Index
 
-| Draft | What it draws | Status in `docs/plots/README.md` | Target |
+| Draft | What it draws | Status in `docs/plots/README.md` | Milestone |
 |---|---|---|---|
-| [P02](../P02-spt-profile.md) | SPT N against elevation, colored by unit | built (promoted) | v0.1 |
-| [P03](../P03-spt-histogram.md) | % of tests per density or consistency class, per unit | built (promoted) | v0.1 |
-| [P04](../P04-plasticity-chart.md) | Plasticity chart with A/U lines and optional user regions | approved (promoted) | v0.2 |
-| [P05](../P05-grain-size.md) | Grain size curves, fraction header band, envelopes, D-values | approved (promoted) | v0.2 |
-| [P11](P11-failure-envelope.md) | Failure envelope with fitted c′–φ′: Mohr circles, s′–t or p′–q, optional idealized drained paths | listed | v0.2 |
-| [P12](P12-triaxial-shearing.md) | Stress–strain curves and measured stress paths, with P11's envelope (P10 merged in) | listed | v0.2 |
-| [P17](P17-clogging.md) | Clogging potential zones against consistency index | listed | v0.2 |
-| [P19](P19-pmt-hardening-soil.md) | E50 against elevation from pressuremeter tests | listed | v0.6 |
+| [P02](../P02-spt-profile.md) | SPT N against elevation, colored by unit | built (promoted) | M3 |
+| [P03](../P03-spt-histogram.md) | % of tests per density or consistency class, per unit | built (promoted) | M3 |
+| [P04](../P04-plasticity-chart.md) | Plasticity chart with A/U lines and optional user regions | approved (promoted) | M8 |
+| [P05](../P05-grain-size.md) | Grain size curves, fraction header band, envelopes, D-values | approved (promoted) | M8 |
+| [P11](P11-failure-envelope.md) | Failure envelope with fitted c′–φ′: Mohr circles, s′–t or p′–q, optional idealized drained paths | listed | M11 |
+| [P12](P12-triaxial-shearing.md) | Stress–strain curves and measured stress paths, with P11's envelope (P10 merged in) | listed | M11 |
+| [P17](P17-clogging.md) | Clogging potential zones against consistency index | listed | M12 |
+| [P19](P19-pmt-hardening-soil.md) | E50 against elevation from pressuremeter tests | listed | M23 |
 | [P23](P23-lateral-earth-pressure.md) | PMT p0, σv, u, σ′v, σ′h and K0 against depth | listed | Later |
 | [P24](P24-grouped-histogram.md) | Property histogram per unit | **proposed ID** | open |
 | [P25](P25-size-fraction-comparison.md) | % gravel/sand/silt/clay/fines per unit | **proposed ID** | open (after M8) |
-| [P26](P26-strength-from-plasticity.md) | φ′ and c′ correlated from PI, per unit | **proposed ID** | v0.4+ |
-| [P27](P27-published-distribution-comparison.md) | Histogram per unit against a published distribution | **proposed ID** | v0.3 (with P08) |
-| [P28](P28-undrained-strength-from-spt.md) | N–s_u correlation chart; s_u from N per unit | **proposed ID** | correlation v0.2 (M13); chart open |
-| [P29](P29-monitoring-coverage.md) | Dates with groundwater readings, per group of wells | **proposed ID** | Phase 2+ |
-| [P30](P30-groundwater-time-series.md) | Groundwater elevation over time | **proposed ID** | Phase 2+ |
+| [P26](P26-strength-from-plasticity.md) | φ′ and c′ correlated from PI, per unit | **proposed ID** | not yet placed |
+| [P27](P27-published-distribution-comparison.md) | Histogram per unit against a published distribution | **proposed ID** | M15 (with P08) |
+| [P28](P28-undrained-strength-from-spt.md) | N–s_u correlation chart; s_u from N per unit | **proposed ID** | correlation M13; chart open |
+| [P29](P29-monitoring-coverage.md) | Dates with groundwater readings, per group of wells | **proposed ID** | not yet placed |
+| [P30](P30-groundwater-time-series.md) | Groundwater elevation over time | **proposed ID** | not yet placed |
 
 The IDs P24–P30 aren't in `docs/plots/README.md` yet; adding them is a decision for when each one is picked up.
 

@@ -5,7 +5,7 @@
 | **ID / function** | P04 · `ht.plot.plasticity_chart()` (uses `ht.analysis.plasticity()`) |
 | **Status** | built |
 | **Type** | plot + classification |
-| **Target version** | v0.2 (milestone M8) |
+| **Milestone** | M8 |
 | **Depends on** | P00, the plasticity analysis (`docs/drafts/analysis.md` §2) |
 | **Related** | SPEC §4 (NP, classification systems). P06, P07. TODO #5 (verify the lines), #22 (organic soils). M8 intent: `docs/work/m8-index-plots.md` |
 
@@ -195,4 +195,4 @@ None open. Decided in review:
 ## 15. Future enhancements
 - Color by USCS symbol instead of geology unit (`color_by="plasticity_class_uscs"` works already as a column; a fixed palette for classes would make it read better).
 - Organic specimens drawn differently (TODO #22).
-- A region computed from the data (v0.4, SPEC §1.3), returned in the `regions=` format.
+- A region computed from the data (not yet placed, SPEC §1.3), returned in the `regions=` format.

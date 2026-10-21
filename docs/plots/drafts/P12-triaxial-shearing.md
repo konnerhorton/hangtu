@@ -5,7 +5,7 @@
 | **ID / function** | P12 · `ht.plot.triaxial_shearing()` |
 | **Status** | idea (draft notes) |
 | **Type** | plot + light analysis |
-| **Target version** | v0.2 (M11) |
+| **Milestone** | M11 (wave 2) |
 | **Depends on** | P00, P11's `mohr_coulomb_fit` |
 | **Related** | P11 |
 

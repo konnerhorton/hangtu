@@ -5,7 +5,7 @@
 | **ID / function** | P11 · `ht.plot.failure_envelope()` (+ `ht.analysis.mohr_coulomb_fit()`) |
 | **Status** | idea (draft notes) |
 | **Type** | plot + analysis |
-| **Target version** | v0.2 (M11) |
+| **Milestone** | M11 (wave 2) |
 | **Depends on** | P00 |
 | **Related** | P12 (stress–strain curves and measured stress paths, reuses this fit), P26 and P27 (fitted c′, φ′ compared with correlations and published values) |
 

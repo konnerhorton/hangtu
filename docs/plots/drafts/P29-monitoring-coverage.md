@@ -5,7 +5,7 @@
 | **ID / function** | P29 (proposed ID) · `ht.plot.monitoring_coverage()` |
 | **Status** | idea (draft notes) |
 | **Type** | plot |
-| **Target version** | Phase 2 or later (needs monitoring data; open) |
+| **Milestone** | not yet placed (needs monitoring data; open) |
 | **Depends on** | P00 |
 | **Related** | P30 |
 

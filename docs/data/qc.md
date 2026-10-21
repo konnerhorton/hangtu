@@ -12,7 +12,7 @@ Check a project's data for integrity problems (SPEC §9.1, level 1) and report t
 - `p.qc()` runs the level 1 rules over the canonical layer, adds the findings ingest stored, and returns a **report** that prints a summary and exports to CSV;
 - `p.diff(group)` compares the file's text with the canonical value, cell by cell.
 
-**Not in scope:** level 2 rules (v0.4); the geology map, `p.locations`, joins, datasets and excluding incomplete records (M7, [`datasets.md`](datasets.md)); storing rule overrides in the project (M7, with `to_yaml()`); HTML or Excel reports; changing data (SPEC §1.4).
+**Not in scope:** level 2 rules (not yet placed, SPEC §1.3); the geology map, `p.locations`, joins, datasets and excluding incomplete records (M7, [`datasets.md`](datasets.md)); storing rule overrides in the project (M7, with `to_yaml()`); HTML or Excel reports; changing data (SPEC §1.4).
 
 ## 2. Public API
 ```python

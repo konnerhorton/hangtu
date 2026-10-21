@@ -5,7 +5,7 @@
 | **ID / function** | P05 · `ht.plot.grain_size()` (uses `ht.analysis.gradation()`) |
 | **Status** | built |
 | **Type** | plot + analysis (D-values, fractions) |
-| **Target version** | v0.2 (milestone M8) |
+| **Milestone** | M8 |
 | **Depends on** | P00, the gradation analysis (`docs/drafts/analysis.md` §3) |
 | **Related** | QC P001 (non-monotonic curves). P25 draft (fractions by unit). TODO #5 (verify the boundaries), #17 (sizes in mm). M8 intent: `docs/work/m8-index-plots.md` |
 
@@ -188,5 +188,5 @@ None open. Decided in review:
 
 ## 15. Future enhancements
 - Envelopes computed from the data (min and max, or percentiles, per unit).
-- User-defined PSD regions (v0.4, SPEC §1.3).
+- User-defined PSD regions (not yet placed, SPEC §1.3).
 - Size fractions by unit (P25 draft).

@@ -5,7 +5,7 @@
 | **ID / function** | P06 · `ht.plot.water_content_profile()` (built on `ht.plot.profile()`) |
 | **Status** | approved |
 | **Type** | plot |
-| **Target version** | v0.2 (milestone M8) |
+| **Milestone** | M8 |
 | **Depends on** | P01 (with text values, TODO #15), the plasticity analysis (`docs/drafts/analysis.md` §2) |
 | **Related** | P04 (the same specimens on the chart). `docs/data/datasets.md` §6.2, §6.6. SPEC §4 (NP). M8 intent: `docs/work/m8-index-plots.md` |
 

@@ -5,7 +5,7 @@
 | **ID / function** | P03 · `ht.plot.spt_histogram()` (uses `ht.analysis.spt()` and `ht.analysis.spt_class()`) |
 | **Status** | built |
 | **Type** | plot + classification |
-| **Target version** | v0.1 (milestone M3) |
+| **Milestone** | M3 (0.1.0) |
 | **Depends on** | P00, the SPT analysis (`docs/drafts/analysis.md` §1) |
 | **Related** | SPEC §4 (refusals, N60). P02 (shown beside it), P07 (unit order). TODO #3 (`soil_class`, no longer needed here). M3 intent: `docs/work/m3-spt.md` |
 

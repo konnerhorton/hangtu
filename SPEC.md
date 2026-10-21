@@ -16,7 +16,9 @@
 | `SPEC.md` (this file) | Scope, phasing, cross-cutting decisions (units, data, conventions, QC, statistics, engineering) |
 | [`docs/plots/README.md`](docs/plots/README.md) | Shared plot conventions, and the plot list with each plot's status |
 | `docs/plots/PXX-*.md` | One spec per figure, from [`TEMPLATE.md`](docs/plots/TEMPLATE.md) |
-| [`docs/drafts/`](docs/drafts/) | The analyses draft spec and notes for later phases (Phase 2 data, Phase 3 statistics) |
+| [`docs/drafts/`](docs/drafts/) | The analyses draft spec and notes for later work (Phase 2 data, Phase 3 statistics) |
+| [`docs/drafts/parameters/`](docs/drafts/parameters/README.md) | Draft reference sheets, one per ground parameter, and the index that tracks each parameter's stages (§1.3) |
+| `docs/site/parameters/NN-*.md` | A parameter's page on the docs site, promoted from its sheet by the wave that builds it |
 | [`docs/reference/eurocode7-summary.md`](docs/reference/eurocode7-summary.md) | Background for characteristic values |
 | [`docs/TODO.md`](docs/TODO.md) | Research items and pending decisions |
 | [`CLAUDE.md`](CLAUDE.md) | Working conventions and commands for Claude Code |
@@ -25,6 +27,8 @@
 ---
 
 ## 1. Scope and phasing
+
+**Purpose (decided 2026-10-21):** hangtu derives the ground parameters a geotechnical design needs, from the test data through to a model-ready parameter set, for soil and rock. The plots, the data layer, the analyses and the statistics are steps toward those parameters. hangtu goes as far as constitutive-model parameter sets (Mohr–Coulomb, Hardening Soil and HS-small, generalized Hoek–Brown with residual values, Soft Soil), described by the published model rather than by a software package. It is also a reference a practitioner can learn from: the docs site has a page per parameter on what it is, why it matters to a design and how it is determined, and each method's docstring gives its equation, inputs, range of validity and source.
 
 ### 1.1 Users and distribution
 - **Persona:** a geotechnical engineer with beginner-to-intermediate Python, self-taught through postgraduate work.
@@ -41,31 +45,52 @@
 |---|---|---|
 | **AGS4** (4.0.3–4.2) | Factual input | Phase 2 |
 | **DIGGS** | Factual input (mapped into the same internal model) | Later |
-| **AGSi** (v1.0.1) | Interpreted output (ground model, property summaries, design parameters); later also input | v0.5 export, later import |
+| **AGSi** (v1.0.1) | Interpreted output (ground model, property summaries, design parameters); later also input Later (export, then import) |
 | **CSV / DataFrame** | Input for plots and statistics, using the documented column names. CSV only (decided): no Excel reader; users convert their own workbooks | **Phase 1** |
 
 ### 1.3 Phases and roadmap
-**Why plots came first (decided):** plots are what users will use first, so building them first gets feedback soonest. Plot and analysis functions take DataFrames, so they don't need the AGS ingest or database to be useful.
+**Why plots came first (decided):** plots are what users will use first, so building them first gets feedback soonest. Plot and analysis functions take DataFrames, so they don't need the AGS ingest or database to be useful. "Phase 1/2/3" name those bodies of work (plots, the data layer, statistics); they no longer set the build order. Waves and milestones do.
 
-**Build order (decided 2026-10-13):** after M3 (P01–P03 and P07), Phase 2 is built before the rest of Phase 1 (P04–P06, §12.4). The data layer is the more useful piece for current work, and the remaining plots don't depend on it, so either order works.
+**Stages (decided 2026-10-21, `docs/work/parameter-roadmap.md`):** every parameter climbs the same four stages, each a deliverable on its own:
+- **A. Data:** a dataset with the measured values in registry columns, and QC checks from the parameter's pitfalls.
+- **B. Direct derivation:** definitions and fits on the test results.
+- **C. Correlations:** indirect estimates through the correlations framework (§4), each with its applicability.
+- **D. Selection:** all sources compared against depth or geology unit, statistics, a characteristic value or design line, and the model parameter set (§5).
 
-**First release (decided 2026-10-14):** v0.1 ships after M7, with the plots built so far and the whole data layer, rather than with all of Phase 1 and no AGS. Testers can then try hangtu on their own AGS files, which tells us more than CSV input alone. P04–P06 move to v0.2.
+**Waves (decided 2026-10-21):** a wave moves several parameters forward a stage each, grouped by the engine they share, so each engine is built once. A parameter's stages can sit in different waves. Sheet numbers are those of [`docs/drafts/parameters/`](docs/drafts/parameters/README.md), whose index holds the sheet × stage table and each stage's status.
 
-**v0.2 widened (decided 2026-10-15):** the triaxial plots (P11–P12), the clogging diagram (P17) and published SPT correlations (§4) join P04–P06 in v0.2. They are what current work needs next. (N1)60 comes with them, because several correlations use it. Phases name content; versions name releases, so Phase 1 spans v0.1 and v0.2. The table below lists versions by content; §12.4 has the build order.
-
-| Version | Phase | Content |
+| Wave | Engine | Moves |
 |---|---|---|
-| **v0.1** | **1: Plots** (part) and **2: Data** | - Plot framework (P00): style, palette, unit-aware labels, out-of-range markers, `Sheet`.<br>- Plots **P01–P03 and P07**: property profile, SPT profile, SPT histograms, property by geology unit.<br>- SPT analysis: N60, refusal, classes.<br>- Units handling for DataFrames (§2.6), the column registry, CSV templates.<br>- AGS4 ingest (units on ingest, value flags) into SQLite.<br>- QC level 1 with CSV report and diff tool.<br>- Depth/elevation/geology conventions and joins.<br>- Datasets (SPT, Atterberg, grain size curves, permeability) that feed the plots directly.<br>- **First PyPI release.** |
-| **v0.2** | **1: Plots** (rest) and lab and in-situ analyses | - Plots **P04–P06**: plasticity chart, grain size, water content profile.<br>- The analyses they need: plasticity classification, Dx/Cu/Cc/gradation.<br>- The datasets that need them: classification columns, `grain_size_summary()`, `index_properties()`.<br>- Triaxial: failure envelope with the Mohr–Coulomb fit (P11); stress–strain curves and measured stress paths (P12).<br>- Clogging: Thewes & Burger (2004) diagram (P17), from the consistency index.<br>- **SPT correlations** (§4): published correlations from SPT N to other properties, each with its applicability, compared on P01 and P07.<br>- (N1)60. |
-| **v0.3** | **3: Statistics** | - `describe`, `fit` (bounded and censored), `compare`, `compare_groups`, `crosstab`, EC7 `characteristic`.<br>- Plots P08 (distribution fit) and P09 (characteristic value profile). |
-| v0.4 | | - Clogging: Hollmann & Thewes (2013) diagram (P18).<br>- QC level 2 (engineering-judgment ranges).<br>- Standards comparison with a library of published ranges.<br>- User-defined PSD regions; plasticity-chart data region.<br>- Compaction curve (P16). |
-| v0.5 | | - Consolidation (P13–P15) analyses and plots.<br>- **AGSi export** (`to_agsi()`): 1D model elements per geology unit, carrying property summaries and parameters (including depth-trend design lines), with codes from the column registry. |
-| v0.6 | | - Soil modulus from multiple sources (P20).<br>- Pressuremeter → Hardening Soil parameters (P19). |
-| Later | | - **AGSi import** (unit definitions and design parameters, compared with hangtu statistics).<br>- Multiple AGS files per project (merging, LOCA_ID conflicts, multiple datums).<br>- DIGGS ingestion; AGS3 → AGS4; CPT (P22).<br>- GeoPackage export; simple location plan (P21).<br>- Lateral earth pressure with depth (P23).<br>- Better UI; regex/fuzzy text matching; conditional minimally-useful-field rules.<br>- Cohesive/cohesionless helper; inch display for coarse particle sizes.<br>- Title block and drafting templates. |
+| 0 | User-defined groups and curves | Curves (triaxial q–ε and εv, rock triaxial, swelling against time, shear box displacement) carried in the AGS file, read robustly; built against a sample dataset from real projects. Waves 2, 4 and 5 need it |
+| 1 | Stress and state | 01 and 03 A–B (vertical stress, phase relations), 02 B (activity; LI and Ic as analyses); SPT correlations and (N1)60, stage C for 04–08 and 10; P17 (drawn from Ic) |
+| 2 | Strength envelopes | One fitting core for 04 A–B, 05 A–B, 22 A–B and 15 B (intact Hoek–Brown fit); P11–P12 |
+| 3 | Oedometer | 06 A–B, 11 (Eoed, Eur,oed), 12 B (k from cv·mv), 21 A–B (Grob, Huder–Amberg); then 07 B (K0 from OCR) and 05 B (SHANSEP); P13–P15 |
+| 4 | Rock | 13, 14, 23 A–B and 16 A (RQD); then the Hoek–Brown chain: 15 C, 16 B, 17–19, 09 (rock), 20. Kept after the soil waves |
+| 5 | Stiffness | 08, 10 and 11 (the full set), 09 (soil); P19, P20 |
+| 6 | Hydraulic | 12 A–C (field permeability tests) |
 
-### 1.4 Non-goals (through v0.3)
+**Order of work:** P06, wave 1, statistics, wave 0, wave 2, selection (stage D, starting with the Mohr–Coulomb set), then waves 3–6, each adding stage D and the model sets its sheets complete. Statistics come ahead of wave 0 because by then there are measured properties, derived values with depth trends and several correlations per property to compare, so they are designed against real uses. §12.4 has the milestones.
+
+**Releases** (decided 2026-10-21) are cut when a milestone leaves something usable, and aren't tied to waves or planned ahead. 0.1.0 (the plots P00–P03 and P07 and the data layer) is the first; its PyPI release comes next.
+
+**Not yet placed**, built when needed: the Hollmann & Thewes (2013) clogging diagram (P18); QC level 2 (engineering-judgment ranges); standards comparison with a library of published ranges; user-defined PSD regions and the plasticity-chart data region; the compaction curve (P16).
+
+**Later:**
+- **AGSi export** (`to_agsi()`): 1D model elements per geology unit, carrying property summaries and parameters (including depth-trend design lines), with codes from the column registry. Not part of stage D.
+- **AGSi import** (unit definitions and design parameters, compared with hangtu statistics).
+- Exporters that write a model set in one program's input format.
+- Multiple AGS files per project (merging, LOCA_ID conflicts, multiple datums).
+- DIGGS ingestion; AGS3 → AGS4; CPT (P22).
+- GeoPackage export; simple location plan (P21).
+- Lateral earth pressure with depth (P23).
+- Better UI; regex/fuzzy text matching; conditional minimally-useful-field rules.
+- Cohesive/cohesionless helper; inch display for coarse particle sizes.
+- Title block and drafting templates.
+
+### 1.4 Non-goals
 - Writing or editing AGS files (except test fixtures).
-- Limit-state design calculations.
+- Limit-state design calculations. hangtu stops at characteristic values, design lines and model parameter sets: deriving parameters is not design. Applying partial factors, capacity and stability checks, and running numerical models are out.
+- A program's input format as the definition of a model set. Model sets follow the published model; exporters are thin (§5).
 - Inclined-hole geometry (flagged only).
 - GIS and mapping.
 - Multi-user database access.
@@ -135,9 +160,8 @@ Full conventions are in [`docs/plots/README.md`](docs/plots/README.md); each fig
   - Exports to PDF, PNG or SVG.
   - Simple title only; no title block (Later).
 - **Plot list and status:** see `docs/plots/README.md`.
-  - Batch 1 (P00–P07): P00–P03 and P07 are v0.1, P04–P06 are v0.2 (§1.3).
-  - P08–P09 are v0.3.
-  - P11–P12 and P17 are v0.2; P13–P16 are v0.4–v0.5.
+  - Batch 1 (P00–P07): P00–P05 and P07 are built; P06 is M8's last plot.
+  - The milestone of every other plot is in §12.4, or it is not yet placed (§1.3).
 
 ---
 
@@ -147,20 +171,29 @@ Analysis code lives in `ht.analysis.*`, as plain functions usable without plotti
 - **N60** stays NULL until an energy ratio or `hammer_efficiency` is given. There is no default.
 - **NP** is distinct from blank everywhere and shown as a count on plots.
 - **Classification systems** (plasticity chart, size fractions, sieve axis) are selectable per call and defined in the config.
-- **Correlations** (decided 2026-10-15; SPT first, in v0.2) live in `ht.analysis.correlations`, one function per published correlation. Each one:
+- **Correlations** (decided 2026-10-15; widened 2026-10-21) are stage C of every parameter (§1.3), from any input property (SPT N, PI, CPT qt, Is50, index properties). SPT correlations are the first set (M13). They live in `ht.analysis.correlations`, one function per published correlation. Each one:
   - states its equation and cites its source, with constants kept in the source's units;
-  - says when it applies and when it doesn't: soil types, input range, which N it was derived with (field N, N60 or (N1)60), the data and region behind it, and known biases. This is in the docstring and in metadata attached to the result, so a plot or report can show it;
+  - says when it applies and when it doesn't: soil types, input range, the input it was derived with (for SPT, field N, N60 or (N1)60), the data and region behind it, and known biases. The input is explicit: a column that doesn't match is an error, never a silent correction. This is in the docstring and in metadata attached to the result, so a plot or report can show it;
   - returns NaN with a count outside its range, and never clips or extrapolates the input;
   - returns rows that name the correlation, so several estimates of one property compare on P01 (`color_by=`) or P07.
 - **Effective vertical stress** (decided 2026-10-15) comes from `ht.analysis.vertical_stress()`, with the unit weight (a value or a profile, step or linear) and the groundwater level for each hole given in the call. (N1)60 and the correlations take its σ′v column. Detail in analysis draft §4.1.
+- **Judgment inputs** (decided 2026-10-21, `docs/work/parameter-roadmap.md`): a judgment (the disturbance factor D, GSI, σ′3max, Bjerrum's μ, a design unit weight profile, a groundwater level) is never filled in by hangtu, as N60 stays blank without an energy ratio.
+  - **Resolution:** explicit argument → the project's judgments file → an error that names the judgment, what it is keyed by and how to set it. There is no session (`ht.settings`) level: a judgment belongs to a project, and a session value would follow the user to the next one.
+  - **Keyed by what it depends on:** each judgment declares its keys (geology unit, hole, depth range, a named design case) and whether one project-wide value is allowed. A value at a coarser key than allowed is an error, not a fallback (TODO #29).
+  - **A plain file next to the project** (`judgments.yaml`) is the source of truth, reviewable and kept in version control. A `Project` records its path and reads it on each call, and never copies it into SQLite. It works without a `Project` too, for CSV input.
+  - **Recorded on every result:** each judgment used, with its value, key and source (the argument, or the file's path and SHA-256), in `df.attrs` and on result objects.
+  - The file format and API are specified in M13, whose `vertical_stress()` takes the first judgments a user sets once per project. `hammer_efficiency` stays a session setting for now (TODO #33).
 
 ---
 
-## 5. Statistics (Phase 3, v0.3)
+## 5. Statistics (Phase 3) and model sets
 - All functions take an array, a Series, or a DataFrame plus `value=`/`by=`.
 - All accept `log=True`.
 - They return result objects with readable summaries, `.to_frame()` and `.to_dict()` (the latter for later AGSi export).
 - Results record whether they summarize test values (*properties*) or give interpreted design values (*parameters*), plus the method, n and source.
+- **One calculation, many views** (decided 2026-10-21): a result computes and keeps everything (values, n, the statistics behind each value, outliers, the judgments used, §4). What the user asks for (characteristic values, p-values, variance, outlier detail) changes the view (`.to_frame()`, `.to_dict()`, the summary), never the calculation, so two reports of one result can't disagree.
+- **Statistics feed stage D** (§1.3): comparing the sources of a parameter by depth or geology unit, and its characteristic value or design line.
+- **Model sets** (decided 2026-10-21) are results of the same kind: a set per geology unit for a published model (Mohr–Coulomb; Hardening Soil and HS-small; generalized Hoek–Brown with residual values; Soft Soil), defined by the model's published description (TODO #32). Writing one program's input format is a thin exporter on top, never the definition (Later).
 
 - Functions: `describe`, `fit`, `compare`, `compare_groups`, `crosstab`, `characteristic`. Draft behavior is in [`docs/drafts/phase3-stats.md`](docs/drafts/phase3-stats.md) (TODO #8–#13).
 
@@ -240,7 +273,7 @@ Apply in both phases. In Phase 1 they are applied by the analysis functions to t
 | Level | What | When |
 |---|---|---|
 | 1: Integrity | Format, units, structure, internal consistency | v0.1 |
-| 2: Engineering judgment | User-defined plausible ranges per unit and property | v0.4 |
+| 2: Engineering judgment | User-defined plausible ranges per unit and property | Not yet placed (§1.3) |
 
 ### 9.2 Framework (decided)
 - `p.qc()` returns a report; the findings export to **one flat CSV**, with the rule settings the run used written next to it (`<stem>_rules.csv`), so a report sent on its own says what it was checked against.
@@ -258,7 +291,7 @@ Apply in both phases. In Phase 1 they are applied by the analysis functions to t
 `p.groups`, `p.table(group, raw=False)`, `p.locations`, `p.set_geology_map(path)`, `p.geology_map`, `p.diff(group, heading=None, changed_only=False)`, `p.sql(...)` (read-only, SI).
 
 ### 10.2 Ready-made datasets (Phase 2)
-- `p.spt()`, `p.atterberg()`, `p.grain_size()` and `p.permeability()` (M7, v0.1); `p.grain_size_summary()`, `p.index_properties()` and the classification columns (M8, built for v0.2).
+- `p.spt()`, `p.atterberg()`, `p.grain_size()` and `p.permeability()` (M7, v0.1); `p.grain_size_summary()`, `p.index_properties()` and the classification columns (M8).
 - **Several specimens of a test in one sample** (decided 2026-10-15, M8): `p.index_properties()` uses the one nearest in depth to the water content specimen and names it in a column, with a warning. No row is multiplied (`docs/data/datasets.md` §6.6).
 - They return DataFrames in **exactly the shape the Phase 1 plots expect**: the same registry column names, with units attached, in the project's display units unless `display_units=` says otherwise. Columns and rules: [`docs/data/datasets.md`](docs/data/datasets.md).
 - **Common filters:** `where=`, `contains=`, `elevation=`, `depth=`, `holes=`, `geology=`, `geology_fields=`, `include_incomplete=`, `display_units=` (naming decided).
@@ -278,7 +311,7 @@ Apply in both phases. In Phase 1 they are applied by the analysis functions to t
 
 ## 11. API sketch
 
-**Phase 1 (v0.1–v0.2): plots on your own data**
+**Phase 1: plots on your own data**
 ```python
 import hangtu as ht
 
@@ -300,7 +333,7 @@ ht.plot.profile(k, value="hydraulic_conductivity", preset="hydraulic_conductivit
 sheet.save("site_x.pdf")
 ```
 
-**Phase 2 (v0.1): the same plots, fed from AGS**
+**Phase 2: the same plots, fed from AGS**
 ```python
 p = ht.Project.from_ags("site.ags", db="site.sqlite", display_units="US")   # later: ht.Project.open("site.sqlite")
 p.set_geology_map("strata.csv")
@@ -308,7 +341,7 @@ p.qc().to_csv("qc_report.csv")
 fig, ax = ht.plot.spt_profile(p.spt(geology=["Alluvium"]))
 ```
 
-**Phase 3 (v0.3): statistics**
+**Phase 3: statistics**
 ```python
 ht.stats.describe(spt, value="spt_n60", by="geology_unit")
 ht.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], estimate="mean", vx=0.30, vx_source="assumed")
@@ -326,7 +359,7 @@ ht.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
 - **CI:** GitHub Actions on Windows, macOS and Linux × Python 3.12–3.14 (ruff + pytest). Release to PyPI on a `v*` tag (trusted publishing, `release.yml`): the tag must match the version in `pyproject.toml`, and the test suite runs against the built wheel on all three operating systems before upload. A manual run publishes to TestPyPI instead. Before either upload, the scripts in `examples/` run against the built wheel in an empty directory on all three operating systems.
 - **0.0.1** is a placeholder release that claims the name on PyPI before v0.1 (decided 2026-10-12). It contains the M2b state: P00, P01 and P07.
 - **0.1.0** (M9) is the first release meant for use: P00–P03 and P07, the SPT analysis, AGS4 ingest, QC and the four datasets, with `examples/` and the example data in `ht.examples`.
-- **Docs:** the README and `examples/` for v0.1 (decided 2026-10-14), and a docs site built with Zensical, ahead of v0.2 rather than after feedback, so potential users can find what hangtu does and the site grows with each feature (decided 2026-10-16, `docs/work/docs-site.md`).
+- **Docs:** the README and `examples/` for v0.1 (decided 2026-10-14), and a docs site built with Zensical, ahead of the second release rather than after feedback, so potential users can find what hangtu does and the site grows with each feature (decided 2026-10-16, `docs/work/docs-site.md`).
   - The source is `docs/site/` (`zensical.toml` at the root); the internal specs elsewhere in `docs/` aren't published. `docs/prepare_site.py` runs each page's example and writes the figures, the column page and the logo before a build.
   - The API reference is generated from the numpy docstrings (mkdocstrings), so a docstring is user documentation. Math is MathJax.
   - The site follows `main`, not the last release: `docs.yml` deploys to GitHub Pages when a push to `main` changes what the site is built from. Users who want what the site describes install from GitHub.
@@ -355,7 +388,7 @@ ht.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
 - **Phase 3:** JRC worked examples for EC7; scipy reference values.
 
 ### 12.4 Milestones
-Rows are in build order. M8 comes after M9 since v0.1 moved ahead of P04–P06 (§1.3); it keeps its number because other documents refer to it. M10 (a feedback round) was dropped, and its number isn't reused.
+Rows are in build order; each milestone after M8 names its wave, or statistics or selection (§1.3). Milestones keep their numbers when the order changes, because other documents refer to them, so M8 comes after M9 and M11 after M16. M10 (a feedback round) was dropped, and its number isn't reused. A milestone can split into several units of work, as M8 did; units without a milestone go where §1.3's order of work puts them.
 
 | M | Deliverable | Done when |
 |---|---|---|
@@ -364,16 +397,26 @@ Rows are in build order. M8 comes after M9 since v0.1 moved ahead of P04–P06 (
 | M2 | **P01** property profile | P01 acceptance criteria met |
 | M2b | **P07** property by geology unit (moved ahead of M3 from M5) | P07 acceptance criteria met |
 | M3 | **P02–P03** + SPT analysis | P02/P03 criteria + SPT golden tests |
-| M4 | Phase 2 design: data model decided (§7) and build order changed (§1.3). Each later Phase 2 unit turns its part of `docs/drafts/phase2-data.md` into its own intent and spec | Decisions recorded in SPEC |
+| M4 | Phase 2 design: data model decided (§7) and Phase 2 built ahead of the rest of Phase 1. Each later Phase 2 unit turns its part of `docs/drafts/phase2-data.md` into its own intent and spec | Decisions recorded in SPEC |
 | M5 | AGS4 ingest: raw and canonical layers in SQLite, units on ingest, value flags (§6, §7) | Twin-file test and ingest acceptance criteria met |
 | M6 | QC level 1, CSV report and `diff()` (§9) | One defects-file test per rule |
 | M7 | Depth/elevation/geology joins and ready-made datasets (§8, §10) | Datasets feed the Phase 1 plots directly |
 | M9 | Examples (CSV → plot and AGS → QC → plot), CSV templates, README → **v0.1.0 on PyPI** | Examples run from a clean `pip install` |
 | M8 | **P04–P06** + classification and gradation analyses, and the datasets that need them | P04–P06 criteria + classification/Dx golden tests |
-| M11 | **P11–P12** triaxial: Mohr–Coulomb fit, failure envelope, stress–strain curves and measured stress paths | P11/P12 criteria + fit golden tests |
-| M12 | **P17** clogging diagram (Thewes & Burger 2004) | P17 criteria; zones match the source |
-| M13 | **SPT correlations** and (N1)60 → **v0.2** | Golden values from each source; out-of-range counts |
-| M14+ | Phase 3 | Defined when Phase 3 starts |
+| M13 | Wave 1: vertical stress, (N1)60 and **SPT correlations**; the judgments file (§4) | Golden values from each source; out-of-range counts |
+| M14 | Wave 1: phase relations (γ, γd, e, n, S with consistency checks), activity, LI and Ic as analyses | Golden values; consistency checks on the test files |
+| M12 | Wave 1: **P17** clogging diagram (Thewes & Burger 2004) | P17 criteria; zones match the source |
+| M15 | Statistics: `describe`, `fit` (bounded and censored), `compare`, `compare_groups`, `crosstab`, EC7 `characteristic`; P08, P09 | JRC worked examples; scipy reference values |
+| M16 | Wave 0: user-defined groups and curves | Curves from the sample dataset reach the datasets |
+| M11 | Wave 2: the envelope fitting core; **P11–P12** triaxial: Mohr–Coulomb fit, failure envelope, stress–strain curves and measured stress paths | P11/P12 criteria + fit golden tests |
+| M17 | Wave 2: undrained strength (UU, UCS, vane, pocket penetrometer), joint shear strength, intact Hoek–Brown fit | Golden values from each source |
+| M18 | Selection (stage D): sources compared by depth or geology unit, characteristic values and design lines, model-set results; the Mohr–Coulomb set | A set per unit, its judgments recorded; views agree |
+| M19 | Wave 3: oedometer (σ′p, Cc, Cs, Eoed, Eur,oed, k from cv·mv, Grob and Huder–Amberg swelling); P13–P15 | Golden values; plot criteria |
+| M20 | Wave 3: K0 from OCR, SHANSEP; the Soft Soil set | Golden values |
+| M21 | Wave 4: rock lab datasets (UCS, tensile, point load, slake durability, intact moduli) and RQD | Datasets feed P01 and P07 |
+| M22 | Wave 4: the Hoek–Brown chain, rock dilatancy, in situ stress; the generalized Hoek–Brown set with residual values | Published worked examples reproduced |
+| M23 | Wave 5: soil stiffness (elastic, small-strain, Hardening Soil), soil dilatancy; P19, P20; the HS and HS-small sets | Golden values; plot criteria |
+| M24 | Wave 6: field permeability tests | Golden values; censored values kept |
 
 ---
 
