@@ -146,7 +146,7 @@ def test_1_ingest_rules_appear_in_the_report(projects, tmp_path):
 def test_2_good_files_have_no_errors_or_warnings(projects, name):
     found = projects[name].qc().findings
     assert found.query("severity != 'info'").empty
-    allowed = {"L006", "S003", "A004", "C002"}
+    allowed = {"S003", "A004", "C002"}  # no L006: LOCA_DATM names the datum
     allowed |= {"site_v404": {"M001"}, "site_us": {"U002"}}.get(name, set())
     assert set(found["rule_id"]) <= allowed
 
