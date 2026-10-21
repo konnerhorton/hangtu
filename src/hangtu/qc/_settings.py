@@ -200,21 +200,7 @@ def _read(source: Override, top_key: str) -> dict[str, Any]:
     if source is None:
         return {}
     if isinstance(source, str | PathLike):
-        path = Path(source)
-        if not path.is_file():
-            raise FileNotFoundError(
-                f"No QC {top_key} file at {str(path)!r}. Check the path; it is "
-                f"relative to {str(Path.cwd())!r} unless it starts from a drive or /."
-            )
-        try:
-            source = yaml.safe_load(path.read_text(encoding="utf-8"))
-        except yaml.YAMLError as error:
-            where = getattr(error, "problem_mark", None)
-            line = f" at line {where.line + 1}" if where else ""
-            raise HangtuError(
-                f"The QC {top_key} file {str(path)!r} isn't valid YAML{line}. "
-                f"Check its indentation and colons against docs/data/qc.md §3."
-            ) from None
+        source = read_yaml(source, top_key)
         if source is None:
             return {}
     if not isinstance(source, Mapping):
@@ -225,6 +211,25 @@ def _read(source: Override, top_key: str) -> dict[str, Any]:
     if set(source) == {top_key}:
         source = source[top_key] or {}
     return {str(key): value for key, value in source.items()}
+
+
+def read_yaml(path: str | PathLike[str], what: str) -> Any:
+    """Read a QC YAML file; ``what`` names it in errors (``rules``)."""
+    path = Path(path)
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"No QC {what} file at {str(path)!r}. Check the path; it is "
+            f"relative to {str(Path.cwd())!r} unless it starts from a drive or /."
+        )
+    try:
+        return yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as error:
+        where = getattr(error, "problem_mark", None)
+        line = f" at line {where.line + 1}" if where else ""
+        raise HangtuError(
+            f"The QC {what} file {str(path)!r} isn't valid YAML{line}. "
+            f"Check its indentation and colons against docs/data/qc.md §3."
+        ) from None
 
 
 def _check_rules(overrides: dict[str, Any], defaults: dict[str, Any]) -> None:
