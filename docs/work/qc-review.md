@@ -116,7 +116,7 @@ The rules live in `docs/data/qc.md`; this section lists what changes and why.
 
 ## Plan
 
-Five build commits, each green (ruff and pytest). Regenerate the test files with `uv run python tests/data/ags/_make_files.py` whenever the generator changes. The spec commit already updated SPEC §9.2 and `qc.md` (§2, §3.4, §4.4, §5, §8, §9); the build brings the code, config and tests up to them.
+Five build commits and a refactor before step 2, each green (ruff and pytest). Regenerate the test files with `uv run python tests/data/ags/_make_files.py` whenever the generator changes. The spec commit already updated SPEC §9.2 and `qc.md` (§2, §3.4, §4.4, §5, §8, §9); the build brings the code, config and tests up to them.
 
 ### 1. `qc-review: D008, the rounding tier of D007`
 - `src/hangtu/qc/rules.yaml`: D007 gains `rounding_tolerance: 0.1 m` and its title stays; new D008, "Specimen depth just outside its sample, likely rounding", info, no thresholds.
@@ -138,13 +138,16 @@ Five build commits, each green (ruff and pytest). Regenerate the test files with
   - `tests/qc/test_qc_acceptance.py`: `EXPECTED_INFO` gains `("D008", 121)`; the rule parameter list gains D008. The good files stay clean with no D008 (AC 8).
   - Check the tests that assert A004 or P003 findings on line 121/130 keep passing (their depths change from 1.10 to 1.55 m).
 
+### 1b. `qc: share the QC YAML file reader`
+A refactor, on its own: `_settings.read_yaml(path, what)` takes the not-there and not-YAML errors out of `_settings._read`, so step 2 reads its file the same way. No behavior change.
+
 ### 2. `qc-review: read and check accepted-findings entries`
 - New `src/hangtu/qc/_accepted.py`:
   - `DEPTH_TOLERANCE = 0.05` (m; Decision 3), `KEYS = ("rule_id", "loca_id", "group", "heading", "depth", "reason")`.
   - `Entry` (frozen dataclass): `position` (1-based), the six keys as given (`depth` as written), and `depth_m` (float or None).
   - `Accepted`: `entries: list[Entry]` and `source: str` (the path as given, `"list"`, or `""` when `accepted=None`).
-  - `load(source, settings) -> Accepted`: a path (read as `_settings._read` does, with the same not-there and not-YAML errors worded for "accepted findings") or a list; a top-level `accepted:` key is unwrapped. Checks, in the order of Decision 6, each message starting "accepted entry 3 (D007): ": not a list of mappings; missing or blank `rule_id` or `reason`; an unknown key (lists the six); an unknown rule ID (in `settings.defaults` or a single V rule; `V*` says "accept single V rules, e.g. V10a"); `depth` without `loca_id`; `depth` read with `units.parse_quantity(text, "length")`, a plain number or a non-length raising `UnitsError` with an example (`depth: "12.5 ft"`). `rule_id`, `loca_id`, `group` and `heading` are kept as strings.
-- `src/hangtu/qc/__init__.py`: `run(path, rules, min_fields, accepted=None)` calls `_accepted.load(accepted, settings)` after `load()` and before any rule runs (Decision 6). The result isn't used yet.
+  - `read_accepted(source, settings) -> Accepted` (not `load`, which would read as `_settings.load`): a path (read with `_settings.read_yaml`, its errors worded for "accepted findings") or a list; a top-level `accepted:` key is unwrapped. Checks, in the order of Decision 6, each message starting "accepted entry 3 (D007): ": not a list of mappings; missing or blank `rule_id` or `reason`; an unknown key (lists the six); an unknown rule ID (in `settings.defaults` or a single V rule; `V*` says "accept single V rules, e.g. V10a"); `depth` without `loca_id`; `depth` read with `units.parse_quantity(text, "length")`, a plain number (`4.75`, or `"4.75"`, which pint would otherwise read as 4.7 with a unit `5`) or a non-length raising `UnitsError` with an example (`depth: "12.5 ft"`). `rule_id`, `loca_id`, `group` and `heading` are kept as strings.
+- `src/hangtu/qc/__init__.py`: `run(path, rules, min_fields, accepted=None)` calls `read_accepted(accepted, settings)` after `load()` and before any rule runs (Decision 6). The result isn't used yet.
 - Tests (new `tests/qc/test_accepted.py`): every error of Decision 6, each naming the entry's position and rule (AC 5); a file with and without the `accepted:` key and the same list load the same entries (AC 4, loading half); `"41.5 ft"` loads as 12.649 m; an empty file and `None` give no entries.
 
 ### 3. `qc-review: mark accepted findings in the report`
@@ -172,8 +175,8 @@ Five build commits, each green (ruff and pytest). Regenerate the test files with
 - Tests (`tests/qc/test_report.py`, `test_accepted.py`): the printed summary with entries (open line, `(+22 accepted)`-style notes, a zero-open rule listed, the stale line, the counts still in one column) and without (unchanged; the existing test holds) (AC 2, AC 3); `to_csv` writes `accepted` and `reason`, reads back with `pd.read_csv`, and the rules file has the `# accepted:` line (AC 6).
 
 ### 5. `qc-review: docs, TODO, close out`
-- `docs/site/guides/ags-and-qc.md`: a section "Accepting reviewed findings": the YAML example from qc.md §3.4, that accepted findings stay in the report, `report.accepted` for stale entries, and building entries from `report.findings` with pandas (filter, then `to_dict("records")` with a `reason` added; intent decision 5). A sentence on D007 and D008. `docs/site/examples/ags-and-qc.py` unchanged unless the page needs a runnable example; then a short `accepted=[...]` call there.
-- `docs/TODO.md`: two research items (next numbers): L005 that takes the slope between neighboring holes into account, and D003/D004 for geophysical profiles and the PMT probe center (intent, out of scope). The rule descriptions, not the source of the real file.
+- `docs/site/guides/ags-and-qc.md`: a section "Accepting reviewed findings": the YAML example from qc.md §3.4, that accepted findings stay in the report, `report.accepted` for stale entries, and building entries from `report.findings` with pandas (filter, then one dict per row with the depth written to two decimals and its unit, and a `reason`; intent decision 5). A sentence on D007 and D008. `docs/site/examples/ags-and-qc.py` unchanged.
+- `docs/TODO.md`: one research item, #28, D003/D004 for geophysical profiles. Slope-aware L005 (#26) and the PMT probe center (#25) were already there. The rule descriptions, not the source of the real file.
 - `CLAUDE.md` status paragraph: `qc-review` done; P06 next.
 - `sandbox/TODO_ht.md` (ignored by git, so not committed): items 11, 12 and 13 marked done.
 - Check: `uv run python docs/prepare_site.py` and `zensical build --clean --strict` pass.
