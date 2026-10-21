@@ -183,6 +183,39 @@ def test_8_flags(projects):
     assert pd.isna(np_row["plastic_limit"])
 
 
+@pytest.fixture(scope="module")
+def joins_spt(tmp_path_factory):
+    db = tmp_path_factory.mktemp("joins") / "j.sqlite"
+    p = ht.Project.from_ags(DATA / "joins.ags", db=db, display_units="SI")
+    with pytest.warns(UserWarning) as caught:
+        spt = p.spt()
+    assert any("Left out 1 of 9 ISPT records" in str(w.message) for w in caught)
+    return spt
+
+
+def test_8_refusal_with_a_blank_n(joins_spt):
+    # Line 87: ISPT_NVAL blank, ISPT_REP "22-30-50/3\"", NPEN 376 mm.
+    row = joins_spt.set_index("source_line").loc[87]
+    assert pd.isna(row["spt_n"])
+    assert bool(row["spt_refusal"]) is True
+    assert row["spt_n_capped"] == ht.settings.spt_cap
+    assert row["depth"] == pytest.approx(7.263)  # 7.00 + 0.150 + 0.226 / 2
+    assert 82 not in set(joins_spt["source_line"])  # blank report: still incomplete
+
+
+def test_8_plots_draw_a_refusal_with_a_blank_n(joins_spt):
+    # Refusals at lines 80, 83 and 87; J2's (85) has no elevation, so it is
+    # one of the blanks.
+    _, ax = ht.plot.spt_profile(joins_spt)
+    assert ax.ags_notes == {"nan": 1, "refusal": 3}
+    plt.close("all")
+    # Refusals at 80, 83, 85 and 87: 4 of the 8 tests kept.
+    _, ax = ht.plot.spt_histogram(joins_spt, color_by=None)
+    assert [t.get_text() for t in ax.get_xticklabels()][-1] == "Refusal"
+    assert ax.containers[0][-1].get_height() == pytest.approx(50.0)
+    plt.close("all")
+
+
 # 9. Filters (test_frame.py has every argument and error).
 def test_9_filters(projects):
     p = projects["site_si"]
@@ -195,7 +228,7 @@ def test_10_incomplete(tmp_path):
     p = ht.Project.from_ags(DATA / "joins.ags", db=tmp_path / "i.sqlite")
     with pytest.warns(UserWarning) as caught:
         assert 82 not in set(p.spt()["source_line"])
-    assert any("Left out 1 of 8 ISPT records" in str(w.message) for w in caught)
+    assert any("Left out 1 of 9 ISPT records" in str(w.message) for w in caught)
     with pytest.warns(UserWarning, match="overlapping"):
         assert 82 in set(p.spt(include_incomplete=True)["source_line"])
 

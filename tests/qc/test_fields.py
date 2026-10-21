@@ -25,7 +25,7 @@ def test_c002_absent_heading_once(report):
 
 def test_c002_counts_blanks(report):
     rows = report.findings.query("rule_id == 'C002' and heading == 'ISPT_ERAT'")
-    assert rows["message"].iloc[0].startswith("ISPT_ERAT is blank in 2 of 11 ISPT")
+    assert rows["message"].iloc[0].startswith("ISPT_ERAT is blank in 2 of 17 ISPT")
 
 
 def _llpl(*rows):

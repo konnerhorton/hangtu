@@ -157,7 +157,7 @@ def test_joins_warnings(fresh):
         for m in messages
     )
     assert any(
-        "Left out 1 of 8 ISPT records with a blank required field "
+        "Left out 1 of 9 ISPT records with a blank required field "
         "(ISPT_NVAL on line 82)"
         in m
         and "include_incomplete=True" in m
@@ -165,14 +165,14 @@ def test_joins_warnings(fresh):
     )
     assert len(messages) == 3
     assert list(df["geology_unit"].cat.categories)[-1] == "BED"
-    assert len(df) == 7
+    assert len(df) == 8
 
 
 def test_include_incomplete(fresh):
     p = fresh("joins")
     with pytest.warns(UserWarning, match="overlapping"):
         df = _dataset(p, include_incomplete=True)
-    assert len(df) == 8
+    assert len(df) == 9
 
 
 def test_empty_group(fresh):

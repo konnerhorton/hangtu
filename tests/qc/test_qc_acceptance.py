@@ -30,19 +30,21 @@ EXPECTED = {
     ("D004", 98),  # ISPT in BH1's gap
     ("D004", 96),  # cascade of D002: above the top of the log
     ("D004", 103),  # cascade of D003: below the bottom of the log
-    ("D007", 116),  # SPEC_DPTH 0.30 m below its sample
+    ("D007", 122),  # SPEC_DPTH 0.30 m below its sample
     ("S001", 97),  # ISPT_REP "hard"
+    ("S001", 107),  # ISPT_REP "50/76 ft": a unit that isn't accepted
     ("S002", 99),  # N 150
+    ("S002", 108),  # N 126, a complete test ("41,81,57,75/113 N=126")
     ("S004", 100),  # N 20, blows 19
     ("S005", 101),  # N60 30, computed 25
-    ("A001", 112),  # LL 30 < PL 35
-    ("A002", 113),  # PI 25, LL - PL 30
-    ("A003", 114),  # LL 8
-    ("P001", 137),  # curve rises at 0.425 mm
-    ("P002", 131),  # GRAT_PERP 104
-    ("P003", 124),  # fractions sum to 94
-    ("K001", 147),  # PTST_K 0
-    ("K001", 153),  # FGHG_IPRM 5 m/s
+    ("A001", 118),  # LL 30 < PL 35
+    ("A002", 119),  # PI 25, LL - PL 30
+    ("A003", 120),  # LL 8
+    ("P001", 143),  # curve rises at 0.425 mm
+    ("P002", 137),  # GRAT_PERP 104
+    ("P003", 130),  # fractions sum to 94
+    ("K001", 153),  # PTST_K 0
+    ("K001", 159),  # FGHG_IPRM 5 m/s
     ("C001", 77),  # GEOL_DESC blank
     ("C001", 58),  # cascade of L001 and L003: BH5's required LOCA fields
 }
@@ -51,8 +53,8 @@ EXPECTED_INFO = {
     ("L006", None),
     ("D005", 89),
     ("S003", None),
-    ("A004", 115),
-    ("P004", 139),
+    ("A004", 121),
+    ("P004", 145),
 }
 
 
@@ -103,7 +105,7 @@ def test_1_findings_carry_group_hole_and_heading(defects_report):
     columns = ["rule_id", "source_line", "group", "loca_id", "heading"]
     rows = set(found[columns].itertuples(index=False, name=None))
     assert ("D003", 103, "ISPT", "BH3", "ISPT_TOP") in rows
-    assert ("K001", 153, "FGHG", "BH4", "FGHG_IPRM") in rows
+    assert ("K001", 159, "FGHG", "BH4", "FGHG_IPRM") in rows
     assert ("G002", 73, "GEOL", "BH2", "GEOL_BASE") in rows
 
 

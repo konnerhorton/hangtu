@@ -606,10 +606,15 @@ def write_file(path, version, groups):
     for g in [PROJ, tran(version), unit, types, abbr, *groups]:
         write_group(lines, g)
     out = "".join(
-        "\r\n" if line is None else ",".join(f'"{v}"' for v in line) + "\r\n"
+        "\r\n" if line is None else ",".join(_quoted(v) for v in line) + "\r\n"
         for line in lines
     )
     path.write_text(out, encoding="utf-8", newline="")
+
+
+def _quoted(value):
+    """Quote a value, doubling any quote inside it (AGS Rule 5)."""
+    return '"' + str(value).replace('"', '""') + '"'
 
 
 def site_groups(us=False):
@@ -774,6 +779,14 @@ def qc_defects_groups():
             ["BH4", 1.50, 10, "N=10", None, None, None, None, None, None],  # S003
             ["BH4", 4.50, 14, "N=14", None, None, None, None, None, None],  # S003
             ["BH5", 1.00, 6, "N=6", 60, None, None, None, None, None],  # G001
+            ["BH2", 3.50, 50, "50/76 ft", 60, None, None, None, None, None],  # S001
+            # A complete test, not a refusal, so S002 checks it.
+            ["BH2", 6.00, 126, "41,81,57,75/113 N=126", 60, *[None] * 5],  # S002
+            # Accepted reports, raising nothing; the refusals have N blank (no C001).
+            ["BH3", 0.50, 12, "5,6,6 N=12", 60, None, None, None, None, None],
+            ["BH3", 5.00, 35, "6,8/8,9,9,9 N=35", 60, None, None, None, None, None],
+            ["BH1", 4.00, None, '50/3"', 60, None, None, None, None, None],
+            ["BH1", 8.00, None, "22-30-50/3in", 60, None, None, None, None, None],
         ],
     )
     bh1_u1 = ["BH1", 1.00, "1", "U", "BH1-U1", "1", 1.10]
@@ -909,6 +922,9 @@ def joins_groups():
             ["J2", 1.00, 200, 50, "50/200"] + [None] * 12,
             # No increments and no NPEN: 1.00 + 0.300 = 1.30 m; no geology.
             ["J3", 1.00, None, 10, "N=10"] + [None] * 12,
+            # Refusal with ISPT_NVAL blank (not C001): kept, at the cap. NPEN 376:
+            # 7.00 + 0.150 + 0.226 / 2 = 7.263 m: TRC.
+            ["J1", 7.00, 376, None, '22-30-50/3"'] + [None] * 12,
         ],
     )
     samp = group(
