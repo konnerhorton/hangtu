@@ -29,11 +29,11 @@ def run(
     file_headings = zip(data.headings["group"], data.headings["heading"], strict=True)
     settings = load(rules, min_fields, file_headings)
     data.min_fields = settings.min_fields
-    read_accepted(accepted, settings)
+    entries = read_accepted(accepted, settings)
     results: dict[str, RuleResult | None] = {}
     for rule_id in settings.defaults:
         if rule_id not in RULES:
             continue
         rule = settings.rule(rule_id)
         results[rule_id] = RULES[rule_id](data, rule) if rule.enabled else None
-    return build(data, settings, results)
+    return build(data, settings, results, entries)

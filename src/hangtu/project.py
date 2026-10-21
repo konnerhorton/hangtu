@@ -204,6 +204,7 @@ class Project:
         self,
         rules: "str | PathLike[str] | dict | None" = None,
         min_fields: "str | PathLike[str] | dict | None" = None,
+        accepted: "str | PathLike[str] | list[dict] | None" = None,
     ) -> "qc.Report":
         """Check the data for integrity problems and return a report (qc.md).
 
@@ -221,16 +222,29 @@ class Project:
         min_fields
             Overrides of the minimally useful fields per group
             (``qc/min_fields.yaml``), ``required`` and ``recommended`` lists.
+        accepted
+            Findings a reviewer has checked and accepts: a path to a YAML file
+            or a list of dicts. Each entry has a ``rule_id`` and a ``reason``,
+            and optionally ``loca_id``, ``group``, ``heading`` and ``depth``
+            (with its unit, ``"41.5 ft"``; it matches within 0.05 m). A key
+            left out matches anything, so ``rule_id`` alone accepts the rule
+            on this site. Accepted findings stay in the report, marked in the
+            ``accepted`` and ``reason`` columns, with their severity;
+            ``report.accepted`` shows any entry that matches nothing.
 
         Examples
         --------
         >>> report = p.qc()
         >>> report = p.qc(rules={"G002": {"thresholds": {"depth_tolerance": "0.05 ft"}},
         ...                      "A004": {"enabled": False}})
+        >>> report = p.qc(accepted=[
+        ...     {"rule_id": "L005", "reason": "Valley site; ground levels follow "
+        ...                                   "the topography."},
+        ... ])
         >>> report.findings
         >>> report.to_csv("qc_report.csv")   # and qc_report_rules.csv
         """
-        return qc.run(self._path, rules, min_fields)
+        return qc.run(self._path, rules, min_fields, accepted)
 
     def diff(
         self,

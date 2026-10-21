@@ -11,6 +11,8 @@ from dataclasses import dataclass
 from os import PathLike
 from typing import Any
 
+import pandas as pd
+
 from hangtu import units
 from hangtu.errors import HangtuError, UnitsError
 from hangtu.qc._settings import Settings, _is_v_rule, _plain_number, read_yaml
@@ -158,3 +160,73 @@ def _depth(where: str, given: Any) -> float:
     meter = units.ureg.Unit("meter")
     unit = units.parse_unit(unit_text)
     return float(units.convert([value], unit, "length", meter)[0])
+
+
+#: Columns of ``report.accepted`` (qc.md §5.4).
+ACCEPTED_COLUMNS = [
+    "rule_id",
+    "loca_id",
+    "group",
+    "heading",
+    "depth",
+    "reason",
+    "matches",
+    "status",
+]
+
+
+def apply(
+    rows: list[dict[str, Any]], accepted: Accepted, settings: Settings
+) -> pd.DataFrame:
+    """Mark the finding rows the entries match, and return ``report.accepted``.
+
+    ``rows`` are finding rows with ``depth`` in m. Each gets ``accepted`` and
+    ``reason``, the reason of the first entry that matches it. Every entry
+    counts all the findings it matches, so a broad entry behind a specific one
+    isn't shown as matching nothing.
+    """
+    matches = [0] * len(accepted.entries)
+    for row in rows:
+        row["accepted"], row["reason"] = False, None
+        for i, entry in enumerate(accepted.entries):
+            if not _matches(entry, row):
+                continue
+            matches[i] += 1
+            if not row["accepted"]:
+                row["accepted"], row["reason"] = True, entry.reason
+    records = [
+        {
+            "rule_id": entry.rule_id,
+            "loca_id": entry.loca_id,
+            "group": entry.group,
+            "heading": entry.heading,
+            "depth": entry.depth,
+            "reason": entry.reason,
+            "matches": count,
+            "status": _status(entry, count, settings),
+        }
+        for entry, count in zip(accepted.entries, matches, strict=True)
+    ]
+    frame = pd.DataFrame(records, columns=ACCEPTED_COLUMNS)
+    frame["matches"] = frame["matches"].astype("int64")
+    return frame
+
+
+def _matches(entry: Entry, row: Mapping[str, Any]) -> bool:
+    """Every key the entry gives equals the row's; a depth within the tolerance."""
+    for key in ("rule_id", "loca_id", "group", "heading"):
+        given = getattr(entry, key)
+        if given is not None and row.get(key) != given:
+            return False
+    if entry.depth_m is None:
+        return True
+    depth = row.get("depth")
+    if depth is None or pd.isna(depth):
+        return False
+    return abs(float(depth) - entry.depth_m) <= DEPTH_TOLERANCE + 1e-9
+
+
+def _status(entry: Entry, matches: int, settings: Settings) -> str:
+    if not settings.rule(entry.rule_id).enabled:
+        return "rule disabled"
+    return "matched" if matches else "no match"

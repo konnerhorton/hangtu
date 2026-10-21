@@ -9,6 +9,7 @@ from typing import Any
 import pandas as pd
 
 import hangtu.db as database
+from hangtu.qc._accepted import Accepted, apply
 from hangtu.qc._data import Data
 from hangtu.qc._registry import THRESHOLDS_FROM, Finding, RuleResult
 from hangtu.qc._settings import (
@@ -22,6 +23,8 @@ SEVERITIES = ("error", "warning", "info")
 FINDING_COLUMNS = [
     "rule_id",
     "severity",
+    "accepted",
+    "reason",
     "group",
     "loca_id",
     "depth",
@@ -54,37 +57,55 @@ class Report:
         One row per finding, sorted by severity, rule and line (qc.md §5.1).
     rules : DataFrame
         The settings this run used, one row per rule (qc.md §5.2).
+    accepted : DataFrame
+        One row per accepted entry, in the order given, with how many findings
+        it matched and its ``status``: ``matched``, ``no match`` or ``rule
+        disabled`` (qc.md §5.4). An entry's depth matches a finding's within
+        0.05 m. Empty when ``accepted=`` isn't given.
     source : dict
-        The file checked, its SHA-256 and AGS version, hangtu's version and
-        the time of the run.
+        The file checked, its SHA-256 and AGS version, hangtu's version, the
+        time of the run, and the accepted-findings file (its path, ``list``,
+        or blank).
 
     Examples
     --------
     >>> report = p.qc()
     >>> report                       # counts by severity and by rule
-    >>> report.findings.query("severity == 'error'")
+    >>> report.findings.query("severity == 'error' and not accepted")
     >>> report.to_csv("qc_report.csv")
     """
 
     def __init__(
-        self, findings: pd.DataFrame, rules: pd.DataFrame, source: dict[str, Any]
+        self,
+        findings: pd.DataFrame,
+        rules: pd.DataFrame,
+        source: dict[str, Any],
+        accepted: pd.DataFrame,
     ) -> None:
         self.findings = findings
         self.rules = rules
         self.source = source
+        self.accepted = accepted
 
     def summary(self) -> pd.DataFrame:
-        """Count findings by rule: ``rule_id``, ``title``, ``severity``, ``count``."""
+        """Count findings by rule.
+
+        Columns ``rule_id``, ``title``, ``severity``, ``count``, and ``open``
+        and ``accepted``, which add up to ``count``.
+        """
         titles = dict(zip(self.rules["rule_id"], self.rules["title"], strict=True))
         counts = (
             self.findings.groupby(["severity", "rule_id"], sort=False)
-            .size()
-            .reset_index(name="count")
+            .agg(count=("accepted", "size"), accepted=("accepted", "sum"))
+            .reset_index()
         )
+        counts["accepted"] = counts["accepted"].astype("int64")
+        counts["open"] = counts["count"] - counts["accepted"]
         counts["title"] = [
             titles.get(rule_id) or titles.get("V*") for rule_id in counts["rule_id"]
         ]
-        return counts[["rule_id", "title", "severity", "count"]].reset_index(drop=True)
+        columns = ["rule_id", "title", "severity", "count", "open", "accepted"]
+        return counts[columns].reset_index(drop=True)
 
     def __repr__(self) -> str:
         """Summarize the run: counts by severity, then by rule (qc.md §5.3)."""
@@ -125,7 +146,11 @@ class Report:
         path = Path(path)
         self.findings.to_csv(path, index=False, encoding="utf-8")
         rules_path = path.with_name(f"{path.stem}_rules.csv")
-        header = "".join(f"# {key}: {value}\n" for key, value in self.source.items())
+        header = "".join(
+            f"# {key}: {value}\n"
+            for key, value in self.source.items()
+            if key != "accepted"
+        )
         with rules_path.open("w", encoding="utf-8", newline="") as file:
             file.write(header)
             self.rules.to_csv(file, index=False)
@@ -140,12 +165,13 @@ def build(
     data: Data,
     settings: Settings,
     results: dict[str, RuleResult | None],
+    accepted: Accepted,
 ) -> Report:
     """Assemble the report from stored and computed findings.
 
     ``results`` holds each computed rule's result, or None for a disabled rule.
     Severity and ``enabled`` are applied here, to ingest and computed findings
-    alike.
+    alike, and the accepted entries are matched while depths are still in m.
     """
     rows: list[dict[str, Any]] = []
     counts: dict[str, int] = {}
@@ -171,10 +197,11 @@ def build(
             rows.append(_row(data, finding, severity))
         counts[rule_id] = len(result.findings)
 
+    accepted_frame = apply(rows, accepted, settings)
     findings = _findings_frame(data, rows)
     found_v = {rule_id for rule_id in stored["rule"] if is_ingest_rule(rule_id)}
     rules = _rules_frame(settings, results, counts, found_v)
-    return Report(findings, rules, _source(data))
+    return Report(findings, rules, _source(data, accepted), accepted_frame)
 
 
 def _row(data: Data, finding: Finding, severity: str) -> dict[str, Any]:
@@ -210,6 +237,7 @@ def _findings_frame(data: Data, rows: list[dict[str, Any]]) -> pd.DataFrame:
         [unit if pd.notna(d) else None for d in depth],
     )
     df["source_line"] = df["source_line"].astype("Int64")
+    df["accepted"] = df["accepted"].astype(bool)
     order = {severity: i for i, severity in enumerate(SEVERITIES)}
     df["_severity"] = df["severity"].map(order)
     ranks = {r: i for i, r in enumerate(sorted(set(df["rule_id"]), key=rule_sort_key))}
@@ -271,7 +299,7 @@ def _thresholds_text(rule: RuleSettings) -> str:
     return text
 
 
-def _source(data: Data) -> dict[str, Any]:
+def _source(data: Data, accepted: Accepted) -> dict[str, Any]:
     source = database.read_source(data.path)
     return {
         "file": Path(source["path"]).name,
@@ -280,4 +308,5 @@ def _source(data: Data) -> dict[str, Any]:
         "ags_version": source["ags_version"],
         "hangtu_version": version("hangtu"),
         "run_at": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
+        "accepted": accepted.source,
     }

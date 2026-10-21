@@ -2,12 +2,16 @@
 
 import textwrap
 
+import pandas as pd
 import pytest
 
+import hangtu as ht
 from hangtu import qc
 from hangtu.errors import HangtuError, UnitsError
 from hangtu.qc._accepted import read_accepted
 from hangtu.qc._settings import load
+
+from .conftest import DATA
 
 ENTRIES = [
     {"rule_id": "L005", "reason": "Valley site."},
@@ -172,3 +176,145 @@ def test_errors_are_raised_before_any_rule_runs(projects, monkeypatch):
     monkeypatch.setitem(qc.RULES, "L001", fail)
     with pytest.raises(HangtuError, match=r"accepted entry 1"):
         qc.run(projects["qc_defects"]._path, accepted=[{"rule_id": "L005"}])
+
+
+# Matching (AC 1) --------------------------------------------------------------------
+
+
+def _accepted(report):
+    """(rule_id, source line, reason) of each accepted finding."""
+    rows = report.findings.query("accepted")
+    return sorted(
+        zip(
+            rows["rule_id"],
+            rows["source_line"].astype(object),
+            rows["reason"],
+            strict=True,
+        )
+    )
+
+
+@pytest.fixture(scope="module")
+def defects(projects):
+    return projects["qc_defects"]
+
+
+def test_rule_alone_accepts_the_rule_on_this_site(defects):
+    report = defects.qc(accepted=[ENTRIES[0]])
+    assert _accepted(report) == [("L005", 57, "Valley site.")]
+
+
+@pytest.mark.parametrize("depth", ["4.75 m", "15.58 ft", "4.79 m", "4.71 m"])
+def test_depth_matches_one_finding(defects, depth):
+    entry = {"rule_id": "D007", "loca_id": "BH4", "depth": depth, "reason": "Ok."}
+    assert _accepted(defects.qc(accepted=[entry])) == [("D007", 122, "Ok.")]
+
+
+@pytest.mark.parametrize("depth", ["4.81 m", "4.69 m", "15.8 ft"])
+def test_depth_beyond_the_tolerance_matches_nothing(defects, depth):
+    entry = {"rule_id": "D007", "loca_id": "BH4", "depth": depth, "reason": "Ok."}
+    report = defects.qc(accepted=[entry])
+    assert _accepted(report) == []
+    assert report.accepted["status"].tolist() == ["no match"]
+
+
+def test_depth_matches_in_si_display_units(tmp_path):
+    project = ht.Project.from_ags(
+        DATA / "qc_defects.ags", db=tmp_path / "si.sqlite", display_units="SI"
+    )
+    entry = {"rule_id": "D007", "loca_id": "BH4", "depth": "15.58 ft", "reason": "Ok."}
+    assert _accepted(project.qc(accepted=[entry])) == [("D007", 122, "Ok.")]
+
+
+def test_group_limits_the_entry(defects):
+    report = defects.qc(
+        accepted=[
+            {"rule_id": "D004", "group": "SAMP", "reason": "Not this group."},
+            {"rule_id": "D004", "group": "ISPT", "reason": "SPT below the log."},
+        ]
+    )
+    assert [line for _, line, _ in _accepted(report)] == [96, 98, 103]
+    assert report.accepted["matches"].tolist() == [0, 3]
+
+
+def test_hole_and_heading_must_equal(defects):
+    report = defects.qc(
+        accepted=[
+            {"rule_id": "L005", "loca_id": "BH1", "reason": "Wrong hole."},
+            {"rule_id": "L005", "loca_id": "bh4", "reason": "Case matters."},
+            {"rule_id": "D007", "heading": "SPEC_DPTH", "reason": "Lab rounding."},
+        ]
+    )
+    assert _accepted(report) == [("D007", 122, "Lab rounding.")]
+
+
+# The report (AC 2, AC 3, AC 4) -------------------------------------------------------
+
+
+def test_accepted_findings_keep_their_severity(defects):
+    plain = defects.qc().findings
+    report = defects.qc(accepted=ENTRIES)
+    found = report.findings
+    assert found["severity"].tolist() == plain["severity"].tolist()
+    accepted = found.query("accepted")
+    assert accepted["severity"].tolist() == ["warning", "warning"]
+    assert accepted["reason"].tolist() == ["Checked.", "Valley site."]  # D007, L005
+    assert found.query("not accepted")["reason"].isna().all()
+
+
+def test_summary_counts_open_and_accepted(defects):
+    summary = defects.qc(accepted=ENTRIES).summary().set_index("rule_id")
+    assert (summary["open"] + summary["accepted"] == summary["count"]).all()
+    assert summary.loc["L005", ["count", "open", "accepted"]].tolist() == [1, 0, 1]
+    assert summary.loc["D007", ["count", "open", "accepted"]].tolist() == [1, 0, 1]
+    assert summary.loc["D004", "accepted"] == 0
+
+
+def test_report_accepted_table(defects):
+    report = defects.qc(
+        accepted=[*ENTRIES, {"rule_id": "G003", "loca_id": "BH1", "reason": "Old."}],
+        rules={"S003": {"enabled": False}},
+    )
+    table = report.accepted
+    assert list(table.columns) == [
+        "rule_id",
+        "loca_id",
+        "group",
+        "heading",
+        "depth",
+        "reason",
+        "matches",
+        "status",
+    ]
+    assert table["depth"].tolist()[1] == "4.75 m"
+    assert table["matches"].tolist() == [1, 1, 0]
+    assert table["status"].tolist() == ["matched", "matched", "no match"]
+    assert report.source["accepted"] == "list"
+
+
+def test_entry_for_a_disabled_rule(defects):
+    report = defects.qc(accepted=[ENTRIES[0]], rules={"L005": {"enabled": False}})
+    assert report.accepted["status"].tolist() == ["rule disabled"]
+    assert report.accepted["matches"].tolist() == [0]
+
+
+def test_broad_entry_behind_a_specific_one(defects):
+    report = defects.qc(
+        accepted=[
+            {"rule_id": "L005", "loca_id": "BH4", "reason": "Specific."},
+            {"rule_id": "L005", "reason": "Broad."},
+        ]
+    )
+    assert _accepted(report) == [("L005", 57, "Specific.")]
+    assert report.accepted["matches"].tolist() == [1, 1]
+    assert report.accepted["status"].tolist() == ["matched", "matched"]
+
+
+def test_file_and_list_give_the_same_report(defects, tmp_path):
+    path = tmp_path / "accepted.yaml"
+    path.write_text(YAML, encoding="utf-8")
+    from_file = defects.qc(accepted=path)
+    from_list = defects.qc(accepted=ENTRIES)
+    pd.testing.assert_frame_equal(from_file.findings, from_list.findings)
+    pd.testing.assert_frame_equal(from_file.accepted, from_list.accepted)
+    assert from_file.source["accepted"] == str(path)
