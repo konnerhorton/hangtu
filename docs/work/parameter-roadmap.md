@@ -304,3 +304,48 @@ here in enough detail to review.
 6. **Links:** every relative link in the changed and new files resolves.
 7. **CI:** `uv run ruff check . && uv run ruff format --check . && uv run pytest` passes, and
    `zensical build --clean --strict` passes (nothing under `docs/drafts/` is published).
+
+## Plan
+
+Documents only, so "green" for each commit means ruff and pytest pass, `zensical build --clean --strict` passes,
+and the relative links in the files the commit touches resolve (checked with a scratch script, not committed).
+The sheets are content moved in, so the 300-line guide is applied to what a reviewer reads: the scrub and the
+screen, listed in each commit body.
+
+### 1. `parameter-roadmap: soil parameter sheets as drafts`
+- `docs/drafts/parameters/01-*.md` … `12-*.md`, copied from the sheets outside the repo, then:
+  - scrub (Decision 13): the "Spec ids" row, "spec S# primary" labels, local-extract paths, any project name;
+  - American spelling in prose, reference titles as published;
+  - copyright screen: cited values and references kept; a source table or chart reproduced nearly whole is cut to
+    the values the sheet needs plus its locator, or to the locator alone.
+- Links between sheets point to sheets that land in commit 2 (13–23); the check for this commit allows those.
+- Commit body: what the screen cut, per sheet, and the [V]/[U] counts that changed because of it (AC 1, 2).
+
+### 2. `parameter-roadmap: rock parameter sheets as drafts`
+- `docs/drafts/parameters/13-*.md` … `23-*.md`, the same treatment. Sheets 15 (mi by rock type) and 16 (GSI chart,
+  RQD and JCond89 ratings) are the most likely to carry whole tables.
+- Commit body as in step 1. After this commit every cross-sheet link resolves (AC 6).
+
+### 3. `parameter-roadmap: parameter index and template`
+- `docs/drafts/parameters/README.md`: status line (drafts, not decisions; promoted per wave), the [V]/[U] and
+  judgment-tag conventions, and the index and tracker (Decision 11): one row per sheet with its parameters and, for
+  stages A–D, the wave and status. Built so far is shown as built (the SPT dataset and N60 for 04–08's stage A
+  inputs, the Atterberg and index datasets for 02 A–B, `p.permeability()` for 12 A).
+- `docs/drafts/parameters/TEMPLATE.md` (Decision 14): the page outline and the docstring checklist.
+
+### 4. `spec: the parameter roadmap`
+- `SPEC.md`: every change in "Changes by file" (Decisions 2–10, 12), in one commit since they are one decision.
+  §13 and the section numbers are unchanged. Check the size (AC 5) and that every item of the old version rows and
+  "Later" is placed (AC 4), listing where each went in the commit body.
+
+### 5. `docs: version targets become milestones`
+- `README.md` roadmap: the purpose and the waves, no version numbers.
+- `docs/plots/README.md`, `docs/plots/drafts/README.md`, `docs/data/qc.md`: version targets become milestones or
+  "Later" (AC 3).
+
+### 6. `parameter-roadmap: close out`
+- `docs/reference/process.md`: stages and waves, a wave's spec-step duties, the close-out updating the index.
+- `CLAUDE.md`: status paragraph (order of work, no v0.2), "Where things are", the wave spec-step rule.
+- `docs/TODO.md`: #28–#32.
+- Final checks: AC 1 (`git grep`), AC 3 (`git grep -E 'v0\.[2-6]'` outside `docs/work/`), AC 6 over all changed
+  files, AC 7 (CI commands and the strict site build).
