@@ -2,7 +2,8 @@
 
 AC 2 (raw fidelity) is in tests/test_db.py; AC 4 (keys) in tests/ags/test_keys.py;
 AC 6 (flags) in tests/ags/test_values.py; AC 8, 9 and 10 (open, atomic, read-only
-SQL) in tests/test_project.py.
+SQL) in tests/test_project.py. AC 12's spellings, conditions and order are in
+tests/test_vertical_datums.py and tests/test_project.py.
 """
 
 import importlib.util
@@ -281,3 +282,15 @@ def test_ac11_ingesting_a_good_file_is_quiet(tmp_path, capsys, name):
         ht.Project.open(p.path)
     assert caught == []
     assert capsys.readouterr() == ("", "")
+
+
+@pytest.mark.parametrize("name", ["site_si", "site_us", "site_v404"])
+def test_ac12_the_good_files_datum_comes_from_loca_datm(projects, name):
+    p = projects[name]
+    assert p.settings.vertical_datum == "NAVD88"
+    assert p.sql("SELECT value FROM meta_project WHERE key = 'vertical_datum_source'")[
+        "value"
+    ].tolist() == ['"LOCA_DATM"']
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")  # dataset notes aren't the point here
+        assert p.spt().attrs["vertical_datum"] == "NAVD88"

@@ -1,0 +1,37 @@
+# Vertical datum table (docs/data/ingest.md §7, "Datum table").
+# Short name (as EPSG abbreviates it)  ->  EPSG name, EPSG datum code, other spellings.
+# A name matches an entry when it equals the short name, the name or a spelling,
+# compared case-insensitively and ignoring spaces, "-" and "_".
+# Add entries at run time with ht.add_vertical_datum(short_name, name=...).
+# Plain "MSL" isn't listed: mean sea level isn't one datum without a place and an epoch.
+NAVD88:
+  name: North American Vertical Datum 1988
+  epsg: 5103
+  spellings:
+    - NAVD 1988
+    - NAVD of 1988
+    - North American Vertical Datum of 1988
+NGVD29:
+  name: National Geodetic Vertical Datum 1929
+  epsg: 5102
+  spellings:
+    - NGVD 1929
+    - NGVD of 1929
+    - National Geodetic Vertical Datum of 1929
+CGVD28:
+  name: Canadian Geodetic Vertical Datum of 1928
+  epsg: 5114
+  spellings:
+    - CGVD 1928
+    - Canadian Geodetic Vertical Datum 1928
+CGVD2013:
+  name: Canadian Geodetic Vertical Datum of 2013 (CGG2013)
+  epsg: 1127
+  spellings:
+    - CGVD13
+    - Canadian Geodetic Vertical Datum of 2013
+    - Canadian Geodetic Vertical Datum 2013
+ODN:
+  name: Ordnance Datum Newlyn
+  epsg: 5101
+  spellings: []

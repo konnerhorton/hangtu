@@ -7,8 +7,8 @@ from typing import Any
 
 from matplotlib.colors import is_color_like
 
-from hangtu import _config
-from hangtu.errors import HangtuError
+from hangtu import _config, vertical_datums
+from hangtu.errors import HangtuError, HangtuHint, warn
 
 
 def _display_units(value: Any) -> str:
@@ -49,11 +49,24 @@ def _display_overrides(value: Any) -> dict[str, str]:
     return dict(value)
 
 
-def _vertical_datum(value: Any) -> str | None:
-    if value is not None and (not isinstance(value, str) or not value.strip()):
+def _vertical_datum(value: Any, hint: bool = True) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
         raise HangtuError(
             f"settings.vertical_datum must be a datum name or None, not {value!r}. "
             'Example: ht.settings.vertical_datum = "NAVD88"'
+        )
+    short_name = vertical_datums.match(value)
+    if short_name is not None:
+        return short_name
+    if hint and settings.hints:
+        warn(
+            f'Vertical datum "{value}" isn\'t in the datum table, so it is kept as '
+            "written. If it is a named datum, add it with "
+            f'ht.add_vertical_datum("<short name>", name="{value}") so its other '
+            "spellings match it.",
+            HangtuHint,
         )
     return value
 
@@ -227,11 +240,14 @@ class Settings:
             self._values.update(saved)
 
     @staticmethod
-    def _validate(name: str, value: Any) -> Any:
+    def _validate(name: str, value: Any, hint: bool = True) -> Any:
+        """Check ``value``; ``hint=False`` reads a stored value back quietly."""
         try:
             validate = _VALIDATORS[name]
         except KeyError:
             raise HangtuError(_unknown(name)) from None
+        if name == "vertical_datum":
+            return _vertical_datum(value, hint)
         return validate(value)
 
 

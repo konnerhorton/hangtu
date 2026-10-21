@@ -64,8 +64,11 @@ rules:
       fewest_neighbors: 2
       search_radius: 200 m
   L006:
-    title: Vertical datum is not set
+    title: No vertical datum is known for the project
     severity: info
+  L007:
+    title: Vertical datums disagree
+    severity: warning
 
   # Geology (§4.3)
   G001:

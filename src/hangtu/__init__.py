@@ -15,6 +15,7 @@ from hangtu.units import (
     set_units,
     units_of,
 )
+from hangtu.vertical_datums import add_vertical_datum
 
 __version__ = version("hangtu")
 
@@ -27,6 +28,7 @@ __all__ = [
     "Sheet",
     "UnitsError",
     "add_unit_alias",
+    "add_vertical_datum",
     "analysis",
     "columns",
     "define_unit",

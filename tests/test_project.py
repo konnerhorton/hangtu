@@ -76,15 +76,87 @@ def test_a_bad_query_says_why(project):
 
 
 def test_settings_are_stored_and_checked(site):
-    with ht.settings.override(vertical_datum="NAVD88"):
+    with ht.settings.override(hints=False):
         p = ht.Project.from_ags(site, display_units="SI")
     assert p.settings.display_units == "SI"
-    assert p.settings.vertical_datum == "NAVD88"  # from ht.settings at ingest
+    assert p.settings.hints is False  # from ht.settings at ingest
     p.settings.display_units = "US"
     with pytest.raises(ht.HangtuError, match='display_units must be "US" or "SI"'):
         p.settings.display_units = "XX"
     assert ht.Project.open(p.path).settings.display_units == "US"
     assert "figure_sizes" in repr(p.settings)
+
+
+def test_a_datum_not_in_the_table_hints_once_when_set(project):
+    with pytest.warns(ht.HangtuHint, match='"Site datum" isn\'t in the datum table'):
+        project.settings.vertical_datum = "Site datum"
+    assert project.settings.vertical_datum == "Site datum"  # read back quietly
+
+
+def _source(p):
+    return db.read_settings(p.path)["vertical_datum_source"]
+
+
+def test_vertical_datum_comes_from_loca_datm(project):
+    # AC 1: NAVD88 in every hole of site_si.ags, no setting.
+    assert project.settings.vertical_datum == "NAVD88"
+    assert _source(project) == "LOCA_DATM"
+    assert "vertical_datum='NAVD88',  # from LOCA_DATM" in repr(project.settings)
+    assert "vertical_datum_source" not in repr(project.settings)
+
+
+def test_vertical_datum_argument_wins_over_the_file(site):
+    # AC 4.
+    p = ht.Project.from_ags(site, vertical_datum="NGVD29")
+    assert (p.settings.vertical_datum, _source(p)) == ("NGVD29", "setting")
+    assert "vertical_datum='NGVD29',  # set" in repr(p.settings)
+
+
+def test_vertical_datum_argument_none_wins_over_the_file(site):
+    p = ht.Project.from_ags(site, vertical_datum=None)
+    assert (p.settings.vertical_datum, _source(p)) == (None, None)
+
+
+def test_the_file_wins_over_the_session_setting(site):
+    # AC 4.
+    with ht.settings.override(vertical_datum="NGVD29"):
+        p = ht.Project.from_ags(site)
+    assert (p.settings.vertical_datum, _source(p)) == ("NAVD88", "LOCA_DATM")
+
+
+def test_the_session_setting_applies_when_the_file_has_no_datum(tmp_path):
+    path = tmp_path / "plain.ags"
+    path.write_text(
+        (DATA / "site_si.ags").read_text(encoding="utf-8").replace("NAVD88", ""),
+        encoding="utf-8",
+    )
+    with ht.settings.override(vertical_datum="NGVD29"):
+        p = ht.Project.from_ags(path)
+    assert (p.settings.vertical_datum, _source(p)) == ("NGVD29", "setting")
+
+
+def test_setting_the_datum_later_changes_its_source(project):
+    # AC 4.
+    project.settings.vertical_datum = "NGVD 29"
+    assert (project.settings.vertical_datum, _source(project)) == ("NGVD29", "setting")
+    project.settings.vertical_datum = None
+    assert _source(project) is None
+
+
+def test_a_datum_not_in_the_table_is_read_once_added(tmp_path):
+    # AC 2.
+    path = tmp_path / "anytown.ags"
+    path.write_text(
+        (DATA / "site_si.ags")
+        .read_text(encoding="utf-8")
+        .replace("NAVD88", "Anytown datum"),
+        encoding="utf-8",
+    )
+    p = ht.Project.from_ags(path)
+    assert p.settings.vertical_datum is None
+    ht.add_vertical_datum("ATD", name="Anytown datum")
+    p = ht.Project.from_ags(path, overwrite=True)
+    assert (p.settings.vertical_datum, _source(p)) == ("ATD", "LOCA_DATM")
 
 
 def test_geology_key_is_a_project_setting(site):

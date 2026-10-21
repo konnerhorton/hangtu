@@ -68,6 +68,20 @@ def loca(*rows):
     )
 
 
+def loca_datum(*rows):
+    """LOCA rows as (LOCA_ID, LOCA_GL, LOCA_DATM, LOCA_LOCZ)."""
+    return group(
+        "LOCA",
+        [
+            ("LOCA_ID", "ID", ""),
+            ("LOCA_GL", "2DP", "m"),
+            ("LOCA_LOCZ", "2DP", "m"),
+            ("LOCA_DATM", "X", ""),
+        ],  # dictionary order (AGS Rule 7)
+        [[loca_id, level, local, datum] for loca_id, level, datum, local in rows],
+    )
+
+
 def geol(*rows, unit="m"):
     """GEOL rows as (LOCA_ID, GEOL_TOP, GEOL_BASE)."""
     return group(

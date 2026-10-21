@@ -9,12 +9,16 @@ from typing import Any
 import pandas as pd
 
 import hangtu.db as database
-from hangtu import ags, datasets, qc
+from hangtu import ags, datasets, qc, vertical_datums
 from hangtu._settings import Settings, settings
 from hangtu.datasets import _geology_map
 from hangtu.errors import HangtuError, warn
 
 _KEY_COLUMNS = ("_row", "_line", "location_id", "sample_id", "specimen_id")
+
+#: The ``meta_project`` key saying where the vertical datum came from:
+#: ``"setting"``, ``"LOCA_DATM"`` or None (ingest.md §2).
+DATUM_SOURCE = "vertical_datum_source"
 
 
 class Project:
@@ -61,6 +65,9 @@ class Project:
         **project_settings
             Project settings such as ``display_units="US"`` or
             ``vertical_datum="NAVD88"``; any not given come from ``ht.settings``.
+            The vertical datum is the exception: when it isn't given and every
+            hole with a ground level names the same known datum in
+            ``LOCA_DATM``, the file's datum comes before ``ht.settings``.
 
         Notes
         -----
@@ -77,11 +84,16 @@ class Project:
                 f"with ht.Project.from_ags({str(path)!r}, db={str(target)!r}, "
                 "overwrite=True)."
             )
-        chosen = {
-            **settings._values,
-            **{k: Settings._validate(k, v) for k, v in project_settings.items()},
-        }
+        explicit = {k: Settings._validate(k, v) for k, v in project_settings.items()}
+        chosen = {**settings._values, **explicit}
         result = ags.ingest(path)  # raises before anything is written
+        source = "setting" if chosen["vertical_datum"] else None
+        if "vertical_datum" not in explicit:
+            loca = pd.DataFrame(result.canonical.get("LOCA", {}))
+            found = vertical_datums.from_locations(loca)
+            if found.datum is not None:  # the file before the session setting
+                chosen["vertical_datum"], source = found.datum, "LOCA_DATM"
+        chosen["vertical_datum_source"] = source
         database.write(target, result, chosen, version("hangtu"))
         return cls(target)
 
@@ -761,17 +773,26 @@ class ProjectSettings:
         if name not in stored:
             Settings._validate(name, None)  # raises for an unknown name
             raise AttributeError(name)
-        return Settings._validate(name, stored[name])
+        return Settings._validate(name, stored[name], hint=False)
 
     def __setattr__(self, name: str, value: Any) -> None:
         """Check a setting and save it in the database."""
         checked = Settings._validate(name, value)
-        database.write_settings(self._path, {name: checked})
+        changes = {name: checked}
+        if name == "vertical_datum":
+            changes[DATUM_SOURCE] = "setting" if checked else None
+        database.write_settings(self._path, changes)
 
     def __repr__(self) -> str:
-        """List the stored settings."""
+        """List the stored settings, with where the vertical datum came from."""
         stored = database.read_settings(self._path)
-        lines = [f"    {name}={value!r}," for name, value in stored.items()]
+        source = stored.pop(DATUM_SOURCE, "setting")  # older databases: a setting
+        lines = []
+        for name, value in stored.items():
+            line = f"    {name}={value!r},"
+            if name == "vertical_datum" and value is not None:
+                line += "  # from LOCA_DATM" if source == "LOCA_DATM" else "  # set"
+            lines.append(line)
         return "ProjectSettings(\n" + "\n".join(lines) + "\n)"
 
 
