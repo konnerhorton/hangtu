@@ -206,12 +206,36 @@ You are also looking. Candidates found so far:
     - property-based unit tests with `hypothesis`.
 - **To find:** large files with good SPT, Atterberg, PSD and permeability coverage.
 
-### 20. Which SPT correlations for v0.2 · You + Claude · docs/drafts/analysis.md §4.2 · needed for M13
+### 20. Which SPT correlations for M13 · You + Claude · docs/drafts/analysis.md §4.2 · needed for M13
 - **You:** which properties and correlations you use, and any you'd exclude.
 - **Claude:** verify each equation, its constants, the N it was derived with and its stated range against the source.
 
 ### 21. Thewes & Burger (2004) diagram · Claude (verify) · P17 draft §14 · needed for M12
 Confirm the axes (PI or LL against Ic) and the zone coordinates against the paper.
+
+---
+
+## Parameters (SPEC §1.3, `docs/work/parameter-roadmap.md`)
+
+### 28. Judgment keys · You · SPEC §4 · settle each when its wave starts
+Each judgment declares what it is keyed by and whether one project-wide value is allowed. Proposed:
+- GSI by geology unit;
+- the disturbance factor D by design case (excavation method and zone);
+- σ′3max by design case;
+- Bjerrum's μ from PI, so by specimen;
+- the design unit weight profile and groundwater level by hole, or project-wide with a stated reason (M13).
+
+### 29. What can be published · You + Claude · docs/drafts/parameters/README.md · before the first promotion
+For the site pages: which content can be reproduced (cited values; class boundaries; whole tables; values read from charts; the descriptors of a chart such as GSI's), and which needs only a citation. The drafts follow the interim rule (values and references, no wholesale reproductions); settle the rule before a wave first publishes a page.
+
+### 30. Curves in real files · You · input for wave 0's intent (M16)
+Which user-defined groups and headings real files use for triaxial stress–strain curves, rock triaxial, swelling against time and shear box displacement, gathered from the sample dataset being prepared from real projects.
+
+### 31. Published definitions of the model sets · Claude (verify) · SPEC §5 · needed for M18
+Confirm a non-vendor published source that defines each model set's parameters: Mohr–Coulomb; Hardening Soil (Schanz, Vermeer & Bonnier 1999?); HS-small (Benz 2007?); generalized Hoek–Brown (Hoek, Carranza-Torres & Corkum 2002); Soft Soil (Vermeer & Neher 1999?). Where only a software manual defines a model, say so.
+
+### 32. Energy ratio as a judgment · You · SPEC §4
+`hammer_efficiency` is a session setting. Decide whether it moves into the judgments file, keyed by hole or rig, when the file is specified (M13).
 
 ---
 

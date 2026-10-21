@@ -342,6 +342,8 @@ screen, listed in each commit body.
 - `README.md` roadmap: the purpose and the waves, no version numbers.
 - `docs/plots/README.md`, `docs/plots/drafts/README.md`, `docs/data/qc.md`: version targets become milestones or
   "Later" (AC 3).
+- The plot specs, the plot drafts and `docs/plots/TEMPLATE.md` too (found while building): their "Target version"
+  field becomes "Milestone".
 
 ### 6. `parameter-roadmap: close out`
 - `docs/reference/process.md`: stages and waves, a wave's spec-step duties, the close-out updating the index.

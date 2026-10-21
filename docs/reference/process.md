@@ -12,11 +12,21 @@ Personal reference notes. Adapted from Anthropic's [AI-native SDLC playbook](htt
 | Feature spec | One feature | Kept while the feature exists | What exactly does it do, and how do we know it works? |
 | `docs/drafts/` | Upcoming features and future phases | Until promoted to a feature spec | Draft feature specs and early notes. Input for intents; only items marked "decided" are decisions |
 | `docs/plots/drafts/` | Plots not yet specified | Until promoted to `docs/plots/PXX-*.md` | Draft plot specs in the TEMPLATE format. Input for a plot's spec step; not decisions |
+| `docs/drafts/parameters/` | One sheet per ground parameter, and the index | Sheets until promoted to site pages; the index is permanent | What is known about each parameter (tests, methods, sources), and how far along each of its stages is |
 | `docs/TODO.md` | Backlog | Permanent | What hasn't been decided or researched yet? |
 
 The **feature spec** for a plot is `docs/plots/PXX-*.md`. For other work it is the `## Spec` section of `docs/work/<id>.md`, or a new topic doc under `docs/` when it will outlive the change, such as the Phase 2 data model.
 
 Each unit of work is one file, `docs/work/<id>.md`, named after its branch. The intent commit creates it with `## Intent`, and each later loop step's commit adds its section (`## Spec` when needed, then `## Plan`), so nothing is merged at the close-out.
+
+## Stages and waves
+
+hangtu's roadmap is organized by parameter (SPEC §1.3). Every parameter climbs four **stages**: A data, B direct derivation, C correlations, D selection. A **wave** groups stages that share an engine, so a wave moves several parameters forward a stage each. Each wave is one or more milestones in SPEC §12.4, and each milestone is one or more units of work through the loop below.
+
+A wave's units add three things to the loop:
+- **Spec:** promote the sheets the wave covers from `docs/drafts/parameters/` to site pages (`docs/site/parameters/NN-*.md`, from the sheets' `TEMPLATE.md`), verify the [U] citations the wave relies on and hand-calculate the golden values from the verified source, check what of the sheet can be published (values and citations, not whole tables or charts; TODO #29), and propose the new names against the whole registry. The wave's acceptance criteria go in its `docs/work/` file.
+- **Build:** each method's equation, inputs, validity and source go in its function's docstring (the checklist in `TEMPLATE.md`); the page links to the API reference rather than restating them.
+- **Close:** update the stage status of each sheet in the parameter index.
 
 ## The loop for each unit of work
 
@@ -37,7 +47,7 @@ The playbook's loop needs something for each intent to point at. In an existing 
 
 1. **Product spec first.** Write down the scope, phasing and cross-cutting decisions (done: `SPEC.md`).
 2. **M0 (scaffolding) is the first run through the loop.** Once it lands, fill in the commands section of `CLAUDE.md`.
-3. **Each later milestone or plot is one run through the loop.** Milestones in SPEC §12.4 map onto intents. A milestone can be split into several intents, for example M8 into P04, P05 and P06.
+3. **Each later milestone or plot is one run through the loop.** Milestones in SPEC §12.4 map onto intents, and each names its wave (above). A milestone can be split into several intents, for example M8 into P04, P05 and P06.
 4. **Phase boundaries are where the spec is redesigned.** At M4 (the start of Phase 2), turn `docs/drafts/phase2-data.md` into intents and specs, and move the decisions that apply across Phase 2 into `SPEC.md`.
 
 ## How detailed should SPEC.md be?
