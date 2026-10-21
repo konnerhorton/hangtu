@@ -135,3 +135,172 @@ durability). Their scope:
 ### SPEC sections touched
 §1 (purpose, new), §1.3 (roadmap), §1.4 (non-goals check), §4 (correlations widen beyond SPT; judgment inputs),
 §5 (statistics feed phase D and the model sets), §12.4 (milestones), document map.
+
+## Spec
+
+This unit changes documents only, so this section is its feature spec: the decisions the intent left to the spec,
+what each file gets, and how to check the result. The roadmap itself goes into SPEC §1.3 and §12.4; it is drafted
+here in enough detail to review.
+
+### Decisions
+1. **Stages, not phases.** The four steps a parameter climbs are **stages A–D** (data, derivation, correlation,
+   selection). "Phase 1/2/3" already names plots, data and statistics throughout SPEC and the data specs, and two
+   meanings of "phase" in one roadmap would be misread. "Phase 1/2/3" stays as the name of those three bodies of
+   work but no longer orders anything; waves and milestones do.
+2. **The purpose goes at the top of SPEC §1**, as an unnumbered paragraph ahead of §1.1, so no section is
+   renumbered. It says: hangtu derives the ground parameters a geotechnical design needs, from the test data to a
+   model-ready parameter set, for soil and rock; the plots, data layer, analyses and statistics are steps toward
+   that; and the docs site is a practitioner reference for each parameter (what, why, how, with sources).
+3. **No version table.** §1.3 keeps the "why plots came first" reason and the stages and waves; the build-order
+   history (the 2026-10-13, -14 and -15 paragraphs) is removed, since git keeps it. Releases are cut when a
+   milestone leaves something usable and aren't planned ahead. 0.1.0 on PyPI is still next. SPEC, README,
+   `docs/plots/README.md`, the plot drafts index and `docs/data/qc.md` lose their planned version targets (v0.2–v0.6)
+   in favor of a milestone or "Later"; released versions (0.0.1, 0.1.0) stay.
+4. **Waves in §1.3** are a short table (wave, shared engine, what it moves). The sheet × stage matrix lives once, in
+   the parameter index (decision 11), not in SPEC.
+
+   | Wave | Engine | Moves |
+   |---|---|---|
+   | 0 | User-defined groups and curves | Curves (triaxial q–ε and εv, rock triaxial, swelling against time, shear box displacement) carried in the AGS file; the input waves 2, 4 and 5 need |
+   | 1 | Stress and state | 01 B, 03 B, 02 B (activity; LI and Ic as analyses); SPT correlations, stage C for 04–08 and 10; P17 |
+   | 2 | Strength envelopes | 04 B, 05 A–B, 22 B, 15 B on one fitting core; P11–P12 |
+   | 3 | Oedometer | 06 B, 11 (Eoed, Eur,oed), 12 (k from cv·mv), 21 B, then 07 B and 05 (SHANSEP); P13–P15 |
+   | 4 | Rock | 13, 14, 23 A–B and 16 A (RQD), then the Hoek–Brown chain: 15 C, 16 B, 17–19, 09 (rock), 20 |
+   | 5 | Stiffness | 08, 10, 11 (full set), 09 (soil); P19, P20 |
+   | 6 | Hydraulic | 12 A–C (field tests) |
+
+   LI and Ic are in the datasets already (`p.atterberg()`); wave 1 adds them as plain functions so CSV users get
+   them too, as every analysis must be.
+5. **Milestones in §12.4**, in build order. Done rows stay. M8's remaining P06 stays M8. New numbers start at M14.
+
+   | M | Wave | Deliverable |
+   |---|---|---|
+   | M8 (rest) | — | P06 water content profile |
+   | M13 | 1 | Vertical stress, (N1)60, SPT correlations |
+   | M14 | 1 | Phase relations (γ, γd, e, n, S with consistency checks), activity, LI and Ic as analyses |
+   | M12 | 1 | P17 clogging diagram |
+   | M15 | Statistics | `describe`, `fit`, `compare`, `compare_groups`, `crosstab`, `characteristic`; P08, P09 |
+   | M16 | 0 | User-defined groups and curves |
+   | M11 | 2 | The envelope fitting core; P11–P12; 04 B |
+   | M17 | 2 | Undrained strength datasets and derivations (UU, UCS, vane, pocket penetrometer), joint strength, intact Hoek–Brown fit |
+   | M18 | Selection | Stage D: sources compared against depth or geology unit, characteristic values and design lines, model-set results; the Mohr–Coulomb set first |
+   | M19 | 3 | Oedometer: σ′p, Cc, Cs, Eoed, Eur,oed, k from cv·mv, Grob and Huder–Amberg swelling; P13–P15 |
+   | M20 | 3 | K0 from OCR, SHANSEP; the Soft Soil set |
+   | M21 | 4 | Rock lab datasets (UCS, tensile, point load, slake durability, intact moduli) and RQD |
+   | M22 | 4 | The Hoek–Brown chain, rock dilatancy, in situ stress; the generalized Hoek–Brown set with residual values |
+   | M23 | 5 | Soil stiffness (elastic, small-strain, Hardening Soil), soil dilatancy; P19, P20; the HS and HS-small sets |
+   | M24 | 6 | Field permeability tests |
+
+   A milestone can still split into several units of work, as M8 did. The real-file review items (`file-units`,
+   `vertical-datum`, `qc-review`) are units without a milestone and go ahead of M8's P06.
+6. **Selection gets its own milestone after wave 2** (M18). By then there are measured strengths, SPT-based
+   estimates of the same properties and the statistics, which is what selection compares; a Mohr–Coulomb set is the
+   first one all its inputs exist for. Each later wave then adds stage D for its sheets and the model sets they
+   complete (Soft Soil in M20, Hoek–Brown in M22, HS and HS-small in M23).
+7. **Not on a wave**, kept in a "Not yet placed" list in §1.3 and built when needed: P18 (Hollmann & Thewes), QC
+   level 2, the standards comparison library, user-defined PSD regions and the plasticity-chart data region, P16
+   (compaction). The existing "Later" list stays, with AGSi export (and import) in it.
+8. **Judgment inputs** (§4, new bullet; was "proposed" in the intent):
+   - **No package defaults.** A judgment (D, GSI, σ′3max, Bjerrum's μ, a design unit weight profile, a groundwater
+     level) is never filled in by hangtu.
+   - **Resolution:** explicit argument → the project's judgments file → an error that names the judgment, what it
+     is keyed by and how to set it. There is no session (`ht.settings`) level: a judgment belongs to a project, and
+     a session value would follow the user from one project to the next.
+   - **Keyed by what it depends on.** Each judgment declares its keys (geology unit, hole, depth range, a named
+     design case) and whether one project-wide value is allowed. A value given at a coarser key than allowed is an
+     error, not a fallback.
+   - **A plain file next to the project** (`judgments.yaml`), the source of truth, reviewable and kept in version
+     control. A `Project` records its path and reads it on each call; it is never copied into SQLite, so the two
+     can't disagree. It works without a `Project` too, for CSV users.
+   - **Recorded on every result:** each judgment used, with its value, key and source (the argument, or the file's
+     path and SHA-256), in `df.attrs` and on result objects, so a result read on its own says which judgments made
+     it.
+   - **When:** the file format and API are specified in M13's spec, because the unit weight profile and the
+     groundwater level of `vertical_stress()` are the first judgments a user wants to set once per project. The
+     call arguments decided in analysis draft §4.1 stay, as the first step of the resolution.
+   - `hammer_efficiency` is unchanged for now (a session setting; an energy ratio is equipment data more than
+     judgment). Whether it moves into the file, keyed by hole or rig, is a TODO.
+9. **Correlations widen beyond SPT** (§4): the framework's rules apply to any input property (PI, CPT qt, Is50,
+   index properties), not only N. SPT correlations are the first set (M13). The input-N rule becomes "the input is
+   explicit": each correlation declares the quantity and variant it was derived with.
+10. **Model sets and results** (§5, new bullets): statistics results and model sets are the same kind of object.
+    A result computes and keeps everything (values, n, the statistics behind each value, outliers, the judgments
+    used); what the user asks for (characteristic values, p-values, variance, outlier detail) changes the view
+    (`.to_frame()`, `.to_dict()`, the summary), never the calculation, so two reports of one result can't disagree.
+    A model set is described by the published model (Mohr–Coulomb; Hardening Soil, Schanz et al. 1999; HS-small,
+    Benz 2007; generalized Hoek–Brown, Hoek et al. 2002; Soft Soil, Vermeer & Neher 1999; to confirm, TODO);
+    exporters to a program's input format are thin and come later.
+11. **The parameter index is the tracker.** `docs/drafts/parameters/README.md` lists the 23 sheets with, for each
+    stage, its wave and status (planned, built), like the plot list in `docs/plots/README.md`. Each wave's
+    close-out updates it. It answers "how far along is each parameter".
+12. **Non-goals** (§1.4, title loses "through v0.3"): "limit-state design calculations" stays out, worded so the
+    line is clear: hangtu stops at characteristic values, design lines and model parameter sets; applying partial
+    factors, capacity and stability checks, and running numerical models are out. Added: a program's input format as
+    the definition of a model set (exporters only). The rest is unchanged.
+13. **Moving the sheets in** (`docs/drafts/parameters/NN-*.md`, file names as in the source):
+    - **Scrub:** the "Spec ids" row and README column go; the sheet number is the id. "spec S6 primary" and the like
+      are dropped: which method is primary is decided in the wave's spec. A reference to a private extract of a
+      source, with its path, becomes "via an extract of the source", keeping the [V] and locator. No project, client or private
+      path is named anywhere.
+    - **Kept as is:** the [V]/[U] tags and locators, the _[Judgment — for PE review]_ tags, the section structure
+      (the sheets aren't restructured to the new template until they're promoted).
+    - **American spelling** in prose (behavior, remolded, mobilized, program, center, analyzed, tunneling, …);
+      reference titles keep the source's spelling.
+    - **Copyright screen before the drafts commit.** The repo is public, so committing a draft publishes it. Values
+      with a citation are kept; a source table or chart reproduced nearly whole (for example a full table of mi by
+      rock type, the descriptors of the GSI chart, digitized curves) is cut to the values the sheet needs with the
+      table's locator, or to the locator alone. The build commit lists what was cut, per sheet. The full check
+      (TODO) still happens per wave, before promotion to the site.
+14. **The template** (`docs/drafts/parameters/TEMPLATE.md`) becomes the site page's outline plus the docstring
+    checklist:
+    - **Page:** header table (parameters, material, models that use it, depends on, feeds); phenomenon; why it
+      matters to a design (by analysis type, not one project's); units; typical values; tests (ASTM, ISO/BS, AGS
+      groups and headings); methods (one row per method: what it uses, when it applies, a link to its function in
+      the API reference); how the methods compare; sensitivity and variability; pitfalls (each noted as a QC rule,
+      a warning or a docstring note once built); references.
+    - **Docstring checklist**, replacing the sheets' §5 blocks: equation; inputs with units; valid for (material and
+      the range of data behind it); scatter; assumptions; out-of-range behavior (NaN with a count); judgments taken;
+      source with its locator, verified. The equation and its source are written once, in the docstring.
+15. **Site pages** go in `docs/site/parameters/NN-*.md`, with a "Parameters" nav section, when a wave promotes a
+    sheet. None are added in this unit.
+
+### Changes by file
+- **`SPEC.md`:** document map (`docs/drafts/parameters/`; the site's parameter pages); §1 purpose (decision 2);
+  §1.2 AGSi row "Later"; §1.3 rewritten (decisions 3, 4, 7); §1.4 (decision 12); §3 plot-list bullets without
+  versions; §4 correlations widened (decision 9) and judgment inputs (decision 8); §5 heading without "v0.3", the
+  stage D and model-set bullets (decision 10); §11 headings without versions; §12.4 (decision 5).
+- **`docs/drafts/parameters/`:** the 23 sheets, `TEMPLATE.md` (decision 14), `README.md` (index and tracker,
+  decision 11, with the [V]/[U] conventions from the source README).
+- **`docs/reference/process.md`:** stages and waves; a wave's spec step verifies the [U] citations it uses, does the
+  copyright check, proposes names against the registry, and promotes its sheets to site pages; its close-out
+  updates the parameter index. "Starting from zero" step 3 points to the wave milestones.
+- **`CLAUDE.md`:** status paragraph (no v0.2; the order of work); "Where things are" gains the parameter drafts and
+  site pages; a workflow rule for a wave's spec step (sources, copyright, promotion).
+- **`docs/TODO.md`:** new items:
+  - **#28 Judgment keys** (You): the key and the project-wide rule for each judgment (proposed: GSI by geology
+    unit, D by design case, σ′3max by design case, μ from PI), confirmed when its wave starts.
+  - **#29 What can be published** (You + Claude): which sheet content can be reproduced (cited values, tables,
+    digitized charts, figure descriptors), settled before the first promotion.
+  - **#30 Curves in real files** (You): the user-defined groups and headings real files use for curves and rock
+    triaxial, gathered from the sample dataset; input for wave 0's intent.
+  - **#31 Published definitions of the model sets** (Claude, verify): a non-vendor source defining each model set's
+    parameters (decision 10).
+  - **#32 Energy ratio as a judgment** (You): whether `hammer_efficiency` moves into the judgments file, keyed by
+    hole or rig.
+- **`README.md`:** the roadmap table becomes the purpose and the waves, without version numbers.
+- **`docs/plots/README.md`, `docs/plots/drafts/README.md`, `docs/data/qc.md`:** version targets become milestones
+  or "Later".
+
+### Acceptance criteria
+1. **Scrubbed:** a search for the source project's and codebase's names, "spec ids" and `spec [SR][0-9]` finds
+   nothing outside this work doc, and no private path appears in `docs/drafts/parameters/`.
+2. **Tags kept:** each sheet's [V] and [U] counts match the source, except where the copyright screen cut content,
+   which the commit body lists.
+3. **Roadmap:** SPEC §1.3 has the stages, the wave table and the "Not yet placed" list and no version table;
+   §12.4's rows are in build order and each new row names its wave; v0.2–v0.6 appear nowhere in SPEC, README,
+   CLAUDE.md or the plot docs, except as history in `docs/work/`.
+4. **Placed:** every item of the old v0.2–v0.6 rows and "Later" is in a milestone, "Not yet placed" or "Later".
+5. **Size:** SPEC.md stays under 450 lines.
+6. **Links:** every relative link in the changed and new files resolves.
+7. **CI:** `uv run ruff check . && uv run ruff format --check . && uv run pytest` passes, and
+   `zensical build --clean --strict` passes (nothing under `docs/drafts/` is published).
