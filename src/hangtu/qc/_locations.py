@@ -1,7 +1,8 @@
-"""Location rules L001 to L006 (qc.md §4.2)."""
+"""Location rules L001 to L007 (qc.md §4.2)."""
 
 import numpy as np
 
+from hangtu import vertical_datums
 from hangtu.qc import _text
 from hangtu.qc._data import Data
 from hangtu.qc._registry import Finding, RuleResult, rule
@@ -147,14 +148,90 @@ def ground_level_outlier(data: Data, settings: RuleSettings) -> RuleResult:
     return RuleResult(findings, checked)
 
 
+def _holes(holes: tuple[str, ...], limit: int) -> str:
+    """Name up to ``limit`` holes, then count the rest."""
+    named = ", ".join(holes[:limit])
+    rest = len(holes) - limit
+    return f"{named} and {rest} more" if rest > 0 else named
+
+
+def _file_datum(data: Data) -> vertical_datums.FileDatum:
+    if "LOCA" not in data.groups:
+        return vertical_datums.FileDatum()
+    return vertical_datums.from_locations(data.table("LOCA"))
+
+
+def _why_not_from_the_file(found: vertical_datums.FileDatum) -> str:
+    """Why LOCA_DATM didn't set the datum (ingest.md §7), or "" if it says none."""
+    count = len(found.holes)
+    holes = _holes(found.holes, 10)
+    if found.reason == "blank":
+        return (
+            f" LOCA_DATM wasn't used: it is blank for {holes}, so "
+            f"{'that hole' if count == 1 else 'those holes'} could be on another "
+            "datum. Fill it in and ingest again."
+        )
+    if found.reason == "local_level":
+        return (
+            f" LOCA_DATM wasn't used: {holes} {'has' if count == 1 else 'have'} a "
+            "LOCA_LOCZ, so LOCA_DATM may be the datum of that local level rather "
+            "than LOCA_GL's."
+        )
+    if found.reason == "different":
+        return (
+            " LOCA_DATM wasn't used: holes name different datums (L007), so their "
+            "elevations can't be compared."
+        )
+    if found.reason == "unknown":
+        (name,) = found.names
+        return (
+            f" LOCA_DATM wasn't used: \"{name}\" isn't in the datum table. If it is "
+            f'a datum, add it with ht.add_vertical_datum("<short name>", '
+            f'name="{name}") and ingest again.'
+        )
+    return ""
+
+
 @rule("L006")
 def no_vertical_datum(data: Data, settings: RuleSettings) -> RuleResult:
     if data.project_settings.get("vertical_datum"):
         return RuleResult([], 1)
     finding = Finding(
         "L006",
-        "The project's vertical datum isn't set, so elevations don't say what "
-        'they are measured from. Set it with p.settings.vertical_datum = "NAVD88" '
-        "(or the datum of LOCA_GL).",
+        "No vertical datum is known for the project, so elevations don't say "
+        'what they are measured from. Set it with p.settings.vertical_datum = "NAVD88" '
+        "(or the datum of LOCA_GL)." + _why_not_from_the_file(_file_datum(data)),
     )
     return RuleResult([finding], 1)
+
+
+@rule("L007")
+def vertical_datums_disagree(data: Data, settings: RuleSettings) -> RuleResult:
+    found = _file_datum(data)
+    if not found.names:
+        return RuleResult()
+    where = {"group": "LOCA", "heading": "LOCA_DATM"}
+    if len(found.names) > 1:
+        listed = "; ".join(
+            f"{name} in {len(holes)} hole{'s' if len(holes) > 1 else ''} "
+            f"({_holes(holes, 5)})"
+            for name, holes in found.names.items()
+        )
+        message = (
+            f"Holes name different vertical datums in LOCA_DATM: {listed}. Their "
+            "elevations (LOCA_GL) can't be compared. Check LOCA_DATM, and convert "
+            "the ground levels to one datum before using elevations."
+        )
+        return RuleResult([Finding("L007", message, **where)], 1)
+    datum = data.project_settings.get("vertical_datum")
+    source = data.project_settings.get("vertical_datum_source", "setting")
+    ((name, holes),) = found.names.items()
+    if datum and source == "setting" and not vertical_datums.same(name, datum):
+        message = (
+            f"The project's vertical datum is set to {datum}, but LOCA_DATM names "
+            f"{name} for {_holes(holes, 5)}. Elevations are LOCA_GL as written, so "
+            "check which datum the ground levels are on, and set "
+            "p.settings.vertical_datum to it."
+        )
+        return RuleResult([Finding("L007", message, **where)], 1)
+    return RuleResult([], 1)

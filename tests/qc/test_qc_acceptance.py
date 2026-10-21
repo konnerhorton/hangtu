@@ -20,6 +20,7 @@ EXPECTED = {
     ("L003", 58),  # BH5: LOCA_FDEP blank
     ("L004", 64),  # HORN_INCL 80
     ("L005", 57),  # BH4 8 m above its neighbors
+    ("L007", None),  # BH1-BH3 NAVD88, BH4 NGVD29
     ("G001", 58),  # BH5 has ISPT and no GEOL
     ("G002", 71),  # BH1: 2.50 to 3.00 missing
     ("G002", 73),  # BH2: log stops 0.50 m short of LOCA_FDEP
@@ -50,7 +51,7 @@ EXPECTED = {
 }
 # Info findings seeded on qc_defects.ags (C002 also lists absent headings).
 EXPECTED_INFO = {
-    ("L006", None),
+    ("L006", None),  # cascade of L007: holes name different datums
     ("D005", 89),
     ("S003", None),
     ("A004", 121),
