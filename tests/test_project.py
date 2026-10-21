@@ -87,6 +87,12 @@ def test_settings_are_stored_and_checked(site):
     assert "figure_sizes" in repr(p.settings)
 
 
+def test_a_datum_not_in_the_table_hints_once_when_set(project):
+    with pytest.warns(ht.HangtuHint, match='"Site datum" isn\'t in the datum table'):
+        project.settings.vertical_datum = "Site datum"
+    assert project.settings.vertical_datum == "Site datum"  # read back quietly
+
+
 def test_geology_key_is_a_project_setting(site):
     with ht.settings.override(geology_key="GEOL_LEG"):
         p = ht.Project.from_ags(site, geology_key="GEOL_FORM")

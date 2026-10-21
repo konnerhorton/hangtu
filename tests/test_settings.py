@@ -119,3 +119,26 @@ def test_reset_restores_defaults():
     ht.settings.reset()
     assert ht.settings.display_units == "US"
     assert ht.settings.palette == {}
+
+
+def test_vertical_datum_is_stored_as_its_short_name():
+    ht.settings.vertical_datum = "navd 88"
+    assert ht.settings.vertical_datum == "NAVD88"
+
+
+def test_vertical_datum_not_in_the_table_is_kept_with_a_hint():
+    with pytest.warns(ht.HangtuHint, match=r'add_vertical_datum\("<short name>"'):
+        ht.settings.vertical_datum = "Site datum"
+    assert ht.settings.vertical_datum == "Site datum"
+
+
+def test_vertical_datum_hint_off_with_hints_false():
+    ht.settings.hints = False
+    ht.settings.vertical_datum = "Site datum"  # warnings are errors
+    assert ht.settings.vertical_datum == "Site datum"
+
+
+def test_added_vertical_datum_is_accepted_without_a_hint():
+    ht.add_vertical_datum("ATD", name="Anytown datum")
+    ht.settings.vertical_datum = "Anytown datum"
+    assert ht.settings.vertical_datum == "ATD"

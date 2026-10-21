@@ -34,6 +34,8 @@ Reading CSV files with their units, the column registry and templates, the examp
     options:
       heading: "ht.settings"
 
+::: hangtu.add_vertical_datum
+
 ## Sheets
 
 ::: hangtu.Sheet

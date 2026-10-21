@@ -761,7 +761,7 @@ class ProjectSettings:
         if name not in stored:
             Settings._validate(name, None)  # raises for an unknown name
             raise AttributeError(name)
-        return Settings._validate(name, stored[name])
+        return Settings._validate(name, stored[name], hint=False)
 
     def __setattr__(self, name: str, value: Any) -> None:
         """Check a setting and save it in the database."""
