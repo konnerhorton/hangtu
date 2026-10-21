@@ -164,9 +164,17 @@ def test_user_defined_headings_convert_to_the_p00_canonical_unit():
     assert converted("%", None, 12.0)[0] == 12.0  # percent stays percent
 
 
-def test_user_defined_heading_with_an_unusual_dimension_uses_si_base_units():
-    value, heading, _ = converted("kg/m", None, 2.0)
-    assert value == 2.0 and heading.unit == "kg/m"
+@pytest.mark.parametrize("text", ["kN/mm", "kg/m", "l/s"])
+def test_a_unit_no_quantity_kind_covers_keeps_the_files_string(text):
+    value, heading, finding = converted(text, None, 2.0)
+    assert value == 2.0
+    assert (heading.unit, heading.quantity, finding) == (text, None, None)
+
+
+def test_micrometers_convert_to_meters():
+    value, heading, finding = converted("um", None, 75.0)
+    assert value == pytest.approx(75.0e-6)
+    assert (heading.unit, heading.quantity, finding) == ("m", "length", None)
 
 
 @pytest.mark.parametrize(

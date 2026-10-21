@@ -210,7 +210,7 @@ def resolve_heading(
     elif unit.dimensionless:
         target, target_text = unit, file_unit
     else:
-        target, target_text = _canonical(unit)
+        target, target_text = _canonical(unit, file_unit)
 
     if unit.dimensionality != target.dimensionality:
         return raw_only(
@@ -320,13 +320,16 @@ def _factor(unit: pint.Unit) -> float:
     return ureg.Quantity(1.0, unit).to_base_units().magnitude
 
 
-def _canonical(unit: pint.Unit) -> tuple[pint.Unit, str]:
-    """Return the P00 canonical unit of ``unit``'s dimension, else SI base units."""
+def _canonical(unit: pint.Unit, text: str) -> tuple[pint.Unit, str]:
+    """Return the P00 canonical unit of ``unit``'s dimension, else ``unit`` itself.
+
+    A unit no P00 kind covers (``kN/mm``) is kept as the file writes it, so a
+    plot labels it the way the file does (ingest.md §7, step 4).
+    """
     kind = units._kind_of(unit)
-    if kind is not None:
-        target = ureg.Unit(_config.quantity_kinds()[kind]["canonical"])
-    else:
-        target = ureg.Quantity(1.0, unit).to_base_units().units
+    if kind is None:
+        return unit, text
+    target = ureg.Unit(_config.quantity_kinds()[kind]["canonical"])
     return target, _alias_for(target)
 
 
