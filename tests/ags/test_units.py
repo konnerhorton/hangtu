@@ -301,10 +301,16 @@ def test_defects_file_unit_findings():
         "SAMP_BASE": "U002",
         "ISPT_CAS": "U003",
         "LOCA_NATE": "U004",
+        "XUND_SWEL": "U005",
+        "XUND_BLOW": "U001",
     }
     assert by_heading["LOCA_FDEP"].line == ags.unit_lines["LOCA"]
     assert headings["LOCA", "LOCA_FDEP"].status == u.RAW_ONLY
     assert headings["SAMP", "SAMP_BASE"].status == u.CONVERTED
+    assert headings["XUND", "XUND_SWEL"].status == u.FILE_UNIT
+    assert headings["XUND", "XUND_BLOW"].status == u.RAW_ONLY
+    assert headings["XUND", "XUND_STIF"].unit == "kN/mm"
+    assert headings["XUND", "XUND_SIZE"].unit == "m"
 
 
 def test_file_unit_system():

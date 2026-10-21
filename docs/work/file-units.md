@@ -91,7 +91,7 @@ Five build commits, each green (ruff and pytest). Regenerate the test files with
 
 ### 4. `file-units: test-file cases`
 - `tests/data/ags/_make_files.py`:
-  - `UNIT_DESCRIPTIONS` gains `%/log cycle` ("percent strain per log cycle of stress"), `kN/mm`, `um` and `GPa`.
+  - `UNIT_DESCRIPTIONS` gains `%/log cycle` ("percent strain per log cycle of stress"), `kN/mm` and `um` (`GPa` is already there).
   - `write_file(..., undefined_units=())` leaves those units out of the generated `UNIT` group (AC 2).
   - `defects_groups()`: `XUND` (already user-defined, no DICT) gains `XUND_SWEL` in `%/log cycle` (U005), `XUND_ODD` in a unit neither the alias table nor pint reads, left out of the `UNIT` group (U001), `XUND_STIF` in `kN/mm` and `XUND_SIZE` in `um`. One `XUND` row with values, plus one with `<0.5` in `XUND_SWEL` to show flags apply.
 - Tests:

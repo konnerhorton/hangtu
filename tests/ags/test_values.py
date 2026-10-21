@@ -75,6 +75,23 @@ def test_bounds_are_converted_with_the_value():
     assert flags[1].flag == "DRY" and values[1] is None
 
 
+def test_a_file_unit_column_is_typed_with_flags_but_not_converted():
+    swell, _ = u.resolve_heading(
+        "XSWL",
+        "XSWL_HSP",
+        "%/log cycle",
+        "2DP",
+        None,
+        "SI",
+        defined={"%/log cycle": "percent strain per log cycle of stress"},
+    )
+    assert swell.status == u.FILE_UNIT
+    values, flags, findings = typed(swell, "1.25", "<0.50", "", "wet")
+    assert values == [1.25, 0.5, None, None]
+    assert [(f.flag, f.bound) for f in flags] == [("LT", 0.5), ("OTHER", None)]
+    assert [f.rule for f in findings] == ["T001"]
+
+
 def test_x_with_a_unit_is_numeric_and_x_without_is_text():
     mc = heading("LNMC", "LNMC_MC", "X", "%")
     assert typed(mc, "32", "NP")[0] == [32.0, None]

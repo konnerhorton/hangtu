@@ -20,10 +20,11 @@ def test_columns(defects):
 def test_ingest_findings_appear_with_their_lines(defects):
     found = defects.findings
     rows = set(zip(found["rule_id"], found["group"], found["source_line"], strict=True))
-    assert ("U001", "LOCA", 54) in rows
-    assert ("T001", "LNMC", 106) in rows
-    assert ("V10c", "LLPL", 97) in rows
+    assert ("U001", "LOCA", 57) in rows
+    assert ("T001", "LNMC", 109) in rows
+    assert ("V10c", "LLPL", 100) in rows
     assert ("V000", "TRAN", 11) in rows
+    assert ("U005", "XUND", 113) in rows
 
 
 def test_ingest_finding_gets_hole_depth_and_value_from_its_line(defects):
@@ -46,7 +47,11 @@ def test_findings_sorted_by_severity_rule_and_line(defects):
     assert list(found["severity"].map(order)) == sorted(found["severity"].map(order))
     errors = found.query("severity == 'error'")["rule_id"]
     ingest = [rule_id for rule_id in errors if rule_id[0] in "UV"]
-    assert ingest == ["U001", "U004", "V7", "V9", "V9", "V10c", "V10c", "V18"]
+    assert ingest == [
+        *["U001", "U001", "U004", "V7"],
+        *["V9"] * 6,
+        *["V10c", "V10c", "V15", "V18"],
+    ]
     lines = list(found.query("rule_id == 'D001'")["source_line"])
     assert lines == sorted(lines)
 
@@ -81,7 +86,7 @@ def test_v_star_and_a_single_v_rule(projects):
 
 def test_rules_table_lists_v_rules_found_after_v_star(defects):
     ids = list(defects.rules["rule_id"])
-    assert ids[:5] == ["V*", "V7", "V9", "V10c", "V18"]
+    assert ids[:6] == ["V*", "V7", "V9", "V10c", "V15", "V18"]
     rules = defects.rules.set_index("rule_id")
     assert rules.loc["V10c", "title"] == "python-ags4 rule 10c"
     assert rules.loc["V10c", "findings"] == 2
@@ -103,8 +108,9 @@ def test_summary_counts(defects):
     summary = defects.summary()
     assert list(summary.columns) == ["rule_id", "title", "severity", "count"]
     counts = dict(zip(summary["rule_id"], summary["count"], strict=True))
-    assert counts["V9"] == 2
-    assert counts["U001"] == 1
+    assert counts["V9"] == 6
+    assert counts["U001"] == 2
+    assert counts["U005"] == 1
     assert summary["count"].sum() == len(defects.findings)
 
 

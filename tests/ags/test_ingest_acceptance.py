@@ -135,6 +135,7 @@ def test_ac5_pcf_by_heading(projects):
     ("rule", "group", "heading"),
     [
         ("U001", "LOCA", "LOCA_FDEP"),
+        ("U001", "XUND", "XUND_BLOW"),
         ("U003", "ISPT", "ISPT_CAS"),
         ("U004", "LOCA", "LOCA_NATE"),
     ],
@@ -164,6 +165,45 @@ def test_ac5_a_unit_only_pint_knows_is_converted_with_u002(projects):
     assert found.values.tolist() == [["U002", "info"]]
 
 
+def test_ac5_a_unit_the_file_defines_is_kept_as_written_with_u005(projects):
+    defects = projects["defects"]
+    xund = defects.table("XUND")
+    assert xund["XUND_SWEL"].tolist() == [1.25]
+    assert xund.attrs["units"]["XUND_SWEL"] == "%/log cycle"
+    heading = defects.sql(
+        "SELECT unit, quantity, status FROM meta_heading WHERE heading = 'XUND_SWEL'"
+    )
+    assert heading.values.tolist() == [["%/log cycle", None, "file_unit"]]
+    found = defects.sql(
+        "SELECT rule, severity, message FROM finding WHERE heading = 'XUND_SWEL'"
+    )
+    assert found[["rule", "severity"]].values.tolist() == [["U005", "info"]]
+    assert '("percent strain per log cycle of stress")' in found["message"].iloc[0]
+
+
+def test_ac5_a_standard_heading_says_the_unit_group_defines_its_unit(projects):
+    found = projects["defects"].sql(
+        "SELECT message FROM finding WHERE heading = 'LOCA_FDEP'"
+    )
+    assert (
+        'The file\'s UNIT group defines it as "foot (wrong case)", but LOCA_FDEP '
+        'is a standard heading in "m".'
+    ) in found["message"].iloc[0]
+
+
+def test_ac5_kn_per_mm_keeps_its_unit_and_um_converts_to_m(projects):
+    defects = projects["defects"]
+    xund = defects.table("XUND")
+    assert xund["XUND_STIF"].tolist() == [35.5]
+    assert xund["XUND_SIZE"].tolist() == pytest.approx([75.0e-6], rel=1e-9)
+    assert xund.attrs["units"]["XUND_STIF"] == "kN/mm"
+    assert xund.attrs["units"]["XUND_SIZE"] == "m"
+    found = defects.sql(
+        "SELECT rule FROM finding WHERE heading IN ('XUND_STIF', 'XUND_SIZE')"
+    )
+    assert found.empty
+
+
 @pytest.mark.parametrize(
     ("rule", "project", "needs_heading"),
     [
@@ -174,6 +214,7 @@ def test_ac5_a_unit_only_pint_knows_is_converted_with_u002(projects):
         ("U002", "defects", True),
         ("U003", "defects", True),
         ("U004", "defects", True),
+        ("U005", "defects", True),
         ("T001", "defects", True),
         ("M001", "site_v404", False),  # group-level for IPRG/IPRT
     ],

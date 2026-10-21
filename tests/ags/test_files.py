@@ -30,6 +30,8 @@ def test_defects_file_breaks_the_rules_it_was_built_for(capsys):
     undefined = [row["desc"] for row in errors["AGS Format Rule 9"]]
     assert any(desc.startswith("XUND_VAL") for desc in undefined)
     assert "AGS Format Rule 18" in errors
+    unlisted = [row["desc"] for row in errors["AGS Format Rule 15"]]
+    assert any('"blows/ft" not found in UNIT group' in desc for desc in unlisted)
     assert any("4.9" in row["desc"] for row in errors["FYI"])
 
 
