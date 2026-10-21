@@ -4,11 +4,11 @@ Range checks skip blank and flagged values (qc.md §4, "General behavior").
 """
 
 import itertools
-import re
 
 import numpy as np
 import pandas as pd
 
+from hangtu.ags._values import spt_report
 from hangtu.analysis._spt import n60
 from hangtu.qc import _text
 from hangtu.qc._data import Data
@@ -18,8 +18,6 @@ from hangtu.qc._settings import RuleSettings
 #: Slack on tolerance comparisons, as in the geology rules.
 SLACK = 1e-9
 
-_COMPLETE = re.compile(r"N\s*=\s*\d+")
-_PAIRS = re.compile(r"\d+\s*/\s*\d+(\s+\d+\s*/\s*\d+)*")
 _INCREMENTS = ("ISPT_INC3", "ISPT_INC4", "ISPT_INC5", "ISPT_INC6")
 
 
@@ -56,15 +54,15 @@ def report_unreadable(data: Data, settings: RuleSettings) -> RuleResult:
     findings = []
     for row in given.to_dict("records"):
         report = str(row["ISPT_REP"]).strip()
-        if _COMPLETE.fullmatch(report) or _PAIRS.fullmatch(report):
+        if spt_report(report) is not None:
             continue
         findings.append(
             Finding(
                 "S001",
                 f'ISPT_REP "{report}" {_where(row, data, "ISPT", "ISPT_TOP")} is '
-                'neither a complete test ("N=12") nor blows/penetration pairs '
-                '("25/75 50/75"), so whether the drive was completed can\'t be '
-                "read from it. Check the report.",
+                'neither a complete test ("5,6,6 N=12") nor an incomplete drive '
+                '("25/75 50/75", "22-30-50/3""), so whether the drive was '
+                "completed can't be read from it. Check the report.",
                 group="ISPT",
                 heading="ISPT_REP",
                 line=row["_line"],
@@ -84,8 +82,10 @@ def improbable_n(data: Data, settings: RuleSettings) -> RuleResult:
         Finding(
             "S002",
             f"ISPT_NVAL {row['ISPT_NVAL']:g} {_where(row, data, 'ISPT', 'ISPT_TOP')} "
-            f"is above {highest.text}, which is improbable for a completed test. "
-            "Check the N value, or whether the test was a refusal.",
+            f"is above {highest.text}, which is improbable for a completed test: "
+            "ASTM D1586 ends the drive at 50 blows in a 150 mm (6 in) increment, "
+            "100 blows in total, or no advance over 10 blows. Check the N value, "
+            "or whether the test was a refusal.",
             group="ISPT",
             heading="ISPT_NVAL",
             line=row["_line"],

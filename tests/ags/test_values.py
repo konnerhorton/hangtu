@@ -91,11 +91,64 @@ def test_refusal_in_the_n_value_keeps_the_blows():
     assert findings == []
 
 
+COMPLETE_REPORTS = [
+    "N=12",
+    "N = 12",
+    "5,6,6 N=12",
+    "5-6-6 N=12",
+    "6,8/8,9,9,9 N=35",  # AGS's example
+    "41,81,57,75/113 N=126",
+]
+INCOMPLETE_REPORTS = [
+    "25/75 50/75",
+    "22/150 30/150 50/57",
+    "22/150 30/150 50/150",  # the form decides, not the numbers
+    '22-30-50/3"',
+    "22-30-50/3in",
+    "50/76mm",
+    '50/3"',
+    "50/7.6 cm",
+]
+
+
+@pytest.mark.parametrize("text", COMPLETE_REPORTS)
+def test_spt_report_complete(text):
+    assert _values.spt_report(text) == "complete"
+
+
+@pytest.mark.parametrize("text", INCOMPLETE_REPORTS)
+def test_spt_report_incomplete(text):
+    assert _values.spt_report(text) == "incomplete"
+
+
+@pytest.mark.parametrize("text", ["hard", "50/76 ft", "refusal", "N=", "", "5,6,6"])
+def test_spt_report_neither(text):
+    assert _values.spt_report(text) is None
+
+
 def test_refusal_in_the_report_flags_the_n_value():
-    rows = [{"ISPT_REP": "N=12"}, {"ISPT_REP": "25/75 50/75"}, {"ISPT_REP": ""}]
+    rows = [
+        {"ISPT_NVAL": "12", "ISPT_REP": "N=12"},
+        {"ISPT_NVAL": "50", "ISPT_REP": "25/75 50/75"},
+        {"ISPT_NVAL": "", "ISPT_REP": '22-30-50/3"'},  # blank N: still a refusal
+        {"ISPT_NVAL": "", "ISPT_REP": ""},
+    ]
     flags = _values.refusal_flags("ISPT", ["ISPT_NVAL", "ISPT_REP"], rows)
-    assert flags == [_values.ValueFlag(2, "ISPT_NVAL", "REFUSAL", None, "25/75 50/75")]
+    assert flags == [
+        _values.ValueFlag(2, "ISPT_NVAL", "REFUSAL", None, "25/75 50/75"),
+        _values.ValueFlag(3, "ISPT_NVAL", "REFUSAL", None, '22-30-50/3"'),
+    ]
     assert _values.refusal_flags("GEOL", ["ISPT_REP"], rows) == []
+
+
+def test_a_complete_test_is_never_a_refusal():
+    rows = [{"ISPT_NVAL": "35", "ISPT_REP": text} for text in COMPLETE_REPORTS]
+    assert _values.refusal_flags("ISPT", ["ISPT_NVAL", "ISPT_REP"], rows) == []
+
+
+def test_a_refusal_in_the_n_value_isnt_flagged_twice():
+    rows = [{"ISPT_NVAL": "50/75", "ISPT_REP": "25/75 50/75"}]
+    assert _values.refusal_flags("ISPT", ["ISPT_NVAL", "ISPT_REP"], rows) == []
 
 
 @pytest.mark.parametrize(

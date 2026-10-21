@@ -136,12 +136,14 @@ As in `ingest.md` §9, read back from the `finding` table: `V<rule>`, `VLOG`, `V
 ### 4.5 SPT (S)
 | ID | Rule | Severity | Thresholds |
 |---|---|---|---|
-| S001 | `ISPT_REP` can't be read: neither a complete test (`N=12`, `N = 12`) nor blows/penetration pairs (`25/75 50/75`) | warning | |
+| S001 | `ISPT_REP` can't be read: neither a complete test (`5,6,6 N=12`) nor an incomplete drive (`25/75 50/75`, `22-30-50/3"`), in the forms of ingest.md §8 | warning | |
 | S002 | Improbable N: `ISPT_NVAL` above the threshold | warning | `highest_spt_n: 100` |
 | S003 | No energy ratio: `ISPT_ERAT` blank | info | |
 | S004 | N doesn't match the blows: `ISPT_NVAL` ≠ `ISPT_MAIN`, or ≠ `ISPT_INC3` + … + `ISPT_INC6` when all four are given, on a test with no `REFUSAL` flag | warning | |
 | S005 | File N60 differs from N × `ISPT_ERAT` / 60 | warning | `n60_tolerance: 1` |
 
+- S001 uses ingest's parser (ingest.md §8), so a report S001 accepts as an incomplete drive is the one ingest flagged `REFUSAL`.
+- S002's message cites the ASTM D1586 termination criteria (50 blows in a 150 mm increment, 100 in total, or no advance over 10 blows): an N above 100 means the drive continued past them. A complete test is never flagged `REFUSAL` (ingest.md §8), so S002 checks it.
 - S003: one finding per hole, with the count of tests ("3 of 4 SPTs in BH3 have no energy ratio"), not one per test.
 - S005: only where `ISPT_N60`, `ISPT_NVAL` and `ISPT_ERAT` are all given. N60 is computed as in `ht.analysis.spt()`.
 
@@ -184,7 +186,7 @@ As in `ingest.md` §9, read back from the `finding` table: `V<rule>`, `VLOG`, `V
 | C001 | A `required` field is missing | warning |
 | C002 | A `recommended` field is missing | info |
 
-- **Missing** means the heading isn't in the group, or the cell is blank. A flagged value (`NP`, `Dry`, `<x`) is not missing.
+- **Missing** means the heading isn't in the group, or the cell is blank. A flagged value (`NP`, `Dry`, `<x`) is not missing, and neither is a blank `ISPT_NVAL` that ingest flagged `REFUSAL` from its report (ingest.md §8).
 - **C001:** one finding per record with a blank required field (these are the records M7 leaves out unless `include_incomplete=True`), or one per group when the heading is absent.
 - **C002:** one finding per group and heading, with the count of blank records ("ISPT_ERAT is blank in 1 of 5 records"), so recommended fields don't flood the report.
 - Groups not in the file aren't checked. The default list, from the draft (TODO #7), with `SPEC_REF`/`SPEC_DPTH` recommended (M7, so a lab result without a specimen depth is placed at its sample; `datasets.md` §14), `IPRG` added for 4.0.x files, and `GRAT`'s point count moved to P004:
@@ -307,8 +309,8 @@ Synthetic, written by `tests/data/ags/_make_files.py` (SPEC §12.3).
 | D004 | covered by the G002 gap in BH1: an `ISPT` at 2.75 |
 | D005 | `SAMP` 2.30–2.80 across a 2.50 boundary |
 | D007 | `SPEC_DPTH` 0.30 m below its sample's base |
-| S001 | `ISPT_REP` "hard" |
-| S002 | `ISPT_NVAL` 150 |
+| S001 | `ISPT_REP` "hard", and "50/76 ft" (a unit that isn't accepted). Accepted, raising nothing: `5,6,6 N=12`, `6,8/8,9,9,9 N=35`, `50/3"` and `22-30-50/3in` with `ISPT_NVAL` blank (no C001) |
+| S002 | `ISPT_NVAL` 150; and `ISPT_NVAL` 126 with report `41,81,57,75/113 N=126` (a complete test, not a refusal) |
 | S003 | BH4 with `ISPT_ERAT` blank on 2 tests |
 | S004 | `ISPT_NVAL` 20, `ISPT_INC3`–`6` 4, 5, 5, 5 |
 | S005 | N 20, `ISPT_ERAT` 75, `ISPT_N60` 30 (computed 25) |

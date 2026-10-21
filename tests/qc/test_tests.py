@@ -16,8 +16,11 @@ def _message(report, rule_id):
 
 
 def test_spt_rules_at_their_lines(report):
-    assert found(report, "S001") == [("BH1", "ISPT_REP", 97)]
-    assert found(report, "S002") == [("BH1", "ISPT_NVAL", 99)]
+    assert found(report, "S001") == [("BH1", "ISPT_REP", 97), ("BH2", "ISPT_REP", 107)]
+    assert found(report, "S002") == [
+        ("BH1", "ISPT_NVAL", 99),
+        ("BH2", "ISPT_NVAL", 108),
+    ]
     assert found(report, "S004") == [("BH2", "ISPT_NVAL", 100)]
     assert found(report, "S005") == [("BH2", "ISPT_N60", 101)]
 
@@ -45,14 +48,27 @@ def _ispt(headings, *rows):
     )
 
 
-def test_s001_reads_complete_tests_and_pairs(build):
-    reports = ["N=12", "N = 12", "25/75 50/75", "50/30", "refusal"]
+def test_s001_reads_complete_tests_and_incomplete_drives(build):
+    reports = [
+        "N=12",
+        "5,6,6 N=12",
+        "6,8/8,9,9,9 N=35",
+        "25/75 50/75",
+        "50/30",
+        '22-30-50/3"',
+        "50/7.6 cm",
+        "refusal",
+        "50/76 ft",
+    ]
     ispt = _ispt(
         [("ISPT_NVAL", "0DP", ""), ("ISPT_REP", "X", "")],
         *([10, text] for text in reports),
     )
     report = build(loca(["BH1", 0, 0, 10, 9]), ispt).qc()
-    assert list(report.findings.query("rule_id == 'S001'")["value"]) == ["refusal"]
+    assert list(report.findings.query("rule_id == 'S001'")["value"]) == [
+        "refusal",
+        "50/76 ft",
+    ]
 
 
 def test_s004_skips_refusals_and_checks_main(build):
@@ -74,15 +90,25 @@ def test_s004_skips_refusals_and_checks_main(build):
     assert "ISPT_MAIN = 12" in _message(report, "S004")
 
 
+def test_s002_cites_the_d1586_termination_criteria(report):
+    message = _message(report, "S002")
+    assert "ASTM D1586" in message
+    assert "50 blows in a 150 mm (6 in) increment" in message
+    assert "100 blows in total" in message and "no advance over 10 blows" in message
+
+
 def test_s002_skips_a_refusal(build):
     ispt = _ispt(
         [("ISPT_NVAL", "0DP", ""), ("ISPT_REP", "X", "")],
         [150, "50/25"],
         [150, "N=150"],
+        [126, "41,81,57,75/113 N=126"],  # a complete test, so checked
     )
     project = build(loca(["BH1", 0, 0, 10, 9]), ispt)
+    lines = project.table("ISPT")["_line"]
     assert [f[2] for f in found(project.qc(), "S002")] == [
-        int(project.table("ISPT")["_line"].iloc[1])
+        int(lines.iloc[1]),
+        int(lines.iloc[2]),
     ]
 
 
@@ -90,10 +116,10 @@ def test_s002_skips_a_refusal(build):
 
 
 def test_atterberg_rules_at_their_lines(report):
-    assert found(report, "A001") == [("BH1", "LLPL_LL", 112)]
-    assert found(report, "A002") == [("BH2", "LLPL_PI", 113)]
-    assert found(report, "A003") == [("BH2", "LLPL_LL", 114)]
-    assert found(report, "A004") == [("BH3", "LLPL_PL", 115)]
+    assert found(report, "A001") == [("BH1", "LLPL_LL", 118)]
+    assert found(report, "A002") == [("BH2", "LLPL_PI", 119)]
+    assert found(report, "A003") == [("BH2", "LLPL_LL", 120)]
+    assert found(report, "A004") == [("BH3", "LLPL_PL", 121)]
 
 
 def test_a002_golden(report):
@@ -118,10 +144,10 @@ def test_np_is_not_compared(report):
 
 
 def test_particle_size_rules_at_their_lines(report):
-    assert found(report, "P001") == [("BH2", "GRAT_PERP", 137)]
-    assert found(report, "P002") == [("BH1", "GRAT_PERP", 131)]
-    assert found(report, "P003") == [("BH3", None, 124)]
-    assert found(report, "P004") == [("BH4", None, 139)]
+    assert found(report, "P001") == [("BH2", "GRAT_PERP", 143)]
+    assert found(report, "P002") == [("BH1", "GRAT_PERP", 137)]
+    assert found(report, "P003") == [("BH3", None, 130)]
+    assert found(report, "P004") == [("BH4", None, 145)]
 
 
 def test_p001_names_the_two_points(report):
@@ -176,8 +202,8 @@ def test_p001_tolerance(build):
 
 def test_k001_at_its_lines(report):
     assert found(report, "K001") == [
-        ("BH2", "PTST_K", 147),
-        ("BH4", "FGHG_IPRM", 153),
+        ("BH2", "PTST_K", 153),
+        ("BH4", "FGHG_IPRM", 159),
     ]
     assert "isn't greater than zero" in _message(report, "K001")
 

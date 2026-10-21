@@ -14,11 +14,25 @@ prefix:
   ">": GT
   "#": ASSUMED    # e.g. GRAG_PDEN "#2.65": particle density assumed
 
-# An SPT reported as blows/penetration ("25/75 50/75") didn't complete the test
-# drive. The flag goes on the N value, which is kept as given. In the N value
-# itself, "50/75" keeps the blows (50).
+# SPT refusal (ingest.md §8). The report (ISPT_REP) is read in one of two forms,
+# by one parser shared with QC S001 (ags/_values.py, spt_report):
+# - complete: an optional blow list, then N=<n> ("5,6,6 N=12", "6,8/8,9,9,9 N=35").
+#   Never a refusal.
+# - incomplete: blows and blows/penetration pairs, ending in a pair, with no N=
+#   ("25/75 50/75", "22-30-50/3\""). The flag goes on the N value, which is kept
+#   as given or blank.
+# The form decides, not the numbers: penetrations in the report are never used.
+# In the N value itself, value_pattern ("50/75") keeps the blows (50).
 refusal:
   group: ISPT
   value: ISPT_NVAL
   report: ISPT_REP
-  pattern: '(\d+)\s*/\s*\d+'
+  value_pattern: '(\d+)\s*/\s*\d+'
+  # A unit may follow a penetration, with or without a space.
+  penetration_units: [mm, cm, in, '"']
+  # Building blocks, substituted by name into the forms below; {unit} is any of
+  # penetration_units.
+  pair: '\d+\s*/\s*\d+(?:\.\d+)?(?:\s*{unit})?'
+  separator: '(?:\s*[,-]\s*|\s+)'
+  complete: '(?:(?:{pair}|\d+)(?:{separator}(?:{pair}|\d+))*\s+)?N\s*=\s*\d+'
+  incomplete: '(?:(?:{pair}|\d+){separator})*{pair}'

@@ -127,16 +127,18 @@ class Data:
         """Return True for each row of ``group`` whose cell is empty in the file.
 
         Indexed like ``table(group)``. An absent heading counts as blank. A
-        flagged value (``NP``, ``Dry``) isn't blank.
+        flagged value (``NP``, ``Dry``) isn't blank, and neither is an empty cell
+        with a value flag: a refusal read from ``ISPT_REP`` on a blank
+        ``ISPT_NVAL`` (qc.md §4.10) is the only such flag today.
         """
         table = self.table(group)
         raw = self.raw(group)
         if heading not in raw.columns:
             return pd.Series(True, index=table.index)
         text = raw.set_index("_line")[heading].reindex(table["_line"])
-        return pd.Series(
-            (text.fillna("").str.strip() == "").to_numpy(), index=table.index
-        )
+        empty = (text.fillna("").str.strip() == "").to_numpy()
+        flagged = [self.flag(group, row, heading) is not None for row in table["_row"]]
+        return pd.Series(empty & ~np.asarray(flagged, dtype=bool), index=table.index)
 
     def record_depths(self, group: str) -> list[str]:
         """Return the group's own depth headings (qc.md §4, "Record depth").

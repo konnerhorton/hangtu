@@ -20,7 +20,7 @@ def test_each_rule_at_its_line(report):
         ("BH3", "ISPT_TOP", 103),
     ]
     assert found(report, "D005") == [("BH4", "SAMP_TOP", 89)]
-    assert found(report, "D007") == [("BH4", "SPEC_DPTH", 116)]
+    assert found(report, "D007") == [("BH4", "SPEC_DPTH", 122)]
 
 
 def test_messages(report):

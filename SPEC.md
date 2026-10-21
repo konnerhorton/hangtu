@@ -179,7 +179,7 @@ Decided constraints only. The pipeline, database layout, keys, version mapping, 
 - **Versions:** 4.0.3, 4.0.4, 4.1, 4.1.1 and 4.2. **The reference version is 4.2.** No group or heading was renamed from 4.0.3 to 4.2, only removed, so older files need no mapping: groups and headings that 4.2 removed (`IPRG`, `IPRT`, `ERES`, a few headings) are kept under their own names and read through their own version's dictionary (decided 2026-10-14).
 - **One file per project** (decided). The file's SHA-256 is stored and checked on open.
 - **User-defined groups and headings** are kept in the raw layer, and typed where the unit is known.
-- **Blank vs flagged** (decided): blank → NULL, no flag. Recognized text (`NP`, `Dry`, refusal, `<x`, `>x`) → NULL or bound + a value flag. Unrecognized text → flag `OTHER` + QC `T001`. NP is never the same as blank.
+- **Blank vs flagged** (decided): blank → NULL, no flag. Recognized text (`NP`, `Dry`, an incomplete drive in `ISPT_REP` (refusal), `<x`, `>x`) → NULL or bound + a value flag. Unrecognized text → flag `OTHER` + QC `T001`. NP is never the same as blank.
 
 ---
 
