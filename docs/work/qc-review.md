@@ -113,3 +113,67 @@ The rules live in `docs/data/qc.md`; this section lists what changes and why.
 6. **CSV:** `to_csv` writes `accepted` and `reason`, reads back with `pd.read_csv`, and the rules file's header has the `# accepted:` line.
 7. **D007/D008:** `qc_defects.ags` keeps its 0.30 m case (D007, warning) and gains a 0.05 m case in another hole (D008, info, no D007). `rounding_tolerance: "0.5 m"` turns the 0.30 m case into D008. Disabling D008 leaves the 0.05 m case unreported. `rounding_tolerance` below `depth_tolerance` raises the error.
 8. **Good files** stay QC-clean, and their info list (qc.md §9 #2) is unchanged by this unit.
+
+## Plan
+
+Five build commits, each green (ruff and pytest). Regenerate the test files with `uv run python tests/data/ags/_make_files.py` whenever the generator changes. The spec commit already updated SPEC §9.2 and `qc.md` (§2, §3.4, §4.4, §5, §8, §9); the build brings the code, config and tests up to them.
+
+### 1. `qc-review: D008, the rounding tier of D007`
+- `src/hangtu/qc/rules.yaml`: D007 gains `rounding_tolerance: 0.1 m` and its title stays; new D008, "Specimen depth just outside its sample, likely rounding", info, no thresholds.
+- `src/hangtu/qc/_registry.py`: `THRESHOLDS["D007"]` gains `rounding_tolerance: length`. New `THRESHOLDS_FROM = {"D008": "D007"}`: a rule that runs with another rule's thresholds (Decision 7).
+- `src/hangtu/qc/_settings.py`:
+  - `Settings.rule("D008")` takes its `thresholds` from `rule("D007")`, so the rule function gets the two bands in its own settings, overrides of D007's thresholds included. Its `overridden` still reflects only D008's own `enabled` and `severity`.
+  - A `thresholds` override on D008 raises "QC rule D008 has no thresholds of its own; it uses D007's (depth_tolerance, rounding_tolerance). Set them on D007."
+  - `load()`: after the overrides are checked, D007's `rounding_tolerance` below its `depth_tolerance` raises a `HangtuError` naming both, as given (`"0.005 m"` and `"0.01 m"`).
+- `src/hangtu/qc/_depths.py` (module docstring: D001 to D008):
+  - `_specimen_offsets(data, depth_tolerance)`: the loop D007 has now, one specimen at its first row, yielding `(group, row, sample, offset)` for each specimen outside its sample by more than `depth_tolerance`, and the number checked. `offset` is in m, positive either way.
+  - D007: the specimens with `offset > rounding_tolerance` (+ `SLACK`); message unchanged.
+  - D008: the rest. Message: "SPEC_DPTH 1.55 m in BH3 is 0.05 m outside its sample BH3-B1, from 1.00 to 1.50 m, within the rounding tolerance of 0.1 m. Likely unit rounding; check the specimen depth if it matters." (offset and tolerance in the project's display unit, via `_text`).
+  - Both give `records_checked` = the specimens checked.
+- `src/hangtu/qc/_report.py`, `_rules_frame`: for a rule in `THRESHOLDS_FROM`, the thresholds cell reads `from D007: depth_tolerance = 0.01 m; rounding_tolerance = 0.1 m`.
+- `tests/data/ags/_make_files.py`: `bh3_b1`'s `SPEC_DPTH` 1.10 → 1.55, 0.05 m below BH3-B1's base (1.50); no lines move. Regenerate `qc_defects.ags`. `tests/data/ags/README.md`: D008 LLPL 121.
+- Tests:
+  - `tests/qc/test_depths.py`: `found(report, "D008") == [("BH3", "SPEC_DPTH", 121)]` and D007 still only BH4 at 122 (AC 7); the D008 message; `rules={"D007": {"thresholds": {"rounding_tolerance": "0.5 m"}}}` turns 122 into D008, info (AC 7); `{"D008": {"enabled": False}}` leaves 121 unreported and D007 unchanged (AC 7); disabling D007 keeps D008 at 121 only; `test_d007_specimen_in_two_tests_is_checked_once` also checks D008's `records_checked == 6`; D008's thresholds cell.
+  - `tests/qc/test_settings.py`: `rounding_tolerance` below `depth_tolerance` raises naming both (AC 7); a threshold override on D008 raises; `test_yaml_and_code_name_the_same_thresholds` allows D008 with none.
+  - `tests/qc/test_qc_acceptance.py`: `EXPECTED_INFO` gains `("D008", 121)`; the rule parameter list gains D008. The good files stay clean with no D008 (AC 8).
+  - Check the tests that assert A004 or P003 findings on line 121/130 keep passing (their depths change from 1.10 to 1.55 m).
+
+### 2. `qc-review: read and check accepted-findings entries`
+- New `src/hangtu/qc/_accepted.py`:
+  - `DEPTH_TOLERANCE = 0.05` (m; Decision 3), `KEYS = ("rule_id", "loca_id", "group", "heading", "depth", "reason")`.
+  - `Entry` (frozen dataclass): `position` (1-based), the six keys as given (`depth` as written), and `depth_m` (float or None).
+  - `Accepted`: `entries: list[Entry]` and `source: str` (the path as given, `"list"`, or `""` when `accepted=None`).
+  - `load(source, settings) -> Accepted`: a path (read as `_settings._read` does, with the same not-there and not-YAML errors worded for "accepted findings") or a list; a top-level `accepted:` key is unwrapped. Checks, in the order of Decision 6, each message starting "accepted entry 3 (D007): ": not a list of mappings; missing or blank `rule_id` or `reason`; an unknown key (lists the six); an unknown rule ID (in `settings.defaults` or a single V rule; `V*` says "accept single V rules, e.g. V10a"); `depth` without `loca_id`; `depth` read with `units.parse_quantity(text, "length")`, a plain number or a non-length raising `UnitsError` with an example (`depth: "12.5 ft"`). `rule_id`, `loca_id`, `group` and `heading` are kept as strings.
+- `src/hangtu/qc/__init__.py`: `run(path, rules, min_fields, accepted=None)` calls `_accepted.load(accepted, settings)` after `load()` and before any rule runs (Decision 6). The result isn't used yet.
+- Tests (new `tests/qc/test_accepted.py`): every error of Decision 6, each naming the entry's position and rule (AC 5); a file with and without the `accepted:` key and the same list load the same entries (AC 4, loading half); `"41.5 ft"` loads as 12.649 m; an empty file and `None` give no entries.
+
+### 3. `qc-review: mark accepted findings in the report`
+- `src/hangtu/qc/_accepted.py`:
+  - `matches(entry, row) -> bool` on a finding row before depth is converted (m): every key given equals the row's, exactly; with `depth_m`, the row has a depth and `abs(row depth - depth_m) <= DEPTH_TOLERANCE + 1e-9`.
+  - `apply(rows, accepted, settings) -> pd.DataFrame`: sets each row's `accepted` and `reason` (the first matching entry's, Decision 4), counts every entry's matches, and returns `report.accepted`: `rule_id`, `loca_id`, `group`, `heading`, `depth` (as written), `reason`, `matches`, `status` (`rule disabled` when `settings.rule(rule_id).enabled` is False, else `matched` or `no match`). Empty with those columns when there are no entries.
+- `src/hangtu/qc/_report.py`:
+  - `FINDING_COLUMNS` gains `accepted` and `reason` after `severity`; `accepted` is a bool column.
+  - `build(data, settings, results, accepted)` calls `apply` on `rows` before `_findings_frame` converts depths, so matching is in m whatever the display units.
+  - `Report.__init__` gains `accepted` (the DataFrame); the class docstring lists it, with the 0.05 m tolerance.
+  - `summary()`: `rule_id`, `title`, `severity`, `count`, `open`, `accepted`.
+  - `_source` gains `accepted` (the path, `list`, or blank).
+- `src/hangtu/project.py`: `p.qc(rules=None, min_fields=None, accepted=None)`; the docstring describes `accepted=` (a path or list, the keys, the reason required, findings kept and marked) with an example.
+- Tests (`tests/qc/test_accepted.py`, writing YAML to `tmp_path`):
+  - On `qc_defects.ags` (AC 1): `{"rule_id": "L005"}` accepts BH4's L005; `D007`, `BH4`, `"4.75 m"` accepts exactly one, as does `"15.58 ft"` on a project with `display_units="US"`; `"4.79 m"` matches and `"4.81 m"` doesn't; `{"rule_id": "D004", "group": "SAMP"}` matches nothing, `"group": "ISPT"` matches all three.
+  - AC 2: accepted rows keep their severity and have the reason; open rows have `accepted` False and a blank reason; `summary()` `open + accepted == count`.
+  - AC 3: a stale entry is `no match`; an entry for a rule disabled by `rules=` is `rule disabled`; a broad L005 entry after a specific one has `matches == 1` and isn't stale, and the finding has the specific entry's reason.
+  - AC 4: a file and the same list give equal `findings` and `accepted` frames.
+  - `tests/qc/test_report.py`: `test_columns` and the CSV round trip pick up the two columns; `report.accepted` is empty with its columns when `accepted=` isn't given.
+
+### 4. `qc-review: open and accepted counts in the printed summary`
+- `src/hangtu/qc/_report.py`:
+  - `__repr__` (Decision 5, qc.md §5.3): with entries, the severity line reads `open: 1 error, 3 warnings, 9 info · accepted: 24`, rule lines show the open count with `  (+n accepted)` when there are any, a rule with only accepted findings shows `0`, and `  2 accepted entries match no finding: report.accepted` appears before the last line when any entry is `no match`. Without entries, the output is unchanged.
+  - `to_csv`: the `# accepted:` header line reads `# accepted: <path or list>, <n> entries, <m> match no finding`, and is left out when no entries were given.
+- Tests (`tests/qc/test_report.py`, `test_accepted.py`): the printed summary with entries (open line, `(+22 accepted)`-style notes, a zero-open rule listed, the stale line, the counts still in one column) and without (unchanged; the existing test holds) (AC 2, AC 3); `to_csv` writes `accepted` and `reason`, reads back with `pd.read_csv`, and the rules file has the `# accepted:` line (AC 6).
+
+### 5. `qc-review: docs, TODO, close out`
+- `docs/site/guides/ags-and-qc.md`: a section "Accepting reviewed findings": the YAML example from qc.md §3.4, that accepted findings stay in the report, `report.accepted` for stale entries, and building entries from `report.findings` with pandas (filter, then `to_dict("records")` with a `reason` added; intent decision 5). A sentence on D007 and D008. `docs/site/examples/ags-and-qc.py` unchanged unless the page needs a runnable example; then a short `accepted=[...]` call there.
+- `docs/TODO.md`: two research items (next numbers): L005 that takes the slope between neighboring holes into account, and D003/D004 for geophysical profiles and the PMT probe center (intent, out of scope). The rule descriptions, not the source of the real file.
+- `CLAUDE.md` status paragraph: `qc-review` done; P06 next.
+- `sandbox/TODO_ht.md` (ignored by git, so not committed): items 11, 12 and 13 marked done.
+- Check: `uv run python docs/prepare_site.py` and `zensical build --clean --strict` pass.
