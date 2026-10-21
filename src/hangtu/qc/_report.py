@@ -10,8 +10,13 @@ import pandas as pd
 
 import hangtu.db as database
 from hangtu.qc._data import Data
-from hangtu.qc._registry import Finding, RuleResult
-from hangtu.qc._settings import Settings, is_ingest_rule, rule_sort_key
+from hangtu.qc._registry import THRESHOLDS_FROM, Finding, RuleResult
+from hangtu.qc._settings import (
+    RuleSettings,
+    Settings,
+    is_ingest_rule,
+    rule_sort_key,
+)
 
 SEVERITIES = ("error", "warning", "info")
 FINDING_COLUMNS = [
@@ -245,10 +250,7 @@ def _rules_frame(
                 "title": rule.title,
                 "enabled": rule.enabled,
                 "severity": rule.severity or AS_STORED,
-                "thresholds": "; ".join(
-                    f"{name} = {threshold.text}"
-                    for name, threshold in rule.thresholds.items()
-                ),
+                "thresholds": _thresholds_text(rule),
                 "overridden": "yes" if rule.overridden else "no",
                 "records_checked": None if result is None else result.records_checked,
                 "findings": counts.get(rule_id, 0),
@@ -257,6 +259,16 @@ def _rules_frame(
     rules = pd.DataFrame(rows, columns=RULE_COLUMNS)
     rules["records_checked"] = rules["records_checked"].astype("Int64")
     return rules
+
+
+def _thresholds_text(rule: RuleSettings) -> str:
+    """``name = value; ...``, prefixed by the rule they come from if not its own."""
+    text = "; ".join(
+        f"{name} = {threshold.text}" for name, threshold in rule.thresholds.items()
+    )
+    if rule.rule_id in THRESHOLDS_FROM:
+        return f"from {THRESHOLDS_FROM[rule.rule_id]}: {text}"
+    return text
 
 
 def _source(data: Data) -> dict[str, Any]:

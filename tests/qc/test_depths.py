@@ -21,6 +21,7 @@ def test_each_rule_at_its_line(report):
     ]
     assert found(report, "D005") == [("BH4", "SAMP_TOP", 89)]
     assert found(report, "D007") == [("BH4", "SPEC_DPTH", 122)]
+    assert found(report, "D008") == [("BH3", "SPEC_DPTH", 121)]
 
 
 def test_messages(report):
@@ -33,6 +34,12 @@ def test_messages(report):
     )
     assert "crosses the geology boundary at 2.50 m (8.20 ft)" in message["D005"]
     assert "outside its sample BH4-U2, from 4.00 to 4.45 m" in message["D007"]
+    assert message["D008"] == (
+        "SPEC_DPTH 1.55 m (5.09 ft) in BH3 is 0.05 m (0.164 ft) outside its sample "
+        "BH3-B1, from 1.00 to 1.50 m (3.28 to 4.92 ft), within the rounding "
+        "tolerance of 0.1 m (0.328 ft). Likely unit rounding; check the specimen "
+        "depth if it matters."
+    )
 
 
 def _ispt(*depths):
@@ -106,3 +113,47 @@ def test_d007_specimen_in_two_tests_is_checked_once(projects):
     rule = report.rules.set_index("rule_id").loc["D007"]
     # Six specimens, though LLPL, GRAG, GRAT and PTST hold 21 rows of them.
     assert rule["records_checked"] == 6
+    assert report.rules.set_index("rule_id").loc["D008", "records_checked"] == 6
+
+
+def _severities(report, *rule_ids):
+    rows = report.findings.query("rule_id in @rule_ids")
+    return sorted(
+        zip(rows["rule_id"], rows["source_line"], rows["severity"], strict=True)
+    )
+
+
+def test_d008_is_the_rounding_band_of_d007(projects):
+    report = projects["qc_defects"].qc()
+    assert _severities(report, "D007", "D008") == [
+        ("D007", 122, "warning"),
+        ("D008", 121, "info"),
+    ]
+
+
+def test_wider_rounding_tolerance_turns_d007_into_d008(projects):
+    report = projects["qc_defects"].qc(
+        rules={"D007": {"thresholds": {"rounding_tolerance": "0.5 m"}}}
+    )
+    assert _severities(report, "D007", "D008") == [
+        ("D008", 121, "info"),
+        ("D008", 122, "info"),
+    ]
+
+
+def test_disabling_d008_leaves_the_rounding_case_unreported(projects):
+    report = projects["qc_defects"].qc(rules={"D008": {"enabled": False}})
+    assert _severities(report, "D007", "D008") == [("D007", 122, "warning")]
+
+
+def test_disabling_d007_keeps_d008s_band(projects):
+    report = projects["qc_defects"].qc(rules={"D007": {"enabled": False}})
+    assert _severities(report, "D007", "D008") == [("D008", 121, "info")]
+
+
+def test_d008_thresholds_cell(projects):
+    rules = projects["qc_defects"].qc().rules.set_index("rule_id")
+    assert rules.loc["D008", "thresholds"] == (
+        "from D007: depth_tolerance = 0.01 m; rounding_tolerance = 0.1 m"
+    )
+    assert rules.loc["D008", "overridden"] == "no"

@@ -1,4 +1,4 @@
-"""Depth rules D001 to D007 (qc.md §4.4).
+"""Depth rules D001 to D008 (qc.md §4.4).
 
 "Record depth" is each of a group's own depth headings (``Data.record_depths``).
 D006 (duplicate) was dropped: python-ags4's Rule 10a already reports it.
@@ -210,14 +210,20 @@ def crosses_boundary(data: Data, settings: RuleSettings) -> RuleResult:
     return RuleResult(findings, checked)
 
 
-@rule("D007")
-def specimen_outside_sample(data: Data, settings: RuleSettings) -> RuleResult:
+def _specimen_offsets(
+    data: Data, depth_tolerance: float
+) -> tuple[list[tuple[str, dict, str, float]], int]:
+    """Specimens outside their sample by more than ``depth_tolerance``.
+
+    One check per specimen, at its first row, though several tests may share
+    it. Returns ``(group, row, sample text, offset in m)`` for each, and the
+    number of specimens checked.
+    """
     if not data.has("SAMP", "SAMP_TOP"):
-        return RuleResult()
-    tolerance = settings.thresholds["depth_tolerance"].value
+        return [], 0
     samples = data.table("SAMP").set_index("sample_id")
     has_base = "SAMP_BASE" in samples
-    findings, checked, seen = [], 0, set()
+    outside, checked, seen = [], 0, set()
     for group in data.groups:
         if not data.has(group, "SPEC_DPTH", "LOCA_ID") or group == "SAMP":
             continue
@@ -235,24 +241,59 @@ def specimen_outside_sample(data: Data, settings: RuleSettings) -> RuleResult:
                 continue
             checked += 1
             depth = row["SPEC_DPTH"]
-            above = depth < top - tolerance - SLACK
-            below = not np.isnan(base) and depth > base + tolerance + SLACK
-            if not (above or below):
+            offset = max(top - depth, 0.0 if np.isnan(base) else depth - base)
+            if offset <= depth_tolerance + SLACK:
                 continue
             if np.isnan(base):
                 sample_text = f"which starts at {_depth(data, 'SAMP', 'SAMP_TOP', top)}"
             else:
                 span = _text.values(data, "SAMP", "SAMP_TOP", [top, base])
                 sample_text = f"from {span}"
-            findings.append(
-                _finding(
-                    "D007",
-                    group,
-                    row,
-                    "SPEC_DPTH",
-                    f"{_depth(data, group, 'SPEC_DPTH', depth)} in {row['LOCA_ID']} "
-                    f"is outside its sample {row['SAMP_ID']}, {sample_text}. Check "
-                    "the specimen depth or the sample's depths in SAMP.",
-                )
-            )
+            outside.append((group, row, sample_text, offset))
+    return outside, checked
+
+
+@rule("D007")
+def specimen_outside_sample(data: Data, settings: RuleSettings) -> RuleResult:
+    thresholds = settings.thresholds
+    outside, checked = _specimen_offsets(data, thresholds["depth_tolerance"].value)
+    rounding = thresholds["rounding_tolerance"].value
+    findings = [
+        _finding(
+            "D007",
+            group,
+            row,
+            "SPEC_DPTH",
+            f"{_depth(data, group, 'SPEC_DPTH', row['SPEC_DPTH'])} in "
+            f"{row['LOCA_ID']} is outside its sample {row['SAMP_ID']}, "
+            f"{sample_text}. Check the specimen depth or the sample's depths in SAMP.",
+        )
+        for group, row, sample_text, offset in outside
+        if offset > rounding + SLACK
+    ]
+    return RuleResult(findings, checked)
+
+
+@rule("D008")
+def specimen_just_outside_sample(data: Data, settings: RuleSettings) -> RuleResult:
+    # D007's thresholds (THRESHOLDS_FROM): D008 is the lower band of its check.
+    thresholds = settings.thresholds
+    outside, checked = _specimen_offsets(data, thresholds["depth_tolerance"].value)
+    rounding = thresholds["rounding_tolerance"]
+    findings = [
+        _finding(
+            "D008",
+            group,
+            row,
+            "SPEC_DPTH",
+            f"{_depth(data, group, 'SPEC_DPTH', row['SPEC_DPTH'])} in "
+            f"{row['LOCA_ID']} is "
+            f"{_text.values(data, group, 'SPEC_DPTH', [offset])} outside its "
+            f"sample {row['SAMP_ID']}, {sample_text}, within the rounding "
+            f"tolerance of {_text.threshold(data, rounding)}. Likely unit "
+            "rounding; check the specimen depth if it matters.",
+        )
+        for group, row, sample_text, offset in outside
+        if offset <= rounding.value + SLACK
+    ]
     return RuleResult(findings, checked)
