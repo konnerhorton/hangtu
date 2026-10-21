@@ -318,3 +318,71 @@ def test_file_and_list_give_the_same_report(defects, tmp_path):
     pd.testing.assert_frame_equal(from_file.findings, from_list.findings)
     pd.testing.assert_frame_equal(from_file.accepted, from_list.accepted)
     assert from_file.source["accepted"] == str(path)
+
+
+# Printed summary and CSV (AC 2, AC 3, AC 6) ------------------------------------------
+
+REVIEW = [
+    ENTRIES[0],
+    {"rule_id": "D004", "loca_id": "BH1", "reason": "SPT in the log's gap."},
+    {"rule_id": "G003", "loca_id": "BH1", "reason": "Fixed in revision B."},
+]
+
+
+def test_printed_summary_counts_open_and_accepted(defects):
+    report = defects.qc(accepted=REVIEW)
+    lines = repr(report).splitlines()
+    open_ = report.findings.query("not accepted")["severity"].value_counts()
+    assert lines[1] == (
+        f"  open: {open_['error']} errors, {open_['warning']} warnings, "
+        f"{open_['info']} info · accepted: 3"
+    )
+    by_rule = {line.split()[1]: line for line in lines[2:-2]}
+    # D004 has three findings, two of them in BH1.
+    assert by_rule["D004"].endswith("  1   (+2 accepted)")
+    # A rule with only accepted findings is still listed.
+    assert by_rule["L005"].endswith("  0   (+1 accepted)")
+    assert by_rule["D007"].endswith("  1")
+    assert lines[-2] == "  1 accepted entry matches no finding: report.accepted"
+    assert lines[-1].startswith("  findings: report.findings")
+    # Open counts line up in one column.
+    counts = [line.split("(+")[0].rstrip() for line in by_rule.values()]
+    assert len({line.rindex(" ") for line in counts}) == 1
+
+
+def test_printed_summary_without_stale_entries(defects):
+    lines = repr(defects.qc(accepted=ENTRIES)).splitlines()
+    assert not any("match no finding" in line for line in lines)
+    assert "entries match" not in repr(defects.qc(accepted=REVIEW))
+    stale = [*REVIEW, {"rule_id": "G002", "loca_id": "BH9", "reason": "Old."}]
+    assert "  2 accepted entries match no finding: report.accepted" in repr(
+        defects.qc(accepted=stale)
+    )
+
+
+def test_csv_has_accepted_columns_and_header(defects, tmp_path):
+    path = tmp_path / "qc_report.csv"
+    review = tmp_path / "review.yaml"
+    review.write_text(YAML, encoding="utf-8")
+    report = defects.qc(accepted=[*REVIEW, *ENTRIES[1:]])
+    report.to_csv(path)
+    back = pd.read_csv(path)
+    assert list(back.columns) == list(report.findings.columns)
+    assert back["accepted"].tolist() == report.findings["accepted"].tolist()
+    accepted = back.query("accepted")
+    assert sorted(accepted["reason"]) == sorted(
+        report.findings.query("accepted")["reason"]
+    )
+    rules_text = (tmp_path / "qc_report_rules.csv").read_text(encoding="utf-8")
+    assert "# accepted: list, 4 entries, 1 match no finding\n" in rules_text
+    defects.qc(accepted=review).to_csv(path)
+    rules_text = (tmp_path / "qc_report_rules.csv").read_text(encoding="utf-8")
+    assert f"# accepted: {review}, 2 entries, 0 match no finding\n" in rules_text
+    assert len(pd.read_csv(tmp_path / "qc_report_rules.csv", comment="#"))
+
+
+def test_csv_without_accepted_entries_has_no_accepted_line(defects, tmp_path):
+    path = tmp_path / "qc_report.csv"
+    defects.qc().to_csv(path)
+    rules_text = (tmp_path / "qc_report_rules.csv").read_text(encoding="utf-8")
+    assert "# accepted" not in rules_text

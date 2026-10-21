@@ -115,33 +115,50 @@ class Report:
             f"QC report: {source['file']} (AGS {source['ags_version']}), "
             f"hangtu {source['hangtu_version']}, {when}"
         ]
-        by_severity = self.findings["severity"].value_counts()
-        lines.append(
-            "  "
-            + ", ".join(
-                _count(int(by_severity.get(severity, 0)), severity)
-                for severity in SEVERITIES
-            )
+        reviewed = bool(source["accepted"])
+        open_findings = self.findings.loc[~self.findings["accepted"]]
+        by_severity = open_findings["severity"].value_counts()
+        counts = ", ".join(
+            _count(int(by_severity.get(severity, 0)), severity)
+            for severity in SEVERITIES
         )
+        if reviewed:
+            n_accepted = int(self.findings["accepted"].sum())
+            counts = f"open: {counts} · accepted: {n_accepted}"
+        lines.append(f"  {counts}")
         summary = self.summary()
         width = max((len(title) for title in summary["title"]), default=0)
+        count_width = max((len(str(n)) for n in summary["open"]), default=0)
         for row in summary.itertuples(index=False):
-            lines.append(
-                f"  {row.severity:<8} {row.rule_id:<5} {row.title:<{width}}  "
-                f"{row.count}"
+            line = (
+                f"  {row.severity:<8} {row.rule_id:<5} {row.title:<{width}}  {row.open}"
             )
+            if row.accepted:
+                line += f"{'':<{count_width - len(str(row.open))}}  "
+                line += f"(+{row.accepted} accepted)"
+            lines.append(line)
+        stale = self._stale()
+        if stale:
+            entries = "entry matches" if stale == 1 else "entries match"
+            lines.append(f"  {stale} accepted {entries} no finding: report.accepted")
         lines.append(
             "  findings: report.findings · rules used: report.rules · "
             'save: report.to_csv("qc_report.csv")'
         )
         return "\n".join(lines)
 
+    def _stale(self) -> int:
+        """Count the accepted entries that match no finding."""
+        return int((self.accepted["status"] == "no match").sum())
+
     def to_csv(self, path: str | PathLike[str]) -> None:
         """Write the findings to ``path`` and the rules to ``<stem>_rules.csv``.
 
-        The rules file starts with ``#`` lines naming the file checked, so a
-        report sent on its own says what it checked. Read it back with
-        ``pd.read_csv(path, comment="#")``. Both files are overwritten.
+        The rules file starts with ``#`` lines naming the file checked and,
+        when accepted findings were given, where from and how many matched
+        nothing, so a report sent on its own says what it checked. Read it
+        back with ``pd.read_csv(path, comment="#")``. Both files are
+        overwritten.
         """
         path = Path(path)
         self.findings.to_csv(path, index=False, encoding="utf-8")
@@ -151,6 +168,13 @@ class Report:
             for key, value in self.source.items()
             if key != "accepted"
         )
+        if self.source["accepted"]:
+            n = len(self.accepted)
+            entries = "entry" if n == 1 else "entries"
+            header += (
+                f"# accepted: {self.source['accepted']}, {n} {entries}, "
+                f"{self._stale()} match no finding\n"
+            )
         with rules_path.open("w", encoding="utf-8", newline="") as file:
             file.write(header)
             self.rules.to_csv(file, index=False)
