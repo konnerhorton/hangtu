@@ -55,6 +55,27 @@ def test_flagged_value_is_not_missing(build):
     assert found(report, "C001") == [("BH1", "LLPL_PL", lines[1])]
 
 
+def test_refusal_on_a_blank_n_is_not_missing(build):
+    ispt = group(
+        "ISPT",
+        [
+            ("LOCA_ID", "ID", ""),
+            ("ISPT_TOP", "2DP", "m"),
+            ("ISPT_NVAL", "0DP", ""),
+            ("ISPT_REP", "X", ""),
+            ("ISPT_ERAT", "0DP", "%"),
+        ],
+        [["BH1", 1.0, None, "25/75 50/75", 60], ["BH1", 2.0, None, "N=12", 60]],
+    )
+    project = build(loca(["BH1", 0, 0, 10, 5]), ispt)
+    lines = list(project.table("ISPT")["_line"])
+    assert found(project.qc(), "C001") == [("BH1", "ISPT_NVAL", lines[1])]
+    with pytest.warns(UserWarning, match="Left out 1 of 2"):
+        spt = project.spt()
+    assert list(spt["source_line"]) == [lines[0]]
+    assert bool(spt["spt_refusal"].iloc[0]) is True
+
+
 def test_absent_required_heading_is_one_finding(build):
     lnmc = group(
         "LNMC",
