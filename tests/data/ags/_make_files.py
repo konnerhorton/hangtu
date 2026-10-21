@@ -232,6 +232,7 @@ LOCA = group(
         ("LOCA_GL", "2DP", "m"),
         ("LOCA_FDEP", "2DP", "m"),
         ("LOCA_STAR", "DT", "yyyy-mm-dd"),
+        ("LOCA_DATM", "X", ""),  # LOCA_GL's datum: no LOCA_LOCZ (ingest.md §7)
         ("LOCA_LAT", "DMS", ""),
     ],
     [
@@ -243,10 +244,21 @@ LOCA = group(
             12.40,
             10.00,
             "2026-09-01",
+            "NAVD88",
             "37:47:36.100",
         ],
-        ["BH2", "CP", 523150.75, 4182290.00, 11.85, 8.50, "2026-09-02", "37:47:37.700"],
-        ["BH3", "CP", 523210.00, 4182330.25, 13.10, 6.00, "2026-09-03", None],
+        [
+            "BH2",
+            "CP",
+            523150.75,
+            4182290.00,
+            11.85,
+            8.50,
+            "2026-09-02",
+            "NAVD88",
+            "37:47:37.700",
+        ],
+        ["BH3", "CP", 523210.00, 4182330.25, 13.10, 6.00, "2026-09-03", "NAVD88", None],
     ],
     us=["LOCA_NATE", "LOCA_NATN", "LOCA_GL", "LOCA_FDEP"],
 )
@@ -655,6 +667,7 @@ def defects_groups():
             ("LOCA_GL", "2DP", "m"),
             ("LOCA_FDEP", "2DP", "Ft"),  # U001: unknown (case-sensitive) unit
             ("LOCA_STAR", "DT", "yyyy-mm-dd"),
+            ("LOCA_DATM", "X", ""),
             ("LOCA_LAT", "DMS", ""),
         ],
     }
@@ -710,13 +723,14 @@ def qc_defects_groups():
             ("LOCA_NATN", "2DP", "m"),
             ("LOCA_GL", "2DP", "m"),
             ("LOCA_FDEP", "2DP", "m"),
+            ("LOCA_DATM", "X", ""),
         ],  # no LOCA_TYPE (C002)
         [
-            ["BH1", 1000.00, 1000.00, 10.00, 10.00],
-            ["BH2", 1050.00, 1000.00, 10.50, 8.00],
-            ["BH3", 1000.00, 1050.00, 9.50, 6.00],
-            ["BH4", 1050.00, 1050.00, 18.00, 6.00],  # L005
-            ["BH5", None, None, None, None],  # L001, L002, L003
+            ["BH1", 1000.00, 1000.00, 10.00, 10.00, "NAVD88"],
+            ["BH2", 1050.00, 1000.00, 10.50, 8.00, "NAVD88"],
+            ["BH3", 1000.00, 1050.00, 9.50, 6.00, "NAVD88"],
+            ["BH4", 1050.00, 1050.00, 18.00, 6.00, "NGVD29"],  # L005; L007
+            ["BH5", None, None, None, None, None],  # L001, L002, L003
         ],
     )
     horn = group(
