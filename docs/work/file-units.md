@@ -86,7 +86,7 @@ Five build commits, each green (ruff and pytest). Regenerate the test files with
   - Unknown unit, user-defined heading, unit in `defined` → `HeadingUnit(status=FILE_UNIT, unit=file_unit, quantity=None)` with `U005` (info), message as in Decision 5. Standard heading with the unit in `defined` → `U001`, and the message adds that the file's UNIT group defines it as "…", but the heading is standard, in the dictionary unit (AC 3).
 - `src/hangtu/ags/_values.py`: no change expected. A `file_unit` column is typed like any number column (`HeadingUnit.convert` already passes it through unchanged), so value flags and `T001` apply (Decision 2). The `type_column` docstring names the status.
 - `src/hangtu/qc/rules.yaml`: `U005`, "Unit defined by the file, kept as written", info. `src/hangtu/qc/_registry.py`: `U005` in `INGEST_RULES`.
-- `p.diff()` (`qc/_diff.py`) shows a `file_unit` cell as `unchanged` and its value as stored (no quantity kind), with no code change; one test confirms it.
+- `p.diff()` (`qc/_diff.py`) shows a `file_unit` cell as `unchanged` and its value as stored (no quantity kind), with no code change. Its tests run on the project files, so the test is in step 4.
 - Tests (`tests/ags/test_units.py`): `U005` with the `UNIT_DESC` in the message; unknown and not in `defined` → `U001` (AC 2); standard heading in `defined` → `U001` with the new sentence (AC 3); `pcf` in a user-defined heading, in `defined`, → still `U001`; matching is exact (`" %/log cycle "` trims, a case difference doesn't match).
 
 ### 4. `file-units: test-file cases`
@@ -98,6 +98,7 @@ Five build commits, each green (ruff and pytest). Regenerate the test files with
   - `tests/ags/test_files.py`: python-ags4 reports the left-out unit (Rule 15) in `defects.ags`; the good files still pass.
   - `tests/ags/test_units.py`, `test_defects_file_unit_findings`: the four new headings' rules and statuses.
   - `tests/ags/test_ingest_acceptance.py`: `p.table("XUND")` gives `XUND_SWEL` as written with `df.attrs["units"]["XUND_SWEL"] == "%/log cycle"` and `meta_heading.status = file_unit`, one `U005`, no `U001` on it (AC 1); `XUND_ODD` blank with the raw text kept (AC 2); `LOCA_FDEP`'s `U001` message names the UNIT group (AC 3); `XUND_STIF` unit `kN/mm`, `XUND_SIZE` in m, no `U002` on either (AC 4); `U005` joins the AC 7 parameter list; the existing AC 1, 3 and 11 tests show the good files unchanged (AC 7).
+  - `tests/qc/test_diff.py`: `XUND_SWEL` cells are `unchanged`, values as written.
   - `tests/qc/`: the defects report lists `U005` as info; qc.md §9 #2 and #3 still pass unchanged (AC 7).
 
 ### 5. `file-units: RUCS 4.2 headings, plot labels, close out`
