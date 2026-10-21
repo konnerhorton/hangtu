@@ -15,8 +15,10 @@ def standard(unit, ags_type="2DP", source="4.2"):
     return Heading("GRP", "GRP_X", "OTHER", ags_type, unit, source)
 
 
-def resolve(file_unit, entry, file_type="2DP", system="SI"):
-    return u.resolve_heading("GRP", "GRP_X", file_unit, file_type, entry, system, 7)
+def resolve(file_unit, entry, file_type="2DP", system="SI", defined=None):
+    return u.resolve_heading(
+        "GRP", "GRP_X", file_unit, file_type, entry, system, 7, defined
+    )
 
 
 def converted(file_unit, entry, value, **kwargs):
@@ -87,8 +89,10 @@ def test_pcf_in_a_unit_weight_heading_is_pounds_force_per_cubic_foot():
 
 
 def test_pcf_in_a_user_defined_heading_is_not_converted():
+    # Even when the UNIT group defines pcf: that doesn't say which pcf it is.
+    defined = {"pcf": "pounds per cubic foot"}
     for entry in (None, Heading("GRP", "GRP_X", "OTHER", "2DP", "pcf", "DICT")):
-        result, finding = resolve("pcf", entry)
+        result, finding = resolve("pcf", entry, defined=defined)
         assert result.status == u.RAW_ONLY
         assert (finding.rule, finding.severity) == ("U001", "error")
         assert "density" in finding.message and "unit weight" in finding.message
@@ -122,6 +126,61 @@ def test_unknown_unit_is_u001():
     assert (finding.rule, finding.severity, finding.line) == ("U001", "error", 7)
     assert 'Did you mean "ft"?' in finding.message
     assert "raw_GRP only" in finding.message
+
+
+SWELL = {"%/log cycle": "percent strain per log cycle of stress"}
+USER_DEFINED = Heading("GRP", "GRP_X", "OTHER", "2DP", "%/log cycle", "DICT")
+
+
+@pytest.mark.parametrize("entry", [None, USER_DEFINED])
+def test_a_unit_the_file_defines_is_kept_as_written_with_u005(entry):
+    result, finding = resolve("%/log cycle", entry, defined=SWELL)
+    assert (result.status, result.unit, result.quantity) == (
+        u.FILE_UNIT,
+        "%/log cycle",
+        None,
+    )
+    assert list(result.convert([1.5])) == [1.5]
+    assert (finding.rule, finding.severity, finding.line) == ("U005", "info", 7)
+    assert finding.message == (
+        'GRP_X (GRP): the unit "%/log cycle" isn\'t one hangtu knows, but the '
+        "file's UNIT group defines it (\"percent strain per log cycle of "
+        'stress"). The values are kept as written, not converted.'
+    )
+
+
+def test_a_unit_the_file_defines_with_no_description():
+    _, finding = resolve("%/log cycle", None, defined={"%/log cycle": ""})
+    assert finding.rule == "U005" and "defines it. The values" in finding.message
+
+
+def test_a_unit_the_file_doesnt_define_is_u001():
+    result, finding = resolve("%/log cycle", None, defined={"%": "percent"})
+    assert result.status == u.RAW_ONLY and finding.rule == "U001"
+    assert "UNIT group" not in finding.message
+
+
+@pytest.mark.parametrize("listed", ["%/Log cycle", "%/log  cycle"])
+def test_the_unit_group_is_matched_exactly(listed):
+    result, finding = resolve("%/log cycle", None, defined={listed: "swell"})
+    assert result.status == u.RAW_ONLY and finding.rule == "U001"
+
+
+def test_a_standard_heading_in_a_unit_the_file_defines_is_still_u001():
+    result, finding = resolve("Ft", standard("m"), defined={"Ft": "foot"})
+    assert result.status == u.RAW_ONLY
+    assert (finding.rule, finding.severity) == ("U001", "error")
+    assert (
+        'The file\'s UNIT group defines it as "foot", but GRP_X is a standard '
+        'heading in "m".'
+    ) in finding.message
+
+
+def test_file_units_reads_the_unit_group():
+    ags = _read.read(DATA / "site_si.ags")
+    defined = u.file_units(ags)
+    assert defined["kPa"] == "kilopascal"
+    assert defined["yyyy-mm-dd"] == "year month day"
 
 
 def test_a_unit_only_pint_knows_is_u002():
@@ -164,9 +223,17 @@ def test_user_defined_headings_convert_to_the_p00_canonical_unit():
     assert converted("%", None, 12.0)[0] == 12.0  # percent stays percent
 
 
-def test_user_defined_heading_with_an_unusual_dimension_uses_si_base_units():
-    value, heading, _ = converted("kg/m", None, 2.0)
-    assert value == 2.0 and heading.unit == "kg/m"
+@pytest.mark.parametrize("text", ["kN/mm", "kg/m", "l/s"])
+def test_a_unit_no_quantity_kind_covers_keeps_the_files_string(text):
+    value, heading, finding = converted(text, None, 2.0)
+    assert value == 2.0
+    assert (heading.unit, heading.quantity, finding) == (text, None, None)
+
+
+def test_micrometers_convert_to_meters():
+    value, heading, finding = converted("um", None, 75.0)
+    assert value == pytest.approx(75.0e-6)
+    assert (heading.unit, heading.quantity, finding) == ("m", "length", None)
 
 
 @pytest.mark.parametrize(
@@ -234,10 +301,16 @@ def test_defects_file_unit_findings():
         "SAMP_BASE": "U002",
         "ISPT_CAS": "U003",
         "LOCA_NATE": "U004",
+        "XUND_SWEL": "U005",
+        "XUND_BLOW": "U001",
     }
     assert by_heading["LOCA_FDEP"].line == ags.unit_lines["LOCA"]
     assert headings["LOCA", "LOCA_FDEP"].status == u.RAW_ONLY
     assert headings["SAMP", "SAMP_BASE"].status == u.CONVERTED
+    assert headings["XUND", "XUND_SWEL"].status == u.FILE_UNIT
+    assert headings["XUND", "XUND_BLOW"].status == u.RAW_ONLY
+    assert headings["XUND", "XUND_STIF"].unit == "kN/mm"
+    assert headings["XUND", "XUND_SIZE"].unit == "m"
 
 
 def test_file_unit_system():

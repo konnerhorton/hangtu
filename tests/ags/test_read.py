@@ -89,7 +89,9 @@ def test_validation_results_become_v_findings():
     assert orphan.severity == "error"
     assert orphan.group == "LLPL"
     assert orphan.line == _line_of(DATA / "defects.ags", '"DATA","BH2","7.00"')
-    assert {f.rule for f in findings} == {"V000", "V7", "V9", "V10c", "V18"}
+    assert {f.rule for f in findings} == {"V000", "V7", "V9", "V10c", "V15", "V18"}
+    unlisted = next(f for f in findings if f.rule == "V15")
+    assert '"blows/ft" not found in UNIT group' in unlisted.message
 
 
 @pytest.mark.parametrize(

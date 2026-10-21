@@ -33,6 +33,9 @@ rules:
   U004:
     title: Unit of the wrong dimension
     severity: error
+  U005:
+    title: Unit defined by the file, kept as written
+    severity: info
   T001:
     title: Unrecognized text in a numeric column
     severity: info

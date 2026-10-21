@@ -58,6 +58,9 @@ UNIT_DESCRIPTIONS = {
     "yyyy-mm-dd": "year month day",
     "yyyy-mm-ddThh:mm:ss": "year month day hour minute second",
     "hh:mm:ss": "hours minutes seconds",
+    "%/log cycle": "percent strain per log cycle of stress",
+    "kN/mm": "kilonewtons per millimetre",
+    "um": "micrometre",
     "mm:ss": "minutes seconds",
     "MPa": "megapascal",
     "deg": "degree",
@@ -578,9 +581,13 @@ def write_group(lines, g):
     lines.append(None)
 
 
-def write_file(path, version, groups):
-    """Write PROJ, TRAN, UNIT, TYPE and ABBR, then ``groups``, as an AGS4 file."""
+def write_file(path, version, groups, undefined_units=()):
+    """Write PROJ, TRAN, UNIT, TYPE and ABBR, then ``groups``, as an AGS4 file.
+
+    Units in ``undefined_units`` are left out of the UNIT group (AGS Rule 15).
+    """
     used_units = {u for g in groups for _, _, u in g["headings"] if u} | {"yyyy-mm-dd"}
+    used_units -= set(undefined_units)
     used_types = {t for g in groups for _, t, _ in g["headings"]} | {
         "ID",
         "X",
@@ -670,9 +677,19 @@ def defects_groups():
     lnmc = {**LNMC, "rows": [*LNMC["rows"], [*BH2_D1, "wet", 105]]}  # T001
     orphan = ["BH2", 7.00, "9", "D", "BH2-D9", "1", 7.00]  # no such SAMP row (V10)
     llpl = {**LLPL, "rows": [*LLPL["rows"], [*orphan, 40, "20", 20]]}
-    # A user-defined group with no DICT entry (python-ags4 Rule 9).
+    # A user-defined group with no DICT entry (python-ags4 Rule 9), with the
+    # units hangtu doesn't convert (ingest.md §7, step 5).
     xund = group(
-        "XUND", [("LOCA_ID", "ID", ""), ("XUND_VAL", "2DP", "m")], [["BH1", 1.00]]
+        "XUND",
+        [
+            ("LOCA_ID", "ID", ""),
+            ("XUND_VAL", "2DP", "m"),
+            ("XUND_SWEL", "2DP", "%/log cycle"),  # U005: defined in the UNIT group
+            ("XUND_BLOW", "0DP", "blows/ft"),  # U001: not in the UNIT group
+            ("XUND_STIF", "1DP", "kN/mm"),  # no quantity kind: kept as kN/mm
+            ("XUND_SIZE", "0DP", "um"),  # converted to m
+        ],
+        [["BH1", 1.00, 1.25, 12, 35.5, 75]],
     )
     return [loca, GEOL, samp, ispt, llpl, lnmc, xund]
 
@@ -1025,7 +1042,10 @@ def main(out=HERE):
         XPPT,
     ]
     write_file(out / "site_v404.ags", "4.0.4", v404)
-    write_file(out / "defects.ags", "4.9", defects_groups())  # V000: unknown version
+    # V000: unknown version
+    write_file(
+        out / "defects.ags", "4.9", defects_groups(), undefined_units={"blows/ft"}
+    )
     write_file(out / "qc_defects.ags", "4.2", qc_defects_groups())
     write_file(out / "joins.ags", "4.2", joins_groups())
     (out / "strata.csv").write_text(STRATA, encoding="utf-8", newline="")

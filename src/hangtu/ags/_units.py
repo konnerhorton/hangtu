@@ -2,10 +2,13 @@
 
 A column is converted only from the unit the file declares, read through the
 dictionary (SPEC §2.2). Anything that can't be converted stays in the raw layer
-with a ``U`` finding, and its canonical column is NULL.
+with a ``U`` finding, and its canonical column is NULL. The exception is a
+user-defined heading in a unit hangtu doesn't know but the file's UNIT group
+defines: its numbers are kept as written, unconverted (``U005``).
 """
 
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 import numpy as np
@@ -29,9 +32,10 @@ NUMBER, TEXT, DATE, TIME, YES_NO, DMS = (
 )
 
 # Column status in meta_heading.
-CONVERTED, AS_IS, RAW_ONLY, NOT_NUMERIC = (
+CONVERTED, AS_IS, FILE_UNIT, RAW_ONLY, NOT_NUMERIC = (
     "converted",
     "as_is",
+    "file_unit",
     "raw_only",
     "not_numeric",
 )
@@ -105,6 +109,7 @@ def resolve(
 ) -> tuple[dict[tuple[str, str], HeadingUnit], list[Finding]]:
     """Resolve the unit of every heading in ``ags``, with its ``U`` findings."""
     system = file_system(ags)
+    defined = file_units(ags)
     resolved, findings = {}, []
     for group, headings in ags.headings.items():
         for heading in headings:
@@ -116,11 +121,30 @@ def resolve(
                 dictionary.heading(group, heading),
                 system,
                 ags.unit_lines.get(group),
+                defined,
             )
             resolved[group, heading] = result
             if finding is not None:
                 findings.append(finding)
     return resolved, findings
+
+
+def file_units(ags: AgsText) -> dict[str, str]:
+    """Return the units the file's UNIT group defines, ``UNIT_UNIT`` to ``UNIT_DESC``.
+
+    Matched exactly, as AGS Rule 15 lists them, after trimming spaces.
+    """
+    table = ags.tables.get("UNIT")
+    if table is None or "UNIT_UNIT" not in table.columns:
+        return {}
+    descriptions = (
+        table["UNIT_DESC"] if "UNIT_DESC" in table.columns else [""] * len(table)
+    )
+    return {
+        unit.strip(): description.strip() if isinstance(description, str) else ""
+        for unit, description in zip(table["UNIT_UNIT"], descriptions, strict=True)
+        if isinstance(unit, str) and unit.strip()
+    }
 
 
 def file_system(ags: AgsText) -> str | None:
@@ -143,8 +167,13 @@ def resolve_heading(
     entry: Heading | None,
     system: str | None,
     line: int | None = None,
+    defined: Mapping[str, str] | None = None,
 ) -> tuple[HeadingUnit, Finding | None]:
-    """Resolve one heading (ingest.md §7, Units, steps 1 to 5)."""
+    """Resolve one heading (ingest.md §7, Units, steps 1 to 5).
+
+    ``defined`` holds the units the file's UNIT group defines, with their
+    descriptions (``file_units``).
+    """
     ags_type = file_type or (entry.type if entry else "") or "X"
     dictionary_unit = entry.unit if entry is not None else ""
     standard_entry = entry is not None and entry.source != DICT_SOURCE
@@ -194,6 +223,29 @@ def resolve_heading(
 
     unit, note, by_convention = _parse(file_unit, expected, system)
     if unit is None:
+        # pcf and a bare ton are ambiguous, not unknown: defining them in the
+        # UNIT group doesn't say which unit they are.
+        ambiguous = file_unit == "pcf" or file_unit in _TON
+        description = None if ambiguous else (defined or {}).get(file_unit)
+        if description is not None and not standard_entry:
+            said = f' ("{description}")' if description else ""
+            result = HeadingUnit(
+                **base, unit=file_unit, quantity=None, status=FILE_UNIT
+            )
+            return result, finding(
+                "U005",
+                "info",
+                f'{where}: the unit "{file_unit}" isn\'t one hangtu knows, but the '
+                f"file's UNIT group defines it{said}. The values are kept as "
+                "written, not converted.",
+            )
+        if description is not None:
+            in_unit = f'in "{expected_text}"' if expected_text else "with no unit"
+            said = f' as "{description}"' if description else ""
+            note += (
+                f" The file's UNIT group defines it{said}, but {heading} is a "
+                f"standard heading {in_unit}."
+            )
         return raw_only("U001", "error", f"{where}: {note}")
 
     if standard_entry:
@@ -210,7 +262,7 @@ def resolve_heading(
     elif unit.dimensionless:
         target, target_text = unit, file_unit
     else:
-        target, target_text = _canonical(unit)
+        target, target_text = _canonical(unit, file_unit)
 
     if unit.dimensionality != target.dimensionality:
         return raw_only(
@@ -320,13 +372,16 @@ def _factor(unit: pint.Unit) -> float:
     return ureg.Quantity(1.0, unit).to_base_units().magnitude
 
 
-def _canonical(unit: pint.Unit) -> tuple[pint.Unit, str]:
-    """Return the P00 canonical unit of ``unit``'s dimension, else SI base units."""
+def _canonical(unit: pint.Unit, text: str) -> tuple[pint.Unit, str]:
+    """Return the P00 canonical unit of ``unit``'s dimension, else ``unit`` itself.
+
+    A unit no P00 kind covers (``kN/mm``) is kept as the file writes it, so a
+    plot labels it the way the file does (ingest.md §7, step 4).
+    """
     kind = units._kind_of(unit)
-    if kind is not None:
-        target = ureg.Unit(_config.quantity_kinds()[kind]["canonical"])
-    else:
-        target = ureg.Quantity(1.0, unit).to_base_units().units
+    if kind is None:
+        return unit, text
+    target = ureg.Unit(_config.quantity_kinds()[kind]["canonical"])
     return target, _alias_for(target)
 
 

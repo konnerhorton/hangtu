@@ -95,6 +95,13 @@ def test_not_converted(projects):
     assert df["value"].isna().all()
 
 
+def test_a_file_unit_column_is_unchanged(projects):
+    df = projects["defects"].diff("XUND", heading="XUND_SWEL")
+    assert df[["text", "value", "unit", "change"]].values.tolist() == [
+        ["1.25", 1.25, "%/log cycle", "unchanged"]
+    ]
+
+
 def test_blank(projects):
     row = projects["site_si"].diff("ISPT", heading="ISPT_ERAT").iloc[-1]
     assert (row["text"], row["change"]) == ("", "blank")

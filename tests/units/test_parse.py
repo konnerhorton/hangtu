@@ -12,6 +12,14 @@ def test_every_shipped_alias_parses_silently(text):
     assert isinstance(parse_unit(text), type(ureg.Unit("m")))
 
 
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [("um", "micrometer"), ("kN/mm", "kilonewton / millimeter")],
+)
+def test_aliases_beyond_the_ags_dictionaries(text, expected):
+    assert parse_unit(text) == ureg.Unit(expected)
+
+
 def test_pint_only_string_is_accepted_with_a_warning():
     with pytest.warns(
         UserWarning, match=r'"feet" for column \'depth\' was read as foot'

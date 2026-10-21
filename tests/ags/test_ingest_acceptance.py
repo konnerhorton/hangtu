@@ -5,6 +5,7 @@ AC 6 (flags) in tests/ags/test_values.py; AC 8, 9 and 10 (open, atomic, read-onl
 SQL) in tests/test_project.py.
 """
 
+import importlib.util
 import warnings
 from pathlib import Path
 
@@ -135,6 +136,7 @@ def test_ac5_pcf_by_heading(projects):
     ("rule", "group", "heading"),
     [
         ("U001", "LOCA", "LOCA_FDEP"),
+        ("U001", "XUND", "XUND_BLOW"),
         ("U003", "ISPT", "ISPT_CAS"),
         ("U004", "LOCA", "LOCA_NATE"),
     ],
@@ -164,6 +166,79 @@ def test_ac5_a_unit_only_pint_knows_is_converted_with_u002(projects):
     assert found.values.tolist() == [["U002", "info"]]
 
 
+def test_ac5_a_unit_the_file_defines_is_kept_as_written_with_u005(projects):
+    defects = projects["defects"]
+    xund = defects.table("XUND")
+    assert xund["XUND_SWEL"].tolist() == [1.25]
+    assert xund.attrs["units"]["XUND_SWEL"] == "%/log cycle"
+    heading = defects.sql(
+        "SELECT unit, quantity, status FROM meta_heading WHERE heading = 'XUND_SWEL'"
+    )
+    assert heading.values.tolist() == [["%/log cycle", None, "file_unit"]]
+    found = defects.sql(
+        "SELECT rule, severity, message FROM finding WHERE heading = 'XUND_SWEL'"
+    )
+    assert found[["rule", "severity"]].values.tolist() == [["U005", "info"]]
+    assert '("percent strain per log cycle of stress")' in found["message"].iloc[0]
+
+
+def test_ac5_a_standard_heading_says_the_unit_group_defines_its_unit(projects):
+    found = projects["defects"].sql(
+        "SELECT message FROM finding WHERE heading = 'LOCA_FDEP'"
+    )
+    assert (
+        'The file\'s UNIT group defines it as "foot (wrong case)", but LOCA_FDEP '
+        'is a standard heading in "m".'
+    ) in found["message"].iloc[0]
+
+
+def test_ac5_kn_per_mm_keeps_its_unit_and_um_converts_to_m(projects):
+    defects = projects["defects"]
+    xund = defects.table("XUND")
+    assert xund["XUND_STIF"].tolist() == [35.5]
+    assert xund["XUND_SIZE"].tolist() == pytest.approx([75.0e-6], rel=1e-9)
+    assert xund.attrs["units"]["XUND_STIF"] == "kN/mm"
+    assert xund.attrs["units"]["XUND_SIZE"] == "m"
+    found = defects.sql(
+        "SELECT rule FROM finding WHERE heading IN ('XUND_STIF', 'XUND_SIZE')"
+    )
+    assert found.empty
+
+
+def test_ac5_rucs_4_2_headings_are_typed_and_converted(tmp_path):
+    script = DATA / "_make_files.py"
+    spec = importlib.util.spec_from_file_location("_make_files", script)
+    files = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(files)
+    rucs = files.group(
+        "RUCS",
+        [
+            *files.SPECIMEN,
+            ("RUCS_UCS", "3SF", "MPa"),
+            ("RUCS_ESEC", "3SF", "GPa"),
+            ("RUCS_ETAN", "3SF", "GPa"),
+            ("RUCS_MUS", "3SF", ""),
+            ("RUCS_MUT", "3SF", ""),
+        ],
+        [[*files.BH1_U1, 1.20, 0.250, 0.310, 0.280, 0.300]],
+    )
+    path = tmp_path / "rucs.ags"
+    files.write_file(path, "4.2", [files.LOCA, files.SAMP, rucs])
+    p = ht.Project.from_ags(path, db=tmp_path / "rucs.sqlite")
+    table = p.table("RUCS")
+    columns = ["RUCS_ESEC", "RUCS_ETAN", "RUCS_MUS", "RUCS_MUT"]
+    assert table[columns].iloc[0].tolist() == pytest.approx([0.25, 0.31, 0.28, 0.30])
+    assert table.attrs["units"]["RUCS_ESEC"] == "GPa"
+    assert table.attrs["units"]["RUCS_ETAN"] == "GPa"
+    status = p.sql(
+        "SELECT heading, status FROM meta_heading WHERE \"group\" = 'RUCS'"
+    ).set_index("heading")["status"]
+    assert status[["RUCS_ESEC", "RUCS_ETAN"]].tolist() == ["converted", "converted"]
+    assert status[["RUCS_MUS", "RUCS_MUT"]].tolist() == ["as_is", "as_is"]
+    found = p.sql("SELECT rule FROM finding WHERE rule = 'M001' OR rule LIKE 'U%'")
+    assert found.empty
+
+
 @pytest.mark.parametrize(
     ("rule", "project", "needs_heading"),
     [
@@ -174,6 +249,7 @@ def test_ac5_a_unit_only_pint_knows_is_converted_with_u002(projects):
         ("U002", "defects", True),
         ("U003", "defects", True),
         ("U004", "defects", True),
+        ("U005", "defects", True),
         ("T001", "defects", True),
         ("M001", "site_v404", False),  # group-level for IPRG/IPRT
     ],

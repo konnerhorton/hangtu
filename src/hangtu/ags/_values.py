@@ -34,7 +34,8 @@ def type_column(
     """Type one column, returning its canonical values, flags and T001 findings.
 
     ``cells`` are the raw texts in file order; row ``i`` gets ``_row`` ``i + 1``.
-    A raw-only column (U001, U003, U004) is all blank, with no flags.
+    A raw-only column (U001, U003, U004) is all blank, with no flags. A
+    ``file_unit`` column (U005) is typed like any number column, unconverted.
     """
     if heading.status == u.RAW_ONLY:
         return [None] * len(cells), [], []

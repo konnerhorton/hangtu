@@ -65,3 +65,44 @@ The rules live in the data-layer specs; this section lists what changes and why.
 5. **4.2 RUCS:** a 4.2 file with `RUCS_ESEC` and `RUCS_ETAN` in GPa and `RUCS_MUS`/`RUCS_MUT` (no unit) is typed and converted, and raises no `M001` or `U` finding.
 6. **Plot:** `ht.plot.profile()` on a `file_unit` column labels the axis with the file's unit, with `display_units` `"US"` and `"SI"`, and raises no warning.
 7. **Good files:** unchanged and QC-clean; qc.md §9 #2 still holds.
+
+## Plan
+
+Five build commits, each green (ruff and pytest). Regenerate the test files with `uv run python tests/data/ags/_make_files.py` whenever the generator changes. The spec commit already updated SPEC §2.2, `ingest.md` and `qc.md`; the build brings the code and config up to them.
+
+### 1. `file-units: um and kN/mm aliases`
+- `src/hangtu/units/aliases.yaml`: `"um": "micrometer"` and `"kN/mm": "kilonewton / millimeter"`, in the first block.
+- Tests (`tests/units/test_parse.py`): both read through the alias table with no `UserWarning`; `um` is a length.
+
+### 2. `file-units: a unit no quantity kind covers keeps its string`
+- `src/hangtu/ags/_units.py`: `_canonical()` returns the file's unit and string where `units._kind_of()` finds no P00 kind, in place of SI base units (Decision 4). The column stays `converted`, factor 1, `quantity` blank. The module docstring and ingest.md §7 step 4 already say so.
+- Tests (`tests/ags/test_units.py`): `test_user_defined_heading_with_an_unusual_dimension_uses_si_base_units` becomes "keeps the file's unit": `kN/mm` stays `kN/mm` with quantity None and no finding (AC 4); `kg/m` still `kg/m`; `um` converts to `m` with no `U002` (AC 4).
+
+### 3. `file-units: units the file's UNIT group defines (U005)`
+- `src/hangtu/ags/_units.py`:
+  - `resolve()` reads the file's `UNIT` group from `ags.tables["UNIT"]` into `{UNIT_UNIT.strip(): UNIT_DESC}` (empty when the group is missing) and passes it to `resolve_heading(..., defined=...)`.
+  - New status `FILE_UNIT = "file_unit"`.
+  - `_parse()` tells an *unknown* unit apart from an *ambiguous* one (pcf in a user-defined heading, a bare ton with no unit system), so only an unknown unit can become `file_unit`. A user-defined `pcf` heading stays `U001` even though the US file's `UNIT` group lists `pcf`.
+  - Unknown unit, user-defined heading, unit in `defined` → `HeadingUnit(status=FILE_UNIT, unit=file_unit, quantity=None)` with `U005` (info), message as in Decision 5. Standard heading with the unit in `defined` → `U001`, and the message adds that the file's UNIT group defines it as "…", but the heading is standard, in the dictionary unit (AC 3).
+- `src/hangtu/ags/_values.py`: no change expected. A `file_unit` column is typed like any number column (`HeadingUnit.convert` already passes it through unchanged), so value flags and `T001` apply (Decision 2). The `type_column` docstring names the status.
+- `src/hangtu/qc/rules.yaml`: `U005`, "Unit defined by the file, kept as written", info. `src/hangtu/qc/_registry.py`: `U005` in `INGEST_RULES`.
+- `p.diff()` (`qc/_diff.py`) shows a `file_unit` cell as `unchanged` and its value as stored (no quantity kind), with no code change. Its tests run on the project files, so the test is in step 4.
+- Tests (`tests/ags/test_units.py`): `U005` with the `UNIT_DESC` in the message; unknown and not in `defined` → `U001` (AC 2); standard heading in `defined` → `U001` with the new sentence (AC 3); `pcf` in a user-defined heading, in `defined`, → still `U001`; matching is exact (`" %/log cycle "` trims, a case difference doesn't match).
+
+### 4. `file-units: test-file cases`
+- `tests/data/ags/_make_files.py`:
+  - `UNIT_DESCRIPTIONS` gains `%/log cycle` ("percent strain per log cycle of stress"), `kN/mm` and `um` (`GPa` is already there).
+  - `write_file(..., undefined_units=())` leaves those units out of the generated `UNIT` group (AC 2).
+  - `defects_groups()`: `XUND` (already user-defined, no DICT) gains `XUND_SWEL` in `%/log cycle` (U005), `XUND_BLOW` in `blows/ft` (neither the alias table nor pint reads it), left out of the `UNIT` group (U001), `XUND_STIF` in `kN/mm` and `XUND_SIZE` in `um`. One `XUND` row: a second would raise V10a (no DICT keys), and a `<` flag in a `2DP` column V8, so flags on a `file_unit` column are tested in `tests/ags/test_values.py` instead.
+- Tests:
+  - `tests/ags/test_files.py`: python-ags4 reports the left-out unit (Rule 15) in `defects.ags`; the good files still pass.
+  - `tests/ags/test_units.py`, `test_defects_file_unit_findings`: the four new headings' rules and statuses.
+  - `tests/ags/test_ingest_acceptance.py`: `p.table("XUND")` gives `XUND_SWEL` as written with `df.attrs["units"]["XUND_SWEL"] == "%/log cycle"` and `meta_heading.status = file_unit`, one `U005`, no `U001` on it (AC 1); `XUND_ODD` blank with the raw text kept (AC 2); `LOCA_FDEP`'s `U001` message names the UNIT group (AC 3); `XUND_STIF` unit `kN/mm`, `XUND_SIZE` in m, no `U002` on either (AC 4); `U005` joins the AC 7 parameter list; the existing AC 1, 3 and 11 tests show the good files unchanged (AC 7).
+  - `tests/qc/test_diff.py`: `XUND_SWEL` cells are `unchanged`, values as written.
+  - `tests/qc/`: the defects report lists `U005` as info; qc.md §9 #2 and #3 still pass unchanged (AC 7).
+
+### 5. `file-units: RUCS 4.2 headings, plot labels, close out`
+- `tests/ags/test_ingest_acceptance.py`: a 4.2 file written in `tmp_path` with `write_file` (loaded as `test_files.py` loads `_make_files`), with LOCA, SAMP and a RUCS group holding `RUCS_ESEC` and `RUCS_ETAN` in GPa and `RUCS_MUS`/`RUCS_MUT` with no unit: typed, converted, no `M001` or `U` finding (AC 5, Decision 6). If it fails, the fix goes in this commit and the plan is updated.
+- `tests/plot/test_profile.py`: `ht.plot.profile()` on `XUND_SWEL` (from `defects.ags`, with a depth column added) labels the axis `(%/log cycle)` with `display_units` `"US"` and `"SI"`, and raises no warning (AC 6, Decision 3).
+- `CLAUDE.md` status paragraph: `file-units` done; `vertical-datum` and `qc-review` next.
+- `sandbox/TODO_ht.md` (ignored by git, so not committed): items 8, 9 and 15 marked done.
