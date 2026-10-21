@@ -93,7 +93,7 @@ $$\sigma_h = P_s,\qquad \sigma_H = 3\sigma_h - P_r - P_0$$
 
 **Typical variability:** no published COV located. The Brown & Hoek band (k = 0.5–3.5 at 500 m) shows the regional
 uncertainty when no measurements exist [2]; site measurements narrow it, but overcoring results in bedded rock often
-scatter by tens of percent between tests _[Judgment — for PE review]_. Sheorey and Brown & Hoek are first estimates;
+scatter by tens of percent between tests _[Judgment — for review]_. Sheorey and Brown & Hoek are first estimates;
 transformation error is not stated in the sources.
 
 ## 7. Pitfalls and QA checks

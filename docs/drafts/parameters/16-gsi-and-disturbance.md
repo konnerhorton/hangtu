@@ -88,7 +88,7 @@ $$\mathrm{RQD} = 115 - 3.3\,J_v\ \text{(Palmström 1982)},\qquad \mathrm{RQD} = 
   20 %, full siltstone values. D, E: sandstone reduced 40 %. F: reduced 60 %. G–H: siltstone/shale values only [5]
   Table 4 [V].
 - An extended chart was published by V. Marinos (2017, 2019) [13] [U]. Using these charts for interbedded
-  **shale–limestone** is by analogy (limestone in place of sandstone). _[Judgment — for PE review]_
+  **shale–limestone** is by analogy (limestone in place of sandstone). _[Judgment — for review]_
 
 ### 5.6 Disturbance factor D — Hoek, Carranza-Torres & Corkum (2002)
 - D enters $m_b = m_i\exp[(\mathrm{GSI}-100)/(28-14D)]$ and $s=\exp[(\mathrm{GSI}-100)/(9-3D)]$ ([6] eqs. 3–4
@@ -117,7 +117,7 @@ SD 2.5). Cai et al. (2004) got GSI COV 2–3.2 % by point-estimate propagation o
 uncertainty [12] §"Application", Table 6 text [V]. That is the propagated *input* uncertainty only, not the scatter between observers or
 the spatial variability. Treat GSI as a distribution, with the same statistics as intact properties [4] §11 [V].
 The transformation error of eq. 5.1 (RQD, JCond89 → GSI) adds to this. RQD and JCond89 themselves scatter
-significantly [14] [U]. _[Judgment — for PE review: use SD 3–5 for GSI unless site data justify less]_
+significantly [14] [U]. _[Judgment — for review: use SD 3–5 for GSI unless site data justify less]_
 
 ## 7. Pitfalls and QA checks
 - Do not use GSI/HB where block size ≈ opening size or one joint set dominates. Use block/wedge analysis [2][3].
@@ -125,7 +125,7 @@ significantly [14] [U]. _[Judgment — for PE review: use SD 3–5 for GSI unles
 - RQD depends on direction and on handling and drilling breaks. Exclude mechanical breaks. Core-run RQD averaged
   over a stratum hides weak seams.
 - JCond89 = 15 (mid-range) assumed for lack of data gives GSI = 22.5 + RQD/2. State this, and test JCond89 ± 5
-  (GSI ± 7.5). _[Judgment — for PE review]_
+  (GSI ± 7.5). _[Judgment — for review]_
 - Estimate GSI on undamaged faces. Blast-damaged faces understate it [2].
 - Apply D only to a damaged ring (1–3 m), never to the whole model. D = 0 for TBM and road-header [4][6].
 - GSI = RMR89 − 5 only with groundwater = 15 and orientation adjustment = 0.

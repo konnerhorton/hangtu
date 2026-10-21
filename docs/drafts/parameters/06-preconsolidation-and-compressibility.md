@@ -31,7 +31,7 @@ raises Cr. Cc depends on mineralogy, water content and structure (sensitive clay
 | Cc, compressibility slight (low) / moderate / high | < 0.2 / 0.2–0.4 / > 0.4 | [1] Table 6-1, p. 6-4 [V] |
 | Cc from LL (NC clay) LL 30 / 50 / 80 % | ≈ 0.18 / 0.36 / 0.63 (computed from 5.7) | [1] Eq. 6-5 [V] |
 | Cs/Cc (via Λ = 1 − Cs/Cc ≈ 0.8 ± 0.1) | ≈ 0.1–0.3 | [2] p. 2789 [V] |
-| OCR, NC / lightly OC / heavily OC clay | 1 / ≈ 1–4 / > 4 | _[Judgment — for PE review]_ |
+| OCR, NC / lightly OC / heavily OC clay | 1 / ≈ 1–4 / > 4 | _[Judgment — for review]_ |
 | σ′p/(qt − σv0) (k) | 0.2–0.5, average 0.33 | [3] p. 44 [V] |
 
 ## 4. Tests
@@ -106,7 +106,7 @@ $$\Delta e/e_0 = (e_0 - e_{\sigma'_{v0}})/e_0$$
 
 **Typical variability:** Cc COV ≈ 10–37 %, σ′p COV ≈ 10–35 % (Duncan 2000 [9]) [U]. Correlations (5.5–5.7) add
 large transformation uncertainty (5.5: S.D. of OCR = 3.82 for n = 110). Method choice alone (5.1–5.4) commonly
-moves σ′p by 10–20 % _[Judgment — for PE review]_.
+moves σ′p by 10–20 % _[Judgment — for review]_.
 
 ## 7. Pitfalls and QA checks
 - Grade every specimen by Δe/e0 (5.8) before using σ′p; poor samples bias σ′p low and Cr high.

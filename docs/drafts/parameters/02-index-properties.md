@@ -78,7 +78,7 @@ $$FC\,(\%) = 1.75\,I_{c}^{3.25} - 3.7\quad (1.26 < I_{c} < 3.50);\ 0 \text{ belo
 
 ### 5.5 Fines content from the PSD curve
 Interpolate GRAT_PERP at 0.063 mm (ISO / AGS GRAG_FINE) or 0.075 mm (ASTM) on log(size); report which.
-_[Judgment — for PE review]_
+_[Judgment — for review]_
 
 ## 6. Sensitivity in models
 

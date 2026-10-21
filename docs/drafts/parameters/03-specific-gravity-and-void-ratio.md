@@ -72,17 +72,17 @@ $$e_0 = \frac{G_s\,\gamma_w\,(1+w)}{\gamma} - 1$$
 - **Valid for:** any soil; exact identity given the inputs.
 - **Error propagation (computed, Gs = 2.70, w = 25 %, γ = 20 kN/m³):** ∂e/∂Gs ≈ 0.61 (ΔGs = ±0.05 → Δe ≈ ±0.03);
   ∂e/∂w = 1.32 (per unit w); ∂e/∂γ = −0.083 per kN/m³ (γ rounded to 1 kN/m³ → Δe up to ±0.04). γ resolution
-  usually dominates. _[Judgment — for PE review]_
+  usually dominates. _[Judgment — for review]_
 - **Source:** phase relations; [1] eqs. 4.9–4.10 [V]; [2] eq. 2-9 [V] (algebra combined here).
 
 ### 5.2 Saturation check
 $$S = \frac{w\,G_s}{e_0}$$
 - **Use:** S well above 1 below the water table points to a wrong Gs, an under-measured γ or w from a
-  different specimen; S well below 1 to gas, sample swelling or disturbance. Tolerance about ±5 %. _[Judgment — for PE review]_
+  different specimen; S well below 1 to gas, sample swelling or disturbance. Tolerance about ±5 %. _[Judgment — for review]_
 
 ### 5.3 Gs from mineralogy (when no test)
 Quartz ≈ 2.65, calcite ≈ 2.71, dolomite ≈ 2.85–2.87, kaolinite ≈ 2.6–2.65, organics ≪ 2 [U] (standard mineral
-values, e.g. Mitchell & Soga 2005 [6]). Weighted by mass fraction for mixed soils. _[Judgment — for PE review]_
+values, e.g. Mitchell & Soga 2005 [6]). Weighted by mass fraction for mixed soils. _[Judgment — for review]_
 
 ## 6. Sensitivity in models
 

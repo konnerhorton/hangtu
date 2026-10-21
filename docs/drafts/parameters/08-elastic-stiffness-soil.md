@@ -95,7 +95,7 @@ $$G_0=\rho V_s^2,\quad E_0 = 2G_0(1+\nu),\quad E_s = \left(\frac{E}{E_{max}}\rig
 - **Inputs:** Vs (m/s), ρ = γt/g (Mg/m³), ν (0.1–0.2 drained coarse soils), q/qult = 1/FOS
 - **Valid for:** intact clays and uncemented sands under foundations; conservative in structured clays or cemented
   sands [4]. For tunnels, an alternative is E/E0 = G/G0 at the expected shear strain from a reduction curve (sheet 10,
-  Hardin-Drnevich with γ0.7) _[Judgment — for PE review]_.
+  Hardin-Drnevich with γ0.7) _[Judgment — for review]_.
 - **Scatter:** not given (first-order approximation)
 - **Source:** [4] Eqs. 8.17, 8.18 and Fig. 8-15, pp. 8-25 to 8-27 [V]
 
@@ -116,15 +116,15 @@ $$K_0 = \frac{\nu}{1-\nu}\quad\Leftrightarrow\quad \nu = \frac{K_0}{1+K_0}$$
 
 | Analysis | How the parameter enters | Sensitivity |
 |---|---|---|
-| Tunnel FE, MC | Single E scales all elastic displacements; a stiff layer under the tunnel controls heave | High for displacement magnitude; MC gives troughs that are too wide and shallow, whatever E [3, §3.3.1] _[Judgment — for PE review]_ |
+| Tunnel FE, MC | Single E scales all elastic displacements; a stiff layer under the tunnel controls heave | High for displacement magnitude; MC gives troughs that are too wide and shallow, whatever E [3, §3.3.1] _[Judgment — for review]_ |
 | Settlement / volume loss (empirical Gaussian) | Not used directly; volume loss is an input | Low |
 | Face stability / support pressure (limit equilibrium) | Not used | Low (strength governs) |
-| Lining loads (continuum or bedded beam) | Ground-lining stiffness ratio; subgrade reaction ks ∝ E/R | Moderate: bending moments rise with lining/ground flexibility ratio _[Judgment — for PE review]_ |
+| Lining loads (continuum or bedded beam) | Ground-lining stiffness ratio; subgrade reaction ks ∝ E/R | Moderate: bending moments rise with lining/ground flexibility ratio _[Judgment — for review]_ |
 | Undrained short-term FE | Eu or E′ + ν′ with drainage type | Moderate; ν′ choice changes K0 at initialization in 1-D gravity loading |
 | Shallow foundation settlement | s ∝ qB(1−ν²)/E | High (inversely proportional) |
 
 **Typical variability:** inherent COV of in situ moduli (PMT, DMT) is commonly quoted as high, of order 20–60 %
-_[Judgment — for PE review]_; Phoon & Kulhawy (1999a) tabulate PMT and DMT modulus COVs [7] [U]. The transformation
+_[Judgment — for review]_; Phoon & Kulhawy (1999a) tabulate PMT and DMT modulus COVs [7] [U]. The transformation
 error of SPT- or Su-based E correlations is larger than the inherent COV: the tables give only ranges, often a factor of 2
 or more [2][4].
 

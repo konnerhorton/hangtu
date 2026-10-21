@@ -90,7 +90,7 @@ $$E_m\,(\mathrm{GPa})=10^{(\mathrm{RMR}-10)/40}\quad\text{(Serafim \& Pereira)},
   secant deformation moduli [1] Fig. 4.
 - Dilatometer and Goodman-jack Em are local, section-scale values (≈ borehole diameter × 1 m). Use them as a check
   on, or a lower bound for, the GSI-based mass Em, not as a direct replacement. Expect a scale ratio that depends on
-  joint spacing relative to the test volume. _[Judgment — for PE review]_
+  joint spacing relative to the test volume. _[Judgment — for review]_
 - Cai et al. (2004): GSI-based E vs 29 plate tests agreed in mean and spread for most zones, but overestimated one
   (CH) zone by ~29 % [8] [V].
 
@@ -110,7 +110,7 @@ and D = 1 curves, a factor of ≈ 13–19 at GSI 40–70 in the simplified eq. a
 (computed) [1] Figs. 9, 13. In situ plate
 test data at one site and zone commonly scatter with COV of tens of percent [8] Table 6 [U: COV not computed].
 Inherent spatial variability (joint spacing, weathering) and transformation error (GSI → Em) are separate. HD2006
-shows the transformation error as error ratios against GSI [1] eq. (5), Fig. 13. _[Judgment — for PE review:
+shows the transformation error as error ratios against GSI [1] eq. (5), Fig. 13. _[Judgment — for review:
 carry Em as a range (D = 0 to D = 0.5 curves) rather than a single value]_
 
 ## 7. Pitfalls and QA checks

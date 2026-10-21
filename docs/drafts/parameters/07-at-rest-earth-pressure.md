@@ -105,7 +105,7 @@ $$K_0 = (K_D/1.5)^{0.47} - 0.6$$
 | Tunnel FE initial stress (K0 procedure) | σ′h0 = K0 σ′v0 in every element | High: sets deviatoric stress and distance to failure |
 | Lining forces | ovalization bending moment ∝ (1 − K0) in elastic continuum solutions [U]; hoop force ∝ mean stress | High for bending; moderate for thrust |
 | Surface settlement trough (FE) | high K0 gives troughs too wide and shallow in isotropic FE models [U] | Moderate–high (shape) |
-| Face support pressure (EPB / slurry) | target ≈ K σ′v0 + u0, K between Ka and K0 _[Judgment — for PE review]_ | High where K0 is used as the target |
+| Face support pressure (EPB / slurry) | target ≈ K σ′v0 + u0, K between Ka and K0 _[Judgment — for review]_ | High where K0 is used as the target |
 | Face stability (limit equilibrium) | weakly, via σh on the wedge | Low |
 | HS / HSsmall stiffness | p′0 = σ′v0 (1 + 2 K0)/3 sets the reference stress | Moderate (m ≈ 0.5–1) |
 | Groundwater inflow | none | – |

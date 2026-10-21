@@ -16,7 +16,7 @@ how the slope is defined (tangent at 50 % σci, average over the linear part, or
 measurement (platen-to-platen readings overstate strain). Ei is controlled by mineralogy, porosity and
 micro-cracking, and is more sensitive than σci to sampling damage and stress relief [1, p. 25]. In bedded or
 foliated rock Ei and ν are anisotropic (stiffer parallel to bedding), and in shales they fall with increasing water
-content _[Judgment — for PE review]_.
+content _[Judgment — for review]_.
 
 ## 2. Units
 
@@ -67,7 +67,7 @@ $$E_i = MR \cdot \sigma_{ci}$$
 ### 5.3 Check of measured MR
 $$MR_{meas} = E_{t,50}/\sigma_{ci}\ \text{(same specimen)}$$
 - **Use:** compare with Table 8 for the lithology; MR far below the range points to bedding-parallel micro-cracks,
-  damage, wet clay-rich specimens or platen-based strain _[Judgment — for PE review]_.
+  damage, wet clay-rich specimens or platen-based strain _[Judgment — for review]_.
 
 ## 6. Sensitivity in models
 
@@ -82,7 +82,7 @@ $$MR_{meas} = E_{t,50}/\sigma_{ci}\ \text{(same specimen)}$$
 
 **Typical variability:** within-unit COV of Ei is often of the order of σci's (≈ 20–40 %); Hoek's probabilistic
 example treats σci with COV 25 % [1] Fig. 12, p. 29 [V]. MR from Table 8 adds a transformation uncertainty of
-about ±25–40 % (range half-width/mid) _[Judgment — for PE review]_. Rock-property COV compilations: Aladejare &
+about ±25–40 % (range half-width/mid) _[Judgment — for review]_. Rock-property COV compilations: Aladejare &
 Wang (2017) [8] [U].
 
 ## 7. Pitfalls and QA checks

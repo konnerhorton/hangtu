@@ -32,8 +32,8 @@ compression < plane strain; extension and direct shear differ).
 | Sand, very loose / loose / medium / dense / very dense (SPT N 0–4 / 4–10 / 10–30 / 30–50 / >50) | φ′tc < 28° / 28–30° / 30–36° / 36–41° / > 41° | [1] Table 4-3, after Peck, Hanson & Thornburn (1974) [V] |
 | NC clay, φ′cv vs PI: PI 10 / 20 / 40 / 80 % | ≈ 36° / 31° / 27° / 23° (computed from 5.4) | [1] Fig. 4-20 [V] |
 | Residual φ′r, high-plasticity clays | can fall to ≈ 5–15° | [1] Fig. 4-24 (ring shear) [U for the range] |
-| c′, uncemented NC soils | ≈ 0 | _[Judgment — for PE review]_ |
-| c′, stiff OC / fissured clays (peak fit) | typically 0 to a few tens of kPa; strongly fit-range dependent | _[Judgment — for PE review]_ |
+| c′, uncemented NC soils | ≈ 0 | _[Judgment — for review]_ |
+| c′, stiff OC / fissured clays (peak fit) | typically 0 to a few tens of kPa; strongly fit-range dependent | _[Judgment — for review]_ |
 
 ## 4. Tests
 
@@ -105,7 +105,7 @@ $$\varphi'_p - \varphi'_{cv} = 3 I_R\ (\text{triaxial}),\ 5 I_R\ (\text{plane st
 
 **Typical variability:** φ′ COV ≈ 2–13 % (Duncan 2000 [6]) [U]; ≈ 5–15 % for sands, wider for clays (Phoon &
 Kulhawy 1999 [7]) [U]. c′ is far more variable (COV often > 40 %) and should be treated separately
-_[Judgment — for PE review]_. SPT-based φ′ adds transformation uncertainty on top of N variability; the three SPT
+_[Judgment — for review]_. SPT-based φ′ adds transformation uncertainty on top of N variability; the three SPT
 correlations above differ by several degrees for the same N (5.3–5.5).
 
 ## 7. Pitfalls and QA checks

@@ -71,7 +71,7 @@ $$m_i = \frac{\sum x\,(y-\sigma_{ci}^2)}{\sigma_{ci}\sum x^2}$$
 $$m_i = \frac{(\sigma_1-\sigma_3)^2 - \sigma_{ci}^2}{\sigma_{ci}\,\sigma_3}\qquad (\sigma_3 > 0)$$
 - **Caution:** ill-conditioned at small σ3/σci. Computed example (σci = 50 MPa, mi = 8): a +5 % error in σ1 gives
   mi = 19.2 at σ3 = 0.5 MPa, 14.1 at 1 MPa, 10.0 at 5 MPa, 9.3 at 25 MPa. Weight or exclude σ3 < ~0.1 σci
-  _[Judgment — for PE review]_.
+  _[Judgment — for review]_.
 
 ### 5.5 mi from UCS / tensile ratio — Cai (2009/2010); Read (2015); Hoek (2023)
 $$m_i \approx R = \sigma_{ci}/|\sigma_t|\ \ (R \ge 8);\qquad \text{Hoek (2023): } |\sigma_t| = \sigma_{ci}/(3.25\,m_i^{0.67}) \Rightarrow m_i = (R/3.25)^{1/0.67}$$
@@ -88,7 +88,7 @@ $$m_i \approx R = \sigma_{ci}/|\sigma_t|\ \ (R \ge 8);\qquad \text{Hoek (2023): 
 ### 5.6 Multistage triaxial tests — caveat
 - One specimen is loaded to near-peak at successive σ3 stages; damage accumulates, so later-stage σ1 tends to be
   low and mi from multistage data biased low unless stages are stopped at the onset of dilatancy (volumetric strain
-  reversal) [6, 10] [U]. Fit with and without multistage points; flag the difference _[Judgment — for PE review]_.
+  reversal) [6, 10] [U]. Fit with and without multistage points; flag the difference _[Judgment — for review]_.
 
 ## 6. Sensitivity in models
 

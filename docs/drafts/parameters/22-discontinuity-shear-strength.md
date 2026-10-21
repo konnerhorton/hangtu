@@ -90,14 +90,14 @@ $$JRC_n = JRC_0\left(\frac{L_n}{L_0}\right)^{-0.02\,JRC_0},\qquad JCS_n = JCS_0\
 | Analysis | How the parameter enters | Sensitivity |
 |---|---|---|
 | Wedge / block stability (key-block, limit equilibrium) | Sliding resistance ∝ σn tanφj + cj·A; FS ∝ tanφj when cj = 0 | High; cj highly influential on small wedges (low σn) — use cj = 0 unless bonded |
-| Bedding-plane slip in flat-bedded shale crowns | Slip and separation along bedding (φj, cj, joint tensile strength) drive crown sag and loosening, raise lining load | High for wide spans with thin beds _[Judgment — for PE review]_ |
+| Bedding-plane slip in flat-bedded shale crowns | Slip and separation along bedding (φj, cj, joint tensile strength) drive crown sag and loosening, raise lining load | High for wide spans with thin beds _[Judgment — for review]_ |
 | Ubiquitous-joint FE (anisotropic rock mass) | Joint yield on the bedding orientation everywhere in the zone (φj, cj, σt,j) | High: controls yield zone shape and crown displacement |
 | Joint/interface elements (UDEC/RS2) | Kn, Ks with φj, cj or Barton-Bandis | Moderate–high |
 | HB isotropic rock mass | Not used (joint condition only via GSI) | Low |
 
 **Typical variability:** Hoek's probabilistic example uses φ COV ≈ 14 % (35° ± 5°) and c COV 20 %, and notes c and
 φ from shear tests are negatively correlated [2] pp. 8, 10 [V]. Scale correction (5.5) and orientation
-uncertainty usually exceed test scatter _[Judgment — for PE review]_.
+uncertainty usually exceed test scatter _[Judgment — for review]_.
 
 ## 7. Pitfalls and QA checks
 - Confirm the sheared plane is the bedding/joint of interest (photos, SPEC_DESC); intact-rock shears give c, φ far too high.

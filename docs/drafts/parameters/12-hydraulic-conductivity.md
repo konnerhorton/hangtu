@@ -82,7 +82,7 @@ $$Lu = \frac{Q}{L}\cdot\frac{P_0}{P},\quad P_0 = 1\ \text{MPa (10 bar)};\qquad k
 $$k = c_v\, m_v\, \gamma_w$$
 - **Inputs:** cv (CONS_CVRT or CONS_CVLG, m²/yr), mv (CONS_INMV, m²/MN), γw. Use the increment spanning σ′v0.
 - **Valid for:** saturated fine soil, increment in the primary-consolidation range. Typically lower than in situ k
-  (fabric, fissures and silt partings not captured) _[Judgment — for PE review]_.
+  (fabric, fissures and silt partings not captured) _[Judgment — for review]_.
 - **Source:** definitional relation (cv = k/(mv γw)) [U] — no locator checked.
 
 ### 5.5 Cooper-Jacob straight line — Cooper & Jacob (1946)
@@ -102,7 +102,7 @@ $$k\,[\text{cm/s}] = C\,D_{10}^2\,[\text{cm}],\ C \approx 100\text{–}150;\qqua
 - Results at a test detection limit (e.g. "<1E-9", "<1 Lu") are left-censored: do not substitute the limit and average.
   Use Kaplan-Meier, regression-on-order-statistics or censored MLE [10] [U]; report the censored count.
 - Equivalent rock-mass k for flow parallel to layers ≈ thickness-weighted arithmetic mean; normal to layers ≈ harmonic
-  mean _[Judgment — for PE review]_.
+  mean _[Judgment — for review]_.
 
 ## 6. Sensitivity in models
 
@@ -118,7 +118,7 @@ $$k\,[\text{cm/s}] = C\,D_{10}^2\,[\text{cm}],\ C \approx 100\text{–}150;\qqua
 **Typical variability:** COV of k (saturated clay) 68–90 %; partially saturated 130–240 % [13] [U]. These are
 arithmetic COVs of a log-normal variable; for statistics use the SD of log10 k. Hazen/Chapuis transformation error as
 in §5.6 [7]. Scale effect and fracture connectivity usually dominate over test scatter in rock
-_[Judgment — for PE review]_.
+_[Judgment — for review]_.
 
 ## 7. Pitfalls and QA checks
 - Do not pool lab (PTST, CONS) and field (FGHG, PUMT) k; scale differs — report lab as a check.

@@ -70,7 +70,7 @@ $$m_r=m_i\exp\frac{\mathrm{GSI}_r-100}{28-14D},\quad s_r=\exp\frac{\mathrm{GSI}_
 - **Source:** HB2002 eqs. 3–5 [7] [V] applied with GSIr, as in [8] eq. 10 (D = 0) [V]. Whether [3] keeps mi
   unchanged and how it sets D for residual is [U]. [8] used its own fitted mi(GSI) instead, so check before reuse.
 - Residual c′r, φ′r follow from sheet 17 eqs. 5.4–5.5 with mr, sr, ar. The same σ3max should be used for
-  consistency. _[Judgment — for PE review]_
+  consistency. _[Judgment — for review]_
 
 ### 5.3 Post-peak behavior by rock-mass quality — Hoek & Brown (1997); Hoek (2007)
 - Elastic-brittle (very good hard rock): drop to residual with ψ high. Strain-softening (average). Perfectly
@@ -108,7 +108,7 @@ $$\frac{R_f}{a}=0.49(\pm0.1)+1.25\,\frac{\sigma_{max}}{\sigma_{ci}},\qquad \text
 gives a GSIr SD of ≈ 1–2 at GSI 30 and < 0.5 at GSI ≥ 60 (computed from the derivative above). The real
 uncertainty is in the **method**: the choice of residual model, softening parameter and post-peak dilatancy. That
 is transformation and model uncertainty, not inherent variability. Bracket it with alternative models (EPP-peak,
-EPP-residual, softening) rather than a COV. _[Judgment — for PE review]_
+EPP-residual, softening) rather than a COV. _[Judgment — for review]_
 
 ## 7. Pitfalls and QA checks
 - GSIr from Cai (2007) caps at ≈ 27.5. High-GSI masses (GSI 70–90) all get similar residuals. Check whether that
@@ -117,7 +117,7 @@ EPP-residual, softening) rather than a COV. _[Judgment — for PE review]_
   approach [4][12].
 - Residual mi: state whether mi is kept or reduced. Keep D for residual consistent with peak (D = 0 for TBM).
 - Elastic-brittle with very low residual makes numerical models mesh-dependent and unstable. Check mesh
-  sensitivity and the softening length. _[Judgment — for PE review]_
+  sensitivity and the softening length. _[Judgment — for review]_
 - Use consistent σ3max for peak and residual MC conversion.
 - Calibrate against convergence monitoring where available. Residual parameters are best back-analyzed.
 

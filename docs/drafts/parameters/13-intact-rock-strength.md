@@ -79,7 +79,7 @@ $$\sigma_{ci} \approx K\,I_{s(50)}$$
   Is50–UCS relation but coefficients rock-type and test-condition dependent [12] (abstract) [V].
 - **Valid for:** axial or diametral tests on hard rock; diametral tests in bedded rock give much lower Is50 and should
   not be converted with the same K [3] Discussion [V]. Point load below UCS ≈ 25 MPa is "highly ambiguous" [2] Table 2 note [V].
-- **Scatter:** factor ~ ±30–50 % on individual specimens; site-specific K required for design _[Judgment — for PE review]_.
+- **Scatter:** factor ~ ±30–50 % on individual specimens; site-specific K required for design _[Judgment — for review]_.
 
 ### 5.5 Brazilian tensile strength — ISRM (1978), ASTM D3967
 $$\sigma_t = \frac{2P}{\pi D t} = 0.636\,\frac{P}{D t}$$
@@ -104,7 +104,7 @@ $$\sigma_{t,HB} = \tfrac{1}{2}\sigma_{ci}\left(m_i - \sqrt{m_i^2+4}\right)\appro
 | Tunnel FE / convergence-confinement (HB) | σci scales mb, s, σcm and the whole envelope | High: σcm ∝ σci; plastic zone and convergence strongly nonlinear in σcm/p0 |
 | Equivalent MC (c′, φ′) | c′ ∝ σci at fixed GSI, mi, σ3max/σci | High on c′, low–moderate on φ′ |
 | Tension cut-off / spalling | σt sets tensile yield; σci/|σt| controls spalling depth | Moderate–high near the face and crown |
-| TBM penetration, cutter forces (e.g. CSM model uses σc and σt) | Normal force per cutter rises with σc, σt | High: penetration rate falls roughly in proportion to strength _[Judgment — for PE review]_ |
+| TBM penetration, cutter forces (e.g. CSM model uses σc and σt) | Normal force per cutter rises with σc, σt | High: penetration rate falls roughly in proportion to strength _[Judgment — for review]_ |
 | Cutter/tool wear, excavatability | UCS with abrasivity (CAI) | Moderate |
 | Block / wedge stability | Not used (joint strength governs, see [22](22-discontinuity-shear-strength.md)) | Low |
 
@@ -121,7 +121,7 @@ COV (K varies 8–30 between studies [3]). Aladejare & Wang (2017) compile rock-
 - Point load: use RPLT_PLSI as reported, check RPLT_PLTF (axial vs diametral, L vs P to bedding); compute Ia(50).
 - Do not convert diametral Is50 in bedded sedimentary rock to UCS with a hard-rock K [3].
 - BTS: reject tests where fracture did not run along the loaded diameter (RTEN_MODE); BTS is not true σt.
-- Check σci/BTS ratio against 5–30; ratios < 5 suggest invalid BTS (weak or weathered rock) _[Judgment — for PE review]_.
+- Check σci/BTS ratio against 5–30; ratios < 5 suggest invalid BTS (weak or weathered rock) _[Judgment — for review]_.
 - Size: 38 mm vs 63 mm cores differ by ~5–10 % in UCS from the size effect alone (5.3).
 
 ## References

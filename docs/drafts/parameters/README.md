@@ -10,7 +10,7 @@ published. Until then nothing here overrides `SPEC.md` or a feature spec. The ro
   (equation, table, page); **[U]** = not verified, to check before use. A wave's spec step verifies the [U] tags
   it relies on and hand-calculates golden values from the verified source.
 - **AGS headings** are checked against the AGS 4.2 standard dictionary.
-- **Judgments** are tagged _[Judgment — for PE review]_. Nothing here is a design value.
+- **Judgments** are tagged _[Judgment — for review]_. Nothing here is a design value.
 - **Unit conversions** are computed, not typed from memory.
 - **What is reproduced:** values with their citation, and short sets of class boundaries as commonly cited. A
   source table or chart is not reproduced whole: the sheet gives the values it needs and the locator (TODO #30).

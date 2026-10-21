@@ -54,7 +54,7 @@ $$I_{d2} = \frac{C - D}{A - D}\times 100\,\%$$
   measure for most rocks [4] [U].
 - **Source:** [4] [U].
 
-No correlation from Id2 to a model parameter is recommended; Id2 is a behavior index _[Judgment — for PE review]_.
+No correlation from Id2 to a model parameter is recommended; Id2 is a behavior index _[Judgment — for review]_.
 
 ## 6. Sensitivity in models
 
@@ -67,7 +67,7 @@ No correlation from Id2 to a model parameter is recommended; Id2 is a behavior i
 | Swelling screening | Low durability flags argillaceous rock for swell testing (sheet 21) | Screening only |
 
 **Typical variability:** no published COV located; repeat tests on one lithology commonly differ by several
-percentage points at high Id2 and much more at low Id2 _[Judgment — for PE review]_. Report by layer; do not average
+percentage points at high Id2 and much more at low Id2 _[Judgment — for review]_. Report by layer; do not average
 across lithologies.
 
 ## 7. Pitfalls and QA checks

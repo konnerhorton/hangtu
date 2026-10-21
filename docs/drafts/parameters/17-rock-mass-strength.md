@@ -97,7 +97,7 @@ $$\text{Tunnels: } \frac{\sigma'_{3max}}{\sigma'_{cm}}=0.47\left(\frac{\sigma'_{
 - A reported (c′, φ′) pair has two numbers. Behind it are at least four unknowns (σci, mi, GSI, σ3max; D usually
   0). With GSI and D fixed, any one of σci, mi, σ3max can be traded against the others, so the back-solution is
   **non-unique**. Fix two of them, for example σci from lab p50 and GSI from the report, then solve for mi and
-  σ3max. Report the residual and the trade-off curve. _[Judgment — for PE review]_
+  σ3max. Report the residual and the trade-off curve. _[Judgment — for review]_
 - Sanity check: c′ rises and φ′ falls as σ3max increases. Example (σci 50, mi 10, GSI 45): σ3max 0.5 / 1.35 / 3 /
   6 MPa gives c′ 0.37 / 0.58 / 0.93 / 1.43 MPa and φ′ 54.2 / 47.2 / 40.8 / 35.1° (computed). A reported φ′ fixes
   σ3max strongly once mi is known.
@@ -119,7 +119,7 @@ Cai et al. (2004) found predicted means and SDs of c, φ, E "generally in good a
 shear and 29 plate-load tests at two Japanese caverns [4][3] [V]. Hoek's probabilistic examples treat GSI, σci
 and mi as independent normal variables and propagate them by Monte Carlo [2] [V]. Inherent variability and the
 transformation (HB → MC) error are separate. The MC fit adds a stress-range error that is zero only at the fitted
-range. _[Judgment — for PE review]_
+range. _[Judgment — for review]_
 
 ## 7. Pitfalls and QA checks
 - Report σc (= σci s^a) and σ′cm separately. σ′cm/σc ≈ 6.4, 2.9, 1.5 at GSI 30, 50, 70 (computed from the table above).

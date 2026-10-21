@@ -82,7 +82,7 @@ $$G_0 = G_0^{ref}\left(\frac{c\cos\varphi - \sigma_3'\sin\varphi}{c\cos\varphi +
   check the printed page). 33 is the commonly quoted PLAXIS value and agrees with the Hardin
   angular-grain relation (A = 3300, n = 0.5): at σ′m = 100 kPa, 3300·√100 = 33 000 kPa = 33 MPa (computed) [2]
 - **Back-calculate G0ref from a measured G0:** invert the power law at the in situ σ′3 with the layer's m, c, φ
-  _[Judgment — for PE review]_
+  _[Judgment — for review]_
 - **Source:** [1] §7.5 Eqs. 7–13, 7–14, p. 88 [V]; [6] [U]
 
 ### 5.4 γref from PI — Vardanega & Bolton (2013)
@@ -118,7 +118,7 @@ $$G_{max} = 49.4\,q_t^{0.695}e^{-1.130}\ \text{(clay, MPa; Mayne \& Rix 1993)};\
 
 | Analysis | How the parameter enters | Sensitivity |
 |---|---|---|
-| Tunnel FE, HS-small | G0ref and γ0.7 set stiffness at the small strains away from the tunnel | High for trough width and far-field movements (building damage); low near the opening where strains are large [1] _[Judgment — for PE review]_ |
+| Tunnel FE, HS-small | G0ref and γ0.7 set stiffness at the small strains away from the tunnel | High for trough width and far-field movements (building damage); low near the opening where strains are large [1] _[Judgment — for review]_ |
 | Tunnel FE, MC | E0 from G0 only after strain reduction (sheet 08) | High if E0 used unreduced: displacements underestimated |
 | Settlement / volume loss (empirical) | Not used | Low |
 | Face stability / support pressure | Not used | Low |
@@ -126,7 +126,7 @@ $$G_{max} = 49.4\,q_t^{0.695}e^{-1.130}\ \text{(clay, MPa; Mayne \& Rix 1993)};\
 | Vibration / seismic site response | G0 and G/G0 curve directly | High |
 
 **Typical variability:** inherent COV of measured Vs within a uniform layer is often quoted near 10–30 %
-_[Judgment — for PE review]_ [U]. Transformation error is larger: Vs–N60 r² = 0.51–0.75 [2]; Gmax/ED for sands
+_[Judgment — for review]_ [U]. Transformation error is larger: Vs–N60 r² = 0.51–0.75 [2]; Gmax/ED for sands
 2.72 ± 0.59 (COV 22 %, computed) and 2.2 ± 0.7 (COV 32 %) [2]; Hryciw's DMT method had a 23 % average error [2].
 γ0.7 from PI: ±50 % [U].
 

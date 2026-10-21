@@ -47,7 +47,7 @@ under-drained conditions must come from piezometers, not from a water-table dept
 | Limestone (one large data set, n = 778) | 22–28.2 kN/m³, mean 26.2 | [3] Appendix p. 77 (Sabatakakis et al. 2008) [V] |
 
 The Table 2-8 ranges (by soil type) span loosest to densest states; natural in situ values sit in the middle-upper part.
-_[Judgment — for PE review]_
+_[Judgment — for review]_
 
 ## 4. Tests
 
@@ -104,7 +104,7 @@ Chart of γ/γw from material index ID and dilatometer modulus ED.
 silty sand, via [3] Table 3.3 p. 121 [V]); one clay site 3.3 % ([3] Appendix p. 31 [V]); intact rock site
 COV mean 5.2 % (range 0.4–21.5 %) [3] Table 1.4 p. 12 [V]. Duncan (2000) is often quoted as 3–7 % for γ [6] [U].
 Correlated γ (CPT, DMT) has a larger, unquantified transformation error; use as a check, not pooled.
-_[Judgment — for PE review]_
+_[Judgment — for review]_
 
 ## 7. Pitfalls and QA checks
 - AGS LDEN gives **density** (LDEN_BDEN, Mg/m³), not unit weight; a kN/m³ unit-weight heading (e.g. LDEN_UWT) is a project DICT addition, not AGS 4.2 standard — check its unit.

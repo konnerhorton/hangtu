@@ -86,7 +86,7 @@ $$\varepsilon_{sw}(t) = \varepsilon_{sw}(t_1) + S_t\,\log_{10}(t/t_1)$$
 | Shafts and MTBM pipes in shale | Radial swell loads on shaft walls / pipe; invert heave of jacking pipes | Moderate–high |
 
 **Typical variability:** no published COV located for kq or σq0. Swell data in shale vary strongly between layers of
-one formation [6], so stratify by layer and orientation before statistics _[Judgment — for PE review]_. Long-term tests
+one formation [6], so stratify by layer and orientation before statistics _[Judgment — for review]_. Long-term tests
 may not reach a final state (especially sulfatic rock), so short tests under-estimate final swell [3].
 
 ## 7. Pitfalls and QA checks

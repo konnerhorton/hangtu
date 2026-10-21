@@ -97,7 +97,7 @@ $$K_\psi = 1 + (K_{\psi,peak}-1)\,e^{-\gamma^p/\gamma^{p*}},\quad K_\psi = \frac
 
 **Typical variability:** no COV is commonly published for ψ; it is derived from φ′ (COV ≈ 2–13 %, see
 [04](04-drained-shear-strength-soil.md)), so ψ = φ′ − 30° carries the full absolute uncertainty of φ′ (±2–4°
-on a value of 0–10°) _[Judgment — for PE review]_. Rock-mass ψ by GSI band (5.4) is order-of-magnitude.
+on a value of 0–10°) _[Judgment — for review]_. Rock-mass ψ by GSI band (5.4) is order-of-magnitude.
 
 ## 7. Pitfalls and QA checks
 - ψ must not exceed φ′; ψ > φ′ − φ′cv is suspect for sands.

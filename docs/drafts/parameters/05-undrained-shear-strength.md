@@ -66,7 +66,7 @@ $$s_{u,\text{field}} = \mu\, s_u(\text{VST}),\quad \mu = f(PI)\ \ (\mu\approx 1.
 ### 5.3 Pocket penetrometer
 $$s_u \approx \text{reading}/2\ \ \text{if the instrument is scaled in }q_u\ \text{(kg/cm}^2\text{ or tsf)}$$
 - Index test only: small volume, surface of sample, no standard. Use to rank, not to set design su.
-  _[Judgment — for PE review]_
+  _[Judgment — for review]_
 
 ### 5.4 SPT — Stroud (1974)
 $$s_u = f_1\,N_{60}$$
@@ -102,13 +102,13 @@ $$s_u/s_u(1\%/\text{h}) = 1.0 + 0.1\log\dot\varepsilon\ (\%/\text{h})$$
 |---|---|---|
 | Face stability in clay (Broms & Bennermarius stability ratio N = (σv − σT)/su) | resisting term directly | **High** — N > ~6 indicates face instability (Broms & Bennermarius 1967 [U]); linear in su |
 | Tunnel FE, undrained (Tresca / undrained HS) | yield stress; extent of plastic zone; E/su ratios | **High** for convergence and volume loss near failure (load factor) |
-| Settlement / volume loss (e.g. VL vs load factor N/Nc) | VL rises sharply as load factor → 1 | High when N/Nc > ~0.5 _[Judgment — for PE review]_ |
+| Settlement / volume loss (e.g. VL vs load factor N/Nc) | VL rises sharply as load factor → 1 | High when N/Nc > ~0.5 _[Judgment — for review]_ |
 | Lining loads (short term) | ground relaxation before support | Moderate |
 | Groundwater inflow | none | Low |
 
 **Typical variability:** su COV ≈ 13–40 % (Duncan 2000 [8]) [U]; Phoon & Kulhawy (1999) give inherent COV of
 roughly 10–55 % depending on test (UU, UC, VST) [10] [U]. Correlations add transformation uncertainty: Stroud f1
-and CPT Nkt each typically vary ±30 % or more between sites _[Judgment — for PE review]_.
+and CPT Nkt each typically vary ±30 % or more between sites _[Judgment — for review]_.
 
 ## 7. Pitfalls and QA checks
 - State the mode (TC, DSS, TE, vane, CPT) for every su; do not average across modes without 5.7 factors.

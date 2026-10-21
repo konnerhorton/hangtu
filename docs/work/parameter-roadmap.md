@@ -242,7 +242,7 @@ here in enough detail to review.
       are dropped: which method is primary is decided in the wave's spec. A reference to a private extract of a
       source, with its path, becomes "via an extract of the source", keeping the [V] and locator. No project, client or private
       path is named anywhere.
-    - **Kept as is:** the [V]/[U] tags and locators, the _[Judgment — for PE review]_ tags, the section structure
+    - **Kept as is:** the [V]/[U] tags and locators, the _[Judgment — for review]_ tags, the section structure
       (the sheets aren't restructured to the new template until they're promoted).
     - **American spelling** in prose (behavior, remolded, mobilized, program, center, analyzed, tunneling, …);
       reference titles keep the source's spelling.

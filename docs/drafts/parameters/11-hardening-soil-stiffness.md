@@ -64,7 +64,7 @@ $$-\varepsilon_1 = \frac{1}{E_i}\frac{q}{1-q/q_a},\quad E_i = \frac{2E_{50}}{2-R
 - **Procedure:** E50 = secant from origin to q = 0.5 qf at the test's σ′3 (TRET_E50 = TRET_DEVF/2 ÷ TRET_EP50);
   Eur = secant slope of an unload-reload loop; Rf = qf/qa from a hyperbolic fit (transformed plot ε1/q vs ε1)
 - **Reference value:** convert E50 at σ′3 to E50ref with 5.1, or fit E50ref and m to tests at several σ′3 (log–log
-  fit when c′ = 0) _[Judgment — for PE review]_
+  fit when c′ = 0) _[Judgment — for review]_
 - **Source:** [1] Eqs. 6–3, 6–4, 6–6, Fig. 6–5, pp. 66–73 [V]
 
 ### 5.3 Eoed and Eur,oed at σ′v0 from the oedometer
@@ -105,7 +105,7 @@ $$E_{ur} = E_{ur,oed}\,\frac{(1+\nu_{ur})(1-2\nu_{ur})}{1-\nu_{ur}}$$
 
 | Analysis | How the parameter enters | Sensitivity |
 |---|---|---|
-| Tunnel FE (HS, HS-small) — surface settlement | Eurref governs elastic unloading around the opening and invert heave; E50ref governs shear hardening ahead of and around the face; m sets the depth profile | High for Eur and E50; HS gives deeper, narrower troughs than MC; Eur/E50 ratio changes trough shape [1, §3.3.1] _[Judgment — for PE review]_ [6] [U] |
+| Tunnel FE (HS, HS-small) — surface settlement | Eurref governs elastic unloading around the opening and invert heave; E50ref governs shear hardening ahead of and around the face; m sets the depth profile | High for Eur and E50; HS gives deeper, narrower troughs than MC; Eur/E50 ratio changes trough shape [1, §3.3.1] _[Judgment — for review]_ [6] [U] |
 | Volume loss (if from FE, not prescribed) | Through E50 and Eur near the face | High |
 | Face stability / support pressure | Strength governs collapse; E50 affects face extrusion at service pressures | Low (collapse) to moderate (deformation) |
 | Lining loads | Ground reaction stiffness ≈ Eur at σ′ around the lining | Moderate |
@@ -113,7 +113,7 @@ $$E_{ur} = E_{ur,oed}\,\frac{(1+\nu_{ur})(1-2\nu_{ur})}{1-\nu_{ur}}$$
 | Rf, νur, pref | Rf shapes the hyperbola; νur the elastic ratio; pref is only a reference | Low (Rf, νur); none (pref, if consistent) |
 
 **Typical variability:** Eoed and E50 from good-quality lab tests: inherent COV commonly of order 20–50 %
-_[Judgment — for PE review]_ [5] [U]. Ratio-based estimates (Eur ≈ 2–6 × E50) span a factor of 3 [3]; tabulated m ranges are
+_[Judgment — for review]_ [5] [U]. Ratio-based estimates (Eur ≈ 2–6 × E50) span a factor of 3 [3]; tabulated m ranges are
 0.05–0.2 wide within a soil class (computed from the row widths of Tables 3.7 and 3.25) [3].
 
 ## 7. Pitfalls and QA checks
