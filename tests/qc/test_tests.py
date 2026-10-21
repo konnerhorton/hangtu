@@ -45,14 +45,27 @@ def _ispt(headings, *rows):
     )
 
 
-def test_s001_reads_complete_tests_and_pairs(build):
-    reports = ["N=12", "N = 12", "25/75 50/75", "50/30", "refusal"]
+def test_s001_reads_complete_tests_and_incomplete_drives(build):
+    reports = [
+        "N=12",
+        "5,6,6 N=12",
+        "6,8/8,9,9,9 N=35",
+        "25/75 50/75",
+        "50/30",
+        '22-30-50/3"',
+        "50/7.6 cm",
+        "refusal",
+        "50/76 ft",
+    ]
     ispt = _ispt(
         [("ISPT_NVAL", "0DP", ""), ("ISPT_REP", "X", "")],
         *([10, text] for text in reports),
     )
     report = build(loca(["BH1", 0, 0, 10, 9]), ispt).qc()
-    assert list(report.findings.query("rule_id == 'S001'")["value"]) == ["refusal"]
+    assert list(report.findings.query("rule_id == 'S001'")["value"]) == [
+        "refusal",
+        "50/76 ft",
+    ]
 
 
 def test_s004_skips_refusals_and_checks_main(build):
@@ -74,15 +87,25 @@ def test_s004_skips_refusals_and_checks_main(build):
     assert "ISPT_MAIN = 12" in _message(report, "S004")
 
 
+def test_s002_cites_the_d1586_termination_criteria(report):
+    message = _message(report, "S002")
+    assert "ASTM D1586" in message
+    assert "50 blows in a 150 mm (6 in) increment" in message
+    assert "100 blows in total" in message and "no advance over 10 blows" in message
+
+
 def test_s002_skips_a_refusal(build):
     ispt = _ispt(
         [("ISPT_NVAL", "0DP", ""), ("ISPT_REP", "X", "")],
         [150, "50/25"],
         [150, "N=150"],
+        [126, "41,81,57,75/113 N=126"],  # a complete test, so checked
     )
     project = build(loca(["BH1", 0, 0, 10, 9]), ispt)
+    lines = project.table("ISPT")["_line"]
     assert [f[2] for f in found(project.qc(), "S002")] == [
-        int(project.table("ISPT")["_line"].iloc[1])
+        int(lines.iloc[1]),
+        int(lines.iloc[2]),
     ]
 
 

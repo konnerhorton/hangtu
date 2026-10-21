@@ -5,7 +5,8 @@ import math
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any
+from functools import cache
+from typing import Any, Literal
 
 from hangtu import _config
 from hangtu.ags import _units as u
@@ -62,17 +63,54 @@ def type_column(
 def refusal_flags(
     group: str, headings: Sequence[str], rows: Sequence[dict[str, str]]
 ) -> list[ValueFlag]:
-    """Flag SPT N values whose report shows an incomplete drive (``REFUSAL``)."""
+    """Flag SPT N values whose report is an incomplete drive (``REFUSAL``).
+
+    The N value may be blank. A row whose N value is itself a refusal ("50/75")
+    was flagged when it was typed, so it isn't flagged again.
+    """
     rule = _flags()["refusal"]
     if group != rule["group"] or rule["report"] not in headings:
         return []
-    pattern = re.compile(rule["pattern"])
     flags = []
     for i, row in enumerate(rows):
         report = (row.get(rule["report"]) or "").strip()
-        if pattern.search(report):
+        value = (row.get(rule["value"]) or "").strip()
+        if spt_report(report) == "incomplete" and not _refusal_value(value):
             flags.append(ValueFlag(i + 1, rule["value"], "REFUSAL", None, report))
     return flags
+
+
+def spt_report(text: str) -> Literal["complete", "incomplete"] | None:
+    """Read ``ISPT_REP`` as a complete test, an incomplete drive or neither.
+
+    The forms are in ``value_flags.yaml`` (ingest.md §8). ``text`` is trimmed first.
+    """
+    complete, incomplete = _report_forms()
+    text = text.strip()
+    if complete.fullmatch(text):
+        return "complete"
+    if incomplete.fullmatch(text):
+        return "incomplete"
+    return None
+
+
+@cache
+def _report_forms() -> tuple[re.Pattern[str], re.Pattern[str]]:
+    rule = _flags()["refusal"]
+    unit = "(?:" + "|".join(re.escape(u) for u in rule["penetration_units"]) + ")"
+    pair = rule["pair"].replace("{unit}", unit)
+    separator = rule["separator"]
+
+    def form(name: str) -> re.Pattern[str]:
+        pattern = rule[name].replace("{pair}", pair).replace("{separator}", separator)
+        return re.compile(pattern)
+
+    return form("complete"), form("incomplete")
+
+
+def _refusal_value(text: str) -> re.Match[str] | None:
+    """Match an N value written as blows/penetration ("50/75")."""
+    return re.fullmatch(_flags()["refusal"]["value_pattern"], text)
 
 
 def _with_bound(flag: ValueFlag, bound: float) -> ValueFlag:
@@ -122,10 +160,9 @@ def _number(text: str, heading: u.HeadingUnit) -> Parsed:
         flag = flags["prefix"][prefix]
         return value, flag, value if flag in ("LT", "GT") else None
     refusal = flags["refusal"]
-    if heading.heading == refusal["value"] and heading.group == refusal["group"]:
-        match = re.fullmatch(refusal["pattern"], text)
-        if match:
-            return float(match[1]), "REFUSAL", None
+    is_n = heading.heading == refusal["value"] and heading.group == refusal["group"]
+    if is_n and (match := _refusal_value(text)):
+        return float(match[1]), "REFUSAL", None
     return None, "OTHER", None
 
 
