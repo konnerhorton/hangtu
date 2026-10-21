@@ -30,6 +30,48 @@ Rules can be changed or turned off for a project, for example a tolerance with i
 report = p.qc(rules={"G002": {"thresholds": {"depth_tolerance": "0.05 ft"}}})
 ```
 
+Specimen depths just outside their sample, by up to 0.1 m, are reported as D008 (info, likely unit rounding in a lab table) rather than D007 (warning), so the specimens that are meters out stand out. The bound is D007's `rounding_tolerance`.
+
+## Accepting reviewed findings
+
+Some findings are correct by the rule but expected on a site: ground levels that differ from nearby holes in a valley, or velocity profiles that run below the borings. Once you have checked them, list them with a reason, and the report shows what is still open:
+
+```yaml
+# site_accepted.yaml
+accepted:
+  - rule_id: L005
+    reason: Valley site; ground levels follow the topography.
+  - rule_id: D003
+    group: VSPR
+    reason: Velocity profiles run to 30 m for Vs30, below the borings.
+  - rule_id: D007
+    loca_id: BH-12
+    depth: 41.5 ft
+    reason: Specimen depth checked against the lab sheet.
+```
+
+```python
+report = p.qc(accepted="site_accepted.yaml")
+```
+
+Each entry needs a `rule_id` and a `reason`. `loca_id`, `group`, `heading` and `depth` narrow it, and a key left out matches anything, so `rule_id` alone accepts that rule on this site. A `depth` is written with its unit and matches a finding within 0.05 m. Entries match on content, not on line numbers, so they still apply to a revised file.
+
+Accepted findings aren't hidden. They stay in `report.findings` with their severity, marked in the `accepted` and `reason` columns, and the printed report counts them next to the open ones. `report.accepted` lists each entry with how many findings it matched; one that matches nothing may be stale, for example after the file was fixed.
+
+To accept findings you have reviewed in the table, build the entries from it with pandas:
+
+```python
+rows = report.findings.query("rule_id == 'D008' and loca_id == 'BH-3'")
+entries = [
+    {"rule_id": r.rule_id, "loca_id": r.loca_id, "depth": f"{r.depth:.2f} {r.depth_unit}",
+     "reason": "Lab depths rounded from feet."}
+    for r in rows.itertuples()
+]
+report = p.qc(accepted=entries)
+```
+
+Save `entries` with `yaml.safe_dump({"accepted": entries})` to keep them with the project.
+
 ## What ingest did
 
 `p.diff(group)` compares each value in the file with what was stored, cell by cell: whether it was converted, flagged, reformatted or left unchanged. Use it to check the conversions on a new file.
