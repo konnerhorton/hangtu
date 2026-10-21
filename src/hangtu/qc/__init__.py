@@ -4,6 +4,7 @@ from os import PathLike
 
 # The rule modules register their rules with @rule when imported.
 from hangtu.qc import _depths, _fields, _geology, _locations, _tests  # noqa: F401
+from hangtu.qc._accepted import AcceptedSource, read_accepted
 from hangtu.qc._data import Data
 from hangtu.qc._diff import diff
 from hangtu.qc._registry import RULES, RuleResult
@@ -17,15 +18,18 @@ def run(
     path: str | PathLike[str],
     rules: Override = None,
     min_fields: Override = None,
+    accepted: AcceptedSource = None,
 ) -> Report:
     """Check the project database at ``path`` and return the report (qc.md §2).
 
-    Every override is checked before any rule runs. The database is only read.
+    Every override and accepted entry is checked before any rule runs. The
+    database is only read.
     """
     data = Data(path)
     file_headings = zip(data.headings["group"], data.headings["heading"], strict=True)
     settings = load(rules, min_fields, file_headings)
     data.min_fields = settings.min_fields
+    read_accepted(accepted, settings)
     results: dict[str, RuleResult | None] = {}
     for rule_id in settings.defaults:
         if rule_id not in RULES:
