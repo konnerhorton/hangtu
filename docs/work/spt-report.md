@@ -57,3 +57,31 @@ The rules live in the data-layer specs; this section lists what changed and why.
 4. **Dataset:** in `joins.ags`, the blank-N refusal is in `p.spt()` by default with `spt_n` blank, `spt_refusal` True and `spt_n_capped` = the cap; the incomplete record with a blank report is still left out.
 5. **Plots:** P02 draws that refusal at the cap and P03 counts it in the refusal class, from `p.spt()` unchanged.
 6. **Message:** S002's message names the D1586 criteria.
+
+## Plan
+
+Four build commits, each green (ruff and pytest). Regenerate the test files with `uv run python tests/data/ags/_make_files.py` whenever the generator changes.
+
+### 1. `spt-report: one parser for ISPT_REP`
+- `src/hangtu/ags/value_flags.yaml`: `refusal` gets `complete`, `incomplete` and `penetration_units` (`mm`, `cm`, `in`, `"`) in place of `pattern`. A `value_pattern` keeps the `50/75` rule for `ISPT_NVAL` itself (Decision 6).
+- `src/hangtu/ags/_values.py`: `spt_report(text) -> "complete" | "incomplete" | None`, compiled once from the config. `refusal_flags` flags only `"incomplete"` (fullmatch), and skips a cell `_number` already flagged from `ISPT_NVAL`, so no cell gets two `REFUSAL` rows.
+- `src/hangtu/qc/_tests.py`: S001 calls `spt_report`; `_COMPLETE` and `_PAIRS` go. S002's message cites the D1586 criteria.
+- Tests (`tests/ags/test_values.py`, `tests/qc/test_tests.py`): every form in ingest.md §8 (AC 1), including `5-6-6 N=12`, `50/3"`, `50/7.6 cm`, `22-30-50/3in`; `hard`, `50/76 ft`, `refusal`, `N=` are neither; AGS's example and `41,81,57,75/113 N=126` give no flag (AC 2); the S002 message (AC 6).
+
+### 2. `spt-report: a flagged cell isn't blank`
+- `src/hangtu/qc/_data.py`: `Data.blank()` is False where the cell has a value flag. Only the refusal flag can sit on a blank cell today, so nothing else changes; the docstring says so.
+- C001 (`qc/_fields.py`) and `Build.rows()` (`datasets/_frame.py`) follow without change.
+- Tests: a blank-N refusal raises no C001 (`tests/qc/test_fields.py` or the existing C001 test file) and is kept by `p.spt()`.
+
+### 3. `spt-report: test-file cases`
+- `tests/data/ags/_make_files.py`:
+  - `write_file` doubles a `"` inside a value (AGS Rule 5), so `50/3"` can be written. No existing value has one, so no file changes from this alone.
+  - `qc_defects_groups()` ISPT rows (qc.md §8): `50/76 ft` (S001); `41,81,57,75/113 N=126` with N 126 (S002, no refusal); and, raising nothing, `5,6,6 N=12`, `6,8/8,9,9,9 N=35`, `50/3"` and `22-30-50/3in` with N blank. Each in a hole and depth inside its geology and final depth, with `ISPT_ERAT` given, so no D, G or S003 rule fires.
+  - `joins_groups()`: a refusal with N blank and report `22-30-50/3"`, appended as the last ISPT row so earlier ISPT lines keep their numbers.
+- Update what the new lines move: line numbers in `tests/qc/test_qc_acceptance.py` and `tests/datasets/test_datasets_acceptance.py`, and "Left out 1 of 8" → "1 of 9".
+- Acceptance tests: qc.md §9 #1 with the new cases (AC 3); datasets §13 #8 for the blank-N refusal and #10 still leaving out the blank-report record (AC 4); `ht.plot.spt_profile` draws it at the cap and `ht.plot.spt_histogram` counts it in the refusal class (AC 5). The good files are unchanged, so §9 #2 and #3 hold as they are.
+
+### 4. `spt-report: close out`
+- `docs/TODO.md`: #6 gets the real-file result for P003; new research items for PMT depth at the probe center (D003) and slope-aware L005.
+- `CLAUDE.md` status paragraph: `spt-report` done; `file-units`, `vertical-datum`, `qc-review` next, ahead of P06.
+- Status line in `sandbox/TODO_ht.md` (untracked): items 1–7 done.
