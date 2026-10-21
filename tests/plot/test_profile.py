@@ -1,9 +1,12 @@
 """P01 core profile: points, axes, labels, units and notes (P01 §6, §7, §11)."""
 
+import warnings
 from functools import partial
+from pathlib import Path
 
 import matplotlib as mpl
 import numpy as np
+import pandas as pd
 import pytest
 
 import hangtu as ht
@@ -153,6 +156,32 @@ def test_unknown_vertical_units_label_and_warn(frame):
     ):
         _, ax = ht.plot.profile(df, "undrained_shear_strength", color_by=None)
     assert ax.get_ylabel() == "Depth (units unknown)"
+
+
+@pytest.mark.parametrize("display_units", ["US", "SI"])
+def test_a_unit_the_file_defines_labels_the_axis_as_written(tmp_path, display_units):
+    data = Path(__file__).parents[1] / "data" / "ags"
+    p = ht.Project.from_ags(data / "defects.ags", db=tmp_path / "defects.sqlite")
+    xund = p.table("XUND")
+    df = pd.DataFrame(
+        {
+            "loca_id": xund["LOCA_ID"],
+            "depth": [1.0],
+            "ground_level": [10.0],
+            "XUND_SWEL": xund["XUND_SWEL"],
+        }
+    )
+    df.attrs["units"] = {
+        "depth": "m",
+        "ground_level": "m",
+        "XUND_SWEL": xund.attrs["units"]["XUND_SWEL"],
+    }
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        _, ax = ht.plot.profile(
+            df, "XUND_SWEL", vs="depth", color_by=None, display_units=display_units
+        )
+    assert ax.get_xlabel() == "XUND_SWEL (%/log cycle)"
 
 
 def test_percent_needs_no_units(frame):

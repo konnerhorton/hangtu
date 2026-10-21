@@ -93,7 +93,7 @@ Five build commits, each green (ruff and pytest). Regenerate the test files with
 - `tests/data/ags/_make_files.py`:
   - `UNIT_DESCRIPTIONS` gains `%/log cycle` ("percent strain per log cycle of stress"), `kN/mm` and `um` (`GPa` is already there).
   - `write_file(..., undefined_units=())` leaves those units out of the generated `UNIT` group (AC 2).
-  - `defects_groups()`: `XUND` (already user-defined, no DICT) gains `XUND_SWEL` in `%/log cycle` (U005), `XUND_ODD` in a unit neither the alias table nor pint reads, left out of the `UNIT` group (U001), `XUND_STIF` in `kN/mm` and `XUND_SIZE` in `um`. One `XUND` row with values, plus one with `<0.5` in `XUND_SWEL` to show flags apply.
+  - `defects_groups()`: `XUND` (already user-defined, no DICT) gains `XUND_SWEL` in `%/log cycle` (U005), `XUND_BLOW` in `blows/ft` (neither the alias table nor pint reads it), left out of the `UNIT` group (U001), `XUND_STIF` in `kN/mm` and `XUND_SIZE` in `um`. One `XUND` row: a second would raise V10a (no DICT keys), and a `<` flag in a `2DP` column V8, so flags on a `file_unit` column are tested in `tests/ags/test_values.py` instead.
 - Tests:
   - `tests/ags/test_files.py`: python-ags4 reports the left-out unit (Rule 15) in `defects.ags`; the good files still pass.
   - `tests/ags/test_units.py`, `test_defects_file_unit_findings`: the four new headings' rules and statuses.

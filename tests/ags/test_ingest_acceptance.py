@@ -5,6 +5,7 @@ AC 6 (flags) in tests/ags/test_values.py; AC 8, 9 and 10 (open, atomic, read-onl
 SQL) in tests/test_project.py.
 """
 
+import importlib.util
 import warnings
 from pathlib import Path
 
@@ -201,6 +202,40 @@ def test_ac5_kn_per_mm_keeps_its_unit_and_um_converts_to_m(projects):
     found = defects.sql(
         "SELECT rule FROM finding WHERE heading IN ('XUND_STIF', 'XUND_SIZE')"
     )
+    assert found.empty
+
+
+def test_ac5_rucs_4_2_headings_are_typed_and_converted(tmp_path):
+    script = DATA / "_make_files.py"
+    spec = importlib.util.spec_from_file_location("_make_files", script)
+    files = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(files)
+    rucs = files.group(
+        "RUCS",
+        [
+            *files.SPECIMEN,
+            ("RUCS_UCS", "3SF", "MPa"),
+            ("RUCS_ESEC", "3SF", "GPa"),
+            ("RUCS_ETAN", "3SF", "GPa"),
+            ("RUCS_MUS", "3SF", ""),
+            ("RUCS_MUT", "3SF", ""),
+        ],
+        [[*files.BH1_U1, 1.20, 0.250, 0.310, 0.280, 0.300]],
+    )
+    path = tmp_path / "rucs.ags"
+    files.write_file(path, "4.2", [files.LOCA, files.SAMP, rucs])
+    p = ht.Project.from_ags(path, db=tmp_path / "rucs.sqlite")
+    table = p.table("RUCS")
+    columns = ["RUCS_ESEC", "RUCS_ETAN", "RUCS_MUS", "RUCS_MUT"]
+    assert table[columns].iloc[0].tolist() == pytest.approx([0.25, 0.31, 0.28, 0.30])
+    assert table.attrs["units"]["RUCS_ESEC"] == "GPa"
+    assert table.attrs["units"]["RUCS_ETAN"] == "GPa"
+    status = p.sql(
+        "SELECT heading, status FROM meta_heading WHERE \"group\" = 'RUCS'"
+    ).set_index("heading")["status"]
+    assert status[["RUCS_ESEC", "RUCS_ETAN"]].tolist() == ["converted", "converted"]
+    assert status[["RUCS_MUS", "RUCS_MUT"]].tolist() == ["as_is", "as_is"]
+    found = p.sql("SELECT rule FROM finding WHERE rule = 'M001' OR rule LIKE 'U%'")
     assert found.empty
 
 
