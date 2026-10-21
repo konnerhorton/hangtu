@@ -31,3 +31,29 @@ Read `ISPT_REP` the way AGS and US logs write it. A complete test is its blows t
 ### SPEC sections touched
 - §6.2: "refusal" in the recognized-text list becomes "an incomplete drive in `ISPT_REP`".
 - `docs/data/ingest.md` §8; `docs/data/qc.md` §4.5, §4.10 and §8; `docs/data/datasets.md` §6.1; `src/hangtu/ags/value_flags.yaml`; `docs/TODO.md` #6 (P003's 2 % tolerance held on a real file) and new research items (PMT depth at the probe center, slope-aware L005).
+
+## Spec
+
+The rules live in the data-layer specs; this section lists what changed and why.
+
+### Changes
+- **SPEC §6.2:** "refusal" in the recognized-text list is now "an incomplete drive in `ISPT_REP`".
+- **`docs/data/ingest.md` §8, Refusal:** the report forms (complete test, incomplete drive, accepted units after a penetration), N from `ISPT_NVAL` only, and a refusal on a blank `ISPT_NVAL` as a value. Replaces "an `ISPT_REP` with a blows/penetration pair".
+- **`docs/data/qc.md` §4.5:** S001 reads the report with ingest's parser; S002's message cites the D1586 termination criteria. **§4.10:** a blank `ISPT_NVAL` flagged `REFUSAL` isn't missing. **§8:** the new S001 and S002 cases.
+- **`docs/data/datasets.md` §6.1:** `spt_n` and `spt_refusal` for a refusal with a blank N. **§12:** a `joins.ags` case for it. **§13 #8:** its acceptance criterion. §7 ("incomplete" means what C001 says) needs no change: it follows C001.
+
+### Decisions
+1. **One grammar for both incomplete-drive styles.** An incomplete drive is blows and pairs separated by `,`, `-` or spaces, ending in a pair, with no `N=`. That covers AGS's `25/75 50/75` and the US log's `22-30-50/3"` in one rule, and a single pair (`50/76mm`) is both.
+2. **The form decides, not the numbers.** Penetrations in `ISPT_REP` have no declared unit, so hangtu doesn't add them up or compare them with 450 mm. `22/150 30/150 50/150` reads as an incomplete drive. A file that means a complete test writes `N=`.
+3. **Units after a penetration:** `mm`, `cm`, `in`, `"`. Not `ft` or `'`: a partial increment is under 6 in, and nobody writes it in feet. Accepting a unit guesses nothing, because the number is never used.
+4. **The patterns stay in `value_flags.yaml`** (`refusal: complete`, `incomplete`, `penetration_units`), so the grammar is config, not code; `ags/_values.py` builds the parser from it and `qc/_tests.py` imports the parser rather than keeping its own regexes.
+5. **"Not missing" is decided in one place.** `Data.blank()` (QC) treats a cell with any value flag as not blank, so C001 and the datasets' incomplete check (which uses C001) both follow. Today it reads the raw text only, which is why the refusal flag on a blank `ISPT_NVAL` didn't count.
+6. **`50/75` in `ISPT_NVAL` itself** keeps its current meaning (the blows, flagged `REFUSAL`). It's the N heading, so it doesn't break "N from `ISPT_NVAL` only".
+
+### Acceptance criteria
+1. **Parser:** each example in ingest.md §8 reads as its form; `hard`, `50/76 ft`, `refusal`, `N=` and a blank are neither. Complete tests are never flagged.
+2. **Ingest flags:** `REFUSAL` on `ISPT_NVAL` for an incomplete drive, with the value as given or blank; none for AGS's example or `41,81,57,75/113 N=126`.
+3. **QC:** on `qc_defects.ags`, S001 is raised for `hard` and `50/76 ft` only; S002 for N 150 and N 126; no C001 on the blank-N refusals. The good files stay QC-clean and the twins stay twins (qc.md §9 #2, #3).
+4. **Dataset:** in `joins.ags`, the blank-N refusal is in `p.spt()` by default with `spt_n` blank, `spt_refusal` True and `spt_n_capped` = the cap; the incomplete record with a blank report is still left out.
+5. **Plots:** P02 draws that refusal at the cap and P03 counts it in the refusal class, from `p.spt()` unchanged.
+6. **Message:** S002's message names the D1586 criteria.

@@ -139,12 +139,12 @@ One row per `ISPT` row. Built from the file, then passed through `ht.analysis.sp
 | `ground_level` | `LOCA_GL` of the hole |
 | `depth`, `depth_basis` | Mid-drive depth, below |
 | `elevation` | `ground_level − depth` |
-| `spt_n` | `ISPT_NVAL`, as given, refusals included |
+| `spt_n` | `ISPT_NVAL`, as given, refusals included; blank on an incomplete drive whose `ISPT_NVAL` is blank. Never derived from `ISPT_REP` or the increments |
 | `spt_n_capped` | `ht.analysis.spt()` |
 | `spt_n60` | `ISPT_N60` where the file gives it (SPEC §7), else `ht.analysis.spt()` |
 | `energy_ratio` | `ISPT_ERAT` |
 | `energy_source` | Where N60 came from: `file_n60` (`ISPT_N60`), `file_energy_ratio` (`ISPT_ERAT`), `hammer_efficiency` (the argument or `ht.settings`), or blank when N60 is blank |
-| `spt_refusal` | True where `ISPT_NVAL` has the `REFUSAL` flag (ingest.md §8); otherwise left to `ht.analysis.spt()`, which uses `spt_penetration` |
+| `spt_refusal` | True where `ISPT_NVAL` has the `REFUSAL` flag (ingest.md §8), including on a blank `ISPT_NVAL`, which isn't incomplete (§7) and gets `spt_n_capped` at the cap; otherwise left to `ht.analysis.spt()`, which uses `spt_penetration` |
 | `spt_penetration` | `ISPT_NPEN` |
 | `remarks` | `ISPT_REM` |
 
@@ -281,7 +281,7 @@ The good files (`site_si.ags`, `site_us.ags`, `site_v404.ags`) get, through the 
 - SPT increments on some tests: a complete drive, and a refusal in the test drive;
 - a `GEOL_GEOL` heading next to `GEOL_FORM`, so the default key works.
 
-A new `joins.ags` (4.2, SI, passes python-ags4) holds the edge cases: a test exactly on a layer boundary and at the base of the deepest layer; overlapping layers; a gap in the log; a hole with no GEOL; a test with no `LOCA_GL`; an SPT refusal in the seating drive; a sample with no base; a specimen with no `SPEC_DPTH`; a code missing from the test map; an incomplete record. Two `LNMC` rows on one specimen break AGS Rule 10a (duplicate key), so that case is built in the test instead of in a file that passes python-ags4. A test map `strata.csv` sits next to it.
+A new `joins.ags` (4.2, SI, passes python-ags4) holds the edge cases: a test exactly on a layer boundary and at the base of the deepest layer; overlapping layers; a gap in the log; a hole with no GEOL; a test with no `LOCA_GL`; an SPT refusal in the seating drive; an SPT refusal with `ISPT_NVAL` blank (`22-30-50/3"`); a sample with no base; a specimen with no `SPEC_DPTH`; a code missing from the test map; an incomplete record. Two `LNMC` rows on one specimen break AGS Rule 10a (duplicate key), so that case is built in the test instead of in a file that passes python-ags4. A test map `strata.csv` sits next to it.
 
 ## 13. Acceptance criteria
 1. **Feeds the plots unchanged:** `ht.plot.spt_profile(p.spt())`, `ht.plot.spt_histogram(p.spt())`, `ht.plot.profile(p.permeability(), "hydraulic_conductivity")`, `ht.plot.profile(p.atterberg(), "liquid_limit")` and `ht.plot.geology_unit_comparison(p.atterberg(), "plasticity_index")` run on the good files with no error, no warning and no hint, and with the map's colors and order.
@@ -291,7 +291,7 @@ A new `joins.ags` (4.2, SI, passes python-ags4) holds the edge cases: a test exa
 5. **Geology:** each `joins.ags` boundary case lands in the layer §5.4 says; a depth in a gap is blank; overlapping layers resolve to the deepest top, with the overlap warning.
 6. **Map:** mapped codes give their unit, soil class and order; an unmapped code is kept under its code with one warning, and is a G004 finding; each map error in §5.2 is raised; a session `ht.settings.palette` color beats the map's.
 7. **Geology key:** with the key heading absent, `geology_unit` is blank and the warning names the headings present; `geology_fields=` adds the §5.3 columns.
-8. **Flags:** a refusal gives `spt_refusal = True` and `spt_n` as written; NP gives `non_plastic = True` with blank limits; `<1` gives `qualifier = "<"` with value 1; none of them is blank where the file flagged it.
+8. **Flags:** a refusal gives `spt_refusal = True` and `spt_n` as written; a refusal with `ISPT_NVAL` blank is kept by default, with `spt_n` blank, `spt_refusal = True` and `spt_n_capped` at the cap; NP gives `non_plastic = True` with blank limits; `<1` gives `qualifier = "<"` with value 1; none of them is blank where the file flagged it.
 9. **Filters:** each common argument keeps exactly the rows it should, including quantity strings and `None` ends; each error in §2 is raised.
 10. **Incomplete:** the incomplete record is left out with the warning, and kept with `include_incomplete=True`.
 11. **N60 provenance:** `energy_source` is right for a file N60, a file ER, `hammer_efficiency=` and none.
