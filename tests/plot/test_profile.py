@@ -89,6 +89,17 @@ def test_the_datas_datum_beats_the_session_datum(frame):
     assert ax.get_ylabel() == "Depth (ft)"
 
 
+def test_a_datum_from_loca_datm_labels_the_elevation_axis(tmp_path):
+    # vertical-datum AC 7: site_si.ags names NAVD88 in every hole.
+    site = Path(__file__).parents[1] / "data" / "ags" / "site_si.ags"
+    p = ht.Project.from_ags(site, db=tmp_path / "site.sqlite")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")  # dataset notes aren't the point here
+        spt = p.spt()
+    _, ax = ht.plot.profile(spt, "spt_n", vs="elevation", display_units="SI")
+    assert ax.get_ylabel() == "Elevation (m, NAVD88)"
+
+
 # --- value axis ---------------------------------------------------------------
 
 
