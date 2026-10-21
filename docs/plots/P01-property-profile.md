@@ -5,7 +5,7 @@
 | **ID / function** | P01 · `ht.plot.profile()` |
 | **Status** | built |
 | **Type** | plot (no analysis, apart from computing elevation) |
-| **Target version** | v0.1 |
+| **Milestone** | M2 (0.1.0) |
 | **Depends on** | P00 (framework: style, palette, unit resolution, out-of-range markers, legend rules) |
 | **Related** | P02 SPT profile, P06 water content profile and P09 characteristic profile all build on this function. SPEC §2.6 (units for DataFrames), §8 (depth conventions) |
 
@@ -113,7 +113,7 @@ n/a, apart from:
 | `bulk_unit_weight` | `bulk_unit_weight` | Bulk unit weight, γ | unit weight / pcf / kN/m³ | linear | **no** | 14–23 kN/m³ (90–145 pcf) | 8–30 kN/m³ |
 | *(none)* | any | `value` column name, or `label=` | from `df.attrs`/`units=` | `log=` (default linear) | yes if registry scale = ratio | data | — |
 
-Presets live in `config/defaults.yaml`, with the typical range in the quantity's canonical unit (converted to display units when used). The valid ranges above are for reference only and aren't stored: nothing in P01 uses them, and QC level 2 (v0.4) will have its own ranges.
+Presets live in `config/defaults.yaml`, with the typical range in the quantity's canonical unit (converted to display units when used). The valid ranges above are for reference only and aren't stored: nothing in P01 uses them, and QC level 2 (not yet placed, SPEC §1.3) will have its own ranges.
 
 ## 7. Data marks
 

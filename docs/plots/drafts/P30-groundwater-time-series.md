@@ -5,7 +5,7 @@
 | **ID / function** | P30 (proposed ID) · `ht.plot.groundwater_time_series()` |
 | **Status** | idea (draft notes) |
 | **Type** | plot |
-| **Target version** | Phase 2 or later (open) |
+| **Milestone** | not yet placed (open) |
 | **Depends on** | P00 |
 | **Related** | P29; P01's water-level overlay (design groundwater) |
 

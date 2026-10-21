@@ -13,7 +13,7 @@ How to use this template:
 | **ID / function** | PXX · `ht.plot.<name>()` (+ `ht.analysis.<name>()` if it includes an analysis) |
 | **Status** | idea / draft / review / approved / built |
 | **Type** | plot · plot + light analysis · analysis |
-| **Target version** | v0.1 / v0.2 / … |
+| **Milestone** | M<n> (SPEC §12.4), not yet placed, or Later |
 | **Depends on** | e.g. P00, P01 |
 | **Related** | other plot specs, SPEC sections, TODO items |
 

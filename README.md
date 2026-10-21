@@ -75,12 +75,21 @@ fig, ax = ht.plot.spt_histogram(spt[spt["soil_class"] == "coarse"], n="spt_n60")
 
 ## Roadmap
 
-| Version | Content |
+hangtu is heading toward **the ground parameters a design needs**, for soil and rock: from the test data, through direct derivations and published correlations, to selected values and constitutive-model parameter sets (Mohr–Coulomb, Hardening Soil, generalized Hoek–Brown, Soft Soil). The docs will explain each parameter: what it is, why it matters, and how it is determined.
+
+The work comes in waves, each built around a shared piece of engineering:
+
+| Wave | What it adds |
 |---|---|
-| **v0.1** | Plot framework; property profile, property by geology unit, SPT profile and SPT histograms, with SPT N60 and classes. AGS4 ingest, data checks, and SPT, Atterberg, grain size and permeability datasets |
-| v0.2 | Plasticity chart, grain size curves and water content profile; the analyses behind them (USCS plasticity classes, D10/D30/D60, Cu and Cc) and the index property datasets that use them |
-| v0.3 | Statistics: distribution fitting, group comparisons, Eurocode 7 characteristic values |
-| Later | Triaxial and consolidation, AGSi, DIGGS input, and more |
+| Built | Plots, SPT N60 and classes, AGS4 ingest and checks, the datasets, plasticity and grading classification |
+| 1 | Vertical stress, phase relations, SPT correlations with (N1)60, the clogging diagram |
+| Statistics | Distribution fitting, group comparisons, Eurocode 7 characteristic values |
+| 0 | Test curves (triaxial, swelling, shear box) carried in the AGS file |
+| 2 | Strength envelopes: soil (triaxial, shear box, undrained tests), rock joints, intact Hoek–Brown |
+| Selection | Comparing sources, design lines, model parameter sets |
+| 3–6 | Oedometer and swelling; rock mass (Hoek–Brown, modulus, in situ stress); soil stiffness; field permeability |
+
+Releases follow when a piece is ready to use; they aren't tied to the waves.
 
 The full specification is in [SPEC.md](https://github.com/konnerhorton/hangtu/blob/main/SPEC.md), and each plot has its own spec in [docs/plots](https://github.com/konnerhorton/hangtu/tree/main/docs/plots).
 

@@ -33,7 +33,7 @@ Each figure is a separate feature with its own spec file in this folder, written
 - **Depth axes** point downward (inverted), starting at 0 at the top. **Elevation axes** point upward.
 - **Log axes** use decade major ticks with labeled powers (`10⁻⁶`), plus minor ticks at 2–9 without labels.
 - **Limits:** extend to the next "nice" number beyond the data. Ratio quantities (N, %, k) start at zero unless the scale is log. The spec says when limits are fixed (e.g. the plasticity chart).
-- **Presets** (named settings for a common quantity, e.g. `preset="hydraulic_conductivity"`) live in `config/defaults.yaml`. They set the label, quantity, scale, start-at-zero and a typical range, and any of these can be overridden per call. The typical range only sets *default axis limits* when data are sparse; real data always set the limits. Typical ranges are never used for QC (QC level 2, v0.4, uses its own user-defined ranges).
+- **Presets** (named settings for a common quantity, e.g. `preset="hydraulic_conductivity"`) live in `config/defaults.yaml`. They set the label, quantity, scale, start-at-zero and a typical range, and any of these can be overridden per call. The typical range only sets *default axis limits* when data are sparse; real data always set the limits. Typical ranges are never used for QC (QC level 2, not yet placed, uses its own user-defined ranges).
 - **Equal aspect** when both axes are the same quantity (stress–stress, e.g. Mohr circles; length–length). The spec flags this explicitly.
 
 ### Out-of-range data
@@ -103,10 +103,10 @@ Data for all of these already exists in the MVP scope. P00 is the foundation the
 | P19 | Pressuremeter curve with moduli (E_M, unload/reload) → Hardening Soil parameters | |
 | P20 | Modulus against depth from multiple sources (SPT correlation, PMT, triaxial, oedometer) | Builds on P01 |
 | P21 | Simple location plan (hole positions and labels, colored by type) | Not GIS: plain x/y scatter |
-| P17 | Clogging: Thewes & Burger (2004) diagram | Needs Ic; v0.2 |
-| P18 | Clogging: Hollmann & Thewes (2013) diagram | v0.4 |
+| P17 | Clogging: Thewes & Burger (2004) diagram | Needs Ic; M12 |
+| P18 | Clogging: Hollmann & Thewes (2013) diagram | Not yet placed |
 | P22 | CPT profiles (qc, fs, Rf, u2; SBT chart) | CPT is on the Later roadmap |
 | P23 | Lateral earth pressure with depth (coefficient K and/or σ′h profile) | Probably builds on P01; scope to define |
 
 ### Suggested order
-**P00 → P01 → P07 → P02 → P03 → P04 → P05 → P06**: the core index and SPT set, enough for a first release. Then P11–P12 and P17 (v0.2), P08–P09 once the statistics research items are settled, then the rest of Batch 2.
+**P00 → P01 → P07 → P02 → P03 → P04 → P05 → P06**: the core index and SPT set, enough for a first release. Then P17 (M12), P08–P09 (M15, statistics), P11–P12 (M11), and the rest in the milestone order of SPEC §12.4.

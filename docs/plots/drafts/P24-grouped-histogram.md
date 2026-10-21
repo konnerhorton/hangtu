@@ -5,7 +5,7 @@
 | **ID / function** | P24 (proposed ID) · `ht.plot.histogram()` |
 | **Status** | idea (draft notes) |
 | **Type** | plot |
-| **Target version** | open: v0.1 as a plain plot, or v0.3 folded into P08 |
+| **Milestone** | open: a plain plot, or folded into P08 (M15) |
 | **Depends on** | P00; P01 presets |
 | **Related** | P07 (same question as percentile bars), P08 (histogram + fitted PDF), P27 |
 
@@ -78,7 +78,7 @@ As P01/P07: values convert; bins are computed after conversion.
 - Freedman, D. & Diaconis, P. (1981). On the histogram as a density estimator. *Z. Wahrscheinlichkeitstheorie* 57. (NumPy `"fd"` rule.)
 
 ## 14. Open questions
-- Standalone v0.1 plot, or only the histogram panel of P08 (v0.3)? A quick look at w, LL, PL and PI per unit is an early need, which argues for v0.1.
+- Standalone plot, or only the histogram panel of P08 (M15)? A quick look at w, LL, PL and PI per unit is an early need, which argues for a standalone plot built early.
 
 **Pitfalls:**
 - Separate bins per group, which makes shapes look different when they aren't.

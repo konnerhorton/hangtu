@@ -5,7 +5,7 @@
 | **ID / function** | P26 (proposed ID) · `ht.analysis.correlations.sorensen_okkels_2013()`; drawn with P07 |
 | **Status** | idea (draft notes) |
 | **Type** | analysis (correlation) + existing plot |
-| **Target version** | v0.4 or later (open) |
+| **Milestone** | not yet placed (open) |
 | **Depends on** | P07 (with `group_by=`), P04 data (PI) |
 | **Related** | Cross-cutting finding 2 (correlations as analyses) |
 
