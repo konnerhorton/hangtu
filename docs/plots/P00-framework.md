@@ -46,7 +46,7 @@ Internal helpers used by every plot live in `ht.plot.common` (§6–§9). They a
 |---|---|---|---|
 | `display_units` | `"US"` \| `"SI"` | `"US"` (decided) | every plot and analysis without `display_units=` |
 | `display_overrides` | `dict[quantity, unit]` | `{}` | e.g. `{"stress": "ksf"}` |
-| `vertical_datum` | `str \| None` | `None` | elevation labels |
+| `vertical_datum` | `str \| None` | `None` | elevation labels. A name in the datum table (`vertical_datums.yaml`, `ht.add_vertical_datum()`) is stored as its short name (`navd 88` → `NAVD88`); another is kept as written, with a hint |
 | `palette` | `dict[unit, color]` | `{}` | §10 |
 | `figure_sizes` | `dict[kind, (w, h)]` inches | `{"default": (6.5, 4.5), "profile": (4.0, 6.5)}` | §5 of each plot spec |
 | `hints` | `bool` | `True` | §11 |
@@ -129,7 +129,7 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 - `axis_label(text, unit=None, datum=None, unknown=False)` → `"Elevation (ft, NAVD88)"`, `"Depth (m)"`, `"Liquid limit, LL (%)"`, `"SPT N60"` (no unit for counts and dimensionless), `"k (units unknown)"`.
 - Unit text uses display forms: `kN/m³`, `Mg/m³`, `cm/s`, `psf`, `°`, with Unicode superscripts.
 - Label text comes from the registry `label`, a preset, or `label=`; only the unit part is generated.
-- The datum is added only to elevation labels, from the data's `df.attrs["vertical_datum"]` (a project dataset carries its project's), else `settings.vertical_datum`. The data's wins because a datum is a fact about the data, not a preference (decided 2026-10-14, M9).
+- The datum is added only to elevation labels, from the data's `df.attrs["vertical_datum"]` (a project dataset carries its project's), else `settings.vertical_datum`. The data's wins because a datum is a fact about the data, not a preference (decided 2026-10-14, M9). A project's datum may come from the file's `LOCA_DATM` (`docs/data/ingest.md` §7).
 
 ## 8. Axis limits and ticks
 | Case | Rule |

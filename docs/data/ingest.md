@@ -5,7 +5,7 @@
 | **Status** | done (M5) |
 | **Intent** | [`docs/work/m5-ingest.md`](../work/m5-ingest.md#intent) |
 | **Parent** | SPEC §2.2 (units), §6 (ingestion), §7 (data model), §11 (errors) |
-| **Related** | P00 §4 (quantity kinds, aliases, pcf). [`qc.md`](qc.md) (M6) reports these findings; [`datasets.md`](datasets.md) (M7) reads the canonical layer |
+| **Related** | [`docs/work/file-units.md`](../work/file-units.md) (file-defined units), [`docs/work/vertical-datum.md`](../work/vertical-datum.md) (`LOCA_DATM`). P00 §4 (quantity kinds, aliases, pcf). [`qc.md`](qc.md) (M6) reports these findings; [`datasets.md`](datasets.md) (M7) reads the canonical layer |
 
 ## 1. Purpose and scope
 Read one AGS4 file (4.0.3 to 4.2) into a project SQLite database, and open that database again later:
@@ -29,7 +29,7 @@ p.table("ISPT", raw=True)          # raw: text exactly as in the file, plus _lin
 p.sql("select * from ISPT where ISPT_NVAL > 50")   # read-only query, returns a DataFrame
 ```
 - `db=None` puts the database next to the file, with the suffix `.sqlite`.
-- **Project settings:** `from_ags` takes the session settings as keywords (`display_units="US"`, `vertical_datum="NAVD88"`, …; P00 §3) and stores them in `meta_project`; anything not given comes from `ht.settings` at the time of ingest. `p.settings` reads and changes them. Export and import (`to_yaml()`/`load_yaml()`) wait for M7.
+- **Project settings:** `from_ags` takes the session settings as keywords (`display_units="US"`, `vertical_datum="NAVD88"`, …; P00 §3) and stores them in `meta_project`; anything not given comes from `ht.settings` at the time of ingest. `p.settings` reads and changes them, and shows where the vertical datum came from. **The vertical datum**, in order: `vertical_datum=` (or `p.settings.vertical_datum` later); else the file's `LOCA_DATM`, where §7 allows it; else `ht.settings.vertical_datum`. The file comes before the session setting, because a session's datum is often left over from another project. Export and import (`to_yaml()`/`load_yaml()`) wait for M7.
 - **`from_ags` on an existing database** raises an error unless `overwrite=True`; the message names `Project.open` and `overwrite=True`.
 - **The database is self-contained.** `open` works without the AGS file. If the file is still at its stored path and its SHA-256 has changed, `open` warns that the database is out of date and shows the `from_ags(..., overwrite=True)` call.
 - **Schema version:** if the database was written by an incompatible hangtu version, `open` raises an error saying to re-ingest.
@@ -64,7 +64,7 @@ AGS file
 | `meta_heading` | heading in the file | `group`, `heading`, `file_unit`, `file_type`, `unit` (canonical), `quantity`, `status`, `standard` (in the 4.2 dictionary) |
 
 - The canonical table for `UNIT`, `TYPE`, `ABBR`, `DICT` and `TRAN` is written like any other group; `meta_heading` is the typed summary.
-- `meta_heading.status` is `converted` (to `unit`), `as_is` (a number with no unit, such as a count), `raw_only` (a `U001`, `U003` or `U004` column, NULL in the canonical table) or `not_numeric` (text, dates, yes/no).
+- `meta_heading.status` is `converted` (to `unit`), `as_is` (a number with no unit, such as a count), `file_unit` (a `U005` column: numbers as written, in the file's unit), `raw_only` (a `U001`, `U003` or `U004` column, NULL in the canonical table) or `not_numeric` (text, dates, yes/no).
 - Canonical group names and headings are the file's (§6). A user-defined group keeps its own name.
 - Tables are `STRICT` (SQLite ≥ 3.37; Python 3.12's bundled SQLite is newer on all CI platforms, checked in the build).
 
@@ -105,17 +105,21 @@ AGS file
 1. **Parse** the unit string with the hangtu alias table, then pint (P00 §4.2), case-sensitively. AGS spellings (`DegC`, `degC`, `Bar`, `ohm m`, `uS/cm`, `Mg/m3`, `kN/m3`) are added to `aliases.yaml`. A string pint reads without an alias is accepted with finding `U002` instead of a `UserWarning`.
 2. **Expected dimension:** for a heading in a standard dictionary (4.2, or the file's version for headings 4.2 removed; §6), the dimension of its dictionary unit; for a user-defined heading, the dimension of its own unit.
 3. **Quantity kind:** the P00 kind the unit implies, except particle sizes (`GRAT_SIZE`, `LLPL_SIZE`, `PTST_SZUN`), which are `particle_size` so US output keeps mm (M7, TODO #17; `datasets.md` §10).
-4. **Canonical unit:** the dictionary unit for a heading in a standard dictionary. They're all SI and match the P00 canonical units (m, mm, kPa, kN/m³, Mg/m³, m/s, %, deg). For a user-defined heading, the P00 canonical unit with the same dimension, or else SI base units.
+4. **Canonical unit:** the dictionary unit for a heading in a standard dictionary. They're all SI and match the P00 canonical units (m, mm, kPa, kN/m³, Mg/m³, m/s, %, deg). For a user-defined heading, the P00 canonical unit with the same dimension; where no P00 kind has that dimension, the file's unit as written (`kN/mm` stays `kN/mm`, not `kg/s²`): the column is `converted` with a factor of 1, and `quantity` is blank.
 5. **Conversion:**
    - file unit understood, dimension matches → converted, `status = converted`;
    - **pcf** (P00 §4.3 #1) resolved by the expected dimension: density → Mg/m³, unit weight → kN/m³. Finding `U002` (info). In a user-defined heading, where nothing says which, the column isn't converted: `U001`;
    - **ton** (SPEC §2.2 and the draft's "ton" rule): explicit strings directly; a bare `ton`/`t` follows the file's unit system, from the length unit of `LOCA_GL` (else `GEOL_TOP`). Finding `U002`;
-   - unit unknown or ambiguous → canonical column NULL, raw kept, `U001` (error);
+   - unit unknown, **user-defined heading**, unit listed in the file's `UNIT` group (`UNIT_UNIT`, matched exactly, as AGS Rule 15 lists it) → numbers stored as written, not converted; `status = file_unit`, `unit` = the file's string, `quantity` blank; `U005` (info), quoting `UNIT_DESC`. Value flags apply as in any number column, and plots label the axis with the file's unit and never convert it;
+   - unit unknown or ambiguous otherwise → canonical column NULL, raw kept, `U001` (error). This includes a standard heading whose unit the `UNIT` group defines, since its canonical unit is fixed; the message says so;
    - dimension doesn't match the dictionary (e.g. `kPa` in a depth heading) → canonical column NULL, raw kept, `U004` (error);
    - a numeric heading with an empty unit, where the dictionary gives one → canonical column NULL, raw kept, `U003` (warning). Where the dictionary gives none (counts such as `ISPT_NVAL`), it's stored as is.
 6. **Never guessed** (SPEC §2.2): a column is converted only from what the file declares, read through the dictionary.
 - SPT N and other counts are never converted (P00 §4.3 #2).
-- The vertical datum is a project setting (`meta_project`), not read from the file; AGS4 has no field for it (draft, "Units on ingest" #3).
+**Vertical datum** (a project setting in `meta_project`, with its source; §2):
+- **`LOCA_DATM`** ("Local vertical datum referencing system used" in 4.2) sets the project's datum only when, for the holes with a `LOCA_GL`, every one has a `LOCA_DATM`, none has a `LOCA_LOCZ`, they all name the same datum, and that datum is in the datum table. The dictionary pairs `LOCA_DATM` with `LOCA_LOCZ` (the level to a local datum), so where `LOCA_LOCZ` is given, `LOCA_DATM` may not be `LOCA_GL`'s datum. Otherwise nothing is taken from the file, and QC L006 says why (qc.md §4.2).
+- **Datum table:** `src/hangtu/vertical_datums.yaml` lists each datum by its short name as EPSG abbreviates it (`NAVD88`, `NGVD29`, `CGVD28`, `CGVD2013`, `ODN`), with its EPSG name, EPSG datum code and other spellings. A name matches when it equals one of them, case-insensitively and ignoring spaces, `-` and `_`. A match is stored as the short name. `ht.add_vertical_datum()` adds an entry for the session. A setting not in the table is accepted as written, with a hint; only the file's text must match.
+- Elevations are `LOCA_GL` as written, never converted between datums; mixed datums are a SPEC §1.3 "Later" item.
 
 ## 8. Value flags
 As decided in SPEC §6.2:
@@ -142,9 +146,10 @@ As decided in SPEC §6.2:
 | `U002` | info | Unit resolved by convention (pcf, ton, pint without alias) |
 | `U003` | warning | Numeric heading with no unit where the dictionary has one; column raw only |
 | `U004` | error | Unit dimension doesn't match the dictionary; column raw only |
+| `U005` | info | Unit not known to hangtu, defined in the file's `UNIT` group, on a user-defined heading; column kept as written, not converted |
 | `T001` | info | Unrecognized text in a numeric column; flag `OTHER` |
 
-`U004` and `M001` are new; `qc.md` §4.1 adds them to the QC rule list. One finding per heading for `U` rules; one per cell for `T001`.
+`U004`, `U005` and `M001` are new; `qc.md` §4.1 adds them to the QC rule list. One finding per heading for `U` rules; one per cell for `T001`.
 
 ## 10. Errors
 Written for engineers (SPEC §11):
@@ -160,7 +165,7 @@ Synthetic, in `tests/data/ags/` (SPEC §12.3), written by a script there from ha
 - `site_si.ags` (4.2, SI): PROJ, TRAN, UNIT, TYPE, ABBR, DICT (one user-defined group), LOCA, GEOL, SAMP, ISPT, LLPL, LNMC, GRAG, GRAT, PTST, FGHG, FGHS. Includes `NP`, `Dry`, a refusal, `<0.1`, `#2.65`, blanks, and two lab groups on one specimen.
 - `site_us.ags`: the same data in US units (ft, in, psf, tsf, pcf in a density and a unit-weight heading, cm/s), with values hand-converted.
 - `site_v404.ags` (4.0.4): the same locations, with `IPRG`/`IPRT` in place of `FGHG`/`FGHS`, a removed `RUCS` heading, and the old unit spellings (`degC`, `Bar`).
-- `defects.ags`: one case per ingest rule in §9 except `M001`, plus an orphan sample.
+- `defects.ags`: one case per ingest rule in §9 except `M001`, plus an orphan sample. Its user-defined group has a heading in `%/log cycle`, defined in the `UNIT` group (`U005`); one in an unknown unit left out of the `UNIT` group (`U001`); and ones in `kN/mm` and `um` (converted, no `U002`).
 All but `defects.ags` pass python-ags4 validation with no errors.
 
 ## 12. Acceptance criteria
@@ -168,13 +173,14 @@ All but `defects.ags` pass python-ags4 validation with no errors.
 2. **Raw fidelity:** every raw cell equals the file's text, and `_line` points at its DATA line.
 3. **Older versions:** `site_v404.ags` gives the same canonical tables as `site_si.ags` for the groups both have; `IPRG`/`IPRT` and the removed `RUCS` heading are kept under their own names, typed and in SI from the 4.0.4 dictionary, each with `M001`; `degC` and `Bar` convert without `U` findings.
 4. **Keys:** every child row in the good files has its keys; `LLPL` and `LNMC` on one specimen share `specimen_id`; the orphan in `defects.ags` has NULL `sample_id` and a `V10` finding.
-5. **Units:** pcf resolves to Mg/m³ in a density heading and kN/m³ in a unit-weight heading; every `U001`–`U004` case in `defects.ags` raises its finding, leaves the canonical column NULL and keeps the raw text.
+5. **Units:** pcf resolves to Mg/m³ in a density heading and kN/m³ in a unit-weight heading; every `U001`–`U004` case in `defects.ags` raises its finding, leaves the canonical column NULL and keeps the raw text. The `U005` case keeps its numbers as written, with `status = file_unit` and the file's unit in `df.attrs["units"]`; `LOCA_FDEP` in `Ft` still raises `U001`, and its message says the `UNIT` group defines it. `kN/mm` keeps its unit and `um` converts to m, neither with `U002`. A small 4.2 file with `RUCS_ESEC`, `RUCS_ETAN`, `RUCS_MUS` and `RUCS_MUT` is typed and converted with no `M001` or `U` finding.
 6. **Flags:** each recognized string gives its flag and value/bound; unrecognized text gives `OTHER` + `T001`; blank gives NULL with no flag.
 7. **Findings:** each rule in §9 is raised by `defects.ags` (`M001` by `site_v404.ags`, since a removed group needs an older version), with group, heading and line.
 8. **Open:** `Project.open` reads back the same tables; a changed source file warns; a schema mismatch errors; `from_ags` on an existing database errors without `overwrite=True`.
 9. **Atomic:** a parse failure leaves no database file and no existing database changed.
 10. **Read-only SQL:** `p.sql()` rejects a write.
 11. **Quiet:** ingesting the good files raises no Python warnings and prints nothing.
+12. **Vertical datum:** the good files' `LOCA_DATM` (`NAVD88` in every hole) becomes the project's datum, source `LOCA_DATM`, carried by the datasets' `df.attrs["vertical_datum"]`; `NAVD 88` is stored as `NAVD88`; a blank `LOCA_DATM`, a `LOCA_LOCZ`, two datums or a name not in the table each set nothing; `vertical_datum=` wins over the file, and the file over `ht.settings.vertical_datum`.
 
 ## 13. Open questions
 1. Research items kept from the draft, not blocking: pcf in density headings in real US files (#5), nominal vs 152.4 mm SPT penetrations (#6). Ingest converts what the file declares either way.

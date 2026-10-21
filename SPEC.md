@@ -82,10 +82,10 @@
 ### 2.2 Decisions
 | Item | Decision |
 |---|---|
-| Storage (Phase 2) | **Convert to SI on ingest**; original text and unit kept in the raw layer |
+| Storage (Phase 2) | **Convert to SI on ingest**; original text and unit kept in the raw layer. Two exceptions are kept as written: a unit the file defines that hangtu doesn't know, and a known unit no quantity kind covers (`kN/mm`) ([`docs/data/ingest.md`](docs/data/ingest.md) §7) |
 | Display | `display_units = "US" \| "SI"`: a session or project setting, plus a `display_units=` argument on every plot, query and stats function. Per-quantity overrides are in the config |
 | Engine | [`pint`](https://pint.readthedocs.io) with a hangtu registry (custom definitions + alias table) |
-| Unknown units | Never guessed. Phase 1: clear error naming the column. Phase 2: raw-only column + QC error `U001` |
+| Unknown units | Never guessed. Phase 1: clear error naming the column. Phase 2: raw-only column + QC error `U001`, except a user-defined heading whose unit the file's `UNIT` group defines: numbers kept as written, not converted, info `U005` |
 | Alias matching | **Case-sensitive only** (explicit is better than implicit) |
 | Canonical units | One SI unit per quantity kind. SPT N and blow counts are counts and never converted |
 
@@ -201,7 +201,7 @@ Decided constraints only. The pipeline, database layout, keys, version mapping, 
 - **Provenance:** every canonical row keeps its source file and `_line`, for `diff()` and QC messages.
 - **Schema version** is stored in the metadata. If it doesn't match the installed hangtu on open, the user is told to re-ingest.
 - **Metadata tables** (`meta_*`) for settings, source files, heading units, value flags and the geology map.
-- **Extension tables** for things AGS lacks: datum/CRS, flags, provenance.
+- **Extension tables** for things AGS lacks: the project's vertical datum and where it came from (a setting, or the file's `LOCA_DATM` where that is unambiguous; [`docs/data/ingest.md`](docs/data/ingest.md) §7), horizontal CRS, flags, provenance.
 - **The public API never depends on the canonical layout.** Users see the column registry (§10.3), datasets and functions. Only `sql()` and `table()` expose internal names.
 
 ---
@@ -246,6 +246,7 @@ Apply in both phases. In Phase 1 they are applied by the analysis functions to t
 - `p.qc()` returns a report; the findings export to **one flat CSV**, with the rule settings the run used written next to it (`<stem>_rules.csv`), so a report sent on its own says what it was checked against.
 - Rules (id, severity, thresholds) live in YAML and can be overridden per call. **Thresholds are quantity strings with units** (`0.01 m`, `"0.05 ft"`), read like any other unit (§2.6); counts are plain numbers.
 - QC is computed on demand; only ingest validation is persisted.
+- **Reviewed findings can be accepted**, each with a reason, in a YAML file passed per call (`p.qc(accepted=...)`). Accepted findings stay in the report, marked, and an entry that matches nothing is shown, so a review never hides data.
 - `p.diff(group)` compares raw and canonical values cell by cell.
 - Rules, report and diff: [`docs/data/qc.md`](docs/data/qc.md).
 

@@ -5,7 +5,7 @@
 | **Status** | done (M6) |
 | **Intent** | [`docs/work/m6-qc.md`](../work/m6-qc.md#intent) |
 | **Parent** | SPEC §2.6 (units), §7 (data model), §8 (depth and geology), §9 (data quality), §11 (errors) |
-| **Related** | [`ingest.md`](ingest.md) §8–§9 (value flags, findings raised at ingest). TODO #6 (P001/P003 tolerances), #7 (minimally useful fields) |
+| **Related** | [`ingest.md`](ingest.md) §8–§9 (value flags, findings raised at ingest). [`docs/work/qc-review.md`](../work/qc-review.md) (accepted findings, D008), [`docs/work/vertical-datum.md`](../work/vertical-datum.md) (L006, L007). TODO #6 (P001/P003 tolerances), #7 (minimally useful fields) |
 
 ## 1. Purpose and scope
 Check a project's data for integrity problems (SPEC §9.1, level 1) and report them to the engineer, and show what ingest did to each value:
@@ -21,11 +21,13 @@ report = p.qc(rules="site_x_qc.yaml")             # overrides from a file
 report = p.qc(rules={"G002": {"thresholds": {"depth_tolerance": "0.05 ft"}},
                      "A004": {"enabled": False}},
               min_fields={"LOCA": {"recommended": ["LOCA_TYPE"]}})
+report = p.qc(accepted="site_x_accepted.yaml")   # reviewed findings, each with a reason (§3.4)
 
 report                       # summary: counts by severity and by rule
 report.findings              # DataFrame, one row per finding (§5)
 report.rules                 # DataFrame, the settings this run used (§5)
-report.summary()             # DataFrame: rule_id, title, severity, count
+report.summary()             # DataFrame: rule_id, title, severity, count, open, accepted
+report.accepted              # DataFrame, one row per accepted entry and what it matched (§5.4)
 report.to_csv("qc_report.csv")   # writes qc_report.csv and qc_report_rules.csv
 
 p.diff("ISPT")                               # every cell of ISPT
@@ -35,7 +37,7 @@ p.diff("ISPT", changed_only=True)            # only cells ingest changed (§7)
 - QC is computed on demand and never writes to the database (SPEC §9.2). Running it twice gives the same report.
 - Depths and values in findings are in the **project's** display units (`p.settings.display_units`), not the session's.
 - `report.to_csv(path)` writes the findings to `path` and the rules next to it as `<stem>_rules.csv`. Both are UTF-8 with a header row.
-- **Errors** (SPEC §11), raised before any rule runs: an override file that isn't there or isn't YAML; an unknown rule ID (lists the IDs); an unknown key in a rule (lists `enabled`, `severity`, `thresholds`); an unknown threshold name (lists the rule's thresholds); an unknown severity (lists `error`, `warning`, `info`); a threshold of the wrong kind (§3.2); an unknown group or heading in `min_fields` (lists the ones in the AGS 4 dictionaries: 4.2, then the older versions ingest reads, since `IPRG` is 4.0.x only; and, once a project is open, the file). `p.diff()` on an unknown group or heading lists the ones that exist.
+- **Errors** (SPEC §11), raised before any rule runs: an override file that isn't there or isn't YAML; an unknown rule ID (lists the IDs); an unknown key in a rule (lists `enabled`, `severity`, `thresholds`); an unknown threshold name (lists the rule's thresholds); an unknown severity (lists `error`, `warning`, `info`); a threshold of the wrong kind (§3.2); an unknown group or heading in `min_fields` (lists the ones in the AGS 4 dictionaries: 4.2, then the older versions ingest reads, since `IPRG` is 4.0.x only; and, once a project is open, the file). `p.diff()` on an unknown group or heading lists the ones that exist. For `accepted=` (§3.4): a file that isn't there or isn't YAML; not a list of mappings; a missing or blank `rule_id` or `reason`; an unknown key (lists the six); an unknown rule ID; `depth` without `loca_id`; `depth` with no unit or not a length. Each names the entry by its position and rule ("accepted entry 3 (D007): …").
 
 ## 3. Rule settings
 ### 3.1 Files
@@ -77,6 +79,29 @@ rules:
 - **`V*`** sets every python-ags4 rule at once; a single V rule ID given alongside it wins.
 - Overrides are passed to each call and not stored with the project (M7).
 
+### 3.4 Accepted findings
+A reviewer records findings they have checked and accept, so the report shows what is still open. `accepted=` takes a path to a YAML file or a list of dicts: a list of entries, under a top-level `accepted:` key or not.
+
+```yaml
+accepted:
+  - rule_id: L005
+    reason: Valley site; ground levels follow the topography.
+  - rule_id: D003
+    group: VSPR
+    reason: Velocity profiles run to 30 m for Vs30, below the borings.
+  - rule_id: D007
+    loca_id: BH-12
+    depth: 41.5 ft
+    reason: Specimen depth checked against the lab sheet.
+```
+
+- **Keys:** `rule_id` and `reason` are required; `loca_id`, `group`, `heading` and `depth` are optional. A given key must equal the finding's, exactly; a key left out matches anything, so fewer keys make a broader entry (`rule_id` alone accepts the rule on this site, but unlike disabling it, the findings are still listed and counted). `depth` needs `loca_id`. `V*` isn't accepted; single V rules are.
+- **Depth** is a quantity string, read as a length, and matches a finding within **0.05 m**, compared in meters. The tolerance is fixed, because practitioners write depths with inconsistent precision. A finding with no depth never matches an entry with one.
+- **Lines aren't keys**, since they move between revisions of a file.
+- A finding matched by several entries takes the first one's `reason`; every entry counts all the findings it matches.
+- Accepting changes nothing but the `accepted` and `reason` columns: severities and counts stay, and "clean" (§9) counts accepted findings too.
+- Entries are passed to each call, not stored with the project, as overrides are. An entry that matches nothing is shown in `report.accepted` (§5.4), not ignored.
+
 ## 4. Rules
 Every rule is listed in `rules.yaml` with the severity below. The thresholds are decided (2026-10-14), except the P001/P003 tolerances (TODO #6).
 
@@ -88,7 +113,7 @@ Every rule is listed in `rules.yaml` with the severity below. The thresholds are
 - One finding per offending record, unless the rule says otherwise.
 
 ### 4.1 From ingest (stored)
-As in `ingest.md` §9, read back from the `finding` table: `V<rule>`, `VLOG`, `V000`, `M001`, `U001`–`U004`, `T001`. Severities as stored, unless overridden. `U004` and `M001` join the list here.
+As in `ingest.md` §9, read back from the `finding` table: `V<rule>`, `VLOG`, `V000`, `M001`, `U001`–`U005`, `T001`. Severities as stored, unless overridden. `U004`, `U005` and `M001` join the list here.
 
 ### 4.2 Locations (L)
 | ID | Rule | Severity | Thresholds |
@@ -98,11 +123,13 @@ As in `ingest.md` §9, read back from the `finding` table: `V<rule>`, `VLOG`, `V
 | L003 | `LOCA_FDEP` blank | warning | |
 | L004 | Non-vertical section: `HORN_INCL` differs from 90° | warning | `inclination_tolerance: 2 deg` |
 | L005 | Ground level differs from the median of the nearest holes (by `LOCA_NATE`/`LOCA_NATN`) | warning | `ground_level_difference: 3 m`, `neighbor_count: 5`, `fewest_neighbors: 2`, `search_radius: 200 m` |
-| L006 | The project's vertical datum isn't set (`p.settings.vertical_datum`) | info | |
+| L006 | No vertical datum is known for the project (`p.settings.vertical_datum`) | info | |
+| L007 | Vertical datums disagree: holes' `LOCA_DATM` differ, or differ from the datum set for the project | warning | |
 
 - L004: one finding per `HORN` row. A hole with no `HORN` rows is taken as vertical, as AGS does.
 - L005: neighbors are the up to `neighbor_count` nearest other holes within `search_radius` that have a ground level; a hole with fewer than `fewest_neighbors` isn't checked. The message gives the median and the holes used.
-- L006: one finding for the project, no line. The message shows `p.settings.vertical_datum = "NAVD88"`.
+- L006: one finding for the project, no line. The message shows `p.settings.vertical_datum = "NAVD88"` and, where the file has `LOCA_DATM`, why it wasn't used (ingest.md §7): holes with it blank or with a `LOCA_LOCZ` (up to 10 named), holes that name different datums (L007), or a name not in the datum table (with the `ht.add_vertical_datum()` call).
+- L007: one finding for the project, group `LOCA`, heading `LOCA_DATM`, no line. Only holes with a `LOCA_GL` and no `LOCA_LOCZ` count, since a `LOCA_LOCZ` makes `LOCA_DATM` possibly a local datum. Raised when those holes name different datums (each datum with its hole count and up to 5 holes), or when the project's datum is a setting and their `LOCA_DATM` names another (both named). Names are compared after the datum table's matching; a name not in it is compared by its text, normalized the same way. L006 also fires when holes disagree, since no datum is taken from the file.
 
 ### 4.3 Geology (G)
 | ID | Rule | Severity | Thresholds |
@@ -124,11 +151,12 @@ As in `ingest.md` §9, read back from the `finding` table: `V<rule>`, `VLOG`, `V
 | D003 | Record depth below the hole's final depth | warning | `final_depth_tolerance: 0.1 m` |
 | D004 | Record depth outside the hole's logged geology | warning | |
 | D005 | An interval record (sample, test zone) crosses a geology boundary | info | |
-| D007 | Specimen depth (`SPEC_DPTH`) outside its sample (`SAMP_TOP` to `SAMP_BASE`, or below `SAMP_TOP` when there is no base) | warning | `depth_tolerance: 0.01 m` |
+| D007 | Specimen depth (`SPEC_DPTH`) outside its sample (`SAMP_TOP` to `SAMP_BASE`, or below `SAMP_TOP` when there is no base) by more than `rounding_tolerance` | warning | `depth_tolerance: 0.01 m`, `rounding_tolerance: 0.1 m` |
+| D008 | Specimen depth just outside its sample, likely rounding: by more than `depth_tolerance`, up to `rounding_tolerance` | info | D007's |
 
 - D002 and D003 give one finding per record, at its first offending depth heading.
 - D003 compares with `LOCA_FDEP + final_depth_tolerance`. Skipped where `LOCA_FDEP` is blank (L003).
-- D007 gives one finding per specimen, at its first row in file order, even when several tests (`LLPL`, `GRAG`, …) share it.
+- D007 and D008 give one finding per specimen, at its first row in file order, even when several tests (`LLPL`, `GRAG`, …) share it. Which rule depends on the offset; within `depth_tolerance` neither fires. D008 is the lower band of D007's check, so its bounds are D007's thresholds; each rule can be disabled or have its severity changed on its own, and disabling D007 doesn't change D008's band. `rounding_tolerance` below `depth_tolerance` is an error naming both. A ft→m rounding offset in a lab table is usually 2 to 8 cm; a linking error is meters.
 - D004 and D005 use `GEOL` as written, and are skipped for holes with no geology (G001). D004 checks the top depth of each record; GEOL itself is not checked against itself.
 - SPT depth is `ISPT_TOP` here. The mid-drive depth (SPEC §8.2) is M7's, and doesn't change which hole or interval a test is in except within 0.45 m of a boundary.
 - **D006 (duplicate) is dropped from the draft.** Two records with the same keys are already python-ags4's Rule 10a (`V10a`); two records at the same depth with different keys (two samples, two specimens) are legitimate.
@@ -215,6 +243,8 @@ In the shipped file the lists are written out in full; `<SPEC_KEY>` is a YAML an
 |---|---|
 | `rule_id` | `G002`, `V10a`, … |
 | `severity` | `error`, `warning` or `info`, after overrides |
+| `accepted` | True if an accepted entry matches it (§3.4) |
+| `reason` | the matching entry's reason, blank when open |
 | `group` | AGS group, or blank for a project-wide finding (L006) |
 | `loca_id` | the record's `LOCA_ID`, where it has one |
 | `depth` | the record's depth (§4, "Record depth": its first of `_TOP`, `_DPTH`, `SPEC_DPTH`, `SAMP_TOP`) in display units |
@@ -234,23 +264,30 @@ One row per rule, enabled or not, in rule order. After `V*` come the V rules the
 |---|---|
 | `rule_id`, `title` | from `rules.yaml`; a single V rule is titled `python-ags4 rule 10c` |
 | `enabled`, `severity` | after overrides; `as stored` for `V*`, V rules and `VLOG` unless overridden, since their stored severities differ |
-| `thresholds` | one text cell: `depth_tolerance = 0.05 ft; …`, each in the unit it was given |
+| `thresholds` | one text cell: `depth_tolerance = 0.05 ft; …`, each in the unit it was given. D008's reads `from D007: …` |
 | `overridden` | `yes` if anything differs from the defaults, else `no` |
 | `records_checked` | how many records the rule looked at; blank for ingest rules and disabled rules |
 | `findings` | how many findings it raised |
 
-`report.source` holds the project file (`file`, `path`), its `sha256`, its `ags_version`, the `hangtu_version` and the time of the run (`run_at`, local ISO 8601 to the second). `to_csv` writes them as `#` comment lines at the top of the rules file (`# file: site.ags`), so a report sent on its own says what it checked; `pd.read_csv(path, comment="#")` reads it back.
+`report.source` holds the project file (`file`, `path`), its `sha256`, its `ags_version`, the `hangtu_version` and the time of the run (`run_at`, local ISO 8601 to the second), and `accepted` (the accepted-findings file's path, `list`, or blank). `to_csv` writes them as `#` comment lines at the top of the rules file (`# file: site.ags`; with accepted entries, `# accepted: <path>, <n> entries, <m> match no finding`), so a report sent on its own says what it checked and that a review was applied; `pd.read_csv(path, comment="#")` reads it back.
 
 ### 5.3 Printed summary
 ```
 QC report: site.ags (AGS 4.2), hangtu 0.2.0, 2026-10-14 15:02
-  2 errors, 5 warnings, 9 info
+  open: 2 errors, 5 warnings, 9 info · accepted: 23
   error    G003  Overlapping geology intervals              1
   error    U001  Unknown or ambiguous unit                  1
-  warning  D003  Record depth below the final depth         2
+  warning  D003  Record depth below the final depth         2  (+1 accepted)
+  warning  L005  Ground level is an outlier compared ...    0  (+22 accepted)
   ...
+  2 accepted entries match no finding: report.accepted
   findings: report.findings · rules used: report.rules · save: report.to_csv("qc_report.csv")
 ```
+
+- Counts are open findings; `(+n accepted)` follows a rule with accepted ones, and a rule with only accepted findings is still listed. With no `accepted=`, the line reads `2 errors, 5 warnings, 9 info` as before. The "match no finding" line appears only when there are such entries.
+
+### 5.4 `report.accepted`
+One row per accepted entry, in file order: `rule_id`, `loca_id`, `group`, `heading`, `depth` (as written), `reason`, `matches` (how many findings it matched), `status` (`matched`, `no match` or `rule disabled`). Empty, with those columns, when `accepted=` isn't given.
 
 ## 6. Changes from the draft
 - `C001` split into `C001` (required, warning) and `C002` (recommended, info, one per heading).
@@ -299,7 +336,7 @@ Synthetic, written by `tests/data/ags/_make_files.py` (SPEC §12.3).
 | L002 | BH5 with no coordinates |
 | L004 | `HORN` row for BH2 with `HORN_INCL` 80 |
 | L005 | BH4 with ground level 8 m above its neighbors |
-| L006 | always (the test project has no datum) |
+| L006, L007 | BH1–BH3 `LOCA_DATM` `NAVD88`, BH4 `NGVD29` (BH5 has no `LOCA_GL`): one L007, and L006 with "holes name different datums" |
 | G001 | BH5 has `ISPT` and no `GEOL` |
 | G002 | BH1: 2.50–3.00 missing; BH2: log stops 0.50 m above `LOCA_FDEP` |
 | G003 | BH3: 2.00–4.00 and 3.50–6.00 |
@@ -308,7 +345,7 @@ Synthetic, written by `tests/data/ags/_make_files.py` (SPEC §12.3).
 | D003 | `ISPT_TOP` 1.00 m below `LOCA_FDEP` |
 | D004 | covered by the G002 gap in BH1: an `ISPT` at 2.75 |
 | D005 | `SAMP` 2.30–2.80 across a 2.50 boundary |
-| D007 | `SPEC_DPTH` 0.30 m below its sample's base |
+| D007, D008 | `SPEC_DPTH` 0.30 m below its sample's base (D007); 0.05 m below another's (D008) |
 | S001 | `ISPT_REP` "hard", and "50/76 ft" (a unit that isn't accepted). Accepted, raising nothing: `5,6,6 N=12`, `6,8/8,9,9,9 N=35`, `50/3"` and `22-30-50/3in` with `ISPT_NVAL` blank (no C001) |
 | S002 | `ISPT_NVAL` 150; and `ISPT_NVAL` 126 with report `41,81,57,75/113 N=126` (a complete test, not a refusal) |
 | S003 | BH4 with `ISPT_ERAT` blank on 2 tests |
@@ -319,11 +356,12 @@ Synthetic, written by `tests/data/ags/_make_files.py` (SPEC §12.3).
 | K001 | `PTST_K` 0, `FGHG_IPRM` 5 m/s |
 | C001, C002 | `GEOL_DESC` blank on one row; `LOCA_TYPE` absent |
 
-- The good files (`site_si.ags`, `site_us.ags`, `site_v404.ags`) are unchanged and must stay QC-clean (§9, #2).
+- The good files (`site_si.ags`, `site_us.ags` and `site_v404.ags`) must stay QC-clean (§9, #2). They have `LOCA_DATM` `NAVD88` in every hole, so they raise no L006.
+- Accepted entries are written in the tests (a YAML file in `tmp_path` and the same entries as a list), against `qc_defects.ags`.
 
 ## 9. Acceptance criteria
 1. **One test per rule:** on `qc_defects.ags`, each rule in §4.2–§4.10 raises exactly the findings its case seeds, with the right `group`, `loca_id`, `heading` and `source_line`; no other errors or warnings. Each ingest rule (§4.1) appears in the report of `defects.ags` or `site_v404.ags` with `loca_id` and `depth` filled where the line has a row.
-2. **Good files:** `site_si.ags`, `site_us.ags` and `site_v404.ags` give no errors or warnings. Their info findings are only `L006`, `S003`, `A004`, `C002`, `M001` (v404) and `U002` (US).
+2. **Good files:** `site_si.ags`, `site_us.ags` and `site_v404.ags` give no errors or warnings. Their info findings are only `S003`, `A004`, `C002`, `M001` (v404) and `U002` (US).
 3. **Twin files:** `site_si.ags` and `site_us.ags` give the same findings (`rule_id`, `severity`, `group`, `loca_id`, `heading`, `depth` to 1e-9) apart from `U002`.
 4. **Golden values:** L005's median and difference for BH4, S005's computed N60, P003's sum and A002's difference are hand-calculated in the test and match the message.
 5. **Thresholds and overrides:** `"0.05 ft"` and `"0.01524 m"` give the same G002 findings; a disabled rule raises nothing and shows `enabled = False` in `report.rules`; a severity override changes the findings and the summary; `V*` with a single V rule follows §3.3; an override file and the same dict give the same report. Each error in §2 is raised with its message.
@@ -331,6 +369,8 @@ Synthetic, written by `tests/data/ags/_make_files.py` (SPEC §12.3).
 7. **CSV:** `to_csv` writes both files; reading the findings back with `pd.read_csv` gives the same table; the rules file starts with the `report.source` comment lines and reads back with `comment="#"`. `depth` is in ft with `display_units="US"` and m with `"SI"`, with `depth_unit` to match.
 8. **Diff:** each `change` value appears on the test files (`converted` and pcf on `site_us.ags`; `flagged`, `reformatted` (DMS, `YN`) on `site_si.ags` and `T` on `site_v404.ags`; `not_converted` on `defects.ags`); `changed_only` and `heading=` filter as §7 says; display values follow `p.settings.display_units`.
 9. **Read-only and quiet:** QC and diff leave the database file unchanged (same SHA-256), raise no Python warnings and print nothing.
+10. **Accepted findings (§3.4):** on `qc_defects.ags`, `rule_id: L005` alone accepts BH4's L005; an entry with `loca_id` and `depth` accepts exactly one D007, written in ft or m; 0.04 m off matches and 0.06 m off doesn't; a `group` limits it to that group. Accepted findings keep their severity, with `accepted` and `reason` set; `summary()`'s `open` and `accepted` add up to `count`; the printed summary follows §5.3. An entry matching nothing is `no match` in `report.accepted`, one for a disabled rule is `rule disabled`, and a broad entry behind a specific one still counts its matches. A file and the same list give the same report, with or without the `accepted:` key. Each `accepted=` error in §2 is raised. `to_csv` writes `accepted` and `reason`, and the rules file has the `# accepted:` line.
+11. **D007/D008:** a `rounding_tolerance` of `"0.5 m"` turns the 0.30 m case into D008; disabling D008 leaves the 0.05 m case unreported; `rounding_tolerance` below `depth_tolerance` raises the error.
 
 ## 10. Open questions
 1. TODO #6: the P001/P003 tolerances, against real files.
