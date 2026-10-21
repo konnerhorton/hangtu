@@ -48,7 +48,13 @@ Verify against the source standards during M8:
 ### 6. QC thresholds — P001/P003 tolerances · You · docs/data/qc.md §4.7
 Revisit as real files are tested:
 - **P001** (grading curve rises): 0.5 percentage points.
-- **P003** (GRAG fractions don't sum to 100): ±2 percentage points.
+- **P003** (GRAG fractions don't sum to 100): ±2 percentage points. Held on a real 4.1.1 file (2026-10-21, `spt-report`): 3 findings, each 5 to 10 points from 100 and each a genuine error in the source report's tables; none came from rounding.
+
+### 25. Pressuremeter depth at the probe center · You · docs/data/qc.md §4.4 (D003)
+`PMTG_DPTH` is the center of the probe, so the hole went at least half the probe's expanding length deeper. D003 compares the center with `LOCA_FDEP`, so it misses a test whose center is above the final depth but whose lower half isn't. D003 could add half the probe length, when it is known. Minor; seen once on a real file.
+
+### 26. Slope-aware L005 · You + Claude · docs/data/qc.md §4.2 (L005)
+On a real file, a valley gave 22 L005 hits that were real topography. Options: compare a hole with a plane fitted through its neighbors rather than their median, or scale the tolerance with the distance to them. The per-project way to accept findings is `qc-review`.
 
 ### 7. Minimally useful fields · You · docs/data/qc.md §4.10
 - Review the default list group by group against real files.
