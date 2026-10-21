@@ -111,6 +111,10 @@ rules:
     severity: warning
     thresholds:
       depth_tolerance: 0.01 m
+      rounding_tolerance: 0.1 m
+  D008:
+    title: Specimen depth just outside its sample, likely rounding
+    severity: info
 
   # SPT (§4.5)
   S001:

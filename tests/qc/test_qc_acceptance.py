@@ -53,6 +53,7 @@ EXPECTED = {
 EXPECTED_INFO = {
     ("L006", None),  # cascade of L007: holes name different datums
     ("D005", 89),
+    ("D008", 121),  # SPEC_DPTH 0.05 m below its sample: rounding
     ("S003", None),
     ("A004", 121),
     ("P004", 145),

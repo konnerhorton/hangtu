@@ -2,6 +2,7 @@ import pandas as pd
 import pytest
 
 import hangtu as ht
+from hangtu.qc._accepted import ACCEPTED_COLUMNS
 from hangtu.qc._report import FINDING_COLUMNS, RULE_COLUMNS
 
 from .conftest import DATA
@@ -15,6 +16,14 @@ def defects(projects):
 def test_columns(defects):
     assert list(defects.findings.columns) == FINDING_COLUMNS
     assert list(defects.rules.columns) == RULE_COLUMNS
+    assert not defects.findings["accepted"].any()
+    assert defects.findings["reason"].isna().all()
+
+
+def test_no_accepted_entries(defects):
+    assert list(defects.accepted.columns) == ACCEPTED_COLUMNS
+    assert defects.accepted.empty
+    assert defects.source["accepted"] == ""
 
 
 def test_ingest_findings_appear_with_their_lines(defects):
@@ -106,7 +115,15 @@ def test_threshold_shown_as_given(projects):
 
 def test_summary_counts(defects):
     summary = defects.summary()
-    assert list(summary.columns) == ["rule_id", "title", "severity", "count"]
+    assert list(summary.columns) == [
+        "rule_id",
+        "title",
+        "severity",
+        "count",
+        "open",
+        "accepted",
+    ]
+    assert (summary["open"] == summary["count"]).all()  # nothing accepted
     counts = dict(zip(summary["rule_id"], summary["count"], strict=True))
     assert counts["V9"] == 6
     assert counts["U001"] == 2

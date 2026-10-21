@@ -20,7 +20,7 @@ import yaml
 from hangtu import _config, units
 from hangtu.ags._dictionary import standard
 from hangtu.errors import HangtuError, UnitsError
-from hangtu.qc._registry import INGEST_RULES, THRESHOLDS
+from hangtu.qc._registry import INGEST_RULES, THRESHOLDS, THRESHOLDS_FROM
 
 SEVERITIES = ("error", "warning", "info")
 RULE_KEYS = ("enabled", "severity", "thresholds")
@@ -134,6 +134,8 @@ class Settings:
             or enabled != default.get("enabled", True)
             or any(thresholds[name].value != defaults[name].value for name in defaults)
         )
+        if rule_id in THRESHOLDS_FROM:
+            thresholds = self.rule(THRESHOLDS_FROM[rule_id]).thresholds
         return RuleSettings(
             rule_id=rule_id,
             title=merged["title"],
@@ -177,7 +179,20 @@ def load(
     )
     for rule_id in overrides:
         settings.rule(rule_id)  # converts each threshold, raising if one is wrong
+    _check_rounding_band(settings.rule("D007"))
     return settings
+
+
+def _check_rounding_band(d007: RuleSettings) -> None:
+    """D008 reports offsets between D007's two tolerances, so they must be in order."""
+    depth = d007.thresholds["depth_tolerance"]
+    rounding = d007.thresholds["rounding_tolerance"]
+    if rounding.value < depth.value:
+        raise HangtuError(
+            f"QC rule D007: rounding_tolerance ({rounding.text}) is below "
+            f"depth_tolerance ({depth.text}). D008 reports offsets between the "
+            f"two, so rounding_tolerance must be at least depth_tolerance."
+        )
 
 
 def _read(source: Override, top_key: str) -> dict[str, Any]:
@@ -185,21 +200,7 @@ def _read(source: Override, top_key: str) -> dict[str, Any]:
     if source is None:
         return {}
     if isinstance(source, str | PathLike):
-        path = Path(source)
-        if not path.is_file():
-            raise FileNotFoundError(
-                f"No QC {top_key} file at {str(path)!r}. Check the path; it is "
-                f"relative to {str(Path.cwd())!r} unless it starts from a drive or /."
-            )
-        try:
-            source = yaml.safe_load(path.read_text(encoding="utf-8"))
-        except yaml.YAMLError as error:
-            where = getattr(error, "problem_mark", None)
-            line = f" at line {where.line + 1}" if where else ""
-            raise HangtuError(
-                f"The QC {top_key} file {str(path)!r} isn't valid YAML{line}. "
-                f"Check its indentation and colons against docs/data/qc.md §3."
-            ) from None
+        source = read_yaml(source, top_key)
         if source is None:
             return {}
     if not isinstance(source, Mapping):
@@ -210,6 +211,25 @@ def _read(source: Override, top_key: str) -> dict[str, Any]:
     if set(source) == {top_key}:
         source = source[top_key] or {}
     return {str(key): value for key, value in source.items()}
+
+
+def read_yaml(path: str | PathLike[str], what: str) -> Any:
+    """Read a QC YAML file; ``what`` names it in errors (``rules``)."""
+    path = Path(path)
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"No QC {what} file at {str(path)!r}. Check the path; it is "
+            f"relative to {str(Path.cwd())!r} unless it starts from a drive or /."
+        )
+    try:
+        return yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as error:
+        where = getattr(error, "problem_mark", None)
+        line = f" at line {where.line + 1}" if where else ""
+        raise HangtuError(
+            f"The QC {what} file {str(path)!r} isn't valid YAML{line}. "
+            f"Check its indentation and colons against docs/data/qc.md §3."
+        ) from None
 
 
 def _check_rules(overrides: dict[str, Any], defaults: dict[str, Any]) -> None:
@@ -245,6 +265,12 @@ def _check_rules(overrides: dict[str, Any], defaults: dict[str, Any]) -> None:
 
 def _check_threshold_names(rule_id: str, thresholds: Any) -> None:
     known = THRESHOLDS.get(rule_id, {})
+    if rule_id in THRESHOLDS_FROM:
+        source = THRESHOLDS_FROM[rule_id]
+        raise HangtuError(
+            f"QC rule {rule_id} has no thresholds of its own; it uses {source}'s "
+            f"({', '.join(THRESHOLDS[source])}). Set them on {source}."
+        )
     if is_ingest_rule(rule_id):
         raise HangtuError(
             f"QC rule {rule_id} is raised at ingest and has no thresholds; "

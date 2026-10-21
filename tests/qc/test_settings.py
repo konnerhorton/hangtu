@@ -46,6 +46,8 @@ def test_yaml_and_code_name_the_same_thresholds():
     }
     in_code = {rule_id: set(names) for rule_id, names in THRESHOLDS.items()}
     assert in_yaml == in_code
+    # D008 has none of its own; it runs with D007's.
+    assert set(load().rule("D008").thresholds) == in_code["D007"]
 
 
 def test_ingest_rules_are_in_yaml():
@@ -297,3 +299,28 @@ def test_unknown_min_fields_heading():
 def test_unknown_min_fields_list():
     with pytest.raises(HangtuError, match=r"no list 'optional'"):
         load(min_fields={"LOCA": {"optional": ["LOCA_TYPE"]}})
+
+
+def test_rounding_tolerance_below_depth_tolerance():
+    with pytest.raises(
+        HangtuError,
+        match=r"D007: rounding_tolerance \(0\.005 m\) is below depth_tolerance "
+        r"\(0\.01 m\)",
+    ):
+        load(rules={"D007": {"thresholds": {"rounding_tolerance": "0.005 m"}}})
+
+
+def test_d008_takes_no_thresholds_of_its_own():
+    with pytest.raises(
+        HangtuError,
+        match=r"D008 has no thresholds of its own; it uses D007's \(depth_tolerance, "
+        r"rounding_tolerance\)\. Set them on D007\.",
+    ):
+        load(rules={"D008": {"thresholds": {"depth_tolerance": "0.05 m"}}})
+
+
+def test_d008_follows_d007s_threshold_overrides():
+    settings = load(rules={"D007": {"thresholds": {"rounding_tolerance": "1 ft"}}})
+    d008 = settings.rule("D008")
+    assert d008.thresholds["rounding_tolerance"].value == pytest.approx(0.3048)
+    assert d008.overridden is False

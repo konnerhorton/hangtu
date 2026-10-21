@@ -37,7 +37,7 @@ THRESHOLDS: dict[str, dict[str, str]] = {
     "G002": {"depth_tolerance": "length"},
     "G003": {"depth_tolerance": "length"},
     "D003": {"final_depth_tolerance": "length"},
-    "D007": {"depth_tolerance": "length"},
+    "D007": {"depth_tolerance": "length", "rounding_tolerance": "length"},
     "S002": {"highest_spt_n": "count"},
     "S005": {"n60_tolerance": "count"},
     "A002": {"plasticity_index_tolerance": "percent"},
@@ -50,6 +50,10 @@ THRESHOLDS: dict[str, dict[str, str]] = {
         "highest_hydraulic_conductivity": "hydraulic_conductivity",
     },
 }
+
+#: Rules that run with another rule's thresholds: D008 is the lower band of
+#: D007's check, so its bounds are D007's (qc.md §4.4).
+THRESHOLDS_FROM: dict[str, str] = {"D008": "D007"}
 
 
 @dataclass(frozen=True)

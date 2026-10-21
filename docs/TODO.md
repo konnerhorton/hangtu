@@ -59,6 +59,9 @@ On a real file, a valley gave 22 L005 hits that were real topography. Options: c
 ### 27. Writing accepted findings from a report · You + Claude · docs/data/qc.md §2
 Typing accepted-findings entries (`qc-review`) by hand is slow when a reviewer accepts many findings one at a time. A helper such as `report.accept(rows, reason=...)` could write or extend the YAML file from rows of `report.findings`. Left out of `qc-review` because it is a second API; revisit once accepted findings have been used on a real review.
 
+### 28. D003/D004 for geophysical profiles · You + Claude · docs/data/qc.md §4.4 (D003, D004)
+A downhole or surface velocity profile (often a user-defined group) can run below `LOCA_FDEP`, for example to 30 m for Vs30, and outside the logged geology. D003 and D004 report it as a depth error. Options: exempt groups that hold a geophysical profile, or report them as info. Accepted findings (`qc-review`, `group:` entries) cover it per project for now.
+
 ### 7. Minimally useful fields · You · docs/data/qc.md §4.10
 - Review the default list group by group against real files.
 - **Decided for now:** `SPEC_REF` and `SPEC_DPTH` are recommended, not required (M7, docs/data/datasets.md §14), so lab results without them fall back to the sample depth.
