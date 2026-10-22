@@ -482,3 +482,76 @@ Implementation choices the spec leaves open. Any that changes what a user sees g
   - `p.index_properties()` adds two: the 6 Terrace sands (6–8 % fines) have no Atterberg test, so their USCS symbol and AASHTO group are blank. NP limits on those samples in `_make_examples.py` would classify them, if the example should show symbols there.
 - **For P06:** `p.index_properties()` gives `water_content`, `liquid_limit`, `plastic_limit`, `liquidity_index` and `depth` at the reference depth, one row per sample. Add `ht.plot.water_content_profile(p.index_properties())` to `test_14_m8_datasets_feed_the_plots` in `tests/datasets/test_datasets_acceptance.py`.
 - **Still open:** whether `plasticity()` should class an NP specimen with LL under 20 as M rather than C in BS 5930 (and in USCS, where it is ML only because PI = 0 is under 4). A decision for the analyses (§2.5), not the datasets: TODO #24.
+
+## Plan: P06
+
+Spec: [`docs/plots/P06-water-content-profile.md`](../plots/P06-water-content-profile.md) (section numbers below are P06's unless marked otherwise).
+
+Each build step is one commit, with ruff and pytest passing. A step that grows past about 300 changed lines (not counting tests' data) is split.
+
+### Package layout
+```
+src/hangtu/
+  plot/__init__.py                    exports water_content_profile
+  plot/_water_content_profile.py      water_content_profile(): input checks, NP, the limits bars
+  plot/_profile.py                    _draw_profile() takes a Companion: marks its caller draws per row
+  plot/_values.py                     Flag gains filled= (open NP marker)
+  plot/_notes.py                      + reasons one_limit, limits_inverted, non_plastic_drawn
+  plot/_layers.py                     + LIMITS_BARS
+tests/plot/
+  test_water_content_profile.py              bars, NP, one limit, errors, pass-through
+  test_water_content_profile_acceptance.py   §12 against the example project and synthetic frames
+tests/datasets/test_datasets_acceptance.py   + the P06 call in test_14 (datasets.md §13 #14)
+docs/site/plots/water-content-profile.md, docs/site/examples/water-content-profile.py
+```
+The module is `_water_content_profile.py`, so `ht.plot.water_content_profile` is the function and not a submodule. It follows `_spt_profile.py`: check and prepare the data, then call `_draw_profile()`.
+
+### Decisions the build makes
+These fill gaps in P06. Any that changes what a user sees goes into P06 in the commit that builds it.
+1. **One hook in `_draw_profile`.** The bars have to set the x limits and the vertical limits, give their unit a legend entry, keep "No data" away, and add to the legend and the footnote before they're rendered, all inside `_draw_profile`. So it takes `companion: Companion | None`, a NamedTuple in `_profile.py`:
+   - `rows`: the rows the caller draws. A row in `rows` with a blank w isn't counted as blank. It sets the vertical limits, gives its unit a legend entry and means there is data.
+   - `x`: values in display units that the automatic x limits cover (PL and LL).
+   - `draw(ax, y, groups, colors, notes) -> list[Artist]`: called after the points and text values, before the legend. Its return value is the legend entries.
+
+   P01 and P02 pass None and behave the same; their tests pass unchanged. No P01 logic is copied, so every overlay and argument works as §5 asks.
+2. **Explicit signature.** As `spt_profile()`, every P01 argument is written out (so the API reference lists them), except `value`, `preset` and `log`, which are fixed (`water_content`, the `water_content` preset, linear). Passing one of them lands in `**style_overrides`, and that is caught with an error that says so and points to `ht.plot.profile()`. `label=` defaults to "Water content, w, and Atterberg limits"; the units "(%)" are added as usual.
+3. **Input.** No `water_content` column and not both limits → error naming the columns (§11). Limits without a `water_content` column → a blank one is added to a copy, so `_draw_profile` runs and only bars are drawn. No `plastic_limit` (or `liquid_limit`) column → the §3 hint through `extra_hints`. Text in a limit column → error naming the rows, saying to use `non_plastic` for NP (§11). Limit units go through `resolve_units` and `to_display` as the value's do, with `units=`.
+4. **NP** (`non_plastic` read with `_data.flag_column`):
+   - **With a w:** a flag `non_plastic` through `flags`/`flag_kinds`. `Flag` gains `filled: bool = True`; `_draw_points` and `flag_handles` draw it open with ◇ (`D`), P01's NP text shape. The legend entry is "non-plastic (n)". The footnote line is a new reason `non_plastic_drawn`: "n non-plastic (NP) specimens, shown open at their water content", because the existing `non_plastic` reason's wording is ", shown at the left edge". Qualifiers keep working through the same `flags`. A row that is NP and has a qualifier is an error naming the rows, as P01's qualifier with text is.
+   - **Without a w:** its water content becomes the text `NP` in the copy, so P01 draws it at the left edge and counts it under `non_plastic` with text NP in `water_content`. That is how §3 already treats the text NP, so the two sources read alike. §7's "counted in the footnote" becomes "drawn at the left edge and counted".
+   - **No bar.** An NP row that also has a limit gets no bar, and one warning names the rows ("marked non-plastic but has limits").
+5. **Bars** (§7). One `Line2D` per unit color, PL to LL joined with NaN gaps (as `_draw_intervals`), 1.2 pt. End ticks are a scatter of `|` markers, 4 pt, at PL and LL. They are drawn at `_layers.LIMITS_BARS` = 2.3, above intervals and connections and under the markers. gids `limits_bar` and `limits_tick`, so the tests read back the geometry. The legend entry is a gray line with end ticks, "PL to LL".
+6. **One limit** (§4, §7): a single `|` tick at the given limit. New reason `one_limit`: "n specimens with one limit, shown as a single tick". One warning names the rows, and when `plasticity_index` is given on any of them it says PL wasn't computed from LL − PI.
+7. **PL > LL** (§11): no bar, one warning naming the rows. It is also counted under a new reason `limits_inverted` ("n specimens with PL above LL, limits not shown"), so a bar is never lost silently. That count is new to §11.
+8. **Limits.** x starts at 0 and ends at a nice value above w, PL and LL (`value_limits` on w with `companion.x`); LL 72 gives 0–80. With `xlim=`, a bar is clipped to the limits, and each end beyond them gets `edge_markers` with the `|` shape and an outward arrow. The bar counts once under `beyond_limit`. With `ylim=`, a bar whose row lies beyond the limit isn't drawn and is counted under `beyond_limit` (its w point is drawn at the edge, as in P01).
+9. **`limits=False`** calls `_draw_profile` exactly as `profile(df, "water_content", preset="water_content")` would (§12: "gives P01's figure"). There are no bars, no NP flag and no extra checks.
+10. **Zero rows** draw the empty profile with "No data", as P01.
+
+### Build 1: `P06: draw water content with the Atterberg limits bars`
+- `_profile.py`: `Companion` and the hook (decision 1). `_layers.py`: `LIMITS_BARS`. `_notes.py`: `one_limit`, `limits_inverted`.
+- `_water_content_profile.py`: the full §10 signature (decision 2), input checks (decision 3), bars, one limit, PL > LL, limits (decisions 5–8), `limits=False` (decision 9). NP rows raise `NotImplementedError` until Build 2, so no step ships a silent no-op.
+- `plot/__init__.py` export; a reference entry in `docs/site/reference/plot.md` (the docs test needs it).
+- Tests: §12 geometry (PL 20, LL 45, w 30 at 10 ft: bar 20–45 at y = 10, marker at (30, 10)); the bar is under the marker; ticks at both ends; limits only (bar, no count, no "No data", vertical limits include it); §12 no PL from PI (tick at 45, count, the warning's wording); PL > LL warned and counted; text in a limit is an error; neither column is an error; `value=`/`preset=`/`log=` are errors; the hint; LL 72 → 0–80; `xlim=(0, 50)` clips with an arrow and counts; `ylim=` count; `limits=False` gives the same artists as `profile()`; P01 and P02 tests unchanged.
+
+### Build 2: `P06: draw non-plastic specimens open at their water content`
+- `Flag(filled=)`, `_draw_points` and `flag_handles` honor it; `_notes.py`: `non_plastic_drawn`; NP with and without w, NP with a qualifier, NP with limits (decision 4).
+- Tests: §12 NP (w 18 → open ◇ at 18, no bar, "non-plastic (1)" in the legend); NP without w at the left edge, counted under `non_plastic`; text `NP` in `water_content` the same; `non_plastic` with bad values is `flag_column`'s error; NP with `<` is an error; NP with limits warns; NP beyond `xlim=` at the edge, open.
+
+### Build 3 (close-out): `P06: add acceptance tests and close out P06 and M8`
+- `test_water_content_profile_acceptance.py`: every §12 automated criterion: depth and elevation; `ax=` on a `Sheet`; `assert_no_global_state`; `assert_us_si_equivalent` (only the vertical axis differs); `strata=`, `water_level=`, `stats_box=` (w only) pass through; `p.atterberg()` and `p.index_properties()` from the example project draw with no warning or hint.
+- `test_datasets_acceptance.py` test 14: adds `water_content_profile(p.index_properties())` (datasets.md §13 #14).
+- **Visual check:** `docs/plots/img/P06-us.png` and `P06-si.png` (100 dpi), from the example project's `p.index_properties()` against elevation, with strata. I look at both before committing, against §2's reference figure and its "A good version" list. The example data have no NP or one-limit specimen, so those are checked in the synthetic tests and looked at once, not committed.
+- **Docs site:** `docs/site/plots/water-content-profile.md` (in the `spt-profile.md` format: what it shows, common options, see also), `docs/site/examples/water-content-profile.py` (from `atterberg.csv`), the `nav` entry in `zensical.toml`, and a row in `docs/site/plots/index.md`'s table.
+- Close-out:
+  - `docs/plots/README.md`: P06 status `built`.
+  - P06: any detail the build changed, and decisions 4, 6–8 (§7, §11).
+  - SPEC §11: a `water_content_profile()` line in the Phase 1 sketch (intent, "SPEC sections touched"). §12.4 and §1.3: M8 done; the batch 1 line says P00–P07 are built.
+  - `README.md`: a `water_content_profile` line if it runs without a warning (`test_readme.py`).
+  - `CLAUDE.md`: the status paragraph says M8 is done and the 0.1.0 PyPI release is next.
+  - `docs/TODO.md`: no change expected.
+  - This plan: a Results section.
+
+### Verification
+- After each build: `uv run ruff check . && uv run ruff format --check . && uv run pytest`.
+- At close-out: Python 3.13 and 3.14 (`uv run --isolated --python 3.1x pytest`); the lowest dependency versions, as in CLAUDE.md, then `git checkout uv.lock`; `uv build`, and check that the wheel has `_water_content_profile.py`; `uv sync --group docs && uv run python docs/prepare_site.py && uv run zensical build --clean --strict`, and look at the new page.
+- Look at `P06-us.png` and `P06-si.png` against §2's reference figure and its "A good version" list.
