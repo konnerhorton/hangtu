@@ -15,8 +15,8 @@ A dataset is a table with one row per test, with its depth, elevation and geolog
 | Dataset | One row per | Plots it feeds |
 |---|---|---|
 | `p.spt()` | SPT test | [SPT profile](../plots/spt-profile.md), [SPT histogram](../plots/spt-histogram.md) |
-| `p.atterberg()` | Atterberg specimen, with its water content | [Water content profile](../plots/water-content-profile.md), [property profile](../plots/profile.md), [property by geology unit](../plots/geology-unit-comparison.md) |
-| `p.grain_size()` | Point on a grading curve | |
+| `p.atterberg()` | Atterberg specimen, with its water content | [Water content profile](../plots/water-content-profile.md), [plasticity chart](../plots/plasticity-chart.md), [property profile](../plots/profile.md), [property by geology unit](../plots/geology-unit-comparison.md) |
+| `p.grain_size()` | Point on a grading curve | [Grain size distribution](../plots/grain-size.md) |
 | `p.permeability()` | Permeability test, lab or field | [Property profile](../plots/profile.md) |
 
 Each comes in the project's display units, or in `display_units="SI"` or `"US"` if you ask.
