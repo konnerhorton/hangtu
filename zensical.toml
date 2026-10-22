@@ -31,6 +31,8 @@ nav = [
     "plots/profile.md",
     "plots/spt-profile.md",
     "plots/water-content-profile.md",
+    "plots/plasticity-chart.md",
+    "plots/grain-size.md",
     "plots/spt-histogram.md",
     "plots/geology-unit-comparison.md",
   ] },

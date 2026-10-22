@@ -71,7 +71,7 @@
 
 **Order of work:** wave 1, statistics, wave 0, wave 2, selection (stage D, starting with the Mohr–Coulomb set), then waves 3–6, each adding stage D and the model sets its sheets complete. Statistics come ahead of wave 0 because by then there are measured properties, derived values with depth trends and several correlations per property to compare, so they are designed against real uses. §12.4 has the milestones.
 
-**Releases** (decided 2026-10-21) are cut when a milestone leaves something usable, and aren't tied to waves or planned ahead. 0.1.0 (the plots P00–P03 and P07 and the data layer) is the first; its PyPI release comes next.
+**Releases** (decided 2026-10-21) are cut when a milestone leaves something usable, and aren't tied to waves or planned ahead. 0.1.0 (the plots P00–P03 and P07 and the data layer) is the first, on PyPI.
 
 **Not yet placed**, built when needed: the Hollmann & Thewes (2013) clogging diagram (P18); QC level 2 (engineering-judgment ranges); standards comparison with a library of published ranges; user-defined PSD regions and the plasticity-chart data region; the compaction curve (P16).
 
