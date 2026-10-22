@@ -9,7 +9,7 @@ from typing import Any
 import pandas as pd
 
 import hangtu.db as database
-from hangtu import ags, datasets, qc, vertical_datums
+from hangtu import _judgments, ags, datasets, qc, vertical_datums
 from hangtu._settings import Settings, settings
 from hangtu.datasets import _geology_map
 from hangtu.errors import HangtuError, warn
@@ -691,6 +691,65 @@ class Project:
 
     # --- Geology map (datasets.md §5.2) -----------------------------------------
 
+    def stratigraphy(
+        self,
+        *,
+        holes: "str | list[str] | None" = None,
+        geology: "str | list[str] | None" = None,
+        where: dict | None = None,
+        contains: "str | list[str] | None" = None,
+        geology_fields: "str | list[str] | None" = None,
+        include_incomplete: bool = False,
+        display_units: str | None = None,
+    ) -> pd.DataFrame:
+        """Return each hole's log, one row per GEOL layer.
+
+        The columns are those of ``ht.template("stratigraphy")`` plus
+        ``source_line``: ``loca_id``, ``depth_top``, ``depth_base``, and
+        ``geology_unit`` through the geology map, ``soil_class`` and
+        ``geology_description``, ordered by hole and top. It is the log
+        ``ht.analysis.vertical_stress()`` integrates through; edit it (reclass
+        layers by USCS, say) and pass it back. Layers are as written: gaps and
+        overlaps are kept, and ``p.qc()`` reports them (G002, G003). There is
+        no ``depth=`` or ``elevation=``: a log cut at a depth can't be
+        integrated. See ``docs/data/datasets.md`` §6.7.
+
+        Parameters
+        ----------
+        holes, geology
+            Keep these holes (``LOCA_ID``) or geology units. Keeping some
+            units leaves gaps in the logs, which ``vertical_stress()`` rejects.
+        where
+            Keep rows matching ``{column: value or list of values}``.
+        contains
+            Keep layers whose description contains this text (any case), or
+            any of a list.
+        geology_fields
+            GEOL headings to add as columns, e.g. ``["GEOL_FORM"]``.
+        include_incomplete
+            Keep layers with a blank required field (QC C001). By default
+            they're left out, with a warning that counts them.
+        display_units
+            ``"US"`` or ``"SI"``; by default the project's.
+
+        Examples
+        --------
+        >>> log = p.stratigraphy()
+        >>> stress = ht.analysis.vertical_stress(p.spt(), stratigraphy=log)
+        >>> one_hole = log[log["loca_id"] == "BH1"]
+        >>> fig, ax = ht.plot.spt_profile(p.spt(holes="BH1"), strata=one_hole)
+        """
+        return datasets.stratigraphy(
+            self._path,
+            holes=holes,
+            geology=geology,
+            where=where,
+            contains=contains,
+            geology_fields=geology_fields,
+            include_incomplete=include_incomplete,
+            display_units=display_units,
+        )
+
     def set_geology_map(
         self, source: "str | PathLike[str] | pd.DataFrame | None"
     ) -> None:
@@ -722,6 +781,49 @@ class Project:
         """The stored geology map, or None if there isn't one."""
         rows = database.read_geology_map(self._path)
         return None if rows.empty else rows
+
+    def set_judgments(self, path: "str | PathLike[str] | None") -> None:
+        """Set the project's judgments file: its unit weights and water levels.
+
+        The path is stored with the project, not the file's content, so an
+        edit to the file shows up in the next analysis. Every dataset carries
+        it in ``df.attrs["judgments_file"]``, and analyses that need a
+        judgment read it from there (SPEC §4). A path inside the database's
+        folder is stored relative to it, so the folder can move whole. The
+        file is read now, so a mistake in it shows up here. The setting lasts
+        until the database is rebuilt.
+
+        Parameters
+        ----------
+        path
+            The judgments YAML file (see ``ht.judgments``). None removes it.
+
+        Examples
+        --------
+        >>> p.set_judgments("judgments.yaml")
+        >>> p.judgments
+        >>> stress = ht.analysis.vertical_stress(p.spt(), stratigraphy=p.stratigraphy())
+        """
+        if path is None:
+            database.write_settings(self._path, {_judgments.STORED_KEY: None})
+            return
+        _judgments.judgments(path)  # raises for a bad file, before storing
+        stored = _judgments.to_store(self._path, path)
+        database.write_settings(self._path, {_judgments.STORED_KEY: stored})
+
+    @property
+    def judgments(self) -> "_judgments.Judgments | None":
+        """The project's judgments file, or None if none is set."""
+        value = database.read_settings(self._path).get(_judgments.STORED_KEY)
+        if value is None:
+            return None
+        path = _judgments.stored_path(self._path, value)
+        if not path.is_file():
+            raise HangtuError(
+                f"The judgments file set for this project, {str(path)!r}, isn't "
+                "there. Move it back, or set it again with p.set_judgments(path)."
+            )
+        return _judgments.Judgments(path)
 
     def __repr__(self) -> str:
         """Summarize the file, its groups and the findings by severity."""
@@ -801,6 +903,7 @@ class ProjectSettings:
         """List the stored settings, with where the vertical datum came from."""
         stored = database.read_settings(self._path)
         source = stored.pop(DATUM_SOURCE, "setting")  # older databases: a setting
+        stored.pop(_judgments.STORED_KEY, None)  # p.judgments, not a setting
         lines = []
         for name, value in stored.items():
             line = f"    {name}={value!r},"

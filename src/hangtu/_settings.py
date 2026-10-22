@@ -158,6 +158,24 @@ def _geology_key(value: Any) -> str:
     return value
 
 
+def _water_unit_weight(value: Any) -> str:
+    from hangtu import units  # imported here because units imports settings
+
+    example = 'Example: ht.settings.water_unit_weight = "62.4 pcf"'
+    try:
+        magnitude, _ = units.parse_quantity(value, "unit_weight")
+    except HangtuError as error:
+        raise HangtuError(
+            "settings.water_unit_weight must be a unit weight with its unit, "
+            f"not {value!r}: {error} {example}"
+        ) from None
+    if magnitude <= 0:
+        raise HangtuError(
+            f"settings.water_unit_weight must be positive, not {value!r}. {example}"
+        )
+    return value.strip()
+
+
 def _is_number(value: Any) -> bool:
     return isinstance(value, Real) and not isinstance(value, bool)
 
@@ -173,7 +191,12 @@ _VALIDATORS: dict[str, Callable[[Any], Any]] = {
     "spt_cap": _spt_cap,
     "summary_min_count": _summary_min_count,
     "geology_key": _geology_key,
+    "water_unit_weight": _water_unit_weight,
 }
+
+
+#: Settings holding a quantity string; checked on assignment, not at import.
+_QUANTITY_SETTINGS = ("water_unit_weight",)
 
 
 def _unknown(name: str) -> str:
@@ -182,7 +205,12 @@ def _unknown(name: str) -> str:
 
 def _defaults() -> dict[str, Any]:
     raw = _config.load("config/defaults.yaml")["settings"]
-    return {name: validate(raw[name]) for name, validate in _VALIDATORS.items()}
+    # units imports settings, so a quantity setting can't be parsed while the
+    # session settings are first built; tests/test_settings.py checks it.
+    return {
+        name: raw[name] if name in _QUANTITY_SETTINGS else validate(raw[name])
+        for name, validate in _VALIDATORS.items()
+    }
 
 
 class Settings:

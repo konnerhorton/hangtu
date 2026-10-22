@@ -1,6 +1,6 @@
 # Data and units
 
-Reading CSV files with their units, the column registry and templates, the example data, settings and printable sheets.
+Reading CSV files with their units, the column registry and templates, the judgments file, the example data, settings and printable sheets.
 
 ## Reading data and units
 
@@ -19,6 +19,12 @@ Reading CSV files with their units, the column registry and templates, the examp
 ::: hangtu.columns
 
 ::: hangtu.template
+
+## Judgments
+
+::: hangtu.judgments
+
+::: hangtu.Judgments
 
 ## Example data
 

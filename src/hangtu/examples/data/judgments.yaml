@@ -1,0 +1,23 @@
+# judgments.yaml: the example site's unit weights and water levels (SPEC §4).
+unit_weight:
+  by: geology_unit
+  units: {bulk_unit_weight: pcf, saturated_unit_weight: pcf}
+  values:
+    Fill: {bulk_unit_weight: 120, reason: "compacted sandy lean clay fill, typical"}
+    Alluvium:
+      bulk_unit_weight: 110
+      saturated_unit_weight: 112
+      reason: "soft lean clay, typical"
+    Terrace:
+      bulk_unit_weight: 125
+      saturated_unit_weight: 130
+      reason: "medium dense to very dense sand with gravel, typical"
+water_level:
+  units: {depth: ft}
+  by_hole:
+    B-1: {depth: 8.0, reason: "encountered while drilling, 2026-08-10"}
+    B-2: {depth: 9.5, reason: "encountered while drilling, 2026-08-11"}
+    B-3: {depth: 7.0, reason: "encountered while drilling, 2026-08-12"}
+    B-4: {depth: 8.5, reason: "encountered while drilling, 2026-08-13"}
+    B-5: {depth: 10.0, reason: "encountered while drilling, 2026-08-14"}
+    B-6: {depth: 6.5, reason: "encountered while drilling, 2026-08-15"}

@@ -34,6 +34,10 @@ curves = p.grain_size()                  # §6.3
 k = p.permeability()                     # §6.4
 summary = p.grain_size_summary()         # §6.5, fractions="astm_uscs"
 index = p.index_properties()             # §6.6, one row per sample
+strata = p.stratigraphy()                # §6.7, one row per GEOL layer
+
+p.set_judgments("judgments.yaml")        # the project's judgments file (SPEC §4)
+p.judgments                              # a Judgments, or None; datasets carry its path
 
 fig, ax = ht.plot.spt_profile(p.spt(geology=["Alluvium"]))
 ```
@@ -74,6 +78,7 @@ It's a property, takes no filters, and has `df.attrs["units"]` like a dataset (�
 
 ## 4. Values, units and columns
 - **Units:** values come back in the display units, `display_units=` if given, else the project's `p.settings.display_units` (and its `display_overrides`), converted from SI by each column's quantity kind in the registry. `df.attrs["units"]` names the unit of every numeric column, so the plots and `ht.units_of` read them (SPEC §2.6). The SI and US twin files give the same dataset for the same `display_units=`.
+- **Judgments file:** when the project has one (`p.set_judgments`, SPEC §4), `df.attrs["judgments_file"]` holds its resolved path, so an analysis that needs a judgment finds it without `judgments=` (M13).
 - **Vertical datum:** when the project has one (`p.settings.vertical_datum`), `df.attrs["vertical_datum"]` holds it, and the plots put it on elevation labels ahead of `ht.settings.vertical_datum` (P00 §7). Added in M9, when the examples showed a project's datum missing from its figures.
 - **Columns** are registry names (SPEC §10.3), in the order of the tables in §6. New columns are added to `columns.yaml` (§11).
 - **Rows** are in file order of the dataset's source group, then by group for `p.permeability()` (PTST, FGHG, IPRG). Nothing is sorted by depth; the plots don't need it.
@@ -250,6 +255,26 @@ One row per **sample** (`SAMP`) that has a water content, an Atterberg test or a
 - **Classification only where there is a grading.** `uscs()` and `aashto()` run only on rows with a chosen `GRAT` specimen. A sample with only a water content, or only limits, gets blank symbols without a warning, since no test was run to classify it.
 - The classifications' own warnings (blank symbols by reason) are passed on, once per call, and count only the samples returned: they are classified before the filters, so `where=` can name a symbol, and the warnings come from the rows the filters keep. `gradation()` runs twice on the chosen curves (astm_uscs, then aashto); the second run's warnings would repeat the first's, so they aren't shown.
 
+### 6.7 `p.stratigraphy()` (M13)
+```python
+p.stratigraphy(holes=None, geology=None, where=None, contains=None, geology_fields=None,
+               include_incomplete=False, display_units=None)
+```
+One row per `GEOL` layer, the per-hole log that `ht.analysis.vertical_stress()` integrates through (`docs/work/m13a-judgments.md`). It has the shape of `ht.template("stratigraphy")` plus `source_line` (SPEC §2.6), so a user can inspect it, export it, edit it (reclass the layers by USCS, say) and pass it back.
+
+| Column | From |
+|---|---|
+| `loca_id` | `LOCA_ID` |
+| `depth_top`, `depth_base` | `GEOL_TOP`, `GEOL_BASE` |
+| `geology_unit`, `soil_class`, `geology_description` | The layer's own code through the geology map (§5.2), and `GEOL_DESC` |
+| `source_line` | The `GEOL` row's line |
+
+- Ordered by hole, then top. In depth only: no `ground_level` or elevation pair.
+- **No `depth=` or `elevation=`**: a log cut at a depth can't be integrated. The other common arguments (§2) apply; `geology=` leaves gaps in the log, which `vertical_stress()` then reports.
+- **Layers as written:** overlaps and gaps are kept, since QC reports them (G002, G003) and `vertical_stress()` errors on them where they matter. Unmapped codes warn as in every dataset (§5.2). No `GEOL` group → an empty frame with the missing-group warning.
+- `geology_unit` is the mapped, ordered categorical of the other datasets, and `df.attrs` has `units` and `palette`, plus `judgments_file` when the project has one (SPEC §4).
+- **P01:** one hole's layers, `strata[strata["loca_id"] == "BH01"]`, go straight into `strata=`, which reads only `geology_unit` and the depth pair.
+
 ## 7. Incomplete records
 - A record is **incomplete** when QC C001 says so (with `SPEC_REF` and `SPEC_DPTH` recommended, §14): a `required` field of its own group in `qc/min_fields.yaml` is blank (qc.md §4.10). Only the dataset's source group is checked, not its parents: a hole with no `LOCA_GL` keeps its tests, with a blank elevation.
 - **Left out by default**, with one warning per call: "Left out 2 of 5 ISPT records with a blank required field (ISPT_NVAL on lines 98, 103). p.qc() lists them; include them with include_incomplete=True."
@@ -275,6 +300,7 @@ Each dataset call gives at most one warning per kind (`UserWarning`, as the rest
 New columns, each checked against the whole registry (CLAUDE.md, "Naming"): `location_type`, `final_depth`, `easting`, `northing`, `latitude`, `longitude`, `remarks`, `source_line`, `energy_source`, `sample_reference`, `specimen_reference`, `geology_description`, `geology_code`, `geology_code_secondary`, `legend_code`, `geology_formation`, `bgs_lexicon_code`.
 - Changed: `specimen_id` (the project's specimen key, as text, since the registry type is text and CSV users type their own IDs); `depth_top`/`depth_base`, `hydraulic_conductivity` and `test_type` get their new AGS sources (`SPEC_DPTH`/`SPEC_BASE`, `IPRG_*`).
 - The CSV templates (`ht.template()`) don't change: they describe what a user types in, and a dataset is a superset of its template.
+- M13 (`docs/work/m13a-judgments.md`): `total_vertical_stress`, `pore_pressure`, `effective_vertical_stress` and `saturated_unit_weight`; `depth_top`/`depth_base` describe any interval, a tested zone or a layer, and add `GEOL_TOP`/`GEOL_BASE`; the `stratigraphy` template (§6.7).
 
 ## 12. Test files
 The good files (`site_si.ags`, `site_us.ags`, `site_v404.ags`) get, through the generator script and in all three so the twin tests still hold:

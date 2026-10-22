@@ -25,6 +25,7 @@ nav = [
     "guides/ags-and-qc.md",
     "guides/datasets.md",
     "guides/spt.md",
+    "guides/judgments.md",
   ] },
   { "Plots" = [
     "plots/index.md",
@@ -35,6 +36,9 @@ nav = [
     "plots/grain-size.md",
     "plots/spt-histogram.md",
     "plots/geology-unit-comparison.md",
+  ] },
+  { "Parameters" = [
+    "parameters/01-unit-weight-and-vertical-stress.md",
   ] },
   { "Reference" = [
     "reference/project.md",

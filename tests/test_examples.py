@@ -16,7 +16,14 @@ ROOT = Path(__file__).parents[1]
 # The installed package's copy, not src/, so the release workflow's wheel test
 # (which deletes src/) checks the files the wheel ships.
 DATA = Path(ht.examples.__file__).parent / "data"
-FILES = ["atterberg.csv", "permeability.csv", "site.ags", "spt.csv", "strata.csv"]
+FILES = [
+    "atterberg.csv",
+    "judgments.yaml",
+    "permeability.csv",
+    "site.ags",
+    "spt.csv",
+    "strata.csv",
+]
 CSVS = ["atterberg.csv", "permeability.csv", "spt.csv"]
 NOT_FINDINGS = {"Metadata", "Summary of data"}
 
@@ -58,7 +65,7 @@ def test_qc_finds_only_the_planted_defects(site):
 def test_generator_reproduces_the_shipped_files(tmp_path):
     _load_generator().main(tmp_path)
     assert sorted(path.name for path in tmp_path.iterdir()) == FILES
-    for name in ("site.ags", "strata.csv"):
+    for name in ("site.ags", "strata.csv", "judgments.yaml"):
         assert (tmp_path / name).read_bytes() == (DATA / name).read_bytes(), name
     # The CSV files go through pandas' writer, so compare what they hold.
     for name in CSVS:
@@ -81,8 +88,8 @@ def test_unknown_name_lists_the_files():
     with pytest.raises(ht.HangtuError) as caught:
         ht.examples.path("site.csv")
     assert str(caught.value) == (
-        "No example file 'site.csv'. Files: atterberg.csv, permeability.csv, "
-        "site.ags, spt.csv, strata.csv."
+        "No example file 'site.csv'. Files: atterberg.csv, judgments.yaml, "
+        "permeability.csv, site.ags, spt.csv, strata.csv."
     )
 
 

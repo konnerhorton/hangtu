@@ -53,6 +53,7 @@ Internal helpers used by every plot live in `ht.plot.common` (§6–§9). They a
 | `hammer_efficiency` | `float \| None` (%) | `None` | SPT analysis (M3) |
 | `spt_cap` | `int` | `100` | SPT analysis (M3) |
 | `geology_key` | `"GEOL_GEOL"` \| `"GEOL_GEO2"` \| `"GEOL_LEG"` \| `"GEOL_FORM"` \| `"GEOL_BGS"` | `"GEOL_GEOL"` | datasets (M7, `docs/data/datasets.md` §5.1) |
+| `water_unit_weight` | `str`, a unit weight with its unit | `"9.81 kN/m3"` | pore pressure in `ht.analysis.vertical_stress()` (M13), converted to the units in use (62.45 pcf); set `"62.4 pcf"` or a seawater value where the design uses one |
 
 - `ht.settings.reset()` restores defaults.
 - `with ht.settings.override(display_units="SI"): ...` changes values temporarily (used heavily in tests).

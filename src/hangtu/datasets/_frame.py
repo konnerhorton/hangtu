@@ -6,7 +6,7 @@ and then ``finish()`` joins ground level, elevation and geology, converts to the
 display units, applies the filters and issues the warnings.
 """
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from numbers import Real
 from os import PathLike
 from pathlib import Path
@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 
 import hangtu.db as database
-from hangtu import units
+from hangtu import _judgments, units
 from hangtu._settings import _display_units, settings
 from hangtu.datasets import _geology_map, _joins
 from hangtu.errors import HangtuError, warn
@@ -58,6 +58,12 @@ class Build:
         self.overrides = stored.get("display_overrides", {})
         self.geology_key = stored.get("geology_key", "GEOL_GEOL")
         self.datum = stored.get("vertical_datum")
+        judgments = stored.get(_judgments.STORED_KEY)
+        self.judgments_file = (
+            None
+            if judgments is None
+            else str(_judgments.stored_path(self.path, judgments))
+        )
         self.include_incomplete = include_incomplete
         self.file = Path(database.read_source(path)["path"]).name
         self._left_out: list[tuple[str, int, int, dict[str, list[int]]]] = []
@@ -148,12 +154,15 @@ class Build:
         where: dict[str, Any] | None = None,
         contains: Iterable[str] | str | None = None,
         geology_fields: Iterable[str] | str | None = None,
+        layers: pd.DataFrame | None = None,
     ) -> pd.DataFrame:
         """Join, convert, filter and warn; return the dataset (§2, §4, §5).
 
         ``frame`` is in SI with ``location_id``, ``loca_id``, ``depth`` and
         ``_line``, plus the dataset's own columns. ``group`` names the source
         group when the dataset's group isn't in the file, for the warning.
+        ``layers`` is set when each row is a GEOL layer, indexed like
+        ``frame``: its geology is its own, and it has no ``depth``.
         """
         fields = _geology_fields(geology_fields)
         order = [*columns, *GEOLOGY_COLUMNS, *fields.values(), "source_line"]
@@ -165,9 +174,12 @@ class Build:
             return self._empty(order)
         frame = frame.copy()
         frame["source_line"] = frame.pop("_line").astype("Int64")
-        self._ground_level(frame)
-        frame["elevation"] = _joins.elevation(frame["ground_level"], frame["depth"])
-        palette = self._geology(frame, fields)
+        if layers is None:
+            self._ground_level(frame)
+            frame["elevation"] = _joins.elevation(frame["ground_level"], frame["depth"])
+            palette = self._geology(frame, fields)
+        else:
+            palette = self._own_geology(frame, layers, fields)
         frame = frame.reindex(columns=order)
         frame = self._to_display(frame)
         frame = self._filter(
@@ -179,7 +191,13 @@ class Build:
             frame.attrs["palette"] = palette
         if self.datum:
             frame.attrs["vertical_datum"] = self.datum
+        self._judgments_file(frame)
         return frame
+
+    def _judgments_file(self, frame: pd.DataFrame) -> None:
+        """Carry the project's judgments file, for the analyses (SPEC §4)."""
+        if self.judgments_file is not None:
+            frame.attrs["judgments_file"] = self.judgments_file
 
     def _ground_level(self, frame: pd.DataFrame) -> None:
         if self.has("LOCA"):
@@ -215,11 +233,36 @@ class Build:
             out[found] = series.reindex(at.to_numpy()).to_numpy()
             return out.where(out.notna(), None)
 
+        self._warn_overlaps(frame, overlapping)
+        return self._layer_geology(frame, geol, from_layer, fields)
+
+    def _own_geology(
+        self, frame: pd.DataFrame, layers: pd.DataFrame, fields: dict[str, str]
+    ) -> dict:
+        """Add the geology columns of rows that are GEOL layers themselves."""
+        for column in [*GEOLOGY_COLUMNS, *fields.values()]:
+            frame[column] = None
+
+        def from_layer(series: pd.Series) -> pd.Series:
+            out = series.reindex(frame.index).astype(object)
+            return out.where(out.notna(), None)
+
+        return self._layer_geology(frame, layers, from_layer, fields)
+
+    def _layer_geology(
+        self,
+        frame: pd.DataFrame,
+        geol: pd.DataFrame,
+        from_layer: Callable[[pd.Series], pd.Series],
+        fields: dict[str, str],
+    ) -> dict:
+        """Fill the geology columns from each row's layer; return the palette.
+
+        ``from_layer`` takes a GEOL column to the rows of ``frame``.
+        """
         frame["geology_description"] = from_layer(self.texts(geol, "GEOL_DESC"))
         for heading, column in fields.items():
             frame[column] = from_layer(self.texts(geol, heading))
-        self._warn_overlaps(frame, overlapping)
-
         if not self.data.has("GEOL", self.geology_key):
             present = [h for h in GEOLOGY_FIELDS if self.data.has("GEOL", h)]
             hint = (
@@ -424,6 +467,7 @@ class Build:
             {column: pd.Series(dtype=_dtype(column)) for column in order}
         )
         frame.attrs["units"] = self._units(frame)
+        self._judgments_file(frame)
         return frame
 
 
@@ -499,4 +543,5 @@ def locations(path: str | PathLike[str], display_units: str | None = None):
     ).reset_index(drop=True)
     frame = build._to_display(frame)
     frame.attrs["units"] = build._units(frame)
+    build._judgments_file(frame)
     return frame

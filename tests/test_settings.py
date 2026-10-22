@@ -18,6 +18,12 @@ def test_defaults():
     assert ht.settings.spt_cap == 100
     assert ht.settings.summary_min_count == 5
     assert ht.settings.geology_key == "GEOL_GEOL"
+    assert ht.settings.water_unit_weight == "9.81 kN/m3"
+
+
+def test_the_shipped_water_unit_weight_is_valid():
+    ht.settings.water_unit_weight = ht.settings.water_unit_weight
+    assert ht.settings.water_unit_weight == "9.81 kN/m3"
 
 
 @pytest.mark.parametrize(
@@ -32,6 +38,8 @@ def test_defaults():
         ("spt_cap", 50),
         ("summary_min_count", 1),
         ("geology_key", "GEOL_FORM"),
+        ("water_unit_weight", "62.4 pcf"),
+        ("water_unit_weight", "10.05 kN/m3"),
     ],
 )
 def test_valid_values_are_stored(name, value):
@@ -65,6 +73,9 @@ def test_figure_sizes_are_stored_as_float_pairs():
         ("summary_min_count", True, "at least 1"),
         ("geology_key", "geol_form", "GEOL_GEOL, GEOL_GEO2, GEOL_LEG, GEOL_FORM"),
         ("geology_key", "GEOL_DESC", "one of GEOL_GEOL"),
+        ("water_unit_weight", 9.81, "unit weight with its unit"),
+        ("water_unit_weight", "9.81 kPa", "unit weight with its unit"),
+        ("water_unit_weight", "0 kN/m3", "must be positive"),
     ],
 )
 def test_invalid_values_raise_and_keep_the_old_value(name, value, message):

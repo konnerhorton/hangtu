@@ -264,3 +264,101 @@ def test_repr_counts_findings(tmp_path):
 
 def test_database_matches_the_db_layer(project):
     assert db.read_source(project.path)["schema_version"] == db.SCHEMA_VERSION
+
+
+# --- The judgments file (docs/work/m13a-judgments.md, Decision 5) -----------------
+
+JUDGMENTS = """\
+water_level:
+  units: {depth: m}
+  project: {depth: 3.0, reason: assumed}
+"""
+
+
+def _write_judgments(path, text=JUDGMENTS):
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+def test_set_judgments_reads_back_and_removes(project, tmp_path):
+    assert project.judgments is None
+    path = _write_judgments(tmp_path / "judgments.yaml")
+    project.set_judgments(path)
+    assert project.judgments.path == path.resolve()
+    assert db.read_settings(project.path)["judgments_path"] == "judgments.yaml"
+    project.set_judgments(None)
+    assert project.judgments is None
+
+
+def test_judgments_path_isnt_a_setting(project, tmp_path):
+    project.set_judgments(_write_judgments(tmp_path / "judgments.yaml"))
+    assert "judgments_path" not in repr(project.settings)
+
+
+def test_a_relative_path_survives_moving_the_folder(tmp_path):
+    # Criterion 8.
+    folder = tmp_path / "job"
+    folder.mkdir()
+    shutil.copy(DATA / "site_si.ags", folder / "site.ags")
+    (folder / "inputs").mkdir()
+    _write_judgments(folder / "inputs" / "judgments.yaml")
+    p = ht.Project.from_ags(folder / "site.ags")
+    p.set_judgments(folder / "inputs" / "judgments.yaml")
+    moved = tmp_path / "archive" / "job"
+    moved.parent.mkdir()
+    shutil.move(folder, moved)
+    p = ht.Project.open(moved / "site.sqlite")
+    assert p.judgments.path == (moved / "inputs" / "judgments.yaml").resolve()
+
+
+def test_a_path_outside_the_folder_is_stored_absolute(project, tmp_path):
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    sub = project.path.parent / "db"
+    sub.mkdir()
+    moved = sub / "site.sqlite"
+    shutil.copy(project.path, moved)
+    p = ht.Project.open(moved)
+    path = _write_judgments(elsewhere / "judgments.yaml")
+    p.set_judgments(path)
+    assert db.read_settings(moved)["judgments_path"] == str(path.resolve())
+
+
+def test_a_bad_file_errors_on_set_and_nothing_is_stored(project, tmp_path):
+    path = _write_judgments(tmp_path / "judgments.yaml", "unitweight: {}")
+    with pytest.raises(ht.HangtuError, match="'unitweight' isn't a judgment"):
+        project.set_judgments(path)
+    assert project.judgments is None
+
+
+def test_a_missing_file_errors_naming_set_judgments(project, tmp_path):
+    path = _write_judgments(tmp_path / "judgments.yaml")
+    project.set_judgments(path)
+    path.unlink()
+    with pytest.raises(ht.HangtuError, match=r"isn't there.*p.set_judgments"):
+        project.judgments  # noqa: B018
+
+
+def test_every_dataset_carries_the_judgments_file(project, tmp_path):
+    assert "judgments_file" not in project.spt().attrs
+    path = _write_judgments(tmp_path / "judgments.yaml")
+    project.set_judgments(path)
+    expected = str(path.resolve())
+    project.set_geology_map(DATA / "strata.csv")
+    for name in (
+        "spt",
+        "atterberg",
+        "grain_size",
+        "grain_size_summary",
+        "index_properties",
+        "permeability",
+        "stratigraphy",
+    ):
+        assert getattr(project, name)().attrs["judgments_file"] == expected, name
+    assert project.locations.attrs["judgments_file"] == expected
+
+
+def test_a_rebuild_starts_without_judgments(project, site, tmp_path):
+    project.set_judgments(_write_judgments(tmp_path / "judgments.yaml"))
+    p = ht.Project.from_ags(site, db=project.path, overwrite=True)
+    assert p.judgments is None

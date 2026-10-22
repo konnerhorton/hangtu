@@ -132,7 +132,8 @@ ht.units_of(spt)                                                        # -> {"d
   3. the column registry plus the session/project display system (Phase 2 datasets only);
   4. otherwise **error for an analysis**, or **"(units unknown)" label plus a warning for a plot**. Nothing is silently guessed.
 - **Where attrs get lost:** `df.attrs` survives filtering, column selection, `.copy()` and sorting. It is **lost or unreliable** after `merge`/`join`, `concat` of frames with different attrs, `groupby().agg()`, file round trips, and user-built frames. Hence the explicit-argument fallback, and the clear error or label when units are unknown.
-- **CSV templates:** `ht.template("spt")` returns an empty DataFrame with the registry columns. `ht.template("spt").to_csv(...)` gives users a file to fill in. Each template column's description and expected quantity are listed by `ht.columns("spt")`. The `spt`, `atterberg`, `grain_size` and `permeability` templates are their Phase 2 dataset's columns in the same order, without those only hangtu produces (`source_line`, `energy_source`, `spt_n_capped`, `liquidity_index`, `consistency_index`), so CSV and AGS data reach the plots in the same shape (decided 2026-10-14, `docs/work/m9-release.md`).
+- **Judgments files** (§4) declare their units in a `units:` block per judgment (`{bulk_unit_weight: kN/m3}`), read with the same aliases; a field without a unit is an error naming the judgment.
+- **CSV templates:** `ht.template("spt")` returns an empty DataFrame with the registry columns. `ht.template("spt").to_csv(...)` gives users a file to fill in. Each template column's description and expected quantity are listed by `ht.columns("spt")`. The `spt`, `atterberg`, `grain_size` and `permeability` templates are their Phase 2 dataset's columns in the same order, without those only hangtu produces (`source_line`, `energy_source`, `spt_n_capped`, `liquidity_index`, `consistency_index`), so CSV and AGS data reach the plots in the same shape (decided 2026-10-14, `docs/work/m9-release.md`). `stratigraphy` is `p.stratigraphy()`'s columns without `source_line` (M13).
 
 ### 2.7–2.8 Settings and acceptance tests
 Settings and Phase 1 tests: P00 §3 and §14. Phase 2 tests: the drafts file above.
@@ -176,13 +177,13 @@ Analysis code lives in `ht.analysis.*`, as plain functions usable without plotti
   - says when it applies and when it doesn't: soil types, input range, the input it was derived with (for SPT, field N, N60 or (N1)60), the data and region behind it, and known biases. The input is explicit: a column that doesn't match is an error, never a silent correction. This is in the docstring and in metadata attached to the result, so a plot or report can show it;
   - returns NaN with a count outside its range, and never clips or extrapolates the input;
   - returns rows that name the correlation, so several estimates of one property compare on P01 (`color_by=`) or P07.
-- **Effective vertical stress** (decided 2026-10-15) comes from `ht.analysis.vertical_stress()`, with the unit weight (a value or a profile, step or linear) and the groundwater level for each hole given in the call. (N1)60 and the correlations take its σ′v column. Detail in analysis draft §4.1.
+- **Effective vertical stress** (decided 2026-10-15; reshaped 2026-10-22, `docs/work/m13a-judgments.md`) comes from `ht.analysis.vertical_stress()`, integrated through each hole's log: `p.stratigraphy()` or a CSV in `ht.template("stratigraphy")`'s shape, always passed explicitly. Unit weights are judgments keyed by a log column (geology unit, USCS symbol), not a depth profile; the water level is a judgment by hole. Pore pressure is hydrostatic. (N1)60 and the correlations take its σ′v column.
 - **Judgment inputs** (decided 2026-10-21, `docs/work/parameter-roadmap.md`): a judgment (the disturbance factor D, GSI, σ′3max, Bjerrum's μ, a design unit weight profile, a groundwater level) is never filled in by hangtu, as N60 stays blank without an energy ratio.
-  - **Resolution:** explicit argument → the project's judgments file → an error that names the judgment, what it is keyed by and how to set it. There is no session (`ht.settings`) level: a judgment belongs to a project, and a session value would follow the user to the next one.
-  - **Keyed by what it depends on:** each judgment declares its keys (geology unit, hole, depth range, a named design case) and whether one project-wide value is allowed. A value at a coarser key than allowed is an error, not a fallback (TODO #29).
-  - **A plain file next to the project** (`judgments.yaml`) is the source of truth, reviewable and kept in version control. A `Project` records its path and reads it on each call, and never copies it into SQLite. It works without a `Project` too, for CSV input.
+  - **Resolution:** explicit argument → `judgments=` (a `Judgments` from `ht.judgments(path)`, or a path) → the Project's file, whose path its datasets carry in `df.attrs` → an error that names the judgment, what it is keyed by and how to set it. An argument overriding a file value warns, as does a `judgments=` that differs from the Project's file. There is no session (`ht.settings`) level: a judgment belongs to a project, and a session value would follow the user to the next one.
+  - **Keyed by what it depends on:** each judgment declares its keys (geology unit, hole, depth range, a named design case) and whether one project-wide value is allowed. A value at a coarser key than allowed is an error, not a fallback (TODO #29). Where a project-wide value is allowed it needs a `reason`, and it fills the keys the file doesn't list, with a warning naming them; without one, an unlisted key is an error.
+  - **A plain file next to the project** (`judgments.yaml`) is the source of truth, reviewable and kept in version control. A `Project` records its path (`p.set_judgments(path)`) and reads it on each call, and never copies it into SQLite. It works without a `Project` too, for CSV input. Format: `docs/work/m13a-judgments.md`, Spec.
   - **Recorded on every result:** each judgment used, with its value, key and source (the argument, or the file's path and SHA-256), in `df.attrs` and on result objects.
-  - The file format and API are specified in M13, whose `vertical_stress()` takes the first judgments a user sets once per project. `hammer_efficiency` stays a session setting for now (TODO #33).
+  - The first judgments are `unit_weight` and `water_level` (M13). **Hammer efficiency is data, not a judgment** (decided 2026-10-22): `ISPT_ERAT` (`energy_ratio`) is used first, and `hammer_efficiency` stays an argument and session setting that fills blanks, with a warning naming the holes. **γw is a setting** (`ht.settings.water_unit_weight`, default 9.81 kN/m³), not a judgment.
 
 ---
 
@@ -262,7 +263,7 @@ Apply in both phases. In Phase 1 they are applied by the analysis functions to t
   - **exact, case-sensitive match** (decided);
   - `soil_class` drives the cohesive/cohesionless split (🔬 TODO #3);
   - `color` feeds the palette.
-- **Interval rule** (decided): `top ≤ d < base`. At the bottom of the hole, `d = base` belongs to the last interval. For overlaps, the lowest top (the deepest) wins.
+- **Interval rule** (decided): `top ≤ d < base`. At the bottom of the hole, `d = base` belongs to the last interval. For overlaps, the lowest top (the deepest) wins, except in `vertical_stress()`, which can't integrate through two layers at once and errors.
 - Unmapped codes are kept as their own units, with a warning and QC G004; they are never dropped.
 
 ---
@@ -288,10 +289,10 @@ Apply in both phases. In Phase 1 they are applied by the analysis functions to t
 ## 10. Datasets and column registry
 
 ### 10.1 Project access (Phase 2)
-`p.groups`, `p.table(group, raw=False)`, `p.locations`, `p.set_geology_map(path)`, `p.geology_map`, `p.diff(group, heading=None, changed_only=False)`, `p.sql(...)` (read-only, SI).
+`p.groups`, `p.table(group, raw=False)`, `p.locations`, `p.set_geology_map(path)`, `p.geology_map`, `p.set_judgments(path)`, `p.judgments`, `p.diff(group, heading=None, changed_only=False)`, `p.sql(...)` (read-only, SI).
 
 ### 10.2 Ready-made datasets (Phase 2)
-- `p.spt()`, `p.atterberg()`, `p.grain_size()` and `p.permeability()` (M7, v0.1); `p.grain_size_summary()`, `p.index_properties()` and the classification columns (M8).
+- `p.spt()`, `p.atterberg()`, `p.grain_size()` and `p.permeability()` (M7, v0.1); `p.grain_size_summary()`, `p.index_properties()` and the classification columns (M8); `p.stratigraphy()`, one row per GEOL layer (M13).
 - **Several specimens of a test in one sample** (decided 2026-10-15, M8): `p.index_properties()` uses the one nearest in depth to the water content specimen and names it in a column, with a warning. No row is multiplied (`docs/data/datasets.md` §6.6).
 - They return DataFrames in **exactly the shape the Phase 1 plots expect**: the same registry column names, with units attached, in the project's display units unless `display_units=` says otherwise. Columns and rules: [`docs/data/datasets.md`](docs/data/datasets.md).
 - **Common filters:** `where=`, `contains=`, `elevation=`, `depth=`, `holes=`, `geology=`, `geology_fields=`, `include_incomplete=`, `display_units=` (naming decided).
@@ -340,6 +341,9 @@ p = ht.Project.from_ags("site.ags", db="site.sqlite", display_units="US")   # la
 p.set_geology_map("strata.csv")
 p.qc().to_csv("qc_report.csv")
 fig, ax = ht.plot.spt_profile(p.spt(geology=["Alluvium"]))
+
+p.set_judgments("judgments.yaml")                                    # unit weights, water levels (§4)
+spt = ht.analysis.vertical_stress(p.spt(), stratigraphy=p.stratigraphy())
 ```
 
 **Phase 3: statistics**
@@ -404,7 +408,7 @@ Rows are in build order; each milestone after M8 names its wave, or statistics o
 | M7 | Depth/elevation/geology joins and ready-made datasets (§8, §10) | Datasets feed the Phase 1 plots directly |
 | M9 | Examples (CSV → plot and AGS → QC → plot), CSV templates, README → **v0.1.0 on PyPI** | Examples run from a clean `pip install` |
 | M8 | **P04–P06** + classification and gradation analyses, and the datasets that need them | P04–P06 criteria + classification/Dx golden tests |
-| M13 | Wave 1: vertical stress, (N1)60 and **SPT correlations**; the judgments file (§4) | Golden values from each source; out-of-range counts |
+| M13 | Wave 1, in two units: (a) the judgments file (§4), `p.stratigraphy()` and vertical stress; (b) (N1)60, hammer efficiency by hole and **SPT correlations** | Golden values from each source; out-of-range counts |
 | M14 | Wave 1: phase relations (γ, γd, e, n, S with consistency checks), activity, LI and Ic as analyses | Golden values; consistency checks on the test files |
 | M12 | Wave 1: **P17** clogging diagram (Thewes & Burger 2004) | P17 criteria; zones match the source |
 | M15 | Statistics: `describe`, `fit` (bounded and censored), `compare`, `compare_groups`, `crosstab`, EC7 `characteristic`; P08, P09 | JRC worked examples; scipy reference values |

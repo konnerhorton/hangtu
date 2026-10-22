@@ -1,7 +1,8 @@
 """Example data files that ship with hangtu.
 
 A synthetic site in US units: ``site.ags`` with its geology map
-``strata.csv``, and the same tests as CSV files (``spt.csv``,
+``strata.csv`` and its judgments file ``judgments.yaml`` (unit weights and
+water levels), and the same tests as CSV files (``spt.csv``,
 ``atterberg.csv``, ``permeability.csv``) laid out like ``ht.template()``.
 
 Examples
