@@ -208,33 +208,36 @@ def _draw_points(
     color: Any,
     label: str,
     limits: Mapping[str, tuple[float, float] | None],
-    flag_sizes: Mapping[str, float],
+    flags: Mapping[str, _values.Flag],
 ) -> np.ndarray:
-    """Draw one color group's points, one collection per marker shape.
+    """Draw one color group's points, one collection per marker.
 
-    ``flag_sizes`` maps each flag marker (qualifier caret, refusal) to its
-    size. Returns the mask of rows drawn at the edge of fixed limits.
+    ``markers`` holds each row's marker shape, or a key into ``flags`` for a
+    flagged value (qualifier caret, refusal), so a flag never shares a shape
+    with a ``marker_by`` group. Returns the mask of rows drawn at the edge of
+    fixed limits.
     """
     edge = np.zeros(len(x), dtype=bool)
     present = set(markers[rows])
-    shapes = [m for m in MARKER_CYCLE if m in present]
-    shapes += [m for m in flag_sizes if m in present]
-    for i, marker in enumerate(shapes):
-        caret = marker in flag_sizes
-        these = rows & (markers == marker)
+    keys = [m for m in MARKER_CYCLE if m in present]
+    keys += [m for m in flags if m in present]
+    for i, key in enumerate(keys):
+        flag = flags.get(key)
+        shape = key if flag is None else flag.marker
+        these = rows & (markers == key)
         if any(limits.values()):
-            edge[these] = edge_markers(ax, x[these], y[these], limits, color, marker)
+            edge[these] = edge_markers(ax, x[these], y[these], limits, color, shape)
         inside = these & ~edge
         ax.scatter(
             x[inside],
             y[inside],
-            s=(flag_sizes[marker] if caret else MARKER_SIZE) ** 2,
-            marker=marker,
+            s=(MARKER_SIZE if flag is None else flag.size) ** 2,
+            marker=shape,
             color=color,
             edgecolors="white",
             linewidths=0.4,
-            label=label if i == 0 and not caret else f"_{label} {marker}",
-            zorder=_layers.QUALIFIERS if caret else _layers.MARKERS,
+            label=label if i == 0 and flag is None else f"_{label} {shape}",
+            zorder=_layers.MARKERS if flag is None else _layers.QUALIFIERS,
         )
     return edge
 
@@ -635,11 +638,12 @@ def _draw_profile(
 
         groups, colors = _values.color_groups(df, color_by, palette)
         marker_groups, shapes = _marker_groups(df, marker_by)
-        flag_markers = {key: kind.marker for key, kind in flag_kinds.items()}
-        flag_sizes = {kind.marker: kind.size for kind in flag_kinds.values()}
+        flag_markers = {f"flag {key}": kind for key, kind in flag_kinds.items()}
         markers = np.array(
             [
-                flag_markers.get(key, shapes.get(group, MARKER_CYCLE[0]))
+                f"flag {key}"
+                if key in flag_kinds
+                else shapes.get(group, MARKER_CYCLE[0])
                 for key, group in zip(flags, marker_groups, strict=True)
             ],
             dtype=object,
@@ -659,7 +663,7 @@ def _draw_profile(
                 color,
                 str(group),
                 {"x": xlim, "y": ylim},
-                flag_sizes,
+                flag_markers,
             )
             edge |= group_edge
             these = bars & rows & ~group_edge
