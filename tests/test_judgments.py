@@ -133,6 +133,11 @@ def test_a_water_level_above_ground_reads(tmp_path):
             r"unit_weight, values.Fill: 'colour' isn't a field",
         ),
         (
+            "unit_weight: {by: geology_unit, units: {bulk_unit_weight: kN/m3},"
+            " values: {Fill: {bulk_unit_weight: 18, reason: median, n=12}}}",
+            r"values.Fill: 'n=12' isn't a field.*put the reason in quotes",
+        ),
+        (
             "water_level: {units: {depth: m}, by_hole: {BH01: {}}}",
             r"water_level, by_hole.BH01: give exactly one of depth or elevation",
         ),

@@ -374,9 +374,15 @@ def _check_entry(
         )
     for field in entry:
         if field not in fields:
+            comma = (
+                " If it is part of a reason, put the reason in quotes: a comma "
+                'inside {...} starts a new field, e.g. reason: "median, n=12".'
+                if entry[field] is None
+                else ""
+            )
             raise HangtuError(
                 f"{where}: {field!r} isn't a field of this judgment. "
-                f"The fields are {', '.join(fields)}."
+                f"The fields are {', '.join(fields)}.{comma}"
             )
     for field in kind.required:
         if field not in entry:
