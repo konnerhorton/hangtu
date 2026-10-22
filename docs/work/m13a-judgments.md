@@ -135,7 +135,8 @@ refer to the intent's decisions; this section settles the details and the open i
   and P01's `strata=` taking a per-hole stratigraphy directly (Decision 8).
 - **Docs site:** sheet 01 promoted to `docs/site/parameters/01-unit-weight-and-vertical-stress.md` (Decision 9); a
   guide `docs/site/guides/judgments.md` with its example; reference entries for every new public name.
-- **Parameter index:** 01's stages A and B become W1 → built at the close-out.
+- **Parameter index:** at the close-out, 01's stage B becomes **part built** (vertical stress, M13); stage A, a
+  dataset of measured unit weights, stays W1 (M14).
 
 ### Decisions
 1. **The file.** YAML, top-level keys are judgment names. This unit knows `unit_weight` and `water_level`; any other
@@ -283,3 +284,134 @@ refer to the intent's decisions; this section settles the details and the open i
 9. **P01:** `strata=` with one hole of `p.stratigraphy()`, filtered as in Decision 8, draws unchanged.
 10. **Docs:** the reference test passes for every new public name; the guide example runs in `prepare_site.py`;
     `zensical build --strict` passes with the parameter page.
+
+## Plan
+
+Eight commits, each green (ruff and pytest); one refactor ahead of the new behavior. Each step that adds a public
+name adds its reference entry in the same commit, since `tests/docs/test_site.py` fails without it. The spec commit
+already updated SPEC, `datasets.md`, the analysis draft and TODO; the build brings the code, config, tests and site
+up to them.
+
+### 1. `config: share the YAML file reader`
+A refactor, on its own: `qc._settings.read_yaml(path, what)` moves to `_config.read_yaml(path, what, guide)`, where
+`what` names the file in errors ("QC rules", "accepted findings") and `guide` is the doc the syntax error points to.
+QC's messages don't change. No behavior change; the QC tests pass as they are.
+
+### 2. `registry: stress columns, the stratigraphy template, water_unit_weight`
+- `src/hangtu/columns.yaml`:
+  - `total_vertical_stress`, `pore_pressure`, `effective_vertical_stress` (`quantity: stress`, `scale: ratio`,
+    labels from the intent's names table, `ags: ["derived: docs/work/m13a-judgments.md"]`) and
+    `saturated_unit_weight` (`unit_weight`, "Saturated unit weight, γ_sat", the judgments file).
+  - `depth_top` / `depth_base`: "Top (base) of an interval: a tested zone or a geology layer"; `ags` gains
+    `GEOL.GEOL_TOP` / `GEOL.GEOL_BASE`.
+  - Template `stratigraphy: [loca_id, depth_top, depth_base, geology_unit, soil_class, geology_description]`.
+- `src/hangtu/config/defaults.yaml`: `water_unit_weight: 9.81 kN/m3` under settings; presets
+  `total_vertical_stress`, `pore_pressure`, `effective_vertical_stress` (stress, linear, `start_at_zero`, typical
+  `[0, 500]`).
+- `src/hangtu/_settings.py`: `_water_unit_weight(value)`: a quantity string read with `units.parse_quantity(...,
+  "unit_weight")`, positive, kept as written; errors show `ht.settings.water_unit_weight = "62.4 pcf"`.
+- Tests: `tests/test_registry.py` picks up the new columns and template through its existing rules;
+  `tests/test_settings.py`: the default, a pcf value, a bare number and a stress unit rejected, `reset()`;
+  `tests/plot/` preset test (whichever checks every preset) covers the three stresses.
+
+### 3. `M13: read and check the judgments file`
+- New `src/hangtu/judgments.py`:
+  - `Judgments` (thin; `__slots__`): `path`; `read() -> Read`, which re-reads the file, checks it and returns the
+    parsed judgments with the SHA-256 of the bytes read; `__repr__` lists each judgment, its key (`by:` or "hole"),
+    its values with units and reasons (Spec Decision 3).
+  - `judgments(path) -> Judgments` checks the file once on creation (Decision 3).
+  - The parsed form, private: per judgment `by`, `units` (field → unit string), `project` (entry or None), `values`
+    (key → entry); an entry is `{field: float, "reason": str | None}`. Unit strings are checked with
+    `units.parse_unit` and `check_dimension` against the field's kind (`unit_weight`, `length`).
+  - Every error of Decision 1, each starting `"judgments.yaml, unit_weight, values.Fill: "`; non-string keys get
+    the quoting hint; the reader is `_config.read_yaml(path, "judgments", "docs/work/m13a-judgments.md")`.
+  - `as_path(value) -> Judgments | None` for `judgments=` (a `Judgments`, a path or None).
+- `src/hangtu/__init__.py`: export `judgments` and `Judgments`.
+- `docs/site/reference/data.md`: a "Judgments" section with both.
+- Tests (new `tests/test_judgments.py`, YAML written to `tmp_path`): the spec's sample file reads; an empty file
+  holds no judgments; each Decision 1 error with its file, judgment and entry (AC 5); `yes:` as a key gets the
+  hint; a water level with a negative depth reads (it warns later, in step 6); `repr` lists values, units and
+  reasons; `read()` after editing the file returns the new values and a new hash (half of AC 6).
+
+### 4. `M13: p.stratigraphy()`
+- New `src/hangtu/datasets/_stratigraphy.py`: one row per `GEOL` row with `location_id`, `loca_id`, `depth_top`,
+  `depth_base`, `_line`; geology columns from the layer's own code (not `place_in_geology`): a `Build` helper
+  `_layer_geology(frame, geol)` factored out of `_geology` so both use one mapping path (map, unmapped warning,
+  categorical, `soil_class`, palette). `depth` is not a column, so `finish` gets a `depth=None` path that skips
+  `ground_level` and `elevation`; `depth=` / `elevation=` aren't parameters (Decision 4). Sorted by hole, then top.
+  If the factoring touches `_geology` beyond a move, it goes in its own refactor commit first.
+- `src/hangtu/project.py`: `Project.stratigraphy(*, holes, geology, where, contains, geology_fields,
+  include_incomplete, display_units)`, docstring per the other datasets, noting that `geology=` leaves gaps.
+- `src/hangtu/datasets/__init__.py`: export it.
+- Tests: new `tests/datasets/test_stratigraphy.py`: `site.ags` gives one row per GEOL row, mapped and ordered,
+  units in attrs, `source_line`s matching (AC 7); `qc_defects.ags` keeps BH3's overlap and the BH1 gap; no GEOL
+  group → empty with the warning; unmapped codes warn. `tests/test_registry.py`: `DATASETS` gains
+  `stratigraphy`, so the template rule is tested. `tests/plot/test_profile_overlays.py`: `strata=` with one hole of
+  `p.stratigraphy()` draws (AC 9).
+
+### 5. `M13: p.set_judgments() and p.judgments`
+- `src/hangtu/project.py`:
+  - `set_judgments(path | None)`: reads the file once (`judgments(path)`), stores it in `meta_project` under
+    `judgments_path` (relative to the database's folder when it's inside it, else absolute; Decision 5); `None`
+    removes it.
+  - `judgments` property: a `Judgments` resolved against the database's folder, or None; a missing file is an
+    error naming the path and `p.set_judgments`.
+  - `ProjectSettings.__getattr__` / `__repr__` skip `judgments_path`, as they do `vertical_datum_source`.
+- `src/hangtu/datasets/_frame.py`, `finish` (and `_empty`): `attrs["judgments_file"]` = the resolved path when
+  one is set.
+- Tests (`tests/test_project.py`): set, read back, remove; a relative path still resolves after moving the folder
+  holding the database and the file (AC 8); a bad file errors on set and nothing is stored; every dataset carries
+  `judgments_file`; `from_ags(overwrite=True)` starts without one.
+
+### 6. `M13: vertical_stress() from arguments`
+- New `src/hangtu/analysis/_vertical_stress.py`, exported from `ht.analysis`:
+  - Input checks: `df` columns and length units (`units.resolve_units(..., analysis=True)`); `stratigraphy`
+    columns and its own units (Decision 6).
+  - `_log(stratigraphy, holes, deepest)` → per hole, layers in m with tolerance 0.01 m: the Decision 7 errors, one
+    call-level error listing every hole and depth range, gaps and overlaps pointing to `p.qc()`; checks stop at each
+    hole's deepest test; returns the layers with the last one extended down and the holes/depths that needed it.
+  - `_water_levels(...)`: P01's four argument forms to depth in m per hole, elevations through `ground_level`.
+  - `_integrate(layers, weights, water_depth, depths)` → σv0, u0, σ′v0 in kPa: bulk above the water level,
+    saturated below where given; standing water adds γw |zw| (Decision 6). Pure function on arrays, so the golden
+    table tests it alone.
+  - `vertical_stress(df, *, stratigraphy, judgments=None, unit_weight=None, water_level=None, units=None,
+    display_units=None)`: in this step only `unit_weight=` and `water_level=` are read; a missing one raises the
+    Decision 6 error (without the file half). Output in the display stress unit, columns replaced with a warning,
+    blanks counted; warnings for below-the-log and standing water; `attrs["vertical_stress"]`.
+  - Docstring: the TEMPLATE checklist (equation, inputs, valid for, assumptions, judgments, source: Loehr et al.
+    2016 eqs. 11.26–11.29).
+- `docs/site/reference/analysis.md`: `::: hangtu.analysis.vertical_stress`.
+- Tests (new `tests/analysis/test_vertical_stress.py`): the golden table at each depth, to 0.01 kPa (AC 1); the US
+  twin within 0.1 %; the water level in elevation; standing water (105.81 / 58.86 / 46.95 and the warning); the
+  below-the-log warning; each log error, a 0.005 m gap passing, a gap below the deepest test passing (AC 4);
+  `qc_defects.ags` BH3 raising through `p.stratigraphy()` (AC 7); no row dropped or reordered, blanks counted,
+  replaced columns warned; `attrs["units"]` for the three columns.
+
+If this step passes about 300 lines it splits after `_integrate` and its golden test.
+
+### 7. `M13: vertical_stress() reads the judgments`
+- `src/hangtu/analysis/_vertical_stress.py`:
+  - Per judgment, argument → `judgments=` → `df.attrs["judgments_file"]` → error (intent 5), with the override and
+    different-file warnings and the merge hint (Decision 6).
+  - Unit weights matched on the file's `by:` column of the stratigraphy (an error if it's not a column); water
+    levels by `loca_id`; project fallbacks with their warnings, missing keys as errors, unused keyed entries
+    warning (Decision 2).
+  - `attrs["judgments"]` per Decision 6: source, SHA-256, `by`, and only the keys used, values as quantity strings.
+- Tests (same file): AC 2 (precedence per judgment, both warnings, a `pd.concat` frame raising with the hint), AC 3
+  (fallbacks, missing keys, unused entries), AC 6 (recorded values and hash; edit the file between calls and the
+  result and hash change without reopening the project); `by: uscs_symbol` on an edited stratigraphy.
+
+### 8. `M13: judgments guide, examples and close-out`
+- `tests/data/_make_examples.py` writes `judgments.yaml` into `src/hangtu/examples/data/` (pcf and ft, by
+  `geology_unit` for Fill, Alluvium and Terrace, a water level for each hole); regenerate. `ht.examples` docstring
+  lists it.
+- `docs/site/guides/judgments.md` and `docs/site/examples/judgments.py`: open the example project, set the map
+  and the judgments, `vertical_stress(p.spt(holes=...), stratigraphy=p.stratigraphy())` leaving out B-4 (its
+  planted gap; the guide says why and shows the error text), print a few rows and `attrs["judgments"]`, and plot
+  `effective_vertical_stress` with P01. Runs with no warnings (`test_page_example_runs_clean`). In the nav under
+  Guides.
+- `docs/site/parameters/01-unit-weight-and-vertical-stress.md`: the Methods table links
+  `ht.analysis.vertical_stress` in the API reference, and the page links the guide.
+- Close-out: parameter index row 01 stage B → **part built** (vertical stress, M13); `CLAUDE.md` status
+  paragraph (m13a done, M13 unit (b) next).
+- Check: `uv run python docs/prepare_site.py` and `zensical build --clean --strict` pass.
