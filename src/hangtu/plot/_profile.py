@@ -1,12 +1,13 @@
 """P01 property profile (docs/plots/P01-property-profile.md)."""
 
 import math
-from collections.abc import Mapping
-from typing import Any, Literal
+from collections.abc import Callable, Mapping
+from typing import Any, Literal, NamedTuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.artist import Artist
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.patches import Patch
@@ -62,6 +63,24 @@ MARKER_CYCLE = ("o", "s", "^", "D", "v", "P", "X", "p", "h", "*")
 CONNECT_WIDTH = 0.6  # points
 CONNECT_ALPHA = 0.6
 CLEAR_FACTOR = 1.05  # x-limit at least the nice value above 1.05 x clear_of (P02 §6)
+
+
+class Companion(NamedTuple):
+    """Marks a plot built on the profile draws per row (P06 limits bars).
+
+    - ``rows``: the rows it draws. A row here with a blank value isn't
+      counted as blank: it sets the vertical limits, gives its unit a legend
+      entry and means there is data.
+    - ``x``: values in display units that the automatic x limits cover.
+    - ``draw(ax, y, groups, colors, notes)``: draws the marks, given each
+      row's vertical position in display units and its color group. Called
+      after the points and text values, before the legend; returns the
+      legend entries.
+    """
+
+    rows: np.ndarray
+    x: np.ndarray
+    draw: Callable[[Axes, np.ndarray, np.ndarray, Mapping, Notes], list[Artist]]
 
 
 def _room_below_data(ax: Axes, box: Text, lowest: float) -> None:
@@ -189,33 +208,38 @@ def _draw_points(
     color: Any,
     label: str,
     limits: Mapping[str, tuple[float, float] | None],
-    flag_sizes: Mapping[str, float],
+    flags: Mapping[str, _values.Flag],
 ) -> np.ndarray:
-    """Draw one color group's points, one collection per marker shape.
+    """Draw one color group's points, one collection per marker.
 
-    ``flag_sizes`` maps each flag marker (qualifier caret, refusal) to its
-    size. Returns the mask of rows drawn at the edge of fixed limits.
+    ``markers`` holds each row's marker shape, or a key into ``flags`` for a
+    flagged value (qualifier caret, refusal), so a flag never shares a shape
+    with a ``marker_by`` group. Returns the mask of rows drawn at the edge of
+    fixed limits.
     """
     edge = np.zeros(len(x), dtype=bool)
     present = set(markers[rows])
-    shapes = [m for m in MARKER_CYCLE if m in present]
-    shapes += [m for m in flag_sizes if m in present]
-    for i, marker in enumerate(shapes):
-        caret = marker in flag_sizes
-        these = rows & (markers == marker)
+    keys = [m for m in MARKER_CYCLE if m in present]
+    keys += [m for m in flags if m in present]
+    for i, key in enumerate(keys):
+        flag = flags.get(key)
+        shape = key if flag is None else flag.marker
+        these = rows & (markers == key)
         if any(limits.values()):
-            edge[these] = edge_markers(ax, x[these], y[these], limits, color, marker)
+            edge[these] = edge_markers(ax, x[these], y[these], limits, color, shape)
         inside = these & ~edge
+        if flag is None or flag.filled:
+            colors = {"color": color, "edgecolors": "white", "linewidths": 0.4}
+        else:
+            colors = {"facecolors": "none", "edgecolors": color, "linewidths": 0.8}
         ax.scatter(
             x[inside],
             y[inside],
-            s=(flag_sizes[marker] if caret else MARKER_SIZE) ** 2,
-            marker=marker,
-            color=color,
-            edgecolors="white",
-            linewidths=0.4,
-            label=label if i == 0 and not caret else f"_{label} {marker}",
-            zorder=_layers.QUALIFIERS if caret else _layers.MARKERS,
+            s=(MARKER_SIZE if flag is None else flag.size) ** 2,
+            marker=shape,
+            **colors,
+            label=label if i == 0 and flag is None else f"_{label} {shape}",
+            zorder=_layers.MARKERS if flag is None else _layers.QUALIFIERS,
         )
     return edge
 
@@ -456,6 +480,7 @@ def _draw_profile(
     clear_of: float | None = None,
     extra_hints: Mapping[str, str] | None = None,
     notes: Notes | None = None,
+    companion: Companion | None = None,
     **style_overrides: Any,
 ) -> tuple[Figure, Axes]:
     """Draw a profile: ``profile()`` and the plots built on it (P02).
@@ -472,6 +497,7 @@ def _draw_profile(
       columns). They join the one optional-column hint.
     - ``notes``: footnote counts and text the caller has already collected,
       e.g. rows it left out (P02 excluded refusals). None starts empty.
+    - ``companion``: marks the caller draws per row (P06), as ``Companion``.
     """
     if value not in df.columns:
         raise ColumnError(
@@ -540,10 +566,13 @@ def _draw_profile(
         bounds = _intervals(df, intervals, resolved, vertical)
 
         notes = Notes() if notes is None else notes
-        blank = (np.isnan(x) & (texts == "")) | np.isnan(y)
+        extra = np.zeros(len(df), dtype=bool)
+        if companion is not None:
+            extra = companion.rows & ~np.isnan(y)
+        blank = (np.isnan(x) & (texts == "") & ~extra) | np.isnan(y)
         notes.count(blank, "nan")
         texts = np.where(blank, "", texts)
-        drawn = ~blank & (texts == "")
+        drawn = ~blank & (texts == "") & ~np.isnan(x)
         if log:
             nonpositive = drawn & (x <= 0)
             notes.count(nonpositive, "log_nonpositive")
@@ -561,8 +590,9 @@ def _draw_profile(
             fig = ax.figure
         style.style_axes(ax)
 
+        covered = x[drawn] if companion is None else np.append(x[drawn], companion.x)
         limits = _values.value_limits(
-            x[drawn],
+            covered,
             log=log,
             xlim=xlim,
             start_at_zero=_values.start_at_zero(value, chosen),
@@ -581,7 +611,9 @@ def _draw_profile(
             set_log_axis(ax, "x", limits)
         else:
             set_linear_axis(ax, "x", limits)
-        heights = np.concatenate([y[drawn | (texts != "")], top[bars], base[bars]])
+        heights = np.concatenate(
+            [y[drawn | (texts != "") | extra], top[bars], base[bars]]
+        )
         _set_vertical_axis(ax, vs, heights, ylim)
         if xaxis_position == "top":
             ax.xaxis.tick_top()
@@ -608,11 +640,12 @@ def _draw_profile(
 
         groups, colors = _values.color_groups(df, color_by, palette)
         marker_groups, shapes = _marker_groups(df, marker_by)
-        flag_markers = {key: kind.marker for key, kind in flag_kinds.items()}
-        flag_sizes = {kind.marker: kind.size for kind in flag_kinds.values()}
+        flag_markers = {f"flag {key}": kind for key, kind in flag_kinds.items()}
         markers = np.array(
             [
-                flag_markers.get(key, shapes.get(group, MARKER_CYCLE[0]))
+                f"flag {key}"
+                if key in flag_kinds
+                else shapes.get(group, MARKER_CYCLE[0])
                 for key, group in zip(flags, marker_groups, strict=True)
             ],
             dtype=object,
@@ -632,12 +665,13 @@ def _draw_profile(
                 color,
                 str(group),
                 {"x": xlim, "y": ylim},
-                flag_sizes,
+                flag_markers,
             )
             edge |= group_edge
             these = bars & rows & ~group_edge
             _draw_intervals(ax, x[these], top[these], base[these], color)
-            if group is not None and (rows | ((texts != "") & (groups == group))).any():
+            others = (texts != "") | extra
+            if group is not None and (rows | (others & (groups == group))).any():
                 unit_handles.append(
                     Patch(facecolor=color, edgecolor="none", label=str(group))
                     if shapes
@@ -647,6 +681,9 @@ def _draw_profile(
             ax, y, texts, groups, colors, ylim, notes
         )
         notes.count(edge | text_edge, "beyond_limit")
+        companion_handles = (
+            [] if companion is None else companion.draw(ax, y, groups, colors, notes)
+        )
         shape_handles = [
             _values.legend_marker(shape, _values.NEUTRAL, str(group), MARKER_SIZE)
             for group, shape in shapes.items()
@@ -654,7 +691,7 @@ def _draw_profile(
         ]
         flagged = _values.flag_handles(np.where(drawn, flags, ""), flag_kinds, notes)
 
-        if not (drawn | (texts != "")).any():
+        if not (drawn | (texts != "") | extra).any():
             ax.text(
                 0.5,
                 0.5,
@@ -696,7 +733,10 @@ def _draw_profile(
             add_secondary_depth(ax, vertical)
         offset = SECONDARY_SPACE if secondary else 0.0
         add_legend(
-            ax, [unit_handles, shape_handles, flagged, text_handles], notes, offset
+            ax,
+            [unit_handles, companion_handles, shape_handles, flagged, text_handles],
+            notes,
+            offset,
         )
         notes.render(ax, offset)
     return fig, ax

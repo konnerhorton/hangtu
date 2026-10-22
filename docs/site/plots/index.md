@@ -26,6 +26,7 @@ Every plot takes a DataFrame and returns an ordinary matplotlib figure and axes.
 |---|---|
 | [Property profile](profile.md) | Any property against depth or elevation |
 | [SPT profile](spt-profile.md) | SPT N or N60 against depth or elevation, with refusals |
+| [Water content profile](water-content-profile.md) | Water content against depth or elevation, with the Atterberg limits |
 | [SPT histogram](spt-histogram.md) | The share of tests in each density or consistency class |
 | [Property by geology unit](geology-unit-comparison.md) | A property's spread in each geology unit, against a report's ranges |
 

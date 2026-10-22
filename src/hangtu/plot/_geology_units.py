@@ -831,11 +831,13 @@ def _tables(
 def _grid_flags(panels: list[_Panel]) -> list[Artist]:
     """Return qualifier legend entries with counts summed over the panels."""
     handles = []
-    for marker, size, text, reason in _values.QUALIFIERS.values():
-        n = sum(panel.notes.counts.get(reason, 0) for panel in panels)
+    for flag in _values.QUALIFIERS.values():
+        n = sum(panel.notes.counts.get(flag.reason, 0) for panel in panels)
         if n:
             handles.append(
-                _values.legend_marker(marker, _values.NEUTRAL, f"{text} ({n})", size)
+                _values.legend_marker(
+                    flag.marker, _values.NEUTRAL, f"{flag.text} ({n})", flag.size
+                )
             )
     return handles
 

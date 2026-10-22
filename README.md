@@ -40,6 +40,7 @@ report.to_csv("qc_report.csv")  # every finding, with its hole, depth and line i
 fig, ax = ht.plot.spt_profile(p.spt(), n="spt_n60")
 fig.savefig("spt_profile.png")
 fig, ax = ht.plot.grain_size(p.grain_size())  # grading curves with the USCS fractions
+fig, ax = ht.plot.water_content_profile(p.atterberg())  # w with a PL to LL bar per specimen
 ```
 
 <img src="https://raw.githubusercontent.com/konnerhorton/hangtu/main/docs/img/readme-spt.png" alt="SPT N60 against elevation, colored by geology unit, with refusals drawn at the cap and counted" width="440">
