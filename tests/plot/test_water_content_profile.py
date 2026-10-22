@@ -417,3 +417,24 @@ def test_non_plastic_and_a_marker_by_diamond_are_two_marks():
     assert set(diamonds) == {(22.0, 15.0), (35.0, 20.0)}
     assert diamonds[(22.0, 15.0)] == 0  # NP, open
     assert diamonds[(35.0, 20.0)] > 0  # group "d", filled
+
+
+# --- one count per row -----------------------------------------------------------
+
+
+def test_point_and_bar_beyond_ylim_count_once():
+    _, ax = plot(wc_frame(), ylim=(0, 16))
+    assert [segment[2] for segment in bars(ax)] == [5.0, 10.0, 15.0]
+    assert ax.ags_notes == {"beyond_limit": 1}
+
+
+def test_point_and_bar_beyond_xlim_count_once():
+    df = wc_frame(water_content=[25.0, 30.0, 22.0, 70.0], liquid_limit=[40, 45, 30, 72])
+    _, ax = plot(df, xlim=(0, 50))
+    assert ax.ags_notes == {"beyond_limit": 1}
+
+
+def test_two_rows_beyond_count_two():
+    df = wc_frame(water_content=[25.0, 30.0, 22.0, 70.0], liquid_limit=[40, 45, 60, 52])
+    _, ax = plot(df, xlim=(0, 50))
+    assert ax.ags_notes == {"beyond_limit": 2}
