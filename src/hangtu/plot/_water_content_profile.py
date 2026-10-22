@@ -172,7 +172,7 @@ def _limits_bars(
         groups: np.ndarray,
         colors: Mapping[Any, Any],
         notes: Notes,
-    ) -> list[Artist]:
+    ) -> tuple[list[Artist], np.ndarray]:
         shown = rows & np.isfinite(y)
         beyond = shown & _outside(y, ylim)
         shown &= ~beyond
@@ -200,10 +200,9 @@ def _limits_bars(
             x = np.concatenate([pl[bars], ll[bars], np.fmax(pl[singles], ll[singles])])
             edge = _draw_ticks(ax, x, y[ends], color, xlim)
             beyond[ends[edge]] = True
-        notes.count(beyond, "beyond_limit")
         if not (shown & bar).any():
-            return []
-        return [
+            return [], beyond
+        handles = [
             Line2D(
                 [],
                 [],
@@ -215,6 +214,7 @@ def _limits_bars(
                 label="PL to LL",
             )
         ]
+        return handles, beyond
 
     x = np.concatenate([pl[rows], ll[rows]])
     return Companion(rows=rows, x=x[np.isfinite(x)], draw=draw)

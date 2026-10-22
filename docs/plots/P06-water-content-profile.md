@@ -72,7 +72,7 @@ As P01 with the `water_content` preset, except:
 | Limits bar | horizontal line PL to LL at the row's vertical position, 1.2 pt, with 4 pt vertical end ticks | unit color | ✔ one gray entry "PL to LL" | Drawn below the marker |
 | Limits without w | the bar only | unit color | | Counted nowhere: nothing is missing |
 | NP specimen | w drawn as an open ◇ (P01's text-value shape for NP, at its w, not at the edge) | unit color | ✔ "non-plastic (n)" | No bar, even with an LL: NP is reported when PL can't be found, often with an LL. Footnote "n non-plastic (NP) specimens, shown open at their water content". An NP specimen without w is drawn at the left edge as the text `NP` is (P01 §3), and counted |
-| Bar beyond `xlim` | cut at the edge; the end beyond it is a tick at the edge with an outward arrow | unit color | footnote count | Counted once per bar under "beyond axis limit" (README policy). A bar whose row is beyond `ylim` isn't drawn, and is counted the same way |
+| Bar beyond `xlim` | cut at the edge; the end beyond it is a tick at the edge with an outward arrow | unit color | footnote count | Counted under "beyond axis limit" (README policy), once per row: a row whose point is at the edge too counts once. A bar whose row is beyond `ylim` isn't drawn, and is counted the same way |
 | Only one limit (LL or PL) | no bar; a single end tick at that limit | unit color | footnote "n specimens with one limit, shown as a single tick" | One warning names the rows, and says when a PI is given that PL wasn't computed from it |
 
 **Draw order (bottom → top):** P01's overlays → limits bars → water content markers → notes.

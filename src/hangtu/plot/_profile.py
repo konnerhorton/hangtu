@@ -75,12 +75,17 @@ class Companion(NamedTuple):
     - ``draw(ax, y, groups, colors, notes)``: draws the marks, given each
       row's vertical position in display units and its color group. Called
       after the points and text values, before the legend; returns the
-      legend entries.
+      legend entries and the mask of rows it drew at the edge of fixed
+      limits (or left out beyond them). Those are counted with the points
+      drawn at the edge, so a row counts once.
     """
 
     rows: np.ndarray
     x: np.ndarray
-    draw: Callable[[Axes, np.ndarray, np.ndarray, Mapping, Notes], list[Artist]]
+    draw: Callable[
+        [Axes, np.ndarray, np.ndarray, Mapping, Notes],
+        tuple[list[Artist], np.ndarray],
+    ]
 
 
 def _room_below_data(ax: Axes, box: Text, lowest: float) -> None:
@@ -620,7 +625,7 @@ def _draw_profile(
             ax.xaxis.set_label_position("top")
 
         if strata is not None:
-            draw_strata(ax, strata, vertical, palette)
+            draw_strata(ax, strata, vertical, palette, df.attrs.get("palette"))
         if water_level is not None:
             ground_levels = (
                 hole_ground_levels(df, resolved, vertical)
@@ -680,10 +685,13 @@ def _draw_profile(
         text_handles, text_edge = _text_values.draw_text_values(
             ax, y, texts, groups, colors, ylim, notes
         )
+        companion_handles = []
+        if companion is not None:
+            companion_handles, companion_edge = companion.draw(
+                ax, y, groups, colors, notes
+            )
+            edge |= companion_edge
         notes.count(edge | text_edge, "beyond_limit")
-        companion_handles = (
-            [] if companion is None else companion.draw(ax, y, groups, colors, notes)
-        )
         shape_handles = [
             _values.legend_marker(shape, _values.NEUTRAL, str(group), MARKER_SIZE)
             for group, shape in shapes.items()

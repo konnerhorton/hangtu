@@ -187,8 +187,14 @@ def draw_strata(
     strata: pd.DataFrame,
     vertical: Vertical,
     palette: Mapping[Any, Any] | None = None,
+    data_palette: Mapping[Any, Any] | None = None,
 ) -> None:
-    """Draw full-width strata bands, labeled at the top right inside the axes."""
+    """Draw full-width strata bands, labeled at the top right inside the axes.
+
+    Colors resolve as the points' do: ``palette``, the session palette, then
+    ``data_palette`` (the main data's ``attrs["palette"]``), then the strata
+    table's own palette, then the automatic colors.
+    """
     _require(strata, "strata", ["geology_unit"])
     from_vs = pair_reference(strata, "strata", required=True)
     units = overlay_units(
@@ -196,7 +202,11 @@ def draw_strata(
     )
     top, base = vertical_pair(strata, "strata", vertical, from_vs, units)
     units = strata["geology_unit"].to_numpy(dtype=object)
-    colors = resolve_palette(units, palette)
+    colors = resolve_palette(
+        units,
+        palette,
+        data_palette={**strata.attrs.get("palette", {}), **(data_palette or {})},
+    )
     edge = blended_transform_factory(ax.transAxes, ax.transData)
     below_top = offset_copy(edge, ax.figure, y=-2, units="points")
     for unit, t, b in zip(units, top, base, strict=True):
