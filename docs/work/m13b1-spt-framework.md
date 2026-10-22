@@ -233,3 +233,122 @@ rescaling. hangtu follows the original and GEC 5, and the docstring says why.
     - **The column is `correlation_name`**, not `correlation`.
     - **Hammer efficiency by hole is a dict only.** A DataFrame form waits until a file of hammer calibrations needs
       it.
+
+## Plan
+
+Eight commits, each green (ruff and pytest), with one refactor ahead of the new behavior. Each step that adds a
+public name adds its reference entry in the same commit, since `tests/docs/test_site.py` fails without it. The spec
+commit already updated SPEC, the analysis draft and TODO; the build brings the code, config, tests and site up to
+them. "Decision n" and "AC n" refer to the Spec.
+
+### 1. `M13: one helper for the energy ratio per row`
+A refactor, on its own. `analysis/_spt.py` gains `_energy_ratios(df, hammer_efficiency) -> (energy, filled)`: the
+row's `energy_ratio`, else the argument, else the setting, and a mask of the rows the argument or setting filled.
+`spt()` uses it, and `datasets/_spt.py` builds `energy_source` from `filled` instead of repeating the precedence
+with its `efficiency` variable. No behavior change; the tests pass as they are.
+
+### 2. `M13: hammer efficiency by hole, with a warning when it fills blanks`
+- `analysis/_spt.py`:
+  - `_check_energy_ratio` accepts a dict `{loca_id: ER}`, each value checked as now; the error example shows both
+    forms. A dict with no `loca_id` column in `df` raises (Decision 4).
+  - `_energy_ratios` maps the dict by `loca_id`; holes not in it fall to the setting.
+  - One `HangtuWarning` per call when `filled.any()`, naming holes, values and test counts, or the row count without
+    `loca_id`; one for dict keys not in the data.
+  - The docstring's N60 bullet and `hammer_efficiency` parameter describe both forms and the warning.
+- The signatures and docstrings of `Project.spt`, `datasets/_spt.spt`, `plot.spt_profile` and `plot.spt_histogram`
+  take `float | Mapping[str, float] | None`.
+- Tests: `tests/analysis/test_spt.py` gains AC 4 (dict fills one hole only; `energy_ratio` wins; an unlisted hole
+  falls to the setting or stays blank; the warning text; unknown key; dict without `loca_id`). Every existing test
+  that passes `hammer_efficiency` or sets the setting with blank energy ratios asserts the warning with
+  `pytest.warns` (`tests/analysis/test_spt.py`, `tests/datasets/test_spt.py`,
+  `tests/datasets/test_datasets_acceptance.py`, `tests/plot/test_spt_histogram.py`,
+  `tests/plot/test_spt_refusals.py`, `tests/plot/test_spt_profile_acceptance.py`). `tests/datasets/test_spt.py`
+  checks `energy_source` per row with a dict.
+- Docs: `docs/site/guides/spt.md` (N60 list: the argument by hole, the warning) and
+  `docs/site/plots/spt-profile.md` (the argument's row).
+
+### 3. `registry: (N1)60, φ′ and the correlation columns`
+- `columns.yaml`, under SPT: `spt_overburden_correction` (dimensionless, ratio, "Overburden correction, C_N",
+  `derived: effective_vertical_stress`) and `spt_n1_60` (count, ratio, "SPT (N1)60", `derived: spt_n60,
+  spt_overburden_correction`). A new section "Strength": `effective_friction_angle` (angle, ratio, "Effective
+  friction angle, φ′"). A new section "Correlations": `correlation_name` and `correlation_note` (text). All
+  `ags: ["derived: docs/work/m13b1-spt-framework.md"]`, `used_by: [P01]`.
+- `defaults.yaml`: presets `spt_n1_60` (as `spt_n60`) and `effective_friction_angle` (linear, typical `[20, 50]`,
+  not from zero).
+- Tests: `tests/test_registry.py` and the preset test pick them up through their existing rules; the columns page
+  test passes once `prepare_site.py` regenerates it.
+
+### 4. `M13: spt_n1_60() with C_N by method`
+- New `analysis/_overburden.py`, exported from `ht.analysis` as `spt_n1_60`:
+  - `PA = 100 kPa`, `CAP = 1.7`, `MAX_STRESS = 300 kPa`, and the two methods as small pure functions on kPa arrays.
+  - `spt_n1_60(df, *, method, units=None)`: column checks naming the function that adds each (Decision 1);
+    `method` checked against the two names (error lists them, with an example); `effective_vertical_stress`
+    converted to kPa via `units.resolve_units(..., analysis=True)`; negative stress raises naming rows; blanks and
+    > 300 kPa give NaN with one warning by reason; existing output columns replaced with a warning, as
+    `vertical_stress()` does; `attrs["spt_n1_60"]` (Decision 1).
+  - Docstring per the TEMPLATE checklist: both equations, the cap, the range and Youd et al.'s note on 200–300 kPa,
+    C_R / C_B / C_S not applied, source with locators.
+- `docs/site/reference/analysis.md`: `::: hangtu.analysis.spt_n1_60`.
+- Tests (new `tests/analysis/test_spt_n1_60.py`): AC 1's table for both methods to 1e-4; the US twin (psf) within
+  0.1 %; 300.1 kPa blank and counted; method required, a wrong name raising; missing columns raising with the hint;
+  refusals computed; no row dropped or reordered; attrs.
+
+### 5. `M13: the correlations framework and hatanaka_uchida_1996`
+- New `config/correlations.yaml` with the `hatanaka_uchida_1996` entry (Decision 6): target, inputs with variant
+  and units, range in the source's units, applies to, not for, scatter, source and locator.
+- New package `analysis/correlations/`:
+  - `_framework.py`: `entry(name)` (reads the config through `_config.load`); `inputs(df, entry, units)` (each
+    input column present by its registry name, else the error with the hint, Decision 3; converted to the entry's
+    units); `estimate(df, entry, values, notes, display_units)` builds the output: the target column,
+    `correlation_name`, `correlation_note` (input blank, refusal from `spt_refusal`, below range, above range, in
+    that priority), NaN where noted, the warning counting by reason, `attrs["correlations"]`, replaced columns
+    warned.
+  - `_friction_angle.py`: `hatanaka_uchida_1996(df, *, units=None, display_units=None)` with its docstring
+    (Decision 7).
+  - `__init__.py`: `__all__ = ["describe", "hatanaka_uchida_1996"]`; `describe(name)` returns a copy of the entry,
+    and an unknown name lists the known ones.
+- `ht.analysis.__init__` imports `correlations`, so `ht.analysis.correlations.hatanaka_uchida_1996` works.
+- `tests/docs/test_site.py`: `test_every_public_name_has_a_reference_entry` recurses into submodules with
+  `__all__`, so `hangtu.analysis.correlations.*` is expected. New `docs/site/reference/correlations.md` with both
+  names, in the nav under Reference.
+- Tests (new `tests/analysis/test_correlations.py`): AC 2's H&U column from the (N1)60 values; 4.0 and 40.0 below
+  and above range; a refusal; a blank input; AC 3 (no `spt_n1_60` raises naming it; no argument chooses the
+  column); AC 5 (`attrs` and `describe()` agree); the drift test (AC 6): for each config entry, the function's
+  docstring contains the source, the locator and each range bound; a monkeypatched docstring fails it.
+
+### 6. `M13: kulhawy_mayne_1990`
+- `config/correlations.yaml`: its entry (inputs `spt_n60` and `effective_vertical_stress` in kPa; range 0 < σ′v ≤
+  300 kPa, N60 ≤ 60).
+- `_friction_angle.py`: `kulhawy_mayne_1990`, sharing `PA` from `_overburden.py`; its docstring (Decision 7, the
+  shallow-depth note).
+- `__all__` and `docs/site/reference/correlations.md` gain it.
+- Tests: AC 2's K&M column; N60 61 and σ′v 301 kPa out of range; σ′v in psf gives the same φ′; the drift test
+  covers it through the config; AC 7: `pd.concat` of both on a small frame draws with `profile(...,
+  color_by="correlation_name")`, the out-of-range rows counted in the footnote.
+
+### 7. `docs: page 04, drained shear strength of soil`
+- `docs/site/parameters/04-drained-shear-strength-soil.md` from the sheet, in TEMPLATE's order (Decision 10):
+  the methods table links the two functions and gives W2 for the triaxial and shear box methods; Hatanaka &
+  Uchida's form corrected to GEC 5's; Wolff listed as [U], not built (TODO #36); Table 4-3's five rows kept with
+  their citation; Fig. 7-41 cited.
+- The remaining [U] items (Duncan 2000's COV table, Phoon & Kulhawy 1999, Lambe & Whitman 1969, the residual
+  range) are verified with their locator or cut, as unit (a) did for page 01; the commit message lists which.
+- The sheet `docs/drafts/parameters/04-*.md` gets the same corrections to §5.4 and §5.5, and a line pointing to
+  the page. Nav entry under Parameters.
+
+### 8. `M13: correlations guide, example and close-out`
+- `docs/site/guides/correlations.md` and `docs/site/examples/correlations.py`: open the example project with the
+  map and judgments as `judgments.py` does, `vertical_stress()` on the holes without B-4's gap,
+  `spt_n1_60(method="liao_whitman_1986")`, keep the Terrace rows (sands; the guide says the user picks the rows a
+  correlation applies to), both correlations, `pd.concat`, print a few rows, and a profile with
+  `color_by="correlation_name"`. The example data carries `ISPT_ERAT`, so no hammer warning; rows are chosen so the
+  example runs clean (`test_page_example_runs_clean`), and the guide shows what an out-of-range row looks like in
+  text. Nav under Guides; `guides/spt.md` links it from its N60 section.
+- Page 04's methods table links the guide.
+- Close-out: parameter index row 04 stage C → **part built** (SPT φ′: M13 b1); `CLAUDE.md` status paragraph (b1
+  done, b2 next).
+- Check: `uv run python docs/prepare_site.py` and `zensical build --clean --strict` pass.
+
+If step 2 passes about 300 lines, it splits in two: the dict by hole with its new tests first (no existing test
+changes), then the warning together with the existing tests that now assert it, since the warning can't land without
+them.
