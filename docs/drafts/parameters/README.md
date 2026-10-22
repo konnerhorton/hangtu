@@ -13,7 +13,7 @@ published. Until then nothing here overrides `SPEC.md` or a feature spec. The ro
 - **Judgments** are tagged _[Judgment — for review]_. Nothing here is a design value.
 - **Unit conversions** are computed, not typed from memory.
 - **What is reproduced:** values with their citation, and short sets of class boundaries as commonly cited. A
-  source table or chart is not reproduced whole: the sheet gives the values it needs and the locator (TODO #30).
+  source table or chart is not reproduced whole: the sheet gives the values it needs and the locator (TODO #30, settled in M13: `docs/work/m13a-judgments.md` Decision 9).
 - **The sheets keep their draft structure** (§1–7 and references) until they are promoted; the promoted page
   follows the template, and each method's equation and source move into its function's docstring.
 

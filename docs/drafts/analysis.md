@@ -395,20 +395,9 @@ The principles are decided in SPEC §4. The rest is a draft.
 ### 4.1 Vertical stress and (N1)60
 (N1)60 = N60 × C_N, with C_N from the effective vertical stress σ′v. Some correlations (Kulhawy & Mayne 1990) also take σ′v. So σ′v is its own function, and (N1)60 and the correlations take a σ′v column as input.
 
-`ht.analysis.vertical_stress(df, *, unit_weight, groundwater, interpolation="step")` adds total vertical stress, hydrostatic pore pressure and σ′v (names to check against the registry). Decided 2026-10-15:
-- **Unit weight** is a single value or a profile table (`depth` or `elevation`, `bulk_unit_weight`), passed in the call. It's a design profile, not raw lab data: one value per depth, otherwise an error that names the repeated depths.
-  - `interpolation="step"`: each row applies from its depth down to the next row (discrete properties per interval, as design profiles usually are). `"linear"`: linear between rows (a trend).
-  - The first row applies from the ground surface, and the last row continues down. Both are stated in the docstring.
-  - Total (bulk) unit weight throughout; σ′v = σv − u. A submerged unit weight is never asked for.
-  - A profile in elevation is converted to depth with each hole's `ground_level` (SPEC §8). A hole without one is an error.
-- **Groundwater** is a single depth or elevation for every hole, or `{loca_id: level}`. With a dict, every hole in the data must be in it; the error lists the missing holes. The user picks a level for holes without a record (to rethink later).
-- **Pore pressure** is hydrostatic: u = γw (z − z_w) below the water level and 0 above it. Perched water and artesian pressure are out of scope. γw is a new setting, `ht.settings.water_unit_weight` (9.81 kN/m³, 62.4 pcf; plot drafts cross-cutting finding 4).
-- **Auditability:** the profile, the interpolation and the water level used for each hole go in `df.attrs`.
-- **Assumptions**, stated in the docstring as for the correlations: level ground with laterally uniform layers; geostatic stress only, with no surcharge, structures or arching (near trenches, tunnels, walls and slopes σv isn't γz); hydrostatic pore pressure. The result isn't conservative in a fixed direction: a σ′v that's too high lowers (N1)60 (safe for strength) but also lowers OCR (unsafe for settlement), so the docstring says so instead of claiming conservatism.
+`ht.analysis.vertical_stress()` is specified in `docs/work/m13a-judgments.md` (Spec), decided 2026-10-22: unit weights by a log column from the judgments file, integrated through each hole's stratigraphy, and water levels by hole. That replaces the depth profile and `interpolation=` drafted here on 2026-10-15. Still from that draft: the hydrostatic pore pressure, γw as the setting `ht.settings.water_unit_weight`, and the assumptions stated in the docstring (level ground with laterally uniform layers; geostatic stress only, with no surcharge, structures or arching; hydrostatic pore pressure; not conservative in a fixed direction, since a σ′v that's too high lowers (N1)60, safe for strength, but also lowers OCR, unsafe for settlement).
 
-Open: which C_N (Liao & Whitman 1986; others) and its cap.
-
-**Later:** unit weight by geology unit, `unit_weight={"Fill": 19, "Clay": 18}`, integrated layer by layer through each hole's log (the M7 geology joins already give the intervals). A suggested value per unit could come from the lab data (the median `bulk_unit_weight`, as P07 shows it), for the user to accept or change.
+Open, for M13 unit (b): which C_N (Liao & Whitman 1986; others) and its cap.
 
 ### 4.2 Candidate correlations (TODO #20)
 To choose and verify against the sources:

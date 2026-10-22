@@ -36,6 +36,9 @@ nav = [
     "plots/spt-histogram.md",
     "plots/geology-unit-comparison.md",
   ] },
+  { "Parameters" = [
+    "parameters/01-unit-weight-and-vertical-stress.md",
+  ] },
   { "Reference" = [
     "reference/project.md",
     "reference/plot.md",

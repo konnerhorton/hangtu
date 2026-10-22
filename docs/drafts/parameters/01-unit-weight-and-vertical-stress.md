@@ -1,5 +1,7 @@
 # 01 — Unit weight and vertical stress
 
+**Promoted** (M13) to [`docs/site/parameters/01-unit-weight-and-vertical-stress.md`](../../site/parameters/01-unit-weight-and-vertical-stress.md); the page is the current text. Duncan (2000)'s COV table couldn't be checked and was cut.
+
 | | |
 |---|---|
 | **Parameters** | γ (bulk / total unit weight), γsat (saturated), γd (dry), γ′ (buoyant), σv0 (total vertical stress), u0 (in situ pore pressure), σ′v0 (effective vertical stress) |
@@ -56,10 +58,10 @@ _[Judgment — for review]_
 | Lab density of soil specimen (linear / immersion) | D7263 | ISO 17892-2; BS 1377-2 | LDEN: LDEN_BDEN, LDEN_DDEN (Mg/m³), LDEN_MC (%), LDEN_TYPE, LDEN_COND | ρ, ρd, w |
 | Specimen initial state in strength / consolidation tests | (D4767, D7181, D2435, D3080) | ISO 17892-5, -7, -8, -9, -10 | TRET_BDEN, TRET_DDEN, TRET_IMC; TRIT_BDEN, TRIT_DDEN, TRIT_IMC; CONG_BDEN, CONG_DDEN, CONG_MCI; SHBT_BDEN, SHBT_DDEN, SHBT_MCI | ρ, ρd, w (check values) |
 | Field density (shallow) | D1556 (sand cone), D2937 (drive cylinder), D6938 (nuclear) | BS 1377-9 | IDEN: IDEN_IDEN (Mg/m³), IDEN_MC, IDEN_TYPE | in-place ρ, w |
-| Rock density and porosity | – (no dedicated method; specimen mass/volume per D4543 / D7012) [U] | ISRM SM (1979) [4] | RDEN: RDEN_BDEN, RDEN_DDEN, RDEN_PDEN (kg/m³), RDEN_PORO, RDEN_MC, RDEN_SMC (%) | ρ, ρd, n, w |
+| Rock density and porosity | – (not checked; cut from the site page) | ISRM SM (1979) [4] [V] | RDEN: RDEN_BDEN, RDEN_DDEN, RDEN_PDEN (kg/m³), RDEN_PORO, RDEN_MC, RDEN_SMC (%) | ρ, ρd, n, w |
 | CPT / CPTu (correlated γ, σv0) | D5778 | ISO 22476-1 | SCPT_BDEN (Mg/m³, measured or assumed), SCPT_CPO, SCPT_CPOD (kPa), SCPT_ISPP (MPa); CPTP_DUW1, CPTP_SUW1 (kN/m³) | γ estimate, σv0, σ′v0, u0 |
 | Flat dilatometer (correlated γ) | D6635 | ISO 22476-11 | DMTP_BUW (kN/m³), DMTP_TVS, DMTP_EVS, DMTP_U0 (kPa); DMTG_WAT | γ estimate, σv0, u0 |
-| Groundwater level / head | – | ISO 18674-4 (piezometers) [U] | MOND: MOND_TYPE = WDEP / WHD / PRES, MOND_RDNG; WSTG_DPTH; LOCA_GL | zw, measured u |
+| Groundwater level / head | – | ISO 18674-4 (piezometers) [V] | MOND: MOND_TYPE = WDEP / WHD / PRES, MOND_RDNG; WSTG_DPTH; LOCA_GL | zw, measured u |
 | Stratigraphy | – | – | GEOL_TOP, GEOL_BASE, GEOL_GEOL | layer thicknesses Δzi |
 
 ## 5. Derivations and correlations
@@ -102,7 +104,7 @@ Chart of γ/γw from material index ID and dilatometer modulus ED.
 
 **Typical variability:** COV of γ for soil within a unit about 1–5 % (Zhang et al. 2010, silty clay / clay /
 silty sand, via [3] Table 3.3 p. 121 [V]); one clay site 3.3 % ([3] Appendix p. 31 [V]); intact rock site
-COV mean 5.2 % (range 0.4–21.5 %) [3] Table 1.4 p. 12 [V]. Duncan (2000) is often quoted as 3–7 % for γ [6] [U].
+COV mean 5.2 % (range 0.4–21.5 %) [3] Table 1.4 p. 12 [V].
 Correlated γ (CPT, DMT) has a larger, unquantified transformation error; use as a check, not pooled.
 _[Judgment — for review]_
 
@@ -121,6 +123,5 @@ _[Judgment — for review]_
 [1] Kulhawy, F.H. and Mayne, P.W. (1990). Manual on Estimating Soil Properties for Foundation Design. EPRI EL-6800, Electric Power Research Institute, Palo Alto. https://restservice.epri.com/publicdownload/EL-6800/0/Product — [V] eq. 2-9 p. 2-17, Table 2-8 p. 2-18, Fig. 2-12 p. 2-16.
 [2] Loehr, J.E., Lutenegger, A., Rosenblad, B. and Boeckmann, A. (2016). Geotechnical Site Characterization. Geotechnical Engineering Circular No. 5, FHWA NHI-16-072, Federal Highway Administration. https://www.fhwa.dot.gov/engineering/geotech/pubs/nhi16072.pdf — [V] eqs. 4.8–4.9 p. 4-7; §11.8.1–11.8.3 eqs. 11.26–11.29 pp. 11-34–11-36; authors from the title page.
 [3] Ching, J. and Schweckendiek, T. (eds.) (2021). State-of-the-art review of inherent variability and uncertainty in geotechnical properties and models. ISSMGE TC304. https://doi.org/10.53243/R0001 — [V] Table 1.4 p. 12; Table 3.3 p. 121; Appendix pp. 31, 77.
-[4] ISRM (1979). Suggested methods for determining water content, porosity, density, absorption and related properties and swelling and slake-durability index properties. Int. J. Rock Mech. Min. Sci. & Geomech. Abstr. 16(2), 141–156 — [U].
-[5] Robertson, P.K. and Cabal, K.L. (2022). Guide to Cone Penetration Testing for Geotechnical Engineering, 7th ed. Gregg Drilling LLC. https://insitutek.com/wp-content/uploads/2024/08/CPT-Guide-to-Cone-Penetration-Testing-7th-Edition-Robertson-Cabal.pdf — [V] γ/γw equation p. 39 (citing Robertson & Cabal 2010, 2nd Int. Symp. CPT, Huntington Beach [U]).
-[6] Duncan, J.M. (2000). Factors of safety and reliability in geotechnical engineering. J. Geotech. Geoenviron. Eng. 126(4), 307–316. https://doi.org/10.1061/(ASCE)1090-0241(2000)126:4(307) — [U] (COV table not seen).
+[4] ISRM (1979). Suggested methods for determining water content, porosity, density, absorption and related properties and swelling and slake-durability index properties. Int. J. Rock Mech. Min. Sci. & Geomech. Abstr. 16(2), 141–156 — [V] citation from the TRID record (https://trid.trb.org/View/146312).
+[5] Robertson, P.K. and Cabal, K.L. (2022). Guide to Cone Penetration Testing for Geotechnical Engineering, 7th ed. Gregg Drilling LLC. https://insitutek.com/wp-content/uploads/2024/08/CPT-Guide-to-Cone-Penetration-Testing-7th-Edition-Robertson-Cabal.pdf — [V] γ/γw equation p. 39; the 2010 symposium paper it cites is not cited on the site page.

@@ -226,10 +226,7 @@ Each judgment declares what it is keyed by and whether one project-wide value is
 - the disturbance factor D by design case (excavation method and zone);
 - σ′3max by design case;
 - Bjerrum's μ from PI, so by specimen;
-- the design unit weight profile and groundwater level by hole, or project-wide with a stated reason (M13).
-
-### 30. What can be published · You + Claude · docs/drafts/parameters/README.md · before the first promotion
-For the site pages: which content can be reproduced (cited values; class boundaries; whole tables; values read from charts; the descriptors of a chart such as GSI's), and which needs only a citation. The drafts follow the interim rule (values and references, no wholesale reproductions); settle the rule before a wave first publishes a page.
+- settled in M13 (`docs/work/m13a-judgments.md`): unit weight by a log column (`by:`, usually `geology_unit`), water level by hole, each with an optional project-wide value that needs a `reason` and fills unlisted keys with a warning.
 
 ### 31. Curves in real files · You · input for wave 0's intent (M16)
 Which user-defined groups and headings real files use for triaxial stress–strain curves, rock triaxial, swelling against time and shear box displacement, gathered from the sample dataset being prepared from real projects.
@@ -237,8 +234,11 @@ Which user-defined groups and headings real files use for triaxial stress–stra
 ### 32. Published definitions of the model sets · Claude (verify) · SPEC §5 · needed for M18
 Confirm a non-vendor published source that defines each model set's parameters: Mohr–Coulomb; Hardening Soil (Schanz, Vermeer & Bonnier 1999?); HS-small (Benz 2007?); generalized Hoek–Brown (Hoek, Carranza-Torres & Corkum 2002); Soft Soil (Vermeer & Neher 1999?). Where only a software manual defines a model, say so.
 
-### 33. Energy ratio as a judgment · You · SPEC §4
-`hammer_efficiency` is a session setting. Decide whether it moves into the judgments file, keyed by hole or rig, when the file is specified (M13).
+### 34. γw as a judgment · You · SPEC §4
+`ht.settings.water_unit_weight` is one session value. Sites with both seawater and fresh water (or brines) need two, so γw may become a judgment keyed by hole or zone.
+
+### 35. `strata=` from a per-hole stratigraphy · You + Claude · P01 §8
+P01's `strata=` takes one stratigraphy; the user filters `p.stratigraphy()` to one hole. Later, `strata=` could take the per-hole table directly (one hole, or with a `loca_id` filter) and convert a depth pair to elevation with that hole's ground level.
 
 ---
 
@@ -247,6 +247,8 @@ Confirm a non-vendor published source that defines each model set's parameters: 
 - A helper for deciding cohesive vs cohesionless from lab data (fines %, PI).
 
 ## Done
+- ✅ #30 What can be published decided (2026-10-22, M13, `docs/work/m13a-judgments.md` Decision 9): a site page may reproduce single values and ranges with their citation and locator, short sets of class boundaries as commonly cited (about ten rows or fewer), and equations with their source. It doesn't reproduce a source table or chart whole, values read off a chart beyond the few a method needs, a chart's descriptors (GSI), or quoted text beyond a sentence. Figures on the site are hangtu's own.
+- ✅ #33 Energy ratio decided (2026-10-22, M13): hammer efficiency is data, not a judgment. `ISPT_ERAT` is used first; `hammer_efficiency` (argument or setting) fills blanks with a warning naming the holes, and takes values by hole in M13 unit (b). SPEC §4.
 - ✅ #15 Text in a value column built (2026-10-19, M8): P01 draws each text value as an open marker at the left edge at its depth, one shape per text, with a legend entry and a footnote count. `NP` and `refusal` (any case) are recognized; other text is counted with a warning naming it. The stats box adds "Also: NP 3, 'dry' 2". In P01 §3, §7, §8. P07 is TODO #23.
 - ✅ #19 Source of triaxial readings decided (2026-10-15): a CSV the user shapes from the lab's export, one row per reading, minimum columns in the P12 draft §3. AGS 4.1–4.2 `TRET` and `TRIT` carry values at failure only, which feed P11.
 - ✅ #18 A point exactly on the axis limit decided and built (2026-10-14, M9): a value on a limit hangtu picks moves that limit out one step (a tick step, or a decade on a log axis). A lower limit of 0 stays, and limits the user sets are used as given. In P00 §8.
