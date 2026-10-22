@@ -86,13 +86,14 @@ part of them.
 
 | Method | Uses | Applies to | Function |
 |---|---|---|---|
-| Layered integration, hydrostatic pore pressure (Loehr et al. 2016) | each hole's log, unit weight by geology unit, water level by hole | level ground, geostatic stress, no vertical flow | `ht.analysis.vertical_stress()` (M13) |
+| Layered integration, hydrostatic pore pressure (Loehr et al. 2016) | each hole's log, unit weight by geology unit, water level by hole | level ground, geostatic stress, no vertical flow | [`ht.analysis.vertical_stress()`](../reference/analysis.md#hangtu.analysis.vertical_stress) |
 | γ = γd (1 + w) (definition) | ρd and w of one specimen | any specimen | phase relations (M14) |
 | γ from CPTu (Robertson & Cabal 2022, p. 39) | qt, fs, Gs | uncemented mineral soils; a check only | not planned |
 | γ from DMT (Kulhawy & Mayne 1990, Fig. 2-12) | ID, ED | a check only | not planned |
 
 Unit weights and water levels are judgments: hangtu takes them from the project's judgments file or the call,
-never from a default, and records which values it used on the result.
+never from a default, and records which values it used on the result ([Judgments and vertical
+stress](../guides/judgments.md)).
 
 ## How the methods compare
 

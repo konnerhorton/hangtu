@@ -710,8 +710,9 @@ class Project:
         ``geology_description``, ordered by hole and top. It is the log
         ``ht.analysis.vertical_stress()`` integrates through; edit it (reclass
         layers by USCS, say) and pass it back. Layers are as written: gaps and
-        overlaps are kept, and ``p.qc()`` reports them (G002, G003). See
-        ``docs/data/datasets.md`` §6.7.
+        overlaps are kept, and ``p.qc()`` reports them (G002, G003). There is
+        no ``depth=`` or ``elevation=``: a log cut at a depth can't be
+        integrated. See ``docs/data/datasets.md`` §6.7.
 
         Parameters
         ----------
@@ -730,9 +731,6 @@ class Project:
             they're left out, with a warning that counts them.
         display_units
             ``"US"`` or ``"SI"``; by default the project's.
-
-        There is no ``depth=`` or ``elevation=``: a log cut at a depth can't
-        be integrated.
 
         Examples
         --------

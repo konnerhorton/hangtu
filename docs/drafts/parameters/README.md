@@ -28,7 +28,7 @@ Each stage cell gives the wave (W0–W6) or milestone that builds it, and **buil
 
 | # | Sheet | Parameters | A | B | C | D |
 |---|---|---|---|---|---|---|
-| 01 | [Unit weight and vertical stress](01-unit-weight-and-vertical-stress.md) | γ, γsat, σv0, u0, σ′v0 | W1 | W1 | — | M18 |
+| 01 | [Unit weight and vertical stress](01-unit-weight-and-vertical-stress.md) | γ, γsat, σv0, u0, σ′v0 | W1 (M14) | **part built** (σv0, u0, σ′v0: M13); W1 (γ from phase relations) | — | M18 |
 | 02 | [Index properties](02-index-properties.md) | w, LL, PL, PI, LI, Ic, activity, fines | **built** (M7, M8) | **part built** (PI, LI, Ic, classes); W1 (activity; LI and Ic as analyses) | — | M18 |
 | 03 | [Specific gravity and void ratio](03-specific-gravity-and-void-ratio.md) | Gs, e0, n | W1 | W1 | — | M18 |
 | 04 | [Drained shear strength of soil](04-drained-shear-strength-soil.md) | φ′, c′ | W2 | W2 | W1 (SPT) | M18 |

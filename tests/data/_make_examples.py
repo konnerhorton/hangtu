@@ -12,6 +12,9 @@ keeps the same across versions, so the files are reproduced exactly.
 The fill and the upper alluvium tubes have hydrometer tests, so their
 grading curves continue into the fines; the terrace sands are sieved only.
 
+``judgments.yaml`` holds the site's unit weights by geology unit and a water
+level for each hole, as an engineer would set them (SPEC §4).
+
 Two QC findings are planted, so the QC example has something to report:
 - G002, a gap in the geology log of B-4 from 9.0 to 10.0 ft;
 - A002, a plasticity index in B-3 that doesn't match LL - PL (an arithmetic slip).
@@ -84,6 +87,33 @@ code,geology_unit,soil_class,order,color
 FILL,Fill,fill,1,#9e9e9e
 ALV,Alluvium,fine,2,#5b8db8
 TRC,Terrace,coarse,3,#e0b040
+"""
+
+# The site's judgments (SPEC §4), in the file's US units.
+JUDGMENTS = """\
+# judgments.yaml: the example site's unit weights and water levels (SPEC §4).
+unit_weight:
+  by: geology_unit
+  units: {bulk_unit_weight: pcf, saturated_unit_weight: pcf}
+  values:
+    Fill: {bulk_unit_weight: 120, reason: "compacted sandy lean clay fill, typical"}
+    Alluvium:
+      bulk_unit_weight: 110
+      saturated_unit_weight: 112
+      reason: "soft lean clay, typical"
+    Terrace:
+      bulk_unit_weight: 125
+      saturated_unit_weight: 130
+      reason: "medium dense to very dense sand with gravel, typical"
+water_level:
+  units: {depth: ft}
+  by_hole:
+    B-1: {depth: 8.0, reason: "encountered while drilling, 2026-08-10"}
+    B-2: {depth: 9.5, reason: "encountered while drilling, 2026-08-11"}
+    B-3: {depth: 7.0, reason: "encountered while drilling, 2026-08-12"}
+    B-4: {depth: 8.5, reason: "encountered while drilling, 2026-08-13"}
+    B-5: {depth: 10.0, reason: "encountered while drilling, 2026-08-14"}
+    B-6: {depth: 6.5, reason: "encountered while drilling, 2026-08-15"}
 """
 
 
@@ -489,6 +519,7 @@ def main(out=OUT):
     hydrometer_rng.seed(2027)
     write_site(out / "site.ags")
     (out / "strata.csv").write_text(STRATA, encoding="utf-8", newline="")
+    (out / "judgments.yaml").write_text(JUDGMENTS, encoding="utf-8", newline="")
     write_csvs(out)
 
 
