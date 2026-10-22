@@ -3,6 +3,7 @@
 from importlib.metadata import version
 
 from hangtu import analysis, examples, plot
+from hangtu._judgments import Judgments, judgments
 from hangtu._settings import settings
 from hangtu.errors import AgsFileError, ColumnError, HangtuError, HangtuHint, UnitsError
 from hangtu.project import Project
@@ -24,6 +25,7 @@ __all__ = [
     "ColumnError",
     "HangtuError",
     "HangtuHint",
+    "Judgments",
     "Project",
     "Sheet",
     "UnitsError",
@@ -33,6 +35,7 @@ __all__ = [
     "columns",
     "define_unit",
     "examples",
+    "judgments",
     "plot",
     "read_csv",
     "set_units",
