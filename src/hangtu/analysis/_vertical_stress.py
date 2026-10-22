@@ -8,11 +8,13 @@ computed in m, kN/m³ and kPa and converted for display at the end.
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from numbers import Real
+from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
 
+from hangtu import _judgments
 from hangtu import units as _units
 from hangtu._data import numeric_column
 from hangtu._settings import _display_units, settings
@@ -45,6 +47,8 @@ class Values:
     project: dict[str, float] | None = None
     project_text: dict[str, str] | None = None
     sha256: str | None = None
+    #: A file's project value with no keyed values: used for every key, warned.
+    project_only: bool = False
     used: dict[str, dict[str, str]] = field(default_factory=dict)
 
     def record(self) -> dict[str, Any]:
@@ -186,13 +190,15 @@ def vertical_stress(
     tested = list(dict.fromkeys(holes[valid]))
     deepest = {hole: float(depths[valid & (holes == hole)].max()) for hole in tested}
 
-    weights = _resolve_unit_weight(unit_weight)
-    levels = _resolve_water_level(water_level, depth_unit)
+    read = _read_judgments(judgments, df)
+    weights = _resolve("unit_weight", unit_weight, read, df, depth_unit)
+    levels = _resolve("water_level", water_level, read, df, depth_unit)
     log, log_unit = _read_log(stratigraphy, weights.by)
     logs, extended = _check_log(log, deepest, weights.by, log_unit)
 
     keys = [key for hole in tested for key in logs[hole].keys]
-    gamma = _take(weights, keys, "geology unit" if weights.by else "layer")
+    noun = "geology unit" if weights.by in (None, "geology_unit") else weights.by
+    gamma = _take(weights, keys, noun)
     _warn_unused(weights, log["key"] if weights.by else [])
     water = _water_depths(_take(levels, tested, "hole"), df, units)
     _warn_unused(levels, log["loca_id"])
@@ -456,30 +462,107 @@ def _check_log(
 # --- Judgments ----------------------------------------------------------------------
 
 
-def _resolve_unit_weight(argument: Any) -> Values:
-    if argument is not None:
-        return _unit_weight_argument(argument)
-    raise HangtuError(_missing("unit_weight"))
+def _read_judgments(judgments: Any, df: pd.DataFrame) -> "_judgments.Read | None":
+    """Read the judgments file for this call: ``judgments=``, else df's project's."""
+    given = _judgments.as_judgments(judgments)
+    attached = df.attrs.get("judgments_file")
+    if given is None:
+        if attached is None:
+            return None
+        given = _judgments.Judgments(attached)
+    elif attached is not None and given.path.resolve() != Path(attached).resolve():
+        warn(
+            f"judgments= is {str(given.path)!r}, not the project's judgments file "
+            f"{attached!r} that df carries; judgments= is used."
+        )
+    return given.read()
 
 
-def _resolve_water_level(argument: Any, depth_unit: str) -> Values:
+def _resolve(
+    name: str,
+    argument: Any,
+    read: "_judgments.Read | None",
+    df: pd.DataFrame,
+    depth_unit: str,
+) -> Values:
+    """One judgment: its argument, else the judgments file, else an error."""
+    in_file = None if read is None else read.judgments.get(name)
     if argument is not None:
+        if in_file is not None:
+            warn(f"{name}= replaces the {name} in {read.path.name}.")
+        if name == "unit_weight":
+            return _unit_weight_argument(argument)
         return _water_level_argument(argument, depth_unit)
-    raise HangtuError(_missing("water_level"))
+    if in_file is not None:
+        return _from_file(in_file, read)
+    raise HangtuError(_missing(name, read, "judgments_file" in df.attrs))
 
 
-def _missing(name: str) -> str:
+def _from_file(judgment: "_judgments.Judgment", read: "_judgments.Read") -> Values:
+    """Convert a judgment from the file to m and kN/m³, with texts for the record."""
+    targets = {"unit_weight": _UNIT_WEIGHT, "length": _METER}
+    kinds = _judgments.KINDS[judgment.name].fields
+
+    def convert(entry: "_judgments.Entry") -> tuple[dict[str, float], dict[str, str]]:
+        values, texts = {}, {}
+        for name, value in entry.values.items():
+            unit = judgment.units[name]
+            values[name] = float(
+                _units.convert(
+                    [value], _units.parse_unit(unit), kinds[name], targets[kinds[name]]
+                )[0]
+            )
+            texts[name] = _judgments.quantity_text(value, unit)
+        if entry.reason is not None:
+            texts["reason"] = entry.reason
+        return values, texts
+
+    entries, texts = {}, {}
+    for key, entry in judgment.values.items():
+        entries[key], texts[key] = convert(entry)
+    project = project_text = None
+    if judgment.project is not None:
+        project, project_text = convert(judgment.project)
+    values = Values(
+        judgment.name,
+        str(read.path),
+        judgment.by,
+        entries,
+        texts,
+        project=project,
+        project_text=project_text,
+        sha256=read.sha256,
+    )
+    if not judgment.values and judgment.project is not None and judgment.by is None:
+        values.entries, values.texts = {ALL: project}, {ALL: project_text}
+        values.project_only = True
+    return values
+
+
+def _missing(name: str, read: "_judgments.Read | None", attached: bool) -> str:
     if name == "unit_weight":
         what = "unit weights, keyed by geology unit"
         example = 'unit_weight={"Fill": "18 kN/m3", "Clay": "19 kN/m3"}'
     else:
         what = "water levels, keyed by hole"
         example = 'water_level={"BH1": "3 m", "BH2": "2.5 m"}'
+    if read is not None:
+        return (
+            f"The judgments file {str(read.path)!r} has no {name}, and "
+            f"vertical_stress() needs {what}, a judgment with no default (SPEC §4). "
+            f"Add {name}: to the file, or give them in the call, {example}."
+        )
+    hint = (
+        ""
+        if attached
+        else " If df came from a Project dataset, merge and concat drop df.attrs: "
+        "pass judgments=p.judgments."
+    )
     return (
         f"vertical_stress() needs {what}, a judgment with no default (SPEC §4). "
         f"Give them in the call, {example}, or in a judgments file under "
         f"{name}: and pass judgments=ht.judgments(path), or set it on the project "
-        "with p.set_judgments(path)."
+        f"with p.set_judgments(path).{hint}"
     )
 
 
@@ -597,6 +680,10 @@ def _take(
 ) -> dict[str, dict[str, float]]:
     """Each key's entry, the project value filling in; record the ones used."""
     keys = list(dict.fromkeys(keys))
+    if values.project_only:
+        _warn_project(values, "every " + noun, values.texts[ALL])
+        values.used["project"] = values.texts[ALL]
+        return dict.fromkeys(keys, values.entries[ALL])
     if values.by is None:
         values.used[ALL] = values.texts[ALL]
         return dict.fromkeys(keys, values.entries[ALL])
@@ -627,14 +714,7 @@ def _take(
                 else "."
             )
         )
-    project_text = dict(values.project_text or {})
-    reason = project_text.pop("reason", None)
-    shown = ", ".join(project_text.values())
-    warn(
-        f"{values.name}: the {plural} {listed} "
-        f"{'is' if len(missing) == 1 else 'are'} not listed, so the project "
-        f"value {shown} is used" + (f" ({reason})." if reason else ".")
-    )
+    _warn_project(values, f"the {plural} {listed} not listed", values.project_text)
     for key in missing:
         found[key] = values.project
     values.used["project"] = {
@@ -642,6 +722,15 @@ def _take(
         "used_for": ", ".join(missing),
     }
     return found
+
+
+def _warn_project(values: Values, used_for: str, text: Mapping[str, str]) -> None:
+    shown = dict(text)
+    reason = shown.pop("reason", None)
+    warn(
+        f"{values.name}: the project value {', '.join(shown.values())} is used for "
+        f"{used_for}" + (f" ({reason})." if reason else ".")
+    )
 
 
 def _warn_unused(values: Values, present: Iterable[Any]) -> None:

@@ -1,5 +1,6 @@
 """ht.analysis.vertical_stress() (docs/work/m13a-judgments.md, Decisions 6 and 7)."""
 
+import hashlib
 import warnings
 from pathlib import Path
 
@@ -484,3 +485,299 @@ def test_recorded_argument_judgments():
             "values": {"all": {"depth": "3 m"}},
         },
     }
+
+
+# --- The judgments file (criteria 2, 3 and 6) -----------------------------------------
+
+JUDGMENTS = """\
+unit_weight:
+  by: geology_unit
+  units: {bulk_unit_weight: kN/m3, saturated_unit_weight: kN/m3}
+  values:
+    Fill: {bulk_unit_weight: 18, reason: median LDEN}
+    Clay: {bulk_unit_weight: 19, saturated_unit_weight: 20}
+    Sand: {bulk_unit_weight: 19.5}
+water_level:
+  units: {depth: m}
+  by_hole:
+    BH01: {depth: 3.0, reason: standpipe reading}
+"""
+
+
+def write_judgments(tmp_path, text=JUDGMENTS, name="judgments.yaml"):
+    path = tmp_path / name
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+def from_project(path, depths=(5.0,)):
+    """Tests as a Project dataset would give them, carrying the file."""
+    df = make_tests(list(depths))
+    df.attrs["judgments_file"] = str(path)
+    return df
+
+
+def test_the_file_gives_the_golden_values(tmp_path):
+    path = write_judgments(tmp_path)
+    df = quiet(
+        make_tests([5.0, 8.0]),
+        stratigraphy=make_log(),
+        judgments=ht.judgments(path),
+        display_units="SI",
+    )
+    assert list(df["total_vertical_stress"]) == pytest.approx([95.0, 154.0])
+    assert list(df["pore_pressure"]) == pytest.approx([19.62, 49.05])
+
+
+def test_the_project_file_comes_from_df_attrs(tmp_path):
+    path = write_judgments(tmp_path)
+    df = quiet(from_project(path), stratigraphy=make_log(), display_units="SI")
+    assert df["effective_vertical_stress"].iloc[0] == pytest.approx(75.38)
+
+
+def test_judgments_takes_a_path(tmp_path):
+    path = write_judgments(tmp_path)
+    df = quiet(
+        make_tests([5.0]), stratigraphy=make_log(), judgments=path, display_units="SI"
+    )
+    assert df["effective_vertical_stress"].iloc[0] == pytest.approx(75.38)
+
+
+def test_an_argument_overrides_the_file_with_a_warning(tmp_path):
+    # Criterion 2: per judgment; the other still comes from the file.
+    path = write_judgments(tmp_path)
+    with pytest.warns(
+        UserWarning, match=r"water_level= replaces the water_level in judgments.yaml"
+    ):
+        df = ht.analysis.vertical_stress(
+            from_project(path),
+            stratigraphy=make_log(),
+            water_level="4 m",
+            display_units="SI",
+        )
+    assert df["pore_pressure"].iloc[0] == pytest.approx(9.81)
+    assert df.attrs["judgments"]["water_level"]["source"] == "argument"
+    assert df.attrs["judgments"]["unit_weight"]["source"] == str(path)
+
+
+def test_judgments_differing_from_the_project_file_warns(tmp_path):
+    project = write_judgments(tmp_path)
+    other = write_judgments(
+        tmp_path, JUDGMENTS.replace("depth: 3.0", "depth: 4.0"), "other.yaml"
+    )
+    with pytest.warns(
+        UserWarning, match=r"judgments= is .*other.yaml', not the project's"
+    ):
+        df = ht.analysis.vertical_stress(
+            from_project(project),
+            stratigraphy=make_log(),
+            judgments=ht.judgments(other),
+            display_units="SI",
+        )
+    assert df["pore_pressure"].iloc[0] == pytest.approx(9.81)
+
+
+def test_a_merged_frame_without_attrs_gets_the_hint(tmp_path):
+    path = write_judgments(tmp_path)
+    merged = pd.concat([from_project(path), make_tests([6.0])])
+    merged.attrs = {"units": {"depth": "m"}}
+    with pytest.raises(
+        ht.HangtuError,
+        match=r"merge and concat drop df.attrs: pass judgments=p.judgments",
+    ):
+        ht.analysis.vertical_stress(merged, stratigraphy=make_log())
+
+
+def test_a_file_without_the_judgment_says_so(tmp_path):
+    path = write_judgments(tmp_path, JUDGMENTS.split("water_level:")[0])
+    with pytest.raises(
+        ht.HangtuError, match=r"judgments.yaml' has no water_level.*Add water_level:"
+    ):
+        ht.analysis.vertical_stress(from_project(path), stratigraphy=make_log())
+
+
+def test_project_values_fill_in_with_a_warning(tmp_path):
+    # Criterion 3.
+    text = (
+        JUDGMENTS.replace(
+            "    Sand: {bulk_unit_weight: 19.5}\n",
+            "",
+        )
+        .replace(
+            "  values:",
+            "  project: {bulk_unit_weight: 19.5, reason: median of all units}\n"
+            "  values:",
+        )
+        .replace(
+            "  by_hole:\n    BH01: {depth: 3.0, reason: standpipe reading}\n",
+            "  project: {depth: 3.0, reason: highest reading}\n",
+        )
+    )
+    path = write_judgments(tmp_path, text)
+    with pytest.warns(UserWarning) as record:
+        df = ht.analysis.vertical_stress(
+            from_project(path, depths=(8.0,)),
+            stratigraphy=make_log(),
+            display_units="SI",
+        )
+    messages = [str(w.message) for w in record]
+    assert (
+        "unit_weight: the project value 19.5 kN/m3 is used for the geology unit "
+        "'Sand' not listed (median of all units)." in messages
+    )
+    assert (
+        "water_level: the project value 3 m is used for the hole 'BH01' not listed "
+        "(highest reading)." in messages
+    )
+    assert df["total_vertical_stress"].iloc[0] == pytest.approx(154.0)
+    recorded = df.attrs["judgments"]["unit_weight"]["values"]
+    assert recorded["project"] == {
+        "bulk_unit_weight": "19.5 kN/m3",
+        "reason": "median of all units",
+        "used_for": "Sand",
+    }
+
+
+def test_missing_keys_without_a_project_value_are_named(tmp_path):
+    path = write_judgments(
+        tmp_path,
+        JUDGMENTS.replace("    Sand: {bulk_unit_weight: 19.5}\n", "").replace(
+            "    Clay: {bulk_unit_weight: 19, saturated_unit_weight: 20}\n", ""
+        ),
+    )
+    with pytest.raises(
+        ht.HangtuError,
+        match=r"The judgments file's unit_weight has no value for the geology units "
+        r"'Clay', 'Sand'.*project: entry",
+    ):
+        ht.analysis.vertical_stress(
+            from_project(path, depths=(8.0,)), stratigraphy=make_log()
+        )
+
+
+def test_entries_for_units_and_holes_not_in_the_stratigraphy_warn(tmp_path):
+    text = (
+        JUDGMENTS.replace(
+            "    Sand: {bulk_unit_weight: 19.5}\n",
+            "    Sand: {bulk_unit_weight: 19.5}\n    sand: {bulk_unit_weight: 19.5}\n",
+        )
+        + "    BH9: {depth: 1.0}\n"
+    )
+    path = write_judgments(tmp_path, text)
+    with pytest.warns(UserWarning) as record:
+        ht.analysis.vertical_stress(from_project(path), stratigraphy=make_log())
+    messages = " ".join(str(w.message) for w in record)
+    assert (
+        "unit_weight has values for 'sand', which is not in the stratigraphy's "
+        "geology_unit" in messages
+    )
+    assert (
+        "water_level has values for 'BH9', which is not in the stratigraphy's loca_id"
+        in messages
+    )
+
+
+def test_recorded_values_and_hash(tmp_path):
+    # Criterion 6.
+    path = write_judgments(tmp_path)
+    df = quiet(from_project(path), stratigraphy=make_log(), display_units="SI")
+    sha256 = hashlib.sha256(path.read_bytes()).hexdigest()
+    assert df.attrs["judgments"] == {
+        "unit_weight": {
+            "source": str(path),
+            "sha256": sha256,
+            "by": "geology_unit",
+            "values": {
+                "Fill": {"bulk_unit_weight": "18 kN/m3", "reason": "median LDEN"},
+                "Clay": {
+                    "bulk_unit_weight": "19 kN/m3",
+                    "saturated_unit_weight": "20 kN/m3",
+                },
+            },
+        },
+        "water_level": {
+            "source": str(path),
+            "sha256": sha256,
+            "by": "loca_id",
+            "values": {"BH01": {"depth": "3 m", "reason": "standpipe reading"}},
+        },
+    }
+
+
+def test_a_file_in_us_units_converts(tmp_path):
+    text = """\
+unit_weight:
+  units: {bulk_unit_weight: pcf}
+  project: {bulk_unit_weight: 120, reason: typical}
+water_level:
+  units: {elevation: ft}
+  by_hole:
+    BH01: {elevation: 90}
+"""
+    path = write_judgments(tmp_path, text)
+    df = make_tests([5.0], ground_level=[100 * FOOT])
+    df.attrs["judgments_file"] = str(path)
+    with pytest.warns(
+        UserWarning, match=r"project value 120 pcf is used for every geology unit"
+    ):
+        result = ht.analysis.vertical_stress(
+            df, stratigraphy=make_log(), display_units="SI"
+        )
+    assert result["total_vertical_stress"].iloc[0] == pytest.approx(
+        5 * 120 * PCF, rel=1e-6
+    )
+    assert result["pore_pressure"].iloc[0] == pytest.approx(9.81 * (5 - 10 * FOOT))
+
+
+def test_unit_weights_by_another_column(tmp_path):
+    text = (
+        JUDGMENTS.replace("by: geology_unit", "by: uscs_symbol")
+        .replace("Fill:", "GC:")
+        .replace("Clay:", "CL:")
+        .replace("Sand:", "SP:")
+    )
+    path = write_judgments(tmp_path, text)
+    log = make_log()
+    log["uscs_symbol"] = ["GC", "CL", "SP"]
+    df = quiet(from_project(path), stratigraphy=log, display_units="SI")
+    assert df["total_vertical_stress"].iloc[0] == pytest.approx(95.0)
+    assert df.attrs["judgments"]["unit_weight"]["by"] == "uscs_symbol"
+
+
+def test_editing_the_file_changes_the_next_result_without_reopening(tmp_path):
+    # Criterion 6, end to end: p.set_judgments, then edit the file.
+    p = ht.Project.from_ags(
+        DATA / "site_si.ags", db=tmp_path / "site.sqlite", display_units="SI"
+    )
+    p.set_geology_map(DATA / "strata.csv")
+    text = """\
+unit_weight:
+  by: geology_unit
+  units: {bulk_unit_weight: kN/m3}
+  values:
+    Fill: {bulk_unit_weight: 18}
+    Alluvium: {bulk_unit_weight: 19}
+    Terrace: {bulk_unit_weight: 20}
+water_level:
+  units: {depth: m}
+  project: {depth: 2.0, reason: assumed}
+"""
+    path = write_judgments(tmp_path, text)
+    p.set_judgments(path)
+    spt = p.spt(holes="BH2")  # depths 2.3 and 5.3 m in Alluvium
+    log = p.stratigraphy()
+    with pytest.warns(UserWarning, match="project value 2 m"):
+        first = ht.analysis.vertical_stress(spt, stratigraphy=log, display_units="SI")
+    assert list(first["total_vertical_stress"]) == pytest.approx([19 * 2.3, 19 * 5.3])
+    path.write_text(
+        text.replace(
+            "Alluvium: {bulk_unit_weight: 19}", "Alluvium: {bulk_unit_weight: 17}"
+        )
+    )
+    with pytest.warns(UserWarning, match="project value 2 m"):
+        second = ht.analysis.vertical_stress(spt, stratigraphy=log, display_units="SI")
+    assert list(second["total_vertical_stress"]) == pytest.approx([17 * 2.3, 17 * 5.3])
+    assert (
+        second.attrs["judgments"]["unit_weight"]["sha256"]
+        != first.attrs["judgments"]["unit_weight"]["sha256"]
+    )
