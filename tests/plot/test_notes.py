@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
+from matplotlib.colors import to_hex
 
 from hangtu.plot.common import Notes, edge_markers, log_limits, set_log_axis
 
@@ -101,6 +102,15 @@ def test_edge_markers_draw_in_the_transform_given():
     [arrow] = ax.texts
     assert arrow.xycoords == blended
     assert (arrow.xy, arrow.xyann) == ((0, 20), (0, -10))
+
+
+def test_edge_markers_color_a_line_marker():
+    # "|" has no face, so an open face would leave it invisible (P06 end ticks).
+    _, ax = plt.subplots()
+    ax.set_xlim(0, 10)
+    edge_markers(ax, [12.0], [5.0], {"x": (0, 10)}, color="C1", marker="|")
+    [markers] = ax.collections
+    assert to_hex(markers.get_edgecolor()[0]) == to_hex("C1")
 
 
 def test_no_edge_markers_when_everything_fits():

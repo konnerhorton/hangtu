@@ -10,6 +10,7 @@ from typing import Literal
 import numpy as np
 from matplotlib.artist import Artist
 from matplotlib.axes import Axes
+from matplotlib.markers import MarkerStyle
 from matplotlib.text import Annotation
 from matplotlib.transforms import Transform
 from numpy.typing import ArrayLike
@@ -199,12 +200,16 @@ def edge_markers(
     # Arrows point the way the value lies on screen, so flip for inverted axes.
     x_dir = -x_dir if ax.xaxis_inverted() else x_dir
     y_dir = -y_dir if ax.yaxis_inverted() else y_dir
+    # A line marker such as "|" has no face, so it takes the color itself.
+    if MarkerStyle(marker).is_filled():
+        colors = {"facecolors": "none", "edgecolors": color}
+    else:
+        colors = {"color": color}
     ax.scatter(
         x_edge[mask],
         y_edge[mask],
         marker=marker,
-        facecolors="none",
-        edgecolors=color,
+        **colors,
         clip_on=False,
         zorder=3,
         transform=ax.transData if transform is None else transform,
