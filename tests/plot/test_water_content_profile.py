@@ -1,5 +1,7 @@
 """P06 water content profile: limits bars, one limit, PL > LL, limits and errors."""
 
+import warnings
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -49,6 +51,12 @@ def ticks(ax):
 def unit_points(ax, unit):
     (collection,) = [c for c in ax.collections if c.get_label() == unit]
     return collection.get_offsets().data.tolist()
+
+
+def _quiet(call, *args, **kwargs):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        return call(*args, **kwargs)
 
 
 def plot(df, **kwargs):
@@ -359,10 +367,22 @@ def test_qualifiers_still_work():
 
 def test_non_plastic_with_limits_warns_and_draws_no_bar():
     df = wc_frame(non_plastic=[False, True, False, False])
-    with pytest.warns(UserWarning, match=r"Rows 1 are marked non-plastic but have"):
+    with pytest.warns(UserWarning, match=r"Rows 1 are marked non-plastic but have a"):
         _, ax = plot(df)
     assert [segment[2] for segment in bars(ax)] == [5.0, 15.0, 20.0]
     assert np_points(ax) == [[30.0, 10.0]]
+    assert ax.ags_notes == {"non_plastic_drawn": 1}
+
+
+def test_non_plastic_with_a_liquid_limit_only_is_normal():
+    # NP is reported when PL can't be found; the LL is often still reported.
+    df = wc_frame(
+        plastic_limit=[18.0, np.nan, 15.0, 24.0],
+        non_plastic=[False, True, False, False],
+    )
+    _, ax = _quiet(plot, df)
+    assert np_points(ax) == [[30.0, 10.0]]
+    assert all(y != 10.0 for _, y in ticks(ax))
     assert ax.ags_notes == {"non_plastic_drawn": 1}
 
 

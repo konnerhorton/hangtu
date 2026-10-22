@@ -256,9 +256,9 @@ def water_content_profile(
     where w sits in the plastic range. A row with only the limits draws the
     bar alone.
 
-    A non-plastic specimen (``non_plastic`` True) has no bar: it is drawn as
-    an open diamond at its water content, or, without one, at the left edge
-    as the text ``NP`` is, and counted.
+    A non-plastic specimen (``non_plastic`` True) has no bar, even with a
+    liquid limit: it is drawn as an open diamond at its water content, or,
+    without one, at the left edge as the text ``NP`` is, and counted.
 
     Limits are read as given. A row with one limit is drawn as a single tick
     and counted, and PL is never computed from LL - PI: fill in the missing
@@ -354,11 +354,12 @@ def water_content_profile(
     flags = _non_plastic_flags(data, non_plastic)
     values = _limit_values(df, units, display_units)
     pl, ll = values["plastic_limit"], values["liquid_limit"]
-    with_limits = non_plastic & (np.isfinite(pl) | np.isfinite(ll))
-    if with_limits.any():
+    # NP is reported when PL can't be found, often with an LL: that's normal.
+    with_pl = non_plastic & np.isfinite(pl)
+    if with_pl.any():
         warn(
-            f"Rows {rows_text(df.index[with_limits])} are marked non-plastic but "
-            "have limits, so their limits aren't drawn. Check those rows."
+            f"Rows {rows_text(df.index[with_pl])} are marked non-plastic but have "
+            "a plastic limit, so their limits aren't drawn. Check those rows."
         )
     pl = np.where(non_plastic, np.nan, pl)
     ll = np.where(non_plastic, np.nan, ll)

@@ -69,7 +69,7 @@
 | 5 | Stiffness | 08, 10 and 11 (the full set), 09 (soil); P19, P20 |
 | 6 | Hydraulic | 12 A–C (field permeability tests) |
 
-**Order of work:** P06, wave 1, statistics, wave 0, wave 2, selection (stage D, starting with the Mohr–Coulomb set), then waves 3–6, each adding stage D and the model sets its sheets complete. Statistics come ahead of wave 0 because by then there are measured properties, derived values with depth trends and several correlations per property to compare, so they are designed against real uses. §12.4 has the milestones.
+**Order of work:** wave 1, statistics, wave 0, wave 2, selection (stage D, starting with the Mohr–Coulomb set), then waves 3–6, each adding stage D and the model sets its sheets complete. Statistics come ahead of wave 0 because by then there are measured properties, derived values with depth trends and several correlations per property to compare, so they are designed against real uses. §12.4 has the milestones.
 
 **Releases** (decided 2026-10-21) are cut when a milestone leaves something usable, and aren't tied to waves or planned ahead. 0.1.0 (the plots P00–P03 and P07 and the data layer) is the first; its PyPI release comes next.
 
@@ -160,7 +160,7 @@ Full conventions are in [`docs/plots/README.md`](docs/plots/README.md); each fig
   - Exports to PDF, PNG or SVG.
   - Simple title only; no title block (Later).
 - **Plot list and status:** see `docs/plots/README.md`.
-  - Batch 1 (P00–P07): P00–P05 and P07 are built; P06 is M8's last plot.
+  - Batch 1 (P00–P07): all built; P06 closed M8.
   - The milestone of every other plot is in §12.4, or it is not yet placed (§1.3).
 
 ---
@@ -326,6 +326,7 @@ fig, ax = ht.plot.spt_profile(spt, vs="elevation")                   # P02
 fig, ax = ht.plot.spt_histogram(spt, table="cohesionless")           # P03
 fig, ax = ht.plot.plasticity_chart(atterberg, system="uscs")         # P04
 fig, ax = ht.plot.grain_size(curves, d_values=True)                  # P05
+fig, ax = ht.plot.water_content_profile(atterberg)                   # P06
 
 sheet = ht.Sheet(size="tabloid", layout=(1, 2), title="Site X")
 ht.plot.spt_profile(spt, ax=sheet[0])

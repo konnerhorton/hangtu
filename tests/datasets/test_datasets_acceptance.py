@@ -271,8 +271,7 @@ def test_13_empty(tmp_path):
             assert getattr(p, name)().empty
 
 
-# 14. The M8 datasets feed the plots, with no error, warning or hint. P06's
-# water_content_profile(p.index_properties()) is added with P06.
+# 14. The M8 datasets feed the plots, with no error, warning or hint.
 @pytest.mark.parametrize("name", ["site_si", "site_us"])
 @pytest.mark.parametrize("system", ["SI", "US"])
 def test_14_m8_datasets_feed_the_plots(projects, name, system):
@@ -286,6 +285,8 @@ def test_14_m8_datasets_feed_the_plots(projects, name, system):
         plt.close(fig)
     index = _quiet(p.index_properties, display_units=system)
     assert index["uscs_symbol"].dropna().tolist() == ["SP-SM"]
+    fig, _ax = _quiet(ht.plot.water_content_profile, index, display_units=system)
+    plt.close(fig)
 
 
 # 15. The summary: one row per GRAT specimen, as gradation() gives it on the

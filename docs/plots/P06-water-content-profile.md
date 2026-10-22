@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **ID / function** | P06 · `ht.plot.water_content_profile()` (built on `ht.plot.profile()`) |
-| **Status** | approved |
+| **Status** | built |
 | **Type** | plot |
 | **Milestone** | M8 |
 | **Depends on** | P01 (with text values, TODO #15), the plasticity analysis (`docs/drafts/analysis.md` §2) |
@@ -71,9 +71,9 @@ As P01 with the `water_content` preset, except:
 | Water content | P01's markers (filled, 5 pt) | `geology_unit` | ✔ per unit (P01) | |
 | Limits bar | horizontal line PL to LL at the row's vertical position, 1.2 pt, with 4 pt vertical end ticks | unit color | ✔ one gray entry "PL to LL" | Drawn below the marker |
 | Limits without w | the bar only | unit color | | Counted nowhere: nothing is missing |
-| NP specimen | w drawn as an open marker (P01's text-value shape for NP, at its w, not at the edge) | unit color | ✔ "non-plastic (n)" | No bar. An NP specimen without w is counted in the footnote |
-| Bar beyond `xlim` | clipped at the edge, open arrow | unit color | footnote count | README policy |
-| Only one limit (LL or PL) | no bar; a single end tick at that limit | unit color | footnote "n specimens with one limit" | One warning names the rows, and says when a PI is given that PL wasn't computed from it |
+| NP specimen | w drawn as an open ◇ (P01's text-value shape for NP, at its w, not at the edge) | unit color | ✔ "non-plastic (n)" | No bar, even with an LL: NP is reported when PL can't be found, often with an LL. Footnote "n non-plastic (NP) specimens, shown open at their water content". An NP specimen without w is drawn at the left edge as the text `NP` is (P01 §3), and counted |
+| Bar beyond `xlim` | cut at the edge; the end beyond it is a tick at the edge with an outward arrow | unit color | footnote count | Counted once per bar under "beyond axis limit" (README policy). A bar whose row is beyond `ylim` isn't drawn, and is counted the same way |
+| Only one limit (LL or PL) | no bar; a single end tick at that limit | unit color | footnote "n specimens with one limit, shown as a single tick" | One warning names the rows, and says when a PI is given that PL wasn't computed from it |
 
 **Draw order (bottom → top):** P01's overlays → limits bars → water content markers → notes.
 
@@ -97,11 +97,11 @@ def water_content_profile(
     color_by: str | None = "geology_unit",
     xlim: tuple[float, float] | None = None,
     ylim: tuple[float, float] | None = None,
-    # every other P01 argument, passed through to profile()
-    **profile_arguments,
+    # every other P01 argument, written out, passed through to profile()
+    **style_overrides,
 ) -> tuple[Figure, Axes]:
 ```
-`value` and `preset` are fixed (`water_content`); passing them is an error that says so.
+`value`, `preset` and `log` are fixed (`water_content`, the `water_content` preset, linear); passing one is an error that points to `ht.plot.profile()`. `label=` defaults to "Water content, w, and Atterberg limits"; `limits=False` keeps P01's label.
 
 **Example:**
 ```python
@@ -113,7 +113,9 @@ fig, ax = ht.plot.water_content_profile(p.atterberg(geology=["Upper Clay"]), str
 | Situation | Behavior |
 |---|---|
 | Neither `water_content` nor both limits | Error naming the columns |
-| PL > LL | Bar not drawn; warning naming the rows (impossible) |
+| PL > LL | Bar not drawn; warning naming the rows (impossible); counted in the footnote, "n specimens with PL above LL, limits not shown" |
+| NP with a plastic limit | No bar; warning naming the rows |
+| NP with a `<`/`>` qualifier | Error naming the rows: an NP specimen is drawn at its water content |
 | Text in `water_content` (`NP`, `dry`) | P01's text values (P01 §3) |
 | Text in a limit column | Error naming the rows; use `non_plastic` for NP |
 | w beyond LL or below PL | Drawn as given: that is what the plot is for |
@@ -122,7 +124,7 @@ fig, ax = ht.plot.water_content_profile(p.atterberg(geology=["Upper Clay"]), str
 ## 12. Acceptance criteria and tests
 - **Geometry:** for a specimen at 10 ft with PL 20, LL 45 and w 30, the bar runs from x = 20 to x = 45 at y = 10, and the marker is at (30, 10).
 - **No PL from PI:** LL 45, PI 25, PL blank draws a single tick at 45, is counted in the footnote, and the warning names the row and says PL wasn't computed.
-- **NP:** an NP specimen with w 18 is an open marker at 18 with no bar, counted in the legend entry; without w, counted in the footnote.
+- **NP:** an NP specimen with w 18 is an open marker at 18 with no bar, counted in the legend entry; without w, drawn at the left edge and counted in the footnote.
 - **Limits:** the default x limit covers an LL of 72 (to 80); with `xlim=(0, 50)`, that bar is clipped with an arrow and counted.
 - **P01 passes through:** `strata=`, `water_level=` and `stats_box=` behave as in P01; `limits=False` gives P01's figure.
 - **Datasets:** `p.atterberg()` and `p.index_properties()` both draw with no warning.
