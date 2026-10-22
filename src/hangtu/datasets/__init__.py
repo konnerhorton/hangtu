@@ -5,6 +5,7 @@ from hangtu.datasets._index import index_properties
 from hangtu.datasets._lab import atterberg, grain_size, grain_size_summary
 from hangtu.datasets._permeability import permeability
 from hangtu.datasets._spt import spt
+from hangtu.datasets._stratigraphy import stratigraphy
 
 __all__ = [
     "atterberg",
@@ -14,4 +15,5 @@ __all__ = [
     "locations",
     "permeability",
     "spt",
+    "stratigraphy",
 ]

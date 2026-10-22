@@ -691,6 +691,67 @@ class Project:
 
     # --- Geology map (datasets.md §5.2) -----------------------------------------
 
+    def stratigraphy(
+        self,
+        *,
+        holes: "str | list[str] | None" = None,
+        geology: "str | list[str] | None" = None,
+        where: dict | None = None,
+        contains: "str | list[str] | None" = None,
+        geology_fields: "str | list[str] | None" = None,
+        include_incomplete: bool = False,
+        display_units: str | None = None,
+    ) -> pd.DataFrame:
+        """Return each hole's log, one row per GEOL layer.
+
+        The columns are those of ``ht.template("stratigraphy")`` plus
+        ``source_line``: ``loca_id``, ``depth_top``, ``depth_base``, and
+        ``geology_unit`` through the geology map, ``soil_class`` and
+        ``geology_description``, ordered by hole and top. It is the log
+        ``ht.analysis.vertical_stress()`` integrates through; edit it (reclass
+        layers by USCS, say) and pass it back. Layers are as written: gaps and
+        overlaps are kept, and ``p.qc()`` reports them (G002, G003). See
+        ``docs/data/datasets.md`` §6.7.
+
+        Parameters
+        ----------
+        holes, geology
+            Keep these holes (``LOCA_ID``) or geology units. Keeping some
+            units leaves gaps in the logs, which ``vertical_stress()`` rejects.
+        where
+            Keep rows matching ``{column: value or list of values}``.
+        contains
+            Keep layers whose description contains this text (any case), or
+            any of a list.
+        geology_fields
+            GEOL headings to add as columns, e.g. ``["GEOL_FORM"]``.
+        include_incomplete
+            Keep layers with a blank required field (QC C001). By default
+            they're left out, with a warning that counts them.
+        display_units
+            ``"US"`` or ``"SI"``; by default the project's.
+
+        There is no ``depth=`` or ``elevation=``: a log cut at a depth can't
+        be integrated.
+
+        Examples
+        --------
+        >>> log = p.stratigraphy()
+        >>> stress = ht.analysis.vertical_stress(p.spt(), stratigraphy=log)
+        >>> one_hole = log[log["loca_id"] == "BH1"]
+        >>> fig, ax = ht.plot.spt_profile(p.spt(holes="BH1"), strata=one_hole)
+        """
+        return datasets.stratigraphy(
+            self._path,
+            holes=holes,
+            geology=geology,
+            where=where,
+            contains=contains,
+            geology_fields=geology_fields,
+            include_incomplete=include_incomplete,
+            display_units=display_units,
+        )
+
     def set_geology_map(
         self, source: "str | PathLike[str] | pd.DataFrame | None"
     ) -> None:
