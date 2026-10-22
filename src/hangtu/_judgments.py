@@ -223,6 +223,25 @@ def judgments(path: str | PathLike[str]) -> Judgments:
     return Judgments(path)
 
 
+#: The ``meta_project`` key holding a project's judgments file (Decision 5).
+STORED_KEY = "judgments_path"
+
+
+def to_store(db: Path, path: str | PathLike[str]) -> str:
+    """Return the path to store: relative to the database's folder when inside it."""
+    resolved = Path(path).resolve()
+    try:
+        return resolved.relative_to(db.resolve().parent).as_posix()
+    except ValueError:
+        return str(resolved)
+
+
+def stored_path(db: Path, value: str) -> Path:
+    """Return the file a stored path names, for the database at ``db``."""
+    path = Path(value)
+    return path if path.is_absolute() else db.resolve().parent / path
+
+
 def as_judgments(value: Any) -> Judgments | None:
     """Read a ``judgments=`` argument: a ``Judgments``, a path, or None."""
     if value is None or isinstance(value, Judgments):

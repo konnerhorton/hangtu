@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 
 import hangtu.db as database
-from hangtu import units
+from hangtu import _judgments, units
 from hangtu._settings import _display_units, settings
 from hangtu.datasets import _geology_map, _joins
 from hangtu.errors import HangtuError, warn
@@ -58,6 +58,12 @@ class Build:
         self.overrides = stored.get("display_overrides", {})
         self.geology_key = stored.get("geology_key", "GEOL_GEOL")
         self.datum = stored.get("vertical_datum")
+        judgments = stored.get(_judgments.STORED_KEY)
+        self.judgments_file = (
+            None
+            if judgments is None
+            else str(_judgments.stored_path(self.path, judgments))
+        )
         self.include_incomplete = include_incomplete
         self.file = Path(database.read_source(path)["path"]).name
         self._left_out: list[tuple[str, int, int, dict[str, list[int]]]] = []
@@ -185,7 +191,13 @@ class Build:
             frame.attrs["palette"] = palette
         if self.datum:
             frame.attrs["vertical_datum"] = self.datum
+        self._judgments_file(frame)
         return frame
+
+    def _judgments_file(self, frame: pd.DataFrame) -> None:
+        """Carry the project's judgments file, for the analyses (SPEC §4)."""
+        if self.judgments_file is not None:
+            frame.attrs["judgments_file"] = self.judgments_file
 
     def _ground_level(self, frame: pd.DataFrame) -> None:
         if self.has("LOCA"):
@@ -455,6 +467,7 @@ class Build:
             {column: pd.Series(dtype=_dtype(column)) for column in order}
         )
         frame.attrs["units"] = self._units(frame)
+        self._judgments_file(frame)
         return frame
 
 
@@ -530,4 +543,5 @@ def locations(path: str | PathLike[str], display_units: str | None = None):
     ).reset_index(drop=True)
     frame = build._to_display(frame)
     frame.attrs["units"] = build._units(frame)
+    build._judgments_file(frame)
     return frame
