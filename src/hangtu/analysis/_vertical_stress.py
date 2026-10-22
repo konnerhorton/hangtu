@@ -453,7 +453,7 @@ def _check_log(
             "The stratigraphy can't be integrated down to the deepest test in "
             f"{'this hole' if len(problems) == 1 else 'these holes'}:\n{listed}\n"
             "Each hole's log must run from 0 down to its deepest test, with no gap "
-            f"or overlap of more than {TOLERANCE} m.{qc} Fix the layers in the "
+            f"or overlap of more than {at(TOLERANCE)}.{qc} Fix the layers in the "
             "stratigraphy table and call again."
         )
     return logs, extended

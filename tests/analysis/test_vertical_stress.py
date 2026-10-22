@@ -781,3 +781,16 @@ water_level:
         second.attrs["judgments"]["unit_weight"]["sha256"]
         != first.attrs["judgments"]["unit_weight"]["sha256"]
     )
+
+
+def test_the_log_error_gives_the_tolerance_in_the_log_units():
+    log = make_log(tops=(0.0, 8.0, 20.0), bases=(6.0, 20.0, 33.0), unit="ft")
+    with pytest.raises(
+        ht.HangtuError, match=r"(?s)a gap from 6 ft to 8 ft.*more than 0\.033 ft"
+    ):
+        ht.analysis.vertical_stress(
+            make_tests([25.0], unit="ft"),
+            stratigraphy=log,
+            unit_weight=UNIT_WEIGHT,
+            water_level="3 ft",
+        )
