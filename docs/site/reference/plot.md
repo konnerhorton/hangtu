@@ -16,6 +16,8 @@ Every plot takes a DataFrame and returns `(fig, ax)`, an ordinary matplotlib fig
 
 ::: hangtu.plot.grain_size
 
+::: hangtu.plot.water_content_profile
+
 ## Colors
 
 ::: hangtu.plot.legend_handles

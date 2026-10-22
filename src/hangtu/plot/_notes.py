@@ -31,6 +31,8 @@ REASONS = {
     "non_plastic": "{n} non-plastic (NP) value{s}{where}",
     "non_plastic_excluded": "{n} non-plastic (NP) specimen{s} not shown",
     "text_value": "{n} text value{s}{where}",
+    "one_limit": "{n} specimen{s} with one limit, shown as a single tick",
+    "limits_inverted": "{n} specimen{s} with PL above LL, limits not shown",
 }
 
 FOOTNOTE_SIZE = 7

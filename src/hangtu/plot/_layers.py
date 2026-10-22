@@ -16,6 +16,7 @@ WATER_LEVEL = 1.3
 BASELINE = 1.4  # P07 baseline bars
 INTERVALS = 2.0
 CONNECT = 2.1
+LIMITS_BARS = 2.3  # P06 PL to LL bars, under the markers
 MARKERS = 2.5
 QUALIFIERS = 2.6
 SUMMARY = 2.7  # P07 summary bars and boxes, over the points
