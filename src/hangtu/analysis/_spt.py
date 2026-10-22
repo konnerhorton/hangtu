@@ -44,6 +44,34 @@ def _check_energy_ratio(name: str, value: Any) -> float | None:
     return float(value)
 
 
+def _energy_ratios(
+    df: pd.DataFrame, hammer_efficiency: float | None
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return each row's energy ratio and a mask of the rows it was filled for.
+
+    The ratio is the row's ``energy_ratio``, else ``hammer_efficiency``, else
+    ``ht.settings.hammer_efficiency``, else blank. The mask is True where the
+    argument or the setting filled a blank. Shared with ``p.spt()``, whose
+    ``energy_source`` follows the same order.
+    """
+    energy = np.full(len(df), np.nan)
+    if "energy_ratio" in df.columns:
+        energy = numeric_column(df, "energy_ratio")
+        bad = ~np.isnan(energy) & ((energy <= 0) | (energy > 100))
+        if bad.any():
+            raise HangtuError(
+                "Column 'energy_ratio' must be in percent, greater than 0 and at "
+                f"most 100, but rows {rows_text(df.index[bad])} aren't. An energy "
+                "ratio of 0.8 should be entered as 80."
+            )
+    if hammer_efficiency is None:
+        hammer_efficiency = settings.hammer_efficiency
+    filled = np.isnan(energy) & (hammer_efficiency is not None)
+    if hammer_efficiency is not None:
+        energy = np.where(filled, hammer_efficiency, energy)
+    return energy, filled
+
+
 def _check_cap(value: Any) -> int:
     if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
         raise HangtuError(
@@ -127,8 +155,6 @@ def spt(
             f"{', '.join(map(str, df.columns)) or 'none'}."
         )
     hammer_efficiency = _check_energy_ratio("hammer_efficiency", hammer_efficiency)
-    if hammer_efficiency is None:
-        hammer_efficiency = settings.hammer_efficiency
     cap = settings.spt_cap if cap is None else _check_cap(cap)
 
     n = numeric_column(df, "spt_n")
@@ -146,18 +172,7 @@ def spt(
         penetration = _penetration_mm(df, blank, units)
         refusal |= blank & (penetration < REFUSAL_PENETRATION - SLACK)
 
-    energy = np.full(len(df), np.nan)
-    if "energy_ratio" in df.columns:
-        energy = numeric_column(df, "energy_ratio")
-        bad = ~np.isnan(energy) & ((energy <= 0) | (energy > 100))
-        if bad.any():
-            raise HangtuError(
-                "Column 'energy_ratio' must be in percent, greater than 0 and at "
-                f"most 100, but rows {rows_text(df.index[bad])} aren't. An energy "
-                "ratio of 0.8 should be entered as 80."
-            )
-    if hammer_efficiency is not None:
-        energy = np.where(np.isnan(energy), hammer_efficiency, energy)
+    energy, _ = _energy_ratios(df, hammer_efficiency)
     computed = n60(n, energy)
     if "spt_n60" in df.columns:
         given = numeric_column(df, "spt_n60")
