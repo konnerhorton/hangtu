@@ -11,14 +11,20 @@ P01_PRESETS = [
     "water_content",
     "bulk_unit_weight",
 ]
+STRESS_PRESETS = [
+    "total_vertical_stress",
+    "pore_pressure",
+    "effective_vertical_stress",
+]
 P02_PRESETS = ["spt_n", "spt_n60", "spt_n_capped"]
+ALL_PRESETS = P01_PRESETS + STRESS_PRESETS + P02_PRESETS
 
 
-def test_the_p01_and_p02_presets_ship():
-    assert preset_names() == P01_PRESETS + P02_PRESETS
+def test_the_presets_ship():
+    assert preset_names() == ALL_PRESETS
 
 
-@pytest.mark.parametrize("name", P01_PRESETS + P02_PRESETS)
+@pytest.mark.parametrize("name", ALL_PRESETS)
 def test_preset_matches_the_registry(name):
     entry = preset(name)
     info = column_info(entry.column)
@@ -35,6 +41,9 @@ def test_preset_matches_the_registry(name):
         ("undrained_shear_strength", False, True),
         ("water_content", False, True),
         ("bulk_unit_weight", False, False),
+        ("total_vertical_stress", False, True),
+        ("pore_pressure", False, True),
+        ("effective_vertical_stress", False, True),
         ("spt_n", False, True),
         ("spt_n60", False, True),
         ("spt_n_capped", False, True),
@@ -54,6 +63,8 @@ def test_preset_scale_follows_p01(name, log, start_at_zero):
         ("water_content", "US", (0.0, 100.0)),
         ("bulk_unit_weight", "SI", (14.0, 23.0)),
         ("bulk_unit_weight", "US", (89.1, 146.4)),
+        ("effective_vertical_stress", "SI", (0.0, 500.0)),
+        ("effective_vertical_stress", "US", (0.0, 10442.7)),
     ],
 )
 def test_typical_range_is_in_the_canonical_unit(name, system, expected):

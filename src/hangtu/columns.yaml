@@ -27,6 +27,8 @@ templates:
   spt:            [loca_id, ground_level, depth, depth_basis, elevation, spt_n, spt_n60, energy_ratio, spt_refusal, spt_penetration, remarks, geology_unit, soil_class, geology_description]
   atterberg:      [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, depth_top, depth_base, liquid_limit, plastic_limit, plasticity_index, non_plastic, water_content, geology_unit, soil_class, geology_description]
   grain_size:     [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, particle_size, percent_passing, qualifier, geology_unit, soil_class, geology_description]
+  # A log per hole (ht.analysis.vertical_stress); p.stratigraphy() adds source_line.
+  stratigraphy:   [loca_id, depth_top, depth_base, geology_unit, soil_class, geology_description]
   # Overlays (P01 §8): fill in one depth or elevation pair and leave the other blank.
   strata:         [geology_unit, depth_top, depth_base, elevation_top, elevation_base]
   ranges:         [low, high, label, source, depth_top, depth_base, elevation_top, elevation_base]
@@ -150,20 +152,20 @@ columns:
     ags: ["derived: SPEC §8.2"]
     used_by: [P01, P02, P03, P04, P05, P06, P07]
   depth_top:
-    description: Top of the tested interval
+    description: "Top of an interval: a tested zone or a geology layer"
     type: number
     quantity: length
     scale: ratio
     label: Depth to top
-    ags: [FGHG.FGHG_TOP, IPRG.IPRG_TOP, SPEC_DPTH]
+    ags: [FGHG.FGHG_TOP, IPRG.IPRG_TOP, SPEC_DPTH, GEOL.GEOL_TOP]
     used_by: [P01]
   depth_base:
-    description: Base of the tested interval
+    description: "Base of an interval: a tested zone or a geology layer"
     type: number
     quantity: length
     scale: ratio
     label: Depth to base
-    ags: [FGHG.FGHG_BASE, IPRG.IPRG_BASE, SPEC_BASE]
+    ags: [FGHG.FGHG_BASE, IPRG.IPRG_BASE, SPEC_BASE, GEOL.GEOL_BASE]
     used_by: [P01]
   depth_basis:
     description: How depth was chosen (mid_drive, sample_mid, zone_mid, ...)
@@ -306,6 +308,40 @@ columns:
     label: Bulk unit weight, γ
     ags: ["derived: RDEN.RDEN_BDEN × g"]
     used_by: [P01, P07]
+  saturated_unit_weight:
+    description: Saturated unit weight, used below the water level
+    type: number
+    quantity: unit_weight
+    scale: ratio
+    label: Saturated unit weight, γ_sat
+    ags: ["derived: the judgments file (SPEC §4)"]
+    used_by: []
+
+  # --- Vertical stress (ht.analysis.vertical_stress, M13) --------------------------------
+  total_vertical_stress:
+    description: Total vertical stress from the unit weights through the log
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Total vertical stress, σ_v0
+    ags: ["derived: docs/work/m13a-judgments.md"]
+    used_by: [P01]
+  pore_pressure:
+    description: In situ pore pressure (hydrostatic from the water level in M13)
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Pore pressure, u_0
+    ags: ["derived: docs/work/m13a-judgments.md"]
+    used_by: [P01]
+  effective_vertical_stress:
+    description: Effective vertical stress, total less pore pressure
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Effective vertical stress, σ′_v0
+    ags: ["derived: docs/work/m13a-judgments.md"]
+    used_by: [P01]
 
   # --- SPT (P02, P03) ------------------------------------------------------------------
   spt_n:
