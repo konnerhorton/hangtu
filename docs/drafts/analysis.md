@@ -1,6 +1,6 @@
 # Phase 1 analyses — feature spec
 
-**Status:** §1 SPT is decided (M3). §2–3 Atterberg limits, classification and grain size are decided (M8), except values marked 🔬. §4 is a draft, to be finished with M13. Analyses are specified here, apart from the plot specs, so they can be used without a plot.
+**Status:** §1 SPT is decided (M3). §2–3 Atterberg limits, classification and grain size are decided (M8), except values marked 🔬. §4 is specified in M13's units of work (`docs/work/m13b1-spt-framework.md`). Analyses are specified here, apart from the plot specs, so they can be used without a plot.
 **Parent:** SPEC §4. The cross-cutting analysis decisions are there. This file holds the detail. Depth conventions are in SPEC §8.
 
 ---
@@ -382,8 +382,8 @@ Worked by hand on curve A: sizes 0.075, 0.15, 0.3, 0.6, 1.18, 2.36, 4.75 mm pass
 - Typos in boundaries: fine/medium sand is 0.425 mm, not 0.475; fine/coarse gravel is 19 mm, not 20. The config test checks every boundary against the table above.
 - Interpolating linearly in size instead of log size.
 
-## 4. SPT correlations (draft, M13)
-The principles are decided in SPEC §4. The rest is a draft.
+## 4. SPT correlations (M13)
+The principles are decided in SPEC §4. The framework, C_N and (N1)60 are specified in `docs/work/m13b1-spt-framework.md` (Spec), decided 2026-10-22; that spec settles the points below where they differ (the column is `correlation_name`; the function has no argument choosing its input column; docstrings are written by hand and tested against the config). The list stays as the draft it was.
 
 - **Module:** `ht.analysis.correlations`, one function per published correlation, named after the source (`sowers_1979`, `hatanaka_uchida_1996`). The docstring follows the same headings for every correlation: equation, source, applies to, doesn't apply to, input N, range, derived from, notes.
 - **Metadata:** the same facts as a YAML entry in the config (proposed `config/correlations.yaml`), so the docstring, the result's `df.attrs` and a plot footnote all come from one place. Constants are kept in the source's units and converted with pint.
@@ -397,10 +397,10 @@ The principles are decided in SPEC §4. The rest is a draft.
 
 `ht.analysis.vertical_stress()` is specified in `docs/work/m13a-judgments.md` (Spec), decided 2026-10-22: unit weights by a log column from the judgments file, integrated through each hole's stratigraphy, and water levels by hole. That replaces the depth profile and `interpolation=` drafted here on 2026-10-15. Still from that draft: the hydrostatic pore pressure, γw as the setting `ht.settings.water_unit_weight`, and the assumptions stated in the docstring (level ground with laterally uniform layers; geostatic stress only, with no surcharge, structures or arching; hydrostatic pore pressure; not conservative in a fixed direction, since a σ′v that's too high lowers (N1)60, safe for strength, but also lowers OCR, unsafe for settlement).
 
-Open, for M13 unit (b): which C_N (Liao & Whitman 1986; others) and its cap.
+C_N is settled in `docs/work/m13b1-spt-framework.md`: Liao & Whitman (1986) or Kayen et al. (1992) by a required `method=`, capped at 1.7, blank above 300 kPa (Youd et al. 2001).
 
 ### 4.2 Candidate correlations (TODO #20)
-To choose and verify against the sources:
+Friction angle is built in M13 unit (b1) (Hatanaka & Uchida 1996; Kulhawy & Mayne 1990; Wolff 1989 cut, TODO #36). The rest is unit (b2)'s, to verify against the sources:
 
 | Property | Candidates |
 |---|---|
