@@ -29,6 +29,9 @@ REASONS = {
     "refusal_excluded": "{n} refusal{s} not shown",
     "no_energy_ratio": "{n} test{s} without an energy ratio not shown",
     "non_plastic": "{n} non-plastic (NP) value{s}{where}",
+    "non_plastic_drawn": (
+        "{n} non-plastic (NP) specimen{s}, shown open at their water content"
+    ),
     "non_plastic_excluded": "{n} non-plastic (NP) specimen{s} not shown",
     "text_value": "{n} text value{s}{where}",
     "one_limit": "{n} specimen{s} with one limit, shown as a single tick",

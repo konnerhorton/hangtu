@@ -263,3 +263,137 @@ def test_text_in_a_limit_is_an_error():
 def test_fixed_arguments_are_errors(argument):
     with pytest.raises(ht.HangtuError, match=r"use ht.plot.profile\(\)"):
         plot(wc_frame(), **argument)
+
+
+# --- non-plastic -----------------------------------------------------------------
+
+
+def np_points(ax):
+    """The open non-plastic markers drawn inside the axes, as (x, y) pairs."""
+    return [
+        xy
+        for c in ax.collections
+        if c.get_label().startswith("_Silt D") or c.get_label().startswith("_Clay D")
+        for xy in c.get_offsets().data.tolist()
+    ]
+
+
+def test_non_plastic_with_w_is_open_at_its_w_with_no_bar():
+    # P06 §12: an NP specimen with w 18.
+    df = wc_frame(
+        water_content=[25.0, 30.0, 18.0, 35.0],
+        plastic_limit=[18.0, 20.0, np.nan, 24.0],
+        liquid_limit=[40.0, 45.0, np.nan, 52.0],
+        non_plastic=[False, False, True, False],
+    )
+    _, ax = plot(df)
+    assert np_points(ax) == [[18.0, 15.0]]
+    (collection,) = [c for c in ax.collections if c.get_label() == "_Silt D"]
+    assert collection.get_facecolor().size == 0
+    assert [segment[2] for segment in bars(ax)] == [5.0, 10.0, 20.0]
+    assert all(y != 15.0 for _, y in ticks(ax))
+    texts = [t.get_text() for t in ax.get_legend().get_texts()]
+    assert texts == ["Clay", "Silt", "PL to LL", "non-plastic (1)"]
+    assert ax.ags_notes == {"non_plastic_drawn": 1}
+    footnote = ax.texts[-1].get_text()
+    assert "1 non-plastic (NP) specimen, shown open at their water content" in footnote
+
+
+def test_non_plastic_without_w_is_at_the_left_edge_and_counted():
+    df = wc_frame(
+        water_content=[25.0, 30.0, np.nan, 35.0],
+        plastic_limit=[18.0, 20.0, np.nan, 24.0],
+        liquid_limit=[40.0, 45.0, np.nan, 52.0],
+        non_plastic=[False, False, True, False],
+    )
+    _, ax = plot(df)
+    assert np_points(ax) == []
+    assert ax.ags_notes == {"non_plastic": 1}
+    assert "1 non-plastic (NP) value, shown at the left edge" in ax.texts[-1].get_text()
+    assert "NP (1)" in [t.get_text() for t in ax.get_legend().get_texts()]
+
+
+def test_text_np_in_water_content_reads_the_same():
+    df = wc_frame(
+        water_content=[25.0, 30.0, "NP", 35.0],
+        plastic_limit=[18.0, 20.0, np.nan, 24.0],
+        liquid_limit=[40.0, 45.0, np.nan, 52.0],
+    )
+    _, text = plot(df)
+    flagged = plot(
+        df.assign(
+            water_content=[25.0, 30.0, np.nan, 35.0],
+            non_plastic=[False, False, True, False],
+        )
+    )[1]
+    assert text.ags_notes == flagged.ags_notes == {"non_plastic": 1}
+
+
+def test_non_plastic_does_not_change_the_input():
+    df = wc_frame(
+        water_content=[25.0, 30.0, np.nan, 35.0],
+        non_plastic=[False, False, True, False],
+    )
+    before = df.copy()
+    with pytest.warns(UserWarning):
+        plot(df)
+    pd.testing.assert_frame_equal(df, before)
+
+
+def test_non_plastic_with_bad_values_is_an_error():
+    df = wc_frame(non_plastic=[False, "maybe", False, False])
+    with pytest.raises(ht.ColumnError, match=r"'non_plastic' must hold True or False"):
+        plot(df)
+
+
+def test_non_plastic_with_a_qualifier_is_an_error():
+    df = wc_frame(non_plastic=[False, True, False, False], qualifier=["", "<", "", ""])
+    with pytest.raises(ht.ColumnError, match=r"Rows 1 are marked non-plastic and have"):
+        plot(df)
+
+
+def test_qualifiers_still_work():
+    _, ax = plot(wc_frame(qualifier=["", "<", "", ""]))
+    assert ax.ags_notes == {"less_than": 1}
+
+
+def test_non_plastic_with_limits_warns_and_draws_no_bar():
+    df = wc_frame(non_plastic=[False, True, False, False])
+    with pytest.warns(UserWarning, match=r"Rows 1 are marked non-plastic but have"):
+        _, ax = plot(df)
+    assert [segment[2] for segment in bars(ax)] == [5.0, 15.0, 20.0]
+    assert np_points(ax) == [[30.0, 10.0]]
+    assert ax.ags_notes == {"non_plastic_drawn": 1}
+
+
+def test_non_plastic_beyond_xlim_is_open_at_the_edge():
+    df = wc_frame(
+        water_content=[25.0, 30.0, 70.0, 35.0],
+        plastic_limit=[18.0, 20.0, np.nan, 24.0],
+        liquid_limit=[40.0, 45.0, np.nan, 52.0],
+        non_plastic=[False, False, True, False],
+    )
+    _, ax = plot(df, xlim=(0, 60))
+    edge = [c for c in ax.collections if c.get_offsets().data.tolist() == [[60, 15]]]
+    (marker,) = edge
+    assert marker.get_facecolor().size == 0
+    assert ax.ags_notes == {"beyond_limit": 1, "non_plastic_drawn": 1}
+
+
+def test_non_plastic_and_a_marker_by_diamond_are_two_marks():
+    # marker_by's fourth group ("d") is a diamond, as NP is: they stay apart.
+    df = wc_frame(
+        source=["a", "b", "c", "d"],
+        plastic_limit=[18.0, 20.0, np.nan, 24.0],
+        liquid_limit=[40.0, 45.0, np.nan, 52.0],
+        non_plastic=[False, False, True, False],
+    )
+    _, ax = plot(df, marker_by="source")
+    diamonds = {
+        tuple(c.get_offsets().data.tolist()[0]): c.get_facecolor().size
+        for c in ax.collections
+        if c.get_label() in ("Silt", "_Silt D")
+    }
+    assert set(diamonds) == {(22.0, 15.0), (35.0, 20.0)}
+    assert diamonds[(22.0, 15.0)] == 0  # NP, open
+    assert diamonds[(35.0, 20.0)] > 0  # group "d", filled

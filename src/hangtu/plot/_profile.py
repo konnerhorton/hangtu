@@ -228,14 +228,16 @@ def _draw_points(
         if any(limits.values()):
             edge[these] = edge_markers(ax, x[these], y[these], limits, color, shape)
         inside = these & ~edge
+        if flag is None or flag.filled:
+            colors = {"color": color, "edgecolors": "white", "linewidths": 0.4}
+        else:
+            colors = {"facecolors": "none", "edgecolors": color, "linewidths": 0.8}
         ax.scatter(
             x[inside],
             y[inside],
             s=(MARKER_SIZE if flag is None else flag.size) ** 2,
             marker=shape,
-            color=color,
-            edgecolors="white",
-            linewidths=0.4,
+            **colors,
             label=label if i == 0 and flag is None else f"_{label} {shape}",
             zorder=_layers.MARKERS if flag is None else _layers.QUALIFIERS,
         )

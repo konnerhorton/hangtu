@@ -35,6 +35,7 @@ class Flag(NamedTuple):
     size: float  # points
     text: str  # legend text, before the count
     reason: str  # notes reason (_notes.REASONS)
+    filled: bool = True  # False draws an open marker (P06 non-plastic)
 
 
 # Qualifier -> flag (P01 §3, §7).
@@ -225,10 +226,14 @@ def flag_handles(
     ``flags`` holds each row's key into ``kinds``, or ``""`` for none.
     """
     handles = []
-    for key, (marker, size, text, reason) in kinds.items():
-        n = notes.count(flags == key, reason)
+    for key, kind in kinds.items():
+        n = notes.count(flags == key, kind.reason)
         if n:
-            handles.append(legend_marker(marker, NEUTRAL, f"{text} ({n})", size))
+            handles.append(
+                legend_marker(
+                    kind.marker, NEUTRAL, f"{kind.text} ({n})", kind.size, kind.filled
+                )
+            )
     return handles
 
 

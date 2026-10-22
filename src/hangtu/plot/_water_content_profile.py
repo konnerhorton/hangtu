@@ -14,7 +14,7 @@ from matplotlib.path import Path
 from hangtu import units as _units
 from hangtu._data import flag_column, rows_text, text_values
 from hangtu.errors import ColumnError, HangtuError, warn
-from hangtu.plot import _layers, _values
+from hangtu.plot import _layers, _text_values, _values
 from hangtu.plot._notes import Notes, edge_markers
 from hangtu.plot._profile import Companion, _draw_profile
 
@@ -31,10 +31,19 @@ BAR_MARKER = Path(
     [Path.MOVETO, Path.LINETO] * 3,
 )
 BAR_LEGEND_SIZE = 14.0  # points
-NP_HINT = (
-    "Use True or False: True marks a non-plastic (NP) specimen, drawn with no "
-    "limits bar."
-)
+# A non-plastic specimen with a water content: open, in P01's NP text shape (P06 §7).
+NON_PLASTIC = "non_plastic"
+FLAGS = {
+    **_values.QUALIFIERS,
+    NON_PLASTIC: _values.Flag(
+        _text_values.SHAPES[0],
+        _text_values.SIZE,
+        "non-plastic",
+        "non_plastic_drawn",
+        filled=False,
+    ),
+}
+NP_HINT = "True marks a non-plastic (NP) specimen, drawn with no limits bar."
 
 
 def _check_input(df: pd.DataFrame) -> None:
@@ -74,6 +83,29 @@ def _limit_values(
             raw, resolved[column], "percent", display_units
         )[0]
     return values
+
+
+def _non_plastic_flags(data: pd.DataFrame, non_plastic: np.ndarray) -> np.ndarray:
+    """Return each row's flag key, with NP rows that have a water content flagged.
+
+    An NP row with a blank water content gets the text ``NP`` in ``data`` (a
+    copy), so it is drawn at the left edge and counted as P01's text NP is.
+    """
+    flags = _values.qualifiers(data)
+    qualified = non_plastic & (flags != "")
+    if qualified.any():
+        raise ColumnError(
+            f"Rows {rows_text(data.index[qualified])} are marked non-plastic and "
+            "have a qualifier. A non-plastic specimen is drawn at its water "
+            "content: clear 'qualifier' on those rows, or set 'non_plastic' to "
+            "False."
+        )
+    w, texts = text_values(data, VALUE)
+    blank = non_plastic & np.isnan(w) & (texts == "")
+    if blank.any():
+        data[VALUE] = data[VALUE].astype(object)
+        data.loc[blank, VALUE] = "NP"
+    return np.where(non_plastic & np.isfinite(w), NON_PLASTIC, flags).astype(object)
 
 
 def _warn_one_limit(df: pd.DataFrame, one: np.ndarray, pl: np.ndarray) -> None:
@@ -224,6 +256,10 @@ def water_content_profile(
     where w sits in the plastic range. A row with only the limits draws the
     bar alone.
 
+    A non-plastic specimen (``non_plastic`` True) has no bar: it is drawn as
+    an open diamond at its water content, or, without one, at the left edge
+    as the text ``NP`` is, and counted.
+
     Limits are read as given. A row with one limit is drawn as a single tick
     and counted, and PL is never computed from LL - PI: fill in the missing
     limit, or remove the row. A row with PL above LL has no bar and is
@@ -309,14 +345,23 @@ def water_content_profile(
     _check_input(df)
     xlim = _values.check_limits("xlim", xlim) if xlim is not None else None
     ylim = _values.check_limits("ylim", ylim) if ylim is not None else None
-    if any(flag_column(df, "non_plastic", NP_HINT)):
-        raise NotImplementedError("Non-plastic specimens aren't drawn yet.")
-    data = df
-    if VALUE not in df.columns:
-        data = df.copy()
+    non_plastic = np.array(
+        [flag is True for flag in flag_column(df, "non_plastic", NP_HINT)], dtype=bool
+    )
+    data = df.copy()
+    if VALUE not in data.columns:
         data[VALUE] = np.nan
+    flags = _non_plastic_flags(data, non_plastic)
     values = _limit_values(df, units, display_units)
     pl, ll = values["plastic_limit"], values["liquid_limit"]
+    with_limits = non_plastic & (np.isfinite(pl) | np.isfinite(ll))
+    if with_limits.any():
+        warn(
+            f"Rows {rows_text(df.index[with_limits])} are marked non-plastic but "
+            "have limits, so their limits aren't drawn. Check those rows."
+        )
+    pl = np.where(non_plastic, np.nan, pl)
+    ll = np.where(non_plastic, np.nan, ll)
     both = np.isfinite(pl) & np.isfinite(ll)
     inverted = both & (pl > ll)
     bar = both & ~inverted
@@ -342,6 +387,8 @@ def water_content_profile(
         label=LABEL if label is None else label,
         extra_hints=hints,
         notes=notes,
+        flags=flags,
+        flag_kinds=FLAGS,
         companion=_limits_bars(pl, ll, bar, one, xlim, ylim),
         **profile_arguments,
     )
