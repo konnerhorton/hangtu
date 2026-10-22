@@ -12,10 +12,7 @@ import re
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from os import PathLike
-from pathlib import Path
 from typing import Any
-
-import yaml
 
 from hangtu import _config, units
 from hangtu.ags._dictionary import standard
@@ -215,21 +212,7 @@ def _read(source: Override, top_key: str) -> dict[str, Any]:
 
 def read_yaml(path: str | PathLike[str], what: str) -> Any:
     """Read a QC YAML file; ``what`` names it in errors (``rules``)."""
-    path = Path(path)
-    if not path.is_file():
-        raise FileNotFoundError(
-            f"No QC {what} file at {str(path)!r}. Check the path; it is "
-            f"relative to {str(Path.cwd())!r} unless it starts from a drive or /."
-        )
-    try:
-        return yaml.safe_load(path.read_text(encoding="utf-8"))
-    except yaml.YAMLError as error:
-        where = getattr(error, "problem_mark", None)
-        line = f" at line {where.line + 1}" if where else ""
-        raise HangtuError(
-            f"The QC {what} file {str(path)!r} isn't valid YAML{line}. "
-            f"Check its indentation and colons against docs/data/qc.md §3."
-        ) from None
+    return _config.read_yaml(path, f"QC {what}", "docs/data/qc.md §3")
 
 
 def _check_rules(overrides: dict[str, Any], defaults: dict[str, Any]) -> None:
