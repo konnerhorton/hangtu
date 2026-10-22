@@ -104,6 +104,27 @@ def test_strata_colors_match_the_point_colors(frame):
     assert {patch.get_alpha() for patch in ax.patches} == {0.12}
 
 
+def test_strata_take_the_data_palette_as_the_points_do(frame):
+    # A project's geology map colors the points through df.attrs["palette"].
+    df = frame()
+    df.attrs["palette"] = {"Fill": "#9e9e9e", "Clay": "#5b8db8"}
+    _, ax = ht.plot.profile(df, "undrained_shear_strength", strata=strata_frame())
+    low, high = bands(ax)
+    assert low[2] == point_color(ax, "Clay") == to_rgb("#5b8db8")
+    assert high[2] == point_color(ax, "Fill") == to_rgb("#9e9e9e")
+
+
+def test_strata_palette_fills_a_unit_the_data_lacks(frame):
+    df = frame()
+    df.attrs["palette"] = {"Clay": "#5b8db8"}
+    strata = strata_frame()
+    strata.attrs["palette"] = {"Fill": "tan", "Clay": "red"}
+    _, ax = ht.plot.profile(df, "undrained_shear_strength", strata=strata)
+    low, high = bands(ax)
+    assert low[2] == to_rgb("#5b8db8")  # the data's palette wins
+    assert high[2] == to_rgb("tan")
+
+
 @pytest.mark.parametrize(
     "columns",
     [

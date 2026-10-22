@@ -620,7 +620,7 @@ def _draw_profile(
             ax.xaxis.set_label_position("top")
 
         if strata is not None:
-            draw_strata(ax, strata, vertical, palette)
+            draw_strata(ax, strata, vertical, palette, df.attrs.get("palette"))
         if water_level is not None:
             ground_levels = (
                 hole_ground_levels(df, resolved, vertical)
