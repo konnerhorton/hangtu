@@ -26,6 +26,7 @@ nav = [
     "guides/datasets.md",
     "guides/spt.md",
     "guides/judgments.md",
+    "guides/correlations.md",
   ] },
   { "Plots" = [
     "plots/index.md",

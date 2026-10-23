@@ -32,6 +32,8 @@ There is no default: with none of these, N60 stays blank. hangtu won't guess an 
 
 When the argument or the setting gives a test's energy ratio, a warning names the holes, the ratio and the number of tests, so an assumed value is never applied unnoticed. A hole in the dict that isn't in the data also warns, as a likely typo.
 
+For (N1)60, N60 corrected for overburden, and the correlations that take it, see [(N1)60 and correlations](correlations.md).
+
 ## The cap
 
 `spt_n_capped` is N, limited to the cap, and every refusal is set to the cap. The cap is `cap=` on the call or `ht.settings.spt_cap`, 100 by default.

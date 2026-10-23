@@ -74,7 +74,8 @@ The SPT classes place a sand roughly; they aren't a design value.
 
 The SPT correlations need (N1)60 or N60 and σ′v0, from `ht.analysis.spt_n1_60()` and
 `ht.analysis.vertical_stress()`. Each reads the one N it was derived with, and gives no estimate, with a count,
-outside its range or for a refusal. The equations, ranges and sources are in each function's reference entry.
+outside its range or for a refusal. The equations, ranges and sources are in each function's reference entry, and
+[(N1)60 and correlations](../guides/correlations.md) shows them on the example project.
 
 ## How the methods compare
 
