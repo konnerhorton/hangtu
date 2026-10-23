@@ -34,6 +34,7 @@ FUNCTIONS = {
     for name in (
         "effective_friction_angle_hatanaka_uchida_1996",
         "effective_friction_angle_kulhawy_mayne_1990",
+        "undrained_shear_strength_terzaghi_peck_1967",
     )
 }
 
@@ -309,6 +310,8 @@ def _drift(name, docstring):
         expected += [source["cite"], *source["locators"]]
     for bounds in entry["range"].values():
         expected += [f"{bound:g}" for bound in bounds.values()]
+    for band in entry.get("bands", []):
+        expected += [f"{bound:g}" for bound in band.values() if bound is not None]
     return [item for item in expected if item not in text]
 
 

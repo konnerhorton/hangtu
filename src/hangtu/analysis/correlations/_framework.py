@@ -3,7 +3,9 @@
 Each correlation function reads its inputs with ``inputs()``, computes its
 estimate in the units its entry gives, and returns ``estimate()``'s frame: the
 target column, ``correlation_name`` and ``correlation_note``, with NaN and a
-count by reason wherever there is no estimate.
+count by reason wherever there is no estimate. A correlation published as a
+band also gives ``<target>_lower`` and ``<target>_upper``
+(docs/work/m13b2-spt-strength-history.md, Decision 6).
 """
 
 import copy
@@ -31,6 +33,7 @@ ABOVE_RANGE = "above range"
 REASONS = (INPUT_BLANK, REFUSAL, BELOW_RANGE, ABOVE_RANGE)
 #: What adds each input column, for the error when it's missing (Decision 3).
 MADE_BY = {
+    "spt_n": "p.spt(), or a CSV column of N as reported",
     "spt_n60": "ht.analysis.spt() or p.spt(), with an energy ratio",
     "spt_n1_60": 'ht.analysis.spt_n1_60(df, method="...")',
     "effective_vertical_stress": "ht.analysis.vertical_stress()",
@@ -109,7 +112,14 @@ def inputs(
 def notes(
     df: pd.DataFrame, item: Mapping[str, Any], values: Mapping[str, np.ndarray]
 ) -> np.ndarray:
-    """Return each row's ``correlation_note``: None, or the first reason in REASONS."""
+    """Return each row's ``correlation_note``: None, or the first reason in REASONS.
+
+    ``values`` holds the inputs and any term the entry's ``range`` limits
+    (Decision 5), each computed by the function before this is called.
+    """
+    missing = [key for key in item["range"] if key not in values]
+    if missing:
+        raise KeyError(f"The range names {missing}, which the function didn't compute.")
     found = {reason: np.zeros(len(df), dtype=bool) for reason in REASONS}
     for data in values.values():
         found[INPUT_BLANK] |= np.isnan(data)
@@ -136,21 +146,33 @@ def estimate(
     values: np.ndarray,
     note: np.ndarray,
     display_units: str | None,
+    *,
+    lower: np.ndarray | None = None,
+    upper: np.ndarray | None = None,
 ) -> pd.DataFrame:
     """Return a copy of ``df`` with the estimate and the correlation's columns.
 
     ``values`` are in the entry's target unit; rows with a note get NaN. One
-    warning counts the rows without an estimate by reason.
+    warning counts the rows without an estimate by reason. ``lower`` and
+    ``upper``, for a band, are written as ``<target>_lower`` and
+    ``<target>_upper`` in the same unit; NaN in ``upper`` is an open band.
     """
     item = entry(name)
     target = item["target"]["column"]
     system = _display_units(display_units or settings.display_units)
     noted = np.array([reason is not None for reason in note], dtype=bool)
-    values = np.where(noted, np.nan, np.asarray(values, dtype=float))
     quantity = column_info(target)["quantity"]
-    shown, unit_text = _units.to_display(
-        values, item["target"]["unit"], quantity, system
-    )
+    columns = {target: values}
+    if lower is not None or upper is not None:
+        nan = np.full(len(df), np.nan)
+        columns[f"{target}_lower"] = nan if lower is None else lower
+        columns[f"{target}_upper"] = nan if upper is None else upper
+    shown = {}
+    for column, data in columns.items():
+        data = np.where(noted, np.nan, np.asarray(data, dtype=float))
+        shown[column], unit_text = _units.to_display(
+            data, item["target"]["unit"], quantity, system
+        )
 
     if noted.any():
         counts = pd.Series(note[noted]).value_counts()
@@ -163,15 +185,19 @@ def estimate(
             f"{range_text(item)}; outside it the estimate is blank, never "
             "extrapolated."
         )
-    replaced = [column for column in (target, *OUTPUT_COLUMNS) if column in df.columns]
+    replaced = [column for column in (*shown, *OUTPUT_COLUMNS) if column in df.columns]
     if replaced:
         warn(f"Replaced the existing columns {', '.join(map(repr, replaced))}.")
 
     result = df.copy()
-    result[target] = shown
+    for column, data in shown.items():
+        result[column] = data
     result["correlation_name"] = name
     result["correlation_note"] = pd.Series(note, index=df.index, dtype=object)
-    result.attrs["units"] = {**_units.units_of(df), target: unit_text}
+    result.attrs["units"] = {
+        **_units.units_of(df),
+        **dict.fromkeys(shown, unit_text),
+    }
     # Every entry, not only this one, so results from one input have equal attrs
     # and pd.concat keeps them (units too); correlation_name says which applies.
     result.attrs["correlations"] = copy.deepcopy(catalog())

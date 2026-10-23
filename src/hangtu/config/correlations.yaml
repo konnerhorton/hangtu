@@ -10,8 +10,13 @@
 #   equation    as text, for records and footnotes; the docstring has it in MathJax
 #   inputs      {registry column: {variant, unit}}: the one variant the correlation
 #               was derived with, and the unit its constants assume (null: none)
-#   range       {input: {at_least | greater_than, at_most | less_than}}, in the
-#               inputs' units; outside it the estimate is NaN, never extrapolated
+#   terms       optional {name: {equation, unit}}: a quantity the function computes
+#               from its inputs, such as N pa / σ′v0, whose range the source gives
+#   range       {input or term: {at_least | greater_than, at_most | less_than}}, in
+#               the inputs' units; outside it the estimate is NaN, never extrapolated
+#   bands       optional, for a correlation published as classes: each class's lower
+#               bound on the input (inclusive) and its target band (lower, upper;
+#               upper null for an open band), written as <target>_lower / _upper
 #   applies_to, not_for, scatter, notes   as the sources state them
 #   sources     the original first, then any later form used: cite (author and year,
 #               as the docstring writes it), reference, and locators (equation,
@@ -63,3 +68,37 @@ effective_friction_angle_kulhawy_mayne_1990:
     - cite: Loehr et al. (2016)
       reference: FHWA GEC 5, FHWA-NHI-16-072
       locators: ["Eq. 7.22", "Fig. 7-41", "p. 7-54 to 7-55"]
+
+undrained_shear_strength_terzaghi_peck_1967:
+  target: {column: undrained_shear_strength, unit: kPa}
+  equation: "s_u / pa by N class, pa = 100 kPa"
+  inputs:
+    spt_n: {variant: "field N, as measured (blows/ft), not corrected for energy", unit: null}
+  range:
+    spt_n: {at_least: 0}
+  bands:
+    # spt_n: the class's lower N; lower, upper: s_u / pa
+    - {spt_n: 0, lower: 0, upper: 0.125}
+    - {spt_n: 2, lower: 0.125, upper: 0.25}
+    - {spt_n: 4, lower: 0.25, upper: 0.5}
+    - {spt_n: 8, lower: 0.5, upper: 1.0}
+    - {spt_n: 15, lower: 1.0, upper: 2.0}
+    - {spt_n: 30, lower: 2.0, upper: null}
+  applies_to: clays
+  not_for: null
+  scatter: >-
+    Not stated. GEC 5 (p. 7-38): "SPT N-values are generally a poor predictor
+    of undrained shear strength".
+  notes: >-
+    "Developed primarily using unconfined compression tests" (EPRI p. 4-53). The N values "have
+    not all been standardized to the same energy level", so the input is
+    field N. The lowest class is "< 1/8" in the source; its lower bound of 0
+    is hangtu's, since s_u can't be negative. EPRI's fit through the table,
+    s_u/pa ≈ 0.06 N (Eq. 4-59), isn't built, so the table isn't counted twice.
+  sources:
+    - cite: Terzaghi & Peck (1967)
+      reference: Soil Mechanics in Engineering Practice, 2nd ed., Wiley
+      locators: ["p. 347"]
+    - cite: Kulhawy & Mayne (1990)
+      reference: EPRI EL-6800, Manual on Estimating Soil Properties for Foundation Design
+      locators: ["Table 4-10, p. 4-54", "p. 4-53"]
