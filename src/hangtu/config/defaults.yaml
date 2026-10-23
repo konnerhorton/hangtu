@@ -80,6 +80,28 @@ presets:
     log: false
     start_at_zero: false
     typical: [20, 50]
+  # Stress history (M13 b2).
+  preconsolidation_stress:
+    column: preconsolidation_stress
+    label: Preconsolidation stress, σ′p
+    quantity: stress
+    log: false
+    start_at_zero: true
+    typical: [0, 1000]
+  overconsolidation_ratio:
+    column: overconsolidation_ratio
+    label: Overconsolidation ratio, OCR
+    quantity: dimensionless
+    log: true
+    start_at_zero: false
+    typical: [1, 50]
+  at_rest_earth_pressure_coefficient:
+    column: at_rest_earth_pressure_coefficient
+    label: At-rest earth pressure coefficient, K0
+    quantity: dimensionless
+    log: false
+    start_at_zero: true
+    typical: [0, 3]
   # SPT (P02 §6). N is a count and never converts.
   spt_n:
     column: spt_n

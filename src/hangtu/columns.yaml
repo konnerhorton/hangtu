@@ -352,6 +352,48 @@ columns:
     label: Effective friction angle, φ′
     ags: ["derived: docs/work/m13b1-spt-framework.md"]
     used_by: [P01]
+  undrained_shear_strength_lower:
+    description: Lower bound of an undrained shear strength given as a band, such as a correlation's
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Undrained shear strength (lower), s_u
+    ags: ["derived: docs/work/m13b2-spt-strength-history.md"]
+    used_by: [P01]
+  undrained_shear_strength_upper:
+    description: Upper bound of an undrained shear strength given as a band; blank for an open band
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Undrained shear strength (upper), s_u
+    ags: ["derived: docs/work/m13b2-spt-strength-history.md"]
+    used_by: [P01]
+
+  # --- Stress history (correlations from M13; oedometer values from W2) ---------------
+  preconsolidation_stress:
+    description: Preconsolidation stress, the largest effective vertical stress the soil behaves as having carried
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Preconsolidation stress, σ′p
+    ags: ["derived: docs/work/m13b2-spt-strength-history.md"]
+    used_by: [P01]
+  overconsolidation_ratio:
+    description: Overconsolidation ratio, preconsolidation stress over effective vertical stress
+    type: number
+    quantity: dimensionless
+    scale: ratio
+    label: Overconsolidation ratio, OCR
+    ags: ["derived: docs/work/m13b2-spt-strength-history.md"]
+    used_by: [P01]
+  at_rest_earth_pressure_coefficient:
+    description: At-rest earth pressure coefficient, horizontal over vertical effective stress
+    type: number
+    quantity: dimensionless
+    scale: ratio
+    label: At-rest earth pressure coefficient, K0
+    ags: ["derived: docs/work/m13b2-spt-strength-history.md"]
+    used_by: [P01]
 
   # --- Correlations (ht.analysis.correlations, M13) ----------------------------------------
   correlation_name:
@@ -359,8 +401,13 @@ columns:
     type: text
     ags: ["derived: docs/work/m13b1-spt-framework.md"]
     used_by: [P01]
+  correlation_input:
+    description: The correlation an input came from, when a correlation read another's estimate
+    type: text
+    ags: ["derived: docs/work/m13b2-spt-strength-history.md"]
+    used_by: [P01]
   correlation_note:
-    description: "Why a correlation gave no estimate: input blank, refusal, below range or above range"
+    description: "Why a correlation gave no estimate: not for this soil, soil type unknown, input blank, refusal, below range or above range"
     type: text
     ags: ["derived: docs/work/m13b1-spt-framework.md"]
     used_by: [P01]
