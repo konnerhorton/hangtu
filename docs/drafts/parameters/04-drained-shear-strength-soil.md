@@ -1,5 +1,7 @@
 # 04 — Drained shear strength of soil
 
+Promoted to the docs site as [`docs/site/parameters/04-drained-shear-strength-soil.md`](../../site/parameters/04-drained-shear-strength-soil.md) (M13 b1); the page is current where they differ.
+
 | | |
 |---|---|
 | **Parameters** | φ′ (effective friction angle: peak φ′p, critical-state φ′cv, residual φ′r), c′ (effective cohesion intercept) |
@@ -31,7 +33,6 @@ compression < plane strain; extension and direct shear differ).
 |---|---|---|
 | Sand, very loose / loose / medium / dense / very dense (SPT N 0–4 / 4–10 / 10–30 / 30–50 / >50) | φ′tc < 28° / 28–30° / 30–36° / 36–41° / > 41° | [1] Table 4-3, after Peck, Hanson & Thornburn (1974) [V] |
 | NC clay, φ′cv vs PI: PI 10 / 20 / 40 / 80 % | ≈ 36° / 31° / 27° / 23° (computed from 5.4) | [1] Fig. 4-20 [V] |
-| Residual φ′r, high-plasticity clays | can fall to ≈ 5–15° | [1] Fig. 4-24 (ring shear) [U for the range] |
 | c′, uncemented NC soils | ≈ 0 | _[Judgment — for review]_ |
 | c′, stiff OC / fissured clays (peak fit) | typically 0 to a few tens of kPa; strongly fit-range dependent | _[Judgment — for review]_ |
 
@@ -59,8 +60,8 @@ $$\sin\varphi' = \tan\alpha,\qquad c' = a/\cos\varphi'$$
 - **Valid for:** saturated specimens (check TRET_BVAL), one consistent failure criterion (TREG_FCR: max q vs max
   σ′1/σ′3); report fit with and without multistage stages.
 - **Scatter:** report n, R², and the stress range of the fit (c′ is only valid over that range).
-- **Source:** standard p–q (s′–t) construction, e.g. Lambe & Whitman (1969) [10] [U]; identity sin φ′ = tan α
-  follows from the Mohr circle geometry.
+- **Source:** the standard s′–t construction; sin φ′ = tan α follows from the Mohr circle geometry. (Lambe &
+  Whitman 1969 was cited unverified and is cut from the page.)
 
 ### 5.2 Direct shear envelope
 $$\tau_f = c' + \sigma'_n\tan\varphi'\quad(\text{least squares on SHBT\_PEAK vs SHBT\_NORM})$$
@@ -71,19 +72,26 @@ $$\tau_f = c' + \sigma'_n\tan\varphi'\quad(\text{least squares on SHBT\_PEAK vs 
 ### 5.3 SPT — Wolff (1989), fit to Peck, Hanson & Thornburn (1974)
 $$\varphi' = 27.1 + 0.3\,N_{1,60} - 0.00054\,N_{1,60}^2$$
 - **Inputs:** N1,60 (blows/0.3 m); **Valid for:** clean sands; conservative chart basis.
-- **Source:** [2] [U]; equation [V] via groundhog `frictionangle_spt_PHT` [9] (some reproductions print 0.00053).
+- **Source:** [2] [U]; secondary copies disagree on a coefficient (0.00054 or 0.00053). Not built until verified
+  against GSP 23 (TODO #36).
 
 ### 5.4 SPT — Kulhawy & Mayne (1990), after Schmertmann
-$$\varphi' = \tan^{-1}\left[\frac{N}{12.2 + 20.3\,(\sigma'_{v0}/p_a)}\right]^{0.34}$$
-- **Inputs:** N (EPRI uses field N; GEC 5 practice uses N60), σ′v0, pa ≈ 100 kPa (2116 psf).
-- **Valid for:** NC uncemented quartz sands; not for depths < 1–2 m (conservative there).
-- **Source:** [1] Eq. 4-11, p. 4-14 [V locator; equation as reproduced in [9] — the EPRI scan's equation image
-  is not legible].
+$$\varphi' = \tan^{-1}\left[\frac{N_{60}}{12.2 + 20.3\,(\sigma'_{v0}/p_a)}\right]^{0.34}$$
+- **Inputs:** N60 (GEC 5 Eq. 7.22 gives N60, settling the field N / N60 question), σ′v0, pa ≈ 100 kPa (2116 psf).
+- **Valid for:** relatively clean sands, within Schmertmann's chart: σ′v0 up to 300 kPa, N60 up to 60; "somewhat
+  conservative, especially for depths less than 6 ft" (GEC 5 p. 7-55).
+- **Source:** [1] Eq. 4-11 (locator); [11] Eq. 7.22 and Fig. 7-41, p. 7-54 to 7-55 [V]. Built as
+  `ht.analysis.correlations.kulhawy_mayne_1990` (M13 b1).
 
 ### 5.5 SPT — Hatanaka & Uchida (1996)
-$$\varphi' = \sqrt{20\,N_{1,60}} + 20\quad(\text{deg})$$
-- **Valid for:** fine to medium sands, N1,60 ≈ 3.5–30; fitted to triaxial tests on frozen (undisturbed) samples.
-- **Source:** [3] [U]; listed in [4] Table 2.2.1 (fine to medium sands, recommended by GEC 5) [V].
+$$\varphi' = \sqrt{15.4\,(N_1)_{60}} + 20\quad(\text{deg})$$
+- **Form:** the source's φ′ = (20 N1)^0.5 + 20 is for N1 at the 78 % energy of the Japanese tombi trip hammer
+  ([3] Eq. 6, p. 3; Eq. 8, p. 7); at 60 % energy the constant is 15.4 ([11] Eq. 7.23, p. 7-55). [4] Table 2.2.1
+  prints the 78 % form against (N1)60, which overstates φ′; corrected here.
+- **Valid for:** relatively clean fine to medium sands, 3.5 ≤ N1 ≤ 30 at 78 % energy ([3] Conclusions, p. 8), so
+  4.55 ≤ (N1)60 ≤ 39.0; not micaceous sands or gravels ([11] p. 7-55). Fitted to drained triaxial tests on in situ
+  frozen samples from six sites; most data within ±3° ([3] p. 7).
+- **Source:** [3] [V]; [11] [V]. Built as `ht.analysis.correlations.hatanaka_uchida_1996` (M13 b1).
 
 ### 5.6 φ′cv of NC clays from PI
 $$\sin\varphi'_{cv} \approx 0.8 - 0.094\ln PI\quad(PI\ \text{in}\ \%)$$
@@ -103,8 +111,8 @@ $$\varphi'_p - \varphi'_{cv} = 3 I_R\ (\text{triaxial}),\ 5 I_R\ (\text{plane st
 | Lining loads | ground arching, loosening load (Terzaghi) | Moderate–high in soft/loose ground |
 | Groundwater inflow | none directly | Low |
 
-**Typical variability:** φ′ COV ≈ 2–13 % (Duncan 2000 [6]) [U]; ≈ 5–15 % for sands, wider for clays (Phoon &
-Kulhawy 1999 [7]) [U]. c′ is far more variable (COV often > 40 %) and should be treated separately
+**Typical variability:** sand, laboratory φ′ at 16 sites with ≥ 10 tests each: COV 4.2–12.5 % ([12] Table 1.A2,
+pp. 54–55) [V]. Duncan (2000) [6] and Phoon & Kulhawy (1999) [7] were not seen and are cut from the page. c′ is far more variable (COV often > 40 %) and should be treated separately
 _[Judgment — for review]_. SPT-based φ′ adds transformation uncertainty on top of N variability; the three SPT
 correlations above differ by several degrees for the same N (5.3–5.5).
 
@@ -125,8 +133,8 @@ Table 4-3, Table 4-5, Eqs. 4-5–4-7, 4-10, 4-11 (locator), Fig. 4-20 checked in
 [2] Wolff, T.F. (1989). Pile capacity prediction using parameter functions. In Predicted and Observed Axial
 Behavior of Piles, ASCE GSP 23, 96–106. — [U]
 [3] Hatanaka, M. & Uchida, A. (1996). Empirical correlation between penetration resistance and internal friction
-angle of sandy soils. Soils and Foundations 36(4), 1–9. https://doi.org/10.3208/sandf.36.4_1 — [U] (bibliographic
-data seen in citing papers only)
+angle of sandy soils. Soils and Foundations 36(4), 1–9. https://doi.org/10.3208/sandf.36.4_1 — [V] Eqs. 6 and 8,
+pp. 3, 7, Conclusions p. 8 (M13 b1)
 [4] National Academies of Sciences, Engineering, and Medicine (2024). Design of Piles for Downdrag, Ch. 2.
 https://doi.org/10.17226/27863 — [V] Table 2.2.1 (Hatanaka & Uchida listed for fine–medium sands).
 [5] Bolton, M.D. (1986). The strength and dilatancy of sands. Géotechnique 36(1), 65–78.
@@ -139,4 +147,8 @@ Eng. 126(4), 307–316. https://doi.org/10.1061/(ASCE)1090-0241(2000)126:4(307) 
 [9] groundhog (Python library) documentation, SPT correlations.
 https://groundhog.readthedocs.io/en/dev/site_investigation/spt_correlations.html — [V] equations of 5.3, 5.4
 (secondary reproduction).
-[10] Lambe, T.W. & Whitman, R.V. (1969). Soil Mechanics. Wiley. — [U]
+[10] Lambe, T.W. & Whitman, R.V. (1969). Soil Mechanics. Wiley. — [U], cut from the page.
+[11] Loehr, J.E. et al. (2016). Geotechnical Site Characterization. GEC 5, FHWA NHI-16-072. — [V] Eqs. 7.22, 7.23,
+Fig. 7-41, pp. 7-54 to 7-55.
+[12] Ching, J. & Schweckendiek, T. (eds.) (2021). State-of-the-art review of inherent variability and uncertainty
+in geotechnical properties and models. ISSMGE TC304. https://doi.org/10.53243/R0001 — [V] Table 1.A2.
