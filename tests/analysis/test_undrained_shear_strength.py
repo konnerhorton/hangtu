@@ -118,3 +118,60 @@ def test_terzaghi_peck_bands_draw_on_p01():
         out, "undrained_shear_strength", color_by=None, display_units="SI"
     )
     assert ax.ags_notes == {"value_range": 3, "correlation_input_blank": 1}
+
+
+# --- AC 1: Stroud ---------------------------------------------------------------------
+
+
+def stroud(df, **kwargs):
+    return correlations.undrained_shear_strength_stroud_1974(df, **kwargs)
+
+
+def test_stroud_golden_values():
+    # By hand, s_u = f1 N60 pa / 100 with pa = 100 kPa: 4.5 x 10 = 45.0;
+    # 4.5 x 20 = 90.0; 15 <= PI < 30 gives 4.5 x 10 to 5.5 x 10 = 45.0 to 55.0.
+    df = pd.DataFrame(
+        {"spt_n60": [10, 20, 10, 10], "plasticity_index": [40, 30, 20, 12]}
+    )
+    with pytest.warns(
+        UserWarning, match=r"no estimate for 1 of 4 rows \(1 below range"
+    ):
+        out = stroud(df, display_units="SI")
+    assert out["undrained_shear_strength"].tolist() == pytest.approx(
+        [45.0, 90.0, NAN, NAN], nan_ok=True
+    )
+    assert out[LOWER].tolist() == pytest.approx([NAN, NAN, 45.0, NAN], nan_ok=True)
+    assert out[UPPER].tolist() == pytest.approx([NAN, NAN, 55.0, NAN], nan_ok=True)
+    assert out["correlation_note"].tolist() == [None, None, None, "below range"]
+
+
+def test_stroud_us_twin():
+    # 45.0 kPa = 45000 / 47.880259 = 939.85 psf.
+    df = pd.DataFrame({"spt_n60": [10], "plasticity_index": [40]})
+    out = stroud(df, display_units="US")
+    assert out["undrained_shear_strength"].iloc[0] == pytest.approx(939.85, rel=1e-3)
+    assert out.attrs["units"]["undrained_shear_strength"] == "psf"
+
+
+def test_stroud_without_pi_raises_naming_add_judgment():
+    with pytest.raises(ht.HangtuError, match=r"plasticity_index.*add_judgment"):
+        stroud(pd.DataFrame({"spt_n60": [10]}))
+
+
+def test_stroud_reads_n60_not_field_n():
+    with pytest.raises(ht.HangtuError, match=r"'spt_n60'"):
+        stroud(pd.DataFrame({"spt_n": [10], "plasticity_index": [40]}))
+
+
+def test_stroud_after_add_judgment():
+    df = pd.DataFrame({"spt_n60": [10, 8], "geology_unit": ["Alluvium", "Lacustrine"]})
+    df = ht.analysis.add_judgment(
+        df, "plasticity_index", value={"Alluvium": 32, "Lacustrine": 18}
+    )
+    out = stroud(df, display_units="SI")
+    assert out["undrained_shear_strength"].tolist() == pytest.approx(
+        [45.0, NAN], nan_ok=True
+    )
+    assert out[LOWER].tolist() == pytest.approx([NAN, 36.0], nan_ok=True)
+    assert out[UPPER].tolist() == pytest.approx([NAN, 44.0], nan_ok=True)
+    assert out.attrs["judgments"]["plasticity_index"]["source"] == "argument"

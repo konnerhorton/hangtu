@@ -18,4 +18,6 @@ Each analysis is a plain function on a DataFrame. It returns a new DataFrame or 
 
 ::: hangtu.analysis.add_judgment
 
+::: hangtu.analysis.summary_by
+
 ::: hangtu.analysis.spt_n1_60

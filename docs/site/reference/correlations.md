@@ -6,6 +6,8 @@ Each correlation is a function in `ht.analysis.correlations`, named after the pr
 
 ::: hangtu.analysis.correlations.effective_friction_angle_kulhawy_mayne_1990
 
+::: hangtu.analysis.correlations.undrained_shear_strength_stroud_1974
+
 ::: hangtu.analysis.correlations.undrained_shear_strength_terzaghi_peck_1967
 
 ::: hangtu.analysis.correlations.describe

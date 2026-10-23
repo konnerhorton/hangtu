@@ -115,3 +115,35 @@ undrained_shear_strength_terzaghi_peck_1967:
     - cite: Kulhawy & Mayne (1990)
       reference: EPRI EL-6800, Manual on Estimating Soil Properties for Foundation Design
       locators: ["Table 4-10, p. 4-54", "p. 4-53"]
+
+undrained_shear_strength_stroud_1974:
+  target: {column: undrained_shear_strength, unit: kPa}
+  equation: "s_u = f1 N60 pa / 100, f1 = 4.5 for PI ≥ 30; 4.5 to 5.5 for 15 ≤ PI < 30; pa = 100 kPa"
+  inputs:
+    spt_n60: {variant: "N60, N at 60 % energy, not corrected for overburden", unit: null}
+    plasticity_index: {variant: "PI of the clay at the test, a judgment by geology unit", unit: null}
+  range:
+    plasticity_index: {at_least: 15}
+  bands:
+    # plasticity_index: the lower PI of each f1 range; lower, upper: f1
+    - {plasticity_index: 15, lower: 4.5, upper: 5.5}
+    - {plasticity_index: 30, lower: 4.5, upper: 4.5}
+  applies_to: clays
+  not_for: null
+  uscs: [CL, CH]
+  uscs_basis: >-
+    hangtu's reading of "clays": the USCS lean and fat clays
+  scatter: >-
+    Not stated. GEC 5 (p. 7-38) gives them as "somewhat lower bound values",
+    and SPT N as "generally a poor predictor of undrained shear strength".
+  notes: >-
+    GEC 5 gives f1 = 4.5 for PI ≳ 30 and 5.5 for PI ≅ 15, and nothing between.
+    hangtu gives one value at PI ≥ 30 and, for 15 ≤ PI < 30, the band 4.5 to
+    5.5 with no central value: nothing is interpolated. No N range is stated.
+  sources:
+    - cite: Stroud (1974)
+      reference: European Symposium on Penetration Testing (ESOPT-II), Vol. 2, 367-375
+      locators: ["pp. 367-375"]
+    - cite: Loehr et al. (2016)
+      reference: FHWA GEC 5, FHWA-NHI-16-072
+      locators: ["Eq. 7.19, p. 7-38"]

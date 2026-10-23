@@ -138,3 +138,120 @@ def undrained_shear_strength_terzaghi_peck_1967(
     return _framework.estimate(
         df, name, central, note, display_units, uscs=uscs, lower=lower, upper=upper
     )
+
+
+def undrained_shear_strength_stroud_1974(
+    df: pd.DataFrame,
+    *,
+    uscs: str | list[str] | None = None,
+    units: Mapping[str, str] | None = None,
+    display_units: str | None = None,
+) -> pd.DataFrame:
+    r"""Estimate the undrained shear strength s_u of clay from N60 and PI.
+
+    $$
+    s_u = f_1 \, N_{60} \, p_a / 100
+    $$
+
+    with $p_a$ = 100 kPa, so $s_u = f_1 N_{60}$ in kPa. Stroud (1974), as
+    FHWA GEC 5 gives it: Loehr et al. (2016), Eq. 7.19, p. 7-38. GEC 5 gives
+    two values of $f_1$, 4.5 for PI ≳ 30 and 5.5 for PI ≅ 15, and nothing
+    between them, so:
+
+    | PI | Estimate |
+    |---|---|
+    | 30 or more | $s_u$ = 4.5 $N_{60}$ kPa |
+    | 15 to < 30 | the band 4.5 $N_{60}$ to 5.5 $N_{60}$ kPa, no central value |
+    | below 15 | none ("below range") |
+
+    **Nothing is interpolated.** For 15 ≤ PI < 30, the band is in
+    ``undrained_shear_strength_lower`` and ``undrained_shear_strength_upper``,
+    and ``undrained_shear_strength`` stays blank; ``ht.plot.profile()`` draws
+    it as a bar. For PI ≥ 30 the bounds are blank and the value is the
+    estimate.
+
+    **Inputs:** ``spt_n60`` (from ``ht.analysis.spt()`` or ``p.spt()``) and
+    ``plasticity_index`` (from ``ht.analysis.add_judgment()``). PI is rarely
+    tested at the SPT depth, so it is a judgment by geology unit; the nearest
+    Atterberg test isn't used. There is no argument to read another column
+    (SPEC §4).
+
+    **Valid for:** clays with PI of 15 or more. No N range is stated.
+
+    **Scatter:** not stated. GEC 5 (p. 7-38) gives these as "somewhat lower
+    bound values", and says "SPT N-values are generally a poor predictor of
+    undrained shear strength". Use the estimate to check measured s_u, not
+    in its place.
+
+    **Soil type** is read only with ``uscs=``; by default, pass the rows the
+    correlation applies to, as for ``ht.analysis.spt_class()``. With
+    ``uscs="proposed"`` it reads ``uscs_symbol`` and gives no estimate
+    outside CL and CH, hangtu's reading of "clays", not the source's ("not
+    for this soil"), or where the symbol is blank ("soil type unknown"). A
+    list of groups replaces these.
+
+    **No estimate** (NaN, with ``correlation_note`` saying why and one
+    warning counting them): a blank N60 or PI ("input blank"), a refusal
+    from ``spt_refusal`` ("refusal"), and PI below 15 ("below range").
+
+    **Judgments taken:** none here; PI is the judgment, put on the rows by
+    ``add_judgment()`` and recorded in ``df.attrs["judgments"]``.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        One row per SPT test with ``spt_n60`` and ``plasticity_index``.
+    units : dict, optional
+        ``{column: unit}``, overriding ``df.attrs["units"]``. N60 and PI need
+        none.
+    display_units : {"US", "SI"}, optional
+        The units of s_u: psf for US, kPa for SI. Defaults to
+        ``ht.settings.display_units``.
+    uscs : "proposed" or list of str, optional
+        Read ``uscs_symbol`` and give no estimate outside these USCS groups:
+        ``"proposed"`` for hangtu's, above, or a list of your own. By default
+        no soil type is read.
+
+    Returns
+    -------
+    pandas.DataFrame
+        A copy of ``df`` with ``undrained_shear_strength``,
+        ``undrained_shear_strength_lower`` and
+        ``undrained_shear_strength_upper``, ``correlation_name``
+        ("undrained_shear_strength_stroud_1974"), ``correlation_note`` and
+        ``correlation_input`` (blank unless an input was another
+        correlation's estimate). No row is dropped or reordered.
+        ``df.attrs["correlations"]`` holds every correlation's entry; see
+        ``ht.analysis.correlations.describe()``.
+
+    References
+    ----------
+    Stroud, M. A. (1974). The standard penetration test in insensitive clays
+    and soft rocks. *Proceedings, European Symposium on Penetration Testing
+    (ESOPT-II)*, Vol. 2, pp. 367-375.
+
+    Loehr, J. E., et al. (2016). *Geotechnical Site Characterization*.
+    Geotechnical Engineering Circular No. 5, FHWA-NHI-16-072.
+
+    Examples
+    --------
+    >>> from hangtu.analysis import correlations
+    >>> clay = ht.analysis.add_judgment(clay, "plasticity_index")
+    >>> est = correlations.undrained_shear_strength_stroud_1974(clay)
+    """
+    name = "undrained_shear_strength_stroud_1974"
+    item = _framework.entry(name)
+    values = _framework.inputs(df, item, units)
+    n60 = values["spt_n60"]
+    index = values["plasticity_index"]
+    (low_range, high_range) = item["bands"]
+    high = index >= high_range["plasticity_index"]
+    middle = (index >= low_range["plasticity_index"]) & ~high
+    scale = n60 * PA / 100.0
+    central = np.where(high, high_range["lower"] * scale, np.nan)
+    lower = np.where(middle, low_range["lower"] * scale, np.nan)
+    upper = np.where(middle, low_range["upper"] * scale, np.nan)
+    note = _framework.notes(df, item, values, uscs)
+    return _framework.estimate(
+        df, name, central, note, display_units, uscs=uscs, lower=lower, upper=upper
+    )

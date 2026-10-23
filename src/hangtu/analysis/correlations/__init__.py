@@ -17,6 +17,7 @@ from hangtu.analysis.correlations._friction_angle import (
     effective_friction_angle_kulhawy_mayne_1990,
 )
 from hangtu.analysis.correlations._undrained_shear_strength import (
+    undrained_shear_strength_stroud_1974,
     undrained_shear_strength_terzaghi_peck_1967,
 )
 
@@ -24,6 +25,7 @@ __all__ = [
     "describe",
     "effective_friction_angle_hatanaka_uchida_1996",
     "effective_friction_angle_kulhawy_mayne_1990",
+    "undrained_shear_strength_stroud_1974",
     "undrained_shear_strength_terzaghi_peck_1967",
 ]
 

@@ -42,6 +42,7 @@ MADE_BY = {
     "spt_n60": "ht.analysis.spt() or p.spt(), with an energy ratio",
     "spt_n1_60": 'ht.analysis.spt_n1_60(df, method="...")',
     "effective_vertical_stress": "ht.analysis.vertical_stress()",
+    "plasticity_index": 'ht.analysis.add_judgment(df, "plasticity_index")',
 }
 #: Per bound: its sign as written in a range (low first), the test for outside it,
 #: and the reason given.

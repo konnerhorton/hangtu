@@ -68,7 +68,7 @@ plasticity_index:
 3. the judgments file;
 4. otherwise an error naming the judgment.
 
-The nearest Atterberg test is never used in its place.
+The nearest Atterberg test is never used in its place. To see what the tests say before you choose, `ht.analysis.summary_by(p.atterberg(), "plasticity_index")` gives each geology unit's count, median, minimum and maximum.
 
 ## The log
 

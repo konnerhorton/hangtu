@@ -34,6 +34,7 @@ FUNCTIONS = {
     for name in (
         "effective_friction_angle_hatanaka_uchida_1996",
         "effective_friction_angle_kulhawy_mayne_1990",
+        "undrained_shear_strength_stroud_1974",
         "undrained_shear_strength_terzaghi_peck_1967",
     )
 }
