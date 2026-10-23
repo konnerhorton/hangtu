@@ -39,3 +39,27 @@ hatanaka_uchida_1996:
     - cite: Loehr et al. (2016)
       reference: FHWA GEC 5, FHWA-NHI-16-072
       locators: ["Eq. 7.23, p. 7-55"]
+
+kulhawy_mayne_1990:
+  target: {column: effective_friction_angle, unit: deg}
+  equation: "φ′ = arctan{[N60 / (12.2 + 20.3 σ′v / pa)]^0.34}, pa = 100 kPa"
+  inputs:
+    spt_n60: {variant: "N60, N at 60 % energy, not corrected for overburden", unit: null}
+    effective_vertical_stress: {variant: "σ′v at the test", unit: kPa}
+  range:
+    spt_n60: {at_most: 60}
+    effective_vertical_stress: {greater_than: 0, at_most: 300}
+  applies_to: relatively clean sands
+  not_for: null
+  scatter: null
+  notes: >-
+    An approximation of Schmertmann's (1975) chart, drawn for σ′v up to 300 kPa
+    and N60 up to 60. GEC 5 calls it "somewhat conservative, especially for
+    depths less than 6 ft" (1.8 m). GEC 5 gives the input as N60.
+  sources:
+    - cite: Kulhawy & Mayne (1990)
+      reference: EPRI EL-6800, Manual on Estimating Soil Properties for Foundation Design
+      locators: ["Eq. 4-11"]
+    - cite: Loehr et al. (2016)
+      reference: FHWA GEC 5, FHWA-NHI-16-072
+      locators: ["Eq. 7.22", "Fig. 7-41", "p. 7-54 to 7-55"]

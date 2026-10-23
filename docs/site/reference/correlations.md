@@ -4,4 +4,6 @@ Each correlation is a function named after its source, in `ht.analysis.correlati
 
 ::: hangtu.analysis.correlations.hatanaka_uchida_1996
 
+::: hangtu.analysis.correlations.kulhawy_mayne_1990
+
 ::: hangtu.analysis.correlations.describe

@@ -21,11 +21,27 @@ HATANAKA_UCHIDA = [
     (20.625, 37.82),
     (7.586, 30.81),
 ]
-FUNCTIONS = {"hatanaka_uchida_1996": correlations.hatanaka_uchida_1996}
+# AC 2, by hand: φ′ = arctan{[N60 / (12.2 + 20.3 σ′v / 100)]^0.34}, σ′v in kPa.
+KULHAWY_MAYNE = [
+    (20, 50.0, 43.92),
+    (10, 100.0, 33.82),
+    (30, 200.0, 39.53),
+    (5, 25.0, 33.27),
+]
+KPA_TO_PSF = 1000 / 47.880259
+FUNCTIONS = {
+    "hatanaka_uchida_1996": correlations.hatanaka_uchida_1996,
+    "kulhawy_mayne_1990": correlations.kulhawy_mayne_1990,
+}
 
 
 def frame(**columns):
     return pd.DataFrame(columns)
+
+
+def stresses(n60, stress, unit="kPa", **columns):
+    df = frame(spt_n60=n60, effective_vertical_stress=stress, **columns)
+    return ht.set_units(df, {"effective_vertical_stress": unit})
 
 
 def test_hatanaka_uchida_golden_values():
@@ -87,6 +103,103 @@ def test_existing_output_columns_are_replaced_with_a_warning():
     with pytest.warns(UserWarning, match="Replaced the existing columns"):
         out = correlations.hatanaka_uchida_1996(df)
     assert out["effective_friction_angle"][0] == pytest.approx(32.41, abs=0.005)
+
+
+def test_kulhawy_mayne_golden_values():
+    n60, stress, expected = zip(*KULHAWY_MAYNE, strict=True)
+    out = correlations.kulhawy_mayne_1990(stresses(list(n60), list(stress)))
+    assert out["effective_friction_angle"].tolist() == pytest.approx(
+        list(expected), abs=0.005
+    )
+    assert (out["correlation_name"] == "kulhawy_mayne_1990").all()
+
+
+def test_kulhawy_mayne_in_psf_gives_the_same_angle():
+    n60, stress, expected = zip(*KULHAWY_MAYNE, strict=True)
+    psf = [value * KPA_TO_PSF for value in stress]
+    out = correlations.kulhawy_mayne_1990(stresses(list(n60), psf, unit="psf"))
+    assert out["effective_friction_angle"].tolist() == pytest.approx(
+        list(expected), abs=0.005
+    )
+
+
+def test_kulhawy_mayne_out_of_range():
+    df = stresses(
+        [60, 61, 20, 20, 20, np.nan, 20],
+        [300.0, 100.0, 301.0, 0.0, np.nan, 100.0, 100.0],
+        spt_refusal=[False] * 6 + [True],
+    )
+    with pytest.warns(UserWarning) as caught:
+        out = correlations.kulhawy_mayne_1990(df)
+    assert out["correlation_note"].tolist() == [
+        None,
+        "above range",
+        "above range",
+        "below range",
+        "input blank",
+        "input blank",
+        "refusal",
+    ]
+    assert out["effective_friction_angle"].notna().tolist() == [True] + [False] * 6
+    assert str(caught[0].message).endswith(
+        "Its range is spt_n60 ≤ 60; 0 < effective_vertical_stress ≤ 300; outside "
+        "it the estimate is blank, never extrapolated."
+    )
+
+
+def test_kulhawy_mayne_needs_the_stress_units():
+    df = frame(spt_n60=[10.0], effective_vertical_stress=[100.0])
+    with pytest.raises(ht.UnitsError, match="'effective_vertical_stress' has no units"):
+        correlations.kulhawy_mayne_1990(df)
+
+
+def test_kulhawy_mayne_without_n60_names_what_adds_it():
+    df = ht.set_units(
+        frame(spt_n1_60=[10.0], effective_vertical_stress=[100.0]),
+        {"effective_vertical_stress": "kPa"},
+    )
+    with pytest.raises(
+        ht.ColumnError, match=r"'spt_n60' not found.*ht\.analysis\.spt\(\)"
+    ):
+        correlations.kulhawy_mayne_1990(df)
+
+
+# --- AC 7: comparison on a profile ----------------------------------------------------
+
+
+def test_both_concatenate_and_draw_on_a_profile():
+    df = ht.set_units(
+        frame(
+            loca_id=["B-1"] * 4,
+            ground_level=[50.0] * 4,
+            depth=[2.0, 4.0, 6.0, 8.0],
+            spt_n60=[10.0, 20.0, 30.0, 70.0],
+            effective_vertical_stress=[30.0, 60.0, 90.0, 120.0],
+            spt_refusal=[False, False, True, False],
+        ),
+        {"depth": "m", "ground_level": "m", "effective_vertical_stress": "kPa"},
+    )
+    # (N1)60 = 17.0, 25.8, 31.6 and 63.9: the last above H&U's 39; N60 70 above
+    # K&M's 60. The test at 6 m is a refusal.
+    df = ht.analysis.spt_n1_60(df, method="liao_whitman_1986")
+    with pytest.warns(UserWarning, match="gave no estimate") as caught:
+        est = pd.concat(
+            [
+                correlations.hatanaka_uchida_1996(df),
+                correlations.kulhawy_mayne_1990(df),
+            ],
+            ignore_index=True,
+        )
+    assert ["1 refusal, 1 above range" in str(w.message) for w in caught] == [True] * 2
+    assert est.attrs["units"]["depth"] == "m"
+    _, ax = ht.plot.profile(
+        est, value="effective_friction_angle", vs="depth", color_by="correlation_name"
+    )
+    legend = [text.get_text() for text in ax.get_legend().get_texts()]
+    assert legend == ["hatanaka_uchida_1996", "kulhawy_mayne_1990"]
+    # The refusal and the out-of-range row of each, blank and counted.
+    assert ax.ags_notes == {"nan": 4}
+    assert len(ax.collections[0].get_offsets()) == 2
 
 
 # --- AC 3: the wrong variant is an error ----------------------------------------------

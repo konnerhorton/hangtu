@@ -10,9 +10,12 @@ compare with ``pd.concat`` and ``ht.plot.profile(..., color_by="correlation_name
 from typing import Any
 
 from hangtu.analysis.correlations._framework import entry
-from hangtu.analysis.correlations._friction_angle import hatanaka_uchida_1996
+from hangtu.analysis.correlations._friction_angle import (
+    hatanaka_uchida_1996,
+    kulhawy_mayne_1990,
+)
 
-__all__ = ["describe", "hatanaka_uchida_1996"]
+__all__ = ["describe", "hatanaka_uchida_1996", "kulhawy_mayne_1990"]
 
 
 def describe(name: str) -> dict[str, Any]:
