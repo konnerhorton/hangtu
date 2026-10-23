@@ -10,4 +10,10 @@ Each correlation is a function in `ht.analysis.correlations`, named after the pr
 
 ::: hangtu.analysis.correlations.undrained_shear_strength_terzaghi_peck_1967
 
+::: hangtu.analysis.correlations.preconsolidation_stress_mayne_kemper_1988
+
+::: hangtu.analysis.correlations.overconsolidation_ratio_mayne_kemper_1988
+
+::: hangtu.analysis.correlations.at_rest_earth_pressure_coefficient_kulhawy_et_al_1989
+
 ::: hangtu.analysis.correlations.describe

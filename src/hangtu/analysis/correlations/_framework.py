@@ -283,9 +283,10 @@ def estimate(
     result["correlation_name"] = name
     result["correlation_note"] = pd.Series(note, index=df.index, dtype=object)
     result["correlation_input"] = pd.Series(upstream, index=df.index, dtype=object)
+    # A dimensionless target (OCR, K0) has no unit to record.
     result.attrs["units"] = {
         **_units.units_of(df),
-        **dict.fromkeys(shown, unit_text),
+        **({} if unit_text is None else dict.fromkeys(shown, unit_text)),
     }
     # Every entry, not only this one, so results from one input have equal attrs
     # and pd.concat keeps them (units too); correlation_name says which applies.
