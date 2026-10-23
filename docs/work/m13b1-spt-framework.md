@@ -150,8 +150,10 @@ rescaling. hangtu follows the original and GEC 5, and the docstring says why.
      `ht.plot.profile(est, value="effective_friction_angle", color_by="correlation_name")`.
    - **Out of range:** NaN, never clipped or extrapolated (SPEC §4), with one warning counting the rows by reason.
    - **Recorded:** `df.attrs["correlations"]` = `{name: {equation, inputs, range, applies_to, source}}`, from the
-     config, so a concatenated frame whose attrs pandas keeps (identical attrs) or merges still names each one; a
-     helper `ht.analysis.correlations.describe(name)` returns the same entry for when attrs are lost.
+     config, for **every** correlation in it, not only the one run (changed in the build, step 5: pandas 2.3's
+     `concat` keeps attrs only when they are identical, so a per-correlation record dropped `attrs["units"]` too
+     and the comparison plot lost its depth units; `correlation_name` says which entry each row used). A helper
+     `ht.analysis.correlations.describe(name)` returns the same entry for when attrs are lost.
    - **Soil type** isn't read (Decision 11): the docstring says what the correlation applies to, and the user passes the
      rows it applies to, as `spt_class()` does.
 6. **`config/correlations.yaml`** holds the facts the code uses, one entry per correlation: target column, input

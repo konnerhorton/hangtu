@@ -92,14 +92,21 @@ DOCUMENTED_AS = {"hangtu.settings": "hangtu._settings.Settings"}
 
 def test_every_public_name_has_a_reference_entry():
     # Criterion 2. ht.Project's methods come with its class directive.
+    # Modules with __all__ are searched, as ht.analysis.correlations is.
     expected = set()
-    for name in ht.__all__:
-        obj = getattr(ht, name)
+
+    def add(path, obj):
+        if path in UNDOCUMENTED:
+            return
         if inspect.ismodule(obj) and hasattr(obj, "__all__"):
-            expected |= {f"hangtu.{name}.{member}" for member in obj.__all__}
+            for member in obj.__all__:
+                add(f"{path}.{member}", getattr(obj, member))
         else:
-            expected.add(f"hangtu.{name}")
-    expected = {DOCUMENTED_AS.get(name, name) for name in expected - UNDOCUMENTED}
+            expected.add(path)
+
+    for name in ht.__all__:
+        add(f"hangtu.{name}", getattr(ht, name))
+    expected = {DOCUMENTED_AS.get(name, name) for name in expected}
     assert expected - _documented() == set()
 
 
