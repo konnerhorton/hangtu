@@ -14,6 +14,10 @@ One point per test. A test over an interval, such as a field permeability test, 
 
 A **preset** sets the label, units, scale and limits for a common property: `"hydraulic_conductivity"`, `"undrained_shear_strength"`, `"water_content"` or `"bulk_unit_weight"`. Any other column plots with `label=` and `log=` as needed.
 
+## Value ranges
+
+A value reported as a range at one depth, such as a correlation's band, is drawn from two more columns, `<value>_lower` and `<value>_upper` (for s_u, `undrained_shear_strength_lower` and `undrained_shear_strength_upper`): a bar between the bounds at the test's depth, with the point where the value itself isn't blank. A bound given alone is a caret at it, ▷ for a lower bound and ◁ for an upper. The footnote counts the rows shown as a range, and the stats box leaves them out and says how many, since a range isn't one value.
+
 ## Common options
 
 | Argument | Does |
