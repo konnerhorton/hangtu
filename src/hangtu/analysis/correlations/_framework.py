@@ -60,7 +60,8 @@ def entry(name: str) -> dict[str, Any]:
         raise HangtuError(
             f"There is no correlation named {name!r}. Correlations: "
             f"{', '.join(map(repr, entries))}. "
-            'Example: ht.analysis.correlations.describe("hatanaka_uchida_1996")'
+            "Example: ht.analysis.correlations.describe("
+            '"effective_friction_angle_hatanaka_uchida_1996")'
         )
     return copy.deepcopy(entries[name])
 

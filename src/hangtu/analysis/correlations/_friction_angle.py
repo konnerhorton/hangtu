@@ -9,7 +9,7 @@ from hangtu.analysis._overburden import PA
 from hangtu.analysis.correlations import _framework
 
 
-def hatanaka_uchida_1996(
+def effective_friction_angle_hatanaka_uchida_1996(
     df: pd.DataFrame,
     *,
     units: Mapping[str, str] | None = None,
@@ -69,7 +69,9 @@ def hatanaka_uchida_1996(
     -------
     pandas.DataFrame
         A copy of ``df`` with ``effective_friction_angle`` (degrees),
-        ``correlation_name`` ("hatanaka_uchida_1996") and ``correlation_note``.
+        ``correlation_name``
+        ("effective_friction_angle_hatanaka_uchida_1996") and
+        ``correlation_note``.
         No row is dropped or reordered. ``df.attrs["correlations"]`` holds
         every correlation's entry from ``config/correlations.yaml``; see
         ``ht.analysis.correlations.describe()``.
@@ -87,10 +89,11 @@ def hatanaka_uchida_1996(
     --------
     >>> spt = ht.analysis.spt_n1_60(spt, method="liao_whitman_1986")
     >>> sand = spt[spt["geology_unit"] == "Terrace"]
-    >>> est = ht.analysis.correlations.hatanaka_uchida_1996(sand)
+    >>> from hangtu.analysis import correlations
+    >>> est = correlations.effective_friction_angle_hatanaka_uchida_1996(sand)
     >>> est[["depth", "spt_n1_60", "effective_friction_angle", "correlation_note"]]
     """
-    name = "hatanaka_uchida_1996"
+    name = "effective_friction_angle_hatanaka_uchida_1996"
     item = _framework.entry(name)
     values = _framework.inputs(df, item, units)
     n1_60 = values["spt_n1_60"]
@@ -100,7 +103,7 @@ def hatanaka_uchida_1996(
     return _framework.estimate(df, name, angle, note, display_units)
 
 
-def kulhawy_mayne_1990(
+def effective_friction_angle_kulhawy_mayne_1990(
     df: pd.DataFrame,
     *,
     units: Mapping[str, str] | None = None,
@@ -160,7 +163,8 @@ def kulhawy_mayne_1990(
     -------
     pandas.DataFrame
         A copy of ``df`` with ``effective_friction_angle`` (degrees),
-        ``correlation_name`` ("kulhawy_mayne_1990") and ``correlation_note``.
+        ``correlation_name`` ("effective_friction_angle_kulhawy_mayne_1990")
+        and ``correlation_note``.
         No row is dropped or reordered. ``df.attrs["correlations"]`` holds
         every correlation's entry from ``config/correlations.yaml``; see
         ``ht.analysis.correlations.describe()``.
@@ -177,15 +181,16 @@ def kulhawy_mayne_1990(
     Examples
     --------
     >>> sand = spt[spt["geology_unit"] == "Terrace"]
+    >>> from hangtu.analysis import correlations
     >>> est = pd.concat([
-    ...     ht.analysis.correlations.hatanaka_uchida_1996(sand),
-    ...     ht.analysis.correlations.kulhawy_mayne_1990(sand),
+    ...     correlations.effective_friction_angle_hatanaka_uchida_1996(sand),
+    ...     correlations.effective_friction_angle_kulhawy_mayne_1990(sand),
     ... ])
     >>> fig, ax = ht.plot.profile(
     ...     est, value="effective_friction_angle", color_by="correlation_name"
     ... )
     """
-    name = "kulhawy_mayne_1990"
+    name = "effective_friction_angle_kulhawy_mayne_1990"
     item = _framework.entry(name)
     values = _framework.inputs(df, item, units)
     n60 = values["spt_n60"]

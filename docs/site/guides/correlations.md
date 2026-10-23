@@ -35,8 +35,8 @@ Each published correlation is a function in `ht.analysis.correlations`, named af
 
 | Function | Reads | Range |
 |---|---|---|
-| [`hatanaka_uchida_1996`](../reference/correlations.md#hangtu.analysis.correlations.hatanaka_uchida_1996) | `spt_n1_60` | 4.55 ≤ (N1)60 ≤ 39 |
-| [`kulhawy_mayne_1990`](../reference/correlations.md#hangtu.analysis.correlations.kulhawy_mayne_1990) | `spt_n60`, `effective_vertical_stress` | N60 ≤ 60; 0 < σ′v ≤ 300 kPa |
+| [`effective_friction_angle_hatanaka_uchida_1996`](../reference/correlations.md#hangtu.analysis.correlations.effective_friction_angle_hatanaka_uchida_1996) | `spt_n1_60` | 4.55 ≤ (N1)60 ≤ 39 |
+| [`effective_friction_angle_kulhawy_mayne_1990`](../reference/correlations.md#hangtu.analysis.correlations.effective_friction_angle_kulhawy_mayne_1990) | `spt_n60`, `effective_vertical_stress` | N60 ≤ 60; 0 < σ′v ≤ 300 kPa |
 
 Each one:
 
@@ -48,8 +48,8 @@ Each one:
 Passing the whole Terrace instead of its upper part shows how much of a dense sand falls outside these ranges:
 
 ``` { .text .no-copy }
-UserWarning: hatanaka_uchida_1996 gave no estimate for 21 of 33 rows (9 refusal, 12 above range; see 'correlation_note'). Its range is 4.55 ≤ spt_n1_60 ≤ 39; outside it the estimate is blank, never extrapolated.
-UserWarning: kulhawy_mayne_1990 gave no estimate for 12 of 33 rows (9 refusal, 3 above range; see 'correlation_note'). Its range is spt_n60 ≤ 60; 0 < effective_vertical_stress ≤ 300; outside it the estimate is blank, never extrapolated.
+UserWarning: effective_friction_angle_hatanaka_uchida_1996 gave no estimate for 21 of 33 rows (9 refusal, 12 above range; see 'correlation_note'). Its range is 4.55 ≤ spt_n1_60 ≤ 39; outside it the estimate is blank, never extrapolated.
+UserWarning: effective_friction_angle_kulhawy_mayne_1990 gave no estimate for 12 of 33 rows (9 refusal, 3 above range; see 'correlation_note'). Its range is spt_n60 ≤ 60; 0 < effective_vertical_stress ≤ 300; outside it the estimate is blank, never extrapolated.
 ```
 
 ## Comparing estimates

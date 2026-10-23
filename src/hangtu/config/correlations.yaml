@@ -17,7 +17,7 @@
 #               as the docstring writes it), reference, and locators (equation,
 #               table, page), each of which the docstring names
 
-hatanaka_uchida_1996:
+effective_friction_angle_hatanaka_uchida_1996:
   target: {column: effective_friction_angle, unit: deg}
   equation: "φ′ = (15.4 (N1)60)^0.5 + 20°"
   inputs:
@@ -40,7 +40,7 @@ hatanaka_uchida_1996:
       reference: FHWA GEC 5, FHWA-NHI-16-072
       locators: ["Eq. 7.23, p. 7-55"]
 
-kulhawy_mayne_1990:
+effective_friction_angle_kulhawy_mayne_1990:
   target: {column: effective_friction_angle, unit: deg}
   equation: "φ′ = arctan{[N60 / (12.2 + 20.3 σ′v / pa)]^0.34}, pa = 100 kPa"
   inputs:

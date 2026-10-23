@@ -81,7 +81,7 @@ $$\varphi' = \tan^{-1}\left[\frac{N_{60}}{12.2 + 20.3\,(\sigma'_{v0}/p_a)}\right
 - **Valid for:** relatively clean sands, within Schmertmann's chart: σ′v0 up to 300 kPa, N60 up to 60; "somewhat
   conservative, especially for depths less than 6 ft" (GEC 5 p. 7-55).
 - **Source:** [1] Eq. 4-11 (locator); [11] Eq. 7.22 and Fig. 7-41, p. 7-54 to 7-55 [V]. Built as
-  `ht.analysis.correlations.kulhawy_mayne_1990` (M13 b1).
+  `ht.analysis.correlations.effective_friction_angle_kulhawy_mayne_1990` (M13 b1).
 
 ### 5.5 SPT — Hatanaka & Uchida (1996)
 $$\varphi' = \sqrt{15.4\,(N_1)_{60}} + 20\quad(\text{deg})$$
@@ -91,7 +91,7 @@ $$\varphi' = \sqrt{15.4\,(N_1)_{60}} + 20\quad(\text{deg})$$
 - **Valid for:** relatively clean fine to medium sands, 3.5 ≤ N1 ≤ 30 at 78 % energy ([3] Conclusions, p. 8), so
   4.55 ≤ (N1)60 ≤ 39.0; not micaceous sands or gravels ([11] p. 7-55). Fitted to drained triaxial tests on in situ
   frozen samples from six sites; most data within ±3° ([3] p. 7).
-- **Source:** [3] [V]; [11] [V]. Built as `ht.analysis.correlations.hatanaka_uchida_1996` (M13 b1).
+- **Source:** [3] [V]; [11] [V]. Built as `ht.analysis.correlations.effective_friction_angle_hatanaka_uchida_1996` (M13 b1).
 
 ### 5.6 φ′cv of NC clays from PI
 $$\sin\varphi'_{cv} \approx 0.8 - 0.094\ln PI\quad(PI\ \text{in}\ \%)$$

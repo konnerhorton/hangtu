@@ -64,8 +64,8 @@ The SPT classes place a sand roughly; they aren't a design value.
 
 | Method | Uses | Applies to | Function |
 |---|---|---|---|
-| Hatanaka & Uchida (1996), at 60 % energy (Loehr et al. 2016) | (N1)60 | relatively clean fine to medium sands; 4.55 ≤ (N1)60 ≤ 39 | [`ht.analysis.correlations.hatanaka_uchida_1996()`](../reference/correlations.md#hangtu.analysis.correlations.hatanaka_uchida_1996) |
-| Kulhawy & Mayne (1990), after Schmertmann (1975) | N60, σ′v0 | relatively clean sands; σ′v0 ≤ 300 kPa, N60 ≤ 60 | [`ht.analysis.correlations.kulhawy_mayne_1990()`](../reference/correlations.md#hangtu.analysis.correlations.kulhawy_mayne_1990) |
+| Hatanaka & Uchida (1996), at 60 % energy (Loehr et al. 2016) | (N1)60 | relatively clean fine to medium sands; 4.55 ≤ (N1)60 ≤ 39 | [`ht.analysis.correlations.effective_friction_angle_hatanaka_uchida_1996()`](../reference/correlations.md#hangtu.analysis.correlations.effective_friction_angle_hatanaka_uchida_1996) |
+| Kulhawy & Mayne (1990), after Schmertmann (1975) | N60, σ′v0 | relatively clean sands; σ′v0 ≤ 300 kPa, N60 ≤ 60 | [`ht.analysis.correlations.effective_friction_angle_kulhawy_mayne_1990()`](../reference/correlations.md#hangtu.analysis.correlations.effective_friction_angle_kulhawy_mayne_1990) |
 | Wolff (1989), a fit to Peck, Hanson & Thornburn (1974) | (N1)60 | sands | not built: its equation isn't yet verified against the source |
 | s′–t fit of triaxial results | σ′1f, σ′3f of each specimen in a unit | saturated specimens, one failure criterion | W2 |
 | Direct shear envelope (Kulhawy & Mayne 1990, Eq. 4-10, Table 4-5, p. 4-25) | τ and σ′n of each stage | drained shear on a forced plane | W2 |
