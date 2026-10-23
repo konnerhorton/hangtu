@@ -269,3 +269,141 @@ judgment kind with two functions, a P01 feature and three pages. The plan builds
 branch, so each part lands reviewed: (1) the P01 range bar; (2) framework terms, bands, chaining and the USCS map,
 with Terzaghi & Peck; (3) PI judgment, `add_judgment`, `summary_by` and Stroud; (4) the field-N σ′p, OCR and K0
 correlations; (5) the pages; (6) guide and close-out.
+
+## Plan
+
+Twelve commits in the six parts of the spec's Size, each green (ruff and pytest). Refactors and renames are
+commits of their own, ahead of the behavior that needs them. Each step that adds a public name adds its reference
+entry in the same commit (`tests/docs/test_site.py`). The spec commit updated SPEC, the P01 spec, the analysis
+draft and TODO; the build brings code, config, tests and site up to them. "Decision n" and "AC n" refer to the
+Spec.
+
+### Part 1: the P01 range bar
+
+#### 1. `P01: draw a value range at a depth`
+- New `plot/_value_ranges.py`:
+  - `read(df, value, units, quantity, system)`: the `<value>_lower` / `<value>_upper` columns, either or both,
+    converted to display units as the value is (their units resolve as the value's do); None when neither
+    exists. Rows with lower above upper raise naming them.
+  - `draw(ax, low, high, y, rows, groups, colors, xlim, notes)`: per color group, one line broken by NaN for
+    the rows with both bounds (1.2 pt, butt caps, `_layers.INTERVALS`), clipped at `xlim=`; P01's caret (▷ for
+    a lower bound alone, ◁ for an upper alone) through `edge_markers` and the qualifier flag's size; returns
+    the legend handle ("range", gray) and the edge mask.
+- `_profile._draw_profile`: with ranges, a qualifier on a row with a bound raises naming the rows; rows with a
+  bound join `extra` (not blank, they set the vertical limits and the unit's legend entry); every bound joins
+  the automatic x limits; the edge mask joins `beyond_limit`, once per row; the stats box leaves out rows with a
+  bound and adds "Ranges not included: n" to its last line beside `also_line`'s text. P02 and P06 read no bounds
+  (their values have none in the registry); `read` runs only for `profile()`.
+- `_notes.REASONS`: `"value_range": "{n} shown as a range"`.
+- `profile()`'s docstring: a paragraph on `<value>_lower` / `_upper`.
+- Tests (new `tests/plot/test_profile_ranges.py`): P01 §12's "Value ranges" list; US and SI bar positions equal
+  after conversion; `ax.ags_notes`.
+- Visual check: `docs/plots/img/P01-ranges.png` (US, s_u bands and values from two units, one open band, one
+  bound beyond `xlim=`), looked at and committed. `docs/site/plots/profile.md` gains a short "Value ranges"
+  section using it.
+
+### Part 2: the framework
+
+#### 2. `M13: name the φ′ correlations target first`
+A rename, on its own (Decision 2): `hatanaka_uchida_1996` → `effective_friction_angle_hatanaka_uchida_1996`
+and `kulhawy_mayne_1990` → `effective_friction_angle_kulhawy_mayne_1990`, in the functions, `__all__`, the
+config keys, `entry()`'s error example, `describe()`'s example, the tests, sheet 04 and page 04, the
+correlations guide, its example, `docs/site/reference/correlations.md` and the P01 footnote test. No alias
+(not in a release). No behavior change.
+
+#### 3. `registry: s_u bands, σ′p, OCR, K0 and correlation_input`
+- `columns.yaml` (Decision 7): under Strength, `undrained_shear_strength_lower` / `_upper`; a new section
+  "Stress history" with `preconsolidation_stress` (stress), `overconsolidation_ratio` (dimensionless) and
+  `at_rest_earth_pressure_coefficient` (dimensionless); `correlation_input` under Correlations. `correlation_note`'s
+  description lists the two new reasons. All `ags: ["derived: docs/work/m13b2-spt-strength-history.md"]`,
+  `used_by: [P01]`.
+- `defaults.yaml`: presets `preconsolidation_stress` (linear, from zero, typical `[0, 1000]` kPa),
+  `overconsolidation_ratio` (log, typical `[1, 50]`) and `at_rest_earth_pressure_coefficient` (linear, from
+  zero, typical `[0, 3]`).
+- Tests: the registry and preset tests pick them up; `prepare_site.py` regenerates the columns page.
+
+#### 4. `M13: terms in a range, bands and terzaghi_peck_1967`
+- `_framework.py`:
+  - an entry may have `terms: {name: {equation, unit}}`; the function computes each term and passes it in
+    `values`; `notes()` and `range_text()` treat a term in `range:` as an input (Decision 5);
+  - `estimate(..., lower=None, upper=None)` writes `<target>_lower` / `<target>_upper` with the target's display
+    units, NaN where noted, and replaces existing ones with the warning (Decision 6).
+- `config/correlations.yaml`: `undrained_shear_strength_terzaghi_peck_1967`, its classes as `bands:` (N lower
+  bound, s_u/pa lower and upper), range N ≥ 0, sources EPRI Table 4-10 p. 4-54 and Terzaghi & Peck (1967) p. 347.
+- New `correlations/_undrained_shear_strength.py` with the function: field `spt_n` (Decision 4), classes by
+  `np.searchsorted`, the "> 2 pa" class open (upper NaN), central value NaN; docstring per the template (field N,
+  unconfined compression, poor predictor, the lower bound of 0).
+- Tests: AC 1's Terzaghi & Peck row; AC 3 for this function; AC 4, class boundaries against
+  `spt_class(table="cohesive")` over N 0–40; the drift test reads `bands:` bounds too.
+
+#### 5. `M13: warn when a correlation reads another's estimate`
+- `_framework.chained(df, item)`: for each input, the rows whose `correlation_name` is an entry with that input
+  as its target; one warning naming the input and the upstream correlations; `estimate()` writes their names to
+  `correlation_input` (blank elsewhere) on every result, so concatenated results line up (Decision 8).
+- Tests: AC 5, with a correlation entry and function made in the test (monkeypatched catalog), reading
+  `effective_friction_angle` on the output of `effective_friction_angle_hatanaka_uchida_1996`; a frame from
+  Terzaghi & Peck run through another correlation that reads `spt_n` doesn't warn.
+
+#### 6. `M13: the opt-in USCS map`
+- `config/correlations.yaml`: `uscs:` and `uscs_basis:` on every entry (Decision 10).
+- `_framework.py`: `REASONS` gains "not for this soil" and "soil type unknown", ahead of "input blank" in
+  priority (the correlation doesn't apply at all); `soil(df, item, uscs)` gives each row's reason: `None` reads
+  nothing, `"proposed"` the entry's groups, a list those; a missing `uscs_symbol` raises naming it and saying it
+  isn't derived; anything else raises with both forms as examples. `attrs["correlation_uscs"]` records the
+  argument as given ("proposed", the list, or None), so results from calls with the same argument keep equal
+  attrs under `pd.concat`.
+- Every correlation function takes `uscs=None`, with a shared docstring paragraph.
+- `_notes.REASONS`: `correlation_not_for_this_soil`, `correlation_soil_type_unknown` (P01 §11).
+- Tests: AC 6; the drift test checks each docstring names its proposed groups; P01's footnote counts both.
+
+### Part 3: PI by geology unit and Stroud
+
+#### 7. `M13: share the judgment lookups beyond vertical stress`
+A refactor: `Values`, `_read_judgments`, `_from_file`, `_take`, `_warn_project` and `_warn_unused` move from
+`analysis/_vertical_stress.py` to a new `analysis/_judgment_values.py`; `_from_file` converts by the field's
+quantity, leaving percent and dimensionless fields as given. No behavior change; the tests pass as they are.
+
+#### 8. `M13: plasticity_index by geology unit and add_judgment()`
+- `_judgments.KINDS["plasticity_index"]` (keyed `values`, `by:` from the file, field `plasticity_index`,
+  dimensionless with `%` accepted, no project value without a reason); `ht.judgments()`'s docstring shows it.
+- New `analysis/_add_judgment.py`, exported as `ht.analysis.add_judgment(df, name, *, value=None,
+  judgments=None)`, for `plasticity_index` only in this unit (others raise, naming those it takes): `value=`
+  wins; else the `plasticity_index` column on the rows where filled, blanks filled from the file, with one warning
+  counting the rows where the two differ; else the file, keyed by the row's `by` column (missing column raises);
+  else the error naming the judgment. `attrs["judgments"]` as `vertical_stress()` records it.
+- Tests (new `tests/analysis/test_add_judgment.py`): AC 7; a key missing from the file, with and without a
+  project value; `docs/site/guides/judgments.md` gains the PI section.
+
+#### 9. `M13: summary_by() and undrained_shear_strength_stroud_1974`
+- New `analysis/_summary.py`: `ht.analysis.summary_by(df, value, *, by="geology_unit")`, one row per group with
+  `n`, `median`, `min`, `max`, units kept in attrs, blanks and text not counted (and said so in the docstring).
+- `config/correlations.yaml` and `_undrained_shear_strength.py`: Stroud (Decision 3), inputs `spt_n60` and
+  `plasticity_index`, range PI ≥ 15, band 4.5–5.5 for 15 ≤ PI < 30; sources GEC 5 Eq. 7.19 p. 7-38 and Stroud
+  (1974). `MADE_BY["plasticity_index"]` names `add_judgment()`.
+- Tests: AC 1's Stroud rows and US twin; `summary_by` on a small Atterberg frame.
+
+### Part 4: σ′p, OCR and K0
+
+#### 10. `M13: σ′p, OCR and K0 from field N`
+- `config/correlations.yaml`: `preconsolidation_stress_mayne_kemper_1988`,
+  `overconsolidation_ratio_mayne_kemper_1988` and `at_rest_earth_pressure_coefficient_kulhawy_et_al_1989`, the
+  last two with the `normalized_n` term (Decision 1, 5); n, r² and S.D. in `scatter`; the TC304 bias in K0's
+  `notes`.
+- New `correlations/_stress_history.py` with the three functions and their docstrings (field N, the fissured
+  clays above the trend, TC304's b = 2.16 for K0).
+- Tests: AC 2's table, AC 3 for these three, σ′v in psf giving the same values.
+
+### Part 5 and 6: pages, guide and close-out
+
+#### 11. `docs: pages 05, 06 and 07`
+Promoted per Decision 13, in TEMPLATE's order, with the corrections; each [U] item verified with a locator or
+cut, listed in the commit message; sheets 05–07 get the same corrections and a pointer to their page; nav
+entries under Parameters. If the three pages pass about 300 lines, one commit per page.
+
+#### 12. `M13: correlations guide on ranges, soil and chaining; close-out`
+- `docs/site/guides/correlations.md` and its example: Terzaghi & Peck and Stroud on the example project's
+  clays, PI from `summary_by` and `add_judgment(value=...)`, a P01 with the bands, `uscs="proposed"`, and a
+  paragraph on chaining. The example runs clean (`test_page_example_runs_clean`).
+- Close-out: parameter index rows 05, 06, 07 stage C → **part built** (SPT: M13 b2); `docs/drafts/phase3-stats.md`
+  gains the band-is-an-interval constraint (review 9); `CLAUDE.md` status (b2 done, b3 next).
+- Check: `uv run python docs/prepare_site.py` and `zensical build --clean --strict` pass.
