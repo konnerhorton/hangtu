@@ -1,6 +1,7 @@
 """A project: one AGS file read into a SQLite database (docs/data/ingest.md §2)."""
 
 import hashlib
+from collections.abc import Mapping
 from importlib.metadata import version
 from os import PathLike
 from pathlib import Path
@@ -296,7 +297,7 @@ class Project:
     def spt(
         self,
         *,
-        hammer_efficiency: float | None = None,
+        hammer_efficiency: float | Mapping[str, float] | None = None,
         cap: int | None = None,
         holes: "str | list[str] | None" = None,
         geology: "str | list[str] | None" = None,
@@ -322,7 +323,9 @@ class Project:
         ----------
         hammer_efficiency, cap
             Passed to ``ht.analysis.spt()``: the energy ratio (%) for tests
-            without ``ISPT_ERAT``, and the N refusals are capped at.
+            without ``ISPT_ERAT``, one number or ``{loca_id: ER}`` by hole
+            (with a warning naming the holes it fills), and the N refusals
+            are capped at.
         holes, geology
             Keep these holes (``LOCA_ID``) or geology units.
         depth, elevation

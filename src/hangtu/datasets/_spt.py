@@ -1,5 +1,6 @@
 """``p.spt()``: one row per SPT, ready for P02 and P03 (datasets.md §6.1)."""
 
+from collections.abc import Mapping
 from os import PathLike
 
 import numpy as np
@@ -30,7 +31,7 @@ COLUMNS = [
 def spt(
     path: str | PathLike[str],
     *,
-    hammer_efficiency: float | None = None,
+    hammer_efficiency: float | Mapping[str, float] | None = None,
     cap: int | None = None,
     display_units: str | None = None,
     include_incomplete: bool = False,

@@ -76,7 +76,8 @@ def test_n60_counts_tests_without_an_energy_ratio(points):
 
 
 def test_n60_with_a_hammer_efficiency_for_the_rest(points):
-    _, ax = ht.plot.spt_profile(spt(), n="spt_n60", hammer_efficiency=60)
+    with pytest.warns(UserWarning, match="Energy ratio 60 %"):
+        _, ax = ht.plot.spt_profile(spt(), n="spt_n60", hammer_efficiency=60)
     assert ax.ags_notes == {"nan": 2, "refusal": 5}
     assert len(points(ax)) == 78
 

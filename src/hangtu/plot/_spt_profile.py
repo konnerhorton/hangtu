@@ -1,5 +1,6 @@
 """P02 SPT N profile (docs/plots/P02-spt-profile.md)."""
 
+from collections.abc import Mapping
 from typing import Any, Literal
 
 import numpy as np
@@ -39,7 +40,7 @@ def spt_profile(
     n: Literal["spt_n", "spt_n60", "spt_n_capped"] = "spt_n",
     vs: Literal["elevation", "depth"] | None = None,
     refusal: Literal["cap", "exclude"] = "cap",
-    hammer_efficiency: float | None = None,
+    hammer_efficiency: float | Mapping[str, float] | None = None,
     cap: int | None = None,
     label: str | None = None,
     color_by: str | None = "geology_unit",
@@ -95,9 +96,11 @@ def spt_profile(
     refusal : {"cap", "exclude"}
         ``"cap"`` draws refusals at the cap; ``"exclude"`` leaves them out and
         counts them.
-    hammer_efficiency : float, optional
-        Energy ratio in percent for tests without ``energy_ratio``. Defaults
-        to ``ht.settings.hammer_efficiency``.
+    hammer_efficiency : float or dict, optional
+        Energy ratio in percent for tests without ``energy_ratio``: one number,
+        or ``{loca_id: ER}`` by hole. Defaults to
+        ``ht.settings.hammer_efficiency``. A warning names the tests it's used
+        for, as ``ht.analysis.spt()``.
     cap : int, optional
         Blow count refusals are drawn at. Defaults to ``ht.settings.spt_cap``.
     units : dict, optional

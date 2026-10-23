@@ -170,7 +170,8 @@ def test_n60_is_classified_and_labeled():
 
 def test_n60_hammer_efficiency_is_passed_to_the_analysis():
     df = spt_frame(n=[30.0, 9.0])
-    _, ax = ht.plot.spt_histogram(df, n="spt_n60", hammer_efficiency=80)
+    with pytest.warns(UserWarning, match="Energy ratio 80 %"):
+        _, ax = ht.plot.spt_histogram(df, n="spt_n60", hammer_efficiency=80)
     assert heights(ax, "A") == [0.0, 0.0, 50.0, 50.0, 0.0, 0.0]
 
 

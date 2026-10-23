@@ -22,17 +22,21 @@ def test_n60_golden_values_from_the_row():
 
 def test_n60_from_the_argument_then_the_setting():
     df = frame(spt_n=[30])
-    assert ht.analysis.spt(df, hammer_efficiency=80)["spt_n60"].tolist() == [40.0]
+    with pytest.warns(UserWarning, match="Energy ratio 80 % used for 1 test:"):
+        assert ht.analysis.spt(df, hammer_efficiency=80)["spt_n60"].tolist() == [40.0]
     ht.settings.hammer_efficiency = 90
-    assert ht.analysis.spt(df)["spt_n60"].tolist() == [45.0]
+    with pytest.warns(UserWarning, match="Energy ratio 90 % used for 1 test:"):
+        assert ht.analysis.spt(df)["spt_n60"].tolist() == [45.0]
     # The argument wins over the setting.
-    assert ht.analysis.spt(df, hammer_efficiency=60)["spt_n60"].tolist() == [30.0]
+    with pytest.warns(UserWarning, match="Energy ratio 60 %"):
+        assert ht.analysis.spt(df, hammer_efficiency=60)["spt_n60"].tolist() == [30.0]
 
 
 def test_the_row_energy_ratio_wins_over_argument_and_setting():
     ht.settings.hammer_efficiency = 90
     df = frame(spt_n=[30, 30], energy_ratio=[80, np.nan])
-    out = ht.analysis.spt(df, hammer_efficiency=60)
+    with pytest.warns(UserWarning, match="Energy ratio 60 % used for 1 test:"):
+        out = ht.analysis.spt(df, hammer_efficiency=60)
     assert out["spt_n60"].tolist() == [40.0, 30.0]
 
 
@@ -51,6 +55,90 @@ def test_n60_is_computed_for_refusals_and_not_capped():
     out = ht.analysis.spt(df)
     # 90 * 80 / 60 = 120, above the cap and kept; 38 * 80 / 60 = 50.667.
     assert out["spt_n60"].tolist() == pytest.approx([120.0, 50.667], abs=5e-4)
+
+
+# --- Hammer efficiency by hole (M13 b1, Decision 4) ----------------------------------
+
+
+def by_hole():
+    return frame(
+        loca_id=["BH01", "BH01", "BH01", "BH02", "BH02"],
+        spt_n=[30, 15, 12, 30, 6],
+        energy_ratio=[np.nan, np.nan, 90, np.nan, np.nan],
+    )
+
+
+def test_a_dict_fills_its_holes_blanks_only():
+    with pytest.warns(UserWarning, match="Energy ratio") as caught:
+        out = ht.analysis.spt(by_hole(), hammer_efficiency={"BH01": 80})
+    # BH01: 30 * 80 / 60 = 40, 15 * 80 / 60 = 20; the row's 90 wins: 12 * 90 / 60 = 18.
+    # BH02 isn't in the dict and there's no setting: blank.
+    assert out["spt_n60"].tolist()[:3] == [40.0, 20.0, 18.0]
+    assert out["spt_n60"][3:].isna().all()
+    assert len(caught) == 1
+    assert str(caught[0].message).startswith(
+        "Energy ratio 80 % used for BH01 (2 tests): no 'energy_ratio' in the data"
+    )
+    assert "AGS ISPT_ERAT" in str(caught[0].message)
+
+
+def test_a_hole_not_in_the_dict_falls_to_the_setting():
+    ht.settings.hammer_efficiency = 60
+    with pytest.warns(UserWarning) as caught:
+        out = ht.analysis.spt(by_hole(), hammer_efficiency={"BH01": 80})
+    # BH02: 30 * 60 / 60 = 30, 6 * 60 / 60 = 6.
+    assert out["spt_n60"].tolist() == [40.0, 20.0, 18.0, 30.0, 6.0]
+    assert [str(w.message).split(":")[0] for w in caught] == [
+        "Energy ratio 80 % used for BH01 (2 tests); 60 % used for BH02 (2 tests)"
+    ]
+
+
+def test_one_value_per_hole():
+    with pytest.warns(UserWarning, match="Energy ratio") as caught:
+        out = ht.analysis.spt(by_hole(), hammer_efficiency={"BH01": 80, "BH02": 72})
+    # BH02: 30 * 72 / 60 = 36, 6 * 72 / 60 = 7.2.
+    assert out["spt_n60"].tolist() == pytest.approx([40.0, 20.0, 18.0, 36.0, 7.2])
+    assert "80 % used for BH01 (2 tests); 72 % used for BH02 (2 tests)" in str(
+        caught[0].message
+    )
+
+
+def test_one_number_names_every_hole_it_fills():
+    with pytest.warns(UserWarning) as caught:
+        ht.analysis.spt(by_hole(), hammer_efficiency=80)
+    assert [str(w.message).split(":")[0] for w in caught] == [
+        "Energy ratio 80 % used for BH01 (2 tests), BH02 (2 tests)"
+    ]
+
+
+def test_no_warning_when_nothing_is_filled():
+    df = frame(loca_id=["BH01"], spt_n=[30], energy_ratio=[80])
+    assert ht.analysis.spt(df, hammer_efficiency={"BH01": 60})["spt_n60"][0] == 40.0
+    # A blank N or an N60 already given uses no energy ratio, so it isn't counted.
+    df = frame(loca_id=["BH01", "BH01"], spt_n=[np.nan, 30], spt_n60=[np.nan, 33.0])
+    assert ht.analysis.spt(df, hammer_efficiency=80)["spt_n60"][1] == 33.0
+
+
+def test_an_unknown_hole_in_the_dict_warns():
+    with pytest.warns(UserWarning) as caught:
+        ht.analysis.spt(by_hole(), hammer_efficiency={"BH01": 80, "BH1O": 70})
+    messages = [str(w.message) for w in caught]
+    assert messages[0] == (
+        "hammer_efficiency names holes that aren't in the data: 'BH1O'. Check the "
+        "spelling of the hole IDs ('loca_id')."
+    )
+    assert messages[1].startswith("Energy ratio 80 % used for BH01 (2 tests):")
+
+
+def test_a_dict_without_loca_id_is_an_error():
+    with pytest.raises(ht.ColumnError, match=r"no 'loca_id'.*hammer_efficiency=80"):
+        ht.analysis.spt(frame(spt_n=[12]), hammer_efficiency={"BH01": 80})
+
+
+@pytest.mark.parametrize("value", [0, 120, "80"])
+def test_a_bad_value_in_the_dict_names_the_hole(value):
+    with pytest.raises(ht.HangtuError, match=r"hammer_efficiency\['BH02'\] must be"):
+        ht.analysis.spt(by_hole(), hammer_efficiency={"BH01": 80, "BH02": value})
 
 
 # --- Refusal --------------------------------------------------------------------------

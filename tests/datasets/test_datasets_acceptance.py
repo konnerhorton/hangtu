@@ -235,7 +235,8 @@ def test_10_incomplete(tmp_path):
 
 # 11. N60 provenance (test_spt.py has all four cases).
 def test_11_energy_source(projects):
-    sources = _quiet(projects["site_si"].spt, hammer_efficiency=70)["energy_source"]
+    with pytest.warns(UserWarning, match="Energy ratio 70 % used for"):
+        sources = projects["site_si"].spt(hammer_efficiency=70)["energy_source"]
     assert list(sources) == [
         "file_n60",
         "file_energy_ratio",

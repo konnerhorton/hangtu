@@ -24,11 +24,13 @@ $$
 
 where $N$ is the field blow count and $E_R$ is the energy ratio, in percent. $E_R$ comes from, in order:
 
-1. the test's `energy_ratio` column;
-2. `hammer_efficiency=` on the call;
+1. the test's `energy_ratio` column (`ISPT_ERAT` in an AGS file);
+2. `hammer_efficiency=` on the call: one number for every hole, or a value by hole, `hammer_efficiency={"BH01": 80, "BH02": 72}`. A hole not in the dict falls to the setting;
 3. `ht.settings.hammer_efficiency`.
 
 There is no default: with none of these, N60 stays blank. hangtu won't guess an energy ratio, because it varies widely from one hammer to another.
+
+When the argument or the setting gives a test's energy ratio, a warning names the holes, the ratio and the number of tests, so an assumed value is never applied unnoticed. A hole in the dict that isn't in the data also warns, as a likely typo.
 
 ## The cap
 
