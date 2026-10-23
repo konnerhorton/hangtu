@@ -212,7 +212,8 @@ You are also looking. Candidates found so far:
 ### 20. Which SPT correlations for M13 · You + Claude · docs/drafts/analysis.md §4.2 · needed for M13
 - **You:** which properties and correlations you use, and any you'd exclude.
 - **Claude:** verify each equation, its constants, the N it was derived with and its stated range against the source.
-- **φ′ settled** (2026-10-22, `docs/work/m13b1-spt-framework.md`): Hatanaka & Uchida (1996) in GEC 5's 60 % form and Kulhawy & Mayne (1990) on N60, both verified; Wolff (1989) cut (#36). The rest is M13 unit (b2).
+- **φ′ settled** (2026-10-22, `docs/work/m13b1-spt-framework.md`): Hatanaka & Uchida (1996) in GEC 5's 60 % form and Kulhawy & Mayne (1990) on N60, both verified; Wolff (1989) cut (#36).
+- **s_u, σ′p/OCR and K0 settled** (2026-10-23, `docs/work/m13b2-spt-strength-history.md`): Stroud (1974) on N60 with PI, Terzaghi & Peck (1967) as a band on field N, Mayne & Kemper (1988) for σ′p and for OCR and Kulhawy et al. (1989) for K0, all on field N, verified against EPRI EL-6800 and GEC 5; Sowers (1979) cut (#39). E and Vs are M13 unit (b3).
 
 ### 21. Thewes & Burger (2004) diagram · Claude (verify) · P17 draft §14 · needed for M12
 Confirm the axes (PI or LL against Ic) and the zone coordinates against the paper.
@@ -244,8 +245,8 @@ P01's `strata=` takes one stratigraphy; the user filters `p.stratigraphy()` to o
 ### 36. Wolff (1989) · Claude (verify) · page 04, `docs/work/m13b1-spt-framework.md` · before building it
 φ′ = 27.1 + 0.3 (N1)60 − 0.00054 (N1)60², a fit to Peck, Hanson & Thornburn (1974). Verify the equation, its coefficient (copies print 0.00054 or 0.00053) and its N basis against Wolff (1989), ASCE GSP 23, 96–106, then build it as a correlation.
 
-### 37. Soil types for correlations · You + Claude · SPEC §4 · after M13
-Correlations apply to some soils only (clean sands, clays), and the user passes the rows each applies to. A mapping from `uscs_symbol` or `soil_class` to each correlation's soil types could select them, returning NaN with a reason for the rest.
+### 39. Sowers (1979) · Claude (verify) · page 05, `docs/work/m13b2-spt-strength-history.md` · before building it
+s_u against N for low, medium and high plasticity, known only as lines on EPRI EL-6800 Fig. 4-50 (after Djoenaidi), with no equation: the coefficients would be read off a chart. Cut from M13 b2. Build it only once the lines' equations are verified against Sowers (1979) itself.
 
 ### 38. Correlation profile: the input beside the estimates · You + Claude · P01, SPEC §4 · with M13 b2 or M18
 Today the estimates draw on one P01 profile by `correlation_name`, and a blank estimate shows only as a footnote count. A two-panel figure on a shared depth axis would show why: the left panel the input the correlation read (N60 or (N1)60, and σ′v where it is used) with each correlation's range drawn as limits, the right panel the estimates. A test with no estimate is then visible on the left, outside a range or marked as a refusal.
@@ -259,6 +260,7 @@ Proposed: two panels, not one axes with twinned x axes. A second x axis on the s
 - A helper for deciding cohesive vs cohesionless from lab data (fines %, PI).
 
 ## Done
+- ✅ #37 Soil types for correlations decided (2026-10-23, M13 b2): an opt-in USCS map. Each config entry keeps the source's words and gains hangtu's proposed USCS groups, labeled as hangtu's reading; `uscs="proposed"` or a list of groups turns it on and reads a `uscs_symbol` column the user supplies, never derived. Rows outside get NaN, "not for this soil"; a blank symbol, "soil type unknown". SPEC §4.
 - ✅ #30 What can be published decided (2026-10-22, M13, `docs/work/m13a-judgments.md` Decision 9): a site page may reproduce single values and ranges with their citation and locator, short sets of class boundaries as commonly cited (about ten rows or fewer), and equations with their source. It doesn't reproduce a source table or chart whole, values read off a chart beyond the few a method needs, a chart's descriptors (GSI), or quoted text beyond a sentence. Figures on the site are hangtu's own.
 - ✅ #33 Energy ratio decided (2026-10-22, M13): hammer efficiency is data, not a judgment. `ISPT_ERAT` is used first; `hammer_efficiency` (argument or setting) fills blanks with a warning naming the holes, and takes values by hole in M13 unit (b). SPEC §4.
 - ✅ #15 Text in a value column built (2026-10-19, M8): P01 draws each text value as an open marker at the left edge at its depth, one shape per text, with a legend entry and a footnote count. `NP` and `refusal` (any case) are recognized; other text is counted with a warning naming it. The stats box adds "Also: NP 3, 'dry' 2". In P01 §3, §7, §8. P07 is TODO #23.
