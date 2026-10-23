@@ -85,8 +85,10 @@ def undrained_shear_strength_terzaghi_peck_1967(
         ``undrained_shear_strength_lower`` and
         ``undrained_shear_strength_upper`` (blank for N of 30 or more),
         ``correlation_name``
-        ("undrained_shear_strength_terzaghi_peck_1967") and
-        ``correlation_note``. No row is dropped or reordered.
+        ("undrained_shear_strength_terzaghi_peck_1967"),
+        ``correlation_note`` and ``correlation_input`` (blank unless an
+        input was another correlation's estimate). No row is dropped or
+        reordered.
         ``df.attrs["correlations"]`` holds every correlation's entry; see
         ``ht.analysis.correlations.describe()``.
 

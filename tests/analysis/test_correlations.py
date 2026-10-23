@@ -333,3 +333,72 @@ def test_the_drift_test_fails_when_a_docstring_changes():
         "Eq. 7.23, p. 7-55",
         "4.55",
     ]
+
+
+# --- Chaining (docs/work/m13b2-spt-strength-history.md, AC 5) ---------------------
+
+
+@pytest.fixture
+def chain_entry(monkeypatch):
+    """A correlation made for the test, reading effective_friction_angle."""
+    from hangtu.analysis.correlations import _framework
+
+    entries = {
+        **_framework.catalog(),
+        "test_chain": {
+            "target": {"column": "undrained_shear_strength", "unit": "kPa"},
+            "equation": "s_u = φ′ kPa",
+            "inputs": {"effective_friction_angle": {"variant": "φ′", "unit": None}},
+            "range": {},
+            "sources": [],
+        },
+    }
+    monkeypatch.setattr(_framework, "catalog", lambda: entries)
+
+    def run(df):
+        item = _framework.entry("test_chain")
+        values = _framework.inputs(df, item, None)
+        note = _framework.notes(df, item, values)
+        return _framework.estimate(
+            df, "test_chain", values["effective_friction_angle"], note, "SI"
+        )
+
+    return run
+
+
+def test_reading_an_estimate_warns_once_and_records_the_upstream(chain_entry):
+    upstream = correlations.effective_friction_angle_hatanaka_uchida_1996(
+        frame(spt_n1_60=[10.0, 20.0])
+    )
+    with pytest.warns(UserWarning) as caught:
+        out = chain_entry(upstream)
+    chain = [str(w.message) for w in caught if "Chaining" in str(w.message)]
+    assert chain == [
+        "'effective_friction_angle' on 2 rows is an estimate from "
+        "'effective_friction_angle_hatanaka_uchida_1996'. Chaining correlations "
+        "compounds their errors, and the result reads as more certain than it "
+        "is: prefer an input from test data. The upstream correlation is in "
+        "'correlation_input'."
+    ]
+    assert (
+        out["correlation_input"].tolist()
+        == ["effective_friction_angle_hatanaka_uchida_1996"] * 2
+    )
+    assert (out["correlation_name"] == "test_chain").all()
+
+
+def test_measured_input_is_not_chained(chain_entry):
+    out = chain_entry(frame(effective_friction_angle=[32.0]))
+    assert out["correlation_input"].isna().all()
+
+
+def test_data_columns_on_another_correlations_frame_are_not_chained():
+    first = correlations.undrained_shear_strength_terzaghi_peck_1967(
+        frame(spt_n=[10.0]), display_units="SI"
+    )
+    with pytest.warns(UserWarning) as caught:
+        out = correlations.undrained_shear_strength_terzaghi_peck_1967(
+            first, display_units="SI"
+        )
+    assert not [w for w in caught if "Chaining" in str(w.message)]
+    assert out["correlation_input"].isna().all()

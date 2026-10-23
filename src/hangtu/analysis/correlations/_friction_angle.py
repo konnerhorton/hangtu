@@ -70,10 +70,11 @@ def effective_friction_angle_hatanaka_uchida_1996(
     pandas.DataFrame
         A copy of ``df`` with ``effective_friction_angle`` (degrees),
         ``correlation_name``
-        ("effective_friction_angle_hatanaka_uchida_1996") and
-        ``correlation_note``.
-        No row is dropped or reordered. ``df.attrs["correlations"]`` holds
-        every correlation's entry from ``config/correlations.yaml``; see
+        ("effective_friction_angle_hatanaka_uchida_1996"),
+        ``correlation_note`` and ``correlation_input`` (blank unless an
+        input was another correlation's estimate). No row is dropped or
+        reordered. ``df.attrs["correlations"]`` holds every correlation's
+        entry from ``config/correlations.yaml``; see
         ``ht.analysis.correlations.describe()``.
 
     References
@@ -163,10 +164,11 @@ def effective_friction_angle_kulhawy_mayne_1990(
     -------
     pandas.DataFrame
         A copy of ``df`` with ``effective_friction_angle`` (degrees),
-        ``correlation_name`` ("effective_friction_angle_kulhawy_mayne_1990")
-        and ``correlation_note``.
-        No row is dropped or reordered. ``df.attrs["correlations"]`` holds
-        every correlation's entry from ``config/correlations.yaml``; see
+        ``correlation_name`` ("effective_friction_angle_kulhawy_mayne_1990"),
+        ``correlation_note`` and ``correlation_input`` (blank unless an
+        input was another correlation's estimate). No row is dropped or
+        reordered. ``df.attrs["correlations"]`` holds every correlation's
+        entry from ``config/correlations.yaml``; see
         ``ht.analysis.correlations.describe()``.
 
     References

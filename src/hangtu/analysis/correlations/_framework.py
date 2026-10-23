@@ -24,7 +24,7 @@ from hangtu.errors import HangtuError, warn
 from hangtu.registry import column_info
 
 CONFIG = "config/correlations.yaml"
-OUTPUT_COLUMNS = ("correlation_name", "correlation_note")
+OUTPUT_COLUMNS = ("correlation_name", "correlation_note", "correlation_input")
 #: correlation_note's reasons, in priority order: a row gets the first that applies.
 INPUT_BLANK = "input blank"
 REFUSAL = "refusal"
@@ -140,6 +140,38 @@ def notes(
     return result
 
 
+def chained(df: pd.DataFrame, item: Mapping[str, Any]) -> np.ndarray:
+    """Return each row's upstream correlation, where an input is its estimate.
+
+    An input is an estimate on the rows whose ``correlation_name`` is a
+    correlation with that input as its target (Decision 8): a frame from
+    ``effective_friction_angle_hatanaka_uchida_1996`` read for
+    ``effective_friction_angle``. Its other columns are data. One warning
+    names each such input and where it came from; the call still runs.
+    """
+    upstream = np.full(len(df), None, dtype=object)
+    if "correlation_name" not in df.columns:
+        return upstream
+    names = df["correlation_name"].to_numpy(dtype=object)
+    targets = {name: found["target"]["column"] for name, found in catalog().items()}
+    found = []
+    for column in item["inputs"]:
+        rows = np.array([targets.get(name) == column for name in names], dtype=bool)
+        if rows.any():
+            upstream[rows] = names[rows]
+            sources = ", ".join(map(repr, dict.fromkeys(names[rows])))
+            found.append(
+                f"{column!r} on {int(rows.sum())} rows is an estimate from {sources}"
+            )
+    if found:
+        warn(
+            f"{'; '.join(found)}. Chaining correlations compounds their errors, "
+            "and the result reads as more certain than it is: prefer an input "
+            "from test data. The upstream correlation is in 'correlation_input'."
+        )
+    return upstream
+
+
 def estimate(
     df: pd.DataFrame,
     name: str,
@@ -159,6 +191,7 @@ def estimate(
     """
     item = entry(name)
     target = item["target"]["column"]
+    upstream = chained(df, item)
     system = _display_units(display_units or settings.display_units)
     noted = np.array([reason is not None for reason in note], dtype=bool)
     quantity = column_info(target)["quantity"]
@@ -194,6 +227,7 @@ def estimate(
         result[column] = data
     result["correlation_name"] = name
     result["correlation_note"] = pd.Series(note, index=df.index, dtype=object)
+    result["correlation_input"] = pd.Series(upstream, index=df.index, dtype=object)
     result.attrs["units"] = {
         **_units.units_of(df),
         **dict.fromkeys(shown, unit_text),
