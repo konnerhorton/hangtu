@@ -54,7 +54,7 @@ UserWarning: kulhawy_mayne_1990 gave no estimate for 12 of 33 rows (9 refusal, 3
 
 ## Comparing estimates
 
-Results from the same input concatenate with `pd.concat`, one row per test and correlation, and keep their units. `ht.plot.profile(..., color_by="correlation_name")` draws them together, and its footnote counts the blank estimates. The two correlations above differ by about 3° here; which to use, or how to combine them with measured values, is the engineer's call (stage D). [Drained shear strength of soil](../parameters/04-drained-shear-strength-soil.md) compares the methods.
+Results from the same input concatenate with `pd.concat`, one row per test and correlation, and keep their units. `ht.plot.profile(..., color_by="correlation_name")` draws them together, and its footnote counts the blank estimates by their `correlation_note`: "9 refusals, no estimate", "12 above range, no estimate". The two correlations above differ by about 3° here; which to use, or how to combine them with measured values, is the engineer's call (stage D). [Drained shear strength of soil](../parameters/04-drained-shear-strength-soil.md) compares the methods.
 
 ## See also
 

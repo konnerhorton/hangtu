@@ -19,6 +19,11 @@ from numpy.typing import ArrayLike
 # {where} optional detail a plot sets with Notes.set_where (P02: the cap).
 REASONS = {
     "nan": "{n} blank value{s} not shown",
+    # A correlation's rows with no estimate, by correlation_note (P01 §11).
+    "correlation_input_blank": "{n} with a blank input, no estimate",
+    "correlation_refusal": "{n} refusal{s}, no estimate",
+    "correlation_below_range": "{n} below range, no estimate",
+    "correlation_above_range": "{n} above range, no estimate",
     "short_curve": "{n} curve{s} with fewer than two points not shown",
     "d_value_unreached": "{n} D-value{s} not reached{where}",
     "log_nonpositive": "{n} value{s} ≤ 0 not shown on log axis",

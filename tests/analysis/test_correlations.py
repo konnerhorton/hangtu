@@ -197,9 +197,27 @@ def test_both_concatenate_and_draw_on_a_profile():
     )
     legend = [text.get_text() for text in ax.get_legend().get_texts()]
     assert legend == ["hatanaka_uchida_1996", "kulhawy_mayne_1990"]
-    # The refusal and the out-of-range row of each, blank and counted.
-    assert ax.ags_notes == {"nan": 4}
+    # The refusal and the out-of-range row of each, counted by correlation_note.
+    assert ax.ags_notes == {"correlation_refusal": 2, "correlation_above_range": 2}
+    footnote = [text.get_text() for text in ax.texts if "estimate" in text.get_text()]
+    assert footnote == ["2 refusals, no estimate\n2 above range, no estimate"]
     assert len(ax.collections[0].get_offsets()) == 2
+
+
+def test_the_footnote_counts_other_blanks_as_blank():
+    df = ht.set_units(
+        frame(
+            depth=[2.0, 4.0, np.nan, 8.0],
+            effective_friction_angle=[np.nan, 35.0, 30.0, 33.0],
+            correlation_name=["a"] * 4,
+            correlation_note=["input blank", None, None, None],
+        ),
+        {"depth": "m", "effective_friction_angle": "deg"},
+    )
+    with pytest.warns(UserWarning, match="ground_level|loca_id"):
+        _, ax = ht.plot.profile(df, "effective_friction_angle", vs="depth")
+    # A blank depth is P01's blank value, whatever the note.
+    assert ax.ags_notes == {"nan": 1, "correlation_input_blank": 1}
 
 
 # --- AC 3: the wrong variant is an error ----------------------------------------------
