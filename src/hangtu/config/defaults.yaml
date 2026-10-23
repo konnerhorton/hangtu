@@ -72,6 +72,14 @@ presets:
     log: false
     start_at_zero: true
     typical: [0, 500]
+  # Strength (M13).
+  effective_friction_angle:
+    column: effective_friction_angle
+    label: Effective friction angle, φ′
+    quantity: angle
+    log: false
+    start_at_zero: false
+    typical: [20, 50]
   # SPT (P02 §6). N is a count and never converts.
   spt_n:
     column: spt_n
@@ -83,6 +91,13 @@ presets:
   spt_n60:
     column: spt_n60
     label: SPT N60
+    quantity: count
+    log: false
+    start_at_zero: true
+    typical: [0, 50]
+  spt_n1_60:
+    column: spt_n1_60
+    label: SPT (N1)60
     quantity: count
     log: false
     start_at_zero: true
