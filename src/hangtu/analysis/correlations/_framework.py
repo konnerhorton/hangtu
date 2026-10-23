@@ -20,17 +20,22 @@ from hangtu import units as _units
 from hangtu._data import flag_column, numeric_column
 from hangtu._settings import _display_units, settings
 from hangtu.analysis._overburden import check_columns
-from hangtu.errors import HangtuError, warn
+from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.registry import column_info
 
 CONFIG = "config/correlations.yaml"
 OUTPUT_COLUMNS = ("correlation_name", "correlation_note", "correlation_input")
 #: correlation_note's reasons, in priority order: a row gets the first that applies.
+#: The soil comes first: outside its soils, the correlation doesn't apply at all.
+NOT_FOR_SOIL = "not for this soil"
+SOIL_UNKNOWN = "soil type unknown"
 INPUT_BLANK = "input blank"
 REFUSAL = "refusal"
 BELOW_RANGE = "below range"
 ABOVE_RANGE = "above range"
-REASONS = (INPUT_BLANK, REFUSAL, BELOW_RANGE, ABOVE_RANGE)
+REASONS = (NOT_FOR_SOIL, SOIL_UNKNOWN, INPUT_BLANK, REFUSAL, BELOW_RANGE, ABOVE_RANGE)
+#: The column the opt-in USCS map reads (Decision 10). It is never derived.
+USCS = "uscs_symbol"
 #: What adds each input column, for the error when it's missing (Decision 3).
 MADE_BY = {
     "spt_n": "p.spt(), or a CSV column of N as reported",
@@ -109,18 +114,58 @@ def inputs(
     return values
 
 
+def uscs_groups(item: Mapping[str, Any], uscs: Any) -> list[str] | None:
+    """Return the USCS groups a ``uscs=`` argument selects, or None to read none."""
+    if uscs is None:
+        return None
+    if uscs == "proposed":
+        return list(item["uscs"])
+    if (
+        isinstance(uscs, list | tuple)
+        and uscs
+        and all(isinstance(group, str) for group in uscs)
+    ):
+        return [group.strip().upper() for group in uscs]
+    raise HangtuError(
+        f'uscs= takes "proposed" or a list of USCS group symbols, not {uscs!r}. '
+        'Examples: uscs="proposed", or uscs=["CL", "CH", "CL-ML"].'
+    )
+
+
+def soil(df: pd.DataFrame, groups: list[str]) -> tuple[np.ndarray, np.ndarray]:
+    """Return the rows whose ``uscs_symbol`` is outside ``groups``, and those blank."""
+    if USCS not in df.columns:
+        raise ColumnError(
+            "uscs= reads each row's USCS group from a 'uscs_symbol' column, and "
+            "df has none. Add it from your classification (hangtu doesn't derive "
+            "it from the log or soil_class), or leave uscs= out and pass only the "
+            "rows the correlation applies to."
+        )
+    symbols = df[USCS].astype("string").str.strip().str.upper()
+    unknown = (symbols.isna() | (symbols == "")).to_numpy(dtype=bool)
+    outside = ~unknown & ~symbols.isin(groups).fillna(False).to_numpy(dtype=bool)
+    return outside, unknown
+
+
 def notes(
-    df: pd.DataFrame, item: Mapping[str, Any], values: Mapping[str, np.ndarray]
+    df: pd.DataFrame,
+    item: Mapping[str, Any],
+    values: Mapping[str, np.ndarray],
+    uscs: Any = None,
 ) -> np.ndarray:
     """Return each row's ``correlation_note``: None, or the first reason in REASONS.
 
     ``values`` holds the inputs and any term the entry's ``range`` limits
     (Decision 5), each computed by the function before this is called.
+    ``uscs`` is the function's argument (Decision 10).
     """
     missing = [key for key in item["range"] if key not in values]
     if missing:
         raise KeyError(f"The range names {missing}, which the function didn't compute.")
     found = {reason: np.zeros(len(df), dtype=bool) for reason in REASONS}
+    groups = uscs_groups(item, uscs)
+    if groups is not None:
+        found[NOT_FOR_SOIL], found[SOIL_UNKNOWN] = soil(df, groups)
     for data in values.values():
         found[INPUT_BLANK] |= np.isnan(data)
     if "spt_refusal" in df.columns:
@@ -181,6 +226,7 @@ def estimate(
     *,
     lower: np.ndarray | None = None,
     upper: np.ndarray | None = None,
+    uscs: Any = None,
 ) -> pd.DataFrame:
     """Return a copy of ``df`` with the estimate and the correlation's columns.
 
@@ -188,6 +234,8 @@ def estimate(
     warning counts the rows without an estimate by reason. ``lower`` and
     ``upper``, for a band, are written as ``<target>_lower`` and
     ``<target>_upper`` in the same unit; NaN in ``upper`` is an open band.
+    ``uscs`` is recorded as given in ``attrs["correlation_uscs"]``, so results
+    of calls with the same argument keep equal attrs under ``pd.concat``.
     """
     item = entry(name)
     target = item["target"]["column"]
@@ -235,4 +283,7 @@ def estimate(
     # Every entry, not only this one, so results from one input have equal attrs
     # and pd.concat keeps them (units too); correlation_name says which applies.
     result.attrs["correlations"] = copy.deepcopy(catalog())
+    result.attrs["correlation_uscs"] = (
+        uscs if uscs is None or isinstance(uscs, str) else list(uscs)
+    )
     return result

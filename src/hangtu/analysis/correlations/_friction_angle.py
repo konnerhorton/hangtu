@@ -12,6 +12,7 @@ from hangtu.analysis.correlations import _framework
 def effective_friction_angle_hatanaka_uchida_1996(
     df: pd.DataFrame,
     *,
+    uscs: str | list[str] | None = None,
     units: Mapping[str, str] | None = None,
     display_units: str | None = None,
 ) -> pd.DataFrame:
@@ -45,8 +46,13 @@ def effective_friction_angle_hatanaka_uchida_1996(
     (2024, Table 2.2.1) prints the 78 % form against (N1)60, which would
     overstate φ′ by up to about 3°; hangtu follows the source and GEC 5.
 
-    **Soil type isn't read.** Pass the rows the correlation applies to, as
-    for ``ht.analysis.spt_class()``.
+    **Soil type** is read only with ``uscs=``; by default, pass the rows the
+    correlation applies to, as for ``ht.analysis.spt_class()``. With
+    ``uscs="proposed"`` it reads ``uscs_symbol`` and gives no estimate
+    outside SP, SW, SP-SM and SW-SM, hangtu's reading of "relatively clean"
+    sands, not the source's ("not
+    for this soil"), or where the symbol is blank ("soil type unknown"). A
+    list of groups replaces these.
 
     **No estimate** (NaN, with ``correlation_note`` saying why and one warning
     counting them): a blank (N1)60 ("input blank"), a refusal from
@@ -64,6 +70,10 @@ def effective_friction_angle_hatanaka_uchida_1996(
         count, so none is needed.
     display_units : {"US", "SI"}, optional
         Accepted for a common signature; φ′ is in degrees in both.
+    uscs : "proposed" or list of str, optional
+        Read ``uscs_symbol`` and give no estimate outside these USCS groups:
+        ``"proposed"`` for hangtu's, above, or a list of your own. By default
+        no soil type is read.
 
     Returns
     -------
@@ -100,13 +110,14 @@ def effective_friction_angle_hatanaka_uchida_1996(
     n1_60 = values["spt_n1_60"]
     with np.errstate(invalid="ignore"):
         angle = np.sqrt(15.4 * n1_60) + 20.0
-    note = _framework.notes(df, item, values)
-    return _framework.estimate(df, name, angle, note, display_units)
+    note = _framework.notes(df, item, values, uscs)
+    return _framework.estimate(df, name, angle, note, display_units, uscs=uscs)
 
 
 def effective_friction_angle_kulhawy_mayne_1990(
     df: pd.DataFrame,
     *,
+    uscs: str | list[str] | None = None,
     units: Mapping[str, str] | None = None,
     display_units: str | None = None,
 ) -> pd.DataFrame:
@@ -138,8 +149,13 @@ def effective_friction_angle_kulhawy_mayne_1990(
     "somewhat conservative, especially for depths less than 6 ft" (1.8 m);
     shallow tests are not corrected for it.
 
-    **Soil type isn't read.** Pass the rows the correlation applies to, as
-    for ``ht.analysis.spt_class()``.
+    **Soil type** is read only with ``uscs=``; by default, pass the rows the
+    correlation applies to, as for ``ht.analysis.spt_class()``. With
+    ``uscs="proposed"`` it reads ``uscs_symbol`` and gives no estimate
+    outside SP, SW, SP-SM and SW-SM, hangtu's reading of "relatively clean"
+    sands, not the source's ("not
+    for this soil"), or where the symbol is blank ("soil type unknown"). A
+    list of groups replaces these.
 
     **No estimate** (NaN, with ``correlation_note`` saying why and one warning
     counting them): a blank N60 or σ′v ("input blank"), a refusal from
@@ -159,6 +175,10 @@ def effective_friction_angle_kulhawy_mayne_1990(
         ``effective_vertical_stress`` needs units.
     display_units : {"US", "SI"}, optional
         Accepted for a common signature; φ′ is in degrees in both.
+    uscs : "proposed" or list of str, optional
+        Read ``uscs_symbol`` and give no estimate outside these USCS groups:
+        ``"proposed"`` for hangtu's, above, or a list of your own. By default
+        no soil type is read.
 
     Returns
     -------
@@ -200,5 +220,5 @@ def effective_friction_angle_kulhawy_mayne_1990(
     with np.errstate(invalid="ignore", divide="ignore"):
         ratio = n60 / (12.2 + 20.3 * stress / PA)
         angle = np.degrees(np.arctan(ratio**0.34))
-    note = _framework.notes(df, item, values)
-    return _framework.estimate(df, name, angle, note, display_units)
+    note = _framework.notes(df, item, values, uscs)
+    return _framework.estimate(df, name, angle, note, display_units, uscs=uscs)

@@ -12,6 +12,7 @@ from hangtu.analysis.correlations import _framework
 def undrained_shear_strength_terzaghi_peck_1967(
     df: pd.DataFrame,
     *,
+    uscs: str | list[str] | None = None,
     units: Mapping[str, str] | None = None,
     display_units: str | None = None,
 ) -> pd.DataFrame:
@@ -58,8 +59,12 @@ def undrained_shear_strength_terzaghi_peck_1967(
     s_u/p_a ≈ 0.06 N (Eq. 4-59, p. 4-53), isn't built, so one table isn't
     counted twice when correlations are compared.
 
-    **Soil type isn't read.** Pass the rows the correlation applies to, as
-    for ``ht.analysis.spt_class()``.
+    **Soil type** is read only with ``uscs=``; by default, pass the rows the
+    correlation applies to, as for ``ht.analysis.spt_class()``. With
+    ``uscs="proposed"`` it reads ``uscs_symbol`` and gives no estimate
+    outside CL and CH, hangtu's reading of "clays", not the source's ("not
+    for this soil"), or where the symbol is blank ("soil type unknown"). A
+    list of groups replaces these.
 
     **No estimate** (NaN in all three columns, with ``correlation_note``
     saying why and one warning counting them): a blank N ("input blank"), a
@@ -77,6 +82,10 @@ def undrained_shear_strength_terzaghi_peck_1967(
     display_units : {"US", "SI"}, optional
         The units of the band: psf for US, kPa for SI. Defaults to
         ``ht.settings.display_units``.
+    uscs : "proposed" or list of str, optional
+        Read ``uscs_symbol`` and give no estimate outside these USCS groups:
+        ``"proposed"`` for hangtu's, above, or a list of your own. By default
+        no soil type is read.
 
     Returns
     -------
@@ -124,8 +133,8 @@ def undrained_shear_strength_terzaghi_peck_1967(
     index = np.searchsorted(starts, np.where(known, n, starts[0]), side="right") - 1
     lower = np.where(known, lowers[index] * PA, np.nan)
     upper = np.where(known, uppers[index] * PA, np.nan)
-    note = _framework.notes(df, item, values)
+    note = _framework.notes(df, item, values, uscs)
     central = np.full(len(df), np.nan)
     return _framework.estimate(
-        df, name, central, note, display_units, lower=lower, upper=upper
+        df, name, central, note, display_units, uscs=uscs, lower=lower, upper=upper
     )

@@ -20,6 +20,8 @@ from numpy.typing import ArrayLike
 REASONS = {
     "nan": "{n} blank value{s} not shown",
     # A correlation's rows with no estimate, by correlation_note (P01 §11).
+    "correlation_not_for_this_soil": "{n} not for this soil, no estimate",
+    "correlation_soil_type_unknown": "{n} with soil type unknown, no estimate",
     "correlation_input_blank": "{n} with a blank input, no estimate",
     "correlation_refusal": "{n} refusal{s}, no estimate",
     "correlation_below_range": "{n} below range, no estimate",

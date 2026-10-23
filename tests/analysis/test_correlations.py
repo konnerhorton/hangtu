@@ -253,7 +253,8 @@ def test_n60_without_n1_60_is_an_error_naming_what_adds_it():
 @pytest.mark.parametrize("name", list(FUNCTIONS))
 def test_no_argument_chooses_the_input_column(name):
     parameters = set(inspect.signature(FUNCTIONS[name]).parameters)
-    assert parameters == {"df", "units", "display_units"}
+    # uscs= selects rows by soil (M13 b2, Decision 10), never an input column.
+    assert parameters == {"df", "uscs", "units", "display_units"}
 
 
 # --- AC 5: what's recorded ------------------------------------------------------------
@@ -310,6 +311,7 @@ def _drift(name, docstring):
         expected += [source["cite"], *source["locators"]]
     for bounds in entry["range"].values():
         expected += [f"{bound:g}" for bound in bounds.values()]
+    expected += entry["uscs"]
     for band in entry.get("bands", []):
         expected += [f"{bound:g}" for bound in band.values() if bound is not None]
     return [item for item in expected if item not in text]
@@ -402,3 +404,97 @@ def test_data_columns_on_another_correlations_frame_are_not_chained():
         )
     assert not [w for w in caught if "Chaining" in str(w.message)]
     assert out["correlation_input"].isna().all()
+
+
+# --- The opt-in USCS map (docs/work/m13b2-spt-strength-history.md, AC 6) ----------
+
+
+def clays(**columns):
+    return frame(spt_n=[10.0, 10.0, 10.0, 10.0, 10.0], **columns)
+
+
+USCS = ["CL", "SP", None, " ch ", "CL-ML"]
+
+
+def test_proposed_groups_give_no_estimate_outside_them():
+    with pytest.warns(UserWarning, match=r"3 of 5 rows \(2 not for this soil, 1 soil"):
+        out = correlations.undrained_shear_strength_terzaghi_peck_1967(
+            clays(uscs_symbol=USCS), uscs="proposed", display_units="SI"
+        )
+    assert out["correlation_note"].tolist() == [
+        None,
+        "not for this soil",
+        "soil type unknown",
+        None,
+        "not for this soil",
+    ]
+    assert out["undrained_shear_strength_lower"].isna().tolist() == [
+        False, True, True, False, True,
+    ]  # fmt: skip
+    assert out.attrs["correlation_uscs"] == "proposed"
+
+
+def test_a_list_of_groups_replaces_the_proposed_ones():
+    with pytest.warns(UserWarning, match=r"3 of 5 rows"):
+        out = correlations.undrained_shear_strength_terzaghi_peck_1967(
+            clays(uscs_symbol=USCS), uscs=["CL", "CL-ML"], display_units="SI"
+        )
+    assert out["correlation_note"].tolist() == [
+        None,
+        "not for this soil",
+        "soil type unknown",
+        "not for this soil",
+        None,
+    ]
+    assert out.attrs["correlation_uscs"] == ["CL", "CL-ML"]
+
+
+def test_the_soil_reason_comes_before_the_input_reasons():
+    df = frame(spt_n=[np.nan], uscs_symbol=["SP"])
+    with pytest.warns(UserWarning):
+        out = correlations.undrained_shear_strength_terzaghi_peck_1967(
+            df, uscs="proposed"
+        )
+    assert out["correlation_note"].tolist() == ["not for this soil"]
+
+
+def test_uscs_without_a_uscs_symbol_column_raises_saying_it_is_not_derived():
+    with pytest.raises(ht.ColumnError, match=r"'uscs_symbol'.*doesn't derive"):
+        correlations.undrained_shear_strength_terzaghi_peck_1967(
+            clays(), uscs="proposed"
+        )
+
+
+def test_by_default_no_soil_type_is_read():
+    out = correlations.undrained_shear_strength_terzaghi_peck_1967(
+        clays(uscs_symbol=USCS), display_units="SI"
+    )
+    assert out["correlation_note"].isna().all()
+    assert out.attrs["correlation_uscs"] is None
+
+
+@pytest.mark.parametrize("bad", ["proposd", [], ["CL", 3], 5])
+def test_a_wrong_uscs_argument_raises_with_examples(bad):
+    with pytest.raises(ht.HangtuError, match=r'uscs= takes "proposed" or a list'):
+        correlations.effective_friction_angle_hatanaka_uchida_1996(
+            frame(spt_n1_60=[10.0], uscs_symbol=["SP"]), uscs=bad
+        )
+
+
+def test_p01_counts_the_soil_reasons():
+    df = ht.set_units(
+        clays(depth=[1.0, 2.0, 3.0, 4.0, 5.0], uscs_symbol=USCS), {"depth": "m"}
+    )
+    with pytest.warns(UserWarning):
+        out = correlations.undrained_shear_strength_terzaghi_peck_1967(
+            df, uscs="proposed", display_units="SI"
+        )
+    with pytest.warns(ht.HangtuHint):
+        _, ax = ht.plot.profile(
+            out, "undrained_shear_strength", vs="depth", color_by=None
+        )
+    assert ax.ags_notes == {
+        "value_range": 2,
+        "correlation_not_for_this_soil": 2,
+        "correlation_soil_type_unknown": 1,
+    }

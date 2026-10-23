@@ -18,6 +18,8 @@
 #               bound on the input (inclusive) and its target band (lower, upper;
 #               upper null for an open band), written as <target>_lower / _upper
 #   applies_to, not_for, scatter, notes   as the sources state them
+#   uscs        hangtu's proposed USCS groups for applies_to, used only with
+#               uscs="proposed" (Decision 10); uscs_basis says how they were read
 #   sources     the original first, then any later form used: cite (author and year,
 #               as the docstring writes it), reference, and locators (equation,
 #               table, page), each of which the docstring names
@@ -31,6 +33,10 @@ effective_friction_angle_hatanaka_uchida_1996:
     spt_n1_60: {at_least: 4.55, at_most: 39.0}
   applies_to: relatively clean fine to medium sands
   not_for: micaceous sands; gravelly soils
+  uscs: [SP, SW, SP-SM, SW-SM]
+  uscs_basis: >-
+    hangtu's reading of "relatively clean" sands: the clean and the
+    clean-with-silt USCS sands; gravels and clayey or silty sands are left out
   scatter: "±3° for most of the data"
   notes: >-
     The source's φ′ = (20 N1)^0.5 + 20 is for N1 at the 78 % energy of the
@@ -56,6 +62,10 @@ effective_friction_angle_kulhawy_mayne_1990:
     effective_vertical_stress: {greater_than: 0, at_most: 300}
   applies_to: relatively clean sands
   not_for: null
+  uscs: [SP, SW, SP-SM, SW-SM]
+  uscs_basis: >-
+    hangtu's reading of "relatively clean" sands: the clean and the
+    clean-with-silt USCS sands; gravels and clayey or silty sands are left out
   scatter: null
   notes: >-
     An approximation of Schmertmann's (1975) chart, drawn for σ′v up to 300 kPa
@@ -86,6 +96,9 @@ undrained_shear_strength_terzaghi_peck_1967:
     - {spt_n: 30, lower: 2.0, upper: null}
   applies_to: clays
   not_for: null
+  uscs: [CL, CH]
+  uscs_basis: >-
+    hangtu's reading of "clays": the USCS lean and fat clays
   scatter: >-
     Not stated. GEC 5 (p. 7-38): "SPT N-values are generally a poor predictor
     of undrained shear strength".
