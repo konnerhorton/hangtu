@@ -499,3 +499,13 @@ def test_p01_counts_the_soil_reasons():
         "correlation_not_for_this_soil": 2,
         "correlation_soil_type_unknown": 1,
     }
+
+
+def test_a_value_on_an_inclusive_bound_stays_inside_after_conversion():
+    # 300 kPa through psf is 300.00000000000006 kPa; still at most 300.
+    psf = ht.units.convert(
+        [300.0], ht.units.parse_unit("kPa"), "stress", ht.units.parse_unit("psf")
+    )
+    df = stresses([20], list(psf), unit="psf")
+    out = correlations.effective_friction_angle_kulhawy_mayne_1990(df)
+    assert out["correlation_note"].isna().all()

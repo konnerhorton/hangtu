@@ -52,6 +52,9 @@ _BOUNDS = {
     "at_most": ("≤", np.greater, ABOVE_RANGE),
     "less_than": ("<", np.greater_equal, ABOVE_RANGE),
 }
+#: A value this close to an inclusive bound (relative) is on it, so a value on a
+#: bound stays inside after a unit round trip (60 in kPa through psf).
+BOUND_TOLERANCE = 1e-9
 
 
 def catalog() -> dict[str, dict[str, Any]]:
@@ -179,7 +182,10 @@ def notes(
         for key, bound in bounds.items():
             _, outside, reason = _BOUNDS[key]
             with np.errstate(invalid="ignore"):
-                found[reason] |= outside(data, bound)
+                beyond = outside(data, bound)
+            if key in ("at_least", "at_most"):
+                beyond &= ~np.isclose(data, bound, rtol=BOUND_TOLERANCE, atol=0)
+            found[reason] |= beyond
     result = np.full(len(df), None, dtype=object)
     for reason in reversed(REASONS):
         result[found[reason]] = reason
