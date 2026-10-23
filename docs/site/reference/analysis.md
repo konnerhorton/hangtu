@@ -15,3 +15,5 @@ Each analysis is a plain function on a DataFrame. It returns a new DataFrame or 
 ::: hangtu.analysis.gradation
 
 ::: hangtu.analysis.vertical_stress
+
+::: hangtu.analysis.spt_n1_60
