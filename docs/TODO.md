@@ -247,6 +247,11 @@ P01's `strata=` takes one stratigraphy; the user filters `p.stratigraphy()` to o
 ### 37. Soil types for correlations · You + Claude · SPEC §4 · after M13
 Correlations apply to some soils only (clean sands, clays), and the user passes the rows each applies to. A mapping from `uscs_symbol` or `soil_class` to each correlation's soil types could select them, returning NaN with a reason for the rest.
 
+### 38. Correlation profile: the input beside the estimates · You + Claude · P01, SPEC §4 · with M13 b2 or M18
+Today the estimates draw on one P01 profile by `correlation_name`, and a blank estimate shows only as a footnote count. A two-panel figure on a shared depth axis would show why: the left panel the input the correlation read (N60 or (N1)60, and σ′v where it is used) with each correlation's range drawn as limits, the right panel the estimates. A test with no estimate is then visible on the left, outside a range or marked as a refusal.
+
+Proposed: two panels, not one axes with twinned x axes. A second x axis on the same profile makes the reader match each marker to one of two unrelated scales; the input and estimate markers interleave at the same depths, and the axis limits of each are arbitrary relative to the other. Two panels keep one quantity per axis (P01's contract) and still line up by depth. Open: a helper (`ht.plot.correlation_profile(est, ...)`) or a recipe in the correlations guide using `ht.Sheet` with `ax=`; `Sheet` has no shared vertical axis yet, so either needs one (matching depth limits across panels).
+
 ---
 
 ## Later / far future (also on the Roadmap)
