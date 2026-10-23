@@ -43,6 +43,8 @@ class Values:
     #: A file's project value with no keyed values: used for every key, warned.
     project_only: bool = False
     used: dict[str, dict[str, str]] = field(default_factory=dict)
+    #: The call's argument, when it isn't named as the judgment (add_judgment's value=).
+    argument: str | None = None
 
     def record(self) -> dict[str, Any]:
         """``df.attrs["judgments"][name]``: the source and the keys used."""
@@ -140,7 +142,7 @@ def take(values: Values, keys: Iterable[str], noun: str) -> dict[str, dict[str, 
     plural = noun + ("s" if len(missing) != 1 else "")
     if values.project is None:
         where = (
-            f"{values.name}="
+            f"{values.argument or values.name}="
             if values.source == "argument"
             else f"The judgments file's {values.name}"
         )

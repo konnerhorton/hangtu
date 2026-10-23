@@ -1,4 +1,4 @@
-"""The judgments file: a project's unit weights and water levels (SPEC §4).
+"""The judgments file: a project's unit weights, water levels and PI (SPEC §4).
 
 A judgment has no default. Analyses take it from an argument, then from
 ``judgments=``, then from the Project's file, else raise. The file format and
@@ -48,13 +48,23 @@ KINDS = {
         one_of=("depth", "elevation"),
         by="loca_id",
     ),
+    # docs/work/m13b2-spt-strength-history.md, Decision 11.
+    "plasticity_index": Kind(
+        keyed="values",
+        fields={"plasticity_index": "dimensionless"},
+        required=("plasticity_index",),
+        one_of=(),
+        by=None,
+    ),
 }
 
 #: Fields that must be positive (a water level may be above ground).
 POSITIVE = {"bulk_unit_weight", "saturated_unit_weight"}
+#: Fields that may be zero but not negative.
+NON_NEGATIVE = {"plasticity_index"}
 
 #: Units shown in examples, as they are written in the file.
-EXAMPLE_UNITS = {"unit_weight": "kN/m3", "length": "m"}
+EXAMPLE_UNITS = {"unit_weight": "kN/m3", "length": "m", "dimensionless": '"%"'}
 
 
 @dataclass(frozen=True)
@@ -99,7 +109,7 @@ def quantity_text(value: float, unit: str) -> str:
 
 
 class Judgments:
-    """A project's judgments file: unit weights and water levels.
+    """A project's judgments file: unit weights, water levels and PI.
 
     Made by ``ht.judgments(path)`` or ``p.judgments``. It holds the path, not
     the values: each analysis re-reads the file, so an edit shows up in the next
@@ -159,7 +169,7 @@ class Judgments:
 
 
 def judgments(path: str | PathLike[str]) -> Judgments:
-    """Open a judgments file: the unit weights and water levels a project uses.
+    """Open a judgments file: the unit weights, water levels and PI a project uses.
 
     Judgments have no defaults in hangtu (SPEC §4). They live in one YAML file
     with their units and reasons, and every analysis that needs one reads it
@@ -184,6 +194,11 @@ def judgments(path: str | PathLike[str]) -> Judgments:
           project: {depth: 3.0, reason: highest standpipe reading}
           by_hole:
             BH01: {depth: 2.5, reason: standpipe reading 2026-09-14}
+        plasticity_index:
+          by: geology_unit
+          units: {plasticity_index: "%"}
+          values:
+            Alluvium: {plasticity_index: 28, reason: "median of 9 tests"}
         ```
 
         - `unit_weight` entries take `bulk_unit_weight` (required) and
@@ -192,6 +207,10 @@ def judgments(path: str | PathLike[str]) -> Judgments:
           `uscs_symbol`.
         - `water_level` entries take one of `depth` or `elevation`. A negative
           depth is water above ground; analyses warn about it.
+        - `plasticity_index` entries take `plasticity_index`, 0 or more, keyed
+          by a column of the rows it is put on (`by:`), and are put on them by
+          `ht.analysis.add_judgment()`. `ht.analysis.summary_by()` shows each
+          unit's tested PI to inform it.
         - `units:` gives a unit for every field used.
         - `project:` is optional and needs a `reason`. It is used, with a
           warning, for every unit or hole the keyed entries don't list.
@@ -399,8 +418,15 @@ def _check_entry(
             or not isinstance(value, int | float)
             or not math.isfinite(value)
             or (field in POSITIVE and value <= 0)
+            or (field in NON_NEGATIVE and value < 0)
         ):
-            sign = "a positive number" if field in POSITIVE else "a number"
+            sign = (
+                "a positive number"
+                if field in POSITIVE
+                else "a number of 0 or more"
+                if field in NON_NEGATIVE
+                else "a number"
+            )
             raise HangtuError(f"{where}, {field}: must be {sign}, not {value!r}.")
         if field not in units_by_field:
             raise HangtuError(
