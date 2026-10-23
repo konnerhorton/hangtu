@@ -1,5 +1,6 @@
 """P03 SPT class histogram (docs/plots/P03-spt-histogram.md)."""
 
+from collections.abc import Mapping
 from typing import Any, Literal
 
 import matplotlib.pyplot as plt
@@ -90,7 +91,7 @@ def spt_histogram(
     refusal: Literal["separate", "exclude"] = "separate",
     color_by: str | None = "geology_unit",
     order: list[str] | None = None,
-    hammer_efficiency: float | None = None,
+    hammer_efficiency: float | Mapping[str, float] | None = None,
     bar_labels: bool = False,
     note: str | None = None,
     palette: dict[str, str] | None = None,
@@ -127,9 +128,11 @@ def spt_histogram(
         The column bars are grouped and colored by; None for one group.
     order : list of str, optional
         Geology units in stratigraphic order. Units not in it follow, by name.
-    hammer_efficiency : float, optional
-        Energy ratio in percent for tests without ``energy_ratio``, for N60.
-        Defaults to ``ht.settings.hammer_efficiency``.
+    hammer_efficiency : float or dict, optional
+        Energy ratio in percent for tests without ``energy_ratio``, for N60:
+        one number, or ``{loca_id: ER}`` by hole. Defaults to
+        ``ht.settings.hammer_efficiency``. A warning names the tests it's used
+        for, as ``ht.analysis.spt()``.
     bar_labels : bool
         Write the number of tests above each bar that has any.
     note : str, optional

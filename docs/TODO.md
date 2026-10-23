@@ -212,6 +212,7 @@ You are also looking. Candidates found so far:
 ### 20. Which SPT correlations for M13 · You + Claude · docs/drafts/analysis.md §4.2 · needed for M13
 - **You:** which properties and correlations you use, and any you'd exclude.
 - **Claude:** verify each equation, its constants, the N it was derived with and its stated range against the source.
+- **φ′ settled** (2026-10-22, `docs/work/m13b1-spt-framework.md`): Hatanaka & Uchida (1996) in GEC 5's 60 % form and Kulhawy & Mayne (1990) on N60, both verified; Wolff (1989) cut (#36). The rest is M13 unit (b2).
 
 ### 21. Thewes & Burger (2004) diagram · Claude (verify) · P17 draft §14 · needed for M12
 Confirm the axes (PI or LL against Ic) and the zone coordinates against the paper.
@@ -239,6 +240,17 @@ Confirm a non-vendor published source that defines each model set's parameters: 
 
 ### 35. `strata=` from a per-hole stratigraphy · You + Claude · P01 §8
 P01's `strata=` takes one stratigraphy; the user filters `p.stratigraphy()` to one hole. Later, `strata=` could take the per-hole table directly (one hole, or with a `loca_id` filter) and convert a depth pair to elevation with that hole's ground level.
+
+### 36. Wolff (1989) · Claude (verify) · page 04, `docs/work/m13b1-spt-framework.md` · before building it
+φ′ = 27.1 + 0.3 (N1)60 − 0.00054 (N1)60², a fit to Peck, Hanson & Thornburn (1974). Verify the equation, its coefficient (copies print 0.00054 or 0.00053) and its N basis against Wolff (1989), ASCE GSP 23, 96–106, then build it as a correlation.
+
+### 37. Soil types for correlations · You + Claude · SPEC §4 · after M13
+Correlations apply to some soils only (clean sands, clays), and the user passes the rows each applies to. A mapping from `uscs_symbol` or `soil_class` to each correlation's soil types could select them, returning NaN with a reason for the rest.
+
+### 38. Correlation profile: the input beside the estimates · You + Claude · P01, SPEC §4 · with M13 b2 or M18
+Today the estimates draw on one P01 profile by `correlation_name`, and a blank estimate shows only as a footnote count. A two-panel figure on a shared depth axis would show why: the left panel the input the correlation read (N60 or (N1)60, and σ′v where it is used) with each correlation's range drawn as limits, the right panel the estimates. A test with no estimate is then visible on the left, outside a range or marked as a refusal.
+
+Proposed: two panels, not one axes with twinned x axes. A second x axis on the same profile makes the reader match each marker to one of two unrelated scales; the input and estimate markers interleave at the same depths, and the axis limits of each are arbitrary relative to the other. Two panels keep one quantity per axis (P01's contract) and still line up by depth. Open: a helper (`ht.plot.correlation_profile(est, ...)`) or a recipe in the correlations guide using `ht.Sheet` with `ax=`; `Sheet` has no shared vertical axis yet, so either needs one (matching depth limits across panels).
 
 ---
 

@@ -343,6 +343,28 @@ columns:
     ags: ["derived: docs/work/m13a-judgments.md"]
     used_by: [P01]
 
+  # --- Strength (correlations from M13; measured values from W2) -----------------------
+  effective_friction_angle:
+    description: Effective (drained) friction angle, peak unless the source says otherwise
+    type: number
+    quantity: angle
+    scale: ratio
+    label: Effective friction angle, φ′
+    ags: ["derived: docs/work/m13b1-spt-framework.md"]
+    used_by: [P01]
+
+  # --- Correlations (ht.analysis.correlations, M13) ----------------------------------------
+  correlation_name:
+    description: The correlation an estimate came from, by its function's name
+    type: text
+    ags: ["derived: docs/work/m13b1-spt-framework.md"]
+    used_by: [P01]
+  correlation_note:
+    description: "Why a correlation gave no estimate: input blank, refusal, below range or above range"
+    type: text
+    ags: ["derived: docs/work/m13b1-spt-framework.md"]
+    used_by: [P01]
+
   # --- SPT (P02, P03) ------------------------------------------------------------------
   spt_n:
     description: SPT N as reported
@@ -368,6 +390,22 @@ columns:
     label: SPT N60
     ags: ["derived: spt_n, energy_ratio"]
     used_by: [P02, P03]
+  spt_overburden_correction:
+    description: "Overburden correction to σ′v = 100 kPa, C_N (ht.analysis.spt_n1_60, by method)"
+    type: number
+    quantity: dimensionless
+    scale: ratio
+    label: Overburden correction, C_N
+    ags: ["derived: effective_vertical_stress"]
+    used_by: [P01]
+  spt_n1_60:
+    description: N60 corrected for overburden (N60 × C_N)
+    type: number
+    quantity: count
+    scale: ratio
+    label: SPT (N1)60
+    ags: ["derived: spt_n60, spt_overburden_correction"]
+    used_by: [P01]
   energy_ratio:
     description: Hammer energy ratio
     type: number

@@ -11,7 +11,7 @@ from hangtu import _config
 from hangtu import units as _units
 from hangtu._data import flag_column, numeric_column, rows_text
 from hangtu._settings import settings
-from hangtu.errors import ColumnError, HangtuError
+from hangtu.errors import ColumnError, HangtuError, warn
 
 REFUSAL_PENETRATION = 450.0  # mm: seating plus test drive (§1.3)
 #: Slack on the refusal comparison, so 450 mm written in another unit (17.71653543
@@ -39,9 +39,93 @@ def _check_energy_ratio(name: str, value: Any) -> float | None:
     ):
         raise HangtuError(
             f"{name} must be the energy ratio in percent, greater than 0 and at "
-            f"most 100, not {value!r}. Example: {name}=80"
+            f"most 100, not {value!r}. Example: {name}=80, or by hole "
+            f'{name}={{"BH01": 80, "BH02": 72}}'
         )
     return float(value)
+
+
+def _check_hammer_efficiency(
+    value: Any, df: pd.DataFrame
+) -> float | dict[str, float] | None:
+    """Check ``hammer_efficiency``: a number, ``{loca_id: ER}`` or None."""
+    if not isinstance(value, Mapping):
+        return _check_energy_ratio("hammer_efficiency", value)
+    if "loca_id" not in df.columns:
+        raise ColumnError(
+            "hammer_efficiency is given by hole, but there is no 'loca_id' "
+            "column to match the holes to. Add 'loca_id', or give one number "
+            "for every test: hammer_efficiency=80"
+        )
+    checked = {}
+    for hole, ratio in value.items():
+        checked[str(hole)] = _check_energy_ratio(f"hammer_efficiency[{hole!r}]", ratio)
+    unknown = [hole for hole in checked if hole not in set(df["loca_id"].astype(str))]
+    if unknown:
+        warn(
+            f"hammer_efficiency names holes that aren't in the data: "
+            f"{', '.join(map(repr, unknown))}. Check the spelling of the hole IDs "
+            "('loca_id')."
+        )
+    return checked
+
+
+def _energy_ratios(
+    df: pd.DataFrame, hammer_efficiency: float | Mapping[str, float] | None
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return each row's energy ratio and a mask of the rows it was filled for.
+
+    The ratio is the row's ``energy_ratio``, else ``hammer_efficiency`` (one
+    number, or the value for the row's hole), else
+    ``ht.settings.hammer_efficiency``, else blank. The mask is True where the
+    argument or the setting filled a blank. Shared with ``p.spt()``, whose
+    ``energy_source`` follows the same order.
+    """
+    energy = np.full(len(df), np.nan)
+    if "energy_ratio" in df.columns:
+        energy = numeric_column(df, "energy_ratio")
+        bad = ~np.isnan(energy) & ((energy <= 0) | (energy > 100))
+        if bad.any():
+            raise HangtuError(
+                "Column 'energy_ratio' must be in percent, greater than 0 and at "
+                f"most 100, but rows {rows_text(df.index[bad])} aren't. An energy "
+                "ratio of 0.8 should be entered as 80."
+            )
+    blank = np.isnan(energy)
+    if isinstance(hammer_efficiency, Mapping):
+        by_hole = df["loca_id"].astype(str).map(hammer_efficiency)
+        energy = np.where(blank, by_hole.to_numpy(dtype=float), energy)
+    elif hammer_efficiency is not None:
+        energy = np.where(blank, hammer_efficiency, energy)
+    if settings.hammer_efficiency is not None:
+        energy = np.where(np.isnan(energy), settings.hammer_efficiency, energy)
+    return energy, blank & ~np.isnan(energy)
+
+
+def _warn_filled(df: pd.DataFrame, energy: np.ndarray, used: np.ndarray) -> None:
+    """Warn that the argument or the setting gave N60's energy ratio."""
+    if not used.any():
+        return
+    if "loca_id" in df.columns:
+        rows = pd.DataFrame({"hole": df["loca_id"].astype(str), "ratio": energy})[used]
+        parts = []
+        for ratio, group in rows.groupby("ratio", sort=False):
+            counts = group["hole"].value_counts(sort=False)
+            holes = ", ".join(
+                f"{hole} ({count} test{'s' if count != 1 else ''})"
+                for hole, count in counts.items()
+            )
+            parts.append(f"{ratio:g} % used for {holes}")
+        used_for = "; ".join(parts)
+    else:
+        count = int(used.sum())
+        ratios = ", ".join(f"{ratio:g} %" for ratio in pd.unique(energy[used]))
+        used_for = f"{ratios} used for {count} test{'s' if count != 1 else ''}"
+    warn(
+        f"Energy ratio {used_for}: no 'energy_ratio' in the data for these "
+        "tests, so hammer_efficiency or ht.settings.hammer_efficiency gave it. "
+        "Measured values ('energy_ratio', AGS ISPT_ERAT) are used first."
+    )
 
 
 def _check_cap(value: Any) -> int:
@@ -78,7 +162,7 @@ def _penetration_mm(
 def spt(
     df: pd.DataFrame,
     *,
-    hammer_efficiency: float | None = None,
+    hammer_efficiency: float | Mapping[str, float] | None = None,
     cap: int | None = None,
     units: Mapping[str, str] | None = None,
 ) -> pd.DataFrame:
@@ -91,8 +175,10 @@ def spt(
     - **Refusal:** ``spt_refusal`` where it is filled in; else True when
       ``spt_penetration`` is under 450 mm; else False.
     - **N60** = N * ER / 60, with ER from the row's ``energy_ratio``, else
-      ``hammer_efficiency``, else ``ht.settings.hammer_efficiency``. With no
-      energy ratio, N60 stays blank: there is no default.
+      ``hammer_efficiency`` (one number, or the value for the row's hole),
+      else ``ht.settings.hammer_efficiency``. With no energy ratio, N60 stays
+      blank: there is no default. When the argument or the setting gives a
+      test's ER, a warning names the holes, the ratio and the number of tests.
     - **Capped N** = min(N, cap), and the cap for every refusal.
 
     Parameters
@@ -100,8 +186,10 @@ def spt(
     df : pandas.DataFrame
         One row per SPT test, as ``ht.template("spt")``. Only ``spt_n`` is
         required.
-    hammer_efficiency : float, optional
-        Energy ratio in percent for rows without ``energy_ratio``. Defaults to
+    hammer_efficiency : float or dict, optional
+        Energy ratio in percent for rows without ``energy_ratio``: one number
+        for every hole, or ``{loca_id: ER}`` by hole (``df`` then needs
+        ``loca_id``). Holes not in the dict, and every row when it's None, use
         ``ht.settings.hammer_efficiency``.
     cap : int, optional
         Blow count refusals are capped at. Defaults to ``ht.settings.spt_cap``.
@@ -117,6 +205,7 @@ def spt(
     --------
     >>> spt = ht.read_csv("spt.csv", units={"depth": "ft", "spt_penetration": "in"})
     >>> spt = ht.analysis.spt(spt, hammer_efficiency=80)
+    >>> spt = ht.analysis.spt(spt, hammer_efficiency={"BH01": 80, "BH02": 72})
     >>> spt[["depth", "spt_n", "spt_n60", "spt_refusal"]]
     """
     if not isinstance(df, pd.DataFrame):
@@ -126,9 +215,7 @@ def spt(
             "Column 'spt_n' (N as reported) not found. Available columns: "
             f"{', '.join(map(str, df.columns)) or 'none'}."
         )
-    hammer_efficiency = _check_energy_ratio("hammer_efficiency", hammer_efficiency)
-    if hammer_efficiency is None:
-        hammer_efficiency = settings.hammer_efficiency
+    hammer_efficiency = _check_hammer_efficiency(hammer_efficiency, df)
     cap = settings.spt_cap if cap is None else _check_cap(cap)
 
     n = numeric_column(df, "spt_n")
@@ -146,22 +233,14 @@ def spt(
         penetration = _penetration_mm(df, blank, units)
         refusal |= blank & (penetration < REFUSAL_PENETRATION - SLACK)
 
-    energy = np.full(len(df), np.nan)
-    if "energy_ratio" in df.columns:
-        energy = numeric_column(df, "energy_ratio")
-        bad = ~np.isnan(energy) & ((energy <= 0) | (energy > 100))
-        if bad.any():
-            raise HangtuError(
-                "Column 'energy_ratio' must be in percent, greater than 0 and at "
-                f"most 100, but rows {rows_text(df.index[bad])} aren't. An energy "
-                "ratio of 0.8 should be entered as 80."
-            )
-    if hammer_efficiency is not None:
-        energy = np.where(np.isnan(energy), hammer_efficiency, energy)
+    energy, filled = _energy_ratios(df, hammer_efficiency)
     computed = n60(n, energy)
+    used = filled & ~np.isnan(n)
     if "spt_n60" in df.columns:
         given = numeric_column(df, "spt_n60")
         computed = np.where(np.isnan(given), computed, given)
+        used &= np.isnan(given)
+    _warn_filled(df, energy, used)
 
     capped = np.where(refusal, float(cap), np.minimum(n, cap))
 

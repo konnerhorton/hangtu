@@ -1,12 +1,13 @@
 """``p.spt()``: one row per SPT, ready for P02 and P03 (datasets.md §6.1)."""
 
+from collections.abc import Mapping
 from os import PathLike
 
 import numpy as np
 import pandas as pd
 
 from hangtu import analysis
-from hangtu._settings import settings
+from hangtu.analysis._spt import _energy_ratios
 from hangtu.datasets import _joins
 from hangtu.datasets._frame import Build
 
@@ -30,7 +31,7 @@ COLUMNS = [
 def spt(
     path: str | PathLike[str],
     *,
-    hammer_efficiency: float | None = None,
+    hammer_efficiency: float | Mapping[str, float] | None = None,
     cap: int | None = None,
     display_units: str | None = None,
     include_incomplete: bool = False,
@@ -77,13 +78,13 @@ def spt(
         cap=cap,
         units={"spt_penetration": "mm"},
     )
-    efficiency = settings.hammer_efficiency if hammer_efficiency is None else 1
+    _, filled = _energy_ratios(frame, hammer_efficiency)
     frame["energy_source"] = pd.Series(
         np.select(
             [
                 file_n60.notna(),
                 frame["spt_n60"].notna() & frame["energy_ratio"].notna(),
-                frame["spt_n60"].notna() & (efficiency is not None),
+                frame["spt_n60"].notna() & filled,
             ],
             ["file_n60", "file_energy_ratio", "hammer_efficiency"],
             default=None,

@@ -1,0 +1,65 @@
+# Published correlations (ht.analysis.correlations; docs/work/m13b1-spt-framework.md,
+# Decision 6). One entry per correlation, named as its function. The code reads
+# target, inputs and range; each function's docstring repeats the sources, their
+# locators and the range bounds, and tests/analysis/test_correlations.py checks
+# that they agree. Every entry is recorded in df.attrs["correlations"] on each
+# result, so results from one input concatenate with their attrs kept.
+#
+# Per entry:
+#   target      the registry column estimated, and the unit the equation gives it in
+#   equation    as text, for records and footnotes; the docstring has it in MathJax
+#   inputs      {registry column: {variant, unit}}: the one variant the correlation
+#               was derived with, and the unit its constants assume (null: none)
+#   range       {input: {at_least | greater_than, at_most | less_than}}, in the
+#               inputs' units; outside it the estimate is NaN, never extrapolated
+#   applies_to, not_for, scatter, notes   as the sources state them
+#   sources     the original first, then any later form used: cite (author and year,
+#               as the docstring writes it), reference, and locators (equation,
+#               table, page), each of which the docstring names
+
+hatanaka_uchida_1996:
+  target: {column: effective_friction_angle, unit: deg}
+  equation: "φ′ = (15.4 (N1)60)^0.5 + 20°"
+  inputs:
+    spt_n1_60: {variant: "(N1)60, N60 corrected for overburden", unit: null}
+  range:
+    spt_n1_60: {at_least: 4.55, at_most: 39.0}
+  applies_to: relatively clean fine to medium sands
+  not_for: micaceous sands; gravelly soils
+  scatter: "±3° for most of the data"
+  notes: >-
+    The source's φ′ = (20 N1)^0.5 + 20 is for N1 at the 78 % energy of the
+    Japanese tombi trip hammer, for 3.5 ≤ N1 ≤ 30, from drained triaxial tests
+    on in situ frozen samples of sands from six sites. At 60 % energy the
+    constant is 15.4 and the range 4.55 ≤ (N1)60 ≤ 39.0.
+  sources:
+    - cite: Hatanaka & Uchida (1996)
+      reference: Soils and Foundations 36(4), 1-9
+      locators: ["Eq. 6, p. 3", "Eq. 8, p. 7", "Conclusions, p. 8"]
+    - cite: Loehr et al. (2016)
+      reference: FHWA GEC 5, FHWA-NHI-16-072
+      locators: ["Eq. 7.23, p. 7-55"]
+
+kulhawy_mayne_1990:
+  target: {column: effective_friction_angle, unit: deg}
+  equation: "φ′ = arctan{[N60 / (12.2 + 20.3 σ′v / pa)]^0.34}, pa = 100 kPa"
+  inputs:
+    spt_n60: {variant: "N60, N at 60 % energy, not corrected for overburden", unit: null}
+    effective_vertical_stress: {variant: "σ′v at the test", unit: kPa}
+  range:
+    spt_n60: {at_most: 60}
+    effective_vertical_stress: {greater_than: 0, at_most: 300}
+  applies_to: relatively clean sands
+  not_for: null
+  scatter: null
+  notes: >-
+    An approximation of Schmertmann's (1975) chart, drawn for σ′v up to 300 kPa
+    and N60 up to 60. GEC 5 calls it "somewhat conservative, especially for
+    depths less than 6 ft" (1.8 m). GEC 5 gives the input as N60.
+  sources:
+    - cite: Kulhawy & Mayne (1990)
+      reference: EPRI EL-6800, Manual on Estimating Soil Properties for Foundation Design
+      locators: ["Eq. 4-11"]
+    - cite: Loehr et al. (2016)
+      reference: FHWA GEC 5, FHWA-NHI-16-072
+      locators: ["Eq. 7.22", "Fig. 7-41", "p. 7-54 to 7-55"]

@@ -16,8 +16,9 @@ STRESS_PRESETS = [
     "pore_pressure",
     "effective_vertical_stress",
 ]
-P02_PRESETS = ["spt_n", "spt_n60", "spt_n_capped"]
-ALL_PRESETS = P01_PRESETS + STRESS_PRESETS + P02_PRESETS
+STRENGTH_PRESETS = ["effective_friction_angle"]
+P02_PRESETS = ["spt_n", "spt_n60", "spt_n1_60", "spt_n_capped"]
+ALL_PRESETS = P01_PRESETS + STRESS_PRESETS + STRENGTH_PRESETS + P02_PRESETS
 
 
 def test_the_presets_ship():
@@ -44,8 +45,10 @@ def test_preset_matches_the_registry(name):
         ("total_vertical_stress", False, True),
         ("pore_pressure", False, True),
         ("effective_vertical_stress", False, True),
+        ("effective_friction_angle", False, False),
         ("spt_n", False, True),
         ("spt_n60", False, True),
+        ("spt_n1_60", False, True),
         ("spt_n_capped", False, True),
     ],
 )

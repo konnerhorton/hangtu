@@ -121,7 +121,8 @@ def test_n60_golden_values(points):
 
 def test_n60_refusal_footnote_names_n60():
     df = spt_frame(spt_n=[30.0, 38.0], spt_refusal=[False, True])
-    _, ax = ht.plot.spt_profile(df, n="spt_n60", hammer_efficiency=80)
+    with pytest.warns(UserWarning, match="Energy ratio 80 %"):
+        _, ax = ht.plot.spt_profile(df, n="spt_n60", hammer_efficiency=80)
     assert refusal_points(ax) == [[100.0, 110.0]]
     assert footnote(ax) == ["1 refusal, shown at N60 = 100"]
 

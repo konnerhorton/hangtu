@@ -74,13 +74,42 @@ def test_n60_and_its_source(site):
 
 
 def test_hammer_efficiency(site):
-    df = _quiet(site.spt, hammer_efficiency=70)
+    with pytest.warns(UserWarning, match=r"Energy ratio 70 % used for BH3 \(1 test\)"):
+        df = site.spt(hammer_efficiency=70)
     assert df["spt_n60"][4] == pytest.approx(4 * 70 / 60)
     assert df["energy_source"][4] == "hammer_efficiency"
-    with ht.settings.override(hammer_efficiency=75):
-        df = _quiet(site.spt)
+    with (
+        ht.settings.override(hammer_efficiency=75),
+        pytest.warns(UserWarning, match="Energy ratio 75 % used for BH3"),
+    ):
+        df = site.spt()
     assert df["spt_n60"][4] == pytest.approx(5.0)
     assert df["energy_source"][4] == "hammer_efficiency"
+
+
+def test_hammer_efficiency_by_hole(site):
+    with pytest.warns(UserWarning) as caught:
+        df = site.spt(hammer_efficiency={"BH3": 70, "BH1": 90})
+    # BH1 has ISPT_ERAT and ISPT_N60, which win; only BH3's test is filled.
+    assert list(df["energy_source"]) == [
+        "file_n60",
+        "file_energy_ratio",
+        "file_n60",
+        "file_n60",
+        "hammer_efficiency",
+    ]
+    assert df["spt_n60"][1] == pytest.approx(50 * 80 / 60)
+    assert df["spt_n60"][4] == pytest.approx(4 * 70 / 60)
+    assert [str(w.message).split(":")[0] for w in caught] == [
+        "Energy ratio 70 % used for BH3 (1 test)"
+    ]
+
+
+def test_a_hole_not_in_the_dict_has_no_energy_source(site):
+    with pytest.warns(UserWarning, match="aren't in the data: 'BH9'"):
+        df = site.spt(hammer_efficiency={"BH9": 70})
+    assert df["energy_source"][4] is None
+    assert pd.isna(df["spt_n60"][4])
 
 
 def test_cap(site):

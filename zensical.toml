@@ -26,6 +26,7 @@ nav = [
     "guides/datasets.md",
     "guides/spt.md",
     "guides/judgments.md",
+    "guides/correlations.md",
   ] },
   { "Plots" = [
     "plots/index.md",
@@ -39,11 +40,13 @@ nav = [
   ] },
   { "Parameters" = [
     "parameters/01-unit-weight-and-vertical-stress.md",
+    "parameters/04-drained-shear-strength-soil.md",
   ] },
   { "Reference" = [
     "reference/project.md",
     "reference/plot.md",
     "reference/analysis.md",
+    "reference/correlations.md",
     "reference/data.md",
     "reference/errors.md",
     "reference/columns.md",

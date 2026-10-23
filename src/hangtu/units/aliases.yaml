@@ -22,6 +22,7 @@
 "cm/s": "centimeter / second"
 "%": "percent"
 "deg": "degree"                          # angle (friction angle, inclination), not temperature
+"°": "degree"                            # the label text of an angle (display units)
 "DegC": "degC"                           # temperature; AGS uses DegC, never bare "deg"
 "DegF": "degF"                           # temperature; may appear in US files
 

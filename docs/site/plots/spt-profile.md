@@ -19,7 +19,7 @@ Give each test's depth as the middle of its test drive when you know it; a test'
 | Argument | Does |
 |---|---|
 | `n="spt_n60"` | Plot N60 (or `"spt_n"`, `"spt_n_capped"`) |
-| `hammer_efficiency=` | The energy ratio for tests without `energy_ratio` |
+| `hammer_efficiency=` | The energy ratio for tests without `energy_ratio`: one number, or `{"BH01": 80}` by hole |
 | `refusal="exclude"` | Leave refusals out (still counted) |
 | `cap=` | The blow count refusals are drawn at |
 | `connect=True` | Join each hole's tests with a line |

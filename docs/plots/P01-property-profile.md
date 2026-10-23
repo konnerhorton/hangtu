@@ -231,6 +231,7 @@ fig, ax = ht.plot.profile(su, "undrained_shear_strength", preset="undrained_shea
 | Optional columns missing (`geology_unit`, `loca_id`, `ground_level`, …) | Plot drawn; one hint listing what each missing column would add |
 | Units unknown for value or vertical | Plot drawn with "(units unknown)" in the label, plus a warning naming the column and how to declare it (`ht.set_units`) |
 | Values ≤ 0 on a log axis | Excluded and counted in the footnote |
+| A blank estimate with a `correlation_note` (a correlation's result, `ht.analysis.correlations`) | Counted by its note instead of as a blank value: "n refusals, no estimate", "n below range, no estimate" (or above), "n with a blank input, no estimate". A blank depth or elevation is still a blank value (M13 b1) |
 | Values beyond `xlim`/`ylim` | Edge marker + arrow + count |
 | `depth_top` > `depth_base` | Bar not drawn for that row; warning naming the row |
 | A `geology_unit` value not in the palette | Auto-assigned a color, which is remembered for the session |
