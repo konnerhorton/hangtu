@@ -5,6 +5,10 @@
 
 ---
 
+**Constraint from M13 b2** (`docs/work/m13b2-spt-strength-history.md`, review 9): a correlation published as a band writes `<target>_lower` and `<target>_upper` with the value blank. A band is an interval, not two values: statistics must not pool its bounds as observations or take its midpoint. Until M15 decides how intervals enter (interval-censored data is one option), P01's stats box leaves ranges out and says so.
+
+---
+
 ## Functions
 | Function | Behavior |
 |---|---|
