@@ -1,5 +1,7 @@
 # 07 — At-rest earth pressure (soil)
 
+Promoted to the docs site as [`docs/site/parameters/07-at-rest-earth-pressure.md`](../../site/parameters/07-at-rest-earth-pressure.md) (M13 b2); the page is current where they differ.
+
 | | |
 |---|---|
 | **Parameters** | K0 (coefficient of earth pressure at rest = σ′h0 / σ′v0), K0NC (normally consolidated), K0 for OC soil; σ′h0, σh0 |
@@ -79,9 +81,11 @@ $$K_0 \le K_p = \frac{1+\sin\phi'_{ps}}{1-\sin\phi'_{ps}},\qquad \phi'_{ps}\appr
 - **Source:** [1] eq. 3-1 p. 3-2, p. 3-6 [V].
 
 ### 5.6 SPT check (clays) — Kulhawy et al. (1989)
-$$K_0 \approx 0.073\,N_{60}\,/\,(\sigma'_{v0}/p_a)$$
+$$K_0 \approx 0.073\,N\,/\,(\sigma'_{v0}/p_a)$$
+- **Input:** field N, not N60: EPRI gives N, and the data predate energy correction. TC304 evaluated it with N60.
+- **Valid for:** clays, 0 < N pa/σ′v0 ≤ 60; n = 57, r² = 0.771, S.D. = 0.43 (13 intact, 5 fissured).
 - **Scatter / transformation:** b = 2.16, δ = 0.70 (n = 74) — strongly biased on the TC304 database.
-- **Source:** [3] Table 5.2 p. 178 [V]; [1] eq. 3-31 p. 3-27 / Fig. 3-33 p. 3-30 legend [V]. No direct SPT correlation existed for sands in 1990 [1] p. 3-30 [V].
+- **Source:** [3] Table 5.2 p. 178 [V]; [1] eq. 3-31 p. 3-27, Fig. 3-30 p. 3-28 [V]. No direct SPT correlation existed for sands in 1990 [1] p. 3-30 [V].
 
 ### 5.7 CPTu check (clays) — Kulhawy et al. (1989)
 $$K_0 \approx 0.1\,(q_t - \sigma_{v0})\,/\,\sigma'_{v0}$$
