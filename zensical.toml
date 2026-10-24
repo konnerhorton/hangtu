@@ -41,6 +41,7 @@ nav = [
   { "Parameters" = [
     "parameters/01-unit-weight-and-vertical-stress.md",
     "parameters/04-drained-shear-strength-soil.md",
+    "parameters/06-preconsolidation-and-compressibility.md",
     "parameters/05-undrained-shear-strength.md",
   ] },
   { "Reference" = [

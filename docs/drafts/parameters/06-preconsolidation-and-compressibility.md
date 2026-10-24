@@ -1,5 +1,7 @@
 # 06 — Preconsolidation and compressibility
 
+Promoted to the docs site as [`docs/site/parameters/06-preconsolidation-and-compressibility.md`](../../site/parameters/06-preconsolidation-and-compressibility.md) (M13 b2); the page is current where they differ.
+
 | | |
 |---|---|
 | **Parameters** | σ′p (preconsolidation / yield stress), OCR = σ′p/σ′v0, Cc (compression index), Cs / Cr (swelling / recompression index) |
@@ -69,9 +71,10 @@ $$W = \sum \sigma'_v\,\Delta\varepsilon_v\ \text{(per unit volume)};\ \ \sigma'_
 - **Source:** [6] (method per abstract) [V bibliographic; equation form U].
 
 ### 5.5 SPT — Mayne & Kemper (1988), in Kulhawy & Mayne (1990)
-$$OCR = 0.58\,\frac{N\,p_a}{\sigma'_{v0}}\quad\Leftrightarrow\quad \sigma'_p\approx 0.58\,N\,p_a$$
-- **Inputs:** N (blows/0.3 m), pa ≈ 100 kPa. **Valid for:** clays (n = 110). **Scatter:** r² = 0.766, S.D. = 3.82.
-- **Source:** [1] Fig. 3-18, p. 3-18 [V]. Later generalized form σ′p = 0.47 (N60)^m pa with m depending on soil
+$$OCR = 0.58\,\frac{N\,p_a}{\sigma'_{v0}},\qquad \sigma'_p = 0.47\,N\,p_a$$
+- **Inputs:** field N (blows/0.3 m), pa = 100 kPa. Two regressions on different data: an OCR is not σ′p/σ′v0 from the other.
+- **OCR:** clays, 1 ≤ N pa/σ′v0 ≤ 100; n = 112, r² = 0.661, S.D. = 3.82 (48 intact, 3 fissured). [1] Fig. 3-18, p. 3-18 [V].
+- **σ′p:** clays, 0.5 ≤ N ≤ 200; n = 126, r² = 0.699, S.D. = 4.37 pa (49 intact, 2 fissured; fissured above the trend). [1] Fig. 3-9, p. 3-10 [V]. Later generalized form σ′p = 0.47 (N60)^m pa with m depending on soil
   type (Mayne) [U — exponents not verified].
 
 ### 5.6 CPTu
@@ -105,7 +108,7 @@ $$\Delta e/e_0 = (e_0 - e_{\sigma'_{v0}})/e_0$$
 | Groundwater inflow | via k(e) only | Low |
 
 **Typical variability:** Cc COV ≈ 10–37 %, σ′p COV ≈ 10–35 % (Duncan 2000 [9]) [U]. Correlations (5.5–5.7) add
-large transformation uncertainty (5.5: S.D. of OCR = 3.82 for n = 110). Method choice alone (5.1–5.4) commonly
+large transformation uncertainty (5.5: S.D. of OCR = 3.82 for n = 112). Method choice alone (5.1–5.4) commonly
 moves σ′p by 10–20 % _[Judgment — for review]_.
 
 ## 7. Pitfalls and QA checks
