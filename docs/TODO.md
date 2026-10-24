@@ -253,6 +253,21 @@ Today the estimates draw on one P01 profile by `correlation_name`, and a blank e
 
 Proposed: two panels, not one axes with twinned x axes. A second x axis on the same profile makes the reader match each marker to one of two unrelated scales; the input and estimate markers interleave at the same depths, and the axis limits of each are arbitrary relative to the other. Two panels keep one quantity per axis (P01's contract) and still line up by depth. Open: a helper (`ht.plot.correlation_profile(est, ...)`) or a recipe in the correlations guide using `ht.Sheet` with `ax=`; `Sheet` has no shared vertical axis yet, so either needs one (matching depth limits across panels).
 
+### 40. Correlation statistics with the results · You · SPEC §4, `docs/work/m13b2-spt-strength-history.md` · before b3 or M15
+A correlation's estimates carry `correlation_name`, `correlation_note` and `correlation_input`, but not its statistics. Each config entry's `scatter` (n, r², S.D., ±x°) and the published bias checks (e.g. Ching & Schweckendiek (2021) for Kulhawy et al.'s K0: b = 2.16, COV 0.70) are in `describe()` and the docstrings only, so they are lost once the values leave the function.
+- **Questions:**
+  - Which statistics travel with the results: the source's own (n, r², S.D.), later evaluations on other databases (bias b, COV), or both?
+  - As what: columns on each row (e.g. a standard deviation in the target's units, or bounds like the band outputs `<target>_lower` / `_upper`), `df.attrs`, or a separate table keyed by `correlation_name`?
+  - How do they meet M15's statistics (a band is an interval: `docs/drafts/phase3-stats.md`) and selection (M18)?
+  - Should the source's advice on use (e.g. "check oedometer σ′p, not in its place") travel with them, and in whose words?
+
+### 41. Gravelly sands under `not_for` · You + Claude · page 04, `docs/work/m13b1-spt-framework.md`
+Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads only the group symbol. The example site's Terrace is "SAND with gravel (SP)": SP passes, so its rows get estimates with no note. USCS group names (ASTM D2487) add "with gravel" at ≥ 15 % gravel, which the symbol does not carry.
+- **Questions:**
+  - Read the group name or description (`geology_description`, or a `uscs_name` column), the gravel fraction from gradation tests, or leave it to the user to pass the rows?
+  - If flagged: no estimate ("not for this soil"), or an estimate with a note?
+  - Which other entries have `not_for` terms the symbol can't check (micaceous sands, fissured clays)?
+
 ---
 
 ## Later / far future (also on the Roadmap)
