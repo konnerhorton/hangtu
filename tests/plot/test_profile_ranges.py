@@ -1,6 +1,7 @@
 """P01 value ranges: <value>_lower and <value>_upper (P01 §3, §7, §11, §12; M13 b2)."""
 
 import numpy as np
+import pandas as pd
 import pytest
 
 import hangtu as ht
@@ -185,6 +186,94 @@ def test_a_value_with_no_bounds_draws_as_before(frame):
     assert points(ax) == points(plain)
     assert bars(ax) == [] and ax.ags_notes == {}
     assert "range" not in legend(ax)
+
+
+# --- ranges of two groups at one depth ---------------------------------------------
+
+
+def bands(depths, lower, upper, names):
+    """s_u bands only, no values, grouped by correlation_name; in psf."""
+    df = pd.DataFrame(
+        {
+            "loca_id": "B-1",
+            "ground_level": 100.0,
+            "depth": depths,
+            "undrained_shear_strength": NAN,
+            LOWER: lower,
+            UPPER: upper,
+            "correlation_name": names,
+        }
+    )
+    return ht.set_units(
+        df,
+        {
+            "depth": "ft",
+            "ground_level": "ft",
+            "undrained_shear_strength": "psf",
+            LOWER: "psf",
+            UPPER: "psf",
+        },
+    )
+
+
+def screen_y(ax):
+    """Each group's bars, as {color: [y on the page, in points]}, in drawing order."""
+    found = {}
+    for line in ax.lines:
+        if line.get_gid() != "value_range":
+            continue
+        xy = np.column_stack([line.get_xdata(), line.get_ydata()])[::3]
+        pixels = line.get_transform().transform(xy)[:, 1]
+        found.setdefault(line.get_color(), []).extend(pixels * 72 / ax.figure.dpi)
+    return {color: sorted(ys) for color, ys in found.items()}
+
+
+def test_two_groups_at_one_depth_are_drawn_apart():
+    df = bands(
+        [5.0, 5.0, 10.0],
+        [400.0, 200.0, 800.0],
+        [600.0, 1000.0, 1200.0],
+        ["narrow", "wide", "wide"],
+    )
+    fig, ax = ht.plot.profile(
+        df, "undrained_shear_strength", vs="depth", color_by="correlation_name"
+    )
+    fig.canvas.draw()
+    # The data stay at the row's depth; only the page position moves.
+    assert bars(ax) == [
+        (200.0, 1000.0, 5.0),
+        (400.0, 600.0, 5.0),
+        (800.0, 1200.0, 10.0),
+    ]
+    narrow, wide = screen_y(ax).values()
+    page = ax.transData.transform([(0, 5.0), (0, 10.0)])[:, 1] * 72 / fig.dpi
+    # Spread GROUP_SPACING (3 pt) apart around depth 5, the first group higher
+    # on the page; depth 10 has one group's range only, drawn at its depth.
+    assert narrow == pytest.approx([page[0] + 1.5])
+    assert wide == pytest.approx([page[1], page[0] - 1.5])
+
+
+def test_groups_at_different_depths_are_not_moved():
+    df = bands([5.0, 10.0], [400.0, 800.0], [600.0, 1200.0], ["one", "two"])
+    fig, ax = ht.plot.profile(
+        df, "undrained_shear_strength", vs="depth", color_by="correlation_name"
+    )
+    fig.canvas.draw()
+    for line in ax.lines:
+        if line.get_gid() == "value_range":
+            assert line.get_transform() == ax.transData
+
+
+def test_a_group_drawn_only_as_ranges_shows_a_bar_in_the_legend():
+    df = bands([5.0, 10.0], [400.0, 800.0], [600.0, 1200.0], ["one", "one"])
+    df.loc[len(df)] = ["B-1", 100.0, 15.0, 900.0, NAN, NAN, "two"]
+    _, ax = ht.plot.profile(
+        df, "undrained_shear_strength", vs="depth", color_by="correlation_name"
+    )
+    handles = {h.get_label(): h for h in ax.get_legend().legend_handles}
+    assert handles["one"].get_marker() in ("None", "none", "")
+    assert handles["one"].get_linewidth() > 0
+    assert handles["two"].get_marker() not in ("None", "none", "")
 
 
 # --- stats box ----------------------------------------------------------------------

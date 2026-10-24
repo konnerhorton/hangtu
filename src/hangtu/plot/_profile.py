@@ -356,8 +356,10 @@ def profile(
     the columns ``<value>_lower`` and ``<value>_upper`` when ``df`` has either:
     a bar between the two bounds at the row's depth, with the marker where
     ``<value>`` isn't blank, or a caret at a bound given alone (▷ at a lower
-    bound, ◁ at an upper). The rows are counted in the footnote and left out
-    of the stats box.
+    bound, ◁ at an upper). Where two or more ``color_by`` groups have a range
+    at one depth, such as two correlations' bands for one test, their bars
+    are drawn a little apart up and down the page so neither hides the other.
+    The rows are counted in the footnote and left out of the stats box.
 
     Parameters
     ----------
@@ -718,11 +720,15 @@ def _draw_profile(
             _draw_intervals(ax, x[these], top[these], base[these], color)
             others = (texts != "") | extra
             if group is not None and (rows | (others & (groups == group))).any():
-                unit_handles.append(
-                    Patch(facecolor=color, edgecolor="none", label=str(group))
-                    if shapes
-                    else _values.legend_marker("o", color, str(group), MARKER_SIZE)
-                )
+                # A group drawn only as ranges has no marker to show: a bar.
+                only_ranges = not (rows | ((texts != "") & (groups == group))).any()
+                if shapes:
+                    handle = Patch(facecolor=color, edgecolor="none", label=str(group))
+                elif only_ranges:
+                    handle = _value_ranges.legend_bar(color, str(group))
+                else:
+                    handle = _values.legend_marker("o", color, str(group), MARKER_SIZE)
+                unit_handles.append(handle)
         text_handles, text_edge = _text_values.draw_text_values(
             ax, y, texts, groups, colors, ylim, notes
         )
