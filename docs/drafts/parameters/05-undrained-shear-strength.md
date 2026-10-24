@@ -1,5 +1,7 @@
 # 05 — Undrained shear strength
 
+Promoted to the docs site as [`docs/site/parameters/05-undrained-shear-strength.md`](../../site/parameters/05-undrained-shear-strength.md) (M13 b2); the page is current where they differ.
+
 | | |
 |---|---|
 | **Parameters** | su (undrained shear strength; also cu), su,r (remolded), St = su/su,r (sensitivity) |
@@ -28,7 +30,7 @@ different "su", so values must be referenced to a mode (e.g., triaxial compressi
 
 | Material (consistency) | su range | Source |
 |---|---|---|
-| Very soft / soft / medium (firm) / stiff / very stiff / hard | < 12.5 / 12.5–25 / 25–50 / 50–100 / 100–200 / > 200 kPa (< 261 / 261–522 / 522–1044 / 1044–2089 / 2089–4177 / > 4177 psf) | Terzaghi & Peck (1967) qu classes halved [V] via [9] |
+| Very soft / soft / medium (firm) / stiff / very stiff / hard | < 12.5 / 12.5–25 / 25–50 / 50–100 / 100–200 / > 200 kPa (< 261 / 261–522 / 522–1044 / 1044–2089 / 2089–4177 / > 4177 psf) | Terzaghi & Peck (1967), s_u/pa by field N, [1] Table 4-10, p. 4-54 [V] |
 | NC clay, su(VST)/σ′v0 | 0.11 + 0.0037 PI (≈ 0.15–0.33 for PI 10–60) | [1] Eq. 4-18, p. 4-28 (Skempton) [V] |
 | NC clay, DSS su/σ′v0 (S) | ≈ 0.22 | [2] Eq. 1.4 [V] |
 | Mobilized (field back-analysis) su/σ′p | ≈ 0.22 | [2] Eq. 1.5 (Mesri 1975) [V]; [1] Eq. 4-22 |
@@ -69,11 +71,11 @@ $$s_u \approx \text{reading}/2\ \ \text{if the instrument is scaled in }q_u\ \te
   _[Judgment — for review]_
 
 ### 5.4 SPT — Stroud (1974)
-$$s_u = f_1\,N_{60}$$
-- **Inputs:** N60, PI. f1 ≈ 4–6 kPa (≈ 4.4 kPa for PI > 30 %, rising as PI falls toward 15 %).
+$$s_u = f_1\,N_{60}\,p_a/100$$
+- **Inputs:** N60, PI. f1 = 4.5 for PI ≳ 30 and 5.5 for PI ≅ 15, nothing between (GEC 5, Eq. 7.19, p. 7-38) [V].
 - **Valid for:** insensitive stiff clays and weak rocks (UK data); su from UU triaxial on 100 mm specimens.
 - **Scatter:** large; local f1 calibration recommended.
-- **Source:** [3] (Fig. relating f1 to PI) [U for f1 values]; bibliographic data [V] via [1] Section 6 ref. 16.
+- **Source:** [3], as given by FHWA GEC 5 (Loehr et al. 2016), Eq. 7.19, p. 7-38 [V]; bibliographic data [V] via [1] Section 6 ref. 16.
 
 ### 5.5 SHANSEP — Ladd & Foott (1974); Ladd (1991)
 $$\frac{s_u}{\sigma'_{v0}} = S\cdot OCR^{\,m}$$
@@ -128,7 +130,7 @@ Fig. 4-48; Stroud reference.
 testing. Proc. 17th ICSMGE, Alexandria, 2777–2872. https://doi.org/10.3233/978-1-60750-031-5-2777 — [V] Eqs. 1.3–1.5
 (p. 2789).
 [3] Stroud, M.A. (1974). The standard penetration test in insensitive clays and soft rocks. Proc. European Symp.
-on Penetration Testing (ESOPT), Stockholm, Vol. 2.2, 367–375. — [U] (values); citation [V] via [1].
+on Penetration Testing (ESOPT), Stockholm, Vol. 2.2, 367–375. — values [V] via GEC 5 Eq. 7.19; citation [V] via [1].
 [4] Ladd, C.C. & Foott, R. (1974). New design procedure for stability of soft clays. J. Geotech. Eng. Div. ASCE
 100(GT7), 763–786. https://doi.org/10.1061/AJGEB6.0000066 — [V] bibliographic (TRID/ASCE record).
 [5] Ladd, C.C. (1991). Stability evaluation during staged construction (22nd Terzaghi Lecture). J. Geotech. Eng.
