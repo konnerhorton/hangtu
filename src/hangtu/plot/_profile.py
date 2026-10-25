@@ -18,7 +18,7 @@ from hangtu._data import rows_text, text_values
 from hangtu._settings import _display_units, settings
 from hangtu.analysis.correlations._framework import REASONS as CORRELATION_REASONS
 from hangtu.errors import ColumnError, HangtuError, warn
-from hangtu.plot import _layers, _presets, _text_values, _values, style
+from hangtu.plot import _layers, _presets, _text_values, _value_ranges, _values, style
 from hangtu.plot._hints import hint_missing
 from hangtu.plot._labels import axis_label
 from hangtu.plot._legend import add_legend
@@ -352,6 +352,15 @@ def profile(
     ``ht.read_csv`` reads ``n/a``, ``NA`` and ``null`` as blanks, so those are
     counted as blank, not as text.
 
+    A value reported as a range, such as a correlation's band, is drawn from
+    the columns ``<value>_lower`` and ``<value>_upper`` when ``df`` has either:
+    a bar between the two bounds at the row's depth, with the marker where
+    ``<value>`` isn't blank, or a caret at a bound given alone (▷ at a lower
+    bound, ◁ at an upper). Where two or more ``color_by`` groups have a range
+    at one depth, such as two correlations' bands for one test, their bars
+    are drawn a little apart up and down the page so neither hides the other.
+    The rows are counted in the footnote and left out of the stats box.
+
     Parameters
     ----------
     df : pandas.DataFrame
@@ -466,6 +475,7 @@ def profile(
         display_units=display_units,
         figsize=figsize,
         ax=ax,
+        value_ranges=True,
         **style_overrides,
     )
 
@@ -505,6 +515,7 @@ def _draw_profile(
     extra_hints: Mapping[str, str] | None = None,
     notes: Notes | None = None,
     companion: Companion | None = None,
+    value_ranges: bool = False,
     **style_overrides: Any,
 ) -> tuple[Figure, Axes]:
     """Draw a profile: ``profile()`` and the plots built on it (P02).
@@ -522,6 +533,7 @@ def _draw_profile(
     - ``notes``: footnote counts and text the caller has already collected,
       e.g. rows it left out (P02 excluded refusals). None starts empty.
     - ``companion``: marks the caller draws per row (P06), as ``Companion``.
+    - ``value_ranges``: draw ``<value>_lower`` and ``<value>_upper`` (P01 only).
     """
     if value not in df.columns:
         raise ColumnError(
@@ -588,11 +600,21 @@ def _draw_profile(
             )
         _text_values.warn_unrecognized(df.index, value, texts)
         bounds = _intervals(df, intervals, resolved, vertical)
+        ranges_read = (
+            _value_ranges.read(df, value, units, quantity, system)
+            if value_ranges
+            else None
+        )
+        ranged = np.zeros(len(df), dtype=bool)
+        if ranges_read is not None:
+            _value_ranges.check_qualifiers(df, value, ranges_read, flags)
+            ranged = ranges_read.any()
 
         notes = Notes() if notes is None else notes
-        extra = np.zeros(len(df), dtype=bool)
+        extra = ranged & ~np.isnan(y)
         if companion is not None:
-            extra = companion.rows & ~np.isnan(y)
+            extra |= companion.rows & ~np.isnan(y)
+        notes.count(extra & ranged, "value_range")
         blank = (np.isnan(x) & (texts == "") & ~extra) | np.isnan(y)
         notes.count(blank & ~_count_no_estimate(df, blank & ~np.isnan(y), notes), "nan")
         texts = np.where(blank, "", texts)
@@ -615,6 +637,8 @@ def _draw_profile(
         style.style_axes(ax)
 
         covered = x[drawn] if companion is None else np.append(x[drawn], companion.x)
+        if ranges_read is not None:
+            covered = np.append(covered, ranges_read.x(log))
         limits = _values.value_limits(
             covered,
             log=log,
@@ -696,11 +720,15 @@ def _draw_profile(
             _draw_intervals(ax, x[these], top[these], base[these], color)
             others = (texts != "") | extra
             if group is not None and (rows | (others & (groups == group))).any():
-                unit_handles.append(
-                    Patch(facecolor=color, edgecolor="none", label=str(group))
-                    if shapes
-                    else _values.legend_marker("o", color, str(group), MARKER_SIZE)
-                )
+                # A group drawn only as ranges has no marker to show: a bar.
+                only_ranges = not (rows | ((texts != "") & (groups == group))).any()
+                if shapes:
+                    handle = Patch(facecolor=color, edgecolor="none", label=str(group))
+                elif only_ranges:
+                    handle = _value_ranges.legend_bar(color, str(group))
+                else:
+                    handle = _values.legend_marker("o", color, str(group), MARKER_SIZE)
+                unit_handles.append(handle)
         text_handles, text_edge = _text_values.draw_text_values(
             ax, y, texts, groups, colors, ylim, notes
         )
@@ -710,6 +738,12 @@ def _draw_profile(
                 ax, y, groups, colors, notes
             )
             edge |= companion_edge
+        if ranges_read is not None:
+            range_handles, range_edge = _value_ranges.draw(
+                ax, ranges_read, y, extra & ranged, groups, colors, ylim
+            )
+            companion_handles += range_handles
+            edge |= range_edge
         notes.count(edge | text_edge, "beyond_limit")
         shape_handles = [
             _values.legend_marker(shape, _values.NEUTRAL, str(group), MARKER_SIZE)
@@ -740,18 +774,22 @@ def _draw_profile(
         ax.set_ylabel(vertical.label())
         if statistics is not None:
             info = column_info(value)
+            counted = drawn & ~ranged
             rows = stats_table(
-                x[drawn],
-                groups[drawn],
+                x[counted],
+                groups[counted],
                 statistics,
                 order=list(colors),
                 interval=bool(info) and info.get("scale") == "interval",
             )
+            also = [_text_values.also_line(texts)]
+            if (extra & ranged).any():
+                also.append(f"Ranges not included: {int((extra & ranged).sum())}")
             box = draw_stats_box(
                 ax,
                 rows,
                 None if note is None else str(note),
-                _text_values.also_line(texts),
+                "\n".join(line for line in also if line) or None,
             )
             if stats_box_room and ylim is None and heights.size:
                 lowest = heights.max() if vs == "depth" else heights.min()

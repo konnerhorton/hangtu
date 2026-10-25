@@ -17,8 +17,15 @@ STRESS_PRESETS = [
     "effective_vertical_stress",
 ]
 STRENGTH_PRESETS = ["effective_friction_angle"]
+HISTORY_PRESETS = [
+    "preconsolidation_stress",
+    "overconsolidation_ratio",
+    "at_rest_earth_pressure_coefficient",
+]
 P02_PRESETS = ["spt_n", "spt_n60", "spt_n1_60", "spt_n_capped"]
-ALL_PRESETS = P01_PRESETS + STRESS_PRESETS + STRENGTH_PRESETS + P02_PRESETS
+ALL_PRESETS = (
+    P01_PRESETS + STRESS_PRESETS + STRENGTH_PRESETS + HISTORY_PRESETS + P02_PRESETS
+)
 
 
 def test_the_presets_ship():

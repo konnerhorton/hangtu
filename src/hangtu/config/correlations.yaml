@@ -10,14 +10,21 @@
 #   equation    as text, for records and footnotes; the docstring has it in MathJax
 #   inputs      {registry column: {variant, unit}}: the one variant the correlation
 #               was derived with, and the unit its constants assume (null: none)
-#   range       {input: {at_least | greater_than, at_most | less_than}}, in the
-#               inputs' units; outside it the estimate is NaN, never extrapolated
+#   terms       optional {name: {equation, unit}}: a quantity the function computes
+#               from its inputs, such as N pa / σ′v0, whose range the source gives
+#   range       {input or term: {at_least | greater_than, at_most | less_than}}, in
+#               the inputs' units; outside it the estimate is NaN, never extrapolated
+#   bands       optional, for a correlation published as classes: each class's lower
+#               bound on the input (inclusive) and its target band (lower, upper;
+#               upper null for an open band), written as <target>_lower / _upper
 #   applies_to, not_for, scatter, notes   as the sources state them
+#   uscs        hangtu's proposed USCS groups for applies_to, used only with
+#               uscs="proposed" (Decision 10); uscs_basis says how they were read
 #   sources     the original first, then any later form used: cite (author and year,
 #               as the docstring writes it), reference, and locators (equation,
 #               table, page), each of which the docstring names
 
-hatanaka_uchida_1996:
+effective_friction_angle_hatanaka_uchida_1996:
   target: {column: effective_friction_angle, unit: deg}
   equation: "φ′ = (15.4 (N1)60)^0.5 + 20°"
   inputs:
@@ -26,6 +33,10 @@ hatanaka_uchida_1996:
     spt_n1_60: {at_least: 4.55, at_most: 39.0}
   applies_to: relatively clean fine to medium sands
   not_for: micaceous sands; gravelly soils
+  uscs: [SP, SW, SP-SM, SW-SM]
+  uscs_basis: >-
+    hangtu's reading of "relatively clean" sands: the clean and the
+    clean-with-silt USCS sands; gravels and clayey or silty sands are left out
   scatter: "±3° for most of the data"
   notes: >-
     The source's φ′ = (20 N1)^0.5 + 20 is for N1 at the 78 % energy of the
@@ -40,7 +51,7 @@ hatanaka_uchida_1996:
       reference: FHWA GEC 5, FHWA-NHI-16-072
       locators: ["Eq. 7.23, p. 7-55"]
 
-kulhawy_mayne_1990:
+effective_friction_angle_kulhawy_mayne_1990:
   target: {column: effective_friction_angle, unit: deg}
   equation: "φ′ = arctan{[N60 / (12.2 + 20.3 σ′v / pa)]^0.34}, pa = 100 kPa"
   inputs:
@@ -51,6 +62,10 @@ kulhawy_mayne_1990:
     effective_vertical_stress: {greater_than: 0, at_most: 300}
   applies_to: relatively clean sands
   not_for: null
+  uscs: [SP, SW, SP-SM, SW-SM]
+  uscs_basis: >-
+    hangtu's reading of "relatively clean" sands: the clean and the
+    clean-with-silt USCS sands; gravels and clayey or silty sands are left out
   scatter: null
   notes: >-
     An approximation of Schmertmann's (1975) chart, drawn for σ′v up to 300 kPa
@@ -63,3 +78,161 @@ kulhawy_mayne_1990:
     - cite: Loehr et al. (2016)
       reference: FHWA GEC 5, FHWA-NHI-16-072
       locators: ["Eq. 7.22", "Fig. 7-41", "p. 7-54 to 7-55"]
+
+undrained_shear_strength_terzaghi_peck_1967:
+  target: {column: undrained_shear_strength, unit: kPa}
+  equation: "s_u / pa by N class, pa = 100 kPa"
+  inputs:
+    spt_n: {variant: "field N, as measured (blows/ft), not corrected for energy", unit: null}
+  range:
+    spt_n: {at_least: 0}
+  bands:
+    # spt_n: the class's lower N; lower, upper: s_u / pa
+    - {spt_n: 0, lower: 0, upper: 0.125}
+    - {spt_n: 2, lower: 0.125, upper: 0.25}
+    - {spt_n: 4, lower: 0.25, upper: 0.5}
+    - {spt_n: 8, lower: 0.5, upper: 1.0}
+    - {spt_n: 15, lower: 1.0, upper: 2.0}
+    - {spt_n: 30, lower: 2.0, upper: null}
+  applies_to: clays
+  not_for: null
+  uscs: [CL, CH]
+  uscs_basis: >-
+    hangtu's reading of "clays": the USCS lean and fat clays
+  scatter: >-
+    Not stated. GEC 5 (p. 7-38): "SPT N-values are generally a poor predictor
+    of undrained shear strength".
+  notes: >-
+    "Developed primarily using unconfined compression tests" (EPRI p. 4-53). The N values "have
+    not all been standardized to the same energy level", so the input is
+    field N. The lowest class is "< 1/8" in the source; its lower bound of 0
+    is hangtu's, since s_u can't be negative. EPRI's fit through the table,
+    s_u/pa ≈ 0.06 N (Eq. 4-59), isn't built, so the table isn't counted twice.
+  sources:
+    - cite: Terzaghi & Peck (1967)
+      reference: Soil Mechanics in Engineering Practice, 2nd ed., Wiley
+      locators: ["p. 347"]
+    - cite: Kulhawy & Mayne (1990)
+      reference: EPRI EL-6800, Manual on Estimating Soil Properties for Foundation Design
+      locators: ["Table 4-10, p. 4-54", "p. 4-53"]
+
+undrained_shear_strength_stroud_1974:
+  target: {column: undrained_shear_strength, unit: kPa}
+  equation: "s_u = f1 N60 pa / 100, f1 = 4.5 for PI ≥ 30; 4.5 to 5.5 for 15 ≤ PI < 30; pa = 100 kPa"
+  inputs:
+    spt_n60: {variant: "N60, N at 60 % energy, not corrected for overburden", unit: null}
+    plasticity_index: {variant: "PI of the clay at the test, a judgment by geology unit", unit: null}
+  range:
+    plasticity_index: {at_least: 15}
+  bands:
+    # plasticity_index: the lower PI of each f1 range; lower, upper: f1
+    - {plasticity_index: 15, lower: 4.5, upper: 5.5}
+    - {plasticity_index: 30, lower: 4.5, upper: 4.5}
+  applies_to: clays
+  not_for: null
+  uscs: [CL, CH]
+  uscs_basis: >-
+    hangtu's reading of "clays": the USCS lean and fat clays
+  scatter: >-
+    Not stated. GEC 5 (p. 7-38) gives them as "somewhat lower bound values",
+    and SPT N as "generally a poor predictor of undrained shear strength".
+  notes: >-
+    GEC 5 gives f1 = 4.5 for PI ≳ 30 and 5.5 for PI ≅ 15, and nothing between.
+    hangtu gives one value at PI ≥ 30 and, for 15 ≤ PI < 30, the band 4.5 to
+    5.5 with no central value: nothing is interpolated. No N range is stated.
+  sources:
+    - cite: Stroud (1974)
+      reference: European Symposium on Penetration Testing (ESOPT-II), Vol. 2, 367-375
+      locators: ["pp. 367-375"]
+    - cite: Loehr et al. (2016)
+      reference: FHWA GEC 5, FHWA-NHI-16-072
+      locators: ["Eq. 7.19, p. 7-38"]
+
+preconsolidation_stress_mayne_kemper_1988:
+  target: {column: preconsolidation_stress, unit: kPa}
+  equation: "σ′p = 0.47 N pa, pa = 100 kPa"
+  inputs:
+    spt_n: {variant: "field N, as measured (blows/ft), not corrected for energy", unit: null}
+  range:
+    spt_n: {at_least: 0.5, at_most: 200}
+  applies_to: clays
+  not_for: null
+  uscs: [CL, CH]
+  uscs_basis: >-
+    hangtu's reading of "clays": the USCS lean and fat clays
+  scatter: "n = 126, r² = 0.699, S.D. = 4.37 pa"
+  notes: >-
+    A regression on 49 intact and 2 fissured clays; the fissured clays plot
+    above the trend. The range is the chart's N axis, 0.5 to 200 blows/ft. A
+    separate regression from OCR's (0.58), on different data, so σ′p and OCR
+    are two correlations, not one derived from the other.
+  sources:
+    - cite: Mayne & Kemper (1988)
+      reference: Geotechnical Testing Journal 11(2), 139-147
+      locators: ["p. 144"]
+    - cite: Kulhawy & Mayne (1990)
+      reference: EPRI EL-6800, Manual on Estimating Soil Properties for Foundation Design
+      locators: ["Fig. 3-9, p. 3-10"]
+
+overconsolidation_ratio_mayne_kemper_1988:
+  target: {column: overconsolidation_ratio, unit: null}
+  equation: "OCR = 0.58 N pa / σ′v0, pa = 100 kPa"
+  inputs:
+    spt_n: {variant: "field N, as measured (blows/ft), not corrected for energy", unit: null}
+    effective_vertical_stress: {variant: "σ′v0 at the test", unit: kPa}
+  terms:
+    normalized_n: {equation: "spt_n × pa / effective_vertical_stress", unit: null}
+  range:
+    effective_vertical_stress: {greater_than: 0}
+    normalized_n: {at_least: 1, at_most: 100}
+  applies_to: clays
+  not_for: null
+  uscs: [CL, CH]
+  uscs_basis: >-
+    hangtu's reading of "clays": the USCS lean and fat clays
+  scatter: "n = 112, r² = 0.661, S.D. = 3.82"
+  notes: >-
+    A regression on 48 intact and 3 fissured clays. The range is the chart's
+    axis, 1 ≤ N pa/σ′v0 ≤ 100 (OCR 1 to 50).
+  sources:
+    - cite: Mayne & Kemper (1988)
+      reference: Geotechnical Testing Journal 11(2), 139-147
+      locators: ["p. 143"]
+    - cite: Kulhawy & Mayne (1990)
+      reference: EPRI EL-6800, Manual on Estimating Soil Properties for Foundation Design
+      locators: ["Fig. 3-18, p. 3-18"]
+
+at_rest_earth_pressure_coefficient_kulhawy_et_al_1989:
+  target: {column: at_rest_earth_pressure_coefficient, unit: null}
+  equation: "K0 = 0.073 N pa / σ′v0, pa = 100 kPa"
+  inputs:
+    spt_n: {variant: "field N, as measured (blows/ft), not corrected for energy", unit: null}
+    effective_vertical_stress: {variant: "σ′v0 at the test", unit: kPa}
+  terms:
+    normalized_n: {equation: "spt_n × pa / effective_vertical_stress", unit: null}
+  range:
+    effective_vertical_stress: {greater_than: 0}
+    normalized_n: {greater_than: 0, at_most: 60}
+  applies_to: clays
+  not_for: null
+  uscs: [CL, CH]
+  uscs_basis: >-
+    hangtu's reading of "clays": the USCS lean and fat clays
+  scatter: "n = 57, r² = 0.771, S.D. = 0.43"
+  notes: >-
+    A regression on 13 intact and 5 fissured clays. The range is the chart's
+    axis, 0 < N pa/σ′v0 ≤ 60. On the TC304 clay database (CLAY/12/3997, n = 74)
+    the mean of measured over predicted K0 is b = 2.16, with COV δ = 0.70:
+    measured K0 averaged about twice the estimate.
+  sources:
+    - cite: Kulhawy et al. (1989)
+      reference: >-
+        Kulhawy, Jackson & Mayne, Foundation Engineering: Current Principles
+        and Practices, ASCE, 121-134
+      locators: ["p. 129"]
+    - cite: Kulhawy & Mayne (1990)
+      reference: EPRI EL-6800, Manual on Estimating Soil Properties for Foundation Design
+      locators: ["Eq. 3-31, p. 3-27", "Fig. 3-30, p. 3-28"]
+    - cite: Ching & Schweckendiek (2021)
+      reference: ISSMGE TC304 state-of-the-art review of inherent variability and transformation uncertainty
+      locators: ["Table 5.2, p. 178", "§5.1, p. 176"]

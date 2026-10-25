@@ -49,6 +49,27 @@ water_level:
 
 `ht.judgments(path)` checks the file when it is opened, and an error names the file, the judgment and the entry. Printed, it lists every value with its unit and reason. Analyses read the file again on each call, so an edit shows up in the next result.
 
+## Plasticity index by geology unit
+
+Some correlations read the plasticity index of the soil at each SPT, which is rarely tested at that depth. PI is then a judgment, one value per geology unit, in the same file:
+
+```yaml
+plasticity_index:
+  by: geology_unit
+  units: {plasticity_index: "%"}
+  values:
+    Alluvium: {plasticity_index: 28, reason: "median of 9 Atterberg tests"}
+```
+
+`ht.analysis.add_judgment(spt, "plasticity_index")` puts it on the rows as a `plasticity_index` column, which a correlation then reads like any input. The value comes from, first that applies:
+
+1. `value=` on the call: one number, or `{"Alluvium": 28}` by geology unit;
+2. a `plasticity_index` column already on the rows, where filled. Its blanks are filled from the file, with a warning counting the rows where the column and the file differ;
+3. the judgments file;
+4. otherwise an error naming the judgment.
+
+The nearest Atterberg test is never used in its place. To see what the tests say before you choose, `ht.analysis.summary_by(p.atterberg(), "plasticity_index")` gives each geology unit's count, median, minimum and maximum.
+
 ## The log
 
 Vertical stress is integrated through each hole's log, `p.stratigraphy()` or a table in the shape of `ht.template("stratigraphy")`. It is always passed explicitly, because it's data you may have edited, such as layers reclassified by USCS.

@@ -16,8 +16,8 @@ spt = ht.analysis.spt_n1_60(spt, method="liao_whitman_1986")
 sand = spt[(spt["geology_unit"] == "Terrace") & (spt["spt_n60"] <= 40)]
 estimates = pd.concat(
     [
-        ht.analysis.correlations.hatanaka_uchida_1996(sand),
-        ht.analysis.correlations.kulhawy_mayne_1990(sand),
+        ht.analysis.correlations.effective_friction_angle_hatanaka_uchida_1996(sand),
+        ht.analysis.correlations.effective_friction_angle_kulhawy_mayne_1990(sand),
     ],
     ignore_index=True,
 )

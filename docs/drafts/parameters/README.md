@@ -32,9 +32,9 @@ Each stage cell gives the wave (W0–W6) or milestone that builds it, and **buil
 | 02 | [Index properties](02-index-properties.md) | w, LL, PL, PI, LI, Ic, activity, fines | **built** (M7, M8) | **part built** (PI, LI, Ic, classes); W1 (activity; LI and Ic as analyses) | — | M18 |
 | 03 | [Specific gravity and void ratio](03-specific-gravity-and-void-ratio.md) | Gs, e0, n | W1 | W1 | — | M18 |
 | 04 | [Drained shear strength of soil](04-drained-shear-strength-soil.md) | φ′, c′ | W2 | W2 | **part built** (SPT φ′: M13 b1); W1 (others) | M18 |
-| 05 | [Undrained shear strength](05-undrained-shear-strength.md) | su, su,r, St | W2 | W2; W3 (SHANSEP) | W1 (SPT) | M18 |
-| 06 | [Preconsolidation and compressibility](06-preconsolidation-and-compressibility.md) | σ′p, OCR, Cc, Cs/Cr | W3 | W3 | W1 (SPT) | W3 |
-| 07 | [At-rest earth pressure (soil)](07-at-rest-earth-pressure.md) | K0 | — | W3 | W1 (SPT) | W3 |
+| 05 | [Undrained shear strength](05-undrained-shear-strength.md) | su, su,r, St | W2 | W2; W3 (SHANSEP) | **part built** (SPT: M13 b2); later (CPT) | M18 |
+| 06 | [Preconsolidation and compressibility](06-preconsolidation-and-compressibility.md) | σ′p, OCR, Cc, Cs/Cr | W3 | W3 | **part built** (SPT: M13 b2); later (CPT) | W3 |
+| 07 | [At-rest earth pressure (soil)](07-at-rest-earth-pressure.md) | K0 | — | W3 | **part built** (SPT: M13 b2); later (CPT, DMT) | W3 |
 | 08 | [Elastic stiffness of soil](08-elastic-stiffness-soil.md) | E, ν | W5 | W5 | W1 (SPT) | W5 |
 | 09 | [Dilatancy](09-dilatancy.md) | ψ (soil and rock mass) | — | W4 (rock), W5 (soil) | — | W4, W5 |
 | 10 | [Small-strain stiffness](10-small-strain-stiffness.md) | Vs, G0, G0ref, γ0.7 | W5 | W5 | W1 (SPT), W5 | W5 |

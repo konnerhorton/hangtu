@@ -186,6 +186,23 @@ Open research points:
   - How does the legend name the method?
 - **Claude's view:** these belong with `describe` in Phase 3, which P07 would then call.
 
+### 42. Compacting a sparse profile · You + Claude · P01, `docs/plots/README.md`
+- **Problem:** a profile whose data are widely spaced in depth leaves most of the axes empty. `docs/plots/img/P01-ranges.png` runs 0–50 ft for a dozen rows, with gaps of 5–10 ft between them, and reads as mostly white space.
+- **Wanted:** a rule for when a profile counts as too sparse, and an option to compact it.
+- **Questions:**
+  - What does the rule measure: the share of the depth axis with data, the largest gap, or rows per unit of figure height?
+  - What does compacting do: a shorter figure, depth limits fit to the data instead of from the ground surface, or a broken depth axis across long empty stretches?
+  - Is it on by default, or only when asked? A depth axis that doesn't start at the surface, or that breaks, must say so on the figure.
+  - Do P02–P07 and `Sheet` need the same, so panels on a shared depth axis stay aligned (TODO #38)?
+
+### 43. Subscripts in labels · You + Claude · `src/hangtu/columns.yaml`, `docs/plots/README.md`
+- **Problem:** axis labels print symbols as typed: "Undrained shear strength, s_u" shows the underscore, not s with a subscript u. The registry also writes them inconsistently: "σ′_v0" but "σ′p".
+- **Wanted:** symbols drawn as real subscripts on figures (matplotlib mathtext, e.g. `$s_u$`, `$\sigma'_{v0}$`).
+- **Questions:**
+  - Where does the markup live: a separate `symbol` field in the registry, kept apart from the plain `label`, or converted from the label at draw time?
+  - Warnings, error messages, docstrings and the docs site stay plain text. Do they keep "s_u", or move to Unicode where it exists (s with ᵤ is uneven across fonts)?
+  - One spelling for every symbol in the registry, checked by a test.
+
 ---
 
 ## Test data
@@ -212,7 +229,8 @@ You are also looking. Candidates found so far:
 ### 20. Which SPT correlations for M13 · You + Claude · docs/drafts/analysis.md §4.2 · needed for M13
 - **You:** which properties and correlations you use, and any you'd exclude.
 - **Claude:** verify each equation, its constants, the N it was derived with and its stated range against the source.
-- **φ′ settled** (2026-10-22, `docs/work/m13b1-spt-framework.md`): Hatanaka & Uchida (1996) in GEC 5's 60 % form and Kulhawy & Mayne (1990) on N60, both verified; Wolff (1989) cut (#36). The rest is M13 unit (b2).
+- **φ′ settled** (2026-10-22, `docs/work/m13b1-spt-framework.md`): Hatanaka & Uchida (1996) in GEC 5's 60 % form and Kulhawy & Mayne (1990) on N60, both verified; Wolff (1989) cut (#36).
+- **s_u, σ′p/OCR and K0 settled** (2026-10-23, `docs/work/m13b2-spt-strength-history.md`): Stroud (1974) on N60 with PI, Terzaghi & Peck (1967) as a band on field N, Mayne & Kemper (1988) for σ′p and for OCR and Kulhawy et al. (1989) for K0, all on field N, verified against EPRI EL-6800 and GEC 5; Sowers (1979) cut (#39). E and Vs are M13 unit (b3).
 
 ### 21. Thewes & Burger (2004) diagram · Claude (verify) · P17 draft §14 · needed for M12
 Confirm the axes (PI or LL against Ic) and the zone coordinates against the paper.
@@ -244,13 +262,29 @@ P01's `strata=` takes one stratigraphy; the user filters `p.stratigraphy()` to o
 ### 36. Wolff (1989) · Claude (verify) · page 04, `docs/work/m13b1-spt-framework.md` · before building it
 φ′ = 27.1 + 0.3 (N1)60 − 0.00054 (N1)60², a fit to Peck, Hanson & Thornburn (1974). Verify the equation, its coefficient (copies print 0.00054 or 0.00053) and its N basis against Wolff (1989), ASCE GSP 23, 96–106, then build it as a correlation.
 
-### 37. Soil types for correlations · You + Claude · SPEC §4 · after M13
-Correlations apply to some soils only (clean sands, clays), and the user passes the rows each applies to. A mapping from `uscs_symbol` or `soil_class` to each correlation's soil types could select them, returning NaN with a reason for the rest.
+### 39. Sowers (1979) · Claude (verify) · page 05, `docs/work/m13b2-spt-strength-history.md` · before building it
+s_u against N for low, medium and high plasticity, known only as lines on EPRI EL-6800 Fig. 4-50 (after Djoenaidi), with no equation: the coefficients would be read off a chart. Cut from M13 b2. Build it only once the lines' equations are verified against Sowers (1979) itself.
 
 ### 38. Correlation profile: the input beside the estimates · You + Claude · P01, SPEC §4 · with M13 b2 or M18
 Today the estimates draw on one P01 profile by `correlation_name`, and a blank estimate shows only as a footnote count. A two-panel figure on a shared depth axis would show why: the left panel the input the correlation read (N60 or (N1)60, and σ′v where it is used) with each correlation's range drawn as limits, the right panel the estimates. A test with no estimate is then visible on the left, outside a range or marked as a refusal.
 
 Proposed: two panels, not one axes with twinned x axes. A second x axis on the same profile makes the reader match each marker to one of two unrelated scales; the input and estimate markers interleave at the same depths, and the axis limits of each are arbitrary relative to the other. Two panels keep one quantity per axis (P01's contract) and still line up by depth. Open: a helper (`ht.plot.correlation_profile(est, ...)`) or a recipe in the correlations guide using `ht.Sheet` with `ax=`; `Sheet` has no shared vertical axis yet, so either needs one (matching depth limits across panels).
+
+### 40. Correlation statistics with the results · You · SPEC §4, `docs/work/m13b2-spt-strength-history.md` · before b3 or M15
+A correlation's estimates carry `correlation_name`, `correlation_note` and `correlation_input`, but not its statistics. Each config entry's `scatter` (n, r², S.D., ±x°) and the published bias checks (e.g. Ching & Schweckendiek (2021) for Kulhawy et al.'s K0: b = 2.16, COV 0.70) are in `describe()` and the docstrings only, so they are lost once the values leave the function.
+- **Questions:**
+  - Which statistics travel with the results: the source's own (n, r², S.D.), later evaluations on other databases (bias b, COV), or both?
+  - As what: columns on each row (e.g. a standard deviation in the target's units, or bounds like the band outputs `<target>_lower` / `_upper`), `df.attrs`, or a separate table keyed by `correlation_name`?
+  - How do they meet M15's statistics (a band is an interval: `docs/drafts/phase3-stats.md`) and selection (M18)?
+  - Should the source's advice on use (e.g. "check oedometer σ′p, not in its place") travel with them, and in whose words?
+
+### 41. Gravelly sands under `not_for` · You + Claude · page 04, `docs/work/m13b1-spt-framework.md`
+Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads only the group symbol. The example site's Terrace is "SAND with gravel (SP)": SP passes, so its rows get estimates with no note. USCS group names (ASTM D2487) add "with gravel" at ≥ 15 % gravel, which the symbol does not carry.
+- **Questions:**
+  - Read the group name or description (`geology_description`, or a `uscs_name` column), the gravel fraction from gradation tests, or leave it to the user to pass the rows?
+  - If flagged: no estimate ("not for this soil"), or an estimate with a note?
+  - Which other entries have `not_for` terms the symbol can't check (micaceous sands, fissured clays)?
+- **The warning's wording.** With `uscs=` on, rows left out for soil type share one warning with rows outside the range: "…gave no estimate for 33 of 65 rows (33 not for this soil; …). Its range is …; outside it the estimate is blank". When every blank is for soil type, the range sentence doesn't explain them, and it names the range by its input (`normalized_n`), a name the user never sees as a column. Say the range only when some rows are outside it, and in the user's terms (field N over σ′v0/pa).
 
 ---
 
@@ -259,6 +293,7 @@ Proposed: two panels, not one axes with twinned x axes. A second x axis on the s
 - A helper for deciding cohesive vs cohesionless from lab data (fines %, PI).
 
 ## Done
+- ✅ #37 Soil types for correlations decided (2026-10-23, M13 b2): an opt-in USCS map. Each config entry keeps the source's words and gains hangtu's proposed USCS groups, labeled as hangtu's reading; `uscs="proposed"` or a list of groups turns it on and reads a `uscs_symbol` column the user supplies, never derived. Rows outside get NaN, "not for this soil"; a blank symbol, "soil type unknown". SPEC §4.
 - ✅ #30 What can be published decided (2026-10-22, M13, `docs/work/m13a-judgments.md` Decision 9): a site page may reproduce single values and ranges with their citation and locator, short sets of class boundaries as commonly cited (about ten rows or fewer), and equations with their source. It doesn't reproduce a source table or chart whole, values read off a chart beyond the few a method needs, a chart's descriptors (GSI), or quoted text beyond a sentence. Figures on the site are hangtu's own.
 - ✅ #33 Energy ratio decided (2026-10-22, M13): hammer efficiency is data, not a judgment. `ISPT_ERAT` is used first; `hammer_efficiency` (argument or setting) fills blanks with a warning naming the holes, and takes values by hole in M13 unit (b). SPEC §4.
 - ✅ #15 Text in a value column built (2026-10-19, M8): P01 draws each text value as an open marker at the left edge at its depth, one shape per text, with a legend entry and a footnote count. `NP` and `refusal` (any case) are recognized; other text is counted with a warning naming it. The stats box adds "Also: NP 3, 'dry' 2". In P01 §3, §7, §8. P07 is TODO #23.

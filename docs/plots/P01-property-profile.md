@@ -60,6 +60,7 @@ It ends up in ground investigation reports (data presentation), interpretive and
 | `loca_id` | Exploratory hole ID | — | — | — | — | – | | | `LOCA.LOCA_ID` | Used for `connect=`, `marker_by=`, `secondary=` |
 | `geology_unit` | Geology unit | — | — | — | — | – | | | mapped from GEOL | Default color grouping |
 | `qualifier` | `"<"`, `">"`, or empty | — | — | — | — | – | | {"", "<", ">"} | value flags `LT`/`GT` | The true value is less than or greater than the plotted value |
+| *`value`*`_lower`, *`value`*`_upper` | Bounds of a value reported as a range at one depth, such as a correlation's band (`undrained_shear_strength_lower`) | as `value` | as `value` | as `value` | as `value` | – | | lower ≤ upper | derived (`ht.analysis.correlations`) | Drawn as a range bar (§7). Either may be blank: one bound alone is drawn as a caret. Units from `df.attrs["units"]` or `units=` for each column, as for `value`. Added M13 b2 |
 | *any column* | Secondary grouping for marker shape | — | — | — | — | – | | | e.g. `source` (lab/field), `test_type` | Named by `marker_by=` |
 
 **Grouping columns used:** `geology_unit` → color (default); `marker_by=` column → marker shape; `loca_id` → connecting lines.
@@ -124,11 +125,12 @@ Presets live in `config/defaults.yaml`, with the typical range in the quantity's
 | Connecting lines | line through each hole's points, sorted by vertical position | neutral gray (holes cross units) | — | 0.6 pt, alpha 0.6 | — | Only with `connect=True`; off by default |
 | Text values | open marker at the left edge of the axes (4 pt inside it) at the row's depth, one shape per distinct text from ◇ □ △ ▽ ⬠ ⬡ (then repeating), in the unit color | unit color | — | 5 pt | ✔ one gray entry per text: "NP (3)", "refusal (1)", "'dry' (1)" | Order: NP, refusal, then other text by first appearance. They don't move the x limits, and on a log axis they stay at the edge too. Their depths count toward the vertical limits; beyond `ylim=`, one is drawn at the limit with an outward arrow and also counted as beyond the axis limit. They ignore `marker_by` (the shape is the text) and `connect=`, and get no interval bar. With more than 6 distinct texts, the legend shows 6 and a footnote line names the rest: "Not in the legend: 'x' (1), 'y' (2)" |
 | Qualified values | caret ◁ / ▷ at the value | unit color | — | 6 pt | ✔ "less than (n)" / "greater than (n)" | Replaces the normal marker. Also counted in the footnote. Beyond a fixed limit, the caret is drawn open at the edge and counted both ways |
+| Value ranges | horizontal bar from *`value`*`_lower` to *`value`*`_upper` at the row's depth, with the marker at *`value`* when it isn't blank; one bound alone is a caret at it, ▷ for a lower bound, ◁ for an upper, in the bar's style, with no bar | unit color | — (the marker follows `marker_by`) | 1.2 pt bar, butt caps; 6 pt caret | ✔ one gray entry "range"; a group drawn only as ranges has a bar in its color, not a marker | Bounds count toward the x limits. Where two or more groups draw a range at one depth, their bars and carets are spread 3 pt apart up and down the page, centered on the depth, the first group in legend order highest; the data and any marker stay at the depth, and ranges at a depth no other group shares aren't moved. A bound beyond `xlim=` is drawn at the edge with the arrow and counted as beyond the axis limit (once per row); the bar stops at the edge. Footnote: "n shown as a range". A row with a value and no bounds draws as before. A blank value with bounds isn't counted as blank (M13 b2) |
 | Out-of-range (fixed limits) | open marker at the axis edge + small arrow pointing outward | unit color | — | 5 pt | ✔ footnote "n values beyond axis limit" | README policy |
 
 **Marker cycle** for `marker_by`: ● ■ ▲ ◆ ▼ ✚ ✖ ⬟ ⬢ ★ (10 shapes), given to the groups sorted by name, with a "(blank)" group last. Beyond 10 groups, the shapes repeat and a warning suggests `connect=True` or splitting the data. With `marker_by`, the legend shows geology units as color patches, then the groups as gray markers.
 
-**Draw order (bottom → top):** strata bands → ranges → reference and design lines → water level → interval bars → connecting lines → markers → qualifiers → annotations and notes.
+**Draw order (bottom → top):** strata bands → ranges → reference and design lines → water level → interval bars and range bars → connecting lines → markers → qualifiers → annotations and notes.
 ## 8. Overlays and annotations
 
 | Overlay | Argument | Default | Source of definition | Style | Notes |
@@ -231,7 +233,7 @@ fig, ax = ht.plot.profile(su, "undrained_shear_strength", preset="undrained_shea
 | Optional columns missing (`geology_unit`, `loca_id`, `ground_level`, …) | Plot drawn; one hint listing what each missing column would add |
 | Units unknown for value or vertical | Plot drawn with "(units unknown)" in the label, plus a warning naming the column and how to declare it (`ht.set_units`) |
 | Values ≤ 0 on a log axis | Excluded and counted in the footnote |
-| A blank estimate with a `correlation_note` (a correlation's result, `ht.analysis.correlations`) | Counted by its note instead of as a blank value: "n refusals, no estimate", "n below range, no estimate" (or above), "n with a blank input, no estimate". A blank depth or elevation is still a blank value (M13 b1) |
+| A blank estimate with a `correlation_note` (a correlation's result, `ht.analysis.correlations`) | Counted by its note instead of as a blank value: "n refusals, no estimate", "n below range, no estimate" (or above), "n with a blank input, no estimate", "n not for this soil, no estimate", "n with soil type unknown, no estimate". A blank depth or elevation is still a blank value (M13 b1, b2) |
 | Values beyond `xlim`/`ylim` | Edge marker + arrow + count |
 | `depth_top` > `depth_base` | Bar not drawn for that row; warning naming the row |
 | A `geology_unit` value not in the palette | Auto-assigned a color, which is remembered for the session |
@@ -248,6 +250,11 @@ fig, ax = ht.plot.profile(su, "undrained_shear_strength", preset="undrained_shea
 | `strata` or `ranges` with both a depth and an elevation pair, or (for `strata`) neither | Error naming the two pairs and saying to give one |
 | `strata` or `ranges` pair doesn't match `vs`, and there are several ground levels (or none) | Error saying the pair can't be converted, and to give the pair that matches `vs` |
 | Overlay row with top and base the wrong way round | Row not drawn; warning naming the row |
+| A row with a `qualifier` and a bound in *`value`*`_lower` or *`value`*`_upper` | Error naming the rows: a range carries its own bounds (M13 b2) |
+| A row with *`value`*`_lower` above *`value`*`_upper` | Error naming the rows |
+| Ranges of two or more `color_by` groups at one depth, such as two correlations' bands for one test | Spread apart up and down the page (§7), so a narrow band isn't hidden under a wide one |
+| A row with bounds and a blank depth or elevation | Counted as blank, as a value would be |
+| `stats_box=` with ranges | Rows with a bound are left out of the statistics, and the box says so: "Ranges not included: n" (a band is an interval, not two values: M15) |
 | `qualifier` other than `"<"`, `">"` or blank | Error listing the rows and the values found |
 | Mixed lab and field data | Fine. Use `marker_by="source"` to distinguish them |
 
@@ -268,6 +275,7 @@ fig, ax = ht.plot.profile(su, "undrained_shear_strength", preset="undrained_shea
   - footnote counts are correct;
   - text values sit at the left edge at their depths, one shape per text.
 - **Text values** (TODO #15): a column of 10 numbers, 2 `NP`, 1 `np `, 1 `refusal` and 2 `dry` draws 10 points and 6 edge markers; the legend reads "NP (3)", "refusal (1)", "'dry' (2)"; one warning names `dry`; the stats box counts 10 values, with "Also: NP 3, refusal 1, 'dry' 2"; nothing about NP or refusal is warned.
+- **Value ranges** (M13 b2): a row with both bounds draws one bar between them and, with a value, its marker; a row with a lower bound only draws ▷ at it, an upper only ◁; rows with bounds and no value aren't counted as blank; the x limits include every bound; with `xlim=` a bound beyond it is drawn at the edge and the row counted once as beyond the axis limit; the footnote says "n shown as a range" and the legend has one "range" entry; the stats box leaves the rows out and says how many; a `qualifier` on a row with a bound, and lower above upper, raise naming the rows; US and SI place the bars at the same converted positions; two groups' ranges at one depth are drawn 3 pt apart around it and others at their depth, and a group drawn only as ranges has a bar in the legend. Visual check: `docs/plots/img/P01-ranges.png` (US) and `docs/plots/img/P01-ranges-groups.png` (two correlations' s_u bands in one hole, US).
 - **Automated:**
   - renders for every preset, and for `vs` = depth/elevation;
   - labels contain units (and the datum when set);

@@ -1,6 +1,6 @@
 # (N1)60 and correlations
 
-Correct N60 for overburden, then estimate a parameter from published correlations, each named on its rows, and compare them on one profile.
+Correct N60 for overburden, then estimate a parameter from published correlations, each named on its rows, and compare them on one profile. The first example estimates φ′ in sand; [Bands and PI](#bands-and-pi) estimates s_u in clay.
 
 ```python
 --8<-- "correlations.py"
@@ -31,33 +31,64 @@ Both are capped at 1.7, with pa = 100 kPa. They differ by up to about 12 % betwe
 
 ## Correlations
 
-Each published correlation is a function in `ht.analysis.correlations`, named after its source. For the effective friction angle φ′ of sand:
+Each published correlation is a function in `ht.analysis.correlations`, named after the property it estimates and its source (`<target>_<authors>_<year>`), so tab completion groups them by property. For the effective friction angle φ′ of sand:
 
 | Function | Reads | Range |
 |---|---|---|
-| [`hatanaka_uchida_1996`](../reference/correlations.md#hangtu.analysis.correlations.hatanaka_uchida_1996) | `spt_n1_60` | 4.55 ≤ (N1)60 ≤ 39 |
-| [`kulhawy_mayne_1990`](../reference/correlations.md#hangtu.analysis.correlations.kulhawy_mayne_1990) | `spt_n60`, `effective_vertical_stress` | N60 ≤ 60; 0 < σ′v ≤ 300 kPa |
+| [`effective_friction_angle_hatanaka_uchida_1996`](../reference/correlations.md#hangtu.analysis.correlations.effective_friction_angle_hatanaka_uchida_1996) | `spt_n1_60` | 4.55 ≤ (N1)60 ≤ 39 |
+| [`effective_friction_angle_kulhawy_mayne_1990`](../reference/correlations.md#hangtu.analysis.correlations.effective_friction_angle_kulhawy_mayne_1990) | `spt_n60`, `effective_vertical_stress` | N60 ≤ 60; 0 < σ′v ≤ 300 kPa |
 
 Each one:
 
 - **reads the one N it was derived with,** by its column name, and has no argument to read another. A correlation on (N1)60 given only N60 stops with an error that says to run `spt_n1_60()` first, so field N never goes into an (N1)60 equation unnoticed.
-- **doesn't read the soil type.** These are for relatively clean sands: pass the rows a correlation applies to, as for `spt_class()`. The example's Terrace is a sand with gravel, at the edge of what they cover; on a project, check the gradation first.
-- **returns every row,** with the estimate in the property's column (`effective_friction_angle`), `correlation_name`, and `correlation_note`, which says why there's no estimate: `input blank`, `refusal`, `below range` or `above range`. Outside its range a correlation gives a blank, never a clipped or extrapolated value.
+- **reads the soil type only when asked** (see [Soil type](#soil-type)). By default, pass the rows a correlation applies to, as for `spt_class()`. These are for relatively clean sands; the example's Terrace is a sand with gravel, at the edge of what they cover. On a project, check the gradation first.
+- **returns every row,** with the estimate in the property's column (`effective_friction_angle`), `correlation_name`, `correlation_note` and `correlation_input`. `correlation_note` says why there's no estimate: `input blank`, `refusal`, `below range`, `above range`, `not for this soil` or `soil type unknown`. Outside its range a correlation gives a blank, never a clipped or extrapolated value. `correlation_input` names the correlation an input came from, where one did (see [Chaining](#chaining)).
 - **records what it is** in `df.attrs["correlations"]`: the equation, inputs, range and sources of every correlation. `ht.analysis.correlations.describe(name)` returns the same entry when the attrs are lost.
 
 Passing the whole Terrace instead of its upper part shows how much of a dense sand falls outside these ranges:
 
 ``` { .text .no-copy }
-UserWarning: hatanaka_uchida_1996 gave no estimate for 21 of 33 rows (9 refusal, 12 above range; see 'correlation_note'). Its range is 4.55 ≤ spt_n1_60 ≤ 39; outside it the estimate is blank, never extrapolated.
-UserWarning: kulhawy_mayne_1990 gave no estimate for 12 of 33 rows (9 refusal, 3 above range; see 'correlation_note'). Its range is spt_n60 ≤ 60; 0 < effective_vertical_stress ≤ 300; outside it the estimate is blank, never extrapolated.
+UserWarning: effective_friction_angle_hatanaka_uchida_1996 gave no estimate for 21 of 33 rows (9 refusal, 12 above range; see 'correlation_note'). Its range is 4.55 ≤ spt_n1_60 ≤ 39; outside it the estimate is blank, never extrapolated.
+UserWarning: effective_friction_angle_kulhawy_mayne_1990 gave no estimate for 12 of 33 rows (9 refusal, 3 above range; see 'correlation_note'). Its range is spt_n60 ≤ 60; 0 < effective_vertical_stress ≤ 300; outside it the estimate is blank, never extrapolated.
 ```
 
 ## Comparing estimates
 
 Results from the same input concatenate with `pd.concat`, one row per test and correlation, and keep their units. `ht.plot.profile(..., color_by="correlation_name")` draws them together, and its footnote counts the blank estimates by their `correlation_note`: "9 refusals, no estimate", "12 above range, no estimate". The two correlations above differ by about 3° here; which to use, or how to combine them with measured values, is the engineer's call (stage D). [Drained shear strength of soil](../parameters/04-drained-shear-strength-soil.md) compares the methods.
 
+## Bands and PI
+
+Some sources give a band rather than a value. Terzaghi & Peck (1967) give s_u by class of N; Stroud (1974), as FHWA GEC 5 gives it, gives f1 at PI ≳ 30 and PI ≅ 15 and nothing between. A correlation published as a band writes it in `<target>_lower` and `<target>_upper` and leaves the value blank where the source gives no central value: hangtu doesn't invent a midpoint.
+
+Stroud also reads PI, which is rarely tested at the depth of an SPT. It is a judgment by geology unit (see [Judgments](judgments.md)): `summary_by()` shows what the Atterberg tests say, and `add_judgment()` puts the chosen value on the rows, from `value=` or the project's judgments file.
+
+```python
+--8<-- "correlations-clay.py"
+```
+
+``` { .text .no-copy }
+--8<-- "correlations-clay.txt"
+```
+
+![Undrained shear strength against depth in B-3, as bands by correlation](../img/generated/correlations-clay.png){ width="440" }
+
+PI 23.5 falls between GEC 5's two values, so Stroud gives the band 4.5 N60 to 5.5 N60 kPa; at PI 30 or more it gives the value 4.5 N60, and below 15 no estimate. Terzaghi & Peck read field N, Stroud N60: each reads the N it was derived with. `ht.plot.profile()` draws each band as a bar at its depth, the two correlations' bars for one test a little apart so neither hides the other, and the open top class of Terzaghi & Peck (N ≥ 30) as a caret ▷ at its lower bound. The footnote counts the rows shown as a range.
+
+## Soil type
+
+The correlations for clay (s_u, σ′p, OCR, K0) can read the soil type, if the rows carry a `uscs_symbol` column. hangtu doesn't derive USCS: the column is the user's, from the logs or the laboratory. With `uscs="proposed"`, a correlation gives no estimate outside the groups hangtu reads the source's words as (CL and CH for "clays"), with `not for this soil`, or where the symbol is blank, with `soil type unknown`. `describe(name)` gives the groups and why (`uscs`, `uscs_basis`); a list of groups, `uscs=["CL", "CH", "CL-ML"]`, replaces them. Run on the whole example profile, with `uscs_symbol` mapped from the geology units, the OCR correlation leaves out the Terrace sand:
+
+``` { .text .no-copy }
+UserWarning: overconsolidation_ratio_mayne_kemper_1988 gave no estimate for 33 of 65 rows (33 not for this soil; see 'correlation_note'). [...]
+```
+
+## Chaining
+
+A correlation's inputs are meant to be test data. When an input column holds another correlation's estimates (its rows carry that correlation's `correlation_name` and the input is its target), the call still runs, but warns once, naming the input and where it came from, and writes the upstream correlation to `correlation_input` on those rows. Chaining compounds the errors of both, and the result reads as more certain than it is. None of today's correlations reads another's target; the check is there for those that will, such as K0 from φ′ and OCR.
+
 ## See also
 
-- [`ht.analysis.spt_n1_60`](../reference/analysis.md#hangtu.analysis.spt_n1_60), [correlations reference](../reference/correlations.md)
+- [`ht.analysis.spt_n1_60`](../reference/analysis.md#hangtu.analysis.spt_n1_60), [`ht.analysis.add_judgment`](../reference/analysis.md#hangtu.analysis.add_judgment), [`ht.analysis.summary_by`](../reference/analysis.md#hangtu.analysis.summary_by), [correlations reference](../reference/correlations.md)
+- [Undrained shear strength](../parameters/05-undrained-shear-strength.md), [preconsolidation](../parameters/06-preconsolidation-and-compressibility.md) and [at-rest earth pressure](../parameters/07-at-rest-earth-pressure.md): the methods compared
 - [SPT analysis](spt.md): refusal, N60 and the energy ratio
 - [Judgments and vertical stress](judgments.md): σ′v from the project's unit weights and water levels

@@ -30,8 +30,16 @@ KULHAWY_MAYNE = [
 ]
 KPA_TO_PSF = 1000 / 47.880259
 FUNCTIONS = {
-    "hatanaka_uchida_1996": correlations.hatanaka_uchida_1996,
-    "kulhawy_mayne_1990": correlations.kulhawy_mayne_1990,
+    name: getattr(correlations, name)
+    for name in (
+        "effective_friction_angle_hatanaka_uchida_1996",
+        "effective_friction_angle_kulhawy_mayne_1990",
+        "undrained_shear_strength_stroud_1974",
+        "undrained_shear_strength_terzaghi_peck_1967",
+        "preconsolidation_stress_mayne_kemper_1988",
+        "overconsolidation_ratio_mayne_kemper_1988",
+        "at_rest_earth_pressure_coefficient_kulhawy_et_al_1989",
+    )
 }
 
 
@@ -46,17 +54,23 @@ def stresses(n60, stress, unit="kPa", **columns):
 
 def test_hatanaka_uchida_golden_values():
     n1_60, expected = zip(*HATANAKA_UCHIDA, strict=True)
-    out = correlations.hatanaka_uchida_1996(frame(spt_n1_60=list(n1_60)))
+    out = correlations.effective_friction_angle_hatanaka_uchida_1996(
+        frame(spt_n1_60=list(n1_60))
+    )
     assert out["effective_friction_angle"].tolist() == pytest.approx(
         list(expected), abs=0.005
     )
-    assert (out["correlation_name"] == "hatanaka_uchida_1996").all()
+    assert (
+        out["correlation_name"] == "effective_friction_angle_hatanaka_uchida_1996"
+    ).all()
     assert out["correlation_note"].isna().all()
     assert out.attrs["units"] == {"effective_friction_angle": "°"}
 
 
 def test_hatanaka_uchida_range_ends_are_inside():
-    out = correlations.hatanaka_uchida_1996(frame(spt_n1_60=[4.55, 39.0]))
+    out = correlations.effective_friction_angle_hatanaka_uchida_1996(
+        frame(spt_n1_60=[4.55, 39.0])
+    )
     assert out["effective_friction_angle"].notna().all()
 
 
@@ -66,7 +80,7 @@ def test_no_estimate_gives_nan_with_the_reason_and_one_warning():
         spt_refusal=[False, False, False, True, False, True],
     )
     with pytest.warns(UserWarning) as caught:
-        out = correlations.hatanaka_uchida_1996(df)
+        out = correlations.effective_friction_angle_hatanaka_uchida_1996(df)
     # A blank input comes before a refusal.
     assert out["correlation_note"].tolist() == [
         "below range",
@@ -80,10 +94,10 @@ def test_no_estimate_gives_nan_with_the_reason_and_one_warning():
         True, True, True, True, False, True,
     ]  # fmt: skip
     assert [str(w.message) for w in caught] == [
-        "hatanaka_uchida_1996 gave no estimate for 5 of 6 rows (2 input blank, "
-        "1 refusal, 1 below range, 1 above range; see 'correlation_note'). Its "
-        "range is 4.55 ≤ spt_n1_60 ≤ 39; outside it the estimate is blank, never "
-        "extrapolated."
+        "effective_friction_angle_hatanaka_uchida_1996 gave no estimate for 5 of 6 "
+        "rows (2 input blank, 1 refusal, 1 below range, 1 above range; see "
+        "'correlation_note'). Its range is 4.55 ≤ spt_n1_60 ≤ 39; outside it the "
+        "estimate is blank, never extrapolated."
     ]
 
 
@@ -92,7 +106,7 @@ def test_no_row_is_dropped_or_reordered_and_the_input_is_unchanged():
     df.index = [7, 3, 5]
     before = df.copy()
     with pytest.warns(UserWarning, match="1 below range"):
-        out = correlations.hatanaka_uchida_1996(df)
+        out = correlations.effective_friction_angle_hatanaka_uchida_1996(df)
     assert out.index.tolist() == [7, 3, 5]
     assert out["loca_id"].tolist() == ["B", "A", "C"]
     pd.testing.assert_frame_equal(df, before)
@@ -101,23 +115,29 @@ def test_no_row_is_dropped_or_reordered_and_the_input_is_unchanged():
 def test_existing_output_columns_are_replaced_with_a_warning():
     df = frame(spt_n1_60=[10.0], effective_friction_angle=[30.0])
     with pytest.warns(UserWarning, match="Replaced the existing columns"):
-        out = correlations.hatanaka_uchida_1996(df)
+        out = correlations.effective_friction_angle_hatanaka_uchida_1996(df)
     assert out["effective_friction_angle"][0] == pytest.approx(32.41, abs=0.005)
 
 
 def test_kulhawy_mayne_golden_values():
     n60, stress, expected = zip(*KULHAWY_MAYNE, strict=True)
-    out = correlations.kulhawy_mayne_1990(stresses(list(n60), list(stress)))
+    out = correlations.effective_friction_angle_kulhawy_mayne_1990(
+        stresses(list(n60), list(stress))
+    )
     assert out["effective_friction_angle"].tolist() == pytest.approx(
         list(expected), abs=0.005
     )
-    assert (out["correlation_name"] == "kulhawy_mayne_1990").all()
+    assert (
+        out["correlation_name"] == "effective_friction_angle_kulhawy_mayne_1990"
+    ).all()
 
 
 def test_kulhawy_mayne_in_psf_gives_the_same_angle():
     n60, stress, expected = zip(*KULHAWY_MAYNE, strict=True)
     psf = [value * KPA_TO_PSF for value in stress]
-    out = correlations.kulhawy_mayne_1990(stresses(list(n60), psf, unit="psf"))
+    out = correlations.effective_friction_angle_kulhawy_mayne_1990(
+        stresses(list(n60), psf, unit="psf")
+    )
     assert out["effective_friction_angle"].tolist() == pytest.approx(
         list(expected), abs=0.005
     )
@@ -130,7 +150,7 @@ def test_kulhawy_mayne_out_of_range():
         spt_refusal=[False] * 6 + [True],
     )
     with pytest.warns(UserWarning) as caught:
-        out = correlations.kulhawy_mayne_1990(df)
+        out = correlations.effective_friction_angle_kulhawy_mayne_1990(df)
     assert out["correlation_note"].tolist() == [
         None,
         "above range",
@@ -150,7 +170,7 @@ def test_kulhawy_mayne_out_of_range():
 def test_kulhawy_mayne_needs_the_stress_units():
     df = frame(spt_n60=[10.0], effective_vertical_stress=[100.0])
     with pytest.raises(ht.UnitsError, match="'effective_vertical_stress' has no units"):
-        correlations.kulhawy_mayne_1990(df)
+        correlations.effective_friction_angle_kulhawy_mayne_1990(df)
 
 
 def test_kulhawy_mayne_without_n60_names_what_adds_it():
@@ -161,7 +181,7 @@ def test_kulhawy_mayne_without_n60_names_what_adds_it():
     with pytest.raises(
         ht.ColumnError, match=r"'spt_n60' not found.*ht\.analysis\.spt\(\)"
     ):
-        correlations.kulhawy_mayne_1990(df)
+        correlations.effective_friction_angle_kulhawy_mayne_1990(df)
 
 
 # --- AC 7: comparison on a profile ----------------------------------------------------
@@ -185,8 +205,8 @@ def test_both_concatenate_and_draw_on_a_profile():
     with pytest.warns(UserWarning, match="gave no estimate") as caught:
         est = pd.concat(
             [
-                correlations.hatanaka_uchida_1996(df),
-                correlations.kulhawy_mayne_1990(df),
+                correlations.effective_friction_angle_hatanaka_uchida_1996(df),
+                correlations.effective_friction_angle_kulhawy_mayne_1990(df),
             ],
             ignore_index=True,
         )
@@ -196,7 +216,10 @@ def test_both_concatenate_and_draw_on_a_profile():
         est, value="effective_friction_angle", vs="depth", color_by="correlation_name"
     )
     legend = [text.get_text() for text in ax.get_legend().get_texts()]
-    assert legend == ["hatanaka_uchida_1996", "kulhawy_mayne_1990"]
+    assert legend == [
+        "effective_friction_angle_hatanaka_uchida_1996",
+        "effective_friction_angle_kulhawy_mayne_1990",
+    ]
     # The refusal and the out-of-range row of each, counted by correlation_note.
     assert ax.ags_notes == {"correlation_refusal": 2, "correlation_above_range": 2}
     footnote = [text.get_text() for text in ax.texts if "estimate" in text.get_text()]
@@ -228,26 +251,29 @@ def test_n60_without_n1_60_is_an_error_naming_what_adds_it():
     with pytest.raises(
         ht.ColumnError, match=r"'spt_n1_60' not found.*ht\.analysis\.spt_n1_60\("
     ):
-        correlations.hatanaka_uchida_1996(df)
+        correlations.effective_friction_angle_hatanaka_uchida_1996(df)
 
 
 @pytest.mark.parametrize("name", list(FUNCTIONS))
 def test_no_argument_chooses_the_input_column(name):
     parameters = set(inspect.signature(FUNCTIONS[name]).parameters)
-    assert parameters == {"df", "units", "display_units"}
+    # uscs= selects rows by soil (M13 b2, Decision 10), never an input column.
+    assert parameters == {"df", "uscs", "units", "display_units"}
 
 
 # --- AC 5: what's recorded ------------------------------------------------------------
 
 
 def test_attrs_hold_every_entry_and_describe_returns_the_same():
-    out = correlations.hatanaka_uchida_1996(frame(spt_n1_60=[10.0]))
+    out = correlations.effective_friction_angle_hatanaka_uchida_1996(
+        frame(spt_n1_60=[10.0])
+    )
     recorded = out.attrs["correlations"]
     assert set(recorded) == set(_config.load("config/correlations.yaml"))
-    assert recorded["hatanaka_uchida_1996"] == correlations.describe(
-        "hatanaka_uchida_1996"
-    )
-    entry = recorded["hatanaka_uchida_1996"]
+    assert recorded[
+        "effective_friction_angle_hatanaka_uchida_1996"
+    ] == correlations.describe("effective_friction_angle_hatanaka_uchida_1996")
+    entry = recorded["effective_friction_angle_hatanaka_uchida_1996"]
     assert entry["inputs"] == {
         "spt_n1_60": {"variant": "(N1)60, N60 corrected for overburden", "unit": None}
     }
@@ -255,8 +281,12 @@ def test_attrs_hold_every_entry_and_describe_returns_the_same():
 
 
 def test_describe_returns_a_copy():
-    correlations.describe("hatanaka_uchida_1996")["range"].clear()
-    assert correlations.describe("hatanaka_uchida_1996")["range"]
+    correlations.describe("effective_friction_angle_hatanaka_uchida_1996")[
+        "range"
+    ].clear()
+    assert correlations.describe("effective_friction_angle_hatanaka_uchida_1996")[
+        "range"
+    ]
 
 
 def test_describe_an_unknown_name_lists_the_correlations():
@@ -266,8 +296,8 @@ def test_describe_an_unknown_name_lists_the_correlations():
 
 def test_outputs_from_one_input_concatenate_with_their_attrs():
     df = ht.set_units(frame(depth=[3.0], spt_n1_60=[10.0]), {"depth": "m"})
-    first = correlations.hatanaka_uchida_1996(df)
-    second = correlations.hatanaka_uchida_1996(df)
+    first = correlations.effective_friction_angle_hatanaka_uchida_1996(df)
+    second = correlations.effective_friction_angle_hatanaka_uchida_1996(df)
     both = pd.concat([first, second], ignore_index=True)
     assert both.attrs["units"] == {"depth": "m", "effective_friction_angle": "°"}
     assert both.attrs["correlations"] == first.attrs["correlations"]
@@ -285,6 +315,9 @@ def _drift(name, docstring):
         expected += [source["cite"], *source["locators"]]
     for bounds in entry["range"].values():
         expected += [f"{bound:g}" for bound in bounds.values()]
+    expected += entry["uscs"]
+    for band in entry.get("bands", []):
+        expected += [f"{bound:g}" for bound in band.values() if bound is not None]
     return [item for item in expected if item not in text]
 
 
@@ -299,7 +332,183 @@ def test_the_docstring_names_the_sources_locators_and_range(name):
 
 
 def test_the_drift_test_fails_when_a_docstring_changes():
-    docstring = correlations.hatanaka_uchida_1996.__doc__
+    docstring = correlations.effective_friction_angle_hatanaka_uchida_1996.__doc__
     changed = re.sub(r"4\.55", "4.5", docstring)
     changed = changed.replace("Eq. 7.23", "Eq. 7.32")
-    assert _drift("hatanaka_uchida_1996", changed) == ["Eq. 7.23, p. 7-55", "4.55"]
+    assert _drift("effective_friction_angle_hatanaka_uchida_1996", changed) == [
+        "Eq. 7.23, p. 7-55",
+        "4.55",
+    ]
+
+
+# --- Chaining (docs/work/m13b2-spt-strength-history.md, AC 5) ---------------------
+
+
+@pytest.fixture
+def chain_entry(monkeypatch):
+    """A correlation made for the test, reading effective_friction_angle."""
+    from hangtu.analysis.correlations import _framework
+
+    entries = {
+        **_framework.catalog(),
+        "test_chain": {
+            "target": {"column": "undrained_shear_strength", "unit": "kPa"},
+            "equation": "s_u = φ′ kPa",
+            "inputs": {"effective_friction_angle": {"variant": "φ′", "unit": None}},
+            "range": {},
+            "sources": [],
+        },
+    }
+    monkeypatch.setattr(_framework, "catalog", lambda: entries)
+
+    def run(df):
+        item = _framework.entry("test_chain")
+        values = _framework.inputs(df, item, None)
+        note = _framework.notes(df, item, values)
+        return _framework.estimate(
+            df, "test_chain", values["effective_friction_angle"], note, "SI"
+        )
+
+    return run
+
+
+def test_reading_an_estimate_warns_once_and_records_the_upstream(chain_entry):
+    upstream = correlations.effective_friction_angle_hatanaka_uchida_1996(
+        frame(spt_n1_60=[10.0, 20.0])
+    )
+    with pytest.warns(UserWarning) as caught:
+        out = chain_entry(upstream)
+    chain = [str(w.message) for w in caught if "Chaining" in str(w.message)]
+    assert chain == [
+        "'effective_friction_angle' on 2 rows is an estimate from "
+        "'effective_friction_angle_hatanaka_uchida_1996'. Chaining correlations "
+        "compounds their errors, and the result reads as more certain than it "
+        "is: prefer an input from test data. The upstream correlation is in "
+        "'correlation_input'."
+    ]
+    assert (
+        out["correlation_input"].tolist()
+        == ["effective_friction_angle_hatanaka_uchida_1996"] * 2
+    )
+    assert (out["correlation_name"] == "test_chain").all()
+
+
+def test_measured_input_is_not_chained(chain_entry):
+    out = chain_entry(frame(effective_friction_angle=[32.0]))
+    assert out["correlation_input"].isna().all()
+
+
+def test_data_columns_on_another_correlations_frame_are_not_chained():
+    first = correlations.undrained_shear_strength_terzaghi_peck_1967(
+        frame(spt_n=[10.0]), display_units="SI"
+    )
+    with pytest.warns(UserWarning) as caught:
+        out = correlations.undrained_shear_strength_terzaghi_peck_1967(
+            first, display_units="SI"
+        )
+    assert not [w for w in caught if "Chaining" in str(w.message)]
+    assert out["correlation_input"].isna().all()
+
+
+# --- The opt-in USCS map (docs/work/m13b2-spt-strength-history.md, AC 6) ----------
+
+
+def clays(**columns):
+    return frame(spt_n=[10.0, 10.0, 10.0, 10.0, 10.0], **columns)
+
+
+USCS = ["CL", "SP", None, " ch ", "CL-ML"]
+
+
+def test_proposed_groups_give_no_estimate_outside_them():
+    with pytest.warns(UserWarning, match=r"3 of 5 rows \(2 not for this soil, 1 soil"):
+        out = correlations.undrained_shear_strength_terzaghi_peck_1967(
+            clays(uscs_symbol=USCS), uscs="proposed", display_units="SI"
+        )
+    assert out["correlation_note"].tolist() == [
+        None,
+        "not for this soil",
+        "soil type unknown",
+        None,
+        "not for this soil",
+    ]
+    assert out["undrained_shear_strength_lower"].isna().tolist() == [
+        False, True, True, False, True,
+    ]  # fmt: skip
+    assert out.attrs["correlation_uscs"] == "proposed"
+
+
+def test_a_list_of_groups_replaces_the_proposed_ones():
+    with pytest.warns(UserWarning, match=r"3 of 5 rows"):
+        out = correlations.undrained_shear_strength_terzaghi_peck_1967(
+            clays(uscs_symbol=USCS), uscs=["CL", "CL-ML"], display_units="SI"
+        )
+    assert out["correlation_note"].tolist() == [
+        None,
+        "not for this soil",
+        "soil type unknown",
+        "not for this soil",
+        None,
+    ]
+    assert out.attrs["correlation_uscs"] == ["CL", "CL-ML"]
+
+
+def test_the_soil_reason_comes_before_the_input_reasons():
+    df = frame(spt_n=[np.nan], uscs_symbol=["SP"])
+    with pytest.warns(UserWarning):
+        out = correlations.undrained_shear_strength_terzaghi_peck_1967(
+            df, uscs="proposed"
+        )
+    assert out["correlation_note"].tolist() == ["not for this soil"]
+
+
+def test_uscs_without_a_uscs_symbol_column_raises_saying_it_is_not_derived():
+    with pytest.raises(ht.ColumnError, match=r"'uscs_symbol'.*doesn't derive"):
+        correlations.undrained_shear_strength_terzaghi_peck_1967(
+            clays(), uscs="proposed"
+        )
+
+
+def test_by_default_no_soil_type_is_read():
+    out = correlations.undrained_shear_strength_terzaghi_peck_1967(
+        clays(uscs_symbol=USCS), display_units="SI"
+    )
+    assert out["correlation_note"].isna().all()
+    assert out.attrs["correlation_uscs"] is None
+
+
+@pytest.mark.parametrize("bad", ["proposd", [], ["CL", 3], 5])
+def test_a_wrong_uscs_argument_raises_with_examples(bad):
+    with pytest.raises(ht.HangtuError, match=r'uscs= takes "proposed" or a list'):
+        correlations.effective_friction_angle_hatanaka_uchida_1996(
+            frame(spt_n1_60=[10.0], uscs_symbol=["SP"]), uscs=bad
+        )
+
+
+def test_p01_counts_the_soil_reasons():
+    df = ht.set_units(
+        clays(depth=[1.0, 2.0, 3.0, 4.0, 5.0], uscs_symbol=USCS), {"depth": "m"}
+    )
+    with pytest.warns(UserWarning):
+        out = correlations.undrained_shear_strength_terzaghi_peck_1967(
+            df, uscs="proposed", display_units="SI"
+        )
+    with pytest.warns(ht.HangtuHint):
+        _, ax = ht.plot.profile(
+            out, "undrained_shear_strength", vs="depth", color_by=None
+        )
+    assert ax.ags_notes == {
+        "value_range": 2,
+        "correlation_not_for_this_soil": 2,
+        "correlation_soil_type_unknown": 1,
+    }
+
+
+def test_a_value_on_an_inclusive_bound_stays_inside_after_conversion():
+    # 300 kPa through psf is 300.00000000000006 kPa; still at most 300.
+    psf = ht.units.convert(
+        [300.0], ht.units.parse_unit("kPa"), "stress", ht.units.parse_unit("psf")
+    )
+    df = stresses([20], list(psf), unit="psf")
+    out = correlations.effective_friction_angle_kulhawy_mayne_1990(df)
+    assert out["correlation_note"].isna().all()

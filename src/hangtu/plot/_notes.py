@@ -20,10 +20,14 @@ from numpy.typing import ArrayLike
 REASONS = {
     "nan": "{n} blank value{s} not shown",
     # A correlation's rows with no estimate, by correlation_note (P01 §11).
+    "correlation_not_for_this_soil": "{n} not for this soil, no estimate",
+    "correlation_soil_type_unknown": "{n} with soil type unknown, no estimate",
     "correlation_input_blank": "{n} with a blank input, no estimate",
     "correlation_refusal": "{n} refusal{s}, no estimate",
     "correlation_below_range": "{n} below range, no estimate",
     "correlation_above_range": "{n} above range, no estimate",
+    # A value reported as a range, <value>_lower and <value>_upper (P01 §7).
+    "value_range": "{n} shown as a range",
     "short_curve": "{n} curve{s} with fewer than two points not shown",
     "d_value_unreached": "{n} D-value{s} not reached{where}",
     "log_nonpositive": "{n} value{s} ≤ 0 not shown on log axis",
