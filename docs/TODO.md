@@ -186,6 +186,23 @@ Open research points:
   - How does the legend name the method?
 - **Claude's view:** these belong with `describe` in Phase 3, which P07 would then call.
 
+### 42. Compacting a sparse profile · You + Claude · P01, `docs/plots/README.md`
+- **Problem:** a profile whose data are widely spaced in depth leaves most of the axes empty. `docs/plots/img/P01-ranges.png` runs 0–50 ft for a dozen rows, with gaps of 5–10 ft between them, and reads as mostly white space.
+- **Wanted:** a rule for when a profile counts as too sparse, and an option to compact it.
+- **Questions:**
+  - What does the rule measure: the share of the depth axis with data, the largest gap, or rows per unit of figure height?
+  - What does compacting do: a shorter figure, depth limits fit to the data instead of from the ground surface, or a broken depth axis across long empty stretches?
+  - Is it on by default, or only when asked? A depth axis that doesn't start at the surface, or that breaks, must say so on the figure.
+  - Do P02–P07 and `Sheet` need the same, so panels on a shared depth axis stay aligned (TODO #38)?
+
+### 43. Subscripts in labels · You + Claude · `src/hangtu/columns.yaml`, `docs/plots/README.md`
+- **Problem:** axis labels print symbols as typed: "Undrained shear strength, s_u" shows the underscore, not s with a subscript u. The registry also writes them inconsistently: "σ′_v0" but "σ′p".
+- **Wanted:** symbols drawn as real subscripts on figures (matplotlib mathtext, e.g. `$s_u$`, `$\sigma'_{v0}$`).
+- **Questions:**
+  - Where does the markup live: a separate `symbol` field in the registry, kept apart from the plain `label`, or converted from the label at draw time?
+  - Warnings, error messages, docstrings and the docs site stay plain text. Do they keep "s_u", or move to Unicode where it exists (s with ᵤ is uneven across fonts)?
+  - One spelling for every symbol in the registry, checked by a test.
+
 ---
 
 ## Test data
@@ -267,6 +284,7 @@ Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads o
   - Read the group name or description (`geology_description`, or a `uscs_name` column), the gravel fraction from gradation tests, or leave it to the user to pass the rows?
   - If flagged: no estimate ("not for this soil"), or an estimate with a note?
   - Which other entries have `not_for` terms the symbol can't check (micaceous sands, fissured clays)?
+- **The warning's wording.** With `uscs=` on, rows left out for soil type share one warning with rows outside the range: "…gave no estimate for 33 of 65 rows (33 not for this soil; …). Its range is …; outside it the estimate is blank". When every blank is for soil type, the range sentence doesn't explain them, and it names the range by its input (`normalized_n`), a name the user never sees as a column. Say the range only when some rows are outside it, and in the user's terms (field N over σ′v0/pa).
 
 ---
 
