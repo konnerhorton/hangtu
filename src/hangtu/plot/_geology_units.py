@@ -775,7 +775,7 @@ def geology_unit_comparison(
             text = legend_text(baseline_label, [panel.baseline])
             handles = [_baseline_handle(text), *handles]
         offset = _legend_offset(ax, panel.counts)
-        add_legend(ax, [handles], panel.notes, offset)
+        add_legend(ax, [handles], panel.notes, offset, where="right")
         panel.notes.render(ax, offset)
     return fig, ax
 

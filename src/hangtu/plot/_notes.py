@@ -5,11 +5,12 @@ counted here and listed in a footnote.
 """
 
 from collections.abc import Mapping
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 from matplotlib.artist import Artist
 from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from matplotlib.markers import MarkerStyle
 from matplotlib.text import Annotation
 from matplotlib.transforms import Transform
@@ -49,6 +50,34 @@ REASONS = {
 
 FOOTNOTE_SIZE = 7
 FOOTNOTE_COLOR = "0.4"
+#: Points from the bottom of the axes to below the tick labels and the x label,
+#: at least; below_x_label() measures the axes and may give more.
+BELOW_X_LABEL = 32.0
+GAP = 4.0  # points between the x label and what goes below it
+
+Placement = Literal["right", "bottom", "inside"] | None
+
+
+def renderer(figure: Figure) -> Any:
+    """Return the figure's renderer, to measure text before the figure is drawn."""
+    canvas = figure.canvas
+    if hasattr(canvas, "get_renderer"):
+        return canvas.get_renderer()
+    return figure._get_renderer()
+
+
+def below_x_label(ax: Axes) -> float:
+    """Return the points from the bottom of the axes to below its x label.
+
+    Measured from the tick labels and x label (several lines in P03), plus a
+    small gap; at least ``BELOW_X_LABEL``. The depth doesn't change when the
+    layout engine resizes the axes.
+    """
+    box = ax.xaxis.get_tightbbox(renderer(ax.figure))
+    depth = 0.0 if box is None else (ax.bbox.y0 - box.y0) * 72 / ax.figure.dpi
+    return max(BELOW_X_LABEL, depth + GAP)
+
+
 ARROW_LENGTH = 10  # points
 
 
@@ -109,14 +138,16 @@ class Notes:
         self,
         ax: Axes,
         offset: float = 0.0,
-        where: Literal["right", "bottom"] = "right",
+        where: Placement = "right",
         below: Artist | None = None,
     ) -> Annotation | None:
-        """Write the footnote to the right of the axes, below the legend.
+        """Write the footnote where the legend's placement leaves room.
 
-        With ``where="bottom"`` it goes under the axes instead, centered
-        below ``below`` (the bottom legend) or, without one, below the x
-        label, ``offset`` points under the axes.
+        ``where`` is the placement ``add_legend`` chose. ``"right"``: to the
+        right of the axes, below the legend. ``"bottom"``: under the axes,
+        centered below ``below`` (the bottom legend) or, without one,
+        ``offset`` points under the axes. ``"inside"`` or None (no legend):
+        centered below the x label.
 
         Also sets ``ax.ags_notes`` to the counts, so users and tests can read
         them. ``offset`` is extra space in points between the axes and the
@@ -127,6 +158,8 @@ class Notes:
         lines = self.lines()
         if not lines:
             return None
+        if where in ("inside", None):
+            where, offset, below = "bottom", below_x_label(ax), None
         if where == "bottom":
             anchor = {"xy": (0.5, 0.0), "xytext": (0.0, -4.0)}
             if below is None:

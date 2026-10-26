@@ -97,7 +97,7 @@ def dummy_plot(
         ax.set_ylabel(
             axis_label(vs.capitalize(), y_text, datum, unknown=resolved[vs] is None)
         )
-        add_legend(ax, [handles], notes)
+        add_legend(ax, [handles], notes, where="right")
         notes.render(ax)
     return fig, ax
 

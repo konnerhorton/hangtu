@@ -2,20 +2,29 @@
 
 import math
 from collections.abc import Sequence
-from typing import Literal
+from typing import Literal, NamedTuple
 
 from matplotlib.artist import Artist
 from matplotlib.axes import Axes
 from matplotlib.legend import Legend
 from matplotlib.transforms import offset_copy
 
-from hangtu.plot._notes import Notes
+from hangtu.plot._notes import BELOW_X_LABEL, Notes, Placement, below_x_label
+
+__all__ = ["BELOW_X_LABEL", "Placed", "add_legend"]
 
 MAX_ROWS = 12
 MAX_ENTRIES = 30
 BOTTOM_COLUMNS = 4  # legend columns below the axes
-#: Points from the bottom of the axes to below the tick labels and the x label.
-BELOW_X_LABEL = 32.0
+
+Where = Literal["bottom", "right"]
+
+
+class Placed(NamedTuple):
+    """The legend ``add_legend`` drew, and where; None for both when none."""
+
+    legend: Legend | None
+    where: Placement
 
 
 def add_legend(
@@ -23,8 +32,8 @@ def add_legend(
     sections: Sequence[Sequence[Artist]],
     notes: Notes,
     offset: float = 0.0,
-    where: Literal["right", "bottom"] = "right",
-) -> Legend | None:
+    where: Where = "right",
+) -> Placed:
     """Add the legend outside the axes, on the right or below the x label.
 
     Parameters
@@ -38,19 +47,21 @@ def add_legend(
         The plot's notes. With more than 30 entries the legend is left out
         and a note points to ``ht.plot.legend_handles()`` instead.
     offset
-        Extra space in points between the axes and the legend, e.g. for a
-        secondary axis on the right.
+        Extra space in points between the axes and a ``"right"`` legend, e.g.
+        for a secondary axis on the right.
     where
-        ``"right"`` (the default), or ``"bottom"``: centered under the x
-        label in up to four columns, for plots whose width is precious (P05).
+        ``"right"`` (the default): outside on the right. ``"bottom"``:
+        centered under the x label in up to four columns, for plots whose
+        width is precious (P05).
 
     Returns
     -------
-    The legend, or None when there are no entries or too many.
+    The legend and the placement chosen, both None when there are no
+    entries or too many. Pass the placement to ``Notes.render``.
     """
     handles = [handle for section in sections for handle in section]
     if not handles:
-        return None
+        return Placed(None, None)
     if len(handles) > MAX_ENTRIES:
         units = len(sections[0])
         notes.add_text(
@@ -58,20 +69,13 @@ def add_legend(
             if units
             else f"{len(handles)} legend entries not shown"
         )
-        return None
+        return Placed(None, None)
     if where == "bottom":
-        return ax.legend(
-            handles=handles,
-            loc="upper center",
-            bbox_to_anchor=(0.5, 0.0),
-            bbox_transform=offset_copy(
-                ax.transAxes, ax.figure, y=-BELOW_X_LABEL - offset, units="points"
-            ),
-            borderaxespad=0.0,
-            frameon=False,
-            fontsize=8,
-            ncols=min(len(handles), BOTTOM_COLUMNS),
-        )
+        return Placed(_bottom(ax, handles, offset), "bottom")
+    return Placed(_right(ax, handles, offset), "right")
+
+
+def _right(ax: Axes, handles: list[Artist], offset: float) -> Legend:
     return ax.legend(
         handles=handles,
         loc="upper left",
@@ -81,4 +85,19 @@ def add_legend(
         frameon=False,
         fontsize=8,
         ncols=math.ceil(len(handles) / MAX_ROWS),
+    )
+
+
+def _bottom(ax: Axes, handles: list[Artist], offset: float) -> Legend:
+    return ax.legend(
+        handles=handles,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.0),
+        bbox_transform=offset_copy(
+            ax.transAxes, ax.figure, y=-below_x_label(ax) - offset, units="points"
+        ),
+        borderaxespad=0.0,
+        frameon=False,
+        fontsize=8,
+        ncols=min(len(handles), BOTTOM_COLUMNS),
     )

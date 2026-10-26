@@ -801,6 +801,7 @@ def _draw_profile(
             [unit_handles, companion_handles, shape_handles, flagged, text_handles],
             notes,
             offset,
+            where="right",
         )
         notes.render(ax, offset)
     return fig, ax

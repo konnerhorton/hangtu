@@ -478,6 +478,6 @@ def grain_size(
                 zorder=_layers.ANNOTATIONS,
             )
         # Below the axes: a legend on the right crowds the log axis (§5).
-        legend = add_legend(ax, [handles, envelope_handles], notes, where="bottom")
+        legend, _ = add_legend(ax, [handles, envelope_handles], notes, where="bottom")
         notes.render(ax, BELOW_X_LABEL, where="bottom", below=legend)
     return fig, ax

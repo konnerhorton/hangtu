@@ -288,6 +288,6 @@ def spt_histogram(
                 color="0.4",
                 zorder=_layers.ANNOTATIONS,
             )
-        add_legend(ax, [handles], notes)
+        add_legend(ax, [handles], notes, where="right")
         notes.render(ax)
     return fig, ax
