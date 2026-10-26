@@ -350,3 +350,61 @@ drained_youngs_modulus_kulhawy_mayne_1990:
     - cite: Kulhawy & Mayne (1990)
       reference: EPRI EL-6800, Manual on Estimating Soil Properties for Foundation Design
       locators: ["Eqs. 5-26a to 5-26c, pp. 5-17 to 5-18", "Fig. 5-13, p. 5-17"]
+
+shear_wave_velocity_imai_tonouchi_1982:
+  target: {column: shear_wave_velocity, unit: m/s}
+  equation: "Vs = 93.7 N60^0.31 m/s"
+  inputs:
+    spt_n60: {variant: "N60, Wair et al.'s 60 % form of the source's N at an assumed 67 % energy", unit: null}
+  range:
+    spt_n60: {greater_than: 0, at_most: 447}
+  labels: {spt_n60: "N60"}
+  applies_to: all soils; Holocene, Pleistocene and Tertiary, alluvium and fill, in Japan
+  not_for: null
+  uscs: null
+  uscs_basis: None proposed; the source is for all soils.
+  scatter: "n = 1654 pairs from 386 borings at 250 sites, r² = 0.75"
+  notes: >-
+    The source's Vs = 97.0 N^0.31 m/s is on uncorrected Japanese N. Wair et
+    al. give it for N60 at an assumed 67 % energy, typical of Japanese
+    practice (Seed et al. 1985), not a measured one. The range is the
+    source's N, "from less than one bpf to nearly 400 bpf", at the same 67 %:
+    400 × 67/60 = 447. GEC 5 Table 8-5 repeats the equation but labels it
+    "Tertiary": its notes column is shifted a row against Wair et al.'s
+    table, which governs. Vs is a small-strain property.
+  sources:
+    - cite: Imai & Tonouchi (1982)
+      reference: Correlation of N value with S-wave velocity and shear modulus, Proc. 2nd European Symposium on Penetration Testing, Amsterdam, 67-72
+      locators: ["pp. 67-72"]
+    - cite: Wair et al. (2012)
+      reference: Guidelines for Estimation of Shear Wave Velocity Profiles, PEER Report 2012/08
+      locators: ["Table 4.2, Eq. (4.6), p. 28", "§4.1.3, p. 18"]
+
+shear_wave_velocity_ohta_goto_1978:
+  target: {column: shear_wave_velocity, unit: m/s}
+  equation: "Vs = 82.1 N60^0.35 m/s"
+  inputs:
+    spt_n60: {variant: "N60, Wair et al.'s 60 % form of the source's N at an assumed 67 % energy", unit: null}
+  range:
+    spt_n60: {at_least: 2.23, at_most: 223}
+  labels: {spt_n60: "N60"}
+  applies_to: all soils; Quaternary alluvium, mostly of alluvial plains in Japan
+  not_for: null
+  uscs: null
+  uscs_basis: None proposed; the source is for all soils.
+  scatter: "r² = 0.52, on 289 pairs"
+  notes: >-
+    The source's Vs = 85.3 N^0.35 m/s is its regression on N alone, for
+    Quaternary soils, on uncorrected Japanese N. Wair et al. give it for N60
+    at an assumed 67 % energy (Seed et al. 1985). The range is the source's
+    N, about 2 to 200 bpf, at the same 67 %: 2.23 to 223. The Holocene and
+    Pleistocene forms need a geologic age and aren't built. GEC 5 Table 8-5
+    labels this equation "Holocene": its notes column is shifted a row
+    against Wair et al.'s table, which governs.
+  sources:
+    - cite: Ohta & Goto (1978)
+      reference: Empirical shear wave velocity equations in terms of characteristic soil indexes, Earthquake Engineering and Structural Dynamics, 6(2), 167-187
+      locators: ["pp. 167-187"]
+    - cite: Wair et al. (2012)
+      reference: Guidelines for Estimation of Shear Wave Velocity Profiles, PEER Report 2012/08
+      locators: ["Table 4.2, Eq. (4.3), p. 28", "§4.1.2, p. 18"]

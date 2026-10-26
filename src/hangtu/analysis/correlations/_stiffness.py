@@ -286,3 +286,228 @@ def drained_youngs_modulus_kulhawy_mayne_1990(
         units,
         display_units,
     )
+
+
+def _power_law(
+    df: pd.DataFrame,
+    name: str,
+    a: float,
+    b: float,
+    uscs: str | list[str] | None,
+    units: Mapping[str, str] | None,
+    display_units: str | None,
+) -> pd.DataFrame:
+    """Return a N60^b, the form of every Vs correlation in Wair et al. (2012)."""
+    item = _framework.entry(name)
+    values = _framework.inputs(df, item, units)
+    with np.errstate(invalid="ignore"):
+        velocity = a * values["spt_n60"] ** b
+    note = _framework.notes(df, item, values, uscs)
+    return _framework.estimate(df, name, velocity, note, display_units, uscs=uscs)
+
+
+def shear_wave_velocity_imai_tonouchi_1982(
+    df: pd.DataFrame,
+    *,
+    uscs: list[str] | None = None,
+    units: Mapping[str, str] | None = None,
+    display_units: str | None = None,
+) -> pd.DataFrame:
+    r"""Estimate the shear wave velocity Vs of any soil from N60.
+
+    $$
+    V_s = 93.7 \, N_{60}^{\,0.31} \ \text{m/s}
+    $$
+
+    Imai & Tonouchi (1982), pp. 67-72, in the 60 % form Wair et al. (2012)
+    give in PEER Report 2012/08, Table 4.2, Eq. (4.6), p. 28. The source's
+    equation, Vs = 97.0 N^0.31 m/s, is on uncorrected Japanese N.
+
+    **Input:** ``spt_n60``, N at 60 % energy. Wair et al. converted the
+    source's N assuming the 67 % energy typical of Japanese practice (Seed
+    et al. 1985), not a measured one. There is no argument to read another
+    column (SPEC §4).
+
+    **Valid for:** all soils, and 0 < N60 ≤ 447: the source's N "from less
+    than one bpf to nearly 400 bpf" (§4.1.3, p. 18) at the same 67 %. The
+    data are Holocene, Pleistocene and Tertiary soils, alluvium and fill,
+    from 386 borings at 250 sites in Japan.
+
+    **Which Vs:** a small-strain property, as measured by seismic tests. A
+    G0 or E0 from it is far stiffer than a working-strain E (see
+    ``drained_youngs_modulus_aashto_2004``), and hangtu doesn't derive one
+    here.
+
+    **Scatter:** n = 1654 pairs, r² = 0.75. FHWA GEC 5 (Loehr et al. 2016,
+    p. 8-18) describes the scatter in these relationships as typical.
+
+    **Assumptions:** the 67 % energy, as above. FHWA GEC 5, Table 8-5,
+    p. 8-20, repeats this equation but labels it "Tertiary": its notes column
+    is shifted a row against Wair et al.'s table, which hangtu follows.
+
+    **Soil type:** the source is for all soils, so hangtu proposes no USCS
+    groups and ``uscs="proposed"`` raises. A list of groups reads
+    ``uscs_symbol`` and gives no estimate outside them ("not for this
+    soil"), or where the symbol is blank ("soil type unknown").
+
+    **No estimate** (NaN, with ``correlation_note`` saying why and one
+    warning counting them): a blank N60 ("input blank"), a refusal from
+    ``spt_refusal`` ("refusal"), and N60 of 0 or less or above 447 ("below
+    range", "above range").
+
+    **Judgments taken:** none.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        One row per SPT test with ``spt_n60``.
+    uscs : list of str, optional
+        Read ``uscs_symbol`` and give no estimate outside these USCS groups.
+        By default no soil type is read.
+    units : dict, optional
+        ``{column: unit}``, overriding ``df.attrs["units"]``. N60 is a count,
+        so none is needed.
+    display_units : {"US", "SI"}, optional
+        The units of Vs: ft/s for US, m/s for SI. Defaults to
+        ``ht.settings.display_units``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        A copy of ``df`` with ``shear_wave_velocity``, ``correlation_name``
+        ("shear_wave_velocity_imai_tonouchi_1982"), ``correlation_note`` and
+        ``correlation_input`` (blank unless an input was another
+        correlation's estimate). No row is dropped or reordered.
+        ``df.attrs["correlations"]`` holds every correlation's entry; see
+        ``ht.analysis.correlations.describe()``.
+
+    References
+    ----------
+    Imai, T., and Tonouchi, K. (1982). Correlation of N value with S-wave
+    velocity and shear modulus. *Proceedings of the 2nd European Symposium
+    on Penetration Testing*, Amsterdam, 67-72.
+
+    Wair, B. R., DeJong, J. T., and Shantz, T. (2012). *Guidelines for
+    Estimation of Shear Wave Velocity Profiles*. PEER Report 2012/08,
+    Pacific Earthquake Engineering Research Center, Berkeley.
+
+    Loehr, J. E., et al. (2016). *Geotechnical Site Characterization*.
+    Geotechnical Engineering Circular No. 5, FHWA-NHI-16-072.
+
+    Examples
+    --------
+    >>> from hangtu.analysis import correlations
+    >>> est = correlations.shear_wave_velocity_imai_tonouchi_1982(spt)
+    >>> fig, ax = ht.plot.profile(est, "shear_wave_velocity")
+    """
+    return _power_law(
+        df,
+        "shear_wave_velocity_imai_tonouchi_1982",
+        93.7,
+        0.31,
+        uscs,
+        units,
+        display_units,
+    )
+
+
+def shear_wave_velocity_ohta_goto_1978(
+    df: pd.DataFrame,
+    *,
+    uscs: list[str] | None = None,
+    units: Mapping[str, str] | None = None,
+    display_units: str | None = None,
+) -> pd.DataFrame:
+    r"""Estimate the shear wave velocity Vs of any Quaternary soil from N60.
+
+    $$
+    V_s = 82.1 \, N_{60}^{\,0.35} \ \text{m/s}
+    $$
+
+    Ohta & Goto (1978), pp. 167-187, their regression on N alone for
+    Quaternary soils, in the 60 % form Wair et al. (2012) give in PEER
+    Report 2012/08, Table 4.2, Eq. (4.3), p. 28. The source's equation,
+    Vs = 85.3 N^0.35 m/s, is on uncorrected Japanese N.
+
+    **Input:** ``spt_n60``, N at 60 % energy. Wair et al. converted the
+    source's N assuming the 67 % energy typical of Japanese practice (Seed
+    et al. 1985), not a measured one. There is no argument to read another
+    column (SPEC §4).
+
+    **Valid for:** all soils, and 2.23 ≤ N60 ≤ 223: the source's N of about
+    2 to 200 bpf (§4.1.2, p. 18) at the same 67 %. The data are 289 pairs,
+    mostly from alluvial plains in Japan. The source's Holocene and
+    Pleistocene forms need a geologic age and aren't built.
+
+    **Which Vs:** a small-strain property, as measured by seismic tests. A
+    G0 or E0 from it is far stiffer than a working-strain E, and hangtu
+    doesn't derive one here.
+
+    **Scatter:** r² = 0.52.
+
+    **Assumptions:** the 67 % energy, as above. FHWA GEC 5 (Loehr et al.
+    2016), Table 8-5, p. 8-20, labels this equation "Holocene": its notes
+    column is shifted a row against Wair et al.'s table, which hangtu
+    follows.
+
+    **Soil type:** the source is for all soils, so hangtu proposes no USCS
+    groups and ``uscs="proposed"`` raises. A list of groups reads
+    ``uscs_symbol`` and gives no estimate outside them ("not for this
+    soil"), or where the symbol is blank ("soil type unknown").
+
+    **No estimate** (NaN, with ``correlation_note`` saying why and one
+    warning counting them): a blank N60 ("input blank"), a refusal from
+    ``spt_refusal`` ("refusal"), and N60 below 2.23 or above 223 ("below
+    range", "above range").
+
+    **Judgments taken:** none.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        One row per SPT test with ``spt_n60``.
+    uscs : list of str, optional
+        Read ``uscs_symbol`` and give no estimate outside these USCS groups.
+        By default no soil type is read.
+    units : dict, optional
+        ``{column: unit}``, overriding ``df.attrs["units"]``. N60 is a count,
+        so none is needed.
+    display_units : {"US", "SI"}, optional
+        The units of Vs: ft/s for US, m/s for SI. Defaults to
+        ``ht.settings.display_units``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        A copy of ``df`` with ``shear_wave_velocity``, ``correlation_name``
+        ("shear_wave_velocity_ohta_goto_1978"), ``correlation_note`` and
+        ``correlation_input`` (blank unless an input was another
+        correlation's estimate). No row is dropped or reordered.
+        ``df.attrs["correlations"]`` holds every correlation's entry; see
+        ``ht.analysis.correlations.describe()``.
+
+    References
+    ----------
+    Ohta, Y., and Goto, N. (1978). Empirical shear wave velocity equations
+    in terms of characteristic soil indexes. *Earthquake Engineering and
+    Structural Dynamics*, 6(2), 167-187.
+
+    Wair, B. R., DeJong, J. T., and Shantz, T. (2012). *Guidelines for
+    Estimation of Shear Wave Velocity Profiles*. PEER Report 2012/08,
+    Pacific Earthquake Engineering Research Center, Berkeley.
+
+    Examples
+    --------
+    >>> from hangtu.analysis import correlations
+    >>> est = correlations.shear_wave_velocity_ohta_goto_1978(spt)
+    >>> fig, ax = ht.plot.profile(est, "shear_wave_velocity")
+    """
+    return _power_law(
+        df,
+        "shear_wave_velocity_ohta_goto_1978",
+        82.1,
+        0.35,
+        uscs,
+        units,
+        display_units,
+    )

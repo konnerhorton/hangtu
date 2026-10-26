@@ -19,6 +19,8 @@ from hangtu.analysis.correlations._friction_angle import (
 from hangtu.analysis.correlations._stiffness import (
     drained_youngs_modulus_aashto_2004,
     drained_youngs_modulus_kulhawy_mayne_1990,
+    shear_wave_velocity_imai_tonouchi_1982,
+    shear_wave_velocity_ohta_goto_1978,
 )
 from hangtu.analysis.correlations._stress_history import (
     at_rest_earth_pressure_coefficient_kulhawy_et_al_1989,
@@ -39,6 +41,8 @@ __all__ = [
     "effective_friction_angle_kulhawy_mayne_1990",
     "overconsolidation_ratio_mayne_kemper_1988",
     "preconsolidation_stress_mayne_kemper_1988",
+    "shear_wave_velocity_imai_tonouchi_1982",
+    "shear_wave_velocity_ohta_goto_1978",
     "undrained_shear_strength_stroud_1974",
     "undrained_shear_strength_terzaghi_peck_1967",
 ]

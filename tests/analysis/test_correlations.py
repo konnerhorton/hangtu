@@ -41,6 +41,8 @@ FUNCTIONS = {
         "at_rest_earth_pressure_coefficient_kulhawy_et_al_1989",
         "drained_youngs_modulus_aashto_2004",
         "drained_youngs_modulus_kulhawy_mayne_1990",
+        "shear_wave_velocity_imai_tonouchi_1982",
+        "shear_wave_velocity_ohta_goto_1978",
     )
 }
 
