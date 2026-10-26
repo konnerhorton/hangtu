@@ -151,3 +151,56 @@ right".
 17. **Visual check:** the regenerated `docs/plots/img/P01*.png`, `P02.png`, `P03.png`, `P04.png`, `P06-*.png`,
     `P07-*.png` and the site's `correlations*.png` and `spt-histogram.png` are looked at. Each legend is readable,
     covers no data, and the axes are visibly wider in the profiles. P05 is unchanged.
+
+## Plan
+Build commits, in order. Each is green with ruff and pytest. The spec's doc edits went in with the spec commit,
+so the build commits change code, tests and generated figures.
+
+1. **`P00: make each figure size the whole figure and add a chart size`**
+   - `src/hangtu/config/defaults.yaml` and `src/hangtu/_settings.py`: the defaults, the fallback to `default` for a
+     missing kind, the error example.
+   - `src/hangtu/plot/_profile.py`: remove `LEGEND_WIDTH` and use the size as given.
+   - `src/hangtu/plot/_spt_histogram.py`: use `chart`.
+   - Check whether `_geology_units.py:998` can use the shared fallback.
+   - Tests (criteria 10 and 11): `tests/test_settings.py` or the closest existing settings test, and
+     `tests/plot/test_profile.py` and `tests/plot/test_spt_histogram.py` for the sizes. Update any test that
+     asserts the old 5.5 × 6.5 in.
+2. **`P00: name correlations by their citation in legends`**
+   - `src/hangtu/config/correlations.yaml`: the header comment for `label:`.
+   - `src/hangtu/analysis/correlations/_framework.py`: `entry()` adds `label`.
+   - `describe()` docstring.
+   - A small helper in `src/hangtu/plot/_values.py` (e.g. `group_text(value)`) that maps a catalog name to its
+     label and passes anything else through.
+   - `src/hangtu/plot/_profile.py`: use the helper where group handles take `str(group)` (the unit handles and the
+     shape handles around lines 720–745), and in `_value_ranges.legend_bar` and the text-value handles where they
+     name a group.
+   - Tests (criteria 12–14): `tests/analysis/test_correlations.py`, and `tests/plot/test_profile_groups.py`.
+3. **`P00: place the legend in a clear corner inside the axes`**
+   - `src/hangtu/plot/_legend.py`: `where="auto" | "inside"`, the corner search, the obstacle collection, the
+     returned placement and the frame.
+   - `src/hangtu/plot/_notes.py`: `render` follows the placement.
+   - `src/hangtu/plot/_layers.py`: a `BARS` layer for P03, with `_spt_histogram.py` drawing bars at it.
+   - Tests (criteria 1–6, 16): new `tests/plot/test_legend_placement.py`, with synthetic axes for each obstacle
+     kind. If the commit passes about 300 lines, split the obstacle collection (with its tests) into its own
+     commit before this one.
+4. **`P00: add legend= to every plot with a legend`**
+   - The `legend=` argument, its validation and docstrings in `_profile.py`, `_spt_profile.py`,
+     `_water_content_profile.py`, `_spt_histogram.py`, `_plasticity_chart.py`, `_geology_units.py` (single panel;
+     `offset=` only for `"right"`) and `_grain_size.py` (default `"bottom"`).
+   - Tests (criteria 7–9) in each plot's test file.
+   - Update existing tests that assume the legend is on the right: find them with
+     `grep -rn "bbox_to_anchor\|get_window_extent\|legend" tests/plot`.
+5. **`P00: wrap long legend entries`**
+   - `_legend.py`: wrap each handle's label before building the legend.
+   - Test (criterion 15) in `tests/plot/test_legend_and_hints.py`.
+6. **`P00: regenerate figures for the new layout; close out`**
+   - Regenerate `docs/plots/img/` with `sandbox/try_plots.py` or each spec's image script, then
+     `uv run python docs/prepare_site.py`.
+   - Look at every image (criterion 17) and adjust the 🟡 numbers if a figure shows they're wrong, updating the
+     spec text in the same commit.
+   - `docs/site/reference/plot.md` if the argument list is shown there.
+   - Update the `CLAUDE.md` status paragraph.
+
+**Verification:** `uv run ruff check . && uv run ruff format --check . && uv run pytest`, then
+`uv run python docs/prepare_site.py && uv run zensical build --clean --strict`, and look at the images listed in
+criterion 17.
