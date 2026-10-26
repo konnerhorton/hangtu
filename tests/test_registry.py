@@ -29,6 +29,8 @@ def test_quantity_kinds_match_p00_table():
         "unit_weight",
         "density",
         "hydraulic_conductivity",
+        "modulus",
+        "velocity",
         "percent",
         "dimensionless",
         "count",

@@ -20,6 +20,7 @@
 "Mg/m3": "megagram / meter**3"
 "m/s": "meter / second"
 "cm/s": "centimeter / second"
+"ft/s": "foot / second"
 "%": "percent"
 "deg": "degree"                          # angle (friction angle, inclination), not temperature
 "°": "degree"                            # the label text of an angle (display units)

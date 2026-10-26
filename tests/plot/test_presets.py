@@ -22,9 +22,15 @@ HISTORY_PRESETS = [
     "overconsolidation_ratio",
     "at_rest_earth_pressure_coefficient",
 ]
+STIFFNESS_PRESETS = ["drained_youngs_modulus", "shear_wave_velocity"]
 P02_PRESETS = ["spt_n", "spt_n60", "spt_n1_60", "spt_n_capped"]
 ALL_PRESETS = (
-    P01_PRESETS + STRESS_PRESETS + STRENGTH_PRESETS + HISTORY_PRESETS + P02_PRESETS
+    P01_PRESETS
+    + STRESS_PRESETS
+    + STRENGTH_PRESETS
+    + HISTORY_PRESETS
+    + STIFFNESS_PRESETS
+    + P02_PRESETS
 )
 
 

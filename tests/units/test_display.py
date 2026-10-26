@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import hangtu as ht
+from hangtu import units
 from hangtu.units import to_display
 
 
@@ -90,3 +91,35 @@ def test_unregistered_column_stays_in_its_declared_unit():
 def test_invalid_display_units_argument_raises():
     with pytest.raises(ht.HangtuError, match='"US" or "SI"'):
         to_display([1.0], "ft", "length", "metric")
+
+
+# --- Modulus and velocity (docs/work/m13b3-spt-stiffness.md, Decision 6, AC 6) --------
+
+
+@pytest.mark.parametrize(
+    ("system", "expected", "text"),
+    [("SI", 13.406, "MPa"), ("US", 280.0, "ksf")],
+)
+def test_a_modulus_displays_in_mpa_or_ksf(system, expected, text):
+    # 140 tsf by hand: 140 x 95.7605 kPa = 13 406 kPa, and 140 x 2 = 280 ksf.
+    magnitudes, label = to_display([13406.47], "kPa", "modulus", system)
+    assert magnitudes[0] == pytest.approx(expected, rel=1e-4)
+    assert label == text
+
+
+@pytest.mark.parametrize(
+    ("system", "expected", "text"),
+    [("SI", 191.31, "m/s"), ("US", 627.66, "ft/s")],
+)
+def test_a_velocity_displays_in_m_per_s_or_ft_per_s(system, expected, text):
+    magnitudes, label = to_display([191.31], "m/s", "velocity", system)
+    assert magnitudes[0] == pytest.approx(expected, rel=1e-4)
+    assert label == text
+
+
+@pytest.mark.parametrize(
+    ("unit", "kind"), [("kPa", "stress"), ("m/s", "hydraulic_conductivity")]
+)
+def test_new_kinds_leave_the_first_match_of_a_unit_unchanged(unit, kind):
+    # AGS ingest canonicalizes a heading by its unit's first kind (_kind_of).
+    assert units._kind_of(units.parse_unit(unit)) == kind
