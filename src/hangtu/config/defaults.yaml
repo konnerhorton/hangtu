@@ -102,6 +102,21 @@ presets:
     log: false
     start_at_zero: true
     typical: [0, 3]
+  # Stiffness (M13 b3).
+  drained_youngs_modulus:
+    column: drained_youngs_modulus
+    label: Drained Young's modulus, E′
+    quantity: modulus
+    log: false
+    start_at_zero: true
+    typical: [0, 100000]
+  shear_wave_velocity:
+    column: shear_wave_velocity
+    label: Shear wave velocity, V_s
+    quantity: velocity
+    log: false
+    start_at_zero: true
+    typical: [0, 500]
   # SPT (P02 §6). N is a count and never converts.
   spt_n:
     column: spt_n
@@ -163,6 +178,16 @@ quantity_kinds:
   hydraulic_conductivity:
     canonical: meter / second
     US: {unit: centimeter / second, text: cm/s}
+    SI: {unit: meter / second, text: m/s}
+  # After stress and hydraulic_conductivity, which share their dimensions: a unit's
+  # kind is the first match, so AGS headings in kPa or m/s keep those kinds (M13 b3).
+  modulus:
+    canonical: kilopascal
+    US: {unit: kip / foot**2, text: ksf}
+    SI: {unit: megapascal, text: MPa}
+  velocity:
+    canonical: meter / second
+    US: {unit: foot / second, text: ft/s}
     SI: {unit: meter / second, text: m/s}
   percent:
     canonical: null

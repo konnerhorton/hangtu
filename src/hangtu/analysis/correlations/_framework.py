@@ -24,7 +24,12 @@ from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.registry import column_info
 
 CONFIG = "config/correlations.yaml"
-OUTPUT_COLUMNS = ("correlation_name", "correlation_note", "correlation_input")
+OUTPUT_COLUMNS = (
+    "correlation_name",
+    "correlation_note",
+    "correlation_input",
+    "correlation_soil",
+)
 #: correlation_note's reasons, in priority order: a row gets the first that applies.
 #: The soil comes first: outside its soils, the correlation doesn't apply at all.
 NOT_FOR_SOIL = "not for this soil"
@@ -36,6 +41,8 @@ ABOVE_RANGE = "above range"
 REASONS = (NOT_FOR_SOIL, SOIL_UNKNOWN, INPUT_BLANK, REFUSAL, BELOW_RANGE, ABOVE_RANGE)
 #: The column the opt-in USCS map reads (Decision 10). It is never derived.
 USCS = "uscs_symbol"
+#: The column a soil= mapping is keyed by (docs/work/m13b3-spt-stiffness.md, D3).
+SOIL_KEY = "geology_unit"
 #: What adds each input column, for the error when it's missing (Decision 3).
 MADE_BY = {
     "spt_n": "p.spt(), or a CSV column of N as reported",
@@ -79,17 +86,30 @@ def entry(name: str) -> dict[str, Any]:
 
 
 def range_text(item: Mapping[str, Any]) -> str:
-    """Write an entry's range as ``"4.55 ≤ spt_n1_60 ≤ 39"``, joined by ``"; "``."""
+    """Write an entry's range as ``"4.55 ≤ (N1)60 ≤ 39"``, joined by ``"; "``.
+
+    Each input or term is named by its ``labels`` entry, as the docstring
+    writes it, and followed by its unit where it has one (TODO #41).
+    """
+    labels = item.get("labels") or {}
     parts = []
     for column, bounds in item["range"].items():
-        text = column
+        text = labels.get(column, column)
+        if set(bounds) <= {"at_least", "greater_than"}:
+            # A lower bound alone reads "σ′v0 > 0 kPa", so the unit follows a number.
+            for key, bound in bounds.items():
+                text = f"{text} {'≥' if key == 'at_least' else '>'} {bound:g}"
+            bounds = {}
         for key, bound in bounds.items():
             sign = _BOUNDS[key][0]
             if key in ("at_least", "greater_than"):
                 text = f"{bound:g} {sign} {text}"
             else:
                 text = f"{text} {sign} {bound:g}"
-        parts.append(text)
+        unit = item["inputs"].get(column, {}).get("unit") or (
+            item.get("terms", {}).get(column, {}).get("unit")
+        )
+        parts.append(f"{text} {unit}" if unit else text)
     return "; ".join(parts)
 
 
@@ -123,6 +143,12 @@ def uscs_groups(item: Mapping[str, Any], uscs: Any) -> list[str] | None:
     if uscs is None:
         return None
     if uscs == "proposed":
+        if not item.get("uscs"):
+            raise HangtuError(
+                "This correlation is for all soils in its source, so hangtu "
+                "proposes no USCS groups for it. Pass the groups to keep, e.g. "
+                'uscs=["SP", "SM"], or leave uscs= out.'
+            )
         return list(item["uscs"])
     if (
         isinstance(uscs, list | tuple)
@@ -151,25 +177,83 @@ def soil(df: pd.DataFrame, groups: list[str]) -> tuple[np.ndarray, np.ndarray]:
     return outside, unknown
 
 
+def soil_rows(df: pd.DataFrame, item: Mapping[str, Any], soil: Any) -> np.ndarray:
+    """Return the source's soil row for each row of ``df``, from ``soil=``.
+
+    ``soil`` names one of the entry's ``rows`` for every row, or maps each
+    ``geology_unit`` to one. It is required: the row is the engineer's reading
+    of the log, never inferred (docs/work/m13b3-spt-stiffness.md, Decision 3).
+    """
+    rows = item["rows"]
+    listed = "; ".join(f"{name!r} ({row['wording']})" for name, row in rows.items())
+    example = next(iter(rows))
+    if soil is None:
+        raise HangtuError(
+            "soil= is required: name the source's soil row the coefficient is "
+            f"taken from. Its rows: {listed}. Example: soil={example!r}, or "
+            f'soil={{"Alluvium": {example!r}}} by geology unit.'
+        )
+    names = list(soil.values()) if isinstance(soil, Mapping) else [soil]
+    unknown = [name for name in names if name not in rows]
+    if unknown:
+        raise HangtuError(
+            f"soil= names {', '.join(map(repr, unknown))}, which isn't one of the "
+            f"source's rows: {listed}."
+        )
+    if not isinstance(soil, Mapping):
+        return np.full(len(df), soil, dtype=object)
+    if SOIL_KEY not in df.columns:
+        raise ColumnError(
+            "soil= maps geology units to rows, and df has no 'geology_unit' "
+            "column. Add it (p.spt() has it), or give one row name for every row."
+        )
+    units = df[SOIL_KEY].astype("string").str.strip()
+    blank = int((units.isna() | (units == "")).sum())
+    if blank:
+        raise HangtuError(
+            f"soil= maps geology units to rows, and {blank} rows have no "
+            "'geology_unit'. Fill it, or pass those rows separately with one row "
+            "name."
+        )
+    unmapped = sorted(set(units) - set(soil))
+    if unmapped:
+        raise HangtuError(
+            f"soil= gives no row for the geology units "
+            f"{', '.join(map(repr, unmapped))}. Add them to the mapping, or leave "
+            "their rows out of df."
+        )
+    return units.map(soil).to_numpy(dtype=object)
+
+
 def notes(
     df: pd.DataFrame,
     item: Mapping[str, Any],
     values: Mapping[str, np.ndarray],
     uscs: Any = None,
+    rows: np.ndarray | None = None,
 ) -> np.ndarray:
     """Return each row's ``correlation_note``: None, or the first reason in REASONS.
 
     ``values`` holds the inputs and any term the entry's ``range`` limits
     (Decision 5), each computed by the function before this is called.
-    ``uscs`` is the function's argument (Decision 10).
+    ``uscs`` is the function's argument (Decision 10). ``rows``, from
+    ``soil_rows()``, gives each row's soil row; with ``uscs="proposed"`` each
+    row is checked against its own soil row's groups, which ``uscs=`` checks
+    but never chooses (docs/work/m13b3-spt-stiffness.md, Decision 3).
     """
     missing = [key for key in item["range"] if key not in values]
     if missing:
         raise KeyError(f"The range names {missing}, which the function didn't compute.")
     found = {reason: np.zeros(len(df), dtype=bool) for reason in REASONS}
-    groups = uscs_groups(item, uscs)
-    if groups is not None:
-        found[NOT_FOR_SOIL], found[SOIL_UNKNOWN] = soil(df, groups)
+    if rows is not None and uscs == "proposed":
+        _, found[SOIL_UNKNOWN] = soil(df, [])
+        for name in dict.fromkeys(rows):
+            outside, _ = soil(df, item["rows"][name]["uscs"])
+            found[NOT_FOR_SOIL] |= outside & (rows == name)
+    else:
+        groups = uscs_groups(item, uscs)
+        if groups is not None:
+            found[NOT_FOR_SOIL], found[SOIL_UNKNOWN] = soil(df, groups)
     for data in values.values():
         found[INPUT_BLANK] |= np.isnan(data)
     if "spt_refusal" in df.columns:
@@ -234,6 +318,7 @@ def estimate(
     lower: np.ndarray | None = None,
     upper: np.ndarray | None = None,
     uscs: Any = None,
+    rows: np.ndarray | None = None,
 ) -> pd.DataFrame:
     """Return a copy of ``df`` with the estimate and the correlation's columns.
 
@@ -243,6 +328,10 @@ def estimate(
     ``<target>_upper`` in the same unit; NaN in ``upper`` is an open band.
     ``uscs`` is recorded as given in ``attrs["correlation_uscs"]``, so results
     of calls with the same argument keep equal attrs under ``pd.concat``.
+    ``rows``, each row's soil row, goes in ``correlation_soil`` (blank
+    without one) and not in attrs: two correlations' soil rows always
+    differ, and unequal attrs would make ``pd.concat`` drop them all, units
+    too.
     """
     item = entry(name)
     target = item["target"]["column"]
@@ -267,11 +356,17 @@ def estimate(
         reasons = ", ".join(
             f"{counts[reason]} {reason}" for reason in REASONS if reason in counts
         )
+        # The range explains only the rows outside it (TODO #41).
+        outside = BELOW_RANGE in counts or ABOVE_RANGE in counts
         warn(
             f"{name} gave no estimate for {int(noted.sum())} of {len(df)} rows "
-            f"({reasons}; see 'correlation_note'). Its range is "
-            f"{range_text(item)}; outside it the estimate is blank, never "
-            "extrapolated."
+            f"({reasons}; see 'correlation_note')."
+            + (
+                f" Its range is {range_text(item)}; outside it the estimate is "
+                "blank, never extrapolated."
+                if outside
+                else ""
+            )
         )
     replaced = [column for column in (*shown, *OUTPUT_COLUMNS) if column in df.columns]
     if replaced:
@@ -283,6 +378,11 @@ def estimate(
     result["correlation_name"] = name
     result["correlation_note"] = pd.Series(note, index=df.index, dtype=object)
     result["correlation_input"] = pd.Series(upstream, index=df.index, dtype=object)
+    result["correlation_soil"] = pd.Series(
+        np.full(len(df), None, dtype=object) if rows is None else rows,
+        index=df.index,
+        dtype=object,
+    )
     # A dimensionless target (OCR, K0) has no unit to record.
     result.attrs["units"] = {
         **_units.units_of(df),

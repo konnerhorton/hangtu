@@ -73,6 +73,8 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 | `unit_weight` | kN/m³ | pcf (lbf/ft³) | kN/m³ | pcf / kN/m³ | §4.3 #1 |
 | `density` | Mg/m³ | pcf (lb/ft³) | Mg/m³ | pcf / Mg/m³ | §4.3 #1 |
 | `hydraulic_conductivity` | m/s | **cm/s** (decided) | m/s | cm/s / m/s | |
+| `modulus` | kPa | ksf | MPa | ksf / MPa | Young's and other moduli (M13 b3); kept after `stress`, which a kPa unit matches first |
+| `velocity` | m/s | ft/s | m/s | ft/s / m/s | wave velocities (M13 b3); kept after `hydraulic_conductivity`, which an m/s unit matches first |
 | `percent` | % | % | % | % | water content, LL, PL, % passing, ER |
 | `dimensionless` | — | — | — | (none) | PI, LI, Ic, Cu, Cc |
 | `count` | — | — | — | (none) | SPT N; never converted |

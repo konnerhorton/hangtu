@@ -14,9 +14,15 @@
 #               from its inputs, such as N pa / σ′v0, whose range the source gives
 #   range       {input or term: {at_least | greater_than, at_most | less_than}}, in
 #               the inputs' units; outside it the estimate is NaN, never extrapolated
+#   labels      {input or term in range: how the docstring writes it}, for the
+#               warning, so it names the range in the user's terms (TODO #41)
 #   bands       optional, for a correlation published as classes: each class's lower
 #               bound on the input (inclusive) and its target band (lower, upper;
 #               upper null for an open band), written as <target>_lower / _upper
+#   rows        optional, for a coefficient the source gives by soil type: {name:
+#               {wording, coefficient, uscs}}, the source's wording, its coefficient,
+#               and hangtu's proposed USCS groups for it; soil= names the row and
+#               uscs= checks it (docs/work/m13b3-spt-stiffness.md, Decision 3)
 #   applies_to, not_for, scatter, notes   as the sources state them
 #   uscs        hangtu's proposed USCS groups for applies_to, used only with
 #               uscs="proposed" (Decision 10); uscs_basis says how they were read
@@ -31,6 +37,7 @@ effective_friction_angle_hatanaka_uchida_1996:
     spt_n1_60: {variant: "(N1)60, N60 corrected for overburden", unit: null}
   range:
     spt_n1_60: {at_least: 4.55, at_most: 39.0}
+  labels: {spt_n1_60: "(N1)60"}
   applies_to: relatively clean fine to medium sands
   not_for: micaceous sands; gravelly soils
   uscs: [SP, SW, SP-SM, SW-SM]
@@ -60,6 +67,7 @@ effective_friction_angle_kulhawy_mayne_1990:
   range:
     spt_n60: {at_most: 60}
     effective_vertical_stress: {greater_than: 0, at_most: 300}
+  labels: {spt_n60: "N60", effective_vertical_stress: "σ′v"}
   applies_to: relatively clean sands
   not_for: null
   uscs: [SP, SW, SP-SM, SW-SM]
@@ -86,6 +94,7 @@ undrained_shear_strength_terzaghi_peck_1967:
     spt_n: {variant: "field N, as measured (blows/ft), not corrected for energy", unit: null}
   range:
     spt_n: {at_least: 0}
+  labels: {spt_n: "N"}
   bands:
     # spt_n: the class's lower N; lower, upper: s_u / pa
     - {spt_n: 0, lower: 0, upper: 0.125}
@@ -124,6 +133,7 @@ undrained_shear_strength_stroud_1974:
     plasticity_index: {variant: "PI of the clay at the test, a judgment by geology unit", unit: null}
   range:
     plasticity_index: {at_least: 15}
+  labels: {plasticity_index: "PI"}
   bands:
     # plasticity_index: the lower PI of each f1 range; lower, upper: f1
     - {plasticity_index: 15, lower: 4.5, upper: 5.5}
@@ -155,6 +165,7 @@ preconsolidation_stress_mayne_kemper_1988:
     spt_n: {variant: "field N, as measured (blows/ft), not corrected for energy", unit: null}
   range:
     spt_n: {at_least: 0.5, at_most: 200}
+  labels: {spt_n: "N"}
   applies_to: clays
   not_for: null
   uscs: [CL, CH]
@@ -185,6 +196,7 @@ overconsolidation_ratio_mayne_kemper_1988:
   range:
     effective_vertical_stress: {greater_than: 0}
     normalized_n: {at_least: 1, at_most: 100}
+  labels: {effective_vertical_stress: "σ′v0", normalized_n: "N pa/σ′v0"}
   applies_to: clays
   not_for: null
   uscs: [CL, CH]
@@ -213,6 +225,7 @@ at_rest_earth_pressure_coefficient_kulhawy_et_al_1989:
   range:
     effective_vertical_stress: {greater_than: 0}
     normalized_n: {greater_than: 0, at_most: 60}
+  labels: {effective_vertical_stress: "σ′v0", normalized_n: "N pa/σ′v0"}
   applies_to: clays
   not_for: null
   uscs: [CL, CH]
@@ -236,3 +249,162 @@ at_rest_earth_pressure_coefficient_kulhawy_et_al_1989:
     - cite: Ching & Schweckendiek (2021)
       reference: ISSMGE TC304 state-of-the-art review of inherent variability and transformation uncertainty
       locators: ["Table 5.2, p. 178", "§5.1, p. 176"]
+
+drained_youngs_modulus_aashto_2004:
+  target: {column: drained_youngs_modulus, unit: tsf}
+  equation: "E = C (N1)60 tsf, C = 4, 7, 10 or 12 by soil row"
+  inputs:
+    spt_n1_60: {variant: "(N1)60, N60 corrected for overburden", unit: null}
+  range:
+    spt_n1_60: {greater_than: 0}
+  labels: {spt_n1_60: "(N1)60"}
+  rows:
+    silts:
+      wording: "Silts, sandy silts, slightly cohesive mixtures"
+      coefficient: 4
+      uscs: [ML, CL-ML]
+    clean_fine_to_medium_sands:
+      wording: "Clean fine to medium sands and slightly silty sands"
+      coefficient: 7
+      uscs: [SP, SW, SP-SM, SW-SM]
+    coarse_sands:
+      wording: "Coarse sands and sands with little gravel"
+      coefficient: 10
+      uscs: [SP, SW, SP-SM, SW-SM]
+    gravels:
+      wording: "Sandy gravel and gravels"
+      coefficient: 12
+      uscs: [GP, GW, GP-GM, GW-GM]
+  applies_to: silts, sands and gravels, by the source's soil rows
+  not_for: null
+  uscs: null
+  uscs_basis: >-
+    Each row's groups are hangtu's reading of its wording. A USCS symbol
+    doesn't say whether a sand is fine or coarse, so the two sand rows share
+    their groups: the check catches a gravel or a clay, not the wrong sand.
+  scatter: >-
+    Not stated. FHWA NHI-06-088 (pp. 5-83 to 5-84) gives the table "for
+    preliminary design", and GEC 5 (p. 8-25) calls such relationships "only
+    approximate estimates".
+  notes: >-
+    The source calls the estimate Es, Young's modulus for elastic
+    settlement; GEC 5 gives it as an "equivalent modulus" at working
+    strains. It is a drained secant modulus, not the small-strain E0 from
+    Vs, nor an undrained Eu; for the silt row, drained loading is hangtu's
+    reading. "The definition of Es is not always consistent for the various
+    correlations" (NHI-06-088, p. 5-84). The constants are in tsf, as
+    NHI-06-088 gives them, converted with pint: read as ksf they would halve
+    E. GEC 5's ksi form (0.056, 0.097, 0.139, 0.167) is the same factors,
+    rounded. Neither source gives an N range; the lower bound (N1)60 > 0 is
+    hangtu's, since a zero modulus is no estimate.
+  sources:
+    - cite: AASHTO (2004)
+      reference: LRFD Bridge Design Specifications, with 2006 Interims
+      locators: []
+    - cite: Samtani & Nowatzki (2006)
+      reference: Soils and Foundations Reference Manual, Vol. I, FHWA NHI-06-088
+      locators: ["Table 5-16, p. 5-85", "pp. 5-83 to 5-84"]
+    - cite: Loehr et al. (2016)
+      reference: FHWA GEC 5, FHWA-NHI-16-072
+      locators: ["Table 8-11, p. 8-26", "§8.9.1, p. 8-25"]
+
+drained_youngs_modulus_kulhawy_mayne_1990:
+  target: {column: drained_youngs_modulus, unit: kPa}
+  equation: "E = C N60 pa, C = 5, 10 or 15 by soil row, pa = 100 kPa"
+  inputs:
+    spt_n60: {variant: "N60, N at 60 % energy, not corrected for overburden", unit: null}
+  range:
+    spt_n60: {greater_than: 0}
+  labels: {spt_n60: "N60"}
+  rows:
+    sands_with_fines:
+      wording: "sands with fines"
+      coefficient: 5
+      uscs: [SM, SC, SP-SM, SW-SM, SP-SC, SW-SC]
+    clean_normally_consolidated_sands:
+      wording: "clean NC sands"
+      coefficient: 10
+      uscs: [SP, SW]
+    clean_overconsolidated_sands:
+      wording: "clean OC sands"
+      coefficient: 15
+      uscs: [SP, SW]
+  applies_to: sands, by the source's soil rows
+  not_for: null
+  uscs: null
+  uscs_basis: >-
+    Each row's groups are hangtu's reading of its wording. A USCS symbol
+    doesn't say whether a sand is normally consolidated or overconsolidated,
+    so the two clean rows share their groups.
+  scatter: >-
+    Not stated. EPRI (p. 5-17): "all attempts to date which correlate a
+    modulus with N show considerable scatter".
+  notes: >-
+    Given "as a first order estimator", beside Fig. 5-13, "Comparative Plot
+    of Drained Modulus Correlations for Sand", in the section on
+    cohesionless soils: a drained, working-strain modulus, not the
+    small-strain E0 from Vs, nor an undrained Eu. The source gives no N
+    range; the lower bound N60 > 0 is hangtu's, since a zero modulus is no
+    estimate.
+  sources:
+    - cite: Kulhawy & Mayne (1990)
+      reference: EPRI EL-6800, Manual on Estimating Soil Properties for Foundation Design
+      locators: ["Eqs. 5-26a to 5-26c, pp. 5-17 to 5-18", "Fig. 5-13, p. 5-17"]
+
+shear_wave_velocity_imai_tonouchi_1982:
+  target: {column: shear_wave_velocity, unit: m/s}
+  equation: "Vs = 93.7 N60^0.31 m/s"
+  inputs:
+    spt_n60: {variant: "N60, Wair et al.'s 60 % form of the source's N at an assumed 67 % energy", unit: null}
+  range:
+    spt_n60: {greater_than: 0, at_most: 447}
+  labels: {spt_n60: "N60"}
+  applies_to: all soils; Holocene, Pleistocene and Tertiary, alluvium and fill, in Japan
+  not_for: null
+  uscs: null
+  uscs_basis: None proposed; the source is for all soils.
+  scatter: "n = 1654 pairs from 386 borings at 250 sites, r² = 0.75"
+  notes: >-
+    The source's Vs = 97.0 N^0.31 m/s is on uncorrected Japanese N. Wair et
+    al. give it for N60 at an assumed 67 % energy, typical of Japanese
+    practice (Seed et al. 1985), not a measured one. The range is the
+    source's N, "from less than one bpf to nearly 400 bpf", at the same 67 %:
+    400 × 67/60 = 447. GEC 5 Table 8-5 repeats the equation but labels it
+    "Tertiary": its notes column is shifted a row against Wair et al.'s
+    table, which governs. Vs is a small-strain property.
+  sources:
+    - cite: Imai & Tonouchi (1982)
+      reference: Correlation of N value with S-wave velocity and shear modulus, Proc. 2nd European Symposium on Penetration Testing, Amsterdam, 67-72
+      locators: ["pp. 67-72"]
+    - cite: Wair et al. (2012)
+      reference: Guidelines for Estimation of Shear Wave Velocity Profiles, PEER Report 2012/08
+      locators: ["Table 4.2, Eq. (4.6), p. 28", "§4.1.3, p. 18"]
+
+shear_wave_velocity_ohta_goto_1978:
+  target: {column: shear_wave_velocity, unit: m/s}
+  equation: "Vs = 82.1 N60^0.35 m/s"
+  inputs:
+    spt_n60: {variant: "N60, Wair et al.'s 60 % form of the source's N at an assumed 67 % energy", unit: null}
+  range:
+    spt_n60: {at_least: 2.23, at_most: 223}
+  labels: {spt_n60: "N60"}
+  applies_to: all soils; Quaternary alluvium, mostly of alluvial plains in Japan
+  not_for: null
+  uscs: null
+  uscs_basis: None proposed; the source is for all soils.
+  scatter: "r² = 0.52, on 289 pairs"
+  notes: >-
+    The source's Vs = 85.3 N^0.35 m/s is its regression on N alone, for
+    Quaternary soils, on uncorrected Japanese N. Wair et al. give it for N60
+    at an assumed 67 % energy (Seed et al. 1985). The range is the source's
+    N, about 2 to 200 bpf, at the same 67 %: 2.23 to 223. The Holocene and
+    Pleistocene forms need a geologic age and aren't built. GEC 5 Table 8-5
+    labels this equation "Holocene": its notes column is shifted a row
+    against Wair et al.'s table, which governs.
+  sources:
+    - cite: Ohta & Goto (1978)
+      reference: Empirical shear wave velocity equations in terms of characteristic soil indexes, Earthquake Engineering and Structural Dynamics, 6(2), 167-187
+      locators: ["pp. 167-187"]
+    - cite: Wair et al. (2012)
+      reference: Guidelines for Estimation of Shear Wave Velocity Profiles, PEER Report 2012/08
+      locators: ["Table 4.2, Eq. (4.3), p. 28", "§4.1.2, p. 18"]

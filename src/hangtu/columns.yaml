@@ -394,12 +394,33 @@ columns:
     label: At-rest earth pressure coefficient, K0
     ags: ["derived: docs/work/m13b2-spt-strength-history.md"]
     used_by: [P01]
+  drained_youngs_modulus:
+    description: Drained Young's modulus, a secant modulus at working strains, not the small-strain E0
+    type: number
+    quantity: modulus
+    scale: ratio
+    label: Drained Young's modulus, E′
+    ags: ["derived: docs/work/m13b3-spt-stiffness.md"]
+    used_by: [P01]
+  shear_wave_velocity:
+    description: Shear wave velocity, measured in situ or estimated
+    type: number
+    quantity: velocity
+    scale: ratio
+    label: Shear wave velocity, V_s
+    ags: [ISTA.ISTA_WVL]   # where ISTA_WVTY gives a shear wave; the dataset is W5's
+    used_by: [P01]
 
   # --- Correlations (ht.analysis.correlations, M13) ----------------------------------------
   correlation_name:
     description: The correlation an estimate came from, by its function's name
     type: text
     ags: ["derived: docs/work/m13b1-spt-framework.md"]
+    used_by: [P01]
+  correlation_soil:
+    description: The source's soil row a correlation's coefficient was taken from (soil=)
+    type: text
+    ags: ["derived: docs/work/m13b3-spt-stiffness.md"]
     used_by: [P01]
   correlation_input:
     description: The correlation an input came from, when a correlation read another's estimate

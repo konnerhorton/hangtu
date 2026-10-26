@@ -1,5 +1,7 @@
 # 10 — Small-strain stiffness
 
+Promoted to the docs site as [`docs/site/parameters/10-small-strain-stiffness.md`](../../site/parameters/10-small-strain-stiffness.md) (M13 b3); the page is current where they differ.
+
 | | |
 |---|---|
 | **Parameters** | Vs (shear wave velocity), G0 = Gmax (small-strain shear modulus), G0ref (HS-small reference value), γ0.7 (threshold shear strain), γref / γr (reference strain at G/G0 = 0.5) |
@@ -110,6 +112,11 @@ $$\frac{G_s}{G_0} = \frac{1}{1+a\,|\gamma/\gamma_{0.7}|},\ a = 0.385;\qquad \gam
 
 ### 5.7 Vs and G0 from SPT and CPT (preliminary only)
 $$V_s = a\,N_{60}^{\,b}\ \text{(m/s), e.g. Imai \& Tonouchi (1982): } 93.7N_{60}^{0.31}\ (r^2 = 0.75);\ \text{Ohta \& Goto (1978): } 82.1N_{60}^{0.35}\ (r^2 = 0.52)$$
+- **N basis and geology (corrected, M13 b3):** both are Wair et al. (2012, PEER 2012/08, Table 4.2, p. 28)'s 60 %
+  forms of the sources' Japanese N at an assumed 67 % energy (97.0 N^0.31 and 85.3 N^0.35 on uncorrected N).
+  93.7 N60^0.31 is Imai & Tonouchi's all-soils fit (H, P, T; alluvium and fill; n = 1654), and 82.1 N60^0.35
+  Ohta & Goto's Quaternary fit. GEC 5 Table 8-5's notes column is shifted a row against Wair et al.'s table, so it
+  labels the first "Tertiary" and the second "Holocene"; Wair et al. govern.
 $$G_{max} = 49.4\,q_t^{0.695}e^{-1.130}\ \text{(clay, MPa; Mayne \& Rix 1993)};\quad V_s = 1.75\,q_t^{0.627}\ \text{(clay, } q_t \text{ in kPa; Mayne \& Rix 1995)}$$
 - **Scatter:** r² 0.51–0.75 for Vs–N60 forms that report it [2] Table 8-5; GEC 5: "considerable variability" [2]
 - **Source:** [2] Tables 8-5 to 8-8, pp. 8-20 to 8-21 [V]

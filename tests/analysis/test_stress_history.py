@@ -72,6 +72,17 @@ def test_k0_golden_values():
     )
 
 
+def test_k0_warning_names_the_range_in_the_users_terms():
+    with pytest.warns(UserWarning) as caught:
+        correlations.at_rest_earth_pressure_coefficient_kulhawy_et_al_1989(
+            golden_frame()
+        )
+    assert str(caught[0].message).endswith(
+        "Its range is σ′v0 > 0 kPa; 0 < N pa/σ′v0 ≤ 60; outside it the estimate "
+        "is blank, never extrapolated."
+    )
+
+
 @pytest.mark.parametrize(
     "name, target",
     [

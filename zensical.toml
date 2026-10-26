@@ -44,6 +44,8 @@ nav = [
     "parameters/05-undrained-shear-strength.md",
     "parameters/06-preconsolidation-and-compressibility.md",
     "parameters/07-at-rest-earth-pressure.md",
+    "parameters/08-elastic-stiffness-soil.md",
+    "parameters/10-small-strain-stiffness.md",
   ] },
   { "Reference" = [
     "reference/project.md",
