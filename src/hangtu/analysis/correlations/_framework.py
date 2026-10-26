@@ -318,7 +318,6 @@ def estimate(
     lower: np.ndarray | None = None,
     upper: np.ndarray | None = None,
     uscs: Any = None,
-    soil: Any = None,
     rows: np.ndarray | None = None,
 ) -> pd.DataFrame:
     """Return a copy of ``df`` with the estimate and the correlation's columns.
@@ -328,9 +327,11 @@ def estimate(
     ``upper``, for a band, are written as ``<target>_lower`` and
     ``<target>_upper`` in the same unit; NaN in ``upper`` is an open band.
     ``uscs`` is recorded as given in ``attrs["correlation_uscs"]``, so results
-    of calls with the same argument keep equal attrs under ``pd.concat``;
-    ``soil`` likewise in ``attrs["correlation_soil"]``, and ``rows``, each
-    row's soil row, in ``correlation_soil`` (blank without one).
+    of calls with the same argument keep equal attrs under ``pd.concat``.
+    ``rows``, each row's soil row, goes in ``correlation_soil`` (blank
+    without one) and not in attrs: two correlations' soil rows always
+    differ, and unequal attrs would make ``pd.concat`` drop them all, units
+    too.
     """
     item = entry(name)
     target = item["target"]["column"]
@@ -393,5 +394,4 @@ def estimate(
     result.attrs["correlation_uscs"] = (
         uscs if uscs is None or isinstance(uscs, str) else list(uscs)
     )
-    result.attrs["correlation_soil"] = dict(soil) if isinstance(soil, Mapping) else soil
     return result

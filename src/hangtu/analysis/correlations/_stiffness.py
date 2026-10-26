@@ -38,7 +38,6 @@ def _by_soil_row(
         note,
         display_units,
         uscs=uscs,
-        soil=soil,
         rows=rows,
     )
 

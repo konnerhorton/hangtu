@@ -212,3 +212,22 @@ def test_vs_has_no_proposed_groups_but_takes_a_list():
     with pytest.warns(UserWarning, match=r"1 not for this soil"):
         out = correlations.shear_wave_velocity_imai_tonouchi_1982(df, uscs=["SP"])
     assert out["correlation_note"].tolist() == [None, "not for this soil"]
+
+
+def test_two_e_correlations_concatenate_with_their_units():
+    # Their soil rows differ, so they are on the rows, not in attrs.
+    df = ht.set_units(
+        pd.DataFrame({"depth": [3.0], "spt_n60": [20.0], "spt_n1_60": [20.0]}),
+        {"depth": "m"},
+    )
+    both = pd.concat(
+        [
+            correlations.drained_youngs_modulus_aashto_2004(df, soil="coarse_sands"),
+            correlations.drained_youngs_modulus_kulhawy_mayne_1990(
+                df, soil="sands_with_fines"
+            ),
+        ],
+        ignore_index=True,
+    )
+    assert both.attrs["units"]["drained_youngs_modulus"] in ("MPa", "ksf")
+    assert both["correlation_soil"].tolist() == ["coarse_sands", "sands_with_fines"]

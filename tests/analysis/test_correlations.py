@@ -574,7 +574,6 @@ def rows_entry(monkeypatch):
             note,
             "SI",
             uscs=uscs,
-            soil=soil,
             rows=rows,
         )
 
@@ -596,7 +595,6 @@ def test_one_row_name_applies_to_every_row(rows_entry):
     # kPa in the entry, MPa on display (modulus).
     assert out["drained_youngs_modulus"].tolist() == pytest.approx([0.07, 0.14])
     assert out["correlation_soil"].tolist() == ["sands", "sands"]
-    assert out.attrs["correlation_soil"] == "sands"
 
 
 def test_a_mapping_gives_each_geology_unit_its_row(rows_entry):
@@ -605,7 +603,6 @@ def test_a_mapping_gives_each_geology_unit_its_row(rows_entry):
     out = rows_entry(df, soil=soil)
     assert out["drained_youngs_modulus"].tolist() == pytest.approx([0.04, 0.07, 0.04])
     assert out["correlation_soil"].tolist() == ["silts", "sands", "silts"]
-    assert out.attrs["correlation_soil"] == soil
 
 
 def test_a_mapping_raises_naming_an_unmapped_unit(rows_entry):
@@ -658,7 +655,6 @@ def test_correlations_without_rows_leave_correlation_soil_blank():
         clays(), display_units="SI"
     )
     assert out["correlation_soil"].isna().all()
-    assert out.attrs["correlation_soil"] is None
 
 
 def test_proposed_raises_on_a_correlation_for_all_soils():

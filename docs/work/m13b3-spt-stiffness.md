@@ -150,8 +150,9 @@ decisions unless they say "intent" or "review".
 
    - `soil=` is required, with no default: one row name for every row of `df`, or `{geology_unit: row}`, read
      from the `geology_unit` column. A unit on the rows that the mapping doesn't name is an error naming it; an
-     unknown row name is an error listing the rows. The row used is on each result row (proposed column
-     `correlation_soil`) and in attrs.
+     unknown row name is an error listing the rows. The row used is on each result row (`correlation_soil`),
+     not in attrs: two correlations' rows always differ, and unequal attrs make `pd.concat` drop them all, units
+     too (changed in the build, found by the guide's example).
    - **`uscs=` checks the row; it doesn't choose it.** This changes intent review 1, which let the USCS map pick
      the row: the sources' rows split what a USCS symbol can't (fine against coarse sand, NC against OC), so a
      symbol can't choose one. With `uscs="proposed"`, rows whose `uscs_symbol` is outside the chosen row's groups
@@ -208,7 +209,8 @@ decisions unless they say "intent" or "review".
    within 0.1 %.
 3. **Input:** each raises without its input column, naming it and what adds it; AASHTO given `spt_n60` only raises.
 4. **Soil row:** a missing `soil=` raises listing the rows; an unknown name raises; a mapping by geology unit
-   applies each row and raises naming an unmapped unit; the row is on each result row and in attrs.
+   applies each row and raises naming an unmapped unit; the row is on each result row, and two E results
+   concatenate with their units.
 5. **USCS check:** with `uscs="proposed"` and `soil="clean_fine_to_medium_sands"`, GP gives "not for this soil";
    a blank symbol "soil type unknown"; on a Vs correlation `"proposed"` raises and a list works.
 6. **Units:** `drained_youngs_modulus` displays in MPa and ksf, `shear_wave_velocity` in m/s and ft/s; P01 draws
@@ -264,7 +266,7 @@ decisions (D) and acceptance criteria (AC).
   read from `geology_unit`; errors list the rows / name unmapped or blank units / name the missing column.
   `notes()` takes the per-row soil: with `uscs="proposed"` each row is checked against its own row's groups; an
   entry with neither `uscs` nor `rows` raises on `"proposed"` ("for all soils"). `estimate()` writes
-  `correlation_soil` (blank for correlations without rows) and records `soil` in attrs like `uscs`.
+  `correlation_soil` (blank for correlations without rows); not in attrs (amended: see the fix after step 5).
 - Tests with a made-up entry (as `chain_entry`): missing / unknown `soil=`, mapping and unmapped unit, the USCS
   check per row, "proposed" raising on an entry without groups.
 
