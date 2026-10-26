@@ -1,6 +1,7 @@
 """Legend layout (docs/plots/P00-framework.md §11)."""
 
 import math
+import textwrap
 from collections.abc import Collection, Sequence
 from typing import Literal, NamedTuple
 
@@ -31,6 +32,8 @@ BOTTOM_COLUMNS = 4  # legend columns below the axes
 CORNERS = ("upper right", "upper left", "lower right", "lower left")
 CLEARANCE = 4.0  # points around an inside legend that must be clear of data
 FRAME_ALPHA = 0.85  # an inside legend's white frame, so gridlines don't cross it
+#: Characters per legend line; a longer entry wraps at spaces, never shortened.
+WRAP = 28
 
 Where = Literal["auto", "inside", "bottom", "right"]
 WHERE = ("auto", "inside", "bottom", "right")
@@ -104,15 +107,16 @@ def add_legend(
             else f"{len(handles)} legend entries not shown"
         )
         return Placed(None, None)
+    labels = [_wrap(handle.get_label()) for handle in handles]
     if where == "right":
-        return Placed(_right(ax, handles, offset), "right")
+        return Placed(_right(ax, handles, labels, offset), "right")
     if where == "bottom":
-        return Placed(_bottom(ax, handles), "bottom")
+        return Placed(_bottom(ax, handles, labels), "bottom")
     # The footnote below the x label shortens the axes, so it takes its room
     # before the layout engine sets the axes' final size.
     footnote = notes.render(ax, where="inside")
     ax.figure.draw_without_rendering()
-    legend = _inside(ax, handles)
+    legend = _inside(ax, handles, labels)
     counts = _corner_obstacles(ax, legend, exclude={footnote})
     if footnote is not None:
         footnote.remove()
@@ -122,14 +126,22 @@ def add_legend(
         return Placed(legend, "inside")
     if where == "auto":
         legend.remove()
-        return Placed(_bottom(ax, handles), "bottom")
+        return Placed(_bottom(ax, handles, labels), "bottom")
     legend.set_loc(min(counts, key=counts.__getitem__))
     return Placed(legend, "inside")
 
 
-def _right(ax: Axes, handles: list[Artist], offset: float) -> Legend:
+def _wrap(label: str) -> str:
+    """Wrap a long entry at word boundaries onto as many lines as it needs."""
+    if len(label) <= WRAP:
+        return label
+    return textwrap.fill(label, WRAP, break_long_words=False, break_on_hyphens=False)
+
+
+def _right(ax: Axes, handles: list[Artist], labels: list[str], offset: float) -> Legend:
     return ax.legend(
         handles=handles,
+        labels=labels,
         loc="upper left",
         bbox_to_anchor=(1.02, 1.0),
         bbox_transform=offset_copy(ax.transAxes, ax.figure, x=offset, units="points"),
@@ -140,9 +152,10 @@ def _right(ax: Axes, handles: list[Artist], offset: float) -> Legend:
     )
 
 
-def _bottom(ax: Axes, handles: list[Artist]) -> Legend:
+def _bottom(ax: Axes, handles: list[Artist], labels: list[str]) -> Legend:
     return ax.legend(
         handles=handles,
+        labels=labels,
         loc="upper center",
         bbox_to_anchor=(0.5, 0.0),
         bbox_transform=offset_copy(
@@ -155,9 +168,10 @@ def _bottom(ax: Axes, handles: list[Artist]) -> Legend:
     )
 
 
-def _inside(ax: Axes, handles: list[Artist]) -> Legend:
+def _inside(ax: Axes, handles: list[Artist], labels: list[str]) -> Legend:
     return ax.legend(
         handles=handles,
+        labels=labels,
         loc=CORNERS[0],
         frameon=True,
         facecolor="white",

@@ -180,7 +180,8 @@ def test_a_right_legend_clears_the_count_labels():
 )
 def test_legend_names_the_summary(arguments, text):
     _, ax = ht.plot.geology_unit_comparison(frame(SIX), "water_content", **arguments)
-    assert legend_texts(ax) == [text, "Data"]
+    # A long entry wraps onto two lines (P00 §11); every word is kept.
+    assert [" ".join(entry.split()) for entry in legend_texts(ax)] == [text, "Data"]
 
 
 # --- errors -------------------------------------------------------------------

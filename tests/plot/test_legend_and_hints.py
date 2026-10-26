@@ -47,6 +47,25 @@ def test_more_than_30_entries_gives_a_note_instead():
     assert notes.lines() == ["29 geology units: see ht.plot.legend_handles()"]
 
 
+def test_a_long_entry_wraps_at_words_and_keeps_every_word():
+    _, ax = plt.subplots()
+    name = "Weathered sandstone and siltstone residuum"  # 42 characters
+    legend, _ = add_legend(ax, [entries(1), [Line2D([], [], label=name)]], Notes())
+    text = legend.get_texts()[1].get_text()
+    assert text.count("\n") == 1
+    assert text.split() == name.split()
+    assert all(len(line) <= 28 for line in text.splitlines())
+    assert legend.get_texts()[0].get_text() == "Unit 0"
+
+
+def test_wrapping_leaves_the_plotted_artists_label_alone():
+    _, ax = plt.subplots()
+    name = "Weathered sandstone and siltstone residuum"
+    (line,) = ax.plot([0, 1], [0, 1], label=name)
+    add_legend(ax, [[line]], Notes())
+    assert line.get_label() == name
+
+
 def test_no_entries_no_legend():
     _, ax = plt.subplots()
     assert add_legend(ax, [[], []], Notes()) == (None, None)
