@@ -16,4 +16,8 @@ Each correlation is a function in `ht.analysis.correlations`, named after the pr
 
 ::: hangtu.analysis.correlations.at_rest_earth_pressure_coefficient_kulhawy_et_al_1989
 
+::: hangtu.analysis.correlations.drained_youngs_modulus_aashto_2004
+
+::: hangtu.analysis.correlations.drained_youngs_modulus_kulhawy_mayne_1990
+
 ::: hangtu.analysis.correlations.describe

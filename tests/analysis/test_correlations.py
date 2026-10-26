@@ -39,6 +39,8 @@ FUNCTIONS = {
         "preconsolidation_stress_mayne_kemper_1988",
         "overconsolidation_ratio_mayne_kemper_1988",
         "at_rest_earth_pressure_coefficient_kulhawy_et_al_1989",
+        "drained_youngs_modulus_aashto_2004",
+        "drained_youngs_modulus_kulhawy_mayne_1990",
     )
 }
 
@@ -257,8 +259,12 @@ def test_n60_without_n1_60_is_an_error_naming_what_adds_it():
 @pytest.mark.parametrize("name", list(FUNCTIONS))
 def test_no_argument_chooses_the_input_column(name):
     parameters = set(inspect.signature(FUNCTIONS[name]).parameters)
-    # uscs= selects rows by soil (M13 b2, Decision 10), never an input column.
-    assert parameters == {"df", "uscs", "units", "display_units"}
+    # uscs= selects rows by soil (M13 b2, Decision 10), and soil= names the
+    # source's soil row (M13 b3, Decision 3); neither chooses an input column.
+    expected = {"df", "uscs", "units", "display_units"}
+    if correlations.describe(name).get("rows"):
+        expected.add("soil")
+    assert parameters == expected
 
 
 # --- AC 5: what's recorded ------------------------------------------------------------
@@ -315,7 +321,9 @@ def _drift(name, docstring):
         expected += [source["cite"], *source["locators"]]
     for bounds in entry["range"].values():
         expected += [f"{bound:g}" for bound in bounds.values()]
-    expected += entry["uscs"]
+    expected += entry.get("uscs") or []
+    for name, row in (entry.get("rows") or {}).items():
+        expected += [name, row["wording"], f"{row['coefficient']:g}", *row["uscs"]]
     expected += list((entry.get("labels") or {}).values())
     for band in entry.get("bands", []):
         expected += [f"{bound:g}" for bound in band.values() if bound is not None]
