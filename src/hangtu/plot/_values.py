@@ -242,6 +242,18 @@ def qualifier_handles(qualifiers: np.ndarray, notes: Notes) -> list[Line2D]:
     return flag_handles(qualifiers, QUALIFIERS, notes)
 
 
+def group_text(group: Any) -> str:
+    """Return a group's legend text: a correlation's label, else the group as text.
+
+    A group that is a correlation name in the catalog, as in a
+    ``correlation_name`` column, is shown by its citation (P00 §11).
+    """
+    from hangtu.analysis.correlations._framework import catalog
+
+    found = catalog().get(group) if isinstance(group, str) else None
+    return found["label"] if found else str(group)
+
+
 def legend_marker(
     marker: str, color: Any, label: str, size: float, filled: bool = True
 ) -> Line2D:

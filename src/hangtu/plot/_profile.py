@@ -718,12 +718,13 @@ def _draw_profile(
             if group is not None and (rows | (others & (groups == group))).any():
                 # A group drawn only as ranges has no marker to show: a bar.
                 only_ranges = not (rows | ((texts != "") & (groups == group))).any()
+                text = _values.group_text(group)
                 if shapes:
-                    handle = Patch(facecolor=color, edgecolor="none", label=str(group))
+                    handle = Patch(facecolor=color, edgecolor="none", label=text)
                 elif only_ranges:
-                    handle = _value_ranges.legend_bar(color, str(group))
+                    handle = _value_ranges.legend_bar(color, text)
                 else:
-                    handle = _values.legend_marker("o", color, str(group), MARKER_SIZE)
+                    handle = _values.legend_marker("o", color, text, MARKER_SIZE)
                 unit_handles.append(handle)
         text_handles, text_edge = _text_values.draw_text_values(
             ax, y, texts, groups, colors, ylim, notes
@@ -742,7 +743,9 @@ def _draw_profile(
             edge |= range_edge
         notes.count(edge | text_edge, "beyond_limit")
         shape_handles = [
-            _values.legend_marker(shape, _values.NEUTRAL, str(group), MARKER_SIZE)
+            _values.legend_marker(
+                shape, _values.NEUTRAL, _values.group_text(group), MARKER_SIZE
+            )
             for group, shape in shapes.items()
             if (drawn & (marker_groups == group)).any()
         ]

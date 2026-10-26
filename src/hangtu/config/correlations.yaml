@@ -26,6 +26,8 @@
 #   applies_to, not_for, scatter, notes   as the sources state them
 #   uscs        hangtu's proposed USCS groups for applies_to, used only with
 #               uscs="proposed" (Decision 10); uscs_basis says how they were read
+#   label       optional: the legend text, e.g. "Stroud (1974)"; by default the first
+#               source's cite. Labels are unique within one target column
 #   sources     the original first, then any later form used: cite (author and year,
 #               as the docstring writes it), reference, and locators (equation,
 #               table, page), each of which the docstring names
