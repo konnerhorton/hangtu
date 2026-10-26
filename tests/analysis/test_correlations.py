@@ -524,3 +524,136 @@ def test_a_value_on_an_inclusive_bound_stays_inside_after_conversion():
     df = stresses([20], list(psf), unit="psf")
     out = correlations.effective_friction_angle_kulhawy_mayne_1990(df)
     assert out["correlation_note"].isna().all()
+
+
+# --- The soil row (docs/work/m13b3-spt-stiffness.md, AC 4 and 5) -------------------
+
+
+@pytest.fixture
+def rows_entry(monkeypatch):
+    """A correlation made for the test, with a coefficient by soil row."""
+    from hangtu.analysis.correlations import _framework
+
+    entries = {
+        **_framework.catalog(),
+        "test_rows": {
+            "target": {"column": "drained_youngs_modulus", "unit": "kPa"},
+            "equation": "E = C N60 kPa",
+            "inputs": {"spt_n60": {"variant": "N60", "unit": None}},
+            "range": {},
+            "rows": {
+                "silts": {"wording": "Silts", "coefficient": 4, "uscs": ["ML"]},
+                "sands": {"wording": "Sands", "coefficient": 7, "uscs": ["SP"]},
+            },
+            "uscs": None,
+            "sources": [],
+        },
+    }
+    monkeypatch.setattr(_framework, "catalog", lambda: entries)
+
+    def run(df, soil=None, uscs=None):
+        item = _framework.entry("test_rows")
+        values = _framework.inputs(df, item, None)
+        rows = _framework.soil_rows(df, item, soil)
+        coefficient = np.array([item["rows"][row]["coefficient"] for row in rows])
+        note = _framework.notes(df, item, values, uscs, rows)
+        return _framework.estimate(
+            df,
+            "test_rows",
+            coefficient * values["spt_n60"],
+            note,
+            "SI",
+            uscs=uscs,
+            soil=soil,
+            rows=rows,
+        )
+
+    return run
+
+
+def test_soil_is_required_and_the_error_lists_the_rows(rows_entry):
+    with pytest.raises(ht.HangtuError, match=r"soil= is required.*'silts' \(Silts\)"):
+        rows_entry(frame(spt_n60=[10]))
+
+
+def test_an_unknown_row_name_raises_listing_the_rows(rows_entry):
+    with pytest.raises(ht.HangtuError, match=r"'clays', which isn't one.*'sands'"):
+        rows_entry(frame(spt_n60=[10]), soil="clays")
+
+
+def test_one_row_name_applies_to_every_row(rows_entry):
+    out = rows_entry(frame(spt_n60=[10, 20]), soil="sands")
+    # kPa in the entry, MPa on display (modulus).
+    assert out["drained_youngs_modulus"].tolist() == pytest.approx([0.07, 0.14])
+    assert out["correlation_soil"].tolist() == ["sands", "sands"]
+    assert out.attrs["correlation_soil"] == "sands"
+
+
+def test_a_mapping_gives_each_geology_unit_its_row(rows_entry):
+    df = frame(spt_n60=[10, 10, 10], geology_unit=["Alluvium", "Terrace", "Alluvium"])
+    soil = {"Alluvium": "silts", "Terrace": "sands"}
+    out = rows_entry(df, soil=soil)
+    assert out["drained_youngs_modulus"].tolist() == pytest.approx([0.04, 0.07, 0.04])
+    assert out["correlation_soil"].tolist() == ["silts", "sands", "silts"]
+    assert out.attrs["correlation_soil"] == soil
+
+
+def test_a_mapping_raises_naming_an_unmapped_unit(rows_entry):
+    df = frame(spt_n60=[10, 10], geology_unit=["Alluvium", "Glacial till"])
+    with pytest.raises(ht.HangtuError, match=r"no row for the geology units 'Glacial"):
+        rows_entry(df, soil={"Alluvium": "silts"})
+
+
+def test_a_mapping_raises_on_a_blank_geology_unit(rows_entry):
+    df = frame(spt_n60=[10, 10], geology_unit=["Alluvium", None])
+    with pytest.raises(ht.HangtuError, match=r"1 rows have no 'geology_unit'"):
+        rows_entry(df, soil={"Alluvium": "silts"})
+
+
+def test_a_mapping_without_geology_unit_raises(rows_entry):
+    with pytest.raises(ht.ColumnError, match=r"no 'geology_unit' column"):
+        rows_entry(frame(spt_n60=[10]), soil={"Alluvium": "silts"})
+
+
+def test_uscs_checks_each_row_against_its_own_soil_row(rows_entry):
+    df = frame(
+        spt_n60=[10, 10, 10, 10],
+        geology_unit=["Alluvium", "Alluvium", "Terrace", "Terrace"],
+        uscs_symbol=["ML", "SP", "SP", None],
+    )
+    with pytest.warns(UserWarning, match=r"2 of 4 rows \(1 not for this soil, 1 soil"):
+        out = rows_entry(
+            df, soil={"Alluvium": "silts", "Terrace": "sands"}, uscs="proposed"
+        )
+    assert out["correlation_note"].tolist() == [
+        None,
+        "not for this soil",
+        None,
+        "soil type unknown",
+    ]
+
+
+def test_uscs_never_chooses_the_row(rows_entry):
+    # An SP row under soil="silts" is checked, not moved to "sands".
+    with pytest.warns(UserWarning, match=r"not for this soil"):
+        out = rows_entry(
+            frame(spt_n60=[10], uscs_symbol=["SP"]), soil="silts", uscs="proposed"
+        )
+    assert out["correlation_soil"].tolist() == ["silts"]
+    assert out["drained_youngs_modulus"].isna().all()
+
+
+def test_correlations_without_rows_leave_correlation_soil_blank():
+    out = correlations.undrained_shear_strength_terzaghi_peck_1967(
+        clays(), display_units="SI"
+    )
+    assert out["correlation_soil"].isna().all()
+    assert out.attrs["correlation_soil"] is None
+
+
+def test_proposed_raises_on_a_correlation_for_all_soils():
+    from hangtu.analysis.correlations import _framework
+
+    item = {"range": {}, "uscs": None}
+    with pytest.raises(ht.HangtuError, match=r"for all soils.*uscs=\["):
+        _framework.uscs_groups(item, "proposed")

@@ -19,6 +19,10 @@
 #   bands       optional, for a correlation published as classes: each class's lower
 #               bound on the input (inclusive) and its target band (lower, upper;
 #               upper null for an open band), written as <target>_lower / _upper
+#   rows        optional, for a coefficient the source gives by soil type: {name:
+#               {wording, coefficient, uscs}}, the source's wording, its coefficient,
+#               and hangtu's proposed USCS groups for it; soil= names the row and
+#               uscs= checks it (docs/work/m13b3-spt-stiffness.md, Decision 3)
 #   applies_to, not_for, scatter, notes   as the sources state them
 #   uscs        hangtu's proposed USCS groups for applies_to, used only with
 #               uscs="proposed" (Decision 10); uscs_basis says how they were read
