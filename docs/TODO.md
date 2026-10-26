@@ -226,12 +226,6 @@ You are also looking. Candidates found so far:
     - property-based unit tests with `hypothesis`.
 - **To find:** large files with good SPT, Atterberg, PSD and permeability coverage.
 
-### 20. Which SPT correlations for M13 · You + Claude · docs/drafts/analysis.md §4.2 · needed for M13
-- **You:** which properties and correlations you use, and any you'd exclude.
-- **Claude:** verify each equation, its constants, the N it was derived with and its stated range against the source.
-- **φ′ settled** (2026-10-22, `docs/work/m13b1-spt-framework.md`): Hatanaka & Uchida (1996) in GEC 5's 60 % form and Kulhawy & Mayne (1990) on N60, both verified; Wolff (1989) cut (#36).
-- **s_u, σ′p/OCR and K0 settled** (2026-10-23, `docs/work/m13b2-spt-strength-history.md`): Stroud (1974) on N60 with PI, Terzaghi & Peck (1967) as a band on field N, Mayne & Kemper (1988) for σ′p and for OCR and Kulhawy et al. (1989) for K0, all on field N, verified against EPRI EL-6800 and GEC 5; Sowers (1979) cut (#39). E and Vs are M13 unit (b3).
-
 ### 21. Thewes & Burger (2004) diagram · Claude (verify) · P17 draft §14 · needed for M12
 Confirm the axes (PI or LL against Ic) and the zone coordinates against the paper.
 
@@ -270,7 +264,7 @@ Today the estimates draw on one P01 profile by `correlation_name`, and a blank e
 
 Proposed: two panels, not one axes with twinned x axes. A second x axis on the same profile makes the reader match each marker to one of two unrelated scales; the input and estimate markers interleave at the same depths, and the axis limits of each are arbitrary relative to the other. Two panels keep one quantity per axis (P01's contract) and still line up by depth. Open: a helper (`ht.plot.correlation_profile(est, ...)`) or a recipe in the correlations guide using `ht.Sheet` with `ax=`; `Sheet` has no shared vertical axis yet, so either needs one (matching depth limits across panels).
 
-### 40. Correlation statistics with the results · You · SPEC §4, `docs/work/m13b2-spt-strength-history.md` · before b3 or M15
+### 40. Correlation statistics with the results · You · SPEC §4, `docs/work/m13b2-spt-strength-history.md` · M15 (deferred from M13 b3)
 A correlation's estimates carry `correlation_name`, `correlation_note` and `correlation_input`, but not its statistics. Each config entry's `scatter` (n, r², S.D., ±x°) and the published bias checks (e.g. Ching & Schweckendiek (2021) for Kulhawy et al.'s K0: b = 2.16, COV 0.70) are in `describe()` and the docstrings only, so they are lost once the values leave the function.
 - **Questions:**
   - Which statistics travel with the results: the source's own (n, r², S.D.), later evaluations on other databases (bias b, COV), or both?
@@ -284,7 +278,7 @@ Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads o
   - Read the group name or description (`geology_description`, or a `uscs_name` column), the gravel fraction from gradation tests, or leave it to the user to pass the rows?
   - If flagged: no estimate ("not for this soil"), or an estimate with a note?
   - Which other entries have `not_for` terms the symbol can't check (micaceous sands, fissured clays)?
-- **The warning's wording.** With `uscs=` on, rows left out for soil type share one warning with rows outside the range: "…gave no estimate for 33 of 65 rows (33 not for this soil; …). Its range is …; outside it the estimate is blank". When every blank is for soil type, the range sentence doesn't explain them, and it names the range by its input (`normalized_n`), a name the user never sees as a column. Say the range only when some rows are outside it, and in the user's terms (field N over σ′v0/pa).
+- **The warning's wording:** done in M13 b3 (`docs/work/m13b3-spt-stiffness.md`, Decision 8). The warning gives the range only when some rows are outside it, in the docstring's terms and units (`N pa/σ′v0`, `σ′v0 > 0 kPa`).
 
 ---
 
@@ -293,6 +287,7 @@ Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads o
 - A helper for deciding cohesive vs cohesionless from lab data (fines %, PI).
 
 ## Done
+- ✅ #20 Which SPT correlations for M13 settled (2026-10-26, M13 b1–b3): φ′ from Hatanaka & Uchida (1996) and Kulhawy & Mayne (1990); s_u from Stroud (1974) and Terzaghi & Peck (1967); σ′p, OCR and K0 from Mayne & Kemper (1988) and Kulhawy et al. (1989); E from AASHTO (2004) and Kulhawy & Mayne (1990), by a required soil row; Vs from Imai & Tonouchi (1982) and Ohta & Goto (1978) in Wair et al.'s (2012) N60 forms. Each verified against its source; Wolff (1989) and Sowers (1979) cut (#36, #39).
 - ✅ #37 Soil types for correlations decided (2026-10-23, M13 b2): an opt-in USCS map. Each config entry keeps the source's words and gains hangtu's proposed USCS groups, labeled as hangtu's reading; `uscs="proposed"` or a list of groups turns it on and reads a `uscs_symbol` column the user supplies, never derived. Rows outside get NaN, "not for this soil"; a blank symbol, "soil type unknown". SPEC §4.
 - ✅ #30 What can be published decided (2026-10-22, M13, `docs/work/m13a-judgments.md` Decision 9): a site page may reproduce single values and ranges with their citation and locator, short sets of class boundaries as commonly cited (about ten rows or fewer), and equations with their source. It doesn't reproduce a source table or chart whole, values read off a chart beyond the few a method needs, a chart's descriptors (GSI), or quoted text beyond a sentence. Figures on the site are hangtu's own.
 - ✅ #33 Energy ratio decided (2026-10-22, M13): hammer efficiency is data, not a judgment. `ISPT_ERAT` is used first; `hammer_efficiency` (argument or setting) fills blanks with a warning naming the holes, and takes values by hole in M13 unit (b). SPEC §4.

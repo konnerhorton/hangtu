@@ -82,6 +82,35 @@ The correlations for clay (s_u, σ′p, OCR, K0) can read the soil type, if the 
 UserWarning: overconsolidation_ratio_mayne_kemper_1988 gave no estimate for 33 of 65 rows (33 not for this soil; see 'correlation_note'). [...]
 ```
 
+## Stiffness: the soil row and the strain level
+
+Some sources give a coefficient by soil type. AASHTO (2004) gives E = C (N1)60 tsf with C = 4, 7, 10 or 12 for its
+rows from silts to gravels; Kulhawy & Mayne (1990) give E/pa = C N60 with C = 5, 10 or 15 for sands with fines,
+clean normally consolidated and clean overconsolidated sands. Which row a layer belongs to is the engineer's reading
+of the log, so `soil=` is required: one row name for every test, or `{geology_unit: row}`. hangtu never infers it.
+`uscs=` checks the row and never chooses it, because a USCS symbol can't tell a fine sand from a coarse one, or a
+normally consolidated sand from an overconsolidated one. The row each test used is in `correlation_soil`.
+
+The two Vs correlations, Imai & Tonouchi (1982) and Ohta & Goto (1978), are for all soils, in the 60 % forms Wair et
+al. (2012) give for the sources' Japanese N.
+
+```python
+--8<-- "correlations-stiffness.py"
+```
+
+``` { .text .no-copy }
+--8<-- "correlations-stiffness.txt"
+```
+
+![Drained Young's modulus and shear wave velocity against depth, by correlation](../img/generated/correlations-stiffness.png){ width="660" }
+
+**Mind the strain level.** Both E correlations give a drained, working-strain secant modulus, the E for a settlement
+estimate. Vs is a small-strain property: a G0 = ρVs² from it is far stiffer, and needs a reduction for strain
+before it stands in for E. hangtu names the column for what it is (`drained_youngs_modulus`), so the two aren't
+mixed up. AASHTO's constants are in tsf, as the source gives them; read as ksf they would halve E, so hangtu
+converts them with pint. [Elastic stiffness](../parameters/08-elastic-stiffness-soil.md) and
+[small-strain stiffness](../parameters/10-small-strain-stiffness.md) compare the methods.
+
 ## Chaining
 
 A correlation's inputs are meant to be test data. When an input column holds another correlation's estimates (its rows carry that correlation's `correlation_name` and the input is its target), the call still runs, but warns once, naming the input and where it came from, and writes the upstream correlation to `correlation_input` on those rows. Chaining compounds the errors of both, and the result reads as more certain than it is. None of today's correlations reads another's target; the check is there for those that will, such as K0 from φ′ and OCR.
@@ -89,6 +118,6 @@ A correlation's inputs are meant to be test data. When an input column holds ano
 ## See also
 
 - [`ht.analysis.spt_n1_60`](../reference/analysis.md#hangtu.analysis.spt_n1_60), [`ht.analysis.add_judgment`](../reference/analysis.md#hangtu.analysis.add_judgment), [`ht.analysis.summary_by`](../reference/analysis.md#hangtu.analysis.summary_by), [correlations reference](../reference/correlations.md)
-- [Undrained shear strength](../parameters/05-undrained-shear-strength.md), [preconsolidation](../parameters/06-preconsolidation-and-compressibility.md) and [at-rest earth pressure](../parameters/07-at-rest-earth-pressure.md): the methods compared
+- [Undrained shear strength](../parameters/05-undrained-shear-strength.md), [preconsolidation](../parameters/06-preconsolidation-and-compressibility.md), [at-rest earth pressure](../parameters/07-at-rest-earth-pressure.md), [elastic stiffness](../parameters/08-elastic-stiffness-soil.md) and [small-strain stiffness](../parameters/10-small-strain-stiffness.md): the methods compared
 - [SPT analysis](spt.md): refusal, N60 and the energy ratio
 - [Judgments and vertical stress](judgments.md): σ′v from the project's unit weights and water levels
