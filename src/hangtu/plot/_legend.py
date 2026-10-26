@@ -12,6 +12,7 @@ from matplotlib.legend import Legend
 from matplotlib.path import Path
 from matplotlib.transforms import Bbox, offset_copy
 
+from hangtu.errors import HangtuError
 from hangtu.plot import _layers
 from hangtu.plot._notes import (
     BELOW_X_LABEL,
@@ -21,7 +22,7 @@ from hangtu.plot._notes import (
     renderer,
 )
 
-__all__ = ["BELOW_X_LABEL", "Placed", "add_legend"]
+__all__ = ["BELOW_X_LABEL", "Placed", "add_legend", "check_legend"]
 
 MAX_ROWS = 12
 MAX_ENTRIES = 30
@@ -32,6 +33,21 @@ CLEARANCE = 4.0  # points around an inside legend that must be clear of data
 FRAME_ALPHA = 0.85  # an inside legend's white frame, so gridlines don't cross it
 
 Where = Literal["auto", "inside", "bottom", "right"]
+WHERE = ("auto", "inside", "bottom", "right")
+
+
+def check_legend(value: object) -> Where | None:
+    """Return a plot's ``legend=`` as a placement, or None for no legend."""
+    if value is True:
+        return "auto"
+    if value is False:
+        return None
+    if isinstance(value, str) and value in WHERE:
+        return value  # type: ignore[return-value]
+    raise HangtuError(
+        f'legend= must be "auto", "inside", "bottom", "right", True or False, '
+        f'not {value!r}. Example: legend="bottom" puts it below the x label.'
+    )
 
 
 class Placed(NamedTuple):
@@ -46,7 +62,7 @@ def add_legend(
     sections: Sequence[Sequence[Artist]],
     notes: Notes,
     offset: float = 0.0,
-    where: Where = "auto",
+    where: Where | None = "auto",
 ) -> Placed:
     """Add the legend inside the axes in a clear corner, or outside it.
 
@@ -70,6 +86,7 @@ def add_legend(
         below the x label. ``"inside"``: the first clear corner, else the one
         with the fewest obstacles. ``"right"``: outside on the right.
         ``"bottom"``: centered under the x label in up to four columns.
+        None: no legend.
 
     Returns
     -------
@@ -77,7 +94,7 @@ def add_legend(
     entries or too many. Pass the placement to ``Notes.render``.
     """
     handles = [handle for section in sections for handle in section]
-    if not handles:
+    if where is None or not handles:
         return Placed(None, None)
     if len(handles) > MAX_ENTRIES:
         units = len(sections[0])
@@ -90,7 +107,7 @@ def add_legend(
     if where == "right":
         return Placed(_right(ax, handles, offset), "right")
     if where == "bottom":
-        return Placed(_bottom(ax, handles, offset), "bottom")
+        return Placed(_bottom(ax, handles), "bottom")
     # The footnote below the x label shortens the axes, so it takes its room
     # before the layout engine sets the axes' final size.
     footnote = notes.render(ax, where="inside")
@@ -105,7 +122,7 @@ def add_legend(
         return Placed(legend, "inside")
     if where == "auto":
         legend.remove()
-        return Placed(_bottom(ax, handles, offset), "bottom")
+        return Placed(_bottom(ax, handles), "bottom")
     legend.set_loc(min(counts, key=counts.__getitem__))
     return Placed(legend, "inside")
 
@@ -123,13 +140,13 @@ def _right(ax: Axes, handles: list[Artist], offset: float) -> Legend:
     )
 
 
-def _bottom(ax: Axes, handles: list[Artist], offset: float) -> Legend:
+def _bottom(ax: Axes, handles: list[Artist]) -> Legend:
     return ax.legend(
         handles=handles,
         loc="upper center",
         bbox_to_anchor=(0.5, 0.0),
         bbox_transform=offset_copy(
-            ax.transAxes, ax.figure, y=-below_x_label(ax) - offset, units="points"
+            ax.transAxes, ax.figure, y=-below_x_label(ax), units="points"
         ),
         borderaxespad=0.0,
         frameon=False,

@@ -43,11 +43,13 @@ def test_secondary_depth_ticks_are_nice_steps(frame):
     assert steps[0] in (1.0, 2.0, 5.0, 10.0)
 
 
-def test_secondary_moves_the_legend_and_footnote_clear(frame):
+def test_secondary_moves_a_right_legend_and_footnote_clear(frame):
     df = frame(values=[np.nan, 1000.0, 1500.0, 2000.0])
-    fig, plain = ht.plot.profile(df, "undrained_shear_strength")
+    fig, plain = ht.plot.profile(df, "undrained_shear_strength", legend="right")
     fig.canvas.draw()
-    fig2, ax = ht.plot.profile(df, "undrained_shear_strength", secondary="depth")
+    fig2, ax = ht.plot.profile(
+        df, "undrained_shear_strength", secondary="depth", legend="right"
+    )
     fig2.canvas.draw()
 
     def gap(axes, artist):

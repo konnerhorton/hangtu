@@ -19,7 +19,7 @@ from hangtu.analysis._plasticity import _NOT_PLASTIC_HINT, plasticity_system
 from hangtu.errors import ColumnError, HangtuError
 from hangtu.plot import _layers, _regions, _values, style
 from hangtu.plot._hints import hint_missing
-from hangtu.plot._legend import add_legend
+from hangtu.plot._legend import add_legend, check_legend
 from hangtu.plot._notes import Notes, edge_markers
 from hangtu.plot._spt_profile import _check_choice
 
@@ -467,6 +467,7 @@ def plasticity_chart(
     note: str | None = None,
     palette: dict[str, str] | None = None,
     display_units: Literal["US", "SI"] | None = None,
+    legend: Literal["auto", "inside", "bottom", "right"] | bool = "auto",
     figsize: tuple[float, float] | None = None,
     ax: Axes | None = None,
     **style_overrides: Any,
@@ -514,6 +515,15 @@ def plasticity_chart(
     display_units : {"US", "SI"}, optional
         Accepted for the plot contract. LL and PI are percentages, so it
         changes nothing.
+    legend : {"auto", "inside", "bottom", "right"} or bool
+        Where the legend goes. ``"auto"`` (the default, or True): inside
+        the axes, in the first corner clear of data (upper right, upper left,
+        lower right, lower left), else below the x label. ``"inside"``: a
+        corner even when none is clear, the one covering least. ``"bottom"``:
+        below the x label. ``"right"``: outside on the right. False: no
+        legend; the footnote still gives every count. With ``ax=``, the
+        corner is chosen for the axes as they are when plotted: pass
+        ``"bottom"`` or ``"right"`` if the figure is resized afterwards.
     figsize : tuple, optional
         Figure size in inches. Defaults to ``ht.settings.figure_sizes["default"]``.
     ax : matplotlib.axes.Axes, optional
@@ -545,6 +555,7 @@ def plasticity_chart(
         _regions.COLOR,
     )
     _check_color_by(df, color_by)
+    where = check_legend(legend)
 
     with style.context(**style_overrides):
         if len(df) and color_by == "geology_unit":
@@ -594,6 +605,6 @@ def plasticity_chart(
                 color="0.4",
                 zorder=_layers.ANNOTATIONS,
             )
-        add_legend(ax, [handles], notes, where="right")
-        notes.render(ax)
+        placed = add_legend(ax, [handles], notes, where=where)
+        notes.render(ax, where=placed.where, below=placed.legend)
     return fig, ax

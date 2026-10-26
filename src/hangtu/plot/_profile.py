@@ -21,7 +21,7 @@ from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.plot import _layers, _presets, _text_values, _value_ranges, _values, style
 from hangtu.plot._hints import hint_missing
 from hangtu.plot._labels import axis_label
-from hangtu.plot._legend import add_legend
+from hangtu.plot._legend import add_legend, check_legend
 from hangtu.plot._limits import (
     apply_vertical_axis,
     nice_limits,
@@ -332,6 +332,7 @@ def profile(
     palette: dict[str, str] | None = None,
     units: dict[str, str] | None = None,
     display_units: Literal["US", "SI"] | None = None,
+    legend: Literal["auto", "inside", "bottom", "right"] | bool = "auto",
     figsize: tuple[float, float] | None = None,
     ax: Axes | None = None,
     **style_overrides: Any,
@@ -424,6 +425,15 @@ def profile(
         ``{column: unit}``, overriding the units declared on ``df``.
     display_units : {"US", "SI"}, optional
         Defaults to ``ht.settings.display_units``.
+    legend : {"auto", "inside", "bottom", "right"} or bool
+        Where the legend goes. ``"auto"`` (the default, or True): inside
+        the axes, in the first corner clear of data (upper right, upper left,
+        lower right, lower left), else below the x label. ``"inside"``: a
+        corner even when none is clear, the one covering least. ``"bottom"``:
+        below the x label. ``"right"``: outside on the right. False: no
+        legend; the footnote still gives every count. With ``ax=``, the
+        corner is chosen for the axes as they are when plotted: pass
+        ``"bottom"`` or ``"right"`` if the figure is resized afterwards.
     figsize : (width, height), optional
         Inches, the whole figure; by default the settings ``profile`` size.
         Ignored with ``ax=``.
@@ -469,6 +479,7 @@ def profile(
         palette=palette,
         units=units,
         display_units=display_units,
+        legend=legend,
         figsize=figsize,
         ax=ax,
         value_ranges=True,
@@ -503,6 +514,7 @@ def _draw_profile(
     palette: dict[str, str] | None = None,
     units: dict[str, str] | None = None,
     display_units: Literal["US", "SI"] | None = None,
+    legend: Literal["auto", "inside", "bottom", "right"] | bool = "auto",
     figsize: tuple[float, float] | None = None,
     ax: Axes | None = None,
     flags: np.ndarray | None = None,
@@ -548,6 +560,7 @@ def _draw_profile(
     if secondary not in (None, "depth"):
         raise HangtuError(f'secondary must be "depth" or None, not {secondary!r}.')
     statistics = statistics_list(stats_box) if stats_box is not False else None
+    where = check_legend(legend)
 
     system = _display_units(display_units or settings.display_units)
     chosen = _presets.preset(preset) if preset is not None else None
@@ -796,12 +809,12 @@ def _draw_profile(
         if secondary == "depth":
             add_secondary_depth(ax, vertical)
         offset = SECONDARY_SPACE if secondary else 0.0
-        add_legend(
+        placed = add_legend(
             ax,
             [unit_handles, companion_handles, shape_handles, flagged, text_handles],
             notes,
             offset,
-            where="right",
+            where,
         )
-        notes.render(ax, offset)
+        notes.render(ax, offset, placed.where, placed.legend)
     return fig, ax
