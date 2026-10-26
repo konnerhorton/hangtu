@@ -14,6 +14,8 @@
 #               from its inputs, such as N pa / σ′v0, whose range the source gives
 #   range       {input or term: {at_least | greater_than, at_most | less_than}}, in
 #               the inputs' units; outside it the estimate is NaN, never extrapolated
+#   labels      {input or term in range: how the docstring writes it}, for the
+#               warning, so it names the range in the user's terms (TODO #41)
 #   bands       optional, for a correlation published as classes: each class's lower
 #               bound on the input (inclusive) and its target band (lower, upper;
 #               upper null for an open band), written as <target>_lower / _upper
@@ -31,6 +33,7 @@ effective_friction_angle_hatanaka_uchida_1996:
     spt_n1_60: {variant: "(N1)60, N60 corrected for overburden", unit: null}
   range:
     spt_n1_60: {at_least: 4.55, at_most: 39.0}
+  labels: {spt_n1_60: "(N1)60"}
   applies_to: relatively clean fine to medium sands
   not_for: micaceous sands; gravelly soils
   uscs: [SP, SW, SP-SM, SW-SM]
@@ -60,6 +63,7 @@ effective_friction_angle_kulhawy_mayne_1990:
   range:
     spt_n60: {at_most: 60}
     effective_vertical_stress: {greater_than: 0, at_most: 300}
+  labels: {spt_n60: "N60", effective_vertical_stress: "σ′v"}
   applies_to: relatively clean sands
   not_for: null
   uscs: [SP, SW, SP-SM, SW-SM]
@@ -86,6 +90,7 @@ undrained_shear_strength_terzaghi_peck_1967:
     spt_n: {variant: "field N, as measured (blows/ft), not corrected for energy", unit: null}
   range:
     spt_n: {at_least: 0}
+  labels: {spt_n: "N"}
   bands:
     # spt_n: the class's lower N; lower, upper: s_u / pa
     - {spt_n: 0, lower: 0, upper: 0.125}
@@ -124,6 +129,7 @@ undrained_shear_strength_stroud_1974:
     plasticity_index: {variant: "PI of the clay at the test, a judgment by geology unit", unit: null}
   range:
     plasticity_index: {at_least: 15}
+  labels: {plasticity_index: "PI"}
   bands:
     # plasticity_index: the lower PI of each f1 range; lower, upper: f1
     - {plasticity_index: 15, lower: 4.5, upper: 5.5}
@@ -155,6 +161,7 @@ preconsolidation_stress_mayne_kemper_1988:
     spt_n: {variant: "field N, as measured (blows/ft), not corrected for energy", unit: null}
   range:
     spt_n: {at_least: 0.5, at_most: 200}
+  labels: {spt_n: "N"}
   applies_to: clays
   not_for: null
   uscs: [CL, CH]
@@ -185,6 +192,7 @@ overconsolidation_ratio_mayne_kemper_1988:
   range:
     effective_vertical_stress: {greater_than: 0}
     normalized_n: {at_least: 1, at_most: 100}
+  labels: {effective_vertical_stress: "σ′v0", normalized_n: "N pa/σ′v0"}
   applies_to: clays
   not_for: null
   uscs: [CL, CH]
@@ -213,6 +221,7 @@ at_rest_earth_pressure_coefficient_kulhawy_et_al_1989:
   range:
     effective_vertical_stress: {greater_than: 0}
     normalized_n: {greater_than: 0, at_most: 60}
+  labels: {effective_vertical_stress: "σ′v0", normalized_n: "N pa/σ′v0"}
   applies_to: clays
   not_for: null
   uscs: [CL, CH]

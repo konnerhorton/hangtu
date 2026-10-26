@@ -96,7 +96,7 @@ def test_no_estimate_gives_nan_with_the_reason_and_one_warning():
     assert [str(w.message) for w in caught] == [
         "effective_friction_angle_hatanaka_uchida_1996 gave no estimate for 5 of 6 "
         "rows (2 input blank, 1 refusal, 1 below range, 1 above range; see "
-        "'correlation_note'). Its range is 4.55 ≤ spt_n1_60 ≤ 39; outside it the "
+        "'correlation_note'). Its range is 4.55 ≤ (N1)60 ≤ 39; outside it the "
         "estimate is blank, never extrapolated."
     ]
 
@@ -162,8 +162,8 @@ def test_kulhawy_mayne_out_of_range():
     ]
     assert out["effective_friction_angle"].notna().tolist() == [True] + [False] * 6
     assert str(caught[0].message).endswith(
-        "Its range is spt_n60 ≤ 60; 0 < effective_vertical_stress ≤ 300; outside "
-        "it the estimate is blank, never extrapolated."
+        "Its range is N60 ≤ 60; 0 < σ′v ≤ 300 kPa; outside it the estimate is "
+        "blank, never extrapolated."
     )
 
 
@@ -316,6 +316,7 @@ def _drift(name, docstring):
     for bounds in entry["range"].values():
         expected += [f"{bound:g}" for bound in bounds.values()]
     expected += entry["uscs"]
+    expected += list((entry.get("labels") or {}).values())
     for band in entry.get("bands", []):
         expected += [f"{bound:g}" for bound in band.values() if bound is not None]
     return [item for item in expected if item not in text]
@@ -436,6 +437,17 @@ def test_proposed_groups_give_no_estimate_outside_them():
         False, True, True, False, True,
     ]  # fmt: skip
     assert out.attrs["correlation_uscs"] == "proposed"
+
+
+def test_blanks_for_soil_alone_leave_the_range_out_of_the_warning():
+    # TODO #41: the range doesn't explain rows left out for their soil.
+    df = clays(uscs_symbol=["SP"] * 5)
+    with pytest.warns(UserWarning) as caught:
+        correlations.undrained_shear_strength_terzaghi_peck_1967(df, uscs="proposed")
+    assert [str(w.message) for w in caught] == [
+        "undrained_shear_strength_terzaghi_peck_1967 gave no estimate for 5 of 5 "
+        "rows (5 not for this soil; see 'correlation_note')."
+    ]
 
 
 def test_a_list_of_groups_replaces_the_proposed_ones():

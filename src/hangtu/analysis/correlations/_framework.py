@@ -79,17 +79,30 @@ def entry(name: str) -> dict[str, Any]:
 
 
 def range_text(item: Mapping[str, Any]) -> str:
-    """Write an entry's range as ``"4.55 ≤ spt_n1_60 ≤ 39"``, joined by ``"; "``."""
+    """Write an entry's range as ``"4.55 ≤ (N1)60 ≤ 39"``, joined by ``"; "``.
+
+    Each input or term is named by its ``labels`` entry, as the docstring
+    writes it, and followed by its unit where it has one (TODO #41).
+    """
+    labels = item.get("labels") or {}
     parts = []
     for column, bounds in item["range"].items():
-        text = column
+        text = labels.get(column, column)
+        if set(bounds) <= {"at_least", "greater_than"}:
+            # A lower bound alone reads "σ′v0 > 0 kPa", so the unit follows a number.
+            for key, bound in bounds.items():
+                text = f"{text} {'≥' if key == 'at_least' else '>'} {bound:g}"
+            bounds = {}
         for key, bound in bounds.items():
             sign = _BOUNDS[key][0]
             if key in ("at_least", "greater_than"):
                 text = f"{bound:g} {sign} {text}"
             else:
                 text = f"{text} {sign} {bound:g}"
-        parts.append(text)
+        unit = item["inputs"].get(column, {}).get("unit") or (
+            item.get("terms", {}).get(column, {}).get("unit")
+        )
+        parts.append(f"{text} {unit}" if unit else text)
     return "; ".join(parts)
 
 
@@ -267,11 +280,17 @@ def estimate(
         reasons = ", ".join(
             f"{counts[reason]} {reason}" for reason in REASONS if reason in counts
         )
+        # The range explains only the rows outside it (TODO #41).
+        outside = BELOW_RANGE in counts or ABOVE_RANGE in counts
         warn(
             f"{name} gave no estimate for {int(noted.sum())} of {len(df)} rows "
-            f"({reasons}; see 'correlation_note'). Its range is "
-            f"{range_text(item)}; outside it the estimate is blank, never "
-            "extrapolated."
+            f"({reasons}; see 'correlation_note')."
+            + (
+                f" Its range is {range_text(item)}; outside it the estimate is "
+                "blank, never extrapolated."
+                if outside
+                else ""
+            )
         )
     replaced = [column for column in (*shown, *OUTPUT_COLUMNS) if column in df.columns]
     if replaced:
