@@ -1,5 +1,7 @@
 # 08 — Elastic stiffness of soil
 
+Promoted to the docs site as [`docs/site/parameters/08-elastic-stiffness-soil.md`](../../site/parameters/08-elastic-stiffness-soil.md) (M13 b3); the page is current where they differ.
+
 | | |
 |---|---|
 | **Parameters** | E (Young's modulus, drained E′ or undrained Eu; MC input), ν (Poisson's ratio, ν′ or νu) |
@@ -24,8 +26,8 @@ unloading, and rises toward 0.3–0.4 when chosen to match K0 in 1-D loading [3,
 | E, G, Eu | kPa, MPa | psf, ksf, tsf, psi, ksi | 1 tsf = 95.76 kPa = 2.0 ksf; 1 ksf = 47.88 kPa; 1 ksi = 6 894.76 kPa; 1 MPa = 20.885 ksf = 145.04 psi = 10.443 tsf |
 | ν | – | – | – |
 
-**Unit trap.** FHWA NHI-06-088 Table 5-16 gives Es = 4, 7, 10, 12 × N1,60 in **tsf** [2]. A widely
-copied template labels the same factors as **ksf**, which halves E. Correct factors (computed):
+**Unit trap.** FHWA NHI-06-088 Table 5-16 gives Es = 4, 7, 10, 12 × N1,60 in **tsf** [2]. Read as **ksf**,
+the same factors halve E. Correct factors (computed):
 
 | Soil (AASHTO / FHWA wording) | tsf per blow | ksf per blow | ksi per blow | MPa per blow | MPa if wrongly read as ksf |
 |---|---|---|---|---|---|
@@ -73,7 +75,9 @@ $$E_s\,[\text{tsf}] = C\,(N_1)_{60},\quad C = 4,\,7,\,10,\,12\ \text{(see sectio
 - **Inputs:** (N1)60 (blows/ft); qc (tsf)
 - **Valid for:** silts to gravels as listed; preliminary estimates only [4, §8.9.1]
 - **Scatter:** not given; GEC 5 says these are only approximate and Es/qc depends on many other factors [4]
-- **Source:** [2] Table 5-16 [V] via an extract of the source; ksi form [4] Table 8-11 p. 8-26 [V]
+- **Source:** [2] Table 5-16 p. 5-85 [V], "for preliminary design" (p. 5-83); ksi form [4] Table 8-11 p. 8-26 [V]
+- **Also:** Kulhawy & Mayne (1990), EPRI EL-6800, Eqs. 5-26a–c, pp. 5-17 to 5-18 [V]: E/pa ≈ 5 N60 (sands with
+  fines), 10 N60 (clean NC sands), 15 N60 (clean OC sands), "as a first order estimator". Built in M13 b3.
 
 ### 5.2 Eu from Su — Duncan & Buchignani (1976)
 $$E_u = K\,S_u,\quad K = f(PI,\ OCR)$$
