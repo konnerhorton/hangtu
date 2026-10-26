@@ -280,6 +280,13 @@ Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads o
   - Which other entries have `not_for` terms the symbol can't check (micaceous sands, fissured clays)?
 - **The warning's wording:** done in M13 b3 (`docs/work/m13b3-spt-stiffness.md`, Decision 8). The warning gives the range only when some rows are outside it, in the docstring's terms and units (`N pa/σ′v0`, `σ′v0 > 0 kPa`).
 
+### 44. Strata labels clipped above the axes · Claude · P01 §7, `src/hangtu/plot/_overlays.py`
+- **Problem:** a strata label is drawn 2 pt below the top of its band, clipped to the axes. When the band's top is beyond the vertical limit, the label falls outside the frame and is cut off or lost. `docs/plots/img/P06-si.png` shows it: the Fill band starts at 11.1 m and the axis at 11 m, so "Fill" is clipped at the top. US hides it only because the limit happens to be above the band.
+- **Wanted:** every band that shows inside the axes keeps a readable label.
+- **Questions:**
+  - Place the label at the top of the visible part of the band (the band's top clipped to the axis limit), or move the limit out to the band's top?
+  - A band too thin on the axes for its label: leave the label out, or count it in the footnote?
+
 ---
 
 ## Later / far future (also on the Roadmap)
