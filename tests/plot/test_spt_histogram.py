@@ -53,6 +53,22 @@ def legend_texts(ax):
     return [t.get_text() for t in ax.get_legend().texts]
 
 
+# --- size -------------------------------------------------------------------------
+
+
+def test_default_size_is_the_chart_size():
+    fig, _ = ht.plot.spt_histogram(spt_frame())
+    assert tuple(fig.get_size_inches()) == pytest.approx((6.5, 3.5))
+
+
+def test_a_missing_size_kind_uses_the_default_size(frame):
+    ht.settings.figure_sizes = {"default": (6, 4)}
+    fig, _ = ht.plot.spt_histogram(spt_frame())
+    assert tuple(fig.get_size_inches()) == pytest.approx((6, 4))
+    fig, _ = ht.plot.profile(frame(), "undrained_shear_strength")
+    assert tuple(fig.get_size_inches()) == pytest.approx((6, 4))
+
+
 # --- classes and bars -------------------------------------------------------------
 
 

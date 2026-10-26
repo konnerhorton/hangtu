@@ -15,7 +15,7 @@ from matplotlib.text import Text
 
 from hangtu import units as _units
 from hangtu._data import rows_text, text_values
-from hangtu._settings import _display_units, settings
+from hangtu._settings import _display_units, figure_size, settings
 from hangtu.analysis.correlations._framework import REASONS as CORRELATION_REASONS
 from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.plot import _layers, _presets, _text_values, _value_ranges, _values, style
@@ -54,7 +54,6 @@ from hangtu.plot._vertical import (
 )
 from hangtu.registry import column_info
 
-LEGEND_WIDTH = 1.5  # inches added to the settings size for the outside legend
 MARKER_SIZE = 5.0  # points
 INTERVAL_WIDTH = 1.0  # points
 ROOM_MARGIN = 0.02  # axes fraction between the stats box and the lowest data
@@ -285,10 +284,7 @@ def _draw_intervals(
 
 
 def _new_axes(figsize: tuple[float, float] | None) -> tuple[Figure, Axes]:
-    if figsize is None:
-        width, height = settings.figure_sizes["profile"]
-        figsize = (width + LEGEND_WIDTH, height)
-    return plt.subplots(figsize=figsize, layout="constrained")
+    return plt.subplots(figsize=figsize or figure_size("profile"), layout="constrained")
 
 
 def _count_no_estimate(df: pd.DataFrame, blank: np.ndarray, notes: Notes) -> np.ndarray:
@@ -429,8 +425,8 @@ def profile(
     display_units : {"US", "SI"}, optional
         Defaults to ``ht.settings.display_units``.
     figsize : (width, height), optional
-        Inches; by default the settings ``profile`` size plus room for the
-        legend. Ignored with ``ax=``.
+        Inches, the whole figure; by default the settings ``profile`` size.
+        Ignored with ``ax=``.
     ax : matplotlib Axes, optional
         Draw into this axes, e.g. a ``Sheet`` panel.
     **style_overrides

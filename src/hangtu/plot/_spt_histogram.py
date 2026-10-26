@@ -12,7 +12,7 @@ from matplotlib.patches import Patch, Rectangle
 from matplotlib.ticker import FixedLocator, NullLocator
 
 from hangtu import analysis
-from hangtu._settings import _display_units, settings
+from hangtu._settings import _display_units, figure_size, settings
 from hangtu.analysis._spt import REFUSAL_CLASS, class_table
 from hangtu.errors import ColumnError, HangtuError
 from hangtu.plot import _layers, _values, style
@@ -146,7 +146,7 @@ def spt_histogram(
         Accepted for the plot contract. Nothing converts, so it changes
         nothing.
     figsize : tuple, optional
-        Figure size in inches. Defaults to ``ht.settings.figure_sizes["default"]``.
+        Figure size in inches. Defaults to ``ht.settings.figure_sizes["chart"]``.
     ax : matplotlib.axes.Axes, optional
         Draw into this axes, e.g. a ``Sheet`` panel.
     **style_overrides
@@ -231,7 +231,7 @@ def spt_histogram(
 
         if ax is None:
             fig, ax = plt.subplots(
-                figsize=figsize or settings.figure_sizes["default"],
+                figsize=figsize or figure_size("chart"),
                 layout="constrained",
             )
         else:

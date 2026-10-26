@@ -92,8 +92,8 @@ column" wording changes: lines are still one per count.
 **P00 §3 and the plots README, "Output":** `figure_sizes` defaults to `{"default": (6.5, 4.5), "profile": (4.5, 6.0),
 "chart": (6.5, 3.5)}`.
 - Each size is the **whole figure**, including any legend and footnote.
-- A kind missing from a user's dict falls back to `default`, as `grid` already does in P07. `default` stays
-  required.
+- A kind missing from a user's dict falls back to `default` (`ht._settings.figure_size(kind)`). `default` stays
+  required. `grid` is a size per panel, so it keeps its own fallback, the 3.75 × 2.75 in panel (P07 §5).
 - 🟡 The numbers are proposed, to be checked against the regenerated figures in the close-out.
 
 **Plots README, "Color and markers":** "The legend sits inside the axes in a clear corner, else below the x label

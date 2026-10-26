@@ -89,7 +89,7 @@ def _palette(value: Any) -> dict[str, Any]:
 def _figure_sizes(value: Any) -> dict[str, tuple[float, float]]:
     example = (
         "Example: ht.settings.figure_sizes = "
-        '{"default": (6.5, 4.5), "profile": (4.0, 6.5)}'
+        '{"default": (6.5, 4.5), "profile": (4.5, 6.0)}'
     )
     if not isinstance(value, dict) or "default" not in value:
         raise HangtuError(
@@ -109,6 +109,15 @@ def _figure_sizes(value: Any) -> dict[str, tuple[float, float]]:
             )
         sizes[kind] = (float(size[0]), float(size[1]))
     return sizes
+
+
+def figure_size(kind: str) -> tuple[float, float]:
+    """Return the settings size of a plot kind, else the ``default`` size.
+
+    Each size is the whole figure in inches, legend and footnote included.
+    """
+    sizes = settings.figure_sizes
+    return sizes.get(kind, sizes["default"])
 
 
 def _hints(value: Any) -> bool:

@@ -43,9 +43,9 @@ def test_renders_for_every_preset_and_vs(name, vs, frame, points):
     assert ax.ags_notes == {}
 
 
-def test_default_size_is_the_profile_size_plus_the_legend(frame):
+def test_default_size_is_the_whole_profile_size(frame):
     fig, _ = ht.plot.profile(frame(), "undrained_shear_strength")
-    assert tuple(fig.get_size_inches()) == pytest.approx((5.5, 6.5))
+    assert tuple(fig.get_size_inches()) == pytest.approx((4.5, 6.0))
     fig, _ = ht.plot.profile(frame(), "undrained_shear_strength", figsize=(4, 4))
     assert tuple(fig.get_size_inches()) == pytest.approx((4, 4))
 
