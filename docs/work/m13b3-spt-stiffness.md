@@ -222,3 +222,83 @@ decisions unless they say "intent" or "review".
 About one sitting, smaller than b2: no plot feature and no judgment kind. Order: (1) the warning's wording;
 (2) the kinds and registry columns; (3) the soil row in the framework, with the two E correlations; (4) the two
 Vs correlations; (5) pages 08 and 10; (6) guide and close-out.
+
+## Plan
+Seven build commits on this branch, each with ruff and pytest green. Numbers in parentheses are the spec's
+decisions (D) and acceptance criteria (AC).
+
+### Reused
+- `src/hangtu/analysis/correlations/_framework.py`: `entry`, `inputs`, `notes`, `estimate`, `uscs_groups`,
+  `soil`, `range_text`, `MADE_BY`; `PA` from `analysis/_overburden.py`.
+- `hangtu.units`: `to_display`, `convert`, `parse_unit` (constants converted with pint, as Stroud/Mayne & Kemper).
+- Test patterns: `tests/analysis/test_correlations.py` (`FUNCTIONS`, `_drift`, `chain_entry` fixture for a
+  made-up entry), `tests/analysis/test_stress_history.py` (golden values, US twins), `tests/units/test_display.py`.
+- Docs: `docs/site/parameters/07-*.md` as the page shape; `docs/site/reference/correlations.md`;
+  `tests/docs/test_site.py` (reference entries, examples run clean, columns page).
+
+### Build steps
+
+#### 1. `M13: say a correlation's range only for rows outside it` (TODO #41; spec D8, AC 7)
+- `config/correlations.yaml`: each `range` key and `terms` entry gains a `label` in the user's terms
+  (`spt_n1_60` → "(N1)60", `normalized_n` → "N pa / σ′v0", `effective_vertical_stress` → "σ′v0", …); schema
+  comment updated.
+- `_framework.py`: `range_text()` writes labels; `estimate()`'s warning adds "Its range is …" only when some
+  rows are "below range" or "above range".
+- Tests (`test_correlations.py`, `test_stress_history.py`): all-soil blanks → no range sentence; K0 above range →
+  "N pa / σ′v0 ≤ 60"; `_drift` also checks each label appears in the docstring (docstrings updated where not).
+
+#### 2. `M13: modulus and velocity kinds, E and Vs registry columns` (spec D6, D7; AC 6)
+- `config/defaults.yaml` `quantity_kinds`: `modulus` (canonical kPa; SI MPa, US ksf) and `velocity` (canonical
+  m/s; SI m/s, US ft/s), after `stress` and `hydraulic_conductivity` so `_kind_of` keeps its first matches.
+  `presets`: `drained_youngs_modulus`, `shear_wave_velocity`.
+- `units/aliases.yaml`: `"ft/s"` (and `"ksi"` if absent), checked against the table.
+- `columns.yaml`: `drained_youngs_modulus` (label "Drained Young's modulus, E′", modulus, `derived:`),
+  `shear_wave_velocity` ("Shear wave velocity, V_s", velocity; ags `ISTA.ISTA_WVL`, to verify) and
+  `correlation_soil` (step 3's column).
+- Tests (`tests/units/test_display.py`, AGS units tests): 13 406 kPa → 13.41 MPa / 280.0 ksf; 191.31 m/s →
+  627.7 ft/s; an AGS `kPa` and `m/s` heading still canonicalize as stress and hydraulic conductivity.
+
+#### 3. `M13: a coefficient by the source's soil row (soil=)` (spec D3, D4; AC 4, 5)
+- `config/correlations.yaml` schema: optional `rows: {name: {wording, coefficient, uscs}}`.
+- `_framework.py`: `soil_rows(df, item, soil) -> np.ndarray` — required; a row name, or `{geology_unit: row}`
+  read from `geology_unit`; errors list the rows / name unmapped or blank units / name the missing column.
+  `notes()` takes the per-row soil: with `uscs="proposed"` each row is checked against its own row's groups; an
+  entry with neither `uscs` nor `rows` raises on `"proposed"` ("for all soils"). `estimate()` writes
+  `correlation_soil` (blank for correlations without rows) and records `soil` in attrs like `uscs`.
+- Tests with a made-up entry (as `chain_entry`): missing / unknown `soil=`, mapping and unmapped unit, the USCS
+  check per row, "proposed" raising on an entry without groups.
+
+#### 4. `M13: drained Young's modulus from AASHTO and Kulhawy & Mayne` (spec D1–D3, D5; AC 1, 3, 8)
+- New `analysis/correlations/_stiffness.py`: `drained_youngs_modulus_aashto_2004` (`spt_n1_60`, C in tsf →
+  kPa) and `drained_youngs_modulus_kulhawy_mayne_1990` (`spt_n60`, C × pa), with docstrings to the TEMPLATE
+  checklist (equation, rows and their wording, input, range > 0 as hangtu's, strain level, scatter, sources and
+  locators). Entries in `correlations.yaml`; exports in `__init__.py`; `reference/correlations.md`.
+- `tests/analysis/test_stiffness.py`: AC 1's table, including 140 tsf = 13 406 kPa ≠ 6 703; US twins; AASHTO
+  raises given only `spt_n60`; refusal → no estimate. `FUNCTIONS` in `test_correlations.py` extended (drift,
+  "no argument chooses the input").
+
+#### 5. `M13: shear wave velocity from Imai & Tonouchi and Ohta & Goto` (spec D1, D4; AC 2, 5, 8)
+- `_stiffness.py`: `shear_wave_velocity_imai_tonouchi_1982`, `shear_wave_velocity_ohta_goto_1978` (N60
+  forms of Wair et al. 2012, the 67 % assumption and GEC 5's shifted notes stated). Entries, exports, reference.
+- Tests: AC 2's table with range ends (0, 447; 2.23, 223) and the cross-check against the uncorrected forms;
+  `uscs="proposed"` raises, a list works.
+
+#### 6. `docs: pages 08 and 10` (spec D9)
+- `docs/site/parameters/08-elastic-stiffness-soil.md`, `10-small-strain-stiffness.md` from TEMPLATE: [V] only, SPT
+  methods link their functions, the rest by wave (W2, W3, W5); nav in `zensical.toml`.
+- Sheets 08 and 10 corrected (the template sentence in 08 §2; Imai & Tonouchi's geology in 10 §5.7 from Wair) with
+  a pointer to the page. Commit message lists [U] items left in the sheets. Over ~300 lines → one commit per page.
+
+#### 7. `M13: correlations guide on soil rows and strain level; close-out`
+- `docs/site/guides/correlations.md` + an example (`docs/site/examples/correlations-stiffness.py`): E by
+  `soil={geology_unit: row}` on the example project's sands with `uscs="proposed"`, Vs from both, P01 by
+  `correlation_name`, a paragraph on strain level (E from N is not E0 from Vs).
+- Close-out: SPEC §12.4 (M13 done); `CLAUDE.md` status (M13 done; next M14); TODO #20 → Done, #40 → "M15", #41
+  wording item done; `docs/drafts/analysis.md` §4.2; parameter index rows 08, 10 stage C → part built (SPT: M13
+  b3).
+
+### Verification
+- Each step: `uv run ruff check . && uv run ruff format --check . && uv run pytest`.
+- Steps 6–7: `uv run python docs/prepare_site.py` and `uv run zensical build --clean --strict`; look at the
+  guide's P01 figure (E in MPa/ksf, Vs in m/s/ft/s) myself.
+- Final: report AC 1–9 met or not, with evidence.
