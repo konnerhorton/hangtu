@@ -145,7 +145,7 @@ Settings and Phase 1 tests: P00 §3 and §14. Phase 2 tests: the drafts file abo
 Full conventions are in [`docs/plots/README.md`](docs/plots/README.md); each figure has its own spec. Summary of the decisions:
 - **Function contract:** `ht.plot.<name>(df, *, ..., ax=None, display_units=None) -> (fig, ax)`. Analysis plots also return a result object. `ax=` enables `Sheet` composition. Analysis code lives in `ht.analysis.*` and can be used without plotting.
 - **Input:** tidy DataFrames with registry column names (§10.3) and declared units (§2.6). There is no dependency on the database.
-- **House style** (agreed for now): sans-serif font, 8–9 pt, light grids, legend outside right. Applied in a context manager, so the user's matplotlib state is untouched. No company drafting standard.
+- **House style** (agreed for now): sans-serif font, 8–9 pt, light grids, legend inside the axes when a corner is clear, else below. Applied in a context manager, so the user's matplotlib state is untouched. No company drafting standard.
 - **Axes:** depth points downward and elevation upward. Labels include units and the datum (e.g. "Elevation (ft, NAVD88)").
 - **Log scales:** supported by profile, histogram, geology-unit comparison and fit plots (for permeability etc.).
 - **Out-of-range data is never dropped silently:** it's drawn at the edge with an arrow and a count. Flagged values (refusal, NP, `<x`, `>x`) are drawn distinctly or counted.
