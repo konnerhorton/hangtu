@@ -131,8 +131,7 @@ right".
    that corner.
 4. A strata band behind the upper-right corner doesn't block it, while the strata label in that corner does.
 5. The P01 stats box at the lower left blocks that corner.
-6. P03 bars are data: a bar reaching into a corner blocks it. (The bars must be drawn at a data layer: see the
-   plan.)
+6. P03 bars are data: a bar reaching into a corner blocks it. (P03 already draws its bars at `_layers.MARKERS`.)
 7. `legend="right"` gives today's legend position, within 1 pt, including with `secondary="depth"`.
 8. `legend=False` draws no legend, the footnote still renders, and `ax.ags_notes` is unchanged.
 9. An invalid `legend=` raises `HangtuError` naming the allowed values.
@@ -179,21 +178,24 @@ so the build commits change code, tests and generated figures.
    - `src/hangtu/plot/_legend.py`: `where="auto" | "inside"`, the corner search, the obstacle collection, the
      returned placement and the frame.
    - `src/hangtu/plot/_notes.py`: `render` follows the placement.
-   - `src/hangtu/plot/_layers.py`: a `BARS` layer for P03, with `_spt_histogram.py` drawing bars at it.
+   - No new layer: P03 already draws its bars at `_layers.MARKERS`, above `_layers.LINES`.
    - Tests (criteria 1–6, 16): new `tests/plot/test_legend_placement.py`, with synthetic axes for each obstacle
-     kind. If the commit passes about 300 lines, split the obstacle collection (with its tests) into its own
-     commit before this one.
+     kind. Built as two commits: first the returned placement and `Notes.render` following it, with
+     `below_x_label()` measuring the x label (P03's class labels are three lines), then the corner search.
 4. **`P00: add legend= to every plot with a legend`**
    - The `legend=` argument, its validation and docstrings in `_profile.py`, `_spt_profile.py`,
      `_water_content_profile.py`, `_spt_histogram.py`, `_plasticity_chart.py`, `_geology_units.py` (single panel;
      `offset=` only for `"right"`) and `_grain_size.py` (default `"bottom"`).
-   - Tests (criteria 7–9) in each plot's test file.
+   - Tests (criteria 7–9): new `tests/plot/test_legend_argument.py`, every plot in one place.
    - Update existing tests that assume the legend is on the right: find them with
      `grep -rn "bbox_to_anchor\|get_window_extent\|legend" tests/plot`.
 5. **`P00: wrap long legend entries`**
    - `_legend.py`: wrap each handle's label before building the legend.
    - Test (criterion 15) in `tests/plot/test_legend_and_hints.py`.
 6. **`P00: regenerate figures for the new layout; close out`**
+   - Done: the 🟡 numbers held (28 characters, 4 pt, the sizes and the frame). P05 and the P07 grid are
+     unchanged, so their images were kept. P04's legend usually finds the upper left clear, above the U-line,
+     and P04 §5 says so.
    - Regenerate `docs/plots/img/` with `sandbox/try_plots.py` or each spec's image script, then
      `uv run python docs/prepare_site.py`.
    - Look at every image (criterion 17) and adjust the 🟡 numbers if a figure shows they're wrong, updating the

@@ -77,7 +77,7 @@ A second use: a project's own soil groups, drawn as regions in LL–PI space, so
 ## 5. Figure layout
 - **Panels:** single.
 - **Default size:** `default` (6.5 × 4.5 in). Equal aspect makes the 100 × 60 box fill the width.
-  - For information: the zone labels and the A-line usually block every corner, so the legend usually goes below the x label (P00 §11). That is expected.
+  - For information: the upper left, above the U-line, is usually clear, so the legend usually sits there (P00 §11). With points or a region there, it goes below the x label.
 - **Orientation:** landscape.
 
 ## 6. Axes

@@ -29,6 +29,7 @@ A value reported as a range at one depth, such as a correlation's band, is drawn
 | `strata=`, `water_level=` | Geology boundaries and water levels across the plot |
 | `ranges=`, `design_lines=`, `reference_lines=` | A report's ranges, design lines or fixed values to compare with |
 | `stats_box=True` | Count, mean, standard deviation, median, minimum and maximum |
+| `legend=` | `"auto"`: inside, in a corner clear of data, else below; or `"bottom"`, `"right"`, `False` |
 
 ## See also
 
