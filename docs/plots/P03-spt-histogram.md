@@ -84,7 +84,7 @@ No depth or elevation is needed. `soil_class` isn't read: the user picks the tab
   ht.plot.spt_histogram(sand, table="cohesionless", ax=sheet[0])
   ht.plot.spt_histogram(clay, table="cohesive", ax=sheet[1])
   ```
-- **Default size:** `default` (6.5 × 4.5 in).
+- **Default size:** `chart` (6.5 × 3.5 in), in total with the legend and footnote.
 - **Orientation:** landscape.
 
 ## 6. Axes

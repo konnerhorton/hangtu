@@ -10,7 +10,8 @@ def test_defaults():
     assert ht.settings.palette == {}
     assert ht.settings.figure_sizes == {
         "default": (6.5, 4.5),
-        "profile": (4.0, 6.5),
+        "profile": (4.5, 6.0),
+        "chart": (6.5, 3.5),
         "grid": (3.75, 2.75),
     }
     assert ht.settings.hints is True

@@ -151,8 +151,10 @@ def test_summary_none_draws_points_and_plain_counts(points):
     assert count_labels(ax) == ["n = 6"]
 
 
-def test_legend_and_footnote_clear_the_count_labels():
-    fig, ax = ht.plot.geology_unit_comparison(frame(ONE_TO_TEN), "water_content")
+def test_a_right_legend_clears_the_count_labels():
+    fig, ax = ht.plot.geology_unit_comparison(
+        frame(ONE_TO_TEN), "water_content", legend="right"
+    )
     fig.draw_without_rendering()
     renderer = fig.canvas.get_renderer()
     (label,) = [text for text in ax.texts if text.get_text().startswith("n =")]
@@ -178,7 +180,8 @@ def test_legend_and_footnote_clear_the_count_labels():
 )
 def test_legend_names_the_summary(arguments, text):
     _, ax = ht.plot.geology_unit_comparison(frame(SIX), "water_content", **arguments)
-    assert legend_texts(ax) == [text, "Data"]
+    # A long entry wraps onto two lines (P00 §11); every word is kept.
+    assert [" ".join(entry.split()) for entry in legend_texts(ax)] == [text, "Data"]
 
 
 # --- errors -------------------------------------------------------------------

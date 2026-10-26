@@ -43,7 +43,7 @@ Each figure is a separate feature with its own spec file in this folder, written
 
 ### Color and markers
 - Color encodes the **geology unit** by default (the session or project palette, SPEC §3; stable across all plots). Marker shape encodes a secondary grouping (e.g. `loca_id` or test type) when requested.
-- The legend sits outside the plotting area on the right (P05: below the x label, with the footnote under it). With more than 12 entries it splits into columns, and with more than 30 it is replaced by a note.
+- The legend sits inside the axes in a clear corner, else below the x label (P00 §11). P05 puts it below. With more than 12 entries it splits into columns, and with more than 30 it is replaced by a note.
 - Color is never the only carrier of meaning that matters. Zones and lines are also labeled.
 
 ### Overlays and annotations
@@ -57,7 +57,7 @@ Each figure is a separate feature with its own spec file in this folder, written
 - Overlays come from data and are never hard-coded: published zones (A-line, classification bands, etc.) live in `config/defaults.yaml` or in the plot module, with their source cited.
 
 ### Output
-- **Default sizes are global settings**, by plot kind: `ht.settings.figure_sizes = {"default": (6.5, 4.5), "profile": (4.0, 6.5)}` (inches; `default` fits a Letter or A4 page with margins, `profile` is portrait). Each spec says which kind it uses. `figsize=` overrides the size for one call. With `ax=`, the size comes from the axes.
+- **Default sizes are global settings**, by plot kind: `ht.settings.figure_sizes = {"default": (6.5, 4.5), "profile": (4.5, 6.0), "chart": (6.5, 3.5)}` (inches; `default` fits a Letter or A4 page with margins, `profile` is portrait, `chart` is a shorter one for bar charts). Each size is the whole figure, including any legend and footnote. A kind missing from the dict falls back to `default`. Each spec says which kind it uses. `figsize=` overrides the size for one call. With `ax=`, the size comes from the axes.
 - `fig.savefig` is left to the user. The examples show PDF and PNG at 300 dpi.
 
 ---

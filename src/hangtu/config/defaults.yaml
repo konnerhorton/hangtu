@@ -6,9 +6,10 @@ settings:
   display_overrides: {}        # {quantity kind: unit}, e.g. {stress: ksf}
   vertical_datum: null         # e.g. NAVD88; added to elevation labels
   palette: {}                  # {geology unit: color}
-  figure_sizes:                # inches, by plot kind
+  figure_sizes:                # inches, whole figure, by plot kind; a missing kind uses default
     default: [6.5, 4.5]
-    profile: [4.0, 6.5]
+    profile: [4.5, 6.0]
+    chart: [6.5, 3.5]            # bar charts (P03)
     grid: [3.75, 2.75]         # per panel (P07 grid)
   hints: true                  # one HangtuHint per plot call for missing optional columns
   hammer_efficiency: null      # SPT energy ratio in %, used from M3

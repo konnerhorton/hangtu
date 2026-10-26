@@ -32,7 +32,7 @@ It ends up in ground investigation reports (data presentation), interpretive and
    100 ┤ ▒▒▒▒▒▒▒▒▒▒▒▒ Alluvium ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒│            ◁ = "less than" value
        │                    ●   ●  ○           │            ● lab   ○ field (marker_by="source")
     90 ┤                 ●    ●     ●          │
- Elev  │            ┊ design line               │    Legend (outside right):
+ Elev  │            ┊ design line               │    Legend (P00 §11, shown beside):
  (ft,  ┤  ▓▓▓▓▓▓▓▓▓ Upper Clay ▓▓▓▓▓▓▓▓▓▓▓▓▓▓│     ■ Fill  ■ Alluvium  ■ Upper Clay
  NAVD88)│   ●  ●  ●                           │     ● lab  ○ field
     70 ┼────────────────────────────────────────┘     ◁ less than (1)
@@ -81,7 +81,7 @@ n/a, apart from:
 
 ## 5. Figure layout
 - **Panels:** single.
-- **Default size:** the global `profile` size from settings (4.0 × 6.5 in plotting area, portrait, plus legend width; about 5.5 × 6.5 in in total with an outside legend). `figsize=` overrides it for one call (plots README, "Output").
+- **Default size:** the global `profile` size from settings (4.5 × 6.0 in in total, portrait, legend and footnote included; the legend sits inside the axes when a corner is clear, P00 §11). `figsize=` overrides it for one call (plots README, "Output").
 - **Orientation:** portrait.
 
 ## 6. Axes
@@ -102,7 +102,7 @@ n/a, apart from:
 - [ ] Equal aspect: no.
 - [ ] Shared limits: no (but `ylim=` lets users align profiles placed side by side on a Sheet).
 - [x] Log axis: always a whole number of decades, and at least 2.
-- [x] Secondary depth axis **only when all rows share one ground level** (a single hole, or an idealized profile). Otherwise `secondary="depth"` raises a clear error, because the depth↔elevation mapping would be ambiguous. With `vs="depth"` it is an error too, since the plot is already against depth. The legend and footnote move right to clear the depth axis.
+- [x] Secondary depth axis **only when all rows share one ground level** (a single hole, or an idealized profile). Otherwise `secondary="depth"` raises a clear error, because the depth↔elevation mapping would be ambiguous. With `vs="depth"` it is an error too, since the plot is already against depth. With `legend="right"`, the legend and footnote move right to clear the depth axis.
 
 **Presets** (general rules in the plots README, "Presets"):
 
@@ -142,7 +142,7 @@ Presets live in `config/defaults.yaml`, with the typical range in the quantity's
 | Design lines | `design_lines=` DataFrame | off | User or P09: `label, <vs column>, value` (one polyline per label) | Bold dashed 1.5 pt, dark gray; label at the deepest point inside the axes | Same idea as AGSi parameter profiles; P09 produces these |
 | Reference lines | `reference_lines=` list of `(value, label)` | off | User | Thin vertical line 0.6 pt, dotted; label at the top (just above the axes when the x-axis is at the bottom) | e.g. a code limit. A number is in the main data's units; a string such as `"2000 psf"` carries its own |
 | Stats box | `stats_box=True`, or a list of statistics | off | pandas (no scipy needed). Default: count, mean, std, median, min, max per unit. A list chooses the statistics, e.g. `stats_box=["count", "mean", "cov"]`; allowed: `count, mean, std, cov, median, min, max` | Text box, lower left, 7 pt, above any `note`. By default (`stats_box_room=True`) the bottom of the vertical axis moves out to a nice value so the box sits below the lowest point or interval bar instead of covering data; `stats_box_room=False` or `ylim=` leaves the limits alone | ≤ 6 units listed in legend order, then an "All" row when there are several; otherwise "All" only. Text values (§3) aren't in the statistics; a last line counts them: "Also: NP 3, 'dry' 1". Statistics are of the values drawn, in display units: blanks and values ≤ 0 on a log axis are left out, values drawn at the edge count at their true value and qualified values at their reported value. On a log axis, statistics are of the plotted values (not log values). std is the sample standard deviation, shown as "—" when n < 2; CoV is "—" on an interval scale (TODO #9). Numbers have 3 significant figures (`1,290`, `0.0123`), in scientific notation below 0.01 or from a million (`2.30e-05`) |
-| Exclusion notes | automatic | **on** | Counts of NaN, ≤ 0 on log, beyond-limit, qualified, text values (one line each: "3 non-plastic (NP) values, shown at the left edge", "1 refusal, shown at the left edge", "2 text values, shown at the left edge") | Footnote below the legend, 7 pt gray | **Always shown when non-zero** (no silent drops) |
+| Exclusion notes | automatic | **on** | Counts of NaN, ≤ 0 on log, beyond-limit, qualified, text values (one line each: "3 non-plastic (NP) values, shown at the left edge", "1 refusal, shown at the left edge", "2 text values, shown at the left edge") | Footnote below the legend, or below the x label when the legend is inside (P00 §9), 7 pt gray | **Always shown when non-zero** (no silent drops) |
 | Note | `note=` str | off | User | Lower-left text, 7 pt | |
 
 **User-supplied overlay formats** (`ht.template("strata")`, `"ranges"` and `"design_lines"` give the exact columns; the templates list both the depth and the elevation form, so fill in one and leave the other blank. A pair whose columns are all blank counts as absent):

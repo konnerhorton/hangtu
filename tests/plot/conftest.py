@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 
 from hangtu import units
-from hangtu._settings import settings
+from hangtu._settings import figure_size, settings
 from hangtu.plot import style
 from hangtu.plot.common import (
     Notes,
@@ -50,7 +50,7 @@ def dummy_plot(
         quantity = column_info(value)["quantity"]
         notes = Notes()
         if ax is None:
-            fig, ax = plt.subplots(figsize=figsize or settings.figure_sizes["profile"])
+            fig, ax = plt.subplots(figsize=figsize or figure_size("profile"))
         else:
             fig = ax.figure
         style.style_axes(ax)
@@ -97,7 +97,7 @@ def dummy_plot(
         ax.set_ylabel(
             axis_label(vs.capitalize(), y_text, datum, unknown=resolved[vs] is None)
         )
-        add_legend(ax, [handles], notes)
+        add_legend(ax, [handles], notes, where="right")
         notes.render(ax)
     return fig, ax
 

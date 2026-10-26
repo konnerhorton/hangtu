@@ -24,7 +24,7 @@ from hangtu.errors import ColumnError, HangtuError
 from hangtu.plot import _layers, _presets, _values, style
 from hangtu.plot._baseline import Baseline, legend_text, read_baseline
 from hangtu.plot._labels import axis_label
-from hangtu.plot._legend import add_legend
+from hangtu.plot._legend import add_legend, check_legend
 from hangtu.plot._limits import set_linear_axis, set_log_axis
 from hangtu.plot._notes import ARROW_LENGTH, Notes, edge_markers
 from hangtu.plot._overlays import ValueScale, draw_note, draw_reference_lines
@@ -658,6 +658,7 @@ def geology_unit_comparison(
     palette: dict[str, str] | None = None,
     units: dict[str, str] | None = None,
     display_units: Literal["US", "SI"] | None = None,
+    legend: Literal["auto", "inside", "bottom", "right"] | bool = "auto",
     figsize: tuple[float, float] | None = None,
     ax: Axes | None = None,
     **style_overrides: Any,
@@ -722,6 +723,15 @@ def geology_unit_comparison(
         ``{column: unit}``, overriding the units declared on ``df``.
     display_units : {"US", "SI"}, optional
         Defaults to ``ht.settings.display_units``.
+    legend : {"auto", "inside", "bottom", "right"} or bool
+        Where the legend goes. ``"auto"`` (the default, or True): inside
+        the axes, in the first corner clear of data (upper right, upper left,
+        lower right, lower left), else below the x label. ``"inside"``: a
+        corner even when none is clear, the one covering least. ``"bottom"``:
+        below the x label. ``"right"``: outside on the right. False: no
+        legend; the footnote still gives every count. With ``ax=``, the
+        corner is chosen for the axes as they are when plotted: pass
+        ``"bottom"`` or ``"right"`` if the figure is resized afterwards.
     figsize : (width, height), optional
         Inches; by default the settings ``default`` size. Ignored with ``ax=``.
     ax : matplotlib Axes, optional
@@ -744,6 +754,7 @@ def geology_unit_comparison(
         summary, percentiles, percentile_method, summary_min_count
     )
     system = _display_units(display_units or settings.display_units)
+    where = check_legend(legend)
 
     with style.context(**style_overrides):
         if ax is None:
@@ -775,8 +786,8 @@ def geology_unit_comparison(
             text = legend_text(baseline_label, [panel.baseline])
             handles = [_baseline_handle(text), *handles]
         offset = _legend_offset(ax, panel.counts)
-        add_legend(ax, [handles], panel.notes, offset)
-        panel.notes.render(ax, offset)
+        placed = add_legend(ax, [handles], panel.notes, offset, where)
+        panel.notes.render(ax, offset, placed.where, placed.legend)
     return fig, ax
 
 

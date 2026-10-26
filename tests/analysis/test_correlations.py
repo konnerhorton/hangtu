@@ -6,6 +6,7 @@ import re
 import numpy as np
 import pandas as pd
 import pytest
+from matplotlib.colors import to_rgba
 
 import hangtu as ht
 from hangtu import _config
@@ -220,10 +221,14 @@ def test_both_concatenate_and_draw_on_a_profile():
         est, value="effective_friction_angle", vs="depth", color_by="correlation_name"
     )
     legend = [text.get_text() for text in ax.get_legend().get_texts()]
-    assert legend == [
+    assert legend == ["Hatanaka & Uchida (1996)", "Kulhawy & Mayne (1990)"]
+    # Only the text changes: the colors are the session's for the correlation names.
+    names = [
         "effective_friction_angle_hatanaka_uchida_1996",
         "effective_friction_angle_kulhawy_mayne_1990",
     ]
+    colors = [to_rgba(h.get_color()) for h in ax.get_legend().legend_handles]
+    assert colors == [to_rgba(h.get_facecolor()) for h in ht.plot.legend_handles(names)]
     # The refusal and the out-of-range row of each, counted by correlation_note.
     assert ax.ags_notes == {"correlation_refusal": 2, "correlation_above_range": 2}
     footnote = [text.get_text() for text in ax.texts if "estimate" in text.get_text()]
@@ -295,6 +300,36 @@ def test_describe_returns_a_copy():
     assert correlations.describe("effective_friction_angle_hatanaka_uchida_1996")[
         "range"
     ]
+
+
+def test_the_label_is_the_first_sources_citation():
+    assert correlations.describe("undrained_shear_strength_stroud_1974")["label"] == (
+        "Stroud (1974)"
+    )
+
+
+def test_a_label_in_the_entry_wins(monkeypatch):
+    from hangtu.analysis.correlations import _framework
+
+    raw = _config.load("config/correlations.yaml")
+    name = "undrained_shear_strength_stroud_1974"
+    entries = {**raw, name: {**raw[name], "label": "Stroud (1974), UK clays"}}
+    monkeypatch.setattr(_config, "load", lambda path: entries)
+    _framework.catalog.cache_clear()
+    try:
+        assert correlations.describe(name)["label"] == "Stroud (1974), UK clays"
+    finally:
+        monkeypatch.undo()
+        _framework.catalog.cache_clear()
+
+
+def test_labels_are_unique_within_each_target():
+    by_target = {}
+    for name in FUNCTIONS:
+        item = correlations.describe(name)
+        by_target.setdefault(item["target"]["column"], []).append(item["label"])
+    for target, labels in by_target.items():
+        assert len(labels) == len(set(labels)), target
 
 
 def test_describe_an_unknown_name_lists_the_correlations():

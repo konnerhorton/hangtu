@@ -77,7 +77,7 @@ A second use: a project's own soil groups, drawn as regions in LL–PI space, so
 ## 5. Figure layout
 - **Panels:** single.
 - **Default size:** `default` (6.5 × 4.5 in). Equal aspect makes the 100 × 60 box fill the width.
-  - For information: with the legend on the right, the box doesn't fill the height, so the figure has white space above and below. Saved with `bbox_inches="tight"`, the default figure with two units in the legend comes out at about 6.6 × 3.3 in (`docs/plots/img/P04.png`). The size depends on the legend's width.
+  - For information: the upper left, above the U-line, is usually clear, so the legend usually sits there (P00 §11). With points or a region there, it goes below the x label.
 - **Orientation:** landscape.
 
 ## 6. Axes

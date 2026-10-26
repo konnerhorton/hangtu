@@ -15,13 +15,13 @@ from matplotlib.text import Text
 
 from hangtu import units as _units
 from hangtu._data import rows_text, text_values
-from hangtu._settings import _display_units, settings
+from hangtu._settings import _display_units, figure_size, settings
 from hangtu.analysis.correlations._framework import REASONS as CORRELATION_REASONS
 from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.plot import _layers, _presets, _text_values, _value_ranges, _values, style
 from hangtu.plot._hints import hint_missing
 from hangtu.plot._labels import axis_label
-from hangtu.plot._legend import add_legend
+from hangtu.plot._legend import add_legend, check_legend
 from hangtu.plot._limits import (
     apply_vertical_axis,
     nice_limits,
@@ -54,7 +54,6 @@ from hangtu.plot._vertical import (
 )
 from hangtu.registry import column_info
 
-LEGEND_WIDTH = 1.5  # inches added to the settings size for the outside legend
 MARKER_SIZE = 5.0  # points
 INTERVAL_WIDTH = 1.0  # points
 ROOM_MARGIN = 0.02  # axes fraction between the stats box and the lowest data
@@ -285,10 +284,7 @@ def _draw_intervals(
 
 
 def _new_axes(figsize: tuple[float, float] | None) -> tuple[Figure, Axes]:
-    if figsize is None:
-        width, height = settings.figure_sizes["profile"]
-        figsize = (width + LEGEND_WIDTH, height)
-    return plt.subplots(figsize=figsize, layout="constrained")
+    return plt.subplots(figsize=figsize or figure_size("profile"), layout="constrained")
 
 
 def _count_no_estimate(df: pd.DataFrame, blank: np.ndarray, notes: Notes) -> np.ndarray:
@@ -336,6 +332,7 @@ def profile(
     palette: dict[str, str] | None = None,
     units: dict[str, str] | None = None,
     display_units: Literal["US", "SI"] | None = None,
+    legend: Literal["auto", "inside", "bottom", "right"] | bool = "auto",
     figsize: tuple[float, float] | None = None,
     ax: Axes | None = None,
     **style_overrides: Any,
@@ -428,9 +425,18 @@ def profile(
         ``{column: unit}``, overriding the units declared on ``df``.
     display_units : {"US", "SI"}, optional
         Defaults to ``ht.settings.display_units``.
+    legend : {"auto", "inside", "bottom", "right"} or bool
+        Where the legend goes. ``"auto"`` (the default, or True): inside
+        the axes, in the first corner clear of data (upper right, upper left,
+        lower right, lower left), else below the x label. ``"inside"``: a
+        corner even when none is clear, the one covering least. ``"bottom"``:
+        below the x label. ``"right"``: outside on the right. False: no
+        legend; the footnote still gives every count. With ``ax=``, the
+        corner is chosen for the axes as they are when plotted: pass
+        ``"bottom"`` or ``"right"`` if the figure is resized afterwards.
     figsize : (width, height), optional
-        Inches; by default the settings ``profile`` size plus room for the
-        legend. Ignored with ``ax=``.
+        Inches, the whole figure; by default the settings ``profile`` size.
+        Ignored with ``ax=``.
     ax : matplotlib Axes, optional
         Draw into this axes, e.g. a ``Sheet`` panel.
     **style_overrides
@@ -473,6 +479,7 @@ def profile(
         palette=palette,
         units=units,
         display_units=display_units,
+        legend=legend,
         figsize=figsize,
         ax=ax,
         value_ranges=True,
@@ -507,6 +514,7 @@ def _draw_profile(
     palette: dict[str, str] | None = None,
     units: dict[str, str] | None = None,
     display_units: Literal["US", "SI"] | None = None,
+    legend: Literal["auto", "inside", "bottom", "right"] | bool = "auto",
     figsize: tuple[float, float] | None = None,
     ax: Axes | None = None,
     flags: np.ndarray | None = None,
@@ -552,6 +560,7 @@ def _draw_profile(
     if secondary not in (None, "depth"):
         raise HangtuError(f'secondary must be "depth" or None, not {secondary!r}.')
     statistics = statistics_list(stats_box) if stats_box is not False else None
+    where = check_legend(legend)
 
     system = _display_units(display_units or settings.display_units)
     chosen = _presets.preset(preset) if preset is not None else None
@@ -722,12 +731,13 @@ def _draw_profile(
             if group is not None and (rows | (others & (groups == group))).any():
                 # A group drawn only as ranges has no marker to show: a bar.
                 only_ranges = not (rows | ((texts != "") & (groups == group))).any()
+                text = _values.group_text(group)
                 if shapes:
-                    handle = Patch(facecolor=color, edgecolor="none", label=str(group))
+                    handle = Patch(facecolor=color, edgecolor="none", label=text)
                 elif only_ranges:
-                    handle = _value_ranges.legend_bar(color, str(group))
+                    handle = _value_ranges.legend_bar(color, text)
                 else:
-                    handle = _values.legend_marker("o", color, str(group), MARKER_SIZE)
+                    handle = _values.legend_marker("o", color, text, MARKER_SIZE)
                 unit_handles.append(handle)
         text_handles, text_edge = _text_values.draw_text_values(
             ax, y, texts, groups, colors, ylim, notes
@@ -746,7 +756,9 @@ def _draw_profile(
             edge |= range_edge
         notes.count(edge | text_edge, "beyond_limit")
         shape_handles = [
-            _values.legend_marker(shape, _values.NEUTRAL, str(group), MARKER_SIZE)
+            _values.legend_marker(
+                shape, _values.NEUTRAL, _values.group_text(group), MARKER_SIZE
+            )
             for group, shape in shapes.items()
             if (drawn & (marker_groups == group)).any()
         ]
@@ -797,11 +809,12 @@ def _draw_profile(
         if secondary == "depth":
             add_secondary_depth(ax, vertical)
         offset = SECONDARY_SPACE if secondary else 0.0
-        add_legend(
+        placed = add_legend(
             ax,
             [unit_handles, companion_handles, shape_handles, flagged, text_handles],
             notes,
             offset,
+            where,
         )
-        notes.render(ax, offset)
+        notes.render(ax, offset, placed.where, placed.legend)
     return fig, ax

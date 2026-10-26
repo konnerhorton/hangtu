@@ -245,6 +245,7 @@ def water_content_profile(
     palette: dict[str, str] | None = None,
     units: dict[str, str] | None = None,
     display_units: Literal["US", "SI"] | None = None,
+    legend: Literal["auto", "inside", "bottom", "right"] | bool = "auto",
     figsize: tuple[float, float] | None = None,
     ax: Axes | None = None,
     **style_overrides: Any,
@@ -272,7 +273,7 @@ def water_content_profile(
     ``intervals``, ``xlim``, ``ylim``, ``xaxis_position``, ``secondary``, the
     overlays ``strata``, ``water_level``, ``ranges``, ``design_lines``,
     ``reference_lines``, ``stats_box``, ``stats_box_room`` and ``note``,
-    ``palette``, ``display_units``, ``figsize``, ``ax`` and style overrides)
+    ``palette``, ``display_units``, ``legend``, ``figsize``, ``ax`` and style overrides)
     are as ``ht.plot.profile()``. ``stats_box`` summarizes water content only.
 
     Parameters
@@ -335,6 +336,7 @@ def water_content_profile(
         "palette": palette,
         "units": units,
         "display_units": display_units,
+        "legend": legend,
         "figsize": figsize,
         "ax": ax,
         **style_overrides,

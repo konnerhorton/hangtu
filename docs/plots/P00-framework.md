@@ -48,7 +48,7 @@ Internal helpers used by every plot live in `ht.plot.common` (§6–§9). They a
 | `display_overrides` | `dict[quantity, unit]` | `{}` | e.g. `{"stress": "ksf"}` |
 | `vertical_datum` | `str \| None` | `None` | elevation labels. A name in the datum table (`vertical_datums.yaml`, `ht.add_vertical_datum()`) is stored as its short name (`navd 88` → `NAVD88`); another is kept as written, with a hint |
 | `palette` | `dict[unit, color]` | `{}` | §10 |
-| `figure_sizes` | `dict[kind, (w, h)]` inches | `{"default": (6.5, 4.5), "profile": (4.0, 6.5)}` | §5 of each plot spec |
+| `figure_sizes` | `dict[kind, (w, h)]` inches | `{"default": (6.5, 4.5), "profile": (4.5, 6.0), "chart": (6.5, 3.5)}` | §5 of each plot spec. Each size is the whole figure, legend and footnote included. A kind missing from the dict falls back to `default`, which is required |
 | `hints` | `bool` | `True` | §11 |
 | `hammer_efficiency` | `float \| None` (%) | `None` | SPT analysis (M3) |
 | `spt_cap` | `int` | `100` | SPT analysis (M3) |
@@ -151,7 +151,7 @@ Helpers: `nice_limits(vmin, vmax, *, start_at_zero)`, `log_limits(vmin, vmax, mi
 
 ## 9. Out-of-range markers and exclusion notes
 - **Edge markers:** a value beyond a fixed limit is drawn at the limit as an **open** marker in the series color, with a short arrow pointing outward (`edge_markers(ax, x, y, limits, color)`). It returns a mask of the values drawn at the edge, so the plot draws the rest normally and counts these.
-- **Notes collector:** every plot creates a `Notes` object that counts exclusions and edge-clipped values by reason ("NaN", "≤ 0 on log axis", "beyond axis limit", "less than", "greater than", "refusal", "NP"). At the end of the plot it renders one footnote below the legend (7 pt, gray), listing only non-zero counts, one per line because it sits in the narrow column beside the axes, e.g. "3 values beyond axis limit, shown at the edge" / "2 values ≤ 0 not shown on log axis".
+- **Notes collector:** every plot creates a `Notes` object that counts exclusions and edge-clipped values by reason ("NaN", "≤ 0 on log axis", "beyond axis limit", "less than", "greater than", "refusal", "NP"). At the end of the plot it renders one footnote (7 pt, gray), listing only non-zero counts, one per line. It sits below the legend, or below the x label when the legend is inside the axes or there is none, e.g. "3 values beyond axis limit, shown at the edge" / "2 values ≤ 0 not shown on log axis".
 - The counts are also attached to the axes as `ax.ags_notes` (a dict) so tests and users can read them (decided).
 
 ## 10. Palette
@@ -162,7 +162,18 @@ Helpers: `nice_limits(vmin, vmax, *, start_at_zero)`, `log_limits(vmin, vmax, mi
 - `palette_cmap(units)` returns a `ListedColormap` in unit order; `legend_handles(units)` returns patches for a stand-alone legend.
 
 ## 11. Legends and hints
-- **Legend:** outside the axes on the right, no frame, 8 pt. Sections in order: units (colors), then marker groups, then special markers (qualifiers, edge markers) with counts. More than 12 entries → columns of up to 12; more than 30 → no legend, and a note saying "n units: see ht.plot.legend_handles()". `add_legend(..., offset=)` and `Notes.render(ax, offset=)` move the legend and footnote further right, in points, to clear a secondary axis. `where="bottom"` on both puts them under the x label instead, the legend centered in up to four columns and the footnote below it, for a plot whose width is precious (P05).
+- **Legend:** 8 pt. Sections in order: units (colors), then marker groups, then special markers (qualifiers, edge markers) with counts. More than 12 entries → columns of up to 12; more than 30 → no legend, and a note saying "n units: see ht.plot.legend_handles()".
+- **Placement** (`docs/work/p00-layout-defaults.md`): `add_legend(..., where=)` takes `"auto"` (the default), `"inside"`, `"bottom"` or `"right"`, and returns the legend and the placement it chose.
+  - `"auto"`: inside the axes, in the first clear corner in the order upper right, upper left, lower right, lower left; if none is clear, below the x label, as `"bottom"`. One order for every plot.
+  - **Clear** means the legend's box, padded by 4 pt, overlaps no marker (padded by its radius), no line segment (one crossing the box counts, not just its vertices), no data patch, and no text, annotation or text box. Artists below `_layers.LINES` (strata bands, user regions, range bands, P05 envelopes) and the axes background don't count. The test runs after the layout engine, so the axes have their final size.
+  - `"inside"`: the same corners with no fallback; if none is clear, the corner with the fewest obstacles, ties to the earlier corner.
+  - `"right"`: outside on the right, no frame. `offset=` moves it further right, in points, to clear a secondary axis.
+  - `"bottom"`: centered under the x label in up to four columns, no frame (P05).
+  - An inside legend has a white frame at 0.85 alpha with no edge, so gridlines don't run through the text.
+  - `Notes.render` takes the placement: below a right legend, below a bottom legend, and below the x label for an inside legend or none.
+  - An entry longer than 28 characters wraps at word boundaries onto as many lines as it needs. It is never shortened.
+- **Public argument:** every plot with a legend takes `legend="auto" | "inside" | "bottom" | "right" | False` (`True` is `"auto"`; `grain_size` defaults to `"bottom"`). `False` draws no legend, and the footnote still renders below the x label. The P07 grid has no `legend=`; its shared legend stays below the panels. With `ax=`, the corner is chosen at plot time, so pass `"bottom"` or `"right"` if the figure is resized afterwards.
+- **Correlation names:** in P01, P02 and P06, a `color_by` or `marker_by` group that is a correlation name in the catalog is shown in the legend by its citation, `ht.analysis.correlations.describe(name)["label"]` (an entry's `label:`, else its first source's `cite`), e.g. "Hatanaka & Uchida (1996)". Data, colors and legend order are unchanged.
 - **Hints** (plots README, "Input data"): `hint_missing(df, optional)` collects missing optional columns with a short reason each and issues **one** `HangtuHint` per call, unless `settings.hints` is `False`. The warning's `stacklevel` points at the user's line.
 
 ## 12. Errors
@@ -191,7 +202,7 @@ Helpers: `nice_limits(vmin, vmax, *, start_at_zero)`, `log_limits(vmin, vmax, mi
 - **Limits:** table-driven tests for `nice_limits` and `log_limits`, e.g. (0.3, 7.8, zero) → (0, 8); (2e-7, 3e-4) → (1e-7, 1e-3); (5e-6, 8e-6) → (1e-6, 1e-4).
 - **Notes and edge markers:** counts match for a synthetic frame with NaN, ≤ 0 and beyond-limit values.
 - **Palette:** the same unit gets the same color in two separate plots; `order` is respected; `reset_palette()` clears it.
-- **Legend:** 12 / 13 / 31 entries give 1 column / 2 columns / no legend + note.
+- **Legend:** 12 / 13 / 31 entries give 1 column / 2 columns / no legend + note. Placement: points only in the lower half put the legend at the upper right and the footnote below the x label; a point in each corner sends `"auto"` below and `"inside"` to the corner with the fewest obstacles; a line crossing a corner with both vertices outside it blocks the corner; a strata band doesn't block a corner while its label does; the P01 stats box blocks the lower left; P03 bars block a corner they reach into; `"right"` matches the old position within 1 pt; `legend=False` draws none and keeps the footnote and `ax.ags_notes`; a bad `legend=` raises naming the values; a 40-character entry wraps with every word kept; rcParams are unchanged through the corner search.
 - **Hints:** one `HangtuHint` per call; none when `settings.hints = False`.
 - **Sheet:** each size and orientation has the right figure size; spans work; `save` writes PDF, PNG and SVG; a dummy plot drawn with `ax=sheet[0]` adds no figure (`plt.get_fignums()` unchanged).
 - **Shared test helpers** for later plots, as fixtures in `tests/plot/conftest.py`: `assert_us_si_equivalent(plot_fn, df, quantities, **kwargs)` (same point positions after conversion and same note counts; only labels and ticks differ; `quantities` names the x and y quantity kinds) and `assert_no_global_state(plot_fn, df, **kwargs)`. A `dummy_plot` fixture shows how a plot uses every helper.

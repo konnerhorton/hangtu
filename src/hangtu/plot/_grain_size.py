@@ -25,7 +25,7 @@ from hangtu.analysis._gradation import (
 from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.plot import _envelopes, _fraction_band, _layers, _values, style
 from hangtu.plot._hints import hint_missing
-from hangtu.plot._legend import BELOW_X_LABEL, add_legend
+from hangtu.plot._legend import add_legend, check_legend
 from hangtu.plot._limits import clear_of_data, log_limits, set_log_axis
 from hangtu.plot._notes import Notes, edge_markers
 from hangtu.plot._palette import AUTOMATIC
@@ -318,6 +318,7 @@ def grain_size(
     palette: dict[str, str] | None = None,
     units: dict[str, str] | None = None,
     display_units: Literal["US", "SI"] | None = None,
+    legend: Literal["auto", "inside", "bottom", "right"] | bool = "bottom",
     figsize: tuple[float, float] | None = None,
     ax: Axes | None = None,
     **style_overrides: Any,
@@ -379,6 +380,16 @@ def grain_size(
     display_units : {"US", "SI"}, optional
         Picks the sieve labels with ``sieves="auto"``; otherwise it changes
         nothing, since particle size is in mm in both systems.
+    legend : {"auto", "inside", "bottom", "right"} or bool
+        Where the legend goes. ``"bottom"`` (the default): below the x
+        label, since the width is precious. ``"auto"`` (or True):
+        inside the axes, in the first corner clear of data (upper right,
+        upper left, lower right, lower left), else below the x label.
+        ``"inside"``: a corner even when none is clear, the one covering
+        least. ``"right"``: outside on the right. False: no legend; the
+        footnote still gives every count. With ``ax=``, the
+        corner is chosen for the axes as they are when plotted: pass
+        ``"bottom"`` or ``"right"`` if the figure is resized afterwards.
     figsize : tuple, optional
         Figure size in inches. Defaults to ``ht.settings.figure_sizes["default"]``.
     ax : matplotlib.axes.Axes, optional
@@ -401,6 +412,7 @@ def grain_size(
     ... )
     """
     system = _display_units(display_units or settings.display_units)
+    where = check_legend(legend)
     if not isinstance(df, pd.DataFrame):
         raise HangtuError(f"df must be a pandas DataFrame, not {type(df).__name__}.")
     percents = _d_percents(d_values)
@@ -478,6 +490,6 @@ def grain_size(
                 zorder=_layers.ANNOTATIONS,
             )
         # Below the axes: a legend on the right crowds the log axis (§5).
-        legend = add_legend(ax, [handles, envelope_handles], notes, where="bottom")
-        notes.render(ax, BELOW_X_LABEL, where="bottom", below=legend)
+        placed = add_legend(ax, [handles, envelope_handles], notes, where=where)
+        notes.render(ax, where=placed.where, below=placed.legend)
     return fig, ax

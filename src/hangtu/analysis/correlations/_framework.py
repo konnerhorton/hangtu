@@ -10,6 +10,7 @@ band also gives ``<target>_lower`` and ``<target>_upper``
 
 import copy
 from collections.abc import Mapping
+from functools import cache
 from typing import Any
 
 import numpy as np
@@ -64,12 +65,18 @@ _BOUNDS = {
 BOUND_TOLERANCE = 1e-9
 
 
+@cache
 def catalog() -> dict[str, dict[str, Any]]:
     """Return every entry in ``config/correlations.yaml``, by name.
 
-    The result is shared and cached: copy it before changing it.
+    Each entry has a ``label``, its legend text: the entry's own ``label:``,
+    else its first source's ``cite``. The result is shared and cached: copy
+    it before changing it.
     """
-    return _config.load(CONFIG)
+    entries = copy.deepcopy(_config.load(CONFIG))
+    for item in entries.values():
+        item.setdefault("label", item["sources"][0]["cite"])
+    return entries
 
 
 def entry(name: str) -> dict[str, Any]:

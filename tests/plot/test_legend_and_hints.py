@@ -16,14 +16,17 @@ def entries(n, prefix="Unit"):
 @pytest.mark.parametrize(("n", "columns"), [(1, 1), (12, 1), (13, 2), (30, 3)])
 def test_legend_columns_hold_up_to_12_entries(n, columns):
     _, ax = plt.subplots()
-    legend = add_legend(ax, [entries(n)], Notes())
+    legend, _ = add_legend(ax, [entries(n)], Notes(), where="right")
     assert legend._ncols == columns
     assert len(legend.get_texts()) == n
 
 
 def test_legend_sits_outside_right_without_a_frame():
     _, ax = plt.subplots()
-    legend = add_legend(ax, [entries(2), entries(1, "Marker")], Notes())
+    legend, where = add_legend(
+        ax, [entries(2), entries(1, "Marker")], Notes(), where="right"
+    )
+    assert where == "right"
     assert not legend.get_frame_on()
     assert legend.get_texts()[0].get_fontsize() == 8
     assert legend._loc == 2  # upper left of the anchor
@@ -32,21 +35,40 @@ def test_legend_sits_outside_right_without_a_frame():
 
 def test_sections_keep_their_order():
     _, ax = plt.subplots()
-    legend = add_legend(ax, [entries(2), entries(1, "Edge")], Notes())
+    legend, _ = add_legend(ax, [entries(2), entries(1, "Edge")], Notes())
     assert [t.get_text() for t in legend.get_texts()] == ["Unit 0", "Unit 1", "Edge 0"]
 
 
 def test_more_than_30_entries_gives_a_note_instead():
     _, ax = plt.subplots()
     notes = Notes()
-    assert add_legend(ax, [entries(29), entries(2, "Marker")], notes) is None
+    assert add_legend(ax, [entries(29), entries(2, "Marker")], notes) == (None, None)
     assert ax.get_legend() is None
     assert notes.lines() == ["29 geology units: see ht.plot.legend_handles()"]
 
 
+def test_a_long_entry_wraps_at_words_and_keeps_every_word():
+    _, ax = plt.subplots()
+    name = "Weathered sandstone and siltstone residuum"  # 42 characters
+    legend, _ = add_legend(ax, [entries(1), [Line2D([], [], label=name)]], Notes())
+    text = legend.get_texts()[1].get_text()
+    assert text.count("\n") == 1
+    assert text.split() == name.split()
+    assert all(len(line) <= 28 for line in text.splitlines())
+    assert legend.get_texts()[0].get_text() == "Unit 0"
+
+
+def test_wrapping_leaves_the_plotted_artists_label_alone():
+    _, ax = plt.subplots()
+    name = "Weathered sandstone and siltstone residuum"
+    (line,) = ax.plot([0, 1], [0, 1], label=name)
+    add_legend(ax, [[line]], Notes())
+    assert line.get_label() == name
+
+
 def test_no_entries_no_legend():
     _, ax = plt.subplots()
-    assert add_legend(ax, [[], []], Notes()) is None
+    assert add_legend(ax, [[], []], Notes()) == (None, None)
 
 
 OPTIONAL = {
