@@ -201,13 +201,13 @@ def defects(projects):
 
 def test_rule_alone_accepts_the_rule_on_this_site(defects):
     report = defects.qc(accepted=[ENTRIES[0]])
-    assert _accepted(report) == [("L005", 57, "Valley site.")]
+    assert _accepted(report) == [("L005", 20, "Valley site.")]
 
 
 @pytest.mark.parametrize("depth", ["4.75 m", "15.58 ft", "4.79 m", "4.71 m"])
 def test_depth_matches_one_finding(defects, depth):
     entry = {"rule_id": "D007", "loca_id": "BH4", "depth": depth, "reason": "Ok."}
-    assert _accepted(defects.qc(accepted=[entry])) == [("D007", 122, "Ok.")]
+    assert _accepted(defects.qc(accepted=[entry])) == [("D007", 85, "Ok.")]
 
 
 @pytest.mark.parametrize("depth", ["4.81 m", "4.69 m", "15.8 ft"])
@@ -223,7 +223,7 @@ def test_depth_matches_in_si_display_units(tmp_path):
         DATA / "qc_defects.ags", db=tmp_path / "si.sqlite", display_units="SI"
     )
     entry = {"rule_id": "D007", "loca_id": "BH4", "depth": "15.58 ft", "reason": "Ok."}
-    assert _accepted(project.qc(accepted=[entry])) == [("D007", 122, "Ok.")]
+    assert _accepted(project.qc(accepted=[entry])) == [("D007", 85, "Ok.")]
 
 
 def test_group_limits_the_entry(defects):
@@ -233,7 +233,7 @@ def test_group_limits_the_entry(defects):
             {"rule_id": "D004", "group": "ISPT", "reason": "SPT below the log."},
         ]
     )
-    assert [line for _, line, _ in _accepted(report)] == [96, 98, 103]
+    assert [line for _, line, _ in _accepted(report)] == [59, 61, 66]
     assert report.accepted["matches"].tolist() == [0, 3]
 
 
@@ -245,7 +245,7 @@ def test_hole_and_heading_must_equal(defects):
             {"rule_id": "D007", "heading": "SPEC_DPTH", "reason": "Lab rounding."},
         ]
     )
-    assert _accepted(report) == [("D007", 122, "Lab rounding.")]
+    assert _accepted(report) == [("D007", 85, "Lab rounding.")]
 
 
 # The report (AC 2, AC 3, AC 4) -------------------------------------------------------
@@ -305,7 +305,7 @@ def test_broad_entry_behind_a_specific_one(defects):
             {"rule_id": "L005", "reason": "Broad."},
         ]
     )
-    assert _accepted(report) == [("L005", 57, "Specific.")]
+    assert _accepted(report) == [("L005", 20, "Specific.")]
     assert report.accepted["matches"].tolist() == [1, 1]
     assert report.accepted["status"].tolist() == ["matched", "matched"]
 

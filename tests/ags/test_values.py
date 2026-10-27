@@ -267,4 +267,5 @@ def test_site_file_flags():
         ("FGHG", "FGHG_ILUG", 1): "LT",
         ("FGHS", "FGHS_ILUG", 1): "LT",
         ("FGHS", "FGHS_ILUG", 2): "GT",
+        ("LPDN", "LPDN_PDEN", 2): "ASSUMED",
     }

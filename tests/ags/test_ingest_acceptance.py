@@ -77,7 +77,6 @@ def test_ac3_older_version_gives_the_same_tables_for_shared_groups(projects):
     ]
     assert shared == [
         "PROJ",
-        "ABBR",
         "LOCA",
         "GEOL",
         "SAMP",
@@ -88,6 +87,10 @@ def test_ac3_older_version_gives_the_same_tables_for_shared_groups(projects):
         "GRAT",
         "PTST",
         "XPPT",
+        "LDEN",
+        "LPDN",
+        "IDEN",
+        "ABBR",
     ]
     for group in shared:
         a, b = si.table(group), old.table(group)

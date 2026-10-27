@@ -133,12 +133,12 @@ def test_5_to_7_geology_on_joins(tmp_path):
     with pytest.warns(UserWarning) as caught:
         spt = p.spt(display_units="SI", geology_fields=["GEOL_GEOL"])
     by_line = spt.set_index("source_line")
-    assert by_line.loc[79, "geology_unit"] == "Alluvium"  # on the 2.00 m boundary
-    assert by_line.loc[81, "geology_unit"] == "Terrace"  # overlap: deepest top
-    assert pd.isna(by_line.loc[83, "geology_unit"])  # in the gap
-    assert by_line.loc[84, "geology_unit"] == "BED"  # unmapped, kept
-    assert by_line.loc[79, "soil_class"] == "fine"
-    assert by_line.loc[79, "geology_code"] == "ALV"
+    assert by_line.loc[45, "geology_unit"] == "Alluvium"  # on the 2.00 m boundary
+    assert by_line.loc[47, "geology_unit"] == "Terrace"  # overlap: deepest top
+    assert pd.isna(by_line.loc[49, "geology_unit"])  # in the gap
+    assert by_line.loc[50, "geology_unit"] == "BED"  # unmapped, kept
+    assert by_line.loc[45, "soil_class"] == "fine"
+    assert by_line.loc[45, "geology_code"] == "ALV"
     assert list(spt["geology_unit"].cat.categories) == [
         "Fill",
         "Alluvium",
@@ -194,17 +194,17 @@ def joins_spt(tmp_path_factory):
 
 
 def test_8_refusal_with_a_blank_n(joins_spt):
-    # Line 87: ISPT_NVAL blank, ISPT_REP "22-30-50/3\"", NPEN 376 mm.
-    row = joins_spt.set_index("source_line").loc[87]
+    # Line 53: ISPT_NVAL blank, ISPT_REP "22-30-50/3\"", NPEN 376 mm.
+    row = joins_spt.set_index("source_line").loc[53]
     assert pd.isna(row["spt_n"])
     assert bool(row["spt_refusal"]) is True
     assert row["spt_n_capped"] == ht.settings.spt_cap
     assert row["depth"] == pytest.approx(7.263)  # 7.00 + 0.150 + 0.226 / 2
-    assert 82 not in set(joins_spt["source_line"])  # blank report: still incomplete
+    assert 48 not in set(joins_spt["source_line"])  # blank report: still incomplete
 
 
 def test_8_plots_draw_a_refusal_with_a_blank_n(joins_spt):
-    # Refusals at lines 80, 83 and 87; J2's (85) has no elevation, so it is
+    # Refusals at lines 46, 49 and 53; J2's (51) has no elevation, so it is
     # one of the blanks.
     _, ax = ht.plot.spt_profile(joins_spt)
     assert ax.ags_notes == {"nan": 1, "refusal": 3}
@@ -220,17 +220,17 @@ def test_8_plots_draw_a_refusal_with_a_blank_n(joins_spt):
 def test_9_filters(projects):
     p = projects["site_si"]
     spt = _quiet(p.spt, geology=["Alluvium"], holes=["BH1", "BH2"], depth=(0, 4))
-    assert list(spt["source_line"]) == [98, 100]
+    assert list(spt["source_line"]) == [53, 55]
 
 
 # 10. Incomplete records left out, or kept on request.
 def test_10_incomplete(tmp_path):
     p = ht.Project.from_ags(DATA / "joins.ags", db=tmp_path / "i.sqlite")
     with pytest.warns(UserWarning) as caught:
-        assert 82 not in set(p.spt()["source_line"])
+        assert 48 not in set(p.spt()["source_line"])
     assert any("Left out 1 of 9 ISPT records" in str(w.message) for w in caught)
     with pytest.warns(UserWarning, match="overlapping"):
-        assert 82 in set(p.spt(include_incomplete=True)["source_line"])
+        assert 48 in set(p.spt(include_incomplete=True)["source_line"])
 
 
 # 11. N60 provenance (test_spt.py has all four cases).

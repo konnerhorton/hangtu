@@ -29,11 +29,11 @@ def test_no_accepted_entries(defects):
 def test_ingest_findings_appear_with_their_lines(defects):
     found = defects.findings
     rows = set(zip(found["rule_id"], found["group"], found["source_line"], strict=True))
-    assert ("U001", "LOCA", 57) in rows
-    assert ("T001", "LNMC", 109) in rows
-    assert ("V10c", "LLPL", 100) in rows
+    assert ("U001", "LOCA", 15) in rows
+    assert ("T001", "LNMC", 67) in rows
+    assert ("V10c", "LLPL", 58) in rows
     assert ("V000", "TRAN", 11) in rows
-    assert ("U005", "XUND", 113) in rows
+    assert ("U005", "XUND", 71) in rows
 
 
 def test_ingest_finding_gets_hole_depth_and_value_from_its_line(defects):

@@ -48,10 +48,13 @@ def _unit(text: str):
     return unit
 
 
-def values(data: Data, group: str, heading: str, si: Sequence[float]) -> str:
+def values(
+    data: Data, group: str, heading: str, si: Sequence[float], *, computed=False
+) -> str:
     """Write SI values of one heading as ``2.50 to 3.00 m (8.20 to 9.84 ft)``.
 
-    One value gives ``2.50 m (8.20 ft)``; two give a range.
+    One value gives ``2.50 m (8.20 ft)``; two give a range. ``computed`` values
+    aren't the file's, so they get 3 significant figures, not its places.
     """
     info = data.heading_info(group, heading)
     kind, file_unit = info["quantity"], info["file_unit"]
@@ -67,8 +70,11 @@ def values(data: Data, group: str, heading: str, si: Sequence[float]) -> str:
         written = (f"{v:g}" if places is None else number(v, places) for v in si)
         return f"{joined(written)} {file_unit}"
     canonical = units.ureg.Unit(canonical)
-    in_file = units.convert(si, canonical, kind, source)
-    text = joined(_in_file(v, info["file_type"]) for v in in_file)
+    # From the file's unit, not to it: convert() reads pcf in a density heading
+    # (P00 §4.3 #1) only as the unit it converts from.
+    in_file = si / units.convert([1.0], source, kind, canonical)[0]
+    file_type = None if computed else info["file_type"]
+    text = joined(_in_file(v, file_type) for v in in_file)
     text += f" {file_unit}"
     target = units.quantity_kind(kind)[data.display_units]
     target_unit = units.ureg.Unit(target["unit"])

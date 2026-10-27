@@ -287,6 +287,10 @@ def test_us_file_resolves_pcf_by_heading():
         ("U002", "PTST_BDEN"),
         ("U002", "GRAG_PDEN"),
         ("U002", "CPTP_SUW1"),
+        ("U002", "LDEN_BDEN"),  # density headings (M14)
+        ("U002", "LDEN_DDEN"),
+        ("U002", "LPDN_PDEN"),
+        ("U002", "IDEN_IDEN"),
     }
     assert headings["PTST", "PTST_BDEN"].unit == "Mg/m3"
     assert headings["CPTP", "CPTP_SUW1"].unit == "kN/m3"

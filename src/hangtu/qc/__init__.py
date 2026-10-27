@@ -3,7 +3,14 @@
 from os import PathLike
 
 # The rule modules register their rules with @rule when imported.
-from hangtu.qc import _depths, _fields, _geology, _locations, _tests  # noqa: F401
+from hangtu.qc import (  # noqa: F401
+    _density,
+    _depths,
+    _fields,
+    _geology,
+    _locations,
+    _tests,
+)
 from hangtu.qc._accepted import AcceptedSource, read_accepted
 from hangtu.qc._data import Data
 from hangtu.qc._diff import diff

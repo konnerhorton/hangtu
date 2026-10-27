@@ -49,6 +49,13 @@ THRESHOLDS: dict[str, dict[str, str]] = {
         "lowest_hydraulic_conductivity": "hydraulic_conductivity",
         "highest_hydraulic_conductivity": "hydraulic_conductivity",
     },
+    "B001": {"dry_density_tolerance": "density"},
+    "B003": {
+        "lowest_bulk_density": "density",
+        "highest_bulk_density": "density",
+        "lowest_particle_density": "density",
+        "highest_particle_density": "density",
+    },
 }
 
 #: Rules that run with another rule's thresholds: D008 is the lower band of

@@ -166,7 +166,15 @@ def test_unknown_template_lists_the_templates(call):
 # --- Dataset templates (SPEC §2.6) ------------------------------------------------
 
 DATA = Path(__file__).parent / "data" / "ags"
-DATASETS = ("spt", "atterberg", "grain_size", "permeability", "stratigraphy")
+DATASETS = (
+    "spt",
+    "atterberg",
+    "grain_size",
+    "permeability",
+    "stratigraphy",
+    "particle_density",
+    "density",
+)
 # Columns only hangtu can produce, so a CSV template leaves them out.
 ONLY_HANGTU = {
     "source_line",
@@ -176,6 +184,7 @@ ONLY_HANGTU = {
     "consistency_index",
     "plasticity_class_uscs",
     "plasticity_class_bs5930",
+    "particle_density_specimen_id",
 }
 
 

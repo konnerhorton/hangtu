@@ -42,7 +42,7 @@ def test_keeps_headings_units_and_types_by_group():
     assert ags.headings["ISPT"][:3] == ["LOCA_ID", "ISPT_TOP", "ISPT_NPEN"]
     assert ags.units["ISPT"]["ISPT_NPEN"] == "mm"
     assert ags.types["ISPT"]["ISPT_WAT"] == "XN"
-    assert list(ags.tables)[:3] == ["PROJ", "TRAN", "UNIT"]  # file order
+    assert list(ags.tables)[:3] == ["PROJ", "TRAN", "DICT"]  # file order
 
 
 def test_records_hash_size_and_version():

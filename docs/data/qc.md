@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | done (M6) |
+| **Status** | done (M6); §4.11 (density, M14) done |
 | **Intent** | [`docs/work/m6-qc.md`](../work/m6-qc.md#intent) |
 | **Parent** | SPEC §2.6 (units), §7 (data model), §8 (depth and geology), §9 (data quality), §11 (errors) |
 | **Related** | [`ingest.md`](ingest.md) §8–§9 (value flags, findings raised at ingest). [`docs/work/qc-review.md`](../work/qc-review.md) (accepted findings, D008), [`docs/work/vertical-datum.md`](../work/vertical-datum.md) (L006, L007). TODO #6 (P001/P003 tolerances), #7 (minimally useful fields) |
@@ -233,9 +233,27 @@ GRAT: {required: [<SPEC_KEY>, GRAT_SIZE, GRAT_PERP]}
 PTST: {required: [<SPEC_KEY>, PTST_K], recommended: [PTST_TYPE, PTST_COND, PTST_TSTR]}
 FGHG: {required: [LOCA_ID, FGHG_TOP, FGHG_BASE, FGHG_IPRM], recommended: [FGHG_TYPE]}
 IPRG: {required: [LOCA_ID, IPRG_TOP, IPRG_BASE, IPRG_IPRM], recommended: [IPRG_TYPE]}
+LDEN: {required: [<SPEC_KEY>, LDEN_BDEN], recommended: [LDEN_DDEN, LDEN_MC, LDEN_TYPE, LDEN_COND]}   # M14
+LPDN: {required: [<SPEC_KEY>, LPDN_PDEN], recommended: [LPDN_TYPE]}                                # M14
+IDEN: {required: [LOCA_ID, IDEN_DPTH, IDEN_IDEN], recommended: [IDEN_MC, IDEN_TYPE]}               # M14
 # <SPEC_KEY> = LOCA_ID, SAMP_TOP, SAMP_REF, SAMP_TYPE, SAMP_ID (the sample key); SPEC_REF and SPEC_DPTH lead each lab group's recommended list (M7)
 ```
 In the shipped file the lists are written out in full; `<SPEC_KEY>` is a YAML anchor.
+
+### 4.11 Density (B) (M14)
+From `docs/work/m14a-density-data.md`. Checks within one record, plus wide ranges that catch a value in the wrong unit, as A003 and K001 do. Checks across tests (saturation, ρs against ρd) are phase relations, M14 (b).
+
+| ID | Rule | Severity | Thresholds |
+|---|---|---|---|
+| B001 | `LDEN_DDEN` differs from `LDEN_BDEN` / (1 + `LDEN_MC` / 100) | warning | `dry_density_tolerance: 0.03 Mg/m3` |
+| B002 | `LDEN_DDEN` above `LDEN_BDEN` | error | |
+| B003 | Improbable density: `LDEN_BDEN` or `IDEN_IDEN` outside the bulk range, `LPDN_PDEN` outside the particle range | warning | `lowest_bulk_density: 1.0 Mg/m3`, `highest_bulk_density: 2.8 Mg/m3`, `lowest_particle_density: 2.0 Mg/m3`, `highest_particle_density: 3.2 Mg/m3` |
+| B004 | Assumed particle density (`ASSUMED` flag on `LPDN_PDEN`) | info | |
+
+- B001: only where all three are given. The tolerance clears the rounding of 2DP densities and a water content rounded to 1 % (at most 0.020 Mg/m³, at ρ = 2.20 and w = 5 %). The message gives the expected dry density and the difference.
+- B002 doesn't need a water content: a dry density can't exceed the bulk density for any w ≥ 0.
+- B003's message names what lies outside the range (peat and organic soils below, ores and some rock above), so the engineer checks the material as well as the unit. An assumed value is checked like a measured one.
+- B004 is one finding per record, so the engineer sees which particle densities are assumed; it's info, not a defect.
 
 ## 5. The report
 ### 5.1 `report.findings`
@@ -354,14 +372,15 @@ Synthetic, written by `tests/data/ags/_make_files.py` (SPEC §12.3).
 | A001, A002, A003, A004 | LL 30 PL 35; LL 50 PL 20 PI 25; LL 8; PL `NP` |
 | P001, P002, P003, P004 | a curve that rises at 0.425 mm; `GRAT_PERP` 104; fractions summing to 94; a curve with 3 points |
 | K001 | `PTST_K` 0, `FGHG_IPRM` 5 m/s |
+| B001, B002, B003, B004 | `LDEN` ρ 2.00, w 20, ρd 1.80 (expected 1.667); ρ 1.80, ρd 1.90, w blank; `LDEN_BDEN` 19.5 and `LPDN_PDEN` 26.5; `LPDN_PDEN` `#2.65` (M14) |
 | C001, C002 | `GEOL_DESC` blank on one row; `LOCA_TYPE` absent |
 
 - The good files (`site_si.ags`, `site_us.ags` and `site_v404.ags`) must stay QC-clean (§9, #2). They have `LOCA_DATM` `NAVD88` in every hole, so they raise no L006.
 - Accepted entries are written in the tests (a YAML file in `tmp_path` and the same entries as a list), against `qc_defects.ags`.
 
 ## 9. Acceptance criteria
-1. **One test per rule:** on `qc_defects.ags`, each rule in §4.2–§4.10 raises exactly the findings its case seeds, with the right `group`, `loca_id`, `heading` and `source_line`; no other errors or warnings. Each ingest rule (§4.1) appears in the report of `defects.ags` or `site_v404.ags` with `loca_id` and `depth` filled where the line has a row.
-2. **Good files:** `site_si.ags`, `site_us.ags` and `site_v404.ags` give no errors or warnings. Their info findings are only `S003`, `A004`, `C002`, `M001` (v404) and `U002` (US).
+1. **One test per rule:** on `qc_defects.ags`, each rule in §4.2–§4.11 raises exactly the findings its case seeds, with the right `group`, `loca_id`, `heading` and `source_line`; no other errors or warnings. Each ingest rule (§4.1) appears in the report of `defects.ags` or `site_v404.ags` with `loca_id` and `depth` filled where the line has a row.
+2. **Good files:** `site_si.ags`, `site_us.ags` and `site_v404.ags` give no errors or warnings. Their info findings are only `S003`, `A004`, `B004`, `C002`, `M001` (v404) and `U002` (US).
 3. **Twin files:** `site_si.ags` and `site_us.ags` give the same findings (`rule_id`, `severity`, `group`, `loca_id`, `heading`, `depth` to 1e-9) apart from `U002`.
 4. **Golden values:** L005's median and difference for BH4, S005's computed N60, P003's sum and A002's difference are hand-calculated in the test and match the message.
 5. **Thresholds and overrides:** `"0.05 ft"` and `"0.01524 m"` give the same G002 findings; a disabled rule raises nothing and shows `enabled = False` in `report.rules`; a severity override changes the findings and the summary; `V*` with a single V rule follows §3.3; an override file and the same dict give the same report. Each error in §2 is raised with its message.

@@ -82,7 +82,7 @@ def test_ground_level_and_elevation(fresh):
     first = df.iloc[0]
     assert (first["ground_level"], first["depth"]) == pytest.approx((12.40, 3.00))
     assert first["elevation"] == pytest.approx(9.40)
-    assert first["source_line"] == 98
+    assert first["source_line"] == 53
 
 
 def test_us_display_units_and_attrs(fresh):
@@ -159,7 +159,7 @@ def test_joins_warnings(fresh):
     )
     assert any(
         "Left out 1 of 9 ISPT records with a blank required field "
-        "(ISPT_NVAL on line 82)"
+        "(ISPT_NVAL on line 48)"
         in m
         and "include_incomplete=True" in m
         for m in messages

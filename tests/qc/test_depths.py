@@ -9,19 +9,19 @@ def report(projects):
 
 
 def test_each_rule_at_its_line(report):
-    assert found(report, "D001") == [("BH1", "SAMP_BASE", 85)]
-    assert found(report, "D002") == [("BH1", "ISPT_TOP", 96)]
-    assert found(report, "D003") == [("BH3", "ISPT_TOP", 103)]
+    assert found(report, "D001") == [("BH1", "SAMP_BASE", 48)]
+    assert found(report, "D002") == [("BH1", "ISPT_TOP", 59)]
+    assert found(report, "D003") == [("BH3", "ISPT_TOP", 66)]
     # 98 is the case (in BH1's 2.50 to 3.00 gap); 96 and 103 are cascades of
     # D002 (above the log) and D003 (below it).
     assert found(report, "D004") == [
-        ("BH1", "ISPT_TOP", 96),
-        ("BH1", "ISPT_TOP", 98),
-        ("BH3", "ISPT_TOP", 103),
+        ("BH1", "ISPT_TOP", 59),
+        ("BH1", "ISPT_TOP", 61),
+        ("BH3", "ISPT_TOP", 66),
     ]
-    assert found(report, "D005") == [("BH4", "SAMP_TOP", 89)]
-    assert found(report, "D007") == [("BH4", "SPEC_DPTH", 122)]
-    assert found(report, "D008") == [("BH3", "SPEC_DPTH", 121)]
+    assert found(report, "D005") == [("BH4", "SAMP_TOP", 52)]
+    assert found(report, "D007") == [("BH4", "SPEC_DPTH", 85)]
+    assert found(report, "D008") == [("BH3", "SPEC_DPTH", 84)]
 
 
 def test_messages(report):
@@ -111,9 +111,10 @@ def test_sample_top_in_a_lab_group_is_checked_once(build):
 def test_d007_specimen_in_two_tests_is_checked_once(projects):
     report = projects["qc_defects"].qc()
     rule = report.rules.set_index("rule_id").loc["D007"]
-    # Six specimens, though LLPL, GRAG, GRAT and PTST hold 21 rows of them.
-    assert rule["records_checked"] == 6
-    assert report.rules.set_index("rule_id").loc["D008", "records_checked"] == 6
+    # Eight specimens, though LLPL, GRAG, GRAT, PTST, LDEN and LPDN hold 27 rows
+    # of them: LDEN uses four of the six, and LPDN adds two.
+    assert rule["records_checked"] == 8
+    assert report.rules.set_index("rule_id").loc["D008", "records_checked"] == 8
 
 
 def _severities(report, *rule_ids):
@@ -126,8 +127,8 @@ def _severities(report, *rule_ids):
 def test_d008_is_the_rounding_band_of_d007(projects):
     report = projects["qc_defects"].qc()
     assert _severities(report, "D007", "D008") == [
-        ("D007", 122, "warning"),
-        ("D008", 121, "info"),
+        ("D007", 85, "warning"),
+        ("D008", 84, "info"),
     ]
 
 
@@ -136,19 +137,19 @@ def test_wider_rounding_tolerance_turns_d007_into_d008(projects):
         rules={"D007": {"thresholds": {"rounding_tolerance": "0.5 m"}}}
     )
     assert _severities(report, "D007", "D008") == [
-        ("D008", 121, "info"),
-        ("D008", 122, "info"),
+        ("D008", 84, "info"),
+        ("D008", 85, "info"),
     ]
 
 
 def test_disabling_d008_leaves_the_rounding_case_unreported(projects):
     report = projects["qc_defects"].qc(rules={"D008": {"enabled": False}})
-    assert _severities(report, "D007", "D008") == [("D007", 122, "warning")]
+    assert _severities(report, "D007", "D008") == [("D007", 85, "warning")]
 
 
 def test_disabling_d007_keeps_d008s_band(projects):
     report = projects["qc_defects"].qc(rules={"D007": {"enabled": False}})
-    assert _severities(report, "D007", "D008") == [("D008", 121, "info")]
+    assert _severities(report, "D007", "D008") == [("D008", 84, "info")]
 
 
 def test_d008_thresholds_cell(projects):

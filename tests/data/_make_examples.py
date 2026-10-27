@@ -42,6 +42,8 @@ rng = random.Random(2026)
 # Hydrometer values have their own sequence, so adding them left every other
 # value in the files unchanged.
 hydrometer_rng = random.Random(2027)
+# So do the densities (M14).
+density_rng = random.Random(2028)
 
 ABBR = [
     ("LOCA_TYPE", "HSA", "Hollow stem auger"),
@@ -59,6 +61,9 @@ ABBR = [
     ("PTST_TYPE", "FW", "Flexible wall permeameter"),
     ("PTST_COND", "UND", "Undisturbed"),
     ("FGHG_TYPE", "FH", "Falling head"),
+    ("LDEN_TYPE", "LINEAR", "Linear measurement"),
+    ("LDEN_COND", "UNDISTURBED", "Undisturbed"),
+    ("LPDN_TYPE", "SMALL PYK", "Small pyknometer"),
 ]
 
 # Hole, easting, northing (ft), ground level, final depth, fill base and
@@ -422,6 +427,64 @@ def ptst():
     return group("PTST", headings, rows)
 
 
+#: Pound mass per cubic foot in Mg/m3 (exact): a lab's density in pcf.
+PCF = 0.45359237 / 0.3048**3 / 1000
+
+
+def particle_densities():
+    """(sample, Gs) for the first tube and the terrace spoon of each hole."""
+    found = []
+    for sample in samples():
+        _, top, _, kind, _ = sample
+        if kind == "U" and top == 12.5:
+            found.append((sample, round(density_rng.uniform(2.68, 2.74), 2)))
+        elif kind == "D":
+            found.append((sample, round(density_rng.uniform(2.64, 2.68), 2)))
+    return found
+
+
+def lpdn():
+    rows = []
+    for (name, top, _, kind, ref), gs in particle_densities():
+        key = [name, top, ref, kind, f"{name}-{kind}{ref}", "2", top + 0.8]
+        rows.append([*key, f"{gs:.2f}", "SMALL PYK"])
+    headings = [
+        *SPECIMEN_HEADINGS,
+        ("LPDN_PDEN", "XN", "Mg/m3"),
+        ("LPDN_TYPE", "PA", ""),
+    ]
+    return group("LPDN", headings, rows)
+
+
+def lden(lnmc):
+    """Each tube's density, on its water content specimen, in pcf.
+
+    A nearly saturated clay: e = w Gs / S, rho_d = Gs rho_w / (1 + e) and
+    rho = rho_d (1 + w), with Gs 2.70 and S 0.95 to 1.00, so the three values
+    on a row agree (QC B001).
+    """
+    water = {(row[0], row[1]): float(row[-1]) / 100 for row in lnmc["rows"]}
+    rows = []
+    for sample in samples():
+        name, top, _, kind, _ = sample
+        if kind != "U":
+            continue
+        w = water[name, top]
+        void_ratio = w * 2.70 / density_rng.uniform(0.95, 1.00)
+        dry = 2.70 / (1 + void_ratio)
+        test = ["LINEAR", "UNDISTURBED", f"{100 * w:.0f}", dry * (1 + w) / PCF]
+        rows.append([*specimen(sample), *test, dry / PCF])
+    headings = [
+        *SPECIMEN_HEADINGS,
+        ("LDEN_TYPE", "PA", ""),
+        ("LDEN_COND", "PA", ""),
+        ("LDEN_MC", "X", "%"),
+        ("LDEN_BDEN", "1DP", "pcf"),
+        ("LDEN_DDEN", "1DP", "pcf"),
+    ]
+    return group("LDEN", headings, rows)
+
+
 def fghg():
     rows = [
         [name, 35.0, 40.0, "1", "FH", 10 ** rng.uniform(-3.5, -2.0)]
@@ -444,7 +507,8 @@ def fghg():
 def site_groups():
     llpl, lnmc = atterberg()
     grag, grat = grading()
-    return [loca(), geol(), samp(), ispt(), llpl, lnmc, grag, grat, ptst(), fghg()]
+    groups = [loca(), geol(), samp(), ispt(), llpl, lnmc, grag, grat, ptst(), fghg()]
+    return [*groups, lden(lnmc), lpdn()]
 
 
 def write_site(path):
@@ -517,6 +581,7 @@ def main(out=OUT):
     out.mkdir(parents=True, exist_ok=True)
     rng.seed(2026)
     hydrometer_rng.seed(2027)
+    density_rng.seed(2028)
     write_site(out / "site.ags")
     (out / "strata.csv").write_text(STRATA, encoding="utf-8", newline="")
     (out / "judgments.yaml").write_text(JUDGMENTS, encoding="utf-8", newline="")

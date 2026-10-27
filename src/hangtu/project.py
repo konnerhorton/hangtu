@@ -692,6 +692,143 @@ class Project:
             display_units=display_units,
         )
 
+    def density(
+        self,
+        *,
+        holes: "str | list[str] | None" = None,
+        geology: "str | list[str] | None" = None,
+        depth: "tuple | None" = None,
+        elevation: "tuple | None" = None,
+        where: dict | None = None,
+        contains: "str | list[str] | None" = None,
+        geology_fields: "str | list[str] | None" = None,
+        include_incomplete: bool = False,
+        display_units: str | None = None,
+    ) -> pd.DataFrame:
+        """Return lab and field unit weights, for P01, P07 and the unit weight judgment.
+
+        One row per result: ``LDEN`` (``source = "lab"``, at the specimen's
+        depth) and ``IDEN`` (``source = "field"``, at ``IDEN_DPTH``,
+        ``depth_basis = "test_depth"``). The file's densities ρ are given as
+        unit weights, γ = ρ g with g = 9.80665 m/s², since P01, P07 and
+        ``vertical_stress()`` take γ: ``bulk_unit_weight`` and, for lab
+        tests, ``dry_unit_weight``. ``water_content`` is the density
+        specimen's own (``LDEN_MC`` or ``IDEN_MC``), never another
+        specimen's, so the three values on a row belong together.
+
+        Recompacted specimens (``sample_condition = "RECOMPACTED"``) and
+        field tests on stabilized ground (``stabilizer_content``) are kept
+        and labeled. They aren't in situ values: leave them out before
+        choosing a unit weight, with a pandas filter such as
+        ``gamma[gamma["sample_condition"] != "RECOMPACTED"]``. See
+        ``docs/data/datasets.md`` §6.8.
+
+        Parameters
+        ----------
+        holes, geology
+            Keep these holes (``LOCA_ID``) or geology units.
+        depth, elevation
+            Keep ``low <= value <= high``, given in the dataset's units
+            (``(0, 30)``) or as quantity strings (``("0 ft", "30 ft")``).
+            Either end may be None.
+        where
+            Keep rows matching ``{column: value or list of values}``, e.g.
+            ``{"source": "lab"}``.
+        contains
+            Keep rows whose geology description contains this text (any
+            case), or any of a list.
+        geology_fields
+            GEOL headings to add as columns, e.g. ``["GEOL_FORM"]``.
+        include_incomplete
+            Keep records with a blank required field (QC C001), such as an
+            ``LDEN`` row with no bulk density. By default they're left out,
+            with a warning that counts them.
+        display_units
+            ``"US"`` or ``"SI"``; by default the project's. Unit weights are
+            in kN/m³ (SI) or pcf (US).
+
+        Examples
+        --------
+        >>> gamma = p.density()
+        >>> in_situ = gamma[gamma["sample_condition"] != "RECOMPACTED"]
+        >>> fig, ax = ht.plot.geology_unit_comparison(in_situ, "bulk_unit_weight")
+        """
+        return datasets.density(
+            self._path,
+            holes=holes,
+            geology=geology,
+            depth=depth,
+            elevation=elevation,
+            where=where,
+            contains=contains,
+            geology_fields=geology_fields,
+            include_incomplete=include_incomplete,
+            display_units=display_units,
+        )
+
+    def particle_density(
+        self,
+        *,
+        holes: "str | list[str] | None" = None,
+        geology: "str | list[str] | None" = None,
+        depth: "tuple | None" = None,
+        elevation: "tuple | None" = None,
+        where: dict | None = None,
+        contains: "str | list[str] | None" = None,
+        geology_fields: "str | list[str] | None" = None,
+        include_incomplete: bool = False,
+        display_units: str | None = None,
+    ) -> pd.DataFrame:
+        """Return particle density test results, for choosing Gs by geology unit.
+
+        One row per ``LPDN`` result, at the specimen's depth, with
+        ``particle_density`` (ρ_s) as the file gives it. A value the file
+        marks as assumed (``#2.65``) keeps its number, with
+        ``particle_density_assumed = True``: compare or drop those rows
+        yourself, since an assumed value isn't a measurement (QC B004 lists
+        them). See ``docs/data/datasets.md`` §6.9.
+
+        Parameters
+        ----------
+        holes, geology
+            Keep these holes (``LOCA_ID``) or geology units.
+        depth, elevation
+            Keep ``low <= value <= high``, given in the dataset's units
+            (``(0, 30)``) or as quantity strings (``("0 ft", "30 ft")``).
+            Either end may be None.
+        where
+            Keep rows matching ``{column: value or list of values}``, e.g.
+            ``{"particle_density_assumed": False}``.
+        contains
+            Keep rows whose geology description contains this text (any
+            case), or any of a list.
+        geology_fields
+            GEOL headings to add as columns, e.g. ``["GEOL_FORM"]``.
+        include_incomplete
+            Keep records with a blank required field (QC C001). By default
+            they're left out, with a warning that counts them.
+        display_units
+            ``"US"`` or ``"SI"``; by default the project's. Particle density
+            is in Mg/m³ (SI) or pcf (US).
+
+        Examples
+        --------
+        >>> rho_s = p.particle_density(where={"particle_density_assumed": False})
+        >>> fig, ax = ht.plot.geology_unit_comparison(rho_s, "particle_density")
+        """
+        return datasets.particle_density(
+            self._path,
+            holes=holes,
+            geology=geology,
+            depth=depth,
+            elevation=elevation,
+            where=where,
+            contains=contains,
+            geology_fields=geology_fields,
+            include_incomplete=include_incomplete,
+            display_units=display_units,
+        )
+
     # --- Geology map (datasets.md §5.2) -----------------------------------------
 
     def stratigraphy(
