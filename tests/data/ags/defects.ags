@@ -113,4 +113,11 @@
 "DATA","SAMP_TYPE","B","Bulk disturbed sample"
 "DATA","DICT_TYPE","GROUP","Flag to indicate definition is a GROUP"
 "DATA","DICT_TYPE","HEADING","Flag to indicate definition is a HEADING"
+"DATA","LDEN_TYPE","LINEAR","Linear measurement"
+"DATA","LDEN_TYPE","IMMERSION","Immersion/displacement measurement"
+"DATA","LDEN_COND","UNDISTURBED","Undisturbed"
+"DATA","LDEN_COND","RECOMPACTED","Recompacted"
+"DATA","LPDN_TYPE","SMALL PYK","Small pyknometer"
+"DATA","IDEN_TYPE","SAND","Sand Replacement/Cone"
+"DATA","IDEN_TYPE","NUCLEAR","Nuclear"
 

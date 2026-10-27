@@ -81,6 +81,7 @@ TYPE_DESCRIPTIONS = {
     "0DP": "Value with 0 decimal places",
     "1DP": "Value with 1 decimal place",
     "2DP": "Value with 2 decimal places",
+    "2SF": "Value with 2 significant figures",
     "3DP": "Value with 3 decimal places",
     "1SCI": "Scientific notation with 1 decimal place",
     "3SF": "Value with 3 significant figures",
@@ -95,6 +96,13 @@ ABBR = [
     ("SAMP_TYPE", "B", "Bulk disturbed sample"),
     ("DICT_TYPE", "GROUP", "Flag to indicate definition is a GROUP"),
     ("DICT_TYPE", "HEADING", "Flag to indicate definition is a HEADING"),
+    ("LDEN_TYPE", "LINEAR", "Linear measurement"),
+    ("LDEN_TYPE", "IMMERSION", "Immersion/displacement measurement"),
+    ("LDEN_COND", "UNDISTURBED", "Undisturbed"),
+    ("LDEN_COND", "RECOMPACTED", "Recompacted"),
+    ("LPDN_TYPE", "SMALL PYK", "Small pyknometer"),
+    ("IDEN_TYPE", "SAND", "Sand Replacement/Cone"),
+    ("IDEN_TYPE", "NUCLEAR", "Nuclear"),
 ]
 
 
@@ -421,6 +429,57 @@ PTST = group(
     us=[*SPECIMEN_US, "PTST_DIAM", "PTST_BDEN", "PTST_K", "PTST_TSTR"],
 )
 
+# Density (M14, docs/work/m14a-density-data.md). BH1-U1's values are AC 1's
+# golden values (1.95 / 1.25 = 1.56); BH2-U2 is recompacted (2.02 / 1.18 =
+# 1.71). Each sample has one particle density specimen, so p.density() picks
+# none; BH2-U2's is assumed (#). BH2's field test has a stabilizer.
+LDEN_HEADINGS = [
+    *SPECIMEN,
+    ("LDEN_TYPE", "PA", ""),
+    ("LDEN_COND", "PA", ""),
+    ("LDEN_MC", "X", "%"),
+    ("LDEN_BDEN", "2DP", "Mg/m3"),
+    ("LDEN_DDEN", "2DP", "Mg/m3"),
+]
+LDEN = group(
+    "LDEN",
+    LDEN_HEADINGS,
+    [
+        [*BH1_U1, "LINEAR", "UNDISTURBED", "25", 1.95, 1.56],
+        [*BH2_U2, "IMMERSION", "RECOMPACTED", "18", 2.02, 1.71],
+    ],
+    us=[*SPECIMEN_US, "LDEN_BDEN", "LDEN_DDEN"],
+)
+
+LPDN_HEADINGS = [*SPECIMEN, ("LPDN_PDEN", "XN", "Mg/m3"), ("LPDN_TYPE", "PA", "")]
+LPDN = group(
+    "LPDN",
+    LPDN_HEADINGS,
+    [
+        ["BH1", 1.50, "1", "U", "BH1-U1", "2", 1.65, "2.68", "SMALL PYK"],
+        ["BH2", 4.50, "2", "U", "BH2-U2", "2", 4.65, "#2.65", "SMALL PYK"],
+    ],
+    us=[*SPECIMEN_US, "LPDN_PDEN"],
+)
+
+IDEN = group(
+    "IDEN",
+    [
+        ("LOCA_ID", "ID", ""),
+        ("IDEN_DPTH", "2DP", "m"),
+        ("IDEN_TESN", "X", ""),
+        ("IDEN_TYPE", "PA", ""),
+        ("IDEN_IDEN", "2DP", "Mg/m3"),
+        ("IDEN_MC", "X", "%"),
+        ("IDEN_STAB", "2SF", "%"),
+    ],
+    [
+        ["BH1", 0.50, "1", "SAND", 1.85, "15", None],
+        ["BH2", 0.40, "1", "NUCLEAR", 1.92, "12", 3.0],
+    ],
+    us=["IDEN_DPTH", "IDEN_IDEN"],
+)
+
 CPTP = group(
     "CPTP",
     [("LOCA_ID", "ID", ""), ("CPTP_DPTH", "2DP", "m"), ("CPTP_SUW1", "1DP", "kN/m3")],
@@ -654,6 +713,9 @@ def site_groups(us=False):
         FGHG,
         FGHS,
         XPPT,
+        LDEN,
+        LPDN,
+        IDEN,
     ]
 
 
@@ -886,7 +948,27 @@ def qc_defects_groups():
         [*FGHG_KEY, ("FGHG_IPRM", "1SCI", "m/s")],
         [["BH4", 3.00, 4.00, "1", 5.0]],  # K001: above 1 m/s
     )
-    return [loca, horn, geol, samp, ispt, llpl, grag, grat, ptst, fghg]
+    # Density rules (qc.md §4.11). BH4-U1 is the AGS dictionary's own example,
+    # 1.66 / 1.57 = 1.057 against 1.06: no B001.
+    lden = group(
+        "LDEN",
+        LDEN_HEADINGS,
+        [
+            [*bh1_u1, "LINEAR", "UNDISTURBED", "20", 2.00, 1.80],  # B001: 1.667
+            [*bh2_u1, "LINEAR", "UNDISTURBED", None, 1.80, 1.90],  # B002
+            [*bh2_d2, "LINEAR", "UNDISTURBED", "15", 19.5, 16.96],  # B003: kN/m3
+            [*bh4_u1, "LINEAR", "UNDISTURBED", "57", 1.66, 1.06],
+        ],
+    )
+    lpdn = group(
+        "LPDN",
+        LPDN_HEADINGS,
+        [
+            ["BH1", 1.00, "1", "U", "BH1-U1", "2", 1.20, "26.5", "SMALL PYK"],  # B003
+            ["BH2", 1.00, "1", "U", "BH2-U1", "2", 1.20, "#2.65", "SMALL PYK"],  # B004
+        ],
+    )
+    return [loca, horn, geol, samp, ispt, llpl, grag, grat, ptst, fghg, lden, lpdn]
 
 
 def joins_groups():
@@ -1025,7 +1107,34 @@ def joins_groups():
             [*j1_b4, "1", 7.20, 0.0630, 8],
         ],
     )
-    return [loca, geol, samp, ispt, llpl, lnmc, grag, grat]
+    # Particle density by sample (datasets.md §6.8):
+    # - J1-U1: density specimen 4 at 1.20; particle density specimens 5 at 1.10
+    #   (0.10 away) and 6 at 1.25 (0.05 away, assumed): 6 is used, flag kept.
+    # - J1-U3: density specimen C at 6.25; E at 6.30 and D at 6.20, both 0.05
+    #   away, E listed first and so with the lower specimen key: D is used.
+    # - J2-U1: a density and no particle density: blank.
+    # - J1-D2: no bulk density, so incomplete (C001).
+    lden = group(
+        "LDEN",
+        LDEN_HEADINGS,
+        [
+            [*j1_u1, "4", 1.20, "LINEAR", "UNDISTURBED", "30", 1.90, 1.46],
+            [*j1_u3, "C", 6.25, "LINEAR", "UNDISTURBED", "20", 2.00, 1.67],
+            [*j2_u1, "3", 2.25, "LINEAR", "UNDISTURBED", "28", 1.88, 1.47],
+            [*j1_d2, "2", 3.10, "LINEAR", "UNDISTURBED", "22", None, 1.60],
+        ],
+    )
+    lpdn = group(
+        "LPDN",
+        LPDN_HEADINGS,
+        [
+            [*j1_u1, "5", 1.10, "2.70", "SMALL PYK"],
+            [*j1_u1, "6", 1.25, "#2.65", "SMALL PYK"],
+            [*j1_u3, "E", 6.30, "2.74", "SMALL PYK"],
+            [*j1_u3, "D", 6.20, "2.71", "SMALL PYK"],
+        ],
+    )
+    return [loca, geol, samp, ispt, llpl, lnmc, grag, grat, lden, lpdn]
 
 
 #: Geology map for the test files (datasets.md §5.2). BED is left out on purpose.
@@ -1056,6 +1165,9 @@ def main(out=HERE):
         IPRG,
         IPRT,
         XPPT,
+        LDEN,
+        LPDN,
+        IDEN,
     ]
     write_file(out / "site_v404.ags", "4.0.4", v404)
     # V000: unknown version
