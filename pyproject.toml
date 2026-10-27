@@ -67,7 +67,7 @@ exclude = ["*.md"]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "D"]
 # Greek symbols appear in axis labels (registry `label`), e.g. "Bulk unit weight, γ",
 # and in messages naming effective stress and friction angle (σ′v, φ′).
-allowed-confusables = ["γ", "σ", "φ", "′"]
+allowed-confusables = ["γ", "ρ", "σ", "φ", "′"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"

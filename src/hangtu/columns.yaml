@@ -27,6 +27,7 @@ templates:
   spt:            [loca_id, ground_level, depth, depth_basis, elevation, spt_n, spt_n60, energy_ratio, spt_refusal, spt_penetration, remarks, geology_unit, soil_class, geology_description]
   atterberg:      [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, depth_top, depth_base, liquid_limit, plastic_limit, plasticity_index, non_plastic, water_content, geology_unit, soil_class, geology_description]
   grain_size:     [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, particle_size, percent_passing, qualifier, geology_unit, soil_class, geology_description]
+  particle_density: [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, particle_density, particle_density_assumed, test_type, geology_unit, soil_class, geology_description]
   # A log per hole (ht.analysis.vertical_stress); p.stratigraphy() adds source_line.
   stratigraphy:   [loca_id, depth_top, depth_base, geology_unit, soil_class, geology_description]
   # Overlays (P01 §8): fill in one depth or elevation pair and leave the other blank.
@@ -254,7 +255,7 @@ columns:
   test_type:
     description: Test method, e.g. falling head, packer, UU, torvane
     type: text
-    ags: [PTST.PTST_TYPE, FGHG.FGHG_TYPE, IPRG.IPRG_TYPE]
+    ags: [PTST.PTST_TYPE, FGHG.FGHG_TYPE, IPRG.IPRG_TYPE, LPDN.LPDN_TYPE]
     used_by: [P01]
   remarks:
     description: Remarks the file gives for the record
@@ -315,6 +316,19 @@ columns:
     scale: ratio
     label: Saturated unit weight, γ_sat
     ags: ["derived: the judgments file (SPEC §4)"]
+    used_by: []
+  particle_density:
+    description: Density of the solid particles, rho_s (Gs = rho_s / rho_w, M14 b)
+    type: number
+    quantity: density
+    scale: ratio
+    label: Particle density, ρ_s
+    ags: [LPDN.LPDN_PDEN]
+    used_by: []
+  particle_density_assumed:
+    description: True if the file marked the particle density as assumed (#)
+    type: bool
+    ags: ["derived: value flag ASSUMED"]
     used_by: []
 
   # --- Vertical stress (ht.analysis.vertical_stress, M13) --------------------------------
