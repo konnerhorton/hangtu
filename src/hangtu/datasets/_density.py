@@ -6,7 +6,9 @@ import numpy as np
 import pandas as pd
 
 from hangtu.datasets._frame import Build
+from hangtu.datasets._index import _nearest, _sample_keys
 from hangtu.datasets._lab import SPECIMEN_COLUMNS, specimens
+from hangtu.errors import warn
 
 #: Standard gravity (m/s², exact by definition). A density in Mg/m³ times g is
 #: a unit weight in kN/m³ (datasets.md §6.8).
@@ -19,6 +21,7 @@ DENSITY_COLUMNS = [
     "water_content",
     "particle_density",
     "particle_density_assumed",
+    "particle_density_specimen_id",
     "sample_condition",
     "stabilizer_content",
     "source",
@@ -63,6 +66,7 @@ def density(
         lab["sample_condition"] = build.texts(rows, "LDEN_COND")
         lab["source"] = "lab"
         lab["test_type"] = build.texts(rows, "LDEN_TYPE")
+        lab["_sample"] = _sample_keys(build, rows)
         parts.append(lab)
     if build.has("IDEN"):
         rows = build.rows("IDEN")
@@ -92,11 +96,73 @@ def density(
     # Field rows have no sample or specimen: blank (None), as texts() gives.
     for column in TEXT_COLUMNS:
         frame[column] = frame[column].astype(object).where(frame[column].notna(), None)
-    # Blank until the particle density join; never False, which would say
-    # "measured".
+    frame = _join_particle_density(build, frame)
+    result = build.finish(frame, [*DENSITY_COLUMNS, "_chosen"], **common)
+    _warn_chosen(result.pop("_chosen"), result)
+    return result
+
+
+def _join_particle_density(build: Build, frame: pd.DataFrame) -> pd.DataFrame:
+    """Give each lab row its sample's particle density (§6.8, decision 4).
+
+    The ``LPDN`` specimen of the same sample nearest the density specimen's
+    depth, by ``p.index_properties()``'s rule (§6.6). Field rows, and samples
+    with no ``LPDN``, stay blank: ``particle_density_assumed`` is NA, never
+    False, which would say "measured". ``_chosen`` marks a row whose sample
+    had several specimens to choose from.
+    """
     frame["particle_density"] = np.nan
     frame["particle_density_assumed"] = pd.array([pd.NA] * len(frame), "boolean")
-    return build.finish(frame, DENSITY_COLUMNS, **common)
+    frame["particle_density_specimen_id"] = None
+    frame["_chosen"] = False
+    found = _particle_densities(build)
+    if found is None:
+        return frame
+    by_sample = {
+        key: [row for _, row in group.iterrows()]
+        for key, group in found.groupby("_sample", sort=False)
+    }
+    for i in frame.index[frame["source"] == "lab"]:
+        candidates = by_sample.get(frame.at[i, "_sample"])
+        if not candidates:
+            continue
+        chosen = _nearest(candidates, frame.at[i, "depth"], None)
+        frame.at[i, "particle_density"] = chosen["particle_density"]
+        frame.at[i, "particle_density_assumed"] = bool(chosen["assumed"])
+        frame.at[i, "particle_density_specimen_id"] = chosen["specimen_id"]
+        frame.at[i, "_chosen"] = len(candidates) > 1
+    return frame
+
+
+def _particle_densities(build: Build) -> pd.DataFrame | None:
+    """Return the ``LPDN`` results with a value, as specimens, or None.
+
+    Read from the table, not ``build.rows()``: a record with no value can't
+    be joined, and isn't one of ``p.density()``'s own records to report as
+    left out (§7).
+    """
+    if not build.has("LPDN"):
+        return None
+    rows = build.data.table("LPDN")
+    found = specimens(build, "LPDN", rows)
+    found["particle_density"] = build.numbers(rows, "LPDN_PDEN")
+    found["assumed"] = build.flagged("LPDN", rows, "LPDN_PDEN", "ASSUMED")
+    found["_sample"] = _sample_keys(build, rows)
+    found["_specimen"] = found.index  # one row per specimen and value
+    found = found[found["particle_density"].notna()]
+    return None if found.empty else found
+
+
+def _warn_chosen(chosen: pd.Series, result: pd.DataFrame) -> None:
+    """Count the samples, among those returned, where a specimen was chosen."""
+    samples = result.loc[chosen.to_numpy(dtype=bool), ["loca_id", "sample_reference"]]
+    count = len(samples.drop_duplicates())
+    if count:
+        warn(
+            f"{count} sample{'s' if count > 1 else ''} had more than one particle "
+            "density specimen; the one nearest in depth was used. "
+            "particle_density_specimen_id says which."
+        )
 
 
 def particle_density(

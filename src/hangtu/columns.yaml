@@ -352,6 +352,11 @@ columns:
     type: bool
     ags: ["derived: value flag ASSUMED"]
     used_by: []
+  particle_density_specimen_id:
+    description: The LPDN specimen (its specimen_id) whose particle density p.density() joined
+    type: text
+    ags: ["derived: docs/data/datasets.md §6.8"]
+    used_by: []
 
   # --- Vertical stress (ht.analysis.vertical_stress, M13) --------------------------------
   total_vertical_stress:

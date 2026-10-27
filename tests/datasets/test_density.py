@@ -142,8 +142,11 @@ def test_density_twins_agree(fresh):
 def test_incomplete_record(fresh):
     # AC 10: J1-D2's LDEN row (line 96) has no LDEN_BDEN.
     project = fresh("joins")
-    with pytest.warns(UserWarning, match=r"Left out 1 of 4 LDEN records"):
+    with pytest.warns(UserWarning) as record:
         df = project.density()
+    messages = [str(w.message) for w in record]
+    assert any(m.startswith("Left out 1 of 4 LDEN records") for m in messages)
+    assert "LDEN_BDEN on line 96" in next(m for m in messages if "Left out" in m)
     assert "J1-D2" not in set(df["sample_reference"])
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -184,3 +187,68 @@ def test_common_arguments(site):
         "BH1",
         "BH2",
     ]
+
+
+# --- Particle density by sample (datasets.md §6.8) -----------------------------------
+
+
+def _ids(project):
+    """``{(sample_reference, SPEC_REF): specimen_id}`` of the LPDN specimens."""
+    rho_s = _quiet(project.particle_density)
+    return {
+        (row.sample_reference, row.specimen_reference): row.specimen_id
+        for row in rho_s.itertuples()
+    }
+
+
+def test_particle_density_joined_by_sample(fresh):
+    # AC 5, joins.ags (tests/data/ags/_make_files.py, joins_groups()):
+    # J1-U1's density specimen is at 1.20; LPDN 5 is at 1.10 (0.10 away) and
+    # 6 at 1.25 (0.05 away, #2.65): 6 is used, and stays assumed.
+    # J1-U3's is at 6.25; E at 6.30 and D at 6.20 are both 0.05 away, and E has
+    # the lower specimen key: D (2.71) is used, by the lower SPEC_REF.
+    # J2-U1 has no LPDN: blank.
+    project = fresh("joins")
+    with pytest.warns(UserWarning) as record:
+        df = project.density()
+    messages = [str(w.message) for w in record]
+    assert (
+        "2 samples had more than one particle density specimen; the one nearest "
+        "in depth was used. particle_density_specimen_id says which."
+    ) in messages
+    ids = _ids(project)
+    by_sample = df.set_index("sample_reference")
+    j1_u1, j1_u3, j2_u1 = (by_sample.loc[s] for s in ("J1-U1", "J1-U3", "J2-U1"))
+    assert j1_u1["particle_density"] == pytest.approx(2.65)
+    assert str(j1_u1["particle_density_assumed"]) == "True"
+    assert j1_u1["particle_density_specimen_id"] == ids["J1-U1", "6"]
+    assert j1_u3["particle_density"] == pytest.approx(2.71)
+    assert str(j1_u3["particle_density_assumed"]) == "False"
+    assert j1_u3["particle_density_specimen_id"] == ids["J1-U3", "D"]
+    assert pd.isna(j2_u1["particle_density"])
+    assert pd.isna(j2_u1["particle_density_assumed"])
+    assert j2_u1["particle_density_specimen_id"] is None
+
+
+def test_the_warning_counts_only_returned_samples(fresh):
+    project = fresh("joins")
+    with pytest.warns(UserWarning) as record:
+        project.density(depth=(6, 7))
+    messages = [str(w.message) for w in record]
+    assert any(m.startswith("1 sample had more than one") for m in messages)
+
+
+def test_one_specimen_per_sample_and_field_rows(site):
+    # The good files: one LPDN specimen per sample, so no warning (_quiet).
+    df = _quiet(site.density)
+    ids = _ids(site)
+    assert list(df["particle_density"].iloc[:2]) == pytest.approx([2.68, 2.65])
+    assert list(df["particle_density_assumed"].iloc[:2]) == [False, True]
+    assert list(df["particle_density_specimen_id"].iloc[:2]) == [
+        ids["BH1-U1", "2"],
+        ids["BH2-U2", "2"],
+    ]
+    field = df[df["source"] == "field"]
+    assert field["particle_density"].isna().all()
+    assert field["particle_density_assumed"].isna().all()
+    assert field["particle_density_specimen_id"].isna().all()

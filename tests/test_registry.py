@@ -184,6 +184,7 @@ ONLY_HANGTU = {
     "consistency_index",
     "plasticity_class_uscs",
     "plasticity_class_bs5930",
+    "particle_density_specimen_id",
 }
 
 
