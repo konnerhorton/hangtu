@@ -594,9 +594,11 @@ def write_group(lines, g):
 
 
 def write_file(path, version, groups, undefined_units=()):
-    """Write PROJ, TRAN, UNIT, TYPE and ABBR, then ``groups``, as an AGS4 file.
+    """Write PROJ, TRAN, then ``groups``, then UNIT, TYPE and ABBR, as an AGS4 file.
 
-    Units in ``undefined_units`` are left out of the UNIT group (AGS Rule 15).
+    UNIT, TYPE and ABBR come last, so a group, unit or code added to a file
+    doesn't move the lines of the data before it, which the tests name. Units
+    in ``undefined_units`` are left out of the UNIT group (AGS Rule 15).
     """
     used_units = {u for g in groups for _, _, u in g["headings"] if u} | {"yyyy-mm-dd"}
     used_units -= set(undefined_units)
@@ -622,7 +624,7 @@ def write_file(path, version, groups, undefined_units=()):
         [list(a) for a in ABBR],
     )
     lines = []
-    for g in [PROJ, tran(version), unit, types, abbr, *groups]:
+    for g in [PROJ, tran(version), *groups, unit, types, abbr]:
         write_group(lines, g)
     out = "".join(
         "\r\n" if line is None else ",".join(_quoted(v) for v in line) + "\r\n"

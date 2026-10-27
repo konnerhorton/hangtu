@@ -16,13 +16,13 @@ def _message(report, rule_id):
 
 
 def test_spt_rules_at_their_lines(report):
-    assert found(report, "S001") == [("BH1", "ISPT_REP", 97), ("BH2", "ISPT_REP", 107)]
+    assert found(report, "S001") == [("BH1", "ISPT_REP", 60), ("BH2", "ISPT_REP", 70)]
     assert found(report, "S002") == [
-        ("BH1", "ISPT_NVAL", 99),
-        ("BH2", "ISPT_NVAL", 108),
+        ("BH1", "ISPT_NVAL", 62),
+        ("BH2", "ISPT_NVAL", 71),
     ]
-    assert found(report, "S004") == [("BH2", "ISPT_NVAL", 100)]
-    assert found(report, "S005") == [("BH2", "ISPT_N60", 101)]
+    assert found(report, "S004") == [("BH2", "ISPT_NVAL", 63)]
+    assert found(report, "S005") == [("BH2", "ISPT_N60", 64)]
 
 
 def test_s003_one_per_hole_with_the_count(report):
@@ -116,10 +116,10 @@ def test_s002_skips_a_refusal(build):
 
 
 def test_atterberg_rules_at_their_lines(report):
-    assert found(report, "A001") == [("BH1", "LLPL_LL", 118)]
-    assert found(report, "A002") == [("BH2", "LLPL_PI", 119)]
-    assert found(report, "A003") == [("BH2", "LLPL_LL", 120)]
-    assert found(report, "A004") == [("BH3", "LLPL_PL", 121)]
+    assert found(report, "A001") == [("BH1", "LLPL_LL", 81)]
+    assert found(report, "A002") == [("BH2", "LLPL_PI", 82)]
+    assert found(report, "A003") == [("BH2", "LLPL_LL", 83)]
+    assert found(report, "A004") == [("BH3", "LLPL_PL", 84)]
 
 
 def test_a002_golden(report):
@@ -144,10 +144,10 @@ def test_np_is_not_compared(report):
 
 
 def test_particle_size_rules_at_their_lines(report):
-    assert found(report, "P001") == [("BH2", "GRAT_PERP", 143)]
-    assert found(report, "P002") == [("BH1", "GRAT_PERP", 137)]
-    assert found(report, "P003") == [("BH3", None, 130)]
-    assert found(report, "P004") == [("BH4", None, 145)]
+    assert found(report, "P001") == [("BH2", "GRAT_PERP", 106)]
+    assert found(report, "P002") == [("BH1", "GRAT_PERP", 100)]
+    assert found(report, "P003") == [("BH3", None, 93)]
+    assert found(report, "P004") == [("BH4", None, 108)]
 
 
 def test_p001_names_the_two_points(report):
@@ -202,8 +202,8 @@ def test_p001_tolerance(build):
 
 def test_k001_at_its_lines(report):
     assert found(report, "K001") == [
-        ("BH2", "PTST_K", 153),
-        ("BH4", "FGHG_IPRM", 159),
+        ("BH2", "PTST_K", 116),
+        ("BH4", "FGHG_IPRM", 122),
     ]
     assert "isn't greater than zero" in _message(report, "K001")
 

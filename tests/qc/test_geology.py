@@ -11,23 +11,23 @@ def report(projects):
 
 
 def test_g001_hole_with_records_and_no_log(report):
-    assert found(report, "G001") == [("BH5", None, 58)]
+    assert found(report, "G001") == [("BH5", None, 21)]
     message = report.findings.query("rule_id == 'G001'")["message"].iloc[0]
     assert "BH5 has records in ISPT but no geology (GEOL) rows" in message
 
 
 def test_g002_gap_between_layers_and_at_the_bottom(report):
-    assert found(report, "G002") == [("BH1", "GEOL_TOP", 71), ("BH2", "GEOL_BASE", 73)]
+    assert found(report, "G002") == [("BH1", "GEOL_TOP", 34), ("BH2", "GEOL_BASE", 36)]
     messages = list(report.findings.query("rule_id == 'G002'")["message"])
     assert "from 2.50 to 3.00 m (8.20 to 9.84 ft), between two layers" in messages[0]
     assert "from 7.50 to 8.00 m (24.6 to 26.2 ft), below the last layer" in messages[1]
 
 
 def test_g003_overlap(report):
-    assert found(report, "G003") == [("BH3", "GEOL_TOP", 76)]
+    assert found(report, "G003") == [("BH3", "GEOL_TOP", 39)]
     message = report.findings.query("rule_id == 'G003'")["message"].iloc[0]
     assert (
-        "overlap from 3.50 to 4.00 m (11.5 to 13.1 ft), on lines 75 and 76" in message
+        "overlap from 3.50 to 4.00 m (11.5 to 13.1 ft), on lines 38 and 39" in message
     )
 
 
@@ -95,7 +95,7 @@ def test_g004_one_finding_per_unmapped_code(tmp_path):
     g004 = report.findings.query("rule_id == 'G004'")
     assert list(
         zip(g004["loca_id"], g004["heading"], g004["source_line"], strict=True)
-    ) == [("J1", "GEOL_GEOL", 62)]
+    ) == [("J1", "GEOL_GEOL", 28)]
     message = g004["message"].iloc[0]
     assert "GEOL_GEOL 'BED' (1 layer, first in J1) isn't in the geology map" in message
     rules = report.rules.set_index("rule_id")

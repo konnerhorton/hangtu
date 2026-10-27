@@ -41,7 +41,7 @@ def test_one_row_per_geol_layer_mapped_and_ordered(mapped):
     assert list(df["geology_unit"].cat.categories) == ["Fill", "Alluvium", "Terrace"]
     assert list(df["soil_class"]) == ["fill", "fine", "fine", "coarse"]
     assert df["geology_description"].iloc[0] == "Brown sandy CLAY with gravel"
-    assert list(df["source_line"]) == [79, 80, 81, 82]
+    assert list(df["source_line"]) == [34, 35, 36, 37]
     assert df.attrs["units"] == {"depth_top": "m", "depth_base": "m"}
     assert df.attrs["palette"]["Alluvium"] == "tan"
 

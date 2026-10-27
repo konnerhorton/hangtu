@@ -9,9 +9,9 @@ def report(projects):
 
 
 def test_c001_blank_required_field(report):
-    # GEOL_DESC on line 77 is the case; BH5's blank LOCA_GL and LOCA_FDEP
+    # GEOL_DESC on line 40 is the case; BH5's blank LOCA_GL and LOCA_FDEP
     # (L001, L003) are a cascade, in one finding for the record.
-    assert found(report, "C001") == [("BH5", "LOCA_GL", 58), ("BH4", "GEOL_DESC", 77)]
+    assert found(report, "C001") == [("BH5", "LOCA_GL", 21), ("BH4", "GEOL_DESC", 40)]
     messages = list(report.findings.query("rule_id == 'C001'")["message"])
     assert messages[0].startswith("Required LOCA_GL and LOCA_FDEP are blank in the ")
 

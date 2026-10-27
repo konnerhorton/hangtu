@@ -11,22 +11,22 @@ def report(projects):
 
 
 def test_l001_l002_l003_on_bh5(report):
-    assert found(report, "L001") == [("BH5", "LOCA_GL", 58)]
-    assert found(report, "L002") == [("BH5", None, 58)]
-    assert found(report, "L003") == [("BH5", "LOCA_FDEP", 58)]
+    assert found(report, "L001") == [("BH5", "LOCA_GL", 21)]
+    assert found(report, "L002") == [("BH5", None, 21)]
+    assert found(report, "L003") == [("BH5", "LOCA_FDEP", 21)]
     message = report.findings.query("rule_id == 'L001'")["message"].iloc[0]
     assert message.startswith("LOCA_GL is blank for BH5")
 
 
 def test_l004_on_the_horn_row(report):
-    assert found(report, "L004") == [("BH2", "HORN_INCL", 64)]
+    assert found(report, "L004") == [("BH2", "HORN_INCL", 27)]
     row = report.findings.query("rule_id == 'L004'").iloc[0]
     assert row["value"] == "80"
     assert "10.0° from vertical" in row["message"]
 
 
 def test_l005_golden_median_and_difference(report):
-    assert found(report, "L005") == [("BH4", "LOCA_GL", 57)]
+    assert found(report, "L005") == [("BH4", "LOCA_GL", 20)]
     message = report.findings.query("rule_id == 'L005'")["message"].iloc[0]
     # Neighbors BH1, BH2, BH3 at 10.00, 10.50, 9.50 m: median 10.00 m.
     # BH4 is at 18.00 m: 8.00 m above. In ft: 8 / 0.3048 = 26.2, 10 / 0.3048 = 32.8.

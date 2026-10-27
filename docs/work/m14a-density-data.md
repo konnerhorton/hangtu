@@ -224,7 +224,7 @@ a unit weight 0.157087 kN/m³). Tolerance 1e-9 relative, unless a criterion says
     as §2 says, including its field rows.
 
 ## Plan
-Six build commits, each with ruff and pytest green. Reused, not rebuilt:
+Seven build commits (step 0 added during the build), each with ruff and pytest green. Reused, not rebuilt:
 - `Build` (`datasets/_frame.py`): `rows()`, `numbers()`, `texts()`, `flagged()`, `finish()`;
 - `specimens()` (`datasets/_lab.py`);
 - `_specimens()`, `_sample_keys()` and `_nearest()` (`datasets/_index.py`), for the join;
@@ -232,6 +232,14 @@ Six build commits, each with ruff and pytest green. Reused, not rebuilt:
   helpers (`qc/_tests.py`).
 
 γ = ρ × 9.80665 lands in canonical units, because canonical density is Mg/m³ and canonical unit weight is kN/m³.
+
+### 0. `tests: write UNIT, TYPE and ABBR after the data groups`
+Added during the build. The new coded headings need `ABBR` rows, and `IDEN_STAB` needs `2SF` in `TYPE`. The
+generator wrote both groups at the top of every file, so any addition moved the line numbers that eight test files
+name. `write_file()` now writes them after the data groups, so later units can add groups, units or codes without
+moving lines. This is a refactor of the test data only: each file's data lines move up by one offset (45
+`site_si`, 44 `site_us`, 46 `site_v404`, 42 `defects`, 37 `qc_defects`, 34 `joins`), and the tests that name
+lines or list groups in file order follow.
 
 ### 1. `M14: add LDEN, LPDN and IDEN to the test files`
 - `tests/data/ags/_make_files.py`:

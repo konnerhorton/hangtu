@@ -31,8 +31,8 @@ def test_from_ags_puts_the_database_next_to_the_file_by_default(site):
 
 
 def test_groups_in_file_order(project):
-    assert project.groups[:6] == ["PROJ", "TRAN", "UNIT", "TYPE", "ABBR", "DICT"]
-    assert project.groups[-3:] == ["FGHG", "FGHS", "XPPT"]
+    assert project.groups[:3] == ["PROJ", "TRAN", "DICT"]
+    assert project.groups[-4:] == ["XPPT", "UNIT", "TYPE", "ABBR"]
 
 
 def test_canonical_table(project):
