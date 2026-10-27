@@ -145,8 +145,9 @@ criteria. 🟡 marks a value proposed here, awaiting review.
    (info), and (b) decides how they are used.
 6. **Recompacted and stabilized records are kept and labeled.** `sample_condition` (`LDEN_COND`: `UNDISTURBED`,
    `RECOMPACTED`) and `stabilizer_content` (`IDEN_STAB`) are columns. Reason: they aren't in situ values, but
-   dropping them would drop data silently; `where={"sample_condition": "UNDISTURBED"}` filters them. The
-   docstring and the dataset spec say so.
+   dropping them would drop data silently; a pandas filter (`sample_condition != "RECOMPACTED"`) leaves them out.
+   `where=` can't, since it compares for equality and the field rows' condition is blank (found in the build).
+   The docstring and the dataset spec say so.
 7. **Field density depth.** `IDEN_DPTH` is a point depth, `depth_basis = "test_depth"` (SPEC §8.2). `IDEN`'s
    parent is `LOCA`, so field rows have no sample or specimen columns.
 8. **QC (level 1) checks a record against itself, plus wide improbable-value ranges that catch unit slips**, as

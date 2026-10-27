@@ -173,6 +173,7 @@ DATASETS = (
     "permeability",
     "stratigraphy",
     "particle_density",
+    "density",
 )
 # Columns only hangtu can produce, so a CSV template leaves them out.
 ONLY_HANGTU = {

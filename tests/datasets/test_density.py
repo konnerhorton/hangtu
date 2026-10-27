@@ -63,3 +63,124 @@ def test_no_lpdn_group(tmp_path):
         df = ht.Project.from_ags(path).particle_density()
     assert df.empty and "particle_density_assumed" in df.columns
     assert str(df["particle_density_assumed"].dtype) == "boolean"
+
+
+# --- p.density() ---------------------------------------------------------------------
+# Golden values: gamma = rho * 9.80665 (standard gravity, exact). In US units,
+# 1 pcf = 0.45359237 kg / 0.3048^3 m3 = 0.0160185 Mg/m3, and as a unit weight
+# 0.157087 kN/m3; both give the same number of pcf (P00 §4.3 #1).
+
+
+@pytest.fixture
+def site(fresh):
+    project = fresh("site_si")
+    project.set_geology_map(make_files.HERE / "strata.csv")
+    return project
+
+
+def test_lab_row(site):
+    # AC 1: rho 1.95, rho_d 1.56 Mg/m3, w 25 %: 1.95 * 9.80665 = 19.12297 and
+    # 1.56 * 9.80665 = 15.29837 kN/m3.
+    df = _quiet(site.density)
+    lab = df.iloc[0]
+    assert lab["bulk_unit_weight"] == pytest.approx(19.12297, rel=1e-6)
+    assert lab["dry_unit_weight"] == pytest.approx(15.29837, rel=1e-6)
+    assert lab["water_content"] == pytest.approx(25.0)
+    assert (lab["source"], lab["test_type"]) == ("lab", "LINEAR")
+    assert lab["sample_condition"] == "UNDISTURBED"
+    assert (lab["depth"], lab["depth_basis"]) == (pytest.approx(1.60), "spec_depth")
+    assert (lab["sample_reference"], lab["geology_unit"]) == ("BH1-U1", "Fill")
+    assert df.attrs["units"]["bulk_unit_weight"] == "kN/m3"
+
+
+def test_us_display(fresh):
+    # AC 2: 19.12297 / 0.157087 = 121.735 and 15.29837 / 0.157087 = 97.388 pcf.
+    df = _quiet(fresh("site_us", display_units="US").density)
+    assert df.attrs["units"]["bulk_unit_weight"] == "pcf"
+    lab = df.iloc[0]
+    assert lab["bulk_unit_weight"] == pytest.approx(121.735, rel=1e-4)
+    assert lab["dry_unit_weight"] == pytest.approx(97.388, rel=1e-4)
+
+
+def test_field_row(site):
+    # AC 3: BH1, ground level 12.40 m, at 0.50 m: elevation 11.90 m;
+    # 1.85 * 9.80665 = 18.14230 kN/m3.
+    df = _quiet(site.density)
+    field = df[df["source"] == "field"].iloc[0]
+    assert (field["loca_id"], field["depth"]) == ("BH1", pytest.approx(0.50))
+    assert field["elevation"] == pytest.approx(11.90)
+    assert field["depth_basis"] == "test_depth"
+    assert field["bulk_unit_weight"] == pytest.approx(18.14230, rel=1e-6)
+    assert pd.isna(field["dry_unit_weight"])
+    assert field["water_content"] == pytest.approx(15.0)
+    assert field["test_type"] == "SAND"
+    for column in ("specimen_id", "sample_reference", "specimen_reference"):
+        assert field[column] is None
+
+
+def test_recompacted_and_stabilized_are_kept(site):
+    # AC 6.
+    df = _quiet(site.density)
+    assert list(df["sample_condition"].fillna("-")) == [
+        "UNDISTURBED",
+        "RECOMPACTED",
+        "-",
+        "-",
+    ]
+    assert list(df["stabilizer_content"].fillna(-1)) == [-1, -1, -1, 3.0]
+    in_situ = df[df["sample_condition"] != "RECOMPACTED"]
+    assert len(in_situ) == 3  # a pandas filter keeps the field rows
+
+
+def test_density_twins_agree(fresh):
+    # AC 9.
+    si = _quiet(fresh("site_si").density).drop(columns="source_line")
+    us = _quiet(fresh("site_us").density).drop(columns="source_line")
+    pd.testing.assert_frame_equal(si, us, rtol=1e-9)
+
+
+def test_incomplete_record(fresh):
+    # AC 10: J1-D2's LDEN row (line 96) has no LDEN_BDEN.
+    project = fresh("joins")
+    with pytest.warns(UserWarning, match=r"Left out 1 of 4 LDEN records"):
+        df = project.density()
+    assert "J1-D2" not in set(df["sample_reference"])
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        kept = project.density(include_incomplete=True)
+    row = kept[kept["sample_reference"] == "J1-D2"].iloc[0]
+    assert pd.isna(row["bulk_unit_weight"])
+    assert row["dry_unit_weight"] == pytest.approx(1.60 * 9.80665)
+
+
+def test_no_density_groups(tmp_path):
+    # AC 11.
+    path = tmp_path / "none.ags"
+    make_files.write_file(path, "4.2", [make_files.LOCA])
+    with pytest.warns(UserWarning, match="No LDEN or IDEN group in none.ags"):
+        df = ht.Project.from_ags(path).density()
+    assert df.empty and "bulk_unit_weight" in df.columns
+
+
+def test_feeds_the_plots(fresh):
+    # AC 12: no warning, in pcf.
+    project = fresh("site_us", display_units="US")
+    project.set_geology_map(make_files.HERE / "strata.csv")
+    df = _quiet(project.density)
+    _, ax = _quiet(ht.plot.profile, df, "bulk_unit_weight")
+    assert "pcf" in ax.get_xlabel()
+    _, ax = _quiet(ht.plot.geology_unit_comparison, df, "bulk_unit_weight")
+    assert "pcf" in ax.get_xlabel() + ax.get_ylabel()
+
+
+def test_common_arguments(site):
+    # AC 14.
+    assert list(_quiet(site.density, depth=(0, 1))["depth"]) == pytest.approx(
+        [0.50, 0.40]
+    )
+    assert list(_quiet(site.density, holes=["BH2"])["source"]) == ["lab", "field"]
+    assert len(_quiet(site.density, geology=["Fill"])) == 2
+    assert list(_quiet(site.density, where={"source": "field"})["loca_id"]) == [
+        "BH1",
+        "BH2",
+    ]
