@@ -73,7 +73,7 @@
 
 **Releases** (decided 2026-10-21) are cut when a milestone leaves something usable, and aren't tied to waves or planned ahead. 0.1.0 (the plots P00–P03 and P07 and the data layer) is the first, on PyPI.
 
-**Not yet placed**, built when needed: the Hollmann & Thewes (2013) clogging diagram (P18); QC level 2 (engineering-judgment ranges); standards comparison with a library of published ranges; user-defined PSD regions and the plasticity-chart data region; the compaction curve (P16).
+**Not yet placed**, built when needed: the Hollmann & Thewes (2013) clogging diagram (P18); relative density, from emax and emin (`RELD`) or from SPT (deferred from M14); QC level 2 (engineering-judgment ranges); standards comparison with a library of published ranges; user-defined PSD regions and the plasticity-chart data region; the compaction curve (P16).
 
 **Later:**
 - **AGSi export** (`to_agsi()`): 1D model elements per geology unit, carrying property summaries and parameters (including depth-trend design lines), with codes from the column registry. Not part of stage D.
@@ -133,7 +133,7 @@ ht.units_of(spt)                                                        # -> {"d
   4. otherwise **error for an analysis**, or **"(units unknown)" label plus a warning for a plot**. Nothing is silently guessed.
 - **Where attrs get lost:** `df.attrs` survives filtering, column selection, `.copy()` and sorting. It is **lost or unreliable** after `merge`/`join`, `concat` of frames with different attrs, `groupby().agg()`, file round trips, and user-built frames. Hence the explicit-argument fallback, and the clear error or label when units are unknown.
 - **Judgments files** (§4) declare their units in a `units:` block per judgment (`{bulk_unit_weight: kN/m3}`), read with the same aliases; a field without a unit is an error naming the judgment.
-- **CSV templates:** `ht.template("spt")` returns an empty DataFrame with the registry columns. `ht.template("spt").to_csv(...)` gives users a file to fill in. Each template column's description and expected quantity are listed by `ht.columns("spt")`. The `spt`, `atterberg`, `grain_size` and `permeability` templates are their Phase 2 dataset's columns in the same order, without those only hangtu produces (`source_line`, `energy_source`, `spt_n_capped`, `liquidity_index`, `consistency_index`), so CSV and AGS data reach the plots in the same shape (decided 2026-10-14, `docs/work/m9-release.md`). `stratigraphy` is `p.stratigraphy()`'s columns without `source_line` (M13).
+- **CSV templates:** `ht.template("spt")` returns an empty DataFrame with the registry columns. `ht.template("spt").to_csv(...)` gives users a file to fill in. Each template column's description and expected quantity are listed by `ht.columns("spt")`. The `spt`, `atterberg`, `grain_size` and `permeability` templates are their Phase 2 dataset's columns in the same order, without those only hangtu produces (`source_line`, `energy_source`, `spt_n_capped`, `liquidity_index`, `consistency_index`), so CSV and AGS data reach the plots in the same shape (decided 2026-10-14, `docs/work/m9-release.md`). `stratigraphy` is `p.stratigraphy()`'s columns without `source_line` (M13); `density` and `particle_density` are their datasets' without `source_line` and `particle_density_specimen_id` (M14, `docs/work/m14a-density-data.md`).
 
 ### 2.7–2.8 Settings and acceptance tests
 Settings and Phase 1 tests: P00 §3 and §14. Phase 2 tests: the drafts file above.
@@ -261,6 +261,7 @@ Apply in both phases. In Phase 1 they are applied by the analysis functions to t
 | SPT (Phase 1, CSV) | `depth` as given; the template has no increments (decided, analysis.md §1.2) | — |
 | Lab tests | Specimen depth → else sample midpoint → else sample top | `spec_depth` / `sample_mid` / `sample_top` |
 | Field permeability | Midpoint of the test zone | `zone_mid` |
+| Field density (`IDEN`) | `IDEN_DPTH`, a point test (M14) | `test_depth` |
 | Intervals (geology, samples) | Top and base kept as-is | — |
 
 ### 8.3 Geology
@@ -298,7 +299,7 @@ Apply in both phases. In Phase 1 they are applied by the analysis functions to t
 `p.groups`, `p.table(group, raw=False)`, `p.locations`, `p.set_geology_map(path)`, `p.geology_map`, `p.set_judgments(path)`, `p.judgments`, `p.diff(group, heading=None, changed_only=False)`, `p.sql(...)` (read-only, SI).
 
 ### 10.2 Ready-made datasets (Phase 2)
-- `p.spt()`, `p.atterberg()`, `p.grain_size()` and `p.permeability()` (M7, v0.1); `p.grain_size_summary()`, `p.index_properties()` and the classification columns (M8); `p.stratigraphy()`, one row per GEOL layer (M13).
+- `p.spt()`, `p.atterberg()`, `p.grain_size()` and `p.permeability()` (M7, v0.1); `p.grain_size_summary()`, `p.index_properties()` and the classification columns (M8); `p.stratigraphy()`, one row per GEOL layer (M13); `p.density()` (lab and field unit weights, each with its own specimen's water content) and `p.particle_density()` (M14).
 - **Several specimens of a test in one sample** (decided 2026-10-15, M8): `p.index_properties()` uses the one nearest in depth to the water content specimen and names it in a column, with a warning. No row is multiplied (`docs/data/datasets.md` §6.6).
 - They return DataFrames in **exactly the shape the Phase 1 plots expect**: the same registry column names, with units attached, in the project's display units unless `display_units=` says otherwise. Columns and rules: [`docs/data/datasets.md`](docs/data/datasets.md).
 - **Common filters:** `where=`, `contains=`, `elevation=`, `depth=`, `holes=`, `geology=`, `geology_fields=`, `include_incomplete=`, `display_units=` (naming decided).
@@ -415,7 +416,7 @@ Rows are in build order; each milestone after M8 names its wave, or statistics o
 | M9 | Examples (CSV → plot and AGS → QC → plot), CSV templates, README → **v0.1.0 on PyPI** | Examples run from a clean `pip install` |
 | M8 | **P04–P06** + classification and gradation analyses, and the datasets that need them | P04–P06 criteria + classification/Dx golden tests |
 | M13 | Wave 1, in four units: (a) the judgments file (§4), `p.stratigraphy()` and vertical stress; (b1) (N1)60, hammer efficiency by hole, the correlations framework and φ′ from SPT; (b2) the **SPT correlations** for s_u, σ′p/OCR and K0, with bands, chaining, the USCS map and PI by geology unit; (b3) E and Vs from SPT | Golden values from each source; out-of-range counts |
-| M14 | Wave 1: phase relations (γ, γd, e, n, S with consistency checks), activity, LI and Ic as analyses | Golden values; consistency checks on the test files |
+| M14 | Wave 1, in two units (data, then analysis; `docs/reference/process.md`): (a) `p.density()` and `p.particle_density()` from LDEN, IDEN and LPDN, with QC; (b) phase relations (γ, γd, e, n, S with consistency checks), the Gs judgment and activity. LI and Ic are already analyses (`ht.analysis.plasticity()`, M8) | Golden values; consistency checks on the test files |
 | M12 | Wave 1: **P17** clogging diagram (Thewes & Burger 2004) | P17 criteria; zones match the source |
 | M15 | Statistics: `describe`, `fit` (bounded and censored), `compare`, `compare_groups`, `crosstab`, EC7 `characteristic`; P08, P09 | JRC worked examples; scipy reference values |
 | M16 | Wave 0: user-defined groups and curves | Curves from the sample dataset reach the datasets |

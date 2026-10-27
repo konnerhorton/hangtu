@@ -85,3 +85,140 @@ for the judgments file from, and are checked by QC rules that catch records that
   - promoting sheet 03 (and 02) to a site page.
 - RDEN and the specimen initial states (decision 2), relative density (decision 4), QC level 2.
 - New plots. P01 and P07 take the new columns as they are.
+
+## Spec
+The rules live in the topic docs: the datasets in `docs/data/datasets.md` §6.8–6.9, the QC rules in
+`docs/data/qc.md` §4.11. This section lists what changes where, the decisions behind it and the acceptance
+criteria. 🟡 marks a value proposed here, awaiting review.
+
+### Changes
+- **`docs/data/datasets.md`:** §6.8 `p.density()` and §6.9 `p.particle_density()` (new); §2, §8, §11 and §12
+  updated for them.
+- **`docs/data/qc.md`:** §4.11 density rules B001–B004 (new); §4.10's minimum fields gain `LDEN`, `LPDN` and
+  `IDEN`; §8 has the defects cases.
+- **SPEC:**
+  - §2.6, the `density` and `particle_density` templates;
+  - §8.2, field density at `IDEN_DPTH` (`test_depth`);
+  - §10.2, the two datasets;
+  - §12.4, M14 split into (a) and (b);
+  - §1.3 "Not yet placed", relative density (intent decision 4).
+- **Registry:**
+  - new columns: `dry_unit_weight`, `particle_density`, `particle_density_assumed`,
+    `particle_density_specimen_id`, `sample_condition` and `stabilizer_content`, each checked against the whole
+    registry;
+  - new AGS sources: `bulk_unit_weight` (`LDEN_BDEN`, `IDEN_IDEN` × g; RDEN is dropped until M21 reads it),
+    `water_content` (`LDEN_MC`, `IDEN_MC`), `test_type` (`LDEN_TYPE`, `IDEN_TYPE`, `LPDN_TYPE`);
+  - `depth_basis` gains `test_depth`.
+- **Test files:** `LDEN`, `LPDN` and `IDEN` in `site_si.ags`, `site_us.ags` and `site_v404.ags`; the B cases in
+  `qc_defects.ags`; the join cases in `joins.ags`.
+- **Example file:** `ht.examples`' `site.ags` gains `LDEN` and `LPDN` (🟡 here rather than in (b)), so the
+  datasets' docs example and a P01 of unit weight run from it.
+
+### Decisions
+1. **Two datasets.** `p.density()` returns lab (`LDEN`) and field (`IDEN`) results together, one row per
+   result, with `source` = `lab` or `field` and `test_type`, the way `p.permeability()` mixes lab and field
+   (§6.4). `p.particle_density()` returns one row per `LPDN` result. Reasons:
+   - both lab and field results are a bulk unit weight at a depth, so one P01 or P07 compares them;
+   - particle density is a different property, one an engineer reviews by geology unit when choosing the
+     Gs judgment in (b).
+2. **Unit weights, not densities.** `p.density()` gives `bulk_unit_weight` and `dry_unit_weight` as γ = ρ g,
+   with g = 9.80665 m/s² (standard gravity, exact). Reasons:
+   - every consumer takes γ: P01, P07, the `unit_weight` judgment, `vertical_stress()`;
+   - the registry already derives `bulk_unit_weight` from a density × g;
+   - US practice reports unit weight in pcf, and γ and ρ display as the same pcf number (P00 §4.3 #1).
+
+   Particle density stays a density (`particle_density`, Mg/m³), as the file gives it. Gs = ρs / ρw is (b)'s,
+   decided together with γw (`ht.settings.water_unit_weight`, 9.81) against ρw g (9.807), so the two can't
+   disagree.
+3. **The density specimen's own water content.** `water_content` is `LDEN_MC` (or `IDEN_MC`), measured on the
+   same specimen, never `LNMC` from another one. That is the pairing phase relations need (sheet 03 §7).
+   `p.index_properties()` doesn't change.
+4. **Particle density joined by sample.** Each lab density row gets `particle_density` from an `LPDN` specimen
+   of the same sample: the one nearest in depth to the density specimen, with ties broken as in
+   `p.index_properties()` (§6.6). The chosen specimen is in `particle_density_specimen_id`. Field rows, and
+   samples with no `LPDN`, are blank, and nothing is borrowed from another sample (SPEC §2.6, never guess).
+   - Reason: Gs is run on a different specimen from density, but on the same sample; that pairing is the
+     data-layer answer (b)'s formulas build on.
+   - One warning per call counts the samples where a choice was made, as §6.6 does.
+5. **An assumed particle density** (`#2.65`) has its value and `particle_density_assumed = True`. It is never
+   blank, and the flag never drops off. It travels with the join (decision 4). QC B004 lists these values
+   (info), and (b) decides how they are used.
+6. **Recompacted and stabilized records are kept and labeled.** `sample_condition` (`LDEN_COND`: `UNDISTURBED`,
+   `RECOMPACTED`) and `stabilizer_content` (`IDEN_STAB`) are columns. Reason: they aren't in situ values, but
+   dropping them would drop data silently; `where={"sample_condition": "UNDISTURBED"}` filters them. The
+   docstring and the dataset spec say so.
+7. **Field density depth.** `IDEN_DPTH` is a point depth, `depth_basis = "test_depth"` (SPEC §8.2). `IDEN`'s
+   parent is `LOCA`, so field rows have no sample or specimen columns.
+8. **QC (level 1) checks a record against itself, plus wide improbable-value ranges that catch unit slips**, as
+   A003 and K001 do:
+   - B001: dry density differs from ρ / (1 + w) on one `LDEN` row, beyond 🟡 `dry_density_tolerance: 0.03 Mg/m3`.
+     The worst case of 2DP densities and a water content rounded to 1 % is 0.020 Mg/m³ (ρ = 2.20, w = 5 %);
+     0.03 clears it.
+   - B002: dry density above bulk density (error; w ≥ 0 makes that impossible).
+   - B003: bulk or particle density outside a wide range, 🟡 `1.0–2.8` and `2.0–3.2 Mg/m3`. They catch a value
+     in kg/m³ or pcf read as Mg/m³. The message says what lies outside (peat lower, ores and some rock higher),
+     so the engineer checks the material as well as the unit.
+   - B004: assumed particle density (info), one per record, as A004 is for NP.
+
+   Checks across tests (S > 1 below the water level, ρs against ρd) are phase relations: (b).
+9. **Minimum fields** (qc.md §4.10):
+   - `LDEN`: required `<SPEC_KEY>`, `LDEN_BDEN`; recommended `SPEC_REF`, `SPEC_DPTH`, `LDEN_DDEN`, `LDEN_MC`,
+     `LDEN_TYPE`, `LDEN_COND`;
+   - `LPDN`: required `<SPEC_KEY>`, `LPDN_PDEN`; recommended `SPEC_REF`, `SPEC_DPTH`, `LPDN_TYPE`;
+   - `IDEN`: required `LOCA_ID`, `IDEN_DPTH`, `IDEN_IDEN`; recommended `IDEN_MC`, `IDEN_TYPE`.
+
+   Bulk density is the result the test reports (ISO 17892-2), so a record without it is incomplete (§7). A
+   record with only a dry density and a water content is left out by default, with the §7 warning naming it.
+10. **Templates.** `ht.template("density")` and `ht.template("particle_density")` are the datasets' columns
+    without those only hangtu produces (`source_line`, `particle_density_specimen_id`), as SPEC §2.6 does for
+    the M7 templates. The existing `index` template is unchanged.
+
+### Sources
+- **AGS 4.2 dictionary** (python-ags4 1.2.0, `Standard_dictionary_v4_2.ags`): `LDEN`, `LPDN` (parent `SAMP`)
+  and `IDEN` (parent `LOCA`): headings, types, units and pick lists (`LDEN_COND`, `LDEN_TYPE`, `LPDN_TYPE`,
+  `IDEN_TYPE`). Checked 2026-10-27.
+- **Standard gravity** g = 9.80665 m/s² (exact, by definition). The pound and foot are exact by definition (P00 §4).
+- No correlation or empirical source is used. B003's ranges are thresholds, not cited values.
+
+### Acceptance criteria
+Golden values hand-calculated (γ = ρ × 9.80665; 1 pcf = 0.45359237 kg / 0.3048³ m³ = 0.0160185 Mg/m³, and as
+a unit weight 0.157087 kN/m³). Tolerance 1e-9 relative, unless a criterion says otherwise.
+1. **Lab row (`site_si.ags`):** an `LDEN` row with ρ 1.95, ρd 1.56 Mg/m³ and w 25.0 % gives
+   `bulk_unit_weight` 19.1230 kN/m³ (1.95 × 9.80665 = 19.12297), `dry_unit_weight` 15.2984 kN/m³,
+   `water_content` 25.0, `source = "lab"`, its lab depth and `depth_basis` (§6.2) and `sample_condition`.
+2. **US display:** the same row with `display_units="US"` gives 121.735 and 97.388 pcf (to 1e-4 relative, the
+   precision of the hand calculation).
+3. **Field row:** an `IDEN` row in BH1 (ground level 12.40 m) at 0.50 m with ρ 1.85 Mg/m³ and w 15 % gives
+   depth 0.50 m, elevation 11.90 m, `depth_basis = "test_depth"`, `bulk_unit_weight` 18.1423 kN/m³,
+   `source = "field"`, the `IDEN_TYPE` as `test_type`, and blank sample and specimen columns.
+4. **Particle density:** `p.particle_density()` gives 2.68 and `particle_density_assumed = False` for `2.68`;
+   2.65 and `True` for `#2.65`. Neither is blank.
+5. **Join (`joins.ags`):** a sample with one density specimen and two `LPDN` specimens gets the nearest one's
+   value, named in `particle_density_specimen_id`, with the warning; on a depth tie, the lower `SPEC_REF`. A
+   sample with no `LPDN` gets a blank, and so does a field row. An assumed value keeps its flag after the join.
+6. **Kept and labeled:** a `RECOMPACTED` record and an `IDEN` record with a stabilizer are rows, with
+   `sample_condition` and `stabilizer_content` filled.
+7. **QC (`qc_defects.ags`):** each B rule raises exactly the findings its case seeds:
+   - B001: ρ 2.00, w 20 %, ρd 1.80. Expected ρd = 2.00 / 1.20 = 1.667, a difference of 0.133 Mg/m³, which the
+     message gives.
+   - B002: ρ 1.80, ρd 1.90, w blank.
+   - B003: `LDEN_BDEN` 19.5, which is kN/m³ written as Mg/m³; `LPDN_PDEN` 26.5.
+   - B004: `#2.65`.
+
+   The dictionary's own example (1.66, 57 %, 1.06: a difference of 0.0027) raises no B001. Each threshold
+   takes a quantity string in pcf as well as Mg/m³.
+8. **Good files stay clean:** `site_si.ags`, `site_us.ags` and `site_v404.ags` raise no B001–B003 and no C001.
+   Their info findings add only B004 (each good file carries one assumed particle density) and C002.
+9. **Twins:** the SI and US files give equal `p.density()` and `p.particle_density()` (1e-9 relative) for each
+   `display_units`, and the same B findings.
+10. **Incomplete:** an `LDEN` row with ρd and w but no ρ is left out with the §7 warning, and kept by
+    `include_incomplete=True` with a blank `bulk_unit_weight`.
+11. **Empty:** a file with none of the groups gives empty frames with every column and the missing-group
+    warning ("No LDEN or IDEN group", "No LPDN group").
+12. **Feeds the plots:** `ht.plot.profile(p.density(), "bulk_unit_weight")` and
+    `ht.plot.geology_unit_comparison(p.density(), "bulk_unit_weight")` run on the good files with no warning,
+    in pcf with `display_units="US"`.
+13. **Templates:** `ht.template("density")` and `ht.template("particle_density")` are the datasets' columns
+    without `source_line` and `particle_density_specimen_id`, in the same order (`tests/test_registry.py`).
+14. **Common arguments:** `depth=`, `geology=`, `holes=` and `where={"source": "field"}` filter `p.density()`
+    as §2 says, including its field rows.

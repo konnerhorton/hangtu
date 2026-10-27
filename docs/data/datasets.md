@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | done (M7); the M8 additions (classification columns in §6.2, §6.5 and §6.6) done |
-| **Intent** | [`docs/work/m7-datasets.md`](../work/m7-datasets.md#intent); M8: [`docs/work/m8-index-plots.md`](../work/m8-index-plots.md#intent) |
+| **Status** | done (M7); the M8 additions (classification columns in §6.2, §6.5 and §6.6) done; M14 (a) adds §6.8–6.9 (specified) |
+| **Intent** | [`docs/work/m7-datasets.md`](../work/m7-datasets.md#intent); M8: [`docs/work/m8-index-plots.md`](../work/m8-index-plots.md#intent); M14 (a): [`docs/work/m14a-density-data.md`](../work/m14a-density-data.md) (decisions and acceptance criteria) |
 | **Parent** | SPEC §2.6 (units), §7 (data model), §8 (depth, elevation, geology), §10 (datasets, registry), §11 (errors) |
 | **Related** | [`ingest.md`](ingest.md) (canonical layer, value flags), [`qc.md`](qc.md) (C001, G004, D004/D005). `docs/drafts/analysis.md` §1 (SPT), §2–3 (classification, gradation). P01–P07 (the plots these feed) |
 
@@ -35,6 +35,8 @@ k = p.permeability()                     # §6.4
 summary = p.grain_size_summary()         # §6.5, fractions="astm_uscs"
 index = p.index_properties()             # §6.6, one row per sample
 strata = p.stratigraphy()                # §6.7, one row per GEOL layer
+density = p.density()                    # §6.8, lab and field unit weights (M14)
+rho_s = p.particle_density()             # §6.9 (M14)
 
 p.set_judgments("judgments.yaml")        # the project's judgments file (SPEC §4)
 p.judgments                              # a Judgments, or None; datasets carry its path
@@ -275,13 +277,62 @@ One row per `GEOL` layer, the per-hole log that `ht.analysis.vertical_stress()` 
 - `geology_unit` is the mapped, ordered categorical of the other datasets, and `df.attrs` has `units` and `palette`, plus `judgments_file` when the project has one (SPEC §4).
 - **P01:** one hole's layers, `strata[strata["loca_id"] == "BH01"]`, go straight into `strata=`, which reads only `geology_unit` and the depth pair.
 
+### 6.8 `p.density()` (M14)
+```python
+p.density(**common)
+```
+One row per density result, from two groups (`docs/work/m14a-density-data.md`). Rows follow the file order of `LDEN`, then `IDEN`.
+
+| Source group | `source` | `test_type` | Depth (`depth_basis`) | Bulk unit weight | Water content |
+|---|---|---|---|---|---|
+| `LDEN` | `lab` | `LDEN_TYPE` | lab depth (§6.2) | `LDEN_BDEN` × g | `LDEN_MC` |
+| `IDEN` | `field` | `IDEN_TYPE` | `IDEN_DPTH` (`test_depth`) | `IDEN_IDEN` × g | `IDEN_MC` |
+
+| Column | From |
+|---|---|
+| `loca_id` | `LOCA_ID` |
+| `specimen_id`, `sample_reference`, `specimen_reference` | As §6.2, for `LDEN`; blank for `IDEN`, which has no sample (its parent is `LOCA`) |
+| `ground_level`, `depth`, `depth_basis`, `elevation` | The table above |
+| `bulk_unit_weight` | Bulk density × g, g = 9.80665 m/s² |
+| `dry_unit_weight` | `LDEN_DDEN` × g; blank for `IDEN` |
+| `water_content` | The density specimen's own: `LDEN_MC` or `IDEN_MC`, never `LNMC` |
+| `particle_density`, `particle_density_assumed` | The same sample's `LPDN`, below; blank for `IDEN` |
+| `particle_density_specimen_id` | The `LPDN` specimen used |
+| `sample_condition` | `LDEN_COND` as written (`UNDISTURBED`, `RECOMPACTED`); blank for `IDEN` |
+| `stabilizer_content` | `IDEN_STAB`; blank for `LDEN` |
+| `source`, `test_type` | The table above |
+
+- **Unit weights, not densities.** The file's densities (Mg/m³) are given as unit weights, which is what P01, P07 and the `unit_weight` judgment take. In US display both read as pcf with the same number (P00 §4.3 #1). `p.diff()` and QC show the densities as written.
+- **The density specimen's own water content** is used, since phase relations need γ and w from one specimen (sheet 03 §7). `p.index_properties()` (§6.6) still carries the `LNMC` water content.
+- **Particle density, by sample:** a lab row gets `LPDN_PDEN` from the same sample (its AGS key fields, as §6.6), from the specimen nearest in depth to the density specimen. A specimen with no depth counts as at the sample's lab depth; ties go to the lowest `SPEC_REF` (as text), then the lowest specimen key. One warning per call counts the samples where a choice was made: "2 samples had more than one particle density specimen; the one nearest in depth was used. particle_density_specimen_id says which." A sample with no `LPDN` gets a blank, and nothing is taken from another sample.
+- **Recompacted and stabilized records are kept**, labeled by `sample_condition` and `stabilizer_content`. They aren't in situ values: filter them with `where={"sample_condition": "UNDISTURBED"}` or a pandas filter on `stabilizer_content`.
+- With neither group, it is an empty frame with every column and the warning "No LDEN or IDEN group". With one of them, the other's rows are simply absent.
+
+### 6.9 `p.particle_density()` (M14)
+```python
+p.particle_density(**common)
+```
+One row per `LPDN` row: the particle density results, reviewed by geology unit when choosing a Gs judgment (M14 b).
+
+| Column | From |
+|---|---|
+| `loca_id`, `specimen_id`, `sample_reference`, `specimen_reference` | As §6.2 |
+| `ground_level`, `depth`, `depth_basis`, `elevation` | Lab depth (§6.2) |
+| `particle_density` | `LPDN_PDEN`, in Mg/m³ (a density, P00 §4.1) |
+| `particle_density_assumed` | True where the file prefixed the value with `#` (the `ASSUMED` flag, ingest.md §8), else False |
+| `test_type` | `LPDN_TYPE` |
+
+- An assumed value keeps its number and its flag; neither is dropped. QC lists them (B004).
+- Specific gravity, Gs = ρs / ρw, is M14 (b)'s, decided with γw.
+- No `LPDN` group: an empty frame with the warning "No LPDN group".
+
 ## 7. Incomplete records
 - A record is **incomplete** when QC C001 says so (with `SPEC_REF` and `SPEC_DPTH` recommended, §14): a `required` field of its own group in `qc/min_fields.yaml` is blank (qc.md §4.10). Only the dataset's source group is checked, not its parents: a hole with no `LOCA_GL` keeps its tests, with a blank elevation.
 - **Left out by default**, with one warning per call: "Left out 2 of 5 ISPT records with a blank required field (ISPT_NVAL on lines 98, 103). p.qc() lists them; include them with include_incomplete=True."
 - `include_incomplete=True` keeps them, with their blanks.
 
 ## 8. Warnings
-Each dataset call gives at most one warning per kind (`UserWarning`, as the rest of hangtu): the missing group (§2), the missing geology key (§5.1), unmapped codes (§5.2), overlapping layers (§5.4), records left out (§7), and specimens with several water contents (§6.2). A call on the good test files with a complete map gives none.
+Each dataset call gives at most one warning per kind (`UserWarning`, as the rest of hangtu): the missing group (§2), the missing geology key (§5.1), unmapped codes (§5.2), overlapping layers (§5.4), records left out (§7), specimens with several water contents (§6.2), and samples with several particle density specimens (§6.8). A call on the good test files with a complete map gives none.
 
 ## 9. QC: G004
 | ID | Rule | Severity | Thresholds |
@@ -301,6 +352,7 @@ New columns, each checked against the whole registry (CLAUDE.md, "Naming"): `loc
 - Changed: `specimen_id` (the project's specimen key, as text, since the registry type is text and CSV users type their own IDs); `depth_top`/`depth_base`, `hydraulic_conductivity` and `test_type` get their new AGS sources (`SPEC_DPTH`/`SPEC_BASE`, `IPRG_*`).
 - The CSV templates (`ht.template()`) don't change: they describe what a user types in, and a dataset is a superset of its template.
 - M13 (`docs/work/m13a-judgments.md`): `total_vertical_stress`, `pore_pressure`, `effective_vertical_stress` and `saturated_unit_weight`; `depth_top`/`depth_base` describe any interval, a tested zone or a layer, and add `GEOL_TOP`/`GEOL_BASE`; the `stratigraphy` template (§6.7).
+- M14 (`docs/work/m14a-density-data.md`): `dry_unit_weight`, `particle_density`, `particle_density_assumed`, `particle_density_specimen_id`, `sample_condition`, `stabilizer_content`; new AGS sources for `bulk_unit_weight` (`LDEN_BDEN`, `IDEN_IDEN` × g, replacing `RDEN_BDEN` until M21 reads RDEN), `water_content` (`LDEN_MC`, `IDEN_MC`) and `test_type`; `depth_basis` gains `test_depth`; the `density` and `particle_density` templates.
 
 ## 12. Test files
 The good files (`site_si.ags`, `site_us.ags`, `site_v404.ags`) get, through the generator script and in all three so the twin tests still hold:
@@ -308,6 +360,8 @@ The good files (`site_si.ags`, `site_us.ags`, `site_v404.ags`) get, through the 
 - a `GEOL_GEOL` heading next to `GEOL_FORM`, so the default key works.
 
 A new `joins.ags` (4.2, SI, passes python-ags4) holds the edge cases: a test exactly on a layer boundary and at the base of the deepest layer; overlapping layers; a gap in the log; a hole with no GEOL; a test with no `LOCA_GL`; an SPT refusal in the seating drive; an SPT refusal with `ISPT_NVAL` blank (`22-30-50/3"`); a sample with no base; a specimen with no `SPEC_DPTH`; a code missing from the test map; an incomplete record. Two `LNMC` rows on one specimen break AGS Rule 10a (duplicate key), so that case is built in the test instead of in a file that passes python-ags4. A test map `strata.csv` sits next to it.
+
+M14 adds `LDEN`, `LPDN` and `IDEN` to the three good files (a recompacted record, a stabilized field test and an assumed particle density among them), and to `joins.ags` a sample with two `LPDN` specimens at different depths, one with two at the same depth, a sample with none, and an `LDEN` row with no bulk density.
 
 ## 13. Acceptance criteria
 1. **Feeds the plots unchanged:** `ht.plot.spt_profile(p.spt())`, `ht.plot.spt_histogram(p.spt())`, `ht.plot.profile(p.permeability(), "hydraulic_conductivity")`, `ht.plot.profile(p.atterberg(), "liquid_limit")` and `ht.plot.geology_unit_comparison(p.atterberg(), "plasticity_index")` run on the good files with no error, no warning and no hint, and with the map's colors and order.
