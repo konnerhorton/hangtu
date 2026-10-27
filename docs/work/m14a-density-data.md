@@ -222,3 +222,62 @@ a unit weight 0.157087 kN/m³). Tolerance 1e-9 relative, unless a criterion says
     without `source_line` and `particle_density_specimen_id`, in the same order (`tests/test_registry.py`).
 14. **Common arguments:** `depth=`, `geology=`, `holes=` and `where={"source": "field"}` filter `p.density()`
     as §2 says, including its field rows.
+
+## Plan
+Six build commits, each with ruff and pytest green. Reused, not rebuilt:
+- `Build` (`datasets/_frame.py`): `rows()`, `numbers()`, `texts()`, `flagged()`, `finish()`;
+- `specimens()` (`datasets/_lab.py`);
+- `_specimens()`, `_sample_keys()` and `_nearest()` (`datasets/_index.py`), for the join;
+- the QC `@rule` registry and `THRESHOLDS` (`qc/_registry.py`), and the `_unflagged`, `_where` and `_value`
+  helpers (`qc/_tests.py`).
+
+γ = ρ × 9.80665 lands in canonical units, because canonical density is Mg/m³ and canonical unit weight is kN/m³.
+
+### 1. `M14: add LDEN, LPDN and IDEN to the test files`
+- `tests/data/ags/_make_files.py`:
+  - **Good files:** the groups, with AC 1, 3 and 4's values, a `RECOMPACTED` record, a stabilized `IDEN` and one
+    `#2.65`. One `LPDN` specimen per sample, and every recommended heading present.
+  - **`joins.ags`:** the join cases of AC 5, and an `LDEN` row with no `LDEN_BDEN`.
+  - **`qc_defects.ags`:** the B cases of AC 7.
+  - Every new group is appended after the existing ones, so no line number moves.
+- Regenerate the files. The existing tests stay green.
+
+### 2. `M14: add QC rules B001-B004 and density minimum fields`
+- `src/hangtu/qc/_density.py` (new), imported in `qc/__init__.py`.
+- `THRESHOLDS` (kind `density`), `rules.yaml` and `min_fields.yaml` (decision 9).
+- Tests: `tests/qc/test_density.py` (AC 7, with a threshold given in pcf); `test_qc_acceptance.py` (AC 8, and AC 9
+  for the findings).
+
+### 3. `M14: add p.particle_density()`
+- `columns.yaml`: `particle_density`, `particle_density_assumed`, `LPDN_TYPE` as a source of `test_type`, and the
+  `particle_density` template.
+- `datasets/_density.py` (new), `datasets/__init__.py`, and `Project.particle_density()`.
+- Tests: `tests/datasets/test_density.py` (AC 4, AC 11 empty); `tests/test_registry.py` `DATASETS` (AC 13).
+
+### 4. `M14: add p.density(), lab and field unit weights`
+- `columns.yaml`:
+  - `dry_unit_weight`, `sample_condition` and `stabilizer_content`;
+  - new sources for `bulk_unit_weight`, `water_content` and `test_type`;
+  - `test_depth` in `depth_basis`;
+  - the `density` template.
+- `density()`: LDEN through `specimens()`, IDEN as a point test (`test_depth`), `G = 9.80665`. Particle density
+  columns are blank at this step.
+- `Project.density()`.
+- Tests: AC 1–3 (golden values), 6, 10, 11, 12 and 14; `test_registry.py` `DATASETS` and `ONLY_HANGTU` (AC 13).
+
+### 5. `M14: join particle density to p.density() by sample`
+- Lab rows take the nearest `LPDN` specimen of the same sample (`_sample_keys()`, `_nearest()`), with one
+  warning counting the returned samples where a choice was made.
+- `columns.yaml`: `particle_density_specimen_id`.
+- Tests: AC 5.
+
+### 6. `M14: density data in the example file; close out (a)`
+- `tests/data/_make_examples.py`: `LDEN` and `LPDN` in US units, near `judgments.yaml`'s unit weights, with no new
+  QC warning. Regenerate the example data.
+- `docs/site/guides/datasets.md`: the two datasets. Run `prepare_site.py` and the strict docs build.
+- **Close-out:**
+  - `datasets.md` and `qc.md` status;
+  - the parameter index: 01 A and 03 A part built; 02 B with LI and Ic in M8 and activity in M14 (b);
+  - the `CLAUDE.md` status paragraph.
+- **Look at the output:** `ht.plot.profile(p.density(), "bulk_unit_weight")` on the example project, US and SI.
+- **Verification:** every AC reported as met or not, with its test; the lowest-versions run; the strict docs build.
