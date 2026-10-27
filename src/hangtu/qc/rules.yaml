@@ -184,6 +184,27 @@ rules:
       lowest_hydraulic_conductivity: 1e-12 m/s
       highest_hydraulic_conductivity: 1 m/s
 
+  # Density (§4.11, M14). B003's ranges catch a value in the wrong unit.
+  B001:
+    title: Dry density doesn't match bulk density and water content
+    severity: warning
+    thresholds:
+      dry_density_tolerance: 0.03 Mg/m3
+  B002:
+    title: Dry density above bulk density
+    severity: error
+  B003:
+    title: Improbable density
+    severity: warning
+    thresholds:
+      lowest_bulk_density: 1.0 Mg/m3
+      highest_bulk_density: 2.8 Mg/m3
+      lowest_particle_density: 2.0 Mg/m3
+      highest_particle_density: 3.2 Mg/m3
+  B004:
+    title: Assumed particle density
+    severity: info
+
   # Minimally useful fields (§4.10); the fields are in min_fields.yaml.
   C001:
     title: Required field is missing

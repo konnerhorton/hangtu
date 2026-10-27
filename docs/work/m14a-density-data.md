@@ -200,7 +200,7 @@ a unit weight 0.157087 kN/m³). Tolerance 1e-9 relative, unless a criterion says
    `sample_condition` and `stabilizer_content` filled.
 7. **QC (`qc_defects.ags`):** each B rule raises exactly the findings its case seeds:
    - B001: ρ 2.00, w 20 %, ρd 1.80. Expected ρd = 2.00 / 1.20 = 1.667, a difference of 0.133 Mg/m³, which the
-     message gives.
+     message gives to 3 significant figures (1.67 and 0.133, qc.md §4.9).
    - B002: ρ 1.80, ρd 1.90, w blank.
    - B003: `LDEN_BDEN` 19.5, which is kN/m³ written as Mg/m³; `LPDN_PDEN` 26.5.
    - B004: `#2.65`.

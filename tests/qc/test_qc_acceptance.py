@@ -48,6 +48,10 @@ EXPECTED = {
     ("K001", 122),  # FGHG_IPRM 5 m/s
     ("C001", 40),  # GEOL_DESC blank
     ("C001", 21),  # cascade of L001 and L003: BH5's required LOCA fields
+    ("B001", 128),  # LDEN 2.00 / 1.20 = 1.667, not 1.80
+    ("B002", 129),  # LDEN_DDEN 1.90 above LDEN_BDEN 1.80
+    ("B003", 130),  # LDEN_BDEN 19.5: kN/m3 written as Mg/m3
+    ("B003", 137),  # LPDN_PDEN 26.5
 }
 # Info findings seeded on qc_defects.ags (C002 also lists absent headings).
 EXPECTED_INFO = {
@@ -57,6 +61,7 @@ EXPECTED_INFO = {
     ("S003", None),
     ("A004", 84),
     ("P004", 108),
+    ("B004", 138),  # LPDN_PDEN #2.65
 }
 
 
@@ -95,7 +100,7 @@ def test_1_every_computed_rule_has_a_case(defects_report):
     computed = {
         rule_id
         for rule_id in defects_report.rules["rule_id"]
-        if rule_id[0] in "LGDSAPKC"
+        if rule_id[0] in "LGDSAPKBC"
     }
     # G004 needs a geology map, so its case is joins.ags with strata.csv
     # (tests/qc/test_geology.py), not the defects file.
@@ -148,7 +153,7 @@ def test_1_ingest_rules_appear_in_the_report(projects, tmp_path):
 def test_2_good_files_have_no_errors_or_warnings(projects, name):
     found = projects[name].qc().findings
     assert found.query("severity != 'info'").empty
-    allowed = {"S003", "A004", "C002"}  # no L006: LOCA_DATM names the datum
+    allowed = {"S003", "A004", "B004", "C002"}  # no L006: LOCA_DATM names the datum
     allowed |= {"site_v404": {"M001"}, "site_us": {"U002"}}.get(name, set())
     assert set(found["rule_id"]) <= allowed
 

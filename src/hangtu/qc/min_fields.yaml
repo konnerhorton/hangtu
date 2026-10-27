@@ -46,3 +46,12 @@ min_fields:
   IPRG:
     required: [LOCA_ID, IPRG_TOP, IPRG_BASE, IPRG_IPRM]
     recommended: [IPRG_TYPE]
+  LDEN:
+    required: [*sample_key, LDEN_BDEN]
+    recommended: [SPEC_REF, SPEC_DPTH, LDEN_DDEN, LDEN_MC, LDEN_TYPE, LDEN_COND]
+  LPDN:
+    required: [*sample_key, LPDN_PDEN]
+    recommended: [SPEC_REF, SPEC_DPTH, LPDN_TYPE]
+  IDEN:
+    required: [LOCA_ID, IDEN_DPTH, IDEN_IDEN]
+    recommended: [IDEN_MC, IDEN_TYPE]
