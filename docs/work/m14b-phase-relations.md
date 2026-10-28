@@ -269,3 +269,86 @@ relative (the hand calculation carries seven figures), unless a criterion says o
     `geology_unit_comparison(..., "void_ratio")` run with no warning beyond the analysis's own.
 14. **Docs:** the reference test passes for `phase_relations` and `clay_activity`; pages 02 and 03 and their
     examples build with `zensical build --clean --strict`.
+
+## Plan
+Seven build commits, each with ruff and pytest green, then the two page commits (docs, with approval) before the
+close-out. Reused, not rebuilt:
+- `analysis/_judgment_values.py`: `read_judgments()`, `from_file()`, `take()`, `warn_unused()`, `Values`;
+- `vertical_stress()`'s `_water_unit_weight()` and its missing-judgment message (`_missing()`), moved to
+  `_judgment_values.py` in step 2 if a second caller needs them as they are;
+- `_data.numeric_column()`, `rows_text()`; the unit resolution `vertical_stress()` uses (`units=` → attrs → error);
+- `gradation()` and `summarize_curves()` in `datasets/_index.py`, as the `aashto` fractions are run.
+
+### 1. `registry: phase relation and activity columns, with presets`
+- `columns.yaml`: `specific_gravity` (dimensionless), `specific_gravity_source` (text: measured, assumed,
+  judgment), `void_ratio` (dimensionless), `porosity` and `degree_of_saturation` (percent), `oversaturated`
+  (bool), `clay_activity` (dimensionless); `derived: ht.analysis.phase_relations()` on `saturated_unit_weight` and
+  `dry_unit_weight`.
+- `config/defaults.yaml`: presets `void_ratio` (0–2), `porosity` (0–100) and `degree_of_saturation` (0–120,
+  so oversaturated rows show inside the axis), each `start_at_zero`.
+- Tests: the registry and preset tests that exist (names, kinds, presets resolve); no behavior yet.
+
+### 2. `M14: the specific_gravity judgment`
+- `_judgments.py`: `KINDS["specific_gravity"]` (keyed `values`, field `specific_gravity`, `by:` from the file); a
+  `unitless` flag on `Kind`, so `units:` is an error for it and its fields need none (Decision 4); `POSITIVE`
+  gains it; a value outside 2.0–3.2 warns when the file is read, naming the entry. `ht.judgments()`'s docstring
+  shows the entry.
+- `_judgment_values.py`: `from_file()` leaves a unitless field as given.
+- Tests (`tests/test_judgments.py`): AC 8; a valid entry reads; `repr` shows it without a unit.
+
+### 3. `M14: phase_relations() with Gs from particle density`
+- New `analysis/_phase_relations.py`, exported as `ht.analysis.phase_relations`; reference entry in
+  `docs/site/reference/analysis.md`.
+- Units in, as Decision 1; γ and γd worked in kN/m³, γw from `ht.settings.water_unit_weight`, g = 9.80665 (the
+  constant `p.density()` uses, imported, not repeated). Gs from `particle_density` (Mg/m³) as Decision 2, sources
+  `measured` and `assumed` with the assumed warning. Rows with no particle density get a blank Gs, counted, in
+  this step.
+- The equations, blanks by reason, `oversaturated` and its warning, the γd check (Decision 6, reading B001's
+  default from the QC rules), replaced-column warning, `attrs` record, output in `display_units`.
+- Full docstring (TEMPLATE checklist), including the judgment, which step 4 wires.
+- Tests (new `tests/analysis/test_phase_relations.py`): AC 1, 2, 3 (without the judgment part), 5, 6, 9, 10, and
+  13 (P01 and P07 on the result).
+
+### 4. `M14: phase_relations() takes the specific_gravity judgment`
+- Rows with no particle density take `specific_gravity=` (number or `{key: number}`), else the file, by the
+  file's `by:` column; the override warning; the missing-judgment error naming the keys; a blank key counted;
+  the file read only when a row needs it.
+- Tests: AC 3 (a judgment doesn't replace an assumed value), 4, 7; judgments files written in `tmp_path`.
+
+### 5. `M14: add clay_activity()`
+- New `analysis/_clay_activity.py`, exported as `ht.analysis.clay_activity`; reference entry. Checks
+  `fraction_system == "iso14688"` as `uscs()` checks its own; blanks counted by reason (NP, blank PI or CF,
+  CF = 0).
+- Tests (new `tests/analysis/test_clay_activity.py`): AC 11.
+
+### 6. `M14: clay_activity in p.index_properties()`
+- `datasets/_index.py`: `gradation(fractions="iso14688")` on the chosen curves, not returned, its warnings not
+  shown (as the second run is today); `clay_activity()` on the combined row; `clay_activity` in `COLUMNS` after
+  `aashto_group_index`.
+- `tests/data/ags/_make_files.py`, `joins.ags`: a hydrometer grading for J2-U1 specimen 2 at 2.20 m, the same
+  specimen as its water content and its second `LLPL` (LL 40, PL 20, so PI 20): a `GRAG` row and `GRAT` points
+  2.00 mm 100 %, 0.063 85, 0.020 60, 0.0063 40, 0.002 25. **Golden:** CF = P(0.002) − P(0) = 25 − 0 = 25 (on a
+  point), so `clay_activity` = 20 / 25 = **0.80**. J1-B4's sieve-only curve gives a blank, with no warning.
+  - The six new lines move `joins.ags`'s `LDEN` and `LPDN` lines by 6; the tests that name them follow
+    (`test_density.py` AC 10's line 96 becomes 102). J2-U1 now has a grading, so it gets a USCS symbol (fines
+    ≥ 85 %, LL 40, PI 20 above the A-line: CL); tests that expected it blank follow.
+- `ht.template("index")` is unchanged if it isn't `p.index_properties()`'s shape; if it is, it gains
+  `clay_activity` under the SPEC §2.6 rule and `test_registry.py` follows.
+- Tests: AC 12 in `tests/datasets/test_index_properties.py`.
+
+### 7. `M14: Gs judgment in the example project; close out (b)`
+Comes after the two page commits below, so the close-out can state the pages built.
+- `src/hangtu/examples/data/judgments.yaml`: a `specific_gravity` entry by geology unit, with a reason, so the
+  page 03 example runs end to end on `ht.examples` (`p.density()` → `phase_relations()` → P01 of `void_ratio`).
+- **Close-out:** the parameter index (01 B, 02 B built, 03 B built); the `CLAUDE.md` status paragraph; SPEC §12.4's
+  M14 row if its wording needs "done". `docs/TODO.md` (#29) is left to the user, uncommitted.
+- **Look at the output:** P01 of `void_ratio` and `degree_of_saturation` on the example project, US and SI.
+- **Verification:** each AC reported met or not, with its test; the lowest-versions run; the strict docs build
+  (AC 14).
+
+### Pages (docs commits, between steps 6 and 7, each shown for approval)
+- `docs: page 03, specific gravity and void ratio`: promoted from sheet 03 as Decision 9, with
+  `docs/site/examples/phase-relations.py`, linked in `zensical.toml`'s `nav`.
+- `docs: page 02, index properties`: promoted from sheet 02 as Decision 9, with
+  `docs/site/examples/clay-activity.py` (a small frame built in the example, since the example file has no
+  hydrometer data), linked in the `nav`.
