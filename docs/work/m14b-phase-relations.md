@@ -193,8 +193,8 @@ to the intent's. 🟡 marks a value proposed here, awaiting review.
    - S well under 100 % isn't flagged: above the water table, or with gas or swelling, it is real.
 6. **A given γd that disagrees with γ / (1 + w)** beyond QC B001's `dry_density_tolerance` (0.03 Mg/m³, read from
    the QC rules and taken as a unit weight × g = 0.294 kN/m³) warns, naming the rows. The given value is kept and
-   not used: e uses γ and w. On AGS rows B001 has already reported it; the warning says so when
-   `df.attrs` shows the rows came from a project.
+   not used: e uses γ and w. On AGS rows B001 has already reported it, and the warning says so
+   (always: no attribute shows reliably that rows came from a project; changed in the build).
 7. **Activity.** `ht.analysis.clay_activity(df)` adds `clay_activity` = PI / CF (Skempton 1953, as given in GEC 5
    eq. 4.16 p. 4-14 [V]), with CF the percentage by dry mass finer than 0.002 mm.
    - Reads `plasticity_index`, `non_plastic` and `clay_content`, with `fraction_system` = `iso14688` (the system
@@ -235,17 +235,17 @@ to the intent's. 🟡 marks a value proposed here, awaiting review.
 Golden values hand-calculated with γw = 9.81 kN/m³ and g = 9.80665 m/s², so ρw = 1.0003416 Mg/m³. Tolerance 1e-6
 relative (the hand calculation carries seven figures), unless a criterion says otherwise.
 1. **Measured Gs** (`site_si.ags`, BH1-U1: ρ 1.95 Mg/m³, w 25 %, ρs 2.68): γ = 19.122967 kN/m³;
-   `specific_gravity` 2.679085, `measured`; `void_ratio` 0.717949 (= 2.68 × 1.25 / 1.95 − 1); `porosity`
-   41.7910 %; `degree_of_saturation` 93.2896 %; `saturated_unit_weight` 19.398075 kN/m³; `dry_unit_weight` the
+   `specific_gravity` 2.679085, `measured`; `void_ratio` 0.7179487 (= 2.68 × 1.25 / 1.95 − 1); `porosity`
+   41.79104 %; `degree_of_saturation` 93.28956 %; `saturated_unit_weight` 19.398075 kN/m³; `dry_unit_weight` the
    row's own 15.298374 (1.56 × g); `oversaturated` False.
 2. **γw cancels:** with `ht.settings.water_unit_weight = "10 kN/m3"`, AC 1's `void_ratio` and `porosity` are
    unchanged (1e-12 relative) and `specific_gravity` is 2.68 × 9.80665 / 10 = 2.628182.
 3. **Assumed Gs** (BH2-U2: ρ 2.02, w 18 %, ρs `#2.65`, `RECOMPACTED`): `specific_gravity` 2.649095, `assumed`;
-   `void_ratio` 0.548020; `porosity` 35.4013 %; `degree_of_saturation` 87.0109 %; the assumed-value warning;
+   `void_ratio` 0.5480198; `porosity` 35.40134 %; `degree_of_saturation` 87.01093 %; the assumed-value warning;
    with a `specific_gravity` judgment of 2.70 for its unit, the values don't change.
 4. **Judgment Gs** (the field row, BH1 at 0.50 m: ρ 1.85, w 15 %, no ρs; judgment 2.70 for its geology unit):
-   `specific_gravity` 2.70, `judgment`; `void_ratio` 0.678952; `porosity` 40.4390 %; `degree_of_saturation`
-   59.6508 %; `saturated_unit_weight` 19.742984 kN/m³; `dry_unit_weight` filled, 15.775915 kN/m³;
+   `specific_gravity` 2.70, `judgment`; `void_ratio` 0.6789517; `porosity` 40.43903 %; `degree_of_saturation`
+   59.65078 %; `saturated_unit_weight` 19.742984 kN/m³; `dry_unit_weight` filled, 15.775915 kN/m³;
    `attrs["judgments"]` holds the key and value used.
 5. **Oversaturated** (CSV: γ 20.0 kN/m³, w 30 %, `specific_gravity=2.70`): `void_ratio` 0.721655,
    `degree_of_saturation` 112.2420 %, `oversaturated` True, and the warning naming the row; with
