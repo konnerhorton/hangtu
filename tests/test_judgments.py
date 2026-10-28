@@ -220,3 +220,61 @@ def test_judgments_argument_takes_an_object_a_path_or_none(tmp_path):
     assert as_judgments(None) is None
     with pytest.raises(ht.HangtuError, match=r"judgments= takes ht.judgments"):
         as_judgments({"unit_weight": 19})
+
+
+# Gs (docs/work/m14b-phase-relations.md, Decision 4; AC 8).
+SPECIFIC_GRAVITY = """\
+specific_gravity:
+  by: geology_unit
+  project: {specific_gravity: 2.70, reason: "quartz sands"}
+  values:
+    Alluvium: {specific_gravity: 2.68, reason: "median of 6 LPDN, measured"}
+"""
+
+
+def test_specific_gravity_reads_without_units(tmp_path):
+    judgment = (
+        ht.judgments(write(tmp_path, SPECIFIC_GRAVITY))
+        .read()
+        .judgments["specific_gravity"]
+    )
+    assert judgment.by == "geology_unit"
+    assert judgment.values["Alluvium"].values == {"specific_gravity": 2.68}
+    assert judgment.project.values == {"specific_gravity": 2.70}
+
+
+def test_repr_shows_specific_gravity_without_a_unit(tmp_path):
+    text = repr(ht.judgments(write(tmp_path, SPECIFIC_GRAVITY)))
+    assert "specific_gravity, by geology_unit:" in text
+    assert "Alluvium: specific_gravity 2.68 (median of 6 LPDN, measured)" in text
+
+
+@pytest.mark.parametrize(
+    ("entry", "message"),
+    [
+        ("units: {specific_gravity: '%'}\n  ", "takes no units"),
+        ("", "Alluvium, specific_gravity: must be a positive number, not 0"),
+    ],
+)
+def test_specific_gravity_errors(tmp_path, entry, message):
+    value = "0" if not entry else "2.68"
+    text = (
+        "specific_gravity:\n  by: geology_unit\n  "
+        + entry
+        + "values:\n    Alluvium: {specific_gravity: "
+        + value
+        + "}\n"
+    )
+    with pytest.raises(ht.HangtuError, match=message):
+        ht.judgments(write(tmp_path, text))
+
+
+def test_specific_gravity_outside_the_plausible_range_warns(tmp_path):
+    text = (
+        "specific_gravity:\n  by: geology_unit\n"
+        "  values:\n    Peat: {specific_gravity: 1.5}\n"
+    )
+    with pytest.warns(
+        UserWarning, match=r"Peat, specific_gravity: 1.5 is outside 2-3.2"
+    ):
+        ht.judgments(write(tmp_path, text))
