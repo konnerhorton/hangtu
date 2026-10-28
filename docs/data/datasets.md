@@ -248,6 +248,7 @@ One row per **sample** (`SAMP`) that has a water content, an Atterberg test or a
 | `d10`, `d30`, `d60`, `uniformity_coefficient`, `curvature_coefficient`, `fines_content`, `sand_content`, `gravel_content`, `cobbles_content`, `boulders_content`, `fraction_system` | `gradation(fractions="astm_uscs")` on the chosen `GRAT` specimen |
 | `uscs_symbol` | `ht.analysis.uscs()` on the combined row |
 | `aashto_group`, `aashto_group_index` | `ht.analysis.aashto()` on the `aashto` fractions of the same specimen, which aren't returned |
+| `clay_activity` | `ht.analysis.clay_activity()` on the row's PI and the `iso14688` clay content (< 0.002 mm) of the same specimen, which isn't returned; blank, without a warning, where the curve doesn't reach 0.002 mm (M14 b) |
 | `water_content_specimen_id`, `atterberg_specimen_id`, `grain_size_specimen_id` | The specimen key (`specimen_id`) used for each test, blank where the sample has none |
 | geology columns | The geology at the reference depth (§5.4) |
 | `source_line` | The line of the sample's `SAMP` row, the one record all of the row's tests share; blank when the file has none |

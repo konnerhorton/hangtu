@@ -93,3 +93,179 @@ the index properties.
 - Whether the example file needs a `specific_gravity` entry in its `judgments.yaml`.
 - The verification of each [U] citation the unit relies on (Skempton 1953 original; the rest of sheet 03's
   formulas are [V]).
+
+## Spec
+Two analyses, one judgment and one dataset column. Numbered items refer to this section's decisions; "intent n"
+to the intent's. 🟡 marks a value proposed here, awaiting review.
+
+### Changes
+- **SPEC §4:** a "Phase relations" bullet (Decisions 1–3: Gs from ρs and γw so e0 doesn't depend on γw, the order
+  of Gs sources); the judgments list gains `specific_gravity` by geology unit.
+- **SPEC §10.2:** `p.index_properties()` gains `clay_activity` (Decision 7).
+- **`docs/data/datasets.md` §6.6:** the `clay_activity` row and its rule.
+- **Registry (`columns.yaml`):** `specific_gravity`, `specific_gravity_source`, `void_ratio`, `porosity`,
+  `degree_of_saturation`, `oversaturated`, `clay_activity`; `saturated_unit_weight` and `dry_unit_weight` gain
+  `derived: ht.analysis.phase_relations()` as a source. Checked against the whole registry, `defaults.yaml`
+  and the plot arguments: no collisions. Presets for `void_ratio`, `porosity` and `degree_of_saturation`, so P01
+  draws them with sensible limits.
+- **Judgments (`_judgments.py`):** the `specific_gravity` kind (Decision 4).
+- **TODO #29:** Gs by geology unit, settled.
+- **Docs site** (separate docs commits after this one, as for pages 04–10): sheet 03 promoted to
+  `docs/site/parameters/03-specific-gravity-and-void-ratio.md` and sheet 02 to `02-index-properties.md`, with
+  verified content only (Decision 9).
+- **Parameter index** at the close-out: 01 B gains γ, γd and γsat from phase relations; 02 B **built**; 03 B
+  **built**.
+
+### Decisions
+1. **`ht.analysis.phase_relations()`.**
+   ```python
+   phase_relations(df, *, specific_gravity=None, judgments=None, saturation_tolerance=5,
+                   units=None, display_units=None) -> pd.DataFrame
+   ```
+   - **Input:** `bulk_unit_weight` and `water_content` (required), `particle_density` and
+     `particle_density_assumed` (optional, read together), `dry_unit_weight` (optional), and the judgment's key
+     column (`geology_unit`, or the file's `by:`) where a row needs the judgment. These are `p.density()`'s
+     columns and `ht.template("density")`'s, so AGS and CSV rows go through one function. Units: `units=`, then
+     `df.attrs["units"]`, else an error naming the column (SPEC §2.6).
+   - **Output:** a copy of `df`, no row dropped or reordered, with `specific_gravity`,
+     `specific_gravity_source`, `void_ratio`, `porosity`, `degree_of_saturation`, `saturated_unit_weight` and
+     `oversaturated`, and `dry_unit_weight` filled where it was blank (a given value is kept). Unit weights in
+     the unit weight unit of `display_units` (default `ht.settings.display_units`, as `vertical_stress()`),
+     recorded in `df.attrs["units"]`. Existing output columns are replaced, with a warning naming them.
+   - **Equations** (sheet 03 §1, §5.1–5.2; GEC 5 §4.7 eqs. 4.9–4.10 p. 4-8 and EPRI EL-6800 eq. 2-9 p. 2-17, both
+     [V]), with w as a decimal:
+     - e = Gs γw (1 + w) / γ − 1
+     - n = e / (1 + e), in percent
+     - S = w Gs / e, in percent
+     - γsat = γw (Gs + e) / (1 + e): the unit weight at the same void ratio, fully saturated
+     - γd = γ / (1 + w)
+   - **Blanks:** a row with blank γ, w or Gs, or γ ≤ 0, gets blank outputs, counted by reason in one warning.
+     γ is required even where γd is given: e from γd alone would leave S without its consistency check.
+   - **Recorded:** `df.attrs["phase_relations"]` = `{"water_unit_weight": "9.81 kN/m3", "gravity":
+     "9.80665 m/s2", "saturation_tolerance": 5}`, and `df.attrs["judgments"]` as `vertical_stress()` records
+     it, with only the keys used.
+   - **Docstring:** the TEMPLATE checklist: equations, inputs, the judgment taken, and the assumptions (one
+     specimen's γ and w; a recompacted specimen's e is the specimen's, not in situ; the coarse fraction above
+     4.75 mm isn't in a pycnometer Gs, sheet 03 §7).
+2. **Gs from particle density, so γw cancels** (intent 2). Gs = ρs / ρw, with ρw = γw / g, γw =
+   `ht.settings.water_unit_weight` and g = 9.80665 m/s² (the same g as `p.density()`, M14 (a) decision 2). Then a
+   row with a measured ρs has e = ρs (1 + w) / ρ − 1 exactly, whatever γw is set to. With the default γw = 9.81
+   kN/m³, ρw = 1.000342 Mg/m³, so Gs = 2.68 Mg/m³ / 1.000342 = 2.6791. A Gs from the judgment is a number and
+   enters e with γw as written.
+3. **Where each row's Gs comes from** (intent 3), first that applies, named in `specific_gravity_source`:
+   1. `particle_density` on the row, not assumed → `measured`;
+   2. `particle_density` on the row, assumed (`#` in the file) → `assumed`, with one warning counting the rows.
+      The judgment never replaces it: it is the value the lab used;
+   3. the `specific_gravity` judgment: `specific_gravity=` (a number, or `{geology_unit: number}`), else
+      `judgments=`, else the project's file in `df.attrs` → `judgment`;
+   4. a judgment missing for a key a row needs is an error naming the judgment, the keys and how to set it (SPEC
+      §4); a row whose key is blank gets a blank Gs, counted.
+
+   - The judgment is read only when some row needs it: a frame where every row has a particle density needs no
+     judgments file.
+   - `specific_gravity=` warns when the file also has the judgment (SPEC §4, an argument overriding the file). It
+     never replaces a row's particle density.
+   - 🟡 `particle_density` without a `particle_density_assumed` column is an error saying to add it, since hangtu
+     can't tell measured from assumed. A blank cell in that column is read as not assumed: `p.density()` writes
+     True or False on every row with a particle density, so a blank only comes from a hand-made CSV, and the
+     docstring says so.
+4. **The `specific_gravity` judgment.** Keyed `values`, `by:` a stratigraphy column (usually `geology_unit`),
+   field `specific_gravity`, with an optional `project` value that needs a `reason`, as `unit_weight` (SPEC §4):
+   ```yaml
+   specific_gravity:
+     by: geology_unit
+     values:
+       Alluvium: {specific_gravity: 2.68, reason: "median of 6 LPDN, measured only"}
+     project: {specific_gravity: 2.70, reason: "quartz and feldspar sands, GEC 5 p. 4-8"}
+   ```
+   - 🟡 **No `units:` block.** Gs is a ratio with no unit, and a `%` would be accepted as dimensionless by the
+     unit check, which would be wrong by a factor of 100. `units:` for this judgment is an error saying it takes
+     none.
+   - The value must be > 0 (error). Outside 2.0–3.2, QC B003's particle density range, it warns, naming the key
+     and saying what lies outside (peat lower, ores higher).
+   - The docstring shows how to inform it: `ht.analysis.summary_by(pd_rows[~pd_rows.particle_density_assumed],
+     "particle_density")`, measured values only (sheet 03 §7: assumed values are never pooled with measured).
+5. **Oversaturated rows are flagged, not corrected.** `oversaturated` is True where S > 100 % +
+   `saturation_tolerance` percentage points (🟡 default 5, sheet 03 §5.2's ±5 %, marked there as judgment; it is a
+   reporting threshold, not a design input). One warning names the rows (hole, depth) and the likely causes from
+   sheet 03 §5.2: a wrong Gs, an under-measured γ, or w from another specimen.
+   - Checked everywhere, without the water level: S > 100 % is impossible above or below it.
+   - S well under 100 % isn't flagged: above the water table, or with gas or swelling, it is real.
+6. **A given γd that disagrees with γ / (1 + w)** beyond QC B001's `dry_density_tolerance` (0.03 Mg/m³, read from
+   the QC rules and taken as a unit weight × g = 0.294 kN/m³) warns, naming the rows. The given value is kept and
+   not used: e uses γ and w. On AGS rows B001 has already reported it; the warning says so when
+   `df.attrs` shows the rows came from a project.
+7. **Activity.** `ht.analysis.clay_activity(df)` adds `clay_activity` = PI / CF (Skempton 1953, as given in GEC 5
+   eq. 4.16 p. 4-14 [V]), with CF the percentage by dry mass finer than 0.002 mm.
+   - Reads `plasticity_index`, `non_plastic` and `clay_content`, with `fraction_system` = `iso14688` (the system
+     whose clay is < 0.002 mm). A missing or other `fraction_system` is an error, as `uscs()` checks its own
+     (intent 5).
+   - NP rows, a blank PI or CF, and CF = 0 get a blank, counted by reason in one warning. NP is never A = 0.
+   - **`p.index_properties()` gains `clay_activity`**, from `gradation(fractions="iso14688")` on the same chosen
+     `GRAT` specimen, which isn't returned, as the `aashto` fractions aren't (datasets.md §6.6). A curve that
+     doesn't reach 0.002 mm (a sieve-only grading) gives a blank, by `gradation()`'s rule of never extrapolating;
+     that blank isn't warned about, as a sample with no grading isn't classified.
+   - Docstring: PI is measured on the < 425 µm fraction and CF on the whole sample; the ratio is used as
+     published, not corrected. Typical values (GEC 5 Table 4-6) are on page 02.
+8. **Field and recompacted rows** go through like the others. A field (`IDEN`) row has no particle density, so it
+   takes the judgment by geology unit. A `RECOMPACTED` row's e is the recompacted specimen's, which the docstring
+   says; `sample_condition` stays on the row to filter it.
+9. **Pages 02 and 03** are promoted with verified content only (SPEC §1.3 publishing rule, M13 (a) decision 9).
+   - **03:** GEC 5, EPRI EL-6800, Robertson & Cabal 2022 and Ching & Schweckendiek 2021 are [V]; ISRM (1979) was
+     verified in M13 (a). Left in the sheet, not on the page: the PLAXIS λ*, κ* expressions (a vendor's), the
+     mineral Gs values (Mitchell & Soga, [U]), Gs COV "a few %" ([U], no source), and the error-propagation
+     figures marked as judgment.
+   - **02:** Kulhawy & Mayne, GEC 5 and Ching & Schweckendiek are [V]; the methods table links `plasticity()`,
+     `gradation()`, `uscs()`, `aashto()` and `clay_activity()`. Left out: the Skempton (1953) original (cited
+     through GEC 5), Mayne et al. (2009) (its FC–Ic equation is wave 5's CPT work, not built), Hollmann & Thewes
+     (2013) (P18, not placed), and the drying temperature note.
+   - Neither page reproduces a source table whole: GEC 5 Table 4-6 (activity by mineral) gives the range and two
+     end values with the locator, as sheet 02 §3 does.
+
+### Sources
+- Phase relations: Loehr et al. (2016), GEC 5, FHWA NHI-16-072, §4.7 eqs. 4.9–4.10 p. 4-8; Kulhawy & Mayne
+  (1990), EPRI EL-6800, eq. 2-9 p. 2-17. Both [V] in sheet 03; the other expressions are identities from the
+  definitions.
+- Activity: GEC 5 eq. 4.16 p. 4-14 and Table 4-6 [V]; Skempton (1953) named as the original, not checked.
+- Standard gravity g = 9.80665 m/s² (exact).
+- No correlation is used: every equation is an identity, so there is no validity range beyond the inputs being
+  physical (γ > 0, Gs > 0, w ≥ 0).
+
+### Acceptance criteria
+Golden values hand-calculated with γw = 9.81 kN/m³ and g = 9.80665 m/s², so ρw = 1.0003416 Mg/m³. Tolerance 1e-6
+relative (the hand calculation carries seven figures), unless a criterion says otherwise.
+1. **Measured Gs** (`site_si.ags`, BH1-U1: ρ 1.95 Mg/m³, w 25 %, ρs 2.68): γ = 19.122967 kN/m³;
+   `specific_gravity` 2.679085, `measured`; `void_ratio` 0.717949 (= 2.68 × 1.25 / 1.95 − 1); `porosity`
+   41.7910 %; `degree_of_saturation` 93.2896 %; `saturated_unit_weight` 19.398075 kN/m³; `dry_unit_weight` the
+   row's own 15.298374 (1.56 × g); `oversaturated` False.
+2. **γw cancels:** with `ht.settings.water_unit_weight = "10 kN/m3"`, AC 1's `void_ratio` and `porosity` are
+   unchanged (1e-12 relative) and `specific_gravity` is 2.68 × 9.80665 / 10 = 2.628182.
+3. **Assumed Gs** (BH2-U2: ρ 2.02, w 18 %, ρs `#2.65`, `RECOMPACTED`): `specific_gravity` 2.649095, `assumed`;
+   `void_ratio` 0.548020; `porosity` 35.4013 %; `degree_of_saturation` 87.0109 %; the assumed-value warning;
+   with a `specific_gravity` judgment of 2.70 for its unit, the values don't change.
+4. **Judgment Gs** (the field row, BH1 at 0.50 m: ρ 1.85, w 15 %, no ρs; judgment 2.70 for its geology unit):
+   `specific_gravity` 2.70, `judgment`; `void_ratio` 0.678952; `porosity` 40.4390 %; `degree_of_saturation`
+   59.6508 %; `saturated_unit_weight` 19.742984 kN/m³; `dry_unit_weight` filled, 15.775915 kN/m³;
+   `attrs["judgments"]` holds the key and value used.
+5. **Oversaturated** (CSV: γ 20.0 kN/m³, w 30 %, `specific_gravity=2.70`): `void_ratio` 0.721655,
+   `degree_of_saturation` 112.2420 %, `oversaturated` True, and the warning naming the row; with
+   `saturation_tolerance=15`, False and no warning.
+6. **US twin:** `site_us.ags` gives AC 1, 3 and 4 after conversion (1e-9 relative between twins); with
+   `display_units="US"` the unit weights are in pcf and e, n and S unchanged.
+7. **Precedence:** argument → `judgments=` → `attrs["judgments_file"]` → error, as SPEC §4; the override warning
+   fires; a frame where every row has ρs runs with no judgments file; a missing key errors naming it; a project
+   value fills an unlisted unit with the warning.
+8. **Judgment file checks:** `units:` under `specific_gravity` is an error; a value ≤ 0 is an error; 1.5 warns.
+9. **Input checks:** `particle_density` without `particle_density_assumed` is an error; a missing
+   `bulk_unit_weight` unit is an error naming the column; blank γ, w or Gs give blanks counted by reason.
+10. **γd check:** a CSV row with γ 19.0 kN/m³, w 20 % and γd 17.0 (expected 15.833) warns; with γd 15.9 (within
+    0.294) it doesn't.
+11. **Activity:** PI 30, CF 40 → 0.75; PI 28, CF 12 → 2.333333; NP → blank, counted as non-plastic; CF 0 →
+    blank, counted; `fraction_system = "astm_uscs"` → error.
+12. **`p.index_properties()`:** a sample with a hydrometer curve reaching 0.002 mm gets `clay_activity` (golden
+    value from the test file's PI and the curve's P(0.002), hand-calculated in the plan); a sieve-only sample gets
+    a blank and no warning.
+13. **Feeds the plots:** `ht.plot.profile(phase_relations(p.density(), ...), "void_ratio")` and
+    `geology_unit_comparison(..., "void_ratio")` run with no warning beyond the analysis's own.
+14. **Docs:** the reference test passes for `phase_relations` and `clay_activity`; pages 02 and 03 and their
+    examples build with `zensical build --clean --strict`.
