@@ -5,7 +5,7 @@
 | **Parameters** | γ (bulk unit weight), γsat (saturated), γd (dry), γ′ (buoyant), σv0 (total vertical stress), u0 (in situ pore pressure), σ′v0 (effective vertical stress) |
 | **Material** | Both: soil and intact rock |
 | **Models that use it** | All: Mohr–Coulomb, Hardening Soil, generalized Hoek–Brown (self-weight, initial stress, stress-dependent stiffness) |
-| **Depends on** | Water content; specific gravity and void ratio (phase relations) |
+| **Depends on** | Water content; [specific gravity and void ratio](03-specific-gravity-and-void-ratio.md) (phase relations) |
 | **Feeds** | Drained and undrained strength, preconsolidation and OCR, K0, small-strain stiffness, Hardening Soil stiffness, in situ stress in rock |
 
 ## What it is
@@ -87,7 +87,7 @@ part of them.
 | Method | Uses | Applies to | Function |
 |---|---|---|---|
 | Layered integration, hydrostatic pore pressure (Loehr et al. 2016) | each hole's log, unit weight by geology unit, water level by hole | level ground, geostatic stress, no vertical flow | [`ht.analysis.vertical_stress()`](../reference/analysis.md#hangtu.analysis.vertical_stress) |
-| γ = γd (1 + w) (definition) | ρd and w of one specimen | any specimen | phase relations (M14) |
+| γd = γ / (1 + w) and γsat = γw (Gs + e) / (1 + e) (definitions) | γ and w of one specimen, Gs | any specimen | [`ht.analysis.phase_relations()`](../reference/analysis.md#hangtu.analysis.phase_relations) |
 | γ from CPTu (Robertson & Cabal 2022, p. 39) | qt, fs, Gs | uncemented mineral soils; a check only | not planned |
 | γ from DMT (Kulhawy & Mayne 1990, Fig. 2-12) | ID, ED | a check only | not planned |
 
@@ -119,6 +119,7 @@ a value from the typical ranges above, stated as a judgment with its reason.
   p. 4-7).
 - Rock specimens exclude joints and voids; the unit weight of a weathered or karstic rock mass can be lower.
 - Check γ against γd (1 + w) and against γsat from Gs and e: S = w Gs / e should be about 1 below the water table.
+  `phase_relations()` flags S above 100 % in `oversaturated`.
 - Integrate σv0 continuously across layer boundaries, with γ above the water table and γsat below it. hangtu
   integrates through each hole's log, and stops with an error at a gap or an overlap in it (QC G002, G003).
 - Hydrostatic u0 is an assumption: artesian or under-drained heads change σ′v0 at depth (Loehr et al. 2016,
