@@ -12,8 +12,9 @@ keeps the same across versions, so the files are reproduced exactly.
 The fill and the upper alluvium tubes have hydrometer tests, so their
 grading curves continue into the fines; the terrace sands are sieved only.
 
-``judgments.yaml`` holds the site's unit weights by geology unit and a water
-level for each hole, as an engineer would set them (SPEC §4).
+``judgments.yaml`` holds the site's unit weights and specific gravities by
+geology unit and a water level for each hole, as an engineer would set them
+(SPEC §4). The Gs values are the medians of the measured LPDN tests.
 
 Two QC findings are planted, so the QC example has something to report:
 - G002, a gap in the geology log of B-4 from 9.0 to 10.0 ft;
@@ -96,7 +97,7 @@ TRC,Terrace,coarse,3,#e0b040
 
 # The site's judgments (SPEC §4), in the file's US units.
 JUDGMENTS = """\
-# judgments.yaml: the example site's unit weights and water levels (SPEC §4).
+# judgments.yaml: the example site's unit weights, water levels and Gs (SPEC §4).
 unit_weight:
   by: geology_unit
   units: {bulk_unit_weight: pcf, saturated_unit_weight: pcf}
@@ -119,6 +120,11 @@ water_level:
     B-4: {depth: 8.5, reason: "encountered while drilling, 2026-08-13"}
     B-5: {depth: 10.0, reason: "encountered while drilling, 2026-08-14"}
     B-6: {depth: 6.5, reason: "encountered while drilling, 2026-08-15"}
+specific_gravity:
+  by: geology_unit
+  values:
+    Alluvium: {specific_gravity: 2.70, reason: "median of 6 LPDN, measured (168.9 pcf)"}
+    Terrace: {specific_gravity: 2.67, reason: "median of 6 LPDN, measured (166.4 pcf)"}
 """
 
 

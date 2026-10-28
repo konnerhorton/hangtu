@@ -271,7 +271,7 @@ relative (the hand calculation carries seven figures), unless a criterion says o
     examples build with `zensical build --clean --strict`.
 
 ## Plan
-Seven build commits, each with ruff and pytest green, then the two page commits (docs, with approval) before the
+Eight build commits, each with ruff and pytest green, then the two page commits (docs, with approval) before the
 close-out. Reused, not rebuilt:
 - `analysis/_judgment_values.py`: `read_judgments()`, `from_file()`, `take()`, `warn_unused()`, `Values`;
 - `vertical_stress()`'s `_water_unit_weight()` and its missing-judgment message (`_missing()`), moved to
@@ -295,6 +295,9 @@ close-out. Reused, not rebuilt:
   shows the entry.
 - `_judgment_values.py`: `from_file()` leaves a unitless field as given.
 - Tests (`tests/test_judgments.py`): AC 8; a valid entry reads; `repr` shows it without a unit.
+
+Added before step 3 during the build: `units: share standard gravity`, a refactor moving g to
+`hangtu.units`, since `analysis` can't import it from `datasets` without a circular import.
 
 ### 3. `M14: phase_relations() with Gs from particle density`
 - New `analysis/_phase_relations.py`, exported as `ht.analysis.phase_relations`; reference entry in
@@ -337,17 +340,21 @@ close-out. Reused, not rebuilt:
   `clay_activity` under the SPEC §2.6 rule and `test_registry.py` follows.
 - Tests: AC 12 in `tests/datasets/test_index_properties.py`.
 
-### 7. `M14: Gs judgment in the example project; close out (b)`
-Comes after the two page commits below, so the close-out can state the pages built.
+### 7. `M14: Gs judgment in the example project`
+Split from the close-out during the build, since the page 03 example needs it.
 - `src/hangtu/examples/data/judgments.yaml`: a `specific_gravity` entry by geology unit, with a reason, so the
   page 03 example runs end to end on `ht.examples` (`p.density()` → `phase_relations()` → P01 of `void_ratio`).
+  Half the example's density rows have no particle density, so they take it.
+
+### 8. `M14: close out (b)`
+Comes after the two page commits below, so the close-out can state the pages built.
 - **Close-out:** the parameter index (01 B, 02 B built, 03 B built); the `CLAUDE.md` status paragraph; SPEC §12.4's
   M14 row if its wording needs "done". `docs/TODO.md` (#29) is left to the user, uncommitted.
 - **Look at the output:** P01 of `void_ratio` and `degree_of_saturation` on the example project, US and SI.
 - **Verification:** each AC reported met or not, with its test; the lowest-versions run; the strict docs build
   (AC 14).
 
-### Pages (docs commits, between steps 6 and 7, each shown for approval)
+### Pages (docs commits, between steps 7 and 8, each shown for approval)
 - `docs: page 03, specific gravity and void ratio`: promoted from sheet 03 as Decision 9, with
   `docs/site/examples/phase-relations.py`, linked in `zensical.toml`'s `nav`.
 - `docs: page 02, index properties`: promoted from sheet 02 as Decision 9, with
