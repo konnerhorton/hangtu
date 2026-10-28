@@ -11,6 +11,7 @@ P01_PRESETS = [
     "water_content",
     "bulk_unit_weight",
 ]
+PHASE_PRESETS = ["void_ratio", "porosity", "degree_of_saturation"]
 STRESS_PRESETS = [
     "total_vertical_stress",
     "pore_pressure",
@@ -26,6 +27,7 @@ STIFFNESS_PRESETS = ["drained_youngs_modulus", "shear_wave_velocity"]
 P02_PRESETS = ["spt_n", "spt_n60", "spt_n1_60", "spt_n_capped"]
 ALL_PRESETS = (
     P01_PRESETS
+    + PHASE_PRESETS
     + STRESS_PRESETS
     + STRENGTH_PRESETS
     + HISTORY_PRESETS

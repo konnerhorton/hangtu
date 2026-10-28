@@ -51,6 +51,28 @@ presets:
     log: false
     start_at_zero: false
     typical: [14, 23]
+  # Phase relations (ht.analysis.phase_relations, M14 b).
+  void_ratio:
+    column: void_ratio
+    label: Void ratio, e
+    quantity: dimensionless
+    log: false
+    start_at_zero: true
+    typical: [0, 2]
+  porosity:
+    column: porosity
+    label: Porosity, n
+    quantity: percent
+    log: false
+    start_at_zero: true
+    typical: [0, 100]
+  degree_of_saturation:
+    column: degree_of_saturation
+    label: Degree of saturation, S
+    quantity: percent
+    log: false
+    start_at_zero: true
+    typical: [0, 120]
   # Vertical stress (ht.analysis.vertical_stress, M13).
   total_vertical_stress:
     column: total_vertical_stress
