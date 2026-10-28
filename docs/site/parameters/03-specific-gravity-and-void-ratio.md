@@ -5,7 +5,7 @@
 | **Parameters** | Gs (specific gravity of the solids; ρs, particle density), e0 (in situ void ratio), n (porosity), S (degree of saturation, as a check) |
 | **Material** | Both: Gs and e0 for soil; Gs and n for rock |
 | **Models that use it** | Soft Soil (λ* and κ* from Cc, Cs and e0), Hardening Soil (the initial void ratio), the Cam-clay family |
-| **Depends on** | [Unit weight](01-unit-weight-and-vertical-stress.md) (γ); index properties (w) |
+| **Depends on** | [Unit weight](01-unit-weight-and-vertical-stress.md) (γ); [index properties](02-index-properties.md) (w) |
 | **Feeds** | Unit weight (the γsat check), preconsolidation and compressibility (e–log σ′), small-strain stiffness (void-ratio functions), hydraulic conductivity (k–e) |
 
 ## What it is
