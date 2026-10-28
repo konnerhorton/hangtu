@@ -6,6 +6,9 @@ density where it has one, else from the ``specific_gravity`` judgment (SPEC §4)
 Everything is computed in kN/m³ and Mg/m³ and converted for display at the end.
 """
 
+import math
+from collections.abc import Mapping
+from numbers import Real
 from typing import Any
 
 import numpy as np
@@ -15,6 +18,14 @@ from hangtu import _config
 from hangtu import units as _units
 from hangtu._data import numeric_column, rows_text
 from hangtu._settings import _display_units, settings
+from hangtu.analysis._judgment_values import (
+    ALL,
+    Values,
+    from_file,
+    read_judgments,
+    take,
+    warn_unused,
+)
 from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.units import STANDARD_GRAVITY as G
 
@@ -36,6 +47,8 @@ _SLACK = 1e-9
 def phase_relations(
     df: pd.DataFrame,
     *,
+    specific_gravity: float | Mapping[str, float] | None = None,
+    judgments: Any = None,
     saturation_tolerance: float = 5,
     units: dict[str, str] | None = None,
     display_units: str | None = None,
@@ -73,9 +86,22 @@ def phase_relations(
     1. ``measured``: the row's particle density;
     2. ``assumed``: the row's particle density, marked as assumed in the file
        (``#``), with a warning counting the rows. It is the value the lab
-       used, and never replaced.
+       used, and a judgment never replaces it;
+    3. ``judgment``: the ``specific_gravity`` judgment, for rows with no
+       particle density.
 
-    A row with no particle density gets a blank Gs, counted in a warning.
+    **Judgment taken** (SPEC §4); it has no default. Gs for rows with no
+    particle density, keyed by geology unit (the file's ``by:``): from
+    ``specific_gravity=``, else ``judgments=``, else the project's judgments
+    file carried in ``df.attrs["judgments_file"]``, else an error naming it.
+    It is read only when a row needs it. A row whose key is blank gets a blank
+    Gs, counted. To inform it, summarize the measured particle densities by
+    unit, leaving out the assumed ones, which are never pooled with measured
+    values::
+
+        pd_rows = p.particle_density()
+        measured = pd_rows[~pd_rows["particle_density_assumed"]]
+        ht.analysis.summary_by(measured, "particle_density")
 
     **Checks**, which flag and never correct:
 
@@ -103,7 +129,14 @@ def phase_relations(
         One row per specimen, as ``p.density()`` or ``ht.template("density")``:
         ``bulk_unit_weight`` and ``water_content`` (%), and optionally
         ``particle_density`` with ``particle_density_assumed``, and
-        ``dry_unit_weight``.
+        ``dry_unit_weight``. Rows that take the judgment need its key column,
+        usually ``geology_unit``.
+    specific_gravity : float or dict, optional
+        Gs for the rows with no particle density, replacing the judgments
+        file's: one number for every such row, or ``{geology_unit: number}``.
+    judgments : Judgments or path, optional
+        ``ht.judgments(path)``, ``p.judgments`` or a path to a judgments file.
+        By default the project's, from ``df.attrs["judgments_file"]``.
     saturation_tolerance : float, default 5
         Percentage points above 100 % before a row is flagged
         ``oversaturated``. A reporting threshold, not a design input.
@@ -121,18 +154,24 @@ def phase_relations(
         ``dry_unit_weight`` filled where it was blank. No row is dropped or
         reordered; a row without $\gamma$, $w$ or Gs gets blanks, counted by
         reason. ``df.attrs["phase_relations"]`` records $\gamma_w$, $g$ and the
-        tolerance.
+        tolerance; ``df.attrs["judgments"]`` the judgment's source and the
+        values used, when a row took it.
 
     Raises
     ------
     HangtuError
         For a missing column, a ``particle_density`` without
-        ``particle_density_assumed``, or missing units.
+        ``particle_density_assumed``, missing units, or a missing judgment or
+        a geology unit without a value.
 
     Examples
     --------
     >>> rows = ht.analysis.phase_relations(p.density())
     >>> rows[["loca_id", "depth", "void_ratio", "degree_of_saturation"]]
+
+    With Gs given for the rows that have no particle density:
+
+    >>> ht.analysis.phase_relations(p.density(), specific_gravity={"Fill": 2.68})
     """
     _check_columns(df)
     system = _display_units(display_units or settings.display_units)
@@ -142,14 +181,25 @@ def phase_relations(
     rho_w = gamma_w / G
 
     gravity, source = _gravity_from_particle_density(df, units, rho_w)
+    judged = _judged(df, np.isnan(gravity), specific_gravity, judgments)
+    if judged is not None:
+        values, gravity_judged, no_key = judged
+        taken = ~np.isnan(gravity_judged)
+        gravity[taken] = gravity_judged[taken]
+        source[taken] = "judgment"
+    _warn_assumed(source)
 
     reasons = {
         "no bulk unit weight": np.isnan(gamma),
         "a bulk unit weight of 0 or less": gamma <= 0,
         "no water content": np.isnan(water),
         "a negative water content": water < 0,
-        "no specific gravity": np.isnan(gravity),
+        "no specific gravity": np.isnan(gravity) & ~no_key
+        if judged is not None
+        else np.isnan(gravity),
     }
+    if judged is not None and no_key.any():
+        reasons[f"a blank {values.by} to key the specific gravity by"] = no_key
     blank = np.zeros(len(df), bool)
     for mask in reasons.values():
         blank |= mask
@@ -203,6 +253,11 @@ def phase_relations(
         "porosity": "%",
         "degree_of_saturation": "%",
     }
+    if judged is not None:
+        result.attrs["judgments"] = {
+            **df.attrs.get("judgments", {}),
+            values.name: values.record(),
+        }
     result.attrs["phase_relations"] = {
         "water_unit_weight": settings.water_unit_weight,
         "gravity": f"{G} m/s2",
@@ -278,14 +333,124 @@ def _gravity_from_particle_density(
     gravity[has] = rho_s[has] / rho_w
     source[has & ~assumed] = "measured"
     source[has & assumed] = "assumed"
-    count = int((has & assumed).sum())
+    return gravity, source
+
+
+def _warn_assumed(source: np.ndarray) -> None:
+    count = int((source == "assumed").sum())
     if count:
         warn(
             f"{count} row{'s use' if count != 1 else ' uses'} a particle density "
             "the file marks as assumed (#); specific_gravity_source says which. "
             "It is the value the lab used, so a judgment doesn't replace it."
         )
-    return gravity, source
+
+
+def _judged(
+    df: pd.DataFrame, needs: np.ndarray, argument: Any, judgments: Any
+) -> tuple[Values, np.ndarray, np.ndarray] | None:
+    """Gs from the judgment for the rows that need it, and the rows with no key."""
+    if not needs.any():
+        if argument is not None:
+            warn(
+                "specific_gravity= isn't used: every row has a particle density, "
+                "which a judgment never replaces."
+            )
+        return None
+    read = None
+    if argument is not None:
+        read = read_judgments(judgments, df)
+        if read is not None and "specific_gravity" in read.judgments:
+            warn(
+                f"specific_gravity= replaces the specific_gravity in {read.path.name}."
+            )
+        values = _argument(argument)
+    else:
+        read = read_judgments(judgments, df)
+        if read is None or "specific_gravity" not in read.judgments:
+            raise HangtuError(_missing(read, int(needs.sum()), df))
+        values = from_file(read.judgments["specific_gravity"], read)
+    out = np.full(len(df), np.nan)
+    no_key = np.zeros(len(df), bool)
+    if values.by is None:
+        out[needs] = take(values, [ALL], "row")[ALL]["specific_gravity"]
+        return values, out, no_key
+    if values.by not in df.columns:
+        raise ColumnError(
+            f"The specific_gravity values are keyed by {values.by!r}, and df has "
+            f"no {values.by!r} column. Add it to the rows; p.density() has "
+            "geology_unit when the project has a geology map."
+        )
+    keys = df[values.by].to_numpy(dtype=object)
+    no_key = needs & pd.isna(keys)
+    rows = needs & ~no_key
+    keys = np.array(["" if pd.isna(k) else str(k) for k in keys], dtype=object)
+    noun = "geology unit" if values.by == "geology_unit" else values.by
+    found = take(values, keys[rows], noun)
+    warn_unused(values, keys, f"df's {values.by}")
+    out[rows] = [found[key]["specific_gravity"] for key in keys[rows]]
+    return values, out, no_key
+
+
+def _argument(argument: Any) -> Values:
+    example = 'specific_gravity=2.70 or specific_gravity={"Alluvium": 2.68}'
+
+    def number(value: Any, where: str) -> float:
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, Real)
+            or not math.isfinite(value)
+            or value <= 0
+        ):
+            raise HangtuError(
+                f"{where} must be a positive number, not {value!r}. Example: {example}"
+            )
+        return float(value)
+
+    if isinstance(argument, Mapping):
+        if not argument:
+            raise HangtuError(f"specific_gravity= is empty. Example: {example}")
+        entries = {
+            str(key): {"specific_gravity": number(value, f"specific_gravity[{key!r}]")}
+            for key, value in argument.items()
+        }
+        texts = {
+            key: {"specific_gravity": f"{entry['specific_gravity']:g}"}
+            for key, entry in entries.items()
+        }
+        return Values("specific_gravity", "argument", "geology_unit", entries, texts)
+    value = number(argument, "specific_gravity=")
+    return Values(
+        "specific_gravity",
+        "argument",
+        None,
+        {ALL: {"specific_gravity": value}},
+        {ALL: {"specific_gravity": f"{value:g}"}},
+    )
+
+
+def _missing(read: Any, count: int, df: pd.DataFrame) -> str:
+    rows = f"{count} row{'s have' if count != 1 else ' has'} no particle density"
+    example = 'specific_gravity={"Alluvium": 2.68}'
+    if read is not None:
+        return (
+            f"{rows}, and the judgments file {str(read.path)!r} has no "
+            "specific_gravity, a judgment with no default (SPEC §4). Add "
+            "specific_gravity: to the file, keyed by geology unit, or give it in "
+            f"the call, {example}."
+        )
+    hint = (
+        ""
+        if "judgments_file" in df.attrs
+        else " If df came from a Project dataset, merge and concat drop df.attrs: "
+        "pass judgments=p.judgments."
+    )
+    return (
+        f"{rows}, so their Gs is the specific_gravity judgment, which has no "
+        f"default (SPEC §4). Give it in the call, {example}, or in a judgments "
+        "file under specific_gravity: and pass judgments=ht.judgments(path), or "
+        f"set it on the project with p.set_judgments(path).{hint}"
+    )
 
 
 # --- Checks -------------------------------------------------------------------------
