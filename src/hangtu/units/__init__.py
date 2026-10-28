@@ -20,6 +20,10 @@ from hangtu.registry import column_info
 
 ureg = pint.UnitRegistry()
 
+#: Standard gravity (m/s², exact by definition). A density in Mg/m³ times it is
+#: a unit weight in kN/m³ (datasets.md §6.8).
+STANDARD_GRAVITY = 9.80665
+
 _aliases: dict[str, str] = {}
 
 
