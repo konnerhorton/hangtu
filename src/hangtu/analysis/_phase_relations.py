@@ -24,7 +24,6 @@ from hangtu.analysis._judgment_values import (
     from_file,
     read_judgments,
     take,
-    warn_unused,
 )
 from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.units import STANDARD_GRAVITY as G
@@ -387,7 +386,10 @@ def _judged(
     keys = np.array(["" if pd.isna(k) else str(k) for k in keys], dtype=object)
     noun = "geology unit" if values.by == "geology_unit" else values.by
     found = take(values, keys[rows], noun)
-    warn_unused(values, keys, f"df's {values.by}")
+    # No warning for a keyed unit with no rows here: a judgments file covers the
+    # project, and density rows are a few of its units. A misspelt key still
+    # shows, as the unit it was meant for has no value (an error) or takes the
+    # project value (a warning naming it).
     out[rows] = [found[key]["specific_gravity"] for key in keys[rows]]
     return values, out, no_key
 

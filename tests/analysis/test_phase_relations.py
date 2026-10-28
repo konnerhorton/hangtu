@@ -412,3 +412,12 @@ def test_a_bad_argument_is_an_error(value):
     df = _csv(bulk_unit_weight=[19.0], water_content=[20.0])
     with pytest.raises(ht.HangtuError, match="must be a positive number"):
         ht.analysis.phase_relations(df, specific_gravity=value)
+
+
+def test_units_with_no_rows_here_are_not_warned_about():
+    df = _csv(bulk_unit_weight=[19.0], water_content=[20.0], geology_unit=["Fill"])
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        ht.analysis.phase_relations(
+            df, specific_gravity={"Fill": 2.7, "Terrace": 2.67}, display_units="SI"
+        )
