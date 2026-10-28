@@ -316,7 +316,7 @@ columns:
     quantity: unit_weight
     scale: ratio
     label: Saturated unit weight, γ_sat
-    ags: ["derived: the judgments file (SPEC §4)"]
+    ags: ["derived: the judgments file (SPEC §4)", "derived: ht.analysis.phase_relations()"]
     used_by: []
   dry_unit_weight:
     description: Dry unit weight, the weight of the solids per unit total volume
@@ -324,7 +324,7 @@ columns:
     quantity: unit_weight
     scale: ratio
     label: Dry unit weight, γ_d
-    ags: ["derived: LDEN.LDEN_DDEN × g"]
+    ags: ["derived: LDEN.LDEN_DDEN × g", "derived: ht.analysis.phase_relations()"]
     used_by: []
   sample_condition:
     description: The specimen's condition as tested (UNDISTURBED, RECOMPACTED)
@@ -356,6 +356,49 @@ columns:
     description: The LPDN specimen (its specimen_id) whose particle density p.density() joined
     type: text
     ags: ["derived: docs/data/datasets.md §6.8"]
+    used_by: []
+  # Phase relations (ht.analysis.phase_relations, M14 b).
+  specific_gravity:
+    description: Specific gravity of the solids, Gs = rho_s / rho_w
+    type: number
+    quantity: dimensionless
+    scale: ratio
+    label: Specific gravity, G_s
+    ags: ["derived: ht.analysis.phase_relations()", "derived: the judgments file (SPEC §4)"]
+    used_by: []
+  specific_gravity_source:
+    description: Where the row's Gs came from (measured, assumed, judgment)
+    type: text
+    ags: ["derived: ht.analysis.phase_relations()"]
+    used_by: []
+  void_ratio:
+    description: Void ratio, volume of voids / volume of solids, from gamma, w and Gs
+    type: number
+    quantity: dimensionless
+    scale: ratio
+    label: Void ratio, e
+    ags: ["derived: ht.analysis.phase_relations()"]
+    used_by: [P01, P07]
+  porosity:
+    description: Porosity, volume of voids / total volume
+    type: number
+    quantity: percent
+    scale: ratio
+    label: Porosity, n
+    ags: ["derived: ht.analysis.phase_relations()"]
+    used_by: [P01, P07]
+  degree_of_saturation:
+    description: Degree of saturation, volume of water / volume of voids
+    type: number
+    quantity: percent
+    scale: ratio
+    label: Degree of saturation, S
+    ags: ["derived: ht.analysis.phase_relations()"]
+    used_by: [P01, P07]
+  oversaturated:
+    description: True if the degree of saturation is above 100 % by more than the tolerance
+    type: bool
+    ags: ["derived: ht.analysis.phase_relations()"]
     used_by: []
 
   # --- Vertical stress (ht.analysis.vertical_stress, M13) --------------------------------
@@ -593,6 +636,14 @@ columns:
     label: Consistency index, Ic
     ags: ["derived"]
     used_by: [P07, P17]
+  clay_activity:
+    description: Activity of the clay, PI / percentage finer than 0.002 mm (Skempton 1953)
+    type: number
+    quantity: dimensionless
+    scale: ratio
+    label: Activity, A
+    ags: ["derived: ht.analysis.clay_activity()"]
+    used_by: [P07]
   plasticity_class_uscs:
     description: USCS fine-grained class from LL and PI (CL, CL-ML, ML, CH, MH; never OL or OH)
     type: text

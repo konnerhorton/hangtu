@@ -13,7 +13,7 @@ from os import PathLike
 import numpy as np
 import pandas as pd
 
-from hangtu.analysis import aashto, uscs
+from hangtu.analysis import aashto, clay_activity, uscs
 from hangtu.datasets._frame import Build
 from hangtu.datasets._lab import (
     classify_plasticity,
@@ -54,6 +54,7 @@ COLUMNS = [
     "uscs_symbol",
     "aashto_group",
     "aashto_group_index",
+    "clay_activity",
     "water_content_specimen_id",
     "atterberg_specimen_id",
     "grain_size_specimen_id",
@@ -301,18 +302,20 @@ def _warn_chosen(result: pd.DataFrame, chosen: list[tuple]) -> None:
 
 
 def _classify(frame: pd.DataFrame, points: pd.DataFrame | None) -> pd.DataFrame:
-    """Add the plasticity columns, gradings, USCS symbol and AASHTO group.
+    """Add the plasticity columns, gradings, USCS symbol, AASHTO group and activity.
 
     Plasticity as ``p.atterberg()`` (§6.2), on the combined row. Only rows
     with a grading are classified: a sample with only a water content or
     limits gets blank symbols without a warning, since no test was run to
-    classify it. ``gradation()`` runs twice on the chosen curves, for
-    the astm_uscs fractions (returned) and the aashto ones (not returned); the
-    second run's warnings would repeat the first's, so they aren't shown.
+    classify it. ``gradation()`` runs three times on the chosen curves, for
+    the astm_uscs fractions (returned) and the aashto and iso14688 ones (not
+    returned); the later runs' warnings would repeat the first's, so they
+    aren't shown. Activity is blank where a curve doesn't reach 0.002 mm, as
+    on a sieve-only grading, without a warning (M14 b, Decision 7).
     """
     labels = frame["loca_id"].astype(str) + " " + frame["sample_reference"].astype(str)
     frame = classify_plasticity(frame, labels)
-    for column in [*GRADATION_COLUMNS, "aashto_group_index"]:
+    for column in [*GRADATION_COLUMNS, "aashto_group_index", "clay_activity"]:
         frame[column] = np.nan
     for column in ("fraction_system", "uscs_symbol", "aashto_group"):
         frame[column] = None
@@ -335,7 +338,9 @@ def _classify(frame: pd.DataFrame, points: pd.DataFrame | None) -> pd.DataFrame:
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         fractions = summarize_curves(curves, ["specimen_id"], [], "aashto")
+        clay = summarize_curves(curves, ["specimen_id"], [], "iso14688")
     fractions = fractions.set_index("specimen_id")
+    clay = clay.set_index("specimen_id")["clay_content"]
     on = frame.loc[graded, "_grading"]
     for column in GRADATION_COLUMNS:
         frame.loc[graded, column] = on.map(grading[column]).to_numpy()
@@ -353,4 +358,12 @@ def _classify(frame: pd.DataFrame, points: pd.DataFrame | None) -> pd.DataFrame:
         groups = aashto(soils)
     frame.loc[graded, "aashto_group"] = groups["aashto_group"].to_numpy()
     frame.loc[graded, "aashto_group_index"] = groups["aashto_group_index"].to_numpy()
+
+    soils = soils[["plasticity_index", "non_plastic"]].copy()
+    soils["clay_content"] = on.map(clay).to_numpy()
+    soils["fraction_system"] = "iso14688"
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")  # blanks are expected on sieve-only curves
+        activity = clay_activity(soils)
+    frame.loc[graded, "clay_activity"] = activity["clay_activity"].to_numpy()
     return frame

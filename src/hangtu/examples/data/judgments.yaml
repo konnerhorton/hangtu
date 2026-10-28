@@ -1,4 +1,4 @@
-# judgments.yaml: the example site's unit weights and water levels (SPEC §4).
+# judgments.yaml: the example site's unit weights, water levels and Gs (SPEC §4).
 unit_weight:
   by: geology_unit
   units: {bulk_unit_weight: pcf, saturated_unit_weight: pcf}
@@ -21,3 +21,8 @@ water_level:
     B-4: {depth: 8.5, reason: "encountered while drilling, 2026-08-13"}
     B-5: {depth: 10.0, reason: "encountered while drilling, 2026-08-14"}
     B-6: {depth: 6.5, reason: "encountered while drilling, 2026-08-15"}
+specific_gravity:
+  by: geology_unit
+  values:
+    Alluvium: {specific_gravity: 2.70, reason: "median of 6 LPDN, measured (168.9 pcf)"}
+    Terrace: {specific_gravity: 2.67, reason: "median of 6 LPDN, measured (166.4 pcf)"}

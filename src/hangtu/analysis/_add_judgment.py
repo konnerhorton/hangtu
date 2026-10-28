@@ -103,7 +103,8 @@ def add_judgment(
     if name not in ADDABLE:
         raise HangtuError(
             f"add_judgment() takes {', '.join(map(repr, ADDABLE))}, not {name!r}. "
-            "Unit weights and water levels are used by vertical_stress() directly."
+            "Unit weights and water levels are used by vertical_stress() directly, "
+            "and specific gravity by phase_relations()."
         )
     field, key_column = ADDABLE[name]
     read = read_judgments(judgments, df)

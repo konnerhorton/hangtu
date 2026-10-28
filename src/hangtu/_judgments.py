@@ -1,4 +1,4 @@
-"""The judgments file: a project's unit weights, water levels and PI (SPEC §4).
+"""The judgments file: a project's unit weights, water levels, PI and Gs (SPEC §4).
 
 A judgment has no default. Analyses take it from an argument, then from
 ``judgments=``, then from the Project's file, else raise. The file format and
@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from hangtu import _config, units
-from hangtu.errors import HangtuError
+from hangtu.errors import HangtuError, warn
 
 GUIDE = "the judgments guide in the hangtu docs"
 
@@ -28,6 +28,7 @@ class Kind:
     required: tuple[str, ...]  # fields every entry needs
     one_of: tuple[str, ...]  # exactly one of these, when not empty
     by: str | None  # the column keys match, when fixed
+    unitless: bool = False  # a pure number: no units block (m14b, Decision 4)
 
 
 KINDS = {
@@ -56,12 +57,30 @@ KINDS = {
         one_of=(),
         by=None,
     ),
+    # docs/work/m14b-phase-relations.md, Decision 4.
+    "specific_gravity": Kind(
+        keyed="values",
+        fields={"specific_gravity": "dimensionless"},
+        required=("specific_gravity",),
+        one_of=(),
+        by=None,
+        unitless=True,
+    ),
 }
 
 #: Fields that must be positive (a water level may be above ground).
-POSITIVE = {"bulk_unit_weight", "saturated_unit_weight"}
+POSITIVE = {"bulk_unit_weight", "saturated_unit_weight", "specific_gravity"}
 #: Fields that may be zero but not negative.
 NON_NEGATIVE = {"plasticity_index"}
+#: Fields that warn outside a range, with what lies outside it: QC B003's
+#: particle density range (docs/data/qc.md §4.11).
+PLAUSIBLE = {
+    "specific_gravity": (
+        2.0,
+        3.2,
+        "peat and organic soils lie lower, ores and some rock higher",
+    )
+}
 
 #: Units shown in examples, as they are written in the file.
 EXAMPLE_UNITS = {"unit_weight": "kN/m3", "length": "m", "dimensionless": '"%"'}
@@ -105,11 +124,11 @@ class Read:
 
 def quantity_text(value: float, unit: str) -> str:
     """``18.5 kN/m3``: a value with its unit, as recorded on results."""
-    return f"{value:g} {unit}"
+    return f"{value:g} {unit}" if unit else f"{value:g}"
 
 
 class Judgments:
-    """A project's judgments file: unit weights, water levels and PI.
+    """A project's judgments file: unit weights, water levels, PI and Gs.
 
     Made by ``ht.judgments(path)`` or ``p.judgments``. It holds the path, not
     the values: each analysis re-reads the file, so an edit shows up in the next
@@ -169,7 +188,7 @@ class Judgments:
 
 
 def judgments(path: str | PathLike[str]) -> Judgments:
-    """Open a judgments file: the unit weights, water levels and PI a project uses.
+    """Open a judgments file: the unit weights, water levels, PI and Gs a project uses.
 
     Judgments have no defaults in hangtu (SPEC §4). They live in one YAML file
     with their units and reasons, and every analysis that needs one reads it
@@ -199,6 +218,10 @@ def judgments(path: str | PathLike[str]) -> Judgments:
           units: {plasticity_index: "%"}
           values:
             Alluvium: {plasticity_index: 28, reason: "median of 9 tests"}
+        specific_gravity:
+          by: geology_unit          # no units: Gs is a pure number
+          values:
+            Alluvium: {specific_gravity: 2.68, reason: "median of 6 LPDN, measured"}
         ```
 
         - `unit_weight` entries take `bulk_unit_weight` (required) and
@@ -211,7 +234,11 @@ def judgments(path: str | PathLike[str]) -> Judgments:
           by a column of the rows it is put on (`by:`), and are put on them by
           `ht.analysis.add_judgment()`. `ht.analysis.summary_by()` shows each
           unit's tested PI to inform it.
-        - `units:` gives a unit for every field used.
+        - `specific_gravity` entries take `specific_gravity`, a positive
+          number, which warns outside 2.0-3.2. `ht.analysis.phase_relations()`
+          uses it only for rows with no particle density.
+        - `units:` gives a unit for every field used, except for
+          `specific_gravity`, which has none.
         - `project:` is optional and needs a `reason`. It is used, with a
           warning, for every unit or hole the keyed entries don't list.
         - Keys match exactly and case-sensitively. Quote keys YAML would read
@@ -228,7 +255,8 @@ def judgments(path: str | PathLike[str]) -> Judgments:
     HangtuError
         Naming the file, the judgment and the entry for an unknown key or
         field, a missing `units`, `by` or `reason`, a wrong unit, a value that
-        isn't a number (or isn't positive, for unit weights), or invalid YAML.
+        isn't a number (or isn't positive, for unit weights and Gs), a
+        `units` block for Gs, or invalid YAML.
     FileNotFoundError
         If there is no file at `path`.
 
@@ -300,17 +328,29 @@ def _check_judgment(name: str, body: Any, where: str) -> Judgment:
     sections = ("by", "units", "project", kind.keyed)
     if kind.by is not None:
         sections = ("units", "project", kind.keyed)
+    if kind.unitless:
+        sections = tuple(section for section in sections if section != "units")
     if not isinstance(body, Mapping):
         raise HangtuError(
             f"{where}: must be a mapping of {', '.join(sections)}, not {body!r}."
         )
     for key in body:
+        if key == "units" and kind.unitless:
+            raise HangtuError(
+                f"{where}: {name} is a pure number and takes no units. Remove "
+                "the units: line; a % would be read as a ratio and change the "
+                "value 100-fold."
+            )
         if key not in sections:
             raise HangtuError(
                 f"{where}: {key!r} isn't a section of {name}. "
                 f"The sections are {', '.join(sections)}."
             )
-    units_by_field = _check_units(kind, body.get("units"), where)
+    units_by_field = (
+        dict.fromkeys(kind.fields, "")
+        if kind.unitless
+        else _check_units(kind, body.get("units"), where)
+    )
     keyed = body.get(kind.keyed)
     by = kind.by
     if kind.by is None:
@@ -433,6 +473,13 @@ def _check_entry(
                 f"{where}, {field}: has no unit. Add it to the judgment's units, "
                 f"e.g. units: {{{field}: {EXAMPLE_UNITS[kind.fields[field]]}}}."
             )
+        if field in PLAUSIBLE:
+            low, high, outside = PLAUSIBLE[field]
+            if not low <= value <= high:
+                warn(
+                    f"{where}, {field}: {value:g} is outside {low:g}-{high:g}. "
+                    f"Check the value: {outside}."
+                )
         values[field] = float(value)
     reason = entry.get("reason")
     if reason is not None:

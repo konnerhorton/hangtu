@@ -9,10 +9,9 @@ from hangtu.datasets._frame import Build
 from hangtu.datasets._index import _nearest, _sample_keys
 from hangtu.datasets._lab import SPECIMEN_COLUMNS, specimens
 from hangtu.errors import warn
+from hangtu.units import STANDARD_GRAVITY
 
-#: Standard gravity (m/s², exact by definition). A density in Mg/m³ times g is
-#: a unit weight in kN/m³ (datasets.md §6.8).
-G = 9.80665
+G = STANDARD_GRAVITY
 
 DENSITY_COLUMNS = [
     *SPECIMEN_COLUMNS,
