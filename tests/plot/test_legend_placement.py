@@ -95,7 +95,9 @@ def test_a_strata_band_doesnt_block_a_corner_but_its_label_does(ax):
     legend, _ = place(ax)
     assert legend._loc == UPPER_RIGHT
     legend.remove()
-    ax.text(9.8, 9.0, "Fill", ha="right", va="center", zorder=_layers.ANNOTATIONS)
+    # Well inside the legend's box: its height differs by a few pixels between
+    # matplotlib versions.
+    ax.text(9.8, 9.5, "Fill", ha="right", va="center", zorder=_layers.ANNOTATIONS)
     legend, _ = place(ax)
     assert legend._loc == UPPER_LEFT
 

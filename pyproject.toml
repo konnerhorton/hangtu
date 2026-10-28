@@ -89,4 +89,8 @@ filterwarnings = [
     "ignore:.* deprecated - use :DeprecationWarning:matplotlib",
     "ignore:.* argument is deprecated, use :DeprecationWarning:matplotlib",
     "ignore:.* argument is deprecated, use :DeprecationWarning:pyparsing",
+    # pytest.warns re-emits the warnings it didn't match with module "warnings",
+    # so the module filters above miss them inside a pytest.warns block.
+    "ignore:.* deprecated - use :DeprecationWarning:warnings",
+    "ignore:.* argument is deprecated, use :DeprecationWarning:warnings",
 ]
