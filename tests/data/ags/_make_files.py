@@ -1095,7 +1095,7 @@ def joins_groups():
     grag = group(  # GRAT's parent (AGS Rule 10c)
         "GRAG",
         [*SPECIMEN, ("GRAG_FINE", "1DP", "%")],
-        [[*j1_b4, "1", 7.20, 9.0]],
+        [[*j1_b4, "1", 7.20, 9.0], [*j2_u1, "2", 2.20, 85.0]],
     )
     grat = group(
         "GRAT",
@@ -1105,6 +1105,14 @@ def joins_groups():
             [*j1_b4, "1", 7.20, 2.00, 90],
             [*j1_b4, "1", 7.20, 0.425, 45],
             [*j1_b4, "1", 7.20, 0.0630, 8],
+            # J2-U1 specimen 2, with a hydrometer stage: clay (< 0.002 mm) is
+            # P(0.002) = 25 %, on a point, so its activity is PI 20 / 25 = 0.80.
+            [*j2_u1, "2", 2.20, 2.00, 100],
+            [*j2_u1, "2", 2.20, 0.0630, 85],
+            [*j2_u1, "2", 2.20, 0.0200, 60],
+            [*j2_u1, "2", 2.20, 0.00630, 40],
+            [*j2_u1, "2", 2.20, 0.00200, 25],
+            [*j2_u1, "2", 2.20, 0.00100, 10],
         ],
     )
     # Particle density by sample (datasets.md §6.8):

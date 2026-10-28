@@ -140,13 +140,13 @@ def test_density_twins_agree(fresh):
 
 
 def test_incomplete_record(fresh):
-    # AC 10: J1-D2's LDEN row (line 96) has no LDEN_BDEN.
+    # AC 10: J1-D2's LDEN row (line 103) has no LDEN_BDEN.
     project = fresh("joins")
     with pytest.warns(UserWarning) as record:
         df = project.density()
     messages = [str(w.message) for w in record]
     assert any(m.startswith("Left out 1 of 4 LDEN records") for m in messages)
-    assert "LDEN_BDEN on line 96" in next(m for m in messages if "Left out" in m)
+    assert "LDEN_BDEN on line 103" in next(m for m in messages if "Left out" in m)
     assert "J1-D2" not in set(df["sample_reference"])
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")

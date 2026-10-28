@@ -327,10 +327,11 @@ close-out. Reused, not rebuilt:
   `aashto_group_index`.
 - `tests/data/ags/_make_files.py`, `joins.ags`: a hydrometer grading for J2-U1 specimen 2 at 2.20 m, the same
   specimen as its water content and its second `LLPL` (LL 40, PL 20, so PI 20): a `GRAG` row and `GRAT` points
-  2.00 mm 100 %, 0.063 85, 0.020 60, 0.0063 40, 0.002 25. **Golden:** CF = P(0.002) − P(0) = 25 − 0 = 25 (on a
+  2.00 mm 100 %, 0.063 85, 0.020 60, 0.0063 40, 0.002 25, 0.001 10 (the last added in the build, so D10
+  falls on a point and `gradation()` doesn't warn). **Golden:** CF = P(0.002) − P(0) = 25 − 0 = 25 (on a
   point), so `clay_activity` = 20 / 25 = **0.80**. J1-B4's sieve-only curve gives a blank, with no warning.
-  - The six new lines move `joins.ags`'s `LDEN` and `LPDN` lines by 6; the tests that name them follow
-    (`test_density.py` AC 10's line 96 becomes 102). J2-U1 now has a grading, so it gets a USCS symbol (fines
+  - The seven new lines move `joins.ags`'s `LDEN` and `LPDN` lines by 7; the tests that name them follow
+    (`test_density.py` AC 10's line 96 becomes 103). J2-U1 now has a grading, so it gets a USCS symbol (fines
     ≥ 85 %, LL 40, PI 20 above the A-line: CL); tests that expected it blank follow.
 - `ht.template("index")` is unchanged if it isn't `p.index_properties()`'s shape; if it is, it gains
   `clay_activity` under the SPEC §2.6 rule and `test_registry.py` follows.

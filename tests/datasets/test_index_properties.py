@@ -10,10 +10,11 @@ import hangtu as ht
 from .conftest import make_files
 
 CHOSEN = "3 samples had more than one specimen of a test; the one nearest"
-#: J1-B4 has a grading with about 11 % fines and no limits (decision 8).
+#: J1-B4 has a grading with about 11 % fines and no limits (decision 8). J2-U1's
+#: hydrometer grading (M14 b) is classified, so it is the second specimen.
 UNCLASSIFIED = [
-    "uscs_symbol is blank for 1 of 1 specimens: 1 with no plasticity class.",
-    "aashto_group is blank for 1 of 1 specimens",
+    "uscs_symbol is blank for 1 of 2 specimens: 1 with no plasticity class.",
+    "aashto_group is blank for 1 of 2 specimens",
 ]
 
 
@@ -145,6 +146,7 @@ def test_columns_and_units(joins):
         "uscs_symbol",
         "aashto_group",
         "aashto_group_index",
+        "clay_activity",
         "water_content_specimen_id",
         "atterberg_specimen_id",
         "grain_size_specimen_id",
@@ -226,10 +228,13 @@ def test_classes_use_another_specimens_water_content(index):
 
 def test_only_samples_with_a_grading_are_classified(index):
     # Samples with only limits get no symbol and aren't counted in the
-    # warnings (1 of 1 specimens, the fixture's messages).
-    assert index["uscs_symbol"].isna().all()
-    assert index.drop("J1-B4")["fraction_system"].isna().all()
-    assert index.loc["J1-B4", "fraction_system"] == "astm_uscs"
+    # warnings (1 of 2 specimens, the fixture's messages): J1-B4 and J2-U1
+    # have gradings, and only J2-U1 has limits too.
+    graded = ["J1-B4", "J2-U1"]
+    assert index.drop(graded)["uscs_symbol"].isna().all()
+    assert index.drop(graded)["fraction_system"].isna().all()
+    assert pd.isna(index.loc["J1-B4", "uscs_symbol"])
+    assert list(index.loc[graded, "fraction_system"]) == ["astm_uscs"] * 2
     # 5 to 12 % fines need the fines' plasticity, which J1-B4 hasn't.
     assert 5 < index.loc["J1-B4", "fines_content"] < 12
 
@@ -329,3 +334,13 @@ def test_classification_warnings_follow_the_filters(joins):
     _, messages = _with_warnings(joins.index_properties, holes=["J2"])
     assert len(messages) == 1
     assert messages[0].startswith("1 sample had more than one specimen")
+
+
+def test_clay_activity(index):
+    # M14 b, AC 12: J2-U1 specimen 2, PI 20 (LL 40, PL 20) and clay 25 % on
+    # the 0.002 mm point: 20 / 25 = 0.80. J1-B4's sieve-only curve gives a
+    # blank, and the fixture checks there is no warning for it.
+    assert index.loc["J2-U1", "clay_activity"] == pytest.approx(0.80)
+    assert index.loc["J2-U1", "uscs_symbol"] == "CL"
+    assert pd.isna(index.loc["J1-B4", "clay_activity"])
+    assert index["clay_activity"].notna().sum() == 1
