@@ -334,3 +334,88 @@ Hand-calculated; tolerance 1e-9 relative unless stated.
     `--strict`.
 19. **Registry:** every `statistics.values` entry is a registry column; the reference page lists `describe` and
     `DescribeResult`.
+
+## Plan
+Six build commits, each with ruff and pytest green, then the guide page (a docs commit, with approval) and the
+close-out. Reused, not rebuilt:
+- `_data.text_values()`, `numeric_column()`, `rows_text()`; `plot/_text_values.py` for the "Also" line;
+- the unit resolution the analyses use (`units=` → attrs → registry → error) and `hangtu.units` conversion;
+- `registry.column_info()` for `scale` and the new `statistics:` field;
+- `plot/_overlays.format_number()` and `draw_stats_box()`, unchanged.
+
+The calculation lives in one private function, `stats/_describe.py: summarize(values, *, percentiles, interval,
+log)`, on a NumPy array of the values already chosen. `describe()` reads a frame into those arrays; P01 and P07
+call `summarize()` on the values they draw. So the plots and `describe()` share the arithmetic, and the plots
+choose rows as they already do.
+
+### 1. `registry: statistics roles on flag and source columns`
+- `columns.yaml`: the `statistics:` entries of Decision 3 on `spt_refusal`, `qualifier`, `non_plastic`,
+  `particle_density_assumed`, `specific_gravity_source`, `correlation_name`, `source` and `test_type`; the header
+  documents the field (roles `at_least`, `qualifier`, `non_plastic`, `assumed`, `source`; `values`, `when`).
+- `registry.py`: `statistics_roles() -> dict[str, dict]`, the columns with the field.
+- P00 §5 (registry schema) gains the field, in this commit.
+- Tests (`tests/test_registry.py`): `FIELDS` gains `statistics`; every role is known, `values` are registry
+  columns of type number, `when` only on text columns, `source` roles on text columns (AC 19, first part).
+
+### 2. `M15: ht.stats.describe() and DescribeResult`
+- New package `src/hangtu/stats/`: `__init__.py` (`__all__ = ["DescribeResult", "describe"]`), `_result.py`
+  (the private base: `kind`, `function`, `value`, `unit`, `notes`, `judgments`, `hangtu_version`, `.to_dict()`;
+  and `DescribeResult` with `.to_frame()`, `__str__`, `_repr_html_` off the same text), `_describe.py`.
+- `summarize()`: count, mean, standard deviation, CoV (NaN on interval scale or mean ≤ 0), minimum, median,
+  maximum, the chosen percentiles with the floor rule, and with `log=True` the geometric mean and standard
+  deviation; it returns numbers and the reason for each NaN.
+- `describe()` for numbers only in this step: the three input forms, `value=`, `by=` (one or several columns,
+  categorical order, `"(blank)"` last), `percentiles=` validation, text values (`NP`, `refusal`, other text with
+  its warning), blanks, `log=True` with values ≤ 0 counted, units and `display_units=`, the count < 3 warning, and
+  `judgments` copied from attrs.
+- `hangtu/__init__.py` exports `stats`; `docs/site/reference/stats.md` (`::: hangtu.stats.describe`,
+  `::: hangtu.stats.DescribeResult`) in the `nav`, so the reference test passes.
+- Tests (new `tests/stats/test_describe.py`, `tests/stats/test_result.py`): AC 1–5, 13–15; AC 12 for blanks and
+  text.
+
+### 3. `M15: flags, bands and sources in describe()`
+- `_describe.py` reads `statistics_roles()`: `at_least` and `qualifier` included and counted, `non_plastic` and
+  bands left out and counted, `assumed` left out unless `include_assumed=True`, in Decision 6's order.
+- The source check after the rows are chosen, its error with every value and count, `pool=` and its errors, the
+  breakdown in each group's record and in the notes. A private `source_mix(frame, by)` returns the mixed columns
+  per group, for the plots.
+- Tests (new `tests/stats/test_describe_flags.py`, `test_describe_sources.py`): AC 6–12, on CSV frames and on
+  `p.atterberg()`, `p.particle_density()`, `p.permeability()` from the test files; a Stroud frame for bands.
+
+### 4. `P01: stats box computed by describe()`
+- `_overlays.stats_table()` calls `summarize()` per group instead of `_statistic()`, which goes; the text is
+  formatted as now (CoV to 2 decimals, the rest by `format_number()`). P02 and P06 use the same box and follow.
+- `_profile.py`: a group (or "All") whose rows mix sources gets "mixes sources (<column>)" in place of numbers;
+  assumed rows stay drawn and are counted on the "Also" line.
+- P01 §8 (the stats box row) and §11 updated in this commit.
+- Tests: the existing `test_profile_stats.py`, P02 and P06 stats tests unchanged; new cases for AC 16. A CoV on a
+  negative mean was "—" by `abs(mean)`; it is now "—" by the mean ≤ 0 rule, and a test that pinned the old value,
+  if any, follows.
+
+### 5. `P07: summaries from describe(), percentiles (25, 50, 75) by default`
+- `_geology_units.py`: `_check_summary()` validates `percentiles=` as `describe()` does (three, ascending);
+  `_draw_percentiles()` and `_draw_box()` take `summarize()`'s numbers; a unit below a percentile's floor or
+  `summary_min_count` draws points only, with the label's reason; `percentile_method=` raises the Decision 8
+  error; `PERCENTILE_METHODS` goes. Both `geology_unit_comparison()` and `geology_unit_comparisons()`.
+- Sources and assumed values as step 4; a mixing unit's label says "(mixes sources)".
+- P07 §5, §7, §8, §10 and the signature updated in this commit; `docs/plots/img/P07.png` regenerated and looked
+  at; the P07 site page's example follows if it passes `percentile_method=`.
+- Tests: `test_geology_unit_summaries.py`'s method cases become the AC 17 error test; the legend text for the new
+  default; AC 17.
+
+### 6. `M15: replace summary_by() with describe()`
+- Remove `analysis/_summary.py`, its export and `tests/analysis/test_summary_by.py`; its reference entry.
+- Switch the callers to `ht.stats.describe(...)`: the judgments and correlations guides, page 05, the
+  `correlations-clay` example (prints `.to_frame()`), and the docstrings of `add_judgment()`,
+  `phase_relations()` and `_judgments.py`'s message. SPEC §4's PI bullet in this commit.
+- Tests: AC 18 (a search test over `src/` and `docs/site/`); the site examples run.
+
+### 7. `docs: statistics guide` (docs commit, approval)
+- `docs/site/guides/statistics.md` with `docs/site/examples/statistics.py` on `ht.examples`' site: N60 by geology
+  unit with refusals, PI by unit, the source error and `pool=`, `log=True` on permeability. In the `nav`.
+- `zensical build --clean --strict` passes.
+
+### 8. Close-out (in the last build commit before the merge)
+- SPEC §5 (input rules, result object, `describe` built), §1.3 and §12.4 (M15 split; `characteristic` and P09 to
+  M18); `docs/drafts/phase3-stats.md`; TODO #9 and #16's built part removed, #8, #12, #13 and #40 pointed at
+  (c), M18 and (b); your TODO annotations folded in; CLAUDE.md's status line.
