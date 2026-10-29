@@ -193,7 +193,12 @@ def test_counts_add_up_to_the_rows():
             df, value="undrained_shear_strength", by="geology_unit"
         )
     frame = result.to_frame()
-    counts = [c for c in frame.columns if c.startswith("count")]
+    # Bounds are counted among the values, so they aren't added again.
+    counts = [
+        c
+        for c in frame.columns
+        if c.startswith("count") and c not in ("count_at_least", "count_at_most")
+    ]
     assert frame[counts].sum(axis=1).tolist() == [4, 4, 1]
 
 

@@ -18,9 +18,9 @@ import numpy as np
 import pandas as pd
 
 from hangtu import units as _units
-from hangtu._data import TEXT_FLAGS, text_values
+from hangtu._data import TEXT_FLAGS, flag_column, text_values
 from hangtu.errors import ColumnError, HangtuError, warn
-from hangtu.registry import column_info
+from hangtu.registry import column_info, statistics_roles
 from hangtu.stats._result import DescribeResult, _heading
 
 PERCENTILE_METHOD = "Hyndman & Fan (1996) definition 7"
@@ -158,6 +158,8 @@ def describe(
     by: str | Sequence[str] | None = None,
     percentiles: Sequence[float] = DEFAULT_PERCENTILES,
     log: bool = False,
+    pool: str | Sequence[str] | None = None,
+    include_assumed: bool = False,
     units: str | Mapping[str, str] | None = None,
     display_units: str | None = None,
 ) -> DescribeResult:
@@ -184,10 +186,34 @@ def describe(
     summaries of the same rows can't differ by method. Fewer than 3 values
     in a group warns.
 
-    **Rows not summarized are counted, never dropped silently:** blank cells
-    (``count_blank``), and text (``count_text``): ``NP`` is counted as
-    non-plastic (``count_non_plastic``), ``refusal`` as text, and other text
-    by its spelling, with a warning.
+    **Flagged values are counted, never dropped silently or pooled
+    unawares.** The registry says which columns flag a value
+    (``statistics:`` in ``columns.yaml``); a flag applies when its column is
+    in the frame. Each row is counted once, under the first that applies:
+
+    1. a band with no value (``<value>_lower`` or ``_upper`` only, from a
+       correlation): left out, ``count_range``. A band is an interval, not
+       two values or its midpoint;
+    2. non-plastic (``non_plastic``, or ``NP`` in the cell): left out,
+       ``count_non_plastic``, never a blank or 0;
+    3. assumed (``particle_density_assumed``, or ``specific_gravity_source``
+       ``assumed`` or ``judgment`` for Gs and what is derived from it): left
+       out unless ``include_assumed=True``, ``count_assumed``, with a warning;
+    4. other text: left out, ``count_text``, with a warning naming it;
+    5. blank: left out, ``count_blank``. A refusal with a blank N is a blank;
+    6. with ``log=True``, a value at or below 0: ``count_not_positive``.
+
+    Refusals (``spt_refusal``) and ``>`` values (``qualifier``) are lower
+    bounds, ``<`` values upper bounds: they are summarized at the value the
+    column holds and counted (``count_at_least``, ``count_at_most``), and
+    the summary says the mean is then an underestimate or an overestimate.
+    ``count`` and the counts of rows left out add up to the group's rows.
+
+    **Sources aren't mixed.** Rows from different sources in one group raise
+    an error naming them: different ``correlation_name`` (blank for a
+    measured value), ``source`` (lab or field) or ``test_type``. Group by
+    the column, filter the rows, or pool them on purpose with ``pool=``,
+    which the result records. The check reads only the rows summarized.
 
     Parameters
     ----------
@@ -211,6 +237,13 @@ def describe(
         CoV. Minimum, median, maximum and percentiles stay those of the
         values. Values at or below 0 are counted (``count_not_positive``) and
         left out, with a warning.
+    pool : str or list of str, optional
+        Source columns to pool across on purpose, e.g. ``["source"]`` to
+        summarize lab and field values together. The result's ``pooled`` and
+        its summary record it, with each group's count per source.
+    include_assumed : bool
+        Summarize assumed values with the rest. They are still counted, and
+        the summary says how many it includes.
     units : str or dict, optional
         The value's unit, e.g. ``"kPa"``, or ``{column: unit}``. Without it
         the unit comes from ``df.attrs["units"]``, then from the registry for
@@ -234,6 +267,9 @@ def describe(
     ColumnError
         For a missing column, a column that holds no numbers, or a true/false
         column.
+    HangtuError
+        For rows from different sources in one group, or a ``pool=`` column
+        that isn't a source column.
     UnitsError
         For a value column whose unit is unknown.
 
@@ -242,31 +278,47 @@ def describe(
     >>> limits = p.atterberg()
     >>> ht.stats.describe(limits, value="plasticity_index", by="geology_unit")
     """
-    read = _read_input(data, value, by, units)
+    read = _read_input(data, value, by, pool, units)
     frame, value = read.frame, read.value
     percentiles = check_percentiles(percentiles, "describe()")
+    pooled = _check_pool(pool, read)
     numbers, texts = text_values(frame, read.column)
     numbers, unit = _convert(numbers, read, display_units)
     interval, scale_known = _scale(value)
+    flags = _flags(frame, read.column) if value is not None else _Flags.none(frame)
 
+    # Decision 6: each row is counted once, under the first reason that applies.
     reasons = np.full(len(frame), "", dtype=object)
-    _assign(reasons, texts == "NP", "count_non_plastic")
+    _assign(reasons, flags.band & np.isnan(numbers) & (texts == ""), "count_range")
+    _assign(reasons, flags.non_plastic | (texts == "NP"), "count_non_plastic")
+    if not include_assumed:
+        _assign(reasons, flags.assumed, "count_assumed")
     _assign(reasons, texts != "", "count_text")
     _assign(reasons, np.isnan(numbers), "count_blank")
     if log:
         _assign(reasons, numbers <= 0, "count_not_positive")
     counted = (*COUNTS, "count_not_positive") if log else COUNTS
+    included = reasons == ""
+    marks = {
+        "count_at_least": flags.at_least & included,
+        "count_at_most": flags.at_most & included,
+    }
+    if include_assumed:
+        marks["count_assumed"] = flags.assumed & included
 
     keys = _group_keys(frame, read.by)
+    _check_sources(frame, keys, included, read, pooled)
     groups, notes_by_reason, small = [], {}, []
     for key, rows in keys:
         summary = summarize(
-            numbers[rows & (reasons == "")],
+            numbers[rows & included],
             percentiles=percentiles,
             interval=interval,
             log=log,
         )
-        counts = {name: int((reasons[rows] == name).sum()) for name in counted}
+        counts = {
+            name: int(marks.get(name, reasons == name)[rows].sum()) for name in counted
+        }
         groups.append(
             {
                 "key": key,
@@ -274,6 +326,10 @@ def describe(
                 "counts": counts,
                 "reasons": summary.reasons,
                 "text": _spellings(texts[rows]),
+                "sources": {
+                    column: _breakdown(frame.loc[rows & included, column])
+                    for column in pooled
+                },
             }
         )
         label = ", ".join(map(str, key.values())) or "All"
@@ -282,6 +338,7 @@ def describe(
         for name, why in summary.reasons.items():
             notes_by_reason.setdefault(why, {}).setdefault(name, []).append(label)
 
+    _warn_left_out(reasons, read.column)
     _warn_text(texts, read.column)
     if small:
         warn(
@@ -302,6 +359,7 @@ def describe(
         scale_known=scale_known,
         log=log,
     )
+    notes[-1:-1] = _flag_notes(groups, read.by, pooled, include_assumed)
     return DescribeResult(
         kind="property",
         function="describe",
@@ -312,8 +370,8 @@ def describe(
         hangtu_version=version("hangtu"),
         by=tuple(read.by),
         log=log,
-        pooled=(),
-        include_assumed=False,
+        pooled=tuple(pooled),
+        include_assumed=include_assumed,
         percentiles=percentiles,
         percentile_method=PERCENTILE_METHOD,
         groups=tuple(groups),
@@ -334,7 +392,11 @@ class _Input:
 
 
 def _read_input(
-    data: Any, value: str | None, by: Any, units: str | Mapping[str, str] | None
+    data: Any,
+    value: str | None,
+    by: Any,
+    pool: Any,
+    units: str | Mapping[str, str] | None,
 ) -> _Input:
     by_columns = [] if by is None else [by] if isinstance(by, str) else list(by)
     if isinstance(data, pd.Series):
@@ -356,9 +418,9 @@ def _read_input(
                 'Example: ht.stats.describe(df, value="plasticity_index")'
             )
         return _frame_input(data, value, by_columns, units)
-    if value is not None or by_columns:
+    if value is not None or by_columns or pool is not None:
         raise HangtuError(
-            "describe() takes value= and by= only with a DataFrame, which has "
+            "describe() takes value=, by= and pool= only with a DataFrame, which has "
             "columns to name. Pass a DataFrame, or the values alone."
         )
     if isinstance(units, Mapping):
@@ -522,6 +584,205 @@ def _group_keys(
             rows &= keys == key
         result.append((dict(zip(by, combination, strict=True)), rows))
     return result
+
+
+@dataclass(frozen=True)
+class _Flags:
+    """Each row's flags on the value column, from the registry's roles."""
+
+    at_least: np.ndarray
+    at_most: np.ndarray
+    non_plastic: np.ndarray
+    assumed: np.ndarray
+    band: np.ndarray
+
+    @classmethod
+    def none(cls, frame: pd.DataFrame) -> "_Flags":
+        empty = np.zeros(len(frame), bool)
+        return cls(empty, empty, empty, empty, empty)
+
+
+def _flags(frame: pd.DataFrame, value: str) -> _Flags:
+    """Read the flag columns of the registry (Decision 3) that apply to ``value``."""
+    masks = {role: np.zeros(len(frame), bool) for role in _ROLE_MASKS}
+    at_most = np.zeros(len(frame), bool)
+    for column, field in statistics_roles().items():
+        role = field["role"]
+        if role == "source" or column not in frame.columns:
+            continue
+        if value not in field.get("values", [value]):
+            continue
+        if role == "qualifier":
+            text = frame[column].astype("string").str.strip()
+            masks["at_least"] |= (text == ">").fillna(False).to_numpy(bool)
+            at_most |= (text == "<").fillna(False).to_numpy(bool)
+        elif "when" in field:
+            text = frame[column].astype("string").str.strip().str.lower()
+            when = [item.lower() for item in field["when"]]
+            masks[role] |= text.isin(when).fillna(False).to_numpy(bool)
+        else:
+            hint = f"describe() reads it as a {role.replace('_', ' ')} flag."
+            masks[role] |= np.array(
+                [flag is True for flag in flag_column(frame, column, hint)], bool
+            )
+    band = np.zeros(len(frame), bool)
+    for column in (f"{value}_lower", f"{value}_upper"):
+        if column in frame.columns:
+            band |= pd.to_numeric(frame[column], errors="coerce").notna().to_numpy()
+    return _Flags(
+        at_least=masks["at_least"],
+        at_most=at_most,
+        non_plastic=masks["non_plastic"],
+        assumed=masks["assumed"],
+        band=band,
+    )
+
+
+_ROLE_MASKS = ("at_least", "non_plastic", "assumed")
+
+
+def _source_columns() -> list[str]:
+    return [c for c, f in statistics_roles().items() if f["role"] == "source"]
+
+
+def _check_pool(pool: Any, read: _Input) -> list[str]:
+    """Return the ``pool=`` columns, or raise if one can't be pooled."""
+    if pool is None:
+        return []
+    columns = [pool] if isinstance(pool, str) else list(pool)
+    sources = _source_columns()
+    for column in columns:
+        if column == read.value or column in read.by:
+            raise HangtuError(
+                f"describe() can't pool across {column!r} and also summarize or "
+                "group by it. Remove it from pool= or from by=."
+            )
+        if column not in sources:
+            raise HangtuError(
+                f"describe() pools only across source columns, and {column!r} "
+                f"isn't one. Source columns: {', '.join(sources)}. To summarize "
+                "rows of different groups together, leave them out of by=."
+            )
+        if column not in read.frame.columns:
+            raise ColumnError(
+                f"describe() can't pool across {column!r}: the data has no such "
+                f"column. Available columns: {', '.join(map(str, read.frame.columns))}."
+            )
+    return columns
+
+
+def _source_values(values: pd.Series) -> pd.Series:
+    """Write a source column's blanks as ``"(blank)"``."""
+    text = values.astype("string").str.strip()
+    return text.where(text.notna() & (text != ""), BLANK_GROUP).astype(object)
+
+
+def _breakdown(values: pd.Series) -> dict[str, int]:
+    """Count each source's rows, in order of appearance."""
+    return {
+        str(key): int(count)
+        for key, count in _source_values(values).value_counts(sort=False).items()
+    }
+
+
+def source_mix(frame: pd.DataFrame, exclude: Sequence[str] = ()) -> list[str]:
+    """Return the source columns holding more than one value in ``frame``.
+
+    ``frame`` holds the rows one summary would read; ``exclude`` the columns
+    grouped by or pooled. For the plots, which summarize the groups they draw.
+    """
+    return [
+        column
+        for column in _source_columns()
+        if column in frame.columns
+        and column not in exclude
+        and _source_values(frame[column]).nunique() > 1
+    ]
+
+
+def _check_sources(
+    frame: pd.DataFrame,
+    keys: list[tuple[dict[str, Any], np.ndarray]],
+    included: np.ndarray,
+    read: _Input,
+    pooled: list[str],
+) -> None:
+    """Raise if a group's summarized rows come from different sources (Decision 5)."""
+    exclude = [*read.by, *pooled]
+    for key, rows in keys:
+        these = frame.loc[rows & included]
+        mixed = source_mix(these, exclude)
+        if not mixed:
+            continue
+        label = ", ".join(map(str, key.values()))
+        where = f" in group {label!r}" if label else ""
+        lines = []
+        for column in mixed:
+            listed = [
+                f"{value!r} ({count} rows)"
+                for value, count in _breakdown(these[column]).items()
+            ]
+            indent = " " * (len(column) + 4)
+            lines.append(f"  {column}: " + f",\n{indent}".join(listed))
+        grouped = [*read.by, mixed[0]]
+        raise HangtuError(
+            f"describe() can't pool rows from different sources{where}:\n"
+            + "\n".join(lines)
+            + f"\nSummarize each with by={grouped!r}, filter the rows, "
+            f"or pool them on purpose with pool={mixed!r}."
+        )
+
+
+def _warn_left_out(reasons: np.ndarray, column: str) -> None:
+    assumed = int((reasons == "count_assumed").sum())
+    if assumed:
+        warn(
+            f"describe() left out {assumed} assumed values of {column!r}: assumed "
+            "values aren't pooled with measured ones. They are counted in "
+            "count_assumed; pass include_assumed=True to summarize them too."
+        )
+    ranges = int((reasons == "count_range").sum())
+    if ranges:
+        warn(
+            f"describe() left out {ranges} rows of {column!r} that give only a "
+            "range (_lower, _upper): a range is an interval, not a value. They "
+            "are counted in count_range."
+        )
+
+
+def _flag_notes(
+    groups: list[dict[str, Any]],
+    by: list[str],
+    pooled: list[str],
+    include_assumed: bool,
+) -> list[str]:
+    """Return the notes on bounds, assumed values and pooling."""
+    notes = []
+
+    def total(name: str) -> int:
+        return sum(group["counts"][name] for group in groups)
+
+    if total("count_at_least"):
+        notes.append(
+            f"Lower bounds (refusal or '>'): {total('count_at_least')}. "
+            "The mean and upper percentiles are underestimates."
+        )
+    if total("count_at_most"):
+        notes.append(
+            f"Upper bounds ('<'): {total('count_at_most')}. The mean and "
+            "lower percentiles are overestimates."
+        )
+    if include_assumed and total("count_assumed"):
+        notes.append(f"Assumed values included: {total('count_assumed')}.")
+    for group in groups:
+        label = ", ".join(map(str, group["key"].values()))
+        for column in pooled:
+            listed = ", ".join(
+                f"{value} {count}" for value, count in group["sources"][column].items()
+            )
+            where = f" in {label}" if by else ""
+            notes.append(f"Pooled across {column}{where}: {listed}.")
+    return notes
 
 
 def _spellings(texts: np.ndarray) -> dict[str, int]:
