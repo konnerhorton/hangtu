@@ -103,7 +103,7 @@ Data for all of these already exists in the MVP scope. P00 is the foundation the
 | P19 | Pressuremeter curve with moduli (E_M, unload/reload) → Hardening Soil parameters | |
 | P20 | Modulus against depth from multiple sources (SPT correlation, PMT, triaxial, oedometer) | Builds on P01 |
 | P21 | Simple location plan (hole positions and labels, colored by type) | Not GIS: plain x/y scatter |
-| P17 | [Clogging: Thewes & Burger (2004) diagram](P17-clogging-diagram.md) | Needs Ic; M12; draft |
+| P17 | [Clogging: Thewes & Burger (2004) diagram](P17-clogging-diagram.md) | M12; built |
 | P18 | Clogging: Hollmann & Thewes (2013) diagram | Not yet placed |
 | P22 | CPT profiles (qc, fs, Rf, u2; SBT chart) | CPT is on the Later roadmap |
 | P23 | Lateral earth pressure with depth (coefficient K and/or σ′h profile) | Probably builds on P01; scope to define |

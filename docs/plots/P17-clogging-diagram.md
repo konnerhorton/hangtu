@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **ID / function** | P17 · `ht.plot.clogging_diagram()` (uses `ht.analysis.clogging_potential()`) |
-| **Status** | draft |
+| **Status** | built |
 | **Type** | plot + classification |
 | **Milestone** | M12 (wave 1) |
 | **Depends on** | P00; `ht.analysis.plasticity()` for PI and Ic (M8) |
