@@ -285,7 +285,7 @@ def describe(
     numbers, texts = text_values(frame, read.column)
     numbers, unit = _convert(numbers, read, display_units)
     interval, scale_known = _scale(value)
-    flags = _flags(frame, read.column) if value is not None else _Flags.none(frame)
+    flags = read_flags(frame, read.column) if value is not None else Flags.none(frame)
 
     # Decision 6: each row is counted once, under the first reason that applies.
     reasons = np.full(len(frame), "", dtype=object)
@@ -587,7 +587,7 @@ def _group_keys(
 
 
 @dataclass(frozen=True)
-class _Flags:
+class Flags:
     """Each row's flags on the value column, from the registry's roles."""
 
     at_least: np.ndarray
@@ -597,12 +597,12 @@ class _Flags:
     band: np.ndarray
 
     @classmethod
-    def none(cls, frame: pd.DataFrame) -> "_Flags":
+    def none(cls, frame: pd.DataFrame) -> "Flags":
         empty = np.zeros(len(frame), bool)
         return cls(empty, empty, empty, empty, empty)
 
 
-def _flags(frame: pd.DataFrame, value: str) -> _Flags:
+def read_flags(frame: pd.DataFrame, value: str) -> Flags:
     """Read the flag columns of the registry (Decision 3) that apply to ``value``."""
     masks = {role: np.zeros(len(frame), bool) for role in _ROLE_MASKS}
     at_most = np.zeros(len(frame), bool)
@@ -629,7 +629,7 @@ def _flags(frame: pd.DataFrame, value: str) -> _Flags:
     for column in (f"{value}_lower", f"{value}_upper"):
         if column in frame.columns:
             band |= pd.to_numeric(frame[column], errors="coerce").notna().to_numpy()
-    return _Flags(
+    return Flags(
         at_least=masks["at_least"],
         at_most=at_most,
         non_plastic=masks["non_plastic"],
