@@ -20,7 +20,7 @@ Pass `baseline=` a table of a report's ranges per unit, such as a geotechnical b
 |---|---|
 | `baseline=`, `baseline_label=` | A report's range per unit, and its legend text |
 | `summary="box"` | A box plot instead of the percentile bar (`None` for none) |
-| `percentiles=(10, 50, 90)` | The bar's ends and center |
+| `percentiles=(25, 50, 75)` | The bar's ends and center, the same numbers as `ht.stats.describe()` |
 | `order=` | Geology units in stratigraphic order |
 | `preset=`, `log=`, `xlim=` | The property's scale and limits |
 

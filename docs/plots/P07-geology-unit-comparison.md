@@ -35,7 +35,7 @@ The built figure, from the test data: [`P07-si.png`](img/P07-si.png) (SI) and [`
         +------+------+------+------+------
         0     10     20     30     40     50
 
-   ├─◆─┤ GBR baseline p10–p90, p50    ├━●━┤ Data p10–p90, p50    · Data
+   ├─◆─┤ GBR baseline p10–p90, p50    ├━●━┤ Data p25–p75, p50    · Data
 ```
 
 **A good version:**
@@ -69,10 +69,11 @@ The built figure, from the test data: [`P07-si.png`](img/P07-si.png) (SI) and [`
 **Minimum data:** none. A unit with no data but a baseline row still gets a row ("n = 0"). With no data and no baseline, the plot shows empty axes and a "No data" note.
 
 ## 4. Analysis / calculations
-- **Summary per unit** (`summary="percentiles"`, the default): `numpy.percentile(values, percentiles, method=percentile_method)`. `percentiles` is three ascending numbers in [0, 100], `(10, 50, 90)` by default: the bar runs from the first to the third and the marker sits at the second. `percentile_method` is passed to NumPy unchanged and must be one of its 13 methods, `"linear"` by default (NumPy's default; Hyndman & Fan 1996 definition 7). Other summaries are TODO #16.
-- **Box** (`summary="box"`): quartiles with `percentile_method`, whiskers to the furthest value within 1.5 × IQR of the box (Tukey 1977). There are no separate outlier marks, because every point is already drawn.
+- **Summary per unit** (`summary="percentiles"`, the default): the percentiles `ht.stats.describe()` computes, from the same calculation (M15 (a), `docs/work/m15a-describe.md`, Decision 8), so a figure and a table of the same values agree. `percentiles` is three ascending numbers strictly between 0 and 100, `(25, 50, 75)` by default (changed in M15 (a) from `(10, 50, 90)`: a p10–p90 bar on fewer than 10 values only interpolates between the extremes): the bar runs from the first to the third and the marker sits at the second. The method is fixed, Hyndman & Fan (1996) definition 7 (NumPy's `"linear"`); `percentile_method=` was removed, and passing it is an error saying so. Each percentile needs a value beyond it on each side, n × min(p, 100 − p) / 100 ≥ 1 (p25 from 4 values, p10 from 10). Other summaries are TODO #16.
+- **Box** (`summary="box"`): quartiles and median from `describe()`, whiskers to the furthest value within 1.5 × IQR of the box (Tukey 1977). There are no separate outlier marks, because every point is already drawn.
 - **Which values are summarized:** the values drawn, in display units, as for the P01 stats box. Blanks, NP rows and values ≤ 0 on a log axis are left out. Values drawn at the edge of a fixed axis count at their true value, and qualified values at their reported value. On a log axis the percentiles are of the values (percentiles don't change under a log transform, apart from the interpolation between two values).
-- **Small samples:** the summary is drawn only when n ≥ `summary_min_count` (default 5, `ht.settings.summary_min_count`). Below that, the points are drawn and the count label says "(no summary)".
+- **Small samples:** the summary is drawn only when n ≥ `summary_min_count` (default 5, `ht.settings.summary_min_count`, a drawing threshold, not a statistic) and each percentile is above its floor. Otherwise the points are drawn and the count label says why: "(no summary)" or "(no summary: p10 needs 10 values)".
+- **Assumed values and sources** (M15 (a)): assumed values (`particle_density_assumed`, `specific_gravity_source`) are drawn but not summarized, counted in the footnote ("1 assumed value shown, not in the summaries"). A unit whose summarized values come from different sources (`correlation_name`, `source`, `test_type`) draws its points and no summary, and its count says "(mixes sources)". The figure never raises for a mix.
 - **Count:** n is the number of values summarized, i.e. drawn as points or carets.
 - **Unit conversion** of the data and the baseline to the display units, using the resolution order in SPEC §2.6 (§9).
 
@@ -118,12 +119,12 @@ Each unit's row is one unit of height, centered on its tick. Offsets are fractio
 | Baseline bar | horizontal line from `low` to `high`, with end caps | neutral dark gray (`0.25`), the same for every unit | +0.28 | 1.2 pt, caps 0.12 high | ✔ `baseline_label` (§8) | Drawn when the unit has a baseline row with `low` and `high` |
 | Baseline central value | diamond ◆ at `central` | dark gray | +0.28 | 5 pt | (part of the bar's entry) | Only when `central` is given. A row with only `central` draws just the diamond |
 | Data points | scatter, jittered vertically | `geology_unit` (palette); one neutral data color with `color_by=None` | center ± 0.15, uniform | 3 pt, alpha 0.4, no edge | ✔ "Data" | Jitter is seeded, so the same data gives the same figure |
-| Data bar (percentiles) | horizontal line from the first to the third percentile, with end caps | unit color | center | 2.0 pt, caps 0.16 high | ✔ e.g. "Data p10–p90, p50" | Drawn over the points. Only when n ≥ `summary_min_count` |
+| Data bar (percentiles) | horizontal line from the first to the third percentile, with end caps | unit color | center | 2.0 pt, caps 0.16 high | ✔ e.g. "Data p25–p75, p50" | Drawn over the points. Only when n ≥ `summary_min_count` |
 | Data central percentile | filled circle at the second percentile | unit color, white edge 0.8 pt | center | 6 pt | (part of the bar's entry) | |
 | Data box (`summary="box"`) | box from the 25th to the 75th percentile, median line, whiskers with caps | unit color edges, white fill at alpha 0.6 | center, 0.3 high | 1.0 pt | ✔ "Data: quartiles, median, 1.5 IQR whiskers" | Replaces the bar and circle. Drawn as a patch and lines rather than `ax.bxp`, whose arguments changed in matplotlib 3.10 |
 | Qualified values | caret ◁ / ▷ at the value, jittered as the points | unit color | center ± 0.15 | 5 pt | ✔ "less than (n)" / "greater than (n)" | As P01 §7 |
 | Out-of-range values (fixed limits) | open marker at the axis edge + small arrow outward | unit color | jittered as the points | 3 pt | footnote | P00 §9. A bar or box running past a fixed limit is cut at the edge without its cap, so it reads as continuing. When a value lies beyond the lower limit, the unit names move 14 pt left so the arrows don't cover them |
-| Count label | text "n = 288" | black (gray 0.4 for "n = 0") | center line, just outside the right spine | 7 pt | — | "n = 2 (no summary)" below `summary_min_count`. With `legend="right"`, the legend and footnote move right to clear the widest label. When a value lies beyond the upper limit, the labels move a further 14 pt right to clear its edge arrow |
+| Count label | text "n = 288" | black (gray 0.4 for "n = 0") | center line, just outside the right spine | 7 pt | — | "n = 2 (no summary)" below `summary_min_count`, "n = 6 (no summary: p10 needs 10 values)" below a percentile's floor, "n = 12 (mixes sources)" for a unit mixing sources. With `legend="right"`, the legend and footnote move right to clear the widest label. When a value lies beyond the upper limit, the labels move a further 14 pt right to clear its edge arrow |
 
 **Legend:** the marks are explained once, by gray stand-ins for the data bar and points (the unit colors are already named by the tick labels, so there is no per-unit color legend, a deviation from the plots README). Order: baseline, data summary, data points, then qualifiers and edge markers with counts. A single panel places the legend as P00 §11 (`legend="auto"`, inside a clear corner, else below); with `legend="right"` it is moved right to clear the count labels (`add_legend(..., offset=)`), with the footnote below it. The grid puts one legend centered below all panels, with one footnote below it.
 
@@ -184,8 +185,7 @@ def geology_unit_comparison(
     baseline_label: str | None = None,
     baseline_units: dict[str, str] | None = None,       # {property: unit}
     summary: Literal["percentiles", "box"] | None = "percentiles",   # None -> points only
-    percentiles: tuple[float, float, float] = (10, 50, 90),
-    percentile_method: str = "linear",                  # numpy.percentile(method=...)
+    percentiles: tuple[float, float, float] = (25, 50, 75),  # describe()'s, H&F definition 7
     summary_min_count: int | None = None,               # None -> settings (5)
     points: bool = True,
     preset: str | None = None,                          # None -> the preset named after `value`, if any
@@ -260,8 +260,11 @@ fig, axs = ht.plot.geology_unit_comparisons(
 | Values beyond `xlim` | Edge marker + arrow + count; still summarized at their true value |
 | Text in the value column | Error naming the rows (TODO #23) |
 | `qualifier` other than `"<"`, `">"` or blank | Error listing the rows and values found (as P01) |
-| `percentiles` not three ascending numbers in [0, 100] | Error with an example |
-| Unknown `percentile_method` | Error listing NumPy's methods |
+| `percentiles` not three ascending numbers strictly between 0 and 100 | Error with an example |
+| `percentile_method=` passed (removed in M15 (a)) | Error saying percentiles are Hyndman & Fan (1996) definition 7 everywhere |
+| A percentile below its floor | Points only; "n = 6 (no summary: p10 needs 10 values)" |
+| A unit mixing sources | Points only; "n = 12 (mixes sources)" |
+| Assumed values | Drawn, not summarized, counted in the footnote |
 | Baseline problems | §8 (warnings for rows not drawn, errors for duplicates and a missing `property`) |
 | Baseline `geology_unit` not in the data | Gets a row, "n = 0" (it's often a typo; the row makes it visible) |
 | More than ~15 units in one panel | Drawn; rows get tight. No legend problem, since units are tick labels |
@@ -269,16 +272,16 @@ fig, axs = ht.plot.geology_unit_comparisons(
 | `summary_min_count` < 1 | Error |
 
 ## 12. Acceptance criteria and tests
-- **Golden values** (hand-calculated, NumPy linear method):
-  - values 1–10: p10 = 1.9, p50 = 5.5, p90 = 9.1;
-  - values [2, 4, 4, 5, 7, 9]: p10 = 3.0, p50 = 4.5, p90 = 8.0; quartiles 4.0 and 6.5, whiskers 2 and 9;
-  - the same values with `percentile_method="hazen"`: p10 = 2.2, p50 = 4.5, p90 = 8.8 (rank h = n·p + 0.5, e.g. h = 1.1 → 2 + 0.1 × (4 − 2));
+- **Golden values** (hand-calculated, Hyndman & Fan definition 7):
+  - values 1–10: p25 = 3.25, p50 = 5.5, p75 = 7.75 (the default bar);
+  - values 1–20 with `percentiles=(10, 50, 90)`: p10 = 2.9, p90 = 18.1; on 6 values, points only with "(no summary: p10 needs 10 values)";
+  - values [2, 4, 4, 5, 7, 9]: quartiles 4.0 and 6.5, p50 = 4.5, whiskers 2 and 9; the bar and the box equal `describe()` on the same values;
   - 2,000 psf ↔ 95.76 kPa for a baseline bar given in kPa and plotted in US.
 - **Visual checks:**
   - units top to bottom in `order`, then by name, then "(blank)";
   - baseline bar above, data bar on the center line, points around it;
   - a unit with n = 0 and one below `summary_min_count` labeled as such;
-  - the legend says the percentiles and method used, and the baseline text as given;
+  - the legend says the percentiles used, and the baseline text as given;
   - unit colors match `ht.plot.legend_handles()`.
 - **Automated:**
   - renders for each preset, linear and log, both summaries and `summary=None`;
