@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import pytest
 
 import hangtu as ht
-from hangtu import _config
+from hangtu import _config, registry
 
 REGISTRY = _config.load("columns.yaml")
 COLUMNS = REGISTRY["columns"]
@@ -15,6 +15,7 @@ OVERLAY_FIELDS = REGISTRY["fields"]
 KINDS = _config.quantity_kinds()
 
 FIELDS = {"description", "type", "quantity", "scale", "label", "ags", "used_by"}
+FIELDS |= {"statistics"}
 # Bare symbols and abbreviations that CLAUDE.md "Naming" rules out as names.
 BARE_SYMBOLS = {"su", "cu", "cc", "k", "ll", "pl", "pi", "li", "ic", "w", "n", "n60"}
 BARE_SYMBOLS |= {"er", "unit", "gamma"}
@@ -118,6 +119,41 @@ def test_template_is_an_empty_frame_with_typed_columns():
     assert frame["liquid_limit"].dtype == "float64"
     assert frame["loca_id"].dtype == "object"
     assert frame["non_plastic"].dtype == "bool"
+
+
+STATISTICS_ROLES = {"at_least", "qualifier", "non_plastic", "assumed", "source"}
+
+
+@pytest.mark.parametrize("name", registry.statistics_roles())
+def test_statistics_field_follows_the_rules(name):
+    entry = COLUMNS[name]
+    field = entry["statistics"]
+    assert set(field) <= {"role", "values", "when"}
+    assert field["role"] in STATISTICS_ROLES
+    for value in field.get("values", []):
+        assert COLUMNS[value]["type"] == "number", value
+    if field["role"] in {"source", "qualifier"}:
+        assert entry["type"] == "text"
+        assert {"values", "when"}.isdisjoint(field)
+    elif "when" in field:
+        assert entry["type"] == "text"
+        assert field["when"]
+    else:
+        assert entry["type"] == "bool"
+
+
+def test_statistics_roles_lists_the_flag_and_source_columns():
+    roles = registry.statistics_roles()
+    assert {name: field["role"] for name, field in roles.items()} == {
+        "spt_refusal": "at_least",
+        "qualifier": "qualifier",
+        "non_plastic": "non_plastic",
+        "particle_density_assumed": "assumed",
+        "specific_gravity_source": "assumed",
+        "correlation_name": "source",
+        "source": "source",
+        "test_type": "source",
+    }
 
 
 PAIRS = ["depth_top", "depth_base", "elevation_top", "elevation_base"]
