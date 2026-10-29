@@ -4,6 +4,7 @@ from hangtu.analysis import correlations
 from hangtu.analysis._add_judgment import add_judgment
 from hangtu.analysis._classification import aashto, uscs
 from hangtu.analysis._clay_activity import clay_activity
+from hangtu.analysis._clogging import clogging_potential
 from hangtu.analysis._gradation import gradation
 from hangtu.analysis._overburden import spt_n1_60
 from hangtu.analysis._phase_relations import phase_relations
@@ -16,6 +17,7 @@ __all__ = [
     "aashto",
     "add_judgment",
     "clay_activity",
+    "clogging_potential",
     "correlations",
     "gradation",
     "phase_relations",

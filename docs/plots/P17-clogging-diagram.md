@@ -63,7 +63,7 @@ Thewes & Burger (2004), Fig. 🔬 (number to confirm). The zones are in §4.
 ## 4. Analysis / calculations
 - **Function:** `ht.analysis.clogging_potential(df, *, method="thewes_burger_2004", zones=None) -> pd.DataFrame`. Returns a copy of `df` with `plasticity_index` and `consistency_index` filled in by `plasticity()` (so its warnings and errors are the same, tested once) and one new column, `clogging_potential`. No row is dropped or reordered.
 - **Ic** = (LL − w) / PI, from `plasticity()`. Not computed a second time.
-- **`clogging_potential`**: the name of the zone the specimen's (PI, Ic) falls in, as the source names it, or blank where the specimen can't be placed (NP, blank w, LL or PL, PI = 0) or falls outside the diagram (§4).
+- **`clogging_potential`**: the name of the zone the specimen's (PI, Ic) falls in, as the source names it, or blank where the specimen can't be placed (NP, blank w, LL or PL, PI = 0) or falls outside the diagram (§4). One warning counts the blank rows by reason, as `clay_activity()` does; the chart doesn't repeat it, since its footnote counts them.
 - **Zones** come from `config/clogging_methods.yaml`, which both the analysis and the chart read, so they can't disagree (as P04's `plasticity_systems.yaml`). Each zone is a polygon of (PI, Ic) vertices with its name and the method's citation.
 - **On a boundary** 🟡: a point on the line between two zones takes the higher potential, so a borderline specimen is never reported as the safer one. A point on a zone's outer edge (PI = 10 or 70, Ic = 0.6 or 1.5) is in the zone. Boundaries are compared with a tolerance of 1e-9, as QC does, so 52 / 40 lands on Ic = 1.3.
 - **`zones=`**: a user table in the same shape (§8) replaces the method's zones, in both the analysis and the chart, so a variant from another source can be used without being built in.
@@ -167,7 +167,7 @@ table.groupby("geology_unit")["clogging_potential"].value_counts()
 | Situation | Behavior |
 |---|---|
 | Empty input | The chart with its zones and a "No data" note; no error |
-| No `water_content` column | Error naming it: "Ic needs in situ water content; p.atterberg() joins it from LNMC" |
+| No `water_content` column | Error naming it: "Ic needs in situ water content; p.atterberg() joins it from LNMC", unless a `consistency_index` column is given |
 | No `liquid_limit`, or neither `plastic_limit` nor `plasticity_index` | Error from `plasticity()`, listing the columns |
 | PL > LL, negative values, text in a value column | Error from `plasticity()` |
 | `consistency_index` given and different from (LL − w) / PI | Kept as given (as `plasticity()` keeps a given PI) |
