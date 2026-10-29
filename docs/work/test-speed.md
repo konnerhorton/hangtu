@@ -34,11 +34,11 @@ None. CLAUDE.md's Commands and Git sections change (step 3).
 - `tests/conftest.py`: a session-scoped wrapper around `python_ags4.AGS4.check_file`, installed for the whole run.
   - Key: the file text and `standard_AGS4_dictionary`. Value: the result and the log records `check_file` emitted.
   - A hit returns a deep copy of the result and re-emits the stored log records through their original loggers, so `_Capture` in `_read.py` turns them into the same findings.
-- Tests of the reader and the checker itself (`tests/ags/`, after reading them for monkeypatching, call counting or anything that needs the real check) opt out with an autouse fixture in `tests/ags/conftest.py`, or a marker if only some need it.
+- Only calls with a text buffer are cached, which is how `_read.py` calls it. A call with a path goes to the real check, so `tests/ags/test_files.py` and `tests/test_examples.py`, which check files directly, need no opt-out. `cache.disabled()` turns it off where a test needs the real check.
 - Tests:
-  - `tests/test_check_cache.py`: for `site_si`, `defects` and `qc_defects`, the `finding` table and the canonical tables are equal with the cache on and off. A changed copy of a file misses the cache. Changing a returned result doesn't change the next hit.
+  - `tests/test_check_cache.py`: for `site_si`, `defects`, `qc_defects` and a file with a duplicate heading, the findings are equal with the cache on and off. A hit logs the same records as the real check. A changed copy of a file misses the cache. Changing a returned result doesn't change the next hit. A path isn't cached.
   - The full suite passes, and the pass/fail/xfail counts match the baseline.
-- Time the suite again and record it here.
+- Time the suite again and record it here. Result: 2,819 passed in 256 s, from 459 s (2,811 tests before this step).
 - Fallback, if replaying the logs is fragile: ingest each test file once per session and `shutil.copy` the SQLite into each test's `tmp_path` in `fresh`, `project` and `tests/stats/conftest.py`, only where the session settings are at their defaults when the fixture runs.
 
 ### Step 2: run in parallel with pytest-xdist
