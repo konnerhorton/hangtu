@@ -14,6 +14,8 @@ Every plot takes a DataFrame and returns `(fig, ax)`, an ordinary matplotlib fig
 
 ::: hangtu.plot.plasticity_chart
 
+::: hangtu.plot.clogging_diagram
+
 ::: hangtu.plot.grain_size
 
 ::: hangtu.plot.water_content_profile

@@ -16,7 +16,7 @@ Each draft ends with **pitfalls**: mistakes that are easy to make when implement
 | [P05](../P05-grain-size.md) | Grain size curves, fraction header band, envelopes, D-values | approved (promoted) | M8 |
 | [P11](P11-failure-envelope.md) | Failure envelope with fitted c′–φ′: Mohr circles, s′–t or p′–q, optional idealized drained paths | listed | M11 |
 | [P12](P12-triaxial-shearing.md) | Stress–strain curves and measured stress paths, with P11's envelope (P10 merged in) | listed | M11 |
-| [P17](P17-clogging.md) | Clogging potential zones against consistency index | listed | M12 |
+| [P17](../P17-clogging-diagram.md) | Clogging potential zones, PI against consistency index | built (promoted) | M12 |
 | [P19](P19-pmt-hardening-soil.md) | E50 against elevation from pressuremeter tests | listed | M23 |
 | [P23](P23-lateral-earth-pressure.md) | PMT p0, σv, u, σ′v, σ′h and K0 against depth | listed | Later |
 | [P24](P24-grouped-histogram.md) | Property histogram per unit | **proposed ID** | open |

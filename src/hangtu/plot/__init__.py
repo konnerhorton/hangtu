@@ -1,6 +1,7 @@
 """Plots for geotechnical data. Every plot follows docs/plots/README.md."""
 
 from hangtu.plot import common, style
+from hangtu.plot._clogging_diagram import clogging_diagram
 from hangtu.plot._geology_units import (
     geology_unit_comparison,
     geology_unit_comparisons,
@@ -14,6 +15,7 @@ from hangtu.plot._spt_profile import spt_profile
 from hangtu.plot._water_content_profile import water_content_profile
 
 __all__ = [
+    "clogging_diagram",
     "common",
     "geology_unit_comparison",
     "geology_unit_comparisons",

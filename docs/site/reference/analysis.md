@@ -16,6 +16,8 @@ Each analysis is a plain function on a DataFrame. It returns a new DataFrame or 
 
 ::: hangtu.analysis.clay_activity
 
+::: hangtu.analysis.clogging_potential
+
 ::: hangtu.analysis.vertical_stress
 
 ::: hangtu.analysis.add_judgment

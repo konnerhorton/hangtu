@@ -1,0 +1,30 @@
+# Clay clogging diagrams (docs/plots/P17-clogging-diagram.md §4).
+# ht.analysis.clogging_potential() and the clogging diagram (P17) both read
+# this file, so a specimen's zone and where it is drawn can't disagree.
+#
+# axes: the box the source draws, (low, high) for each axis. A specimen
+#   beyond it is outside the diagram: blank clogging_potential.
+# zones: listed from the lowest potential to the highest. A point on a shared
+#   boundary takes the later (higher) zone. vertices are (PI, Ic) in order
+#   around the polygon. label_at is where the chart writes the name, for
+#   zones whose centroid lies outside them (an L-shape).
+
+thewes_burger_2004:
+  description: Clay clogging potential for TBM drives, from PI and Ic
+  source: >-
+    Thewes, M. & Burger, W. (2004). Clogging risks for TBM drives in clay.
+    Tunnels & Tunnelling International 36(6), 28-31
+  axes:
+    plasticity_index: [0, 70]
+    consistency_index: [0.3, 1.5]
+  zones:
+    - name: low
+      vertices: [[0, 0.3], [70, 0.3], [70, 0.6], [10, 0.6], [10, 1.5], [0, 1.5]]
+      label_at: [35, 0.45]
+    - name: medium
+      vertices: [[10, 0.6], [70, 0.6], [70, 0.75], [20, 0.75], [20, 1.5], [10, 1.5]]
+      label_at: [45, 0.675]
+    - name: medium-high
+      vertices: [[20, 1.3], [70, 1.3], [70, 1.5], [20, 1.5]]
+    - name: high
+      vertices: [[20, 0.75], [70, 0.75], [70, 1.3], [20, 1.3]]

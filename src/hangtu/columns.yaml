@@ -39,6 +39,8 @@ templates:
   baseline:       [geology_unit, property, low, central, high, source]
   # Plasticity chart regions (P04 §8): one row per vertex, in order around each polygon.
   plasticity_regions: [label, liquid_limit, plasticity_index]
+  # Clogging diagram zones (P17 §8): one row per vertex, zones from the lowest potential to the highest.
+  clogging_zones: [label, plasticity_index, consistency_index]
   # Grain size envelopes (P05 §8): one row per size, with rows sharing a label making one band.
   envelopes:      [label, particle_size, low, high]
 
@@ -614,7 +616,7 @@ columns:
     scale: ratio
     label: Plasticity index, PI
     ags: [LLPL.LLPL_PI]
-    used_by: [P04, P07]
+    used_by: [P04, P07, P17]
   non_plastic:
     description: True if the specimen was reported non-plastic (NP)
     type: bool
@@ -644,6 +646,11 @@ columns:
     label: Activity, A
     ags: ["derived: ht.analysis.clay_activity()"]
     used_by: [P07]
+  clogging_potential:
+    description: Clay clogging potential for TBM drives, the zone of PI and Ic (low, medium, medium-high, high; Thewes & Burger 2004)
+    type: text
+    ags: ["derived: ht.analysis.clogging_potential()"]
+    used_by: [P17]
   plasticity_class_uscs:
     description: USCS fine-grained class from LL and PI (CL, CL-ML, ML, CH, MH; never OL or OH)
     type: text
