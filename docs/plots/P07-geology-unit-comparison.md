@@ -7,7 +7,7 @@
 | **Type** | plot (percentiles only, no analysis module) |
 | **Milestone** | M2b (0.1.0) |
 | **Depends on** | P00 (framework); reuses the P01 presets and overlay helpers (`plot/_overlays.py`) |
-| **Related** | SPEC §2.6 (units), §3 (plot contract), §5 (P07 doesn't need the statistics module). TODO #23 (text in value columns), TODO #16 (other summaries). Intent: `docs/work/p07-geology-unit-comparison.md` |
+| **Related** | SPEC §2.6 (units), §3 (plot contract), §5 (P07 summarizes through `describe()`'s calculation, M15 (a)). TODO #23 (text in value columns), TODO #16 (other summaries). Intent: `docs/work/p07-geology-unit-comparison.md` |
 
 ---
 

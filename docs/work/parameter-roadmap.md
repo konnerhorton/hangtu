@@ -179,7 +179,7 @@ here in enough detail to review.
    | M13 | 1 | Vertical stress, (N1)60, SPT correlations |
    | M14 | 1 | Phase relations (γ, γd, e, n, S with consistency checks), activity, LI and Ic as analyses |
    | M12 | 1 | P17 clogging diagram |
-   | M15 | Statistics | `describe`, `fit`, `compare`, `compare_groups`, `crosstab`, `characteristic`; P08, P09 |
+   | M15 | Statistics | `describe`, `fit`, `compare`, `compare_groups`, `crosstab`; P08 (`characteristic` and P09 moved to M18) |
    | M16 | 0 | User-defined groups and curves |
    | M11 | 2 | The envelope fitting core; P11–P12; 04 B |
    | M17 | 2 | Undrained strength datasets and derivations (UU, UCS, vane, pocket penetrometer), joint strength, intact Hoek–Brown fit |

@@ -5,7 +5,7 @@
 #   description  one line, shown by ht.columns()
 #   type         number | text | bool
 #   quantity     quantity kind (numbers only); drives unit conversion and labels
-#   scale        ratio | interval   (numbers only; interval = no meaningful zero, so no CoV, TODO #9)
+#   scale        ratio | interval   (numbers only; interval = no meaningful zero, so no CoV, SPEC §5)
 #   label        axis label text without units, "Name, symbol" (numbers only)
 #   ags          AGS source heading(s), or "derived: ..." (Phase 2)
 #   used_by      plot specs that read the column

@@ -203,9 +203,19 @@ Analysis code lives in `ht.analysis.*`, as plain functions usable without plotti
 - **Statistics feed stage D** (§1.3): comparing the sources of a parameter by depth or geology unit, and its characteristic value or design line.
 - **Model sets** (decided 2026-10-21) are results of the same kind: a set per geology unit for a published model (Mohr–Coulomb; Hardening Soil and HS-small; generalized Hoek–Brown with residual values; Soft Soil), defined by the model's published description (TODO #32). Writing one program's input format is a thin exporter on top, never the definition (Later).
 
-- Functions: `describe`, `fit`, `compare`, `compare_groups`, `crosstab`, `characteristic`. Draft behavior is in [`docs/drafts/phase3-stats.md`](docs/drafts/phase3-stats.md) (TODO #8–#13).
+- **Input rules** (decided 2026-10-29, M15 (a), [`docs/work/m15a-describe.md`](docs/work/m15a-describe.md)), followed by every statistics function:
+  - **Flags come from the registry.** A `statistics:` field on a column (`columns.yaml`, P00 §5) marks it as a flag (`at_least`, `qualifier`, `non_plastic`, `assumed`) or a source (`source`), so every function reads one list and a new one is added there, not in code.
+  - **Censored values** (refusals, `<x`, `>x`) enter `describe()` at their value and are counted, with a note that the mean is then biased; `fit()` treats them as censored.
+  - **Non-plastic and assumed values are left out and counted**, never treated as blank or 0. Assumed values (M14 (a)) are included only on request (`include_assumed=True`), and the result says so.
+  - **A band is an interval** (`<target>_lower`/`_upper` with no value, M13 b2): left out and counted, never pooled as two values or summarized by its midpoint. `fit()` may take bands as interval-censored values.
+  - **Sources aren't pooled unawares.** Rows from more than one source in one summary (`correlation_name`, blank for a measured value; `source`; `test_type`) are an error naming each value and its count; `pool=` pools on purpose and the result records it. Plots summarize per group they draw and say "mixes sources" instead of raising.
+  - **Counts add up:** each row is counted once, under the first reason that applies, so `count` and the counts of rows left out add up to the group's rows.
+  - **Percentiles are Hyndman & Fan (1996) definition 7 everywhere**, with no method argument. A percentile is reported only with a value beyond it on each side (n × min(p, 100 − p) / 100 ≥ 1: P25/P75 from 4 values, P5/P95 from 20); the standard deviation and CoV need 2 values, and CoV a ratio scale and a mean above 0.
+  - **Units** resolve as for an analysis (§2.6); `display_units=` converts before the statistics and never falls back to the session setting.
+- **The result object:** a frozen dataclass per function (`DescribeResult`), on a shared base recording `kind` (*property* or *parameter*), the function, the value and its unit, the notes, the input's judgments and the hangtu version. It keeps no reference to the input.
+- Functions: `describe` (built, M15 (a)); `fit`, `compare`, `compare_groups`, `crosstab` (M15 (c), (d)); `characteristic` (M18, with selection). Draft behavior is in [`docs/drafts/phase3-stats.md`](docs/drafts/phase3-stats.md) (TODO #8, #10–#13).
 
-P07 (property by geology unit against a report's baseline ranges) is a Phase 1 *plot*: it computes its percentiles with NumPy and doesn't need the statistics module.
+P07 (property by geology unit against a report's baseline ranges) and P01's stats box summarize through the calculation `describe()` uses, so a figure and a table of the same rows agree (M15 (a), TODO #16).
 
 ---
 
@@ -419,11 +429,11 @@ Rows are in build order; each milestone after M8 names its wave, or statistics o
 | M13 | Wave 1, in four units: (a) the judgments file (§4), `p.stratigraphy()` and vertical stress; (b1) (N1)60, hammer efficiency by hole, the correlations framework and φ′ from SPT; (b2) the **SPT correlations** for s_u, σ′p/OCR and K0, with bands, chaining, the USCS map and PI by geology unit; (b3) E and Vs from SPT | Golden values from each source; out-of-range counts |
 | M14 | Wave 1, in two units (data, then analysis; `docs/reference/process.md`): (a) `p.density()` and `p.particle_density()` from LDEN, IDEN and LPDN, with QC; (b) phase relations (γ, γd, e, n, S with consistency checks), the Gs judgment and activity. LI and Ic are already analyses (`ht.analysis.plasticity()`, M8) | Golden values; consistency checks on the test files |
 | M12 | Wave 1: **P17** clogging diagram (Thewes & Burger 2004) | P17 criteria; zones match the source |
-| M15 | Statistics: `describe`, `fit` (bounded and censored), `compare`, `compare_groups`, `crosstab`, EC7 `characteristic`; P08, P09 | JRC worked examples; scipy reference values |
+| M15 | Statistics, in four units: (a) `describe`, the result object and the input rules (done); (b) correlation statistics with the results (TODO #40); (c) `fit` (bounded and censored, AICc, Anderson–Darling) and P08; (d) `compare`, `compare_groups`, `crosstab` | Hand-calculated and scipy reference values; the example project's cases |
 | M16 | Wave 0: user-defined groups and curves | Curves from the sample dataset reach the datasets |
 | M11 | Wave 2: the envelope fitting core; **P11–P12** triaxial: Mohr–Coulomb fit, failure envelope, stress–strain curves and measured stress paths | P11/P12 criteria + fit golden tests |
 | M17 | Wave 2: undrained strength (UU, UCS, vane, pocket penetrometer), joint shear strength, intact Hoek–Brown fit | Golden values from each source |
-| M18 | Selection (stage D): sources compared by depth or geology unit, characteristic values and design lines, model-set results; the Mohr–Coulomb set | A set per unit, its judgments recorded; views agree |
+| M18 | Selection (stage D): sources compared by depth or geology unit, EC7 `characteristic` values (moved from M15, TODO #13) with P09, design lines, model-set results; the Mohr–Coulomb set | A set per unit, its judgments recorded; views agree; JRC worked examples |
 | M19 | Wave 3: oedometer (σ′p, Cc, Cs, Eoed, Eur,oed, k from cv·mv, Grob and Huder–Amberg swelling); P13–P15 | Golden values; plot criteria |
 | M20 | Wave 3: K0 from OCR, SHANSEP; the Soft Soil set | Golden values |
 | M21 | Wave 4: rock lab datasets (UCS, tensile, point load, slake durability, intact moduli) and RQD | Datasets feed P01 and P07 |

@@ -71,7 +71,9 @@ A downhole or surface velocity profile (often a user-defined group) can run belo
 
 ## Statistics (research items, with Claude's recommendations)
 
-### 8. Bounded data and the truncated normal · You · docs/drafts/phase3-stats.md
+### 8. Bounded data and the truncated normal · You · docs/drafts/phase3-stats.md · M15 (c)
+**Agreed** (2026-10-29), as recommended below. `describe()`'s part is built (M15 (a), SPEC §5): refusals and `<x`/`>x` enter at their value, counted, with a note. The rest is built with `fit()` in M15 (c).
+
 **Problem:** most geotechnical data are physically bounded:
 - N ≥ 0, and capped at 100 by our refusal rule;
 - 0 ≤ % ≤ 100;
@@ -85,7 +87,6 @@ A normal fit puts probability on impossible values.
 2. **SPT refusals capped at 100 are right-censored, not truncated.** The true N is *at least* 100.
    - Fitting them as observed 100s biases the fit.
    - Recommendation: when the dataset has a `refusal` column, `fit()` and `characteristic()` treat those rows as censored, using `scipy.stats.CensoredData` (SciPy ≥ 1.11) for maximum-likelihood fitting.
-   - Plots and `describe()` include them as 100 with a note, per your decision.
    - The same mechanism handles lab values reported as `<x` or `>x`.
 3. **Doubly bounded data** (%, e.g. fines content): offer a **beta** distribution on the rescaled data, and a **truncated normal** with fixed, known bounds (`scipy.stats.truncnorm`). This matters only when the data sit near a bound (e.g. fines near 0% in clean sands).
    - Note: SciPy's `truncnorm` parameterizes its bounds in standard units, so fitting with *fixed physical bounds* needs a small custom likelihood. This is easy, but should be tested.
@@ -98,21 +99,9 @@ A normal fit puts probability on impossible values.
 - Baecher, G.B. & Christian, J.T. (2003). *Reliability and Statistics in Geotechnical Engineering*. Wiley. Chapters on distributions of soil properties.
 - SciPy docs: `scipy.stats.CensoredData`, `scipy.stats.truncnorm`, `scipy.stats.fit`.
 
-### 9. `describe()` sample-size floor · You · docs/drafts/phase3-stats.md
-**Claude's recommendation:**
-- Always compute, but suppress what is meaningless:
-  - **n = 1**: mean = the value; no std or CoV.
-  - **n < 3**: warning.
-  - **P25/P75**: only reported when n ≥ 4.
-  - **P5/P95**: only reported when **n ≥ 20**. Below that they are interpolations between the extreme values, and their summaries carry a note.
-- **Percentile method:** Hyndman & Fan type 7 (the numpy default), stated in the output.
-- **CoV** is only meaningful for ratio-scale, positive quantities (N, c_u, k). It is **meaningless for elevation or depth**, so `describe()` omits it for interval-scale columns (flagged in the column registry).
+### 10. `compare(a, b)` — test selection · You · docs/drafts/phase3-stats.md · M15 (d)
+**Agreed** (2026-10-29), as recommended below; built in M15 (d).
 
-**References:**
-- Hyndman, R.J. & Fan, Y. (1996). Sample quantiles in statistical packages. *The American Statistician* 50(4), 361–365.
-- Phoon & Kulhawy (1999), above. Typical CoVs and the sample sizes behind them.
-
-### 10. `compare(a, b)` — test selection · You · docs/drafts/phase3-stats.md
 **Claude's recommendation (a change from the current spec):** drop the two-stage "test normality first, then choose the test" logic. Statisticians advise against it: the pre-test changes the error rates of the main test, and normality tests have little power at the small n we usually have.
 - Instead, **always run Welch's t-test** (robust to unequal variances and sizes), and **report a rank-based test alongside** it (Mann-Whitney U, or Brunner-Munzel, which also tolerates unequal variances).
 - Add an effect size with a confidence interval, and a plain-English note on whether the two tests agree.
@@ -129,7 +118,9 @@ A normal fit puts probability on impossible values.
 - Brunner, E. & Munzel, U. (2000). The nonparametric Behrens–Fisher problem. *Biometrical Journal* 42, 17–25.
 - Fagerland, M.W. & Sandvik, L. (2009). The Wilcoxon–Mann–Whitney test under scrutiny. *Statistics in Medicine* 28, 1487–1497.
 
-### 11. `compare_groups()` — more than two groups · You · docs/drafts/phase3-stats.md
+### 11. `compare_groups()` — more than two groups · You · docs/drafts/phase3-stats.md · M15 (d)
+**Agreed** (2026-10-29), as recommended below; built in M15 (d).
+
 **Claude's recommendation:** the same "report both" approach as `compare()`:
 - **Welch's ANOVA** with **Games-Howell** pairwise comparisons;
 - alongside **Kruskal-Wallis** with **Dunn's** pairwise tests, with Holm correction.
@@ -141,9 +132,10 @@ A normal fit puts probability on impossible values.
 - Dunn, O.J. (1964). Multiple comparisons using rank sums. *Technometrics* 6, 241–252.
 - Holm, S. (1979). A simple sequentially rejective multiple test procedure. *Scandinavian Journal of Statistics* 6, 65–70.
 
-### 12. `fit()` goodness of fit · You · docs/drafts/phase3-stats.md
+### 12. `fit()` goodness of fit · You · docs/drafts/phase3-stats.md · M15 (c)
 - Distributions agreed (normal, lognormal, Weibull, gamma; see item 8 for bounded ones).
 - To read up on: why a KS test gives misleading p-values once the parameters have been estimated from the same data, and the Anderson-Darling alternative. Also AIC vs BIC at small n (AICc is better for n < ~40; Claude recommends reporting AICc).
+- **Decided** (2026-10-29): rank the fits by AICc, and check each with an Anderson–Darling test (not KS, whose p-values mislead once the parameters are estimated from the same data). Built in M15 (c).
 
 **References:**
 - Lilliefors, H.W. (1967). On the Kolmogorov-Smirnov test for normality with mean and variance unknown. *JASA* 62, 399–402.
@@ -151,7 +143,9 @@ A normal fit puts probability on impossible values.
 - D'Agostino, R.B. & Stephens, M.A. (1986). *Goodness-of-Fit Techniques*. Marcel Dekker.
 - Burnham, K.P. & Anderson, D.R. (2002). *Model Selection and Multimodel Inference*, 2nd ed. Springer. AICc.
 
-### 13. `characteristic()` (Eurocode 7) · You · docs/drafts/phase3-stats.md, docs/reference/eurocode7-summary.md
+### 13. `characteristic()` (Eurocode 7) · You · docs/drafts/phase3-stats.md, docs/reference/eurocode7-summary.md · M18
+**Deferred** (2026-10-29) to M18 (selection), with P09, which needs it. Its judgments (the type of estimate, θ, L, an assumed V_X), the lognormal formulae and the framing for US users are settled there.
+
 Open research points:
 - **Type C** needs the scale of fluctuation θ. How will users estimate it? Options: a user input, or typical values from the literature (Phoon & Kulhawy 1999), with a default to Type A or B.
 - Verify the **lognormal** Annex A formulae (A.5–A.7) and the Angus (1988) mean bound against a purchased copy of EN 1997-1:2024.
@@ -175,16 +169,17 @@ Open research points:
 - **Reuse:** `hangtu._data.text_values()` reads the column, and `plot/_text_values.py` orders and labels the texts and builds the stats box's "Also" line.
 
 ### 16. Other summaries in P07 · You + Claude · P07; SPEC §5
-- **Problem:** in its first version, P07 (property by geology unit) summarizes each unit only with percentiles. `percentiles=` chooses which ones, and `percentile_method=` passes any NumPy method through (default `"linear"`). A report's baseline may have been summarized some other way, so the data bar and the baseline bar aren't always like for like.
+- **Built in M15 (a):** P07 and P01's stats box summarize through `ht.stats.describe()`'s calculation, so they never give different numbers for the same data; P07's `percentile_method=` is gone (Hyndman & Fan definition 7 everywhere) and its default bar is p25–p75.
+- **Problem:** P07 still summarizes each unit only with percentiles. A report's baseline may have been summarized some other way, so the data bar and the baseline bar aren't always like for like.
 - **Wanted:** a way to match how the report summarized its data:
   - **other summaries**: min–max, mean ± k·σ, and the geometric mean and log-space percentiles for log quantities such as hydraulic conductivity;
   - **a summary the user computes**: pass per-unit values in, as for the baseline table.
 - **To decide:**
   - Which of these does v0.1 need, if any?
   - Is it an extension of `summary=`, or a callable?
-  - How does this line up with `ht.stats.describe` (Phase 3), so the two never give different numbers for the same data?
+  - The geometric mean is now in `describe(log=True)`: P07 can draw it from there.
   - How does the legend name the method?
-- **Claude's view:** these belong with `describe` in Phase 3, which P07 would then call.
+- **Claude's view:** each new summary is a `describe()` statistic first, which P07 then draws.
 
 ### 42. Compacting a sparse profile · You + Claude · P01, `docs/plots/README.md`
 - **Problem:** a profile whose data are widely spaced in depth leaves most of the axes empty. `docs/plots/img/P01-ranges.png` runs 0–50 ft for a dozen rows, with gaps of 5–10 ft between them, and reads as mostly white space.
@@ -265,13 +260,17 @@ Today the estimates draw on one P01 profile by `correlation_name`, and a blank e
 
 Proposed: two panels, not one axes with twinned x axes. A second x axis on the same profile makes the reader match each marker to one of two unrelated scales; the input and estimate markers interleave at the same depths, and the axis limits of each are arbitrary relative to the other. Two panels keep one quantity per axis (P01's contract) and still line up by depth. Open: a helper (`ht.plot.correlation_profile(est, ...)`) or a recipe in the correlations guide using `ht.Sheet` with `ax=`; `Sheet` has no shared vertical axis yet, so either needs one (matching depth limits across panels).
 
-### 40. Correlation statistics with the results · You · SPEC §4, `docs/work/m13b2-spt-strength-history.md` · M15 (deferred from M13 b3)
+### 40. Correlation statistics with the results · You · SPEC §4, `docs/work/m13b2-spt-strength-history.md` · M15 (b)
 A correlation's estimates carry `correlation_name`, `correlation_note` and `correlation_input`, but not its statistics. Each config entry's `scatter` (n, r², S.D., ±x°) and the published bias checks (e.g. Ching & Schweckendiek (2021) for Kulhawy et al.'s K0: b = 2.16, COV 0.70) are in `describe()` and the docstrings only, so they are lost once the values leave the function.
 - **Questions:**
   - Which statistics travel with the results: the source's own (n, r², S.D.), later evaluations on other databases (bias b, COV), or both?
   - As what: columns on each row (e.g. a standard deviation in the target's units, or bounds like the band outputs `<target>_lower` / `_upper`), `df.attrs`, or a separate table keyed by `correlation_name`?
   - How do they meet M15's statistics (a band is an interval: `docs/drafts/phase3-stats.md`) and selection (M18)?
   - Should the source's advice on use (e.g. "check oedometer σ′p, not in its place") travel with them, and in whose words?
+- **Decided** (2026-10-29), for M15 (b)'s spec:
+  - a correlation's estimates carry the statistics of its own source data as columns on the rows;
+  - the source's advice on use travels with them, in the original authors' words where possible (at most a sentence each, TODO #30).
+  - To reconcile in the spec: the M15 (a) intent (`docs/work/m15a-describe.md`, Decision 7) put only a standard deviation in the target's units on the rows, and n, r², the advice and later evaluations in one table per correlation joined on `correlation_name`.
 
 ### 41. Gravelly sands under `not_for` · You + Claude · page 04, `docs/work/m13b1-spt-framework.md`
 Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads only the group symbol. The example site's Terrace is "SAND with gravel (SP)": SP passes, so its rows get estimates with no note. USCS group names (ASTM D2487) add "with gravel" at ≥ 15 % gravel, which the symbol does not carry.
@@ -303,6 +302,7 @@ Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads o
 - A helper for deciding cohesive vs cohesionless from lab data (fines %, PI).
 
 ## Done
+- ✅ #9 `describe()` floors decided and built (2026-10-29, M15 (a)): n = 1 gives the value as the mean and no std or CoV; fewer than 3 values warns; a percentile is reported only with a value beyond it on each side (P25/P75 from 4, P5/P95 from 20); Hyndman & Fan definition 7, stated in the output; no CoV on an interval scale or a mean ≤ 0. SPEC §5.
 - ✅ #20 Which SPT correlations for M13 settled (2026-10-26, M13 b1–b3): φ′ from Hatanaka & Uchida (1996) and Kulhawy & Mayne (1990); s_u from Stroud (1974) and Terzaghi & Peck (1967); σ′p, OCR and K0 from Mayne & Kemper (1988) and Kulhawy et al. (1989); E from AASHTO (2004) and Kulhawy & Mayne (1990), by a required soil row; Vs from Imai & Tonouchi (1982) and Ohta & Goto (1978) in Wair et al.'s (2012) N60 forms. Each verified against its source; Wolff (1989) and Sowers (1979) cut (#36, #39).
 - ✅ #37 Soil types for correlations decided (2026-10-23, M13 b2): an opt-in USCS map. Each config entry keeps the source's words and gains hangtu's proposed USCS groups, labeled as hangtu's reading; `uscs="proposed"` or a list of groups turns it on and reads a `uscs_symbol` column the user supplies, never derived. Rows outside get NaN, "not for this soil"; a blank symbol, "soil type unknown". SPEC §4.
 - ✅ #30 What can be published decided (2026-10-22, M13, `docs/work/m13a-judgments.md` Decision 9): a site page may reproduce single values and ranges with their citation and locator, short sets of class boundaries as commonly cited (about ten rows or fewer), and equations with their source. It doesn't reproduce a source table or chart whole, values read off a chart beyond the few a method needs, a chart's descriptors (GSI), or quoted text beyond a sentence. Figures on the site are hangtu's own.
