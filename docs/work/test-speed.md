@@ -27,3 +27,40 @@ Bring the full test suite from about 7.5 minutes to about a minute locally, so a
 
 ### SPEC sections touched
 None. CLAUDE.md's Commands and Git sections change (step 3).
+
+## Plan
+
+### Step 1: cache the AGS4 rule check across the run
+- `tests/conftest.py`: a session-scoped wrapper around `python_ags4.AGS4.check_file`, installed for the whole run.
+  - Key: the file text and `standard_AGS4_dictionary`. Value: the result and the log records `check_file` emitted.
+  - A hit returns a deep copy of the result and re-emits the stored log records through their original loggers, so `_Capture` in `_read.py` turns them into the same findings.
+- Tests of the reader and the checker itself (`tests/ags/`, after reading them for monkeypatching, call counting or anything that needs the real check) opt out with an autouse fixture in `tests/ags/conftest.py`, or a marker if only some need it.
+- Tests:
+  - `tests/test_check_cache.py`: for `site_si`, `defects` and `qc_defects`, the `finding` table and the canonical tables are equal with the cache on and off. A changed copy of a file misses the cache. Changing a returned result doesn't change the next hit.
+  - The full suite passes, and the pass/fail/xfail counts match the baseline.
+- Time the suite again and record it here.
+- Fallback, if replaying the logs is fragile: ingest each test file once per session and `shutil.copy` the SQLite into each test's `tmp_path` in `fresh`, `project` and `tests/stats/conftest.py`, only where the session settings are at their defaults when the fixture runs.
+
+### Step 2: run in parallel with pytest-xdist
+- First, audit for parallel safety, and fix anything found in its own commit before this step:
+  - tests that write outside `tmp_path` (into `tests/data/`, `docs/`, or the working directory)
+  - tests that depend on order or shared state the autouse `_restore_session_state` fixture doesn't reset
+  - the Hypothesis example database
+- `pyproject.toml`: add `pytest-xdist` to the `dev` group at the lowest version that supports `pytest>=8.0`. Update `uv.lock`.
+- Use `--dist loadfile`, so module-scoped fixtures are built once. Don't add `-n` to `addopts`.
+- `.github/workflows/ci.yml`: run `uv run pytest -n auto --dist loadfile`.
+- Check:
+  - several `-n auto` runs, and one `--dist load` run to shake out hidden coupling
+  - the oldest-versions check (`UV_RESOLUTION=lowest-direct`), then `git checkout uv.lock`
+  - record the timings here
+
+### Step 3: focused runs during a build
+- CLAUDE.md, Commands: add the full-suite command with `-n auto --dist loadfile`, and the focused form (`uv run pytest <files>`, `--lf` for failures).
+- CLAUDE.md, Git and commits: while iterating on a step, run the tests it touches. Run the full suite once, in parallel, before the commit.
+- Close-out: final timings in this file.
+
+### Commits
+1. `tests: cache the AGS4 rule check across the run`
+2. any parallel-safety fixes, one commit each
+3. `tests: run in parallel with pytest-xdist`
+4. `docs: focused test runs during a build`, with the close-out timings
