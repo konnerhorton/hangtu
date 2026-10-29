@@ -232,7 +232,7 @@ def judgments(path: str | PathLike[str]) -> Judgments:
           depth is water above ground; analyses warn about it.
         - `plasticity_index` entries take `plasticity_index`, 0 or more, keyed
           by a column of the rows it is put on (`by:`), and are put on them by
-          `ht.analysis.add_judgment()`. `ht.analysis.summary_by()` shows each
+          `ht.analysis.add_judgment()`. `ht.stats.describe()` shows each
           unit's tested PI to inform it.
         - `specific_gravity` entries take `specific_gravity`, a positive
           number, which warns outside 2.0-3.2. `ht.analysis.phase_relations()`

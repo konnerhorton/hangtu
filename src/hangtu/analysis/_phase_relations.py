@@ -95,12 +95,12 @@ def phase_relations(
     file carried in ``df.attrs["judgments_file"]``, else an error naming it.
     It is read only when a row needs it. A row whose key is blank gets a blank
     Gs, counted. To inform it, summarize the measured particle densities by
-    unit, leaving out the assumed ones, which are never pooled with measured
-    values::
+    unit. It leaves out the assumed ones, which are never pooled with
+    measured values, and counts them::
 
-        pd_rows = p.particle_density()
-        measured = pd_rows[~pd_rows["particle_density_assumed"]]
-        ht.analysis.summary_by(measured, "particle_density")
+        ht.stats.describe(
+            p.particle_density(), value="particle_density", by="geology_unit"
+        )
 
     **Checks**, which flag and never correct:
 

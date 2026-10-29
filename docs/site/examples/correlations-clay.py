@@ -12,7 +12,9 @@ spt = ht.analysis.vertical_stress(p.spt(holes=holes), stratigraphy=p.stratigraph
 
 # Stroud reads PI. Few tests are at an SPT depth, so PI is a judgment by unit:
 # look at the Atterberg tests, then choose.
-print(ht.analysis.summary_by(p.atterberg(), "plasticity_index").to_string(index=False))
+limits = p.atterberg()
+limits = limits[limits["geology_unit"] == "Alluvium"]
+print(ht.stats.describe(limits, value="plasticity_index", by="geology_unit"))
 clay = spt[spt["geology_unit"] == "Alluvium"]
 clay = ht.analysis.add_judgment(clay, "plasticity_index", value={"Alluvium": 23.5})
 

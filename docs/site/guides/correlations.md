@@ -60,7 +60,7 @@ Results from the same input concatenate with `pd.concat`, one row per test and c
 
 Some sources give a band rather than a value. Terzaghi & Peck (1967) give s_u by class of N; Stroud (1974), as FHWA GEC 5 gives it, gives f1 at PI ≳ 30 and PI ≅ 15 and nothing between. A correlation published as a band writes it in `<target>_lower` and `<target>_upper` and leaves the value blank where the source gives no central value: hangtu doesn't invent a midpoint.
 
-Stroud also reads PI, which is rarely tested at the depth of an SPT. It is a judgment by geology unit (see [Judgments](judgments.md)): `summary_by()` shows what the Atterberg tests say, and `add_judgment()` puts the chosen value on the rows, from `value=` or the project's judgments file.
+Stroud also reads PI, which is rarely tested at the depth of an SPT. It is a judgment by geology unit (see [Judgments](judgments.md)): `ht.stats.describe()` shows what the Atterberg tests say, and `add_judgment()` puts the chosen value on the rows, from `value=` or the project's judgments file.
 
 ```python
 --8<-- "correlations-clay.py"
@@ -117,7 +117,7 @@ A correlation's inputs are meant to be test data. When an input column holds ano
 
 ## See also
 
-- [`ht.analysis.spt_n1_60`](../reference/analysis.md#hangtu.analysis.spt_n1_60), [`ht.analysis.add_judgment`](../reference/analysis.md#hangtu.analysis.add_judgment), [`ht.analysis.summary_by`](../reference/analysis.md#hangtu.analysis.summary_by), [correlations reference](../reference/correlations.md)
+- [`ht.analysis.spt_n1_60`](../reference/analysis.md#hangtu.analysis.spt_n1_60), [`ht.analysis.add_judgment`](../reference/analysis.md#hangtu.analysis.add_judgment), [`ht.stats.describe`](../reference/stats.md#hangtu.stats.describe), [correlations reference](../reference/correlations.md)
 - [Undrained shear strength](../parameters/05-undrained-shear-strength.md), [preconsolidation](../parameters/06-preconsolidation-and-compressibility.md), [at-rest earth pressure](../parameters/07-at-rest-earth-pressure.md), [elastic stiffness](../parameters/08-elastic-stiffness-soil.md) and [small-strain stiffness](../parameters/10-small-strain-stiffness.md): the methods compared
 - [SPT analysis](spt.md): refusal, N60 and the energy ratio
 - [Judgments and vertical stress](judgments.md): σ′v from the project's unit weights and water levels

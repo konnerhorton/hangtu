@@ -71,7 +71,7 @@ The N classes place a clay roughly; SPT N is a poor predictor of s_u (below), so
 | CPTu, s_u = (q_t − σv0) / N_kt | q_t, σv0, a site N_kt | clays | later |
 
 Stroud's correlation reads PI, which is rarely tested at the SPT depth. `ht.analysis.add_judgment()` puts a PI per
-geology unit on the rows from the project's judgments file, and `ht.analysis.summary_by()` summarizes the measured
+geology unit on the rows from the project's judgments file, and `ht.stats.describe()` summarizes the measured
 PI by unit to choose it. Both SPT methods give a band where their source gives one, in
 `undrained_shear_strength_lower` and `undrained_shear_strength_upper`, and leave the value blank there;
 `ht.plot.profile()` draws a band as a bar. The equations, ranges and sources are in each function's reference

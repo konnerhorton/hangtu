@@ -60,8 +60,9 @@ def add_judgment(
        warning, or is an error when there is none.
     4. Otherwise an error naming the judgment and how to set it.
 
-    ``ht.analysis.summary_by(p.atterberg(), "plasticity_index")`` shows each
-    unit's tested PI (count, median, range) to inform the judgment. It never
+    ``ht.stats.describe(p.atterberg(), value="plasticity_index",
+    by="geology_unit")`` shows each unit's tested PI (count, median, spread)
+    to inform the judgment. It never
     fills one in, and neither does this: the nearest test isn't used.
 
     Parameters
