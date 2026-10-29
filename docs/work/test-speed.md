@@ -53,6 +53,7 @@ None. CLAUDE.md's Commands and Git sections change (step 3).
   - several `-n auto` runs, and one `--dist load` run to shake out hidden coupling
   - the oldest-versions check (`UV_RESOLUTION=lowest-direct`), then `git checkout uv.lock`
   - record the timings here
+- Result: no test wrote outside `tmp_path` or depended on order, so there were no fixes. 2,819 passed in 93 s with `-n auto --dist loadfile`; `load`, `loadscope` and `worksteal` took 90–98 s. The machine has 4 cores with 2 threads each, and `-n 4` also takes 93 s, so about 90 s is the floor here. pytest 8.0.0 with pytest-xdist 3.6.0 passes too, but 3.6.0 is yanked, so the floor is 3.6.1.
 
 ### Step 3: focused runs during a build
 - CLAUDE.md, Commands: add the full-suite command with `-n auto --dist loadfile`, and the focused form (`uv run pytest <files>`, `--lf` for failures).

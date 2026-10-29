@@ -32,7 +32,7 @@ jobs:
       - run: uv sync --locked
       - run: uv run ruff check .
       - run: uv run ruff format --check .
-      - run: uv run pytest
+      - run: uv run pytest -n auto --dist loadfile
 
   lowest:
     # Proves the dependency floors in pyproject.toml (SPEC §12.1).
@@ -47,7 +47,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: uv sync
-      - run: uv run pytest
+      - run: uv run pytest -n auto --dist loadfile
 
   docs:
     # The docs site builds with no warnings (docs/work/docs-site.md, spec §7).

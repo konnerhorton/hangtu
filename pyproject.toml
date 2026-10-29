@@ -48,7 +48,12 @@ Issues = "https://github.com/konnerhorton/hangtu/issues"
 Specification = "https://github.com/konnerhorton/hangtu/blob/main/SPEC.md"
 
 [dependency-groups]
-dev = ["pytest>=8.0", "ruff>=0.17", "hypothesis>=6.100"]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.17",
+    "hypothesis>=6.100",
+    "pytest-xdist>=3.6.1",
+]
 # The docs site (docs/work/docs-site.md). Zensical is alpha, so it is pinned exactly.
 docs = ["zensical==0.0.70", "mkdocstrings-python>=2.0.9"]
 
