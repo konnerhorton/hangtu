@@ -43,9 +43,15 @@ def test_values_beyond_xlim_are_drawn_at_the_edge_and_counted(points):
 def test_the_summary_uses_the_true_values_beyond_xlim():
     values = [*ONE_TO_TEN[:9], 100.0]
     _, ax = ht.plot.geology_unit_comparison(
-        frame(values), "consistency_index", xlim=(0, 12), percentiles=(10, 90, 100)
+        frame(values), "consistency_index", xlim=(0, 12), percentiles=(10, 50, 90)
     )
-    assert central(ax) == pytest.approx(np.percentile(values, 90))
+    assert central(ax) == pytest.approx(np.percentile(values, 50))
+    (bar,) = [
+        line
+        for line in ax.lines
+        if len(line.get_xdata()) == 2 and line.get_marker() in ("None", "")
+    ]
+    assert bar.get_xdata()[1] == pytest.approx(np.percentile(values, 90))
 
 
 def test_a_bar_past_the_limit_is_cut_at_the_edge():

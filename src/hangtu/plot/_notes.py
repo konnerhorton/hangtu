@@ -43,6 +43,7 @@ REASONS = {
         "{n} non-plastic (NP) specimen{s}, shown open at their water content"
     ),
     "non_plastic_excluded": "{n} non-plastic (NP) specimen{s} not shown",
+    "assumed_excluded": "{n} assumed value{s} shown, not in the summaries",
     "zero_plasticity": "{n} specimen{s} with PI = 0 not shown",
     "no_water_content": "{n} specimen{s} without water content not shown",
     "text_value": "{n} text value{s}{where}",

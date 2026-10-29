@@ -143,3 +143,15 @@ def test_page_opens_with_an_example(page):
     heading = text.find("\n## ")
     assert example != -1, "no example"
     assert heading == -1 or example < heading
+
+
+def test_summary_by_is_gone():
+    # M15 (a) AC 18: ht.stats.describe() replaced ht.analysis.summary_by().
+    found = [
+        path.relative_to(ROOT)
+        for folder in ("src", "docs/site")
+        for path in (ROOT / folder).rglob("*")
+        if path.suffix in (".py", ".md", ".yaml")
+        and "summary_by" in path.read_text(encoding="utf-8")
+    ]
+    assert found == []

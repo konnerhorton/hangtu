@@ -10,7 +10,6 @@ from hangtu.analysis._overburden import spt_n1_60
 from hangtu.analysis._phase_relations import phase_relations
 from hangtu.analysis._plasticity import plasticity
 from hangtu.analysis._spt import spt, spt_class
-from hangtu.analysis._summary import summary_by
 from hangtu.analysis._vertical_stress import vertical_stress
 
 __all__ = [
@@ -25,7 +24,6 @@ __all__ = [
     "spt",
     "spt_class",
     "spt_n1_60",
-    "summary_by",
     "uscs",
     "vertical_stress",
 ]

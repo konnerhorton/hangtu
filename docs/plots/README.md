@@ -109,4 +109,4 @@ Data for all of these already exists in the MVP scope. P00 is the foundation the
 | P23 | Lateral earth pressure with depth (coefficient K and/or σ′h profile) | Probably builds on P01; scope to define |
 
 ### Suggested order
-**P00 → P01 → P07 → P02 → P03 → P04 → P05 → P06**: the core index and SPT set, enough for a first release. Then P17 (M12), P08–P09 (M15, statistics), P11–P12 (M11), and the rest in the milestone order of SPEC §12.4.
+**P00 → P01 → P07 → P02 → P03 → P04 → P05 → P06**: the core index and SPT set, enough for a first release. Then P17 (M12), P08 (M15, statistics), P09 (M18, selection), P11–P12 (M11), and the rest in the milestone order of SPEC §12.4.

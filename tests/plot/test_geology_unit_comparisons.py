@@ -145,7 +145,7 @@ def test_one_legend_for_the_figure_with_the_baseline_first():
     assert all(ax.get_legend() is None for ax in axs)
     (legend,) = fig.legends
     texts = [text.get_text() for text in legend.get_texts()]
-    assert texts == ["GBR baseline", "Data p10\N{EN DASH}p90, p50", "Data"]
+    assert texts == ["GBR baseline", "Data p25\N{EN DASH}p75, p50", "Data"]
 
 
 def test_qualifier_counts_are_summed_over_the_panels():

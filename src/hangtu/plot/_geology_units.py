@@ -30,6 +30,13 @@ from hangtu.plot._notes import ARROW_LENGTH, Notes, edge_markers
 from hangtu.plot._overlays import ValueScale, draw_note, draw_reference_lines
 from hangtu.plot._palette import data_order, resolve_palette
 from hangtu.plot._presets import Preset
+from hangtu.stats import _describe
+from hangtu.stats._describe import (
+    PERCENTILE_METHOD,
+    percentile_floor,
+    percentile_name,
+    summarize,
+)
 
 POINT_SIZE = 3.0  # points
 POINT_ALPHA = 0.4
@@ -62,21 +69,11 @@ BASELINE_OFFSET = 0.28  # row heights above the center line
 BASELINE_WIDTH = 1.2  # points
 BASELINE_CAP_HEIGHT = 0.12  # row heights
 BASELINE_MARKER_SIZE = 5.0  # points
-# numpy.percentile(method=...) choices; NumPy has no public list (plan decision 6).
-PERCENTILE_METHODS = (
-    "inverted_cdf",
-    "averaged_inverted_cdf",
-    "closest_observation",
-    "interpolated_inverted_cdf",
-    "hazen",
-    "weibull",
-    "linear",
-    "median_unbiased",
-    "normal_unbiased",
-    "lower",
-    "higher",
-    "midpoint",
-    "nearest",
+#: The text of the error for P07's removed ``percentile_method=`` (m15a, Decision 8).
+PERCENTILE_METHOD_REMOVED = (
+    "percentile_method= was removed: percentiles in hangtu are always "
+    f'{PERCENTILE_METHOD} (NumPy\'s "linear"), so a figure and '
+    "ht.stats.describe() of the same values agree. Remove the argument."
 )
 
 
@@ -86,7 +83,6 @@ class _Summary:
 
     kind: Literal["percentiles", "box"] | None
     percentiles: tuple[float, float, float]
-    method: str
     min_count: int
 
     def legend_text(self) -> str:
@@ -96,9 +92,25 @@ class _Summary:
         else:
             low, mid, high = (f"p{p:g}" for p in self.percentiles)
             text = f"Data {low}\N{EN DASH}{high}, {mid}"
-        if self.method != "linear":
-            text += f" ({self.method.replace('_', ' ').capitalize()})"
         return text
+
+    def marks(self, values: np.ndarray) -> tuple[list[float] | None, str]:
+        """Return the summary's numbers for ``values``, from ``summarize()``.
+
+        None, with the reason, when a percentile is below its floor:
+        ``"p10 needs 10 values"``. Percentiles of a bar are its ends and
+        center; of a box, the quartiles and the median.
+        """
+        chosen = self.percentiles if self.kind == "percentiles" else (25, 50, 75)
+        statistics = summarize(values, percentiles=chosen).statistics
+        numbers = [statistics[percentile_name(p)] for p in chosen]
+        missing = [
+            p for p, number in zip(chosen, numbers, strict=True) if np.isnan(number)
+        ]
+        if missing:
+            p = max(missing, key=percentile_floor)
+            return None, f"p{p:g} needs {percentile_floor(p)} values"
+        return numbers, ""
 
 
 @dataclass
@@ -145,9 +157,11 @@ def _check_columns(df: pd.DataFrame, value: str, color_by: str | None) -> None:
 def _check_summary(
     summary: Any,
     percentiles: Any,
-    percentile_method: Any,
     summary_min_count: Any,
+    style_overrides: dict[str, Any],
 ) -> _Summary:
+    if "percentile_method" in style_overrides:
+        raise HangtuError(PERCENTILE_METHOD_REMOVED)
     if summary not in ("percentiles", "box", None):
         raise HangtuError(
             f'summary must be "percentiles", "box" or None, not {summary!r}.'
@@ -157,19 +171,13 @@ def _check_summary(
         and not isinstance(percentiles, str)
         and len(percentiles) == 3
         and all(isinstance(p, Real) and not isinstance(p, bool) for p in percentiles)
-        and 0 <= percentiles[0] < percentiles[1] < percentiles[2] <= 100
+        and 0 < percentiles[0] < percentiles[1] < percentiles[2] < 100
     )
     if not ok:
         raise HangtuError(
-            "percentiles must be three ascending numbers from 0 to 100: the bar's "
-            f"low end, its center marker and its high end, not {percentiles!r}. "
+            "percentiles must be three ascending numbers between 0 and 100: the "
+            f"bar's low end, its center marker and its high end, not {percentiles!r}. "
             "Example: percentiles=(10, 50, 90)"
-        )
-    if percentile_method not in PERCENTILE_METHODS:
-        raise HangtuError(
-            f"percentile_method={percentile_method!r} isn't one of NumPy's "
-            f"percentile methods: {', '.join(PERCENTILE_METHODS)}. "
-            'Example: percentile_method="hazen"'
         )
     if summary_min_count is None:
         summary_min_count = settings.summary_min_count
@@ -183,7 +191,7 @@ def _check_summary(
             f"{summary_min_count!r}. Example: summary_min_count=5"
         )
     low, mid, high = (float(p) for p in percentiles)
-    return _Summary(summary, (low, mid, high), percentile_method, summary_min_count)
+    return _Summary(summary, (low, mid, high), summary_min_count)
 
 
 def _rows(
@@ -275,10 +283,10 @@ def _central(ax: Axes, x: float, row: float, color: Any) -> None:
 
 
 def _draw_percentiles(
-    ax: Axes, values: np.ndarray, row: float, color: Any, summary: _Summary
+    ax: Axes, values: np.ndarray, marks: list[float], row: float, color: Any
 ) -> None:
     """Draw the bar from the first to the third percentile, circle at the second."""
-    low, mid, high = np.percentile(values, summary.percentiles, method=summary.method)
+    low, mid, high = marks
     ax.plot(
         [low, high],
         [row, row],
@@ -292,14 +300,14 @@ def _draw_percentiles(
 
 
 def _draw_box(
-    ax: Axes, values: np.ndarray, row: float, color: Any, summary: _Summary
+    ax: Axes, values: np.ndarray, marks: list[float], row: float, color: Any
 ) -> None:
     """Draw a box from the quartiles, the median, and 1.5 IQR whiskers.
 
     Drawn with a patch and lines, not ``ax.bxp``, whose arguments changed in
     matplotlib 3.10 (plan decision 5). No outlier marks: every point is drawn.
     """
-    q1, median, q3 = np.percentile(values, (25, 50, 75), method=summary.method)
+    q1, median, q3 = marks
     reach = WHISKER_REACH * (q3 - q1)
     low = values[values >= q1 - reach].min()
     high = values[values <= q3 + reach].max()
@@ -430,14 +438,13 @@ def _baseline_handle(label: str) -> Artist:
     )
 
 
-def _count_label(
-    ax: Axes, row: float, n: int, summarized: bool | None, gap: float
-) -> Artist:
+def _count_label(ax: Axes, row: float, n: int, why: str | None, gap: float) -> Artist:
     """Write "n = 288" just outside the right edge of the axes, level with a row.
 
-    ``summarized`` is False when a summary was asked for but n is too small.
+    ``why`` says why a summary asked for isn't drawn: ``"no summary"``,
+    ``"no summary: p10 needs 10 values"`` or ``"mixes sources"``.
     """
-    text = f"n = {n}" + (" (no summary)" if n and summarized is False else "")
+    text = f"n = {n}" + (f" ({why})" if n and why else "")
     return ax.annotate(
         text,
         xy=(1.0, row),
@@ -530,6 +537,10 @@ def _draw_panel(
     panel.notes.count(non_plastic, "non_plastic")
     # Blank values are tests not done, so they are skipped, not counted (P07 §14).
     drawn = ~np.isnan(x) & ~non_plastic
+    # Assumed values are drawn but not summarized (m15a, Decision 8).
+    assumed = drawn & _describe.read_flags(df, value).assumed
+    if summary.kind is not None:
+        panel.notes.count(assumed, "assumed_excluded")
     if log:
         nonpositive = drawn & (x <= 0)
         panel.notes.count(nonpositive, "log_nonpositive")
@@ -587,11 +598,20 @@ def _draw_panel(
                 ax, x, row + jitter, these, qualifiers, carets, color, unit, xlim
             )
         n = int(these.sum())
-        summarized = None if draw_summary is None else n >= summary.min_count
-        if summarized:
-            draw_summary(ax, x[these], row, color, summary)
-            summarized_any = True
-        panel.counts.append(_count_label(ax, row, n, summarized, gap))
+        why = None
+        if draw_summary is not None:
+            summarized = these & ~assumed
+            marks, floor = summary.marks(x[summarized])
+            if _describe.source_mix(df.loc[summarized], ["geology_unit"]):
+                why = "mixes sources"
+            elif summarized.sum() < summary.min_count:
+                why = "no summary"
+            elif marks is None:
+                why = f"no summary: {floor}"
+            else:
+                draw_summary(ax, x[summarized], marks, row, color)
+                summarized_any = True
+        panel.counts.append(_count_label(ax, row, n, why, gap))
     panel.notes.count(edge, "beyond_limit")
     if summarized_any:
         panel.handles.append(_summary_handle(summary))
@@ -643,8 +663,7 @@ def geology_unit_comparison(
     baseline_label: str | None = None,
     baseline_units: dict[str, str] | None = None,
     summary: Literal["percentiles", "box"] | None = "percentiles",
-    percentiles: tuple[float, float, float] = (10, 50, 90),
-    percentile_method: str = "linear",
+    percentiles: tuple[float, float, float] = (25, 50, 75),
     summary_min_count: int | None = None,
     points: bool = True,
     preset: str | None = None,
@@ -691,12 +710,17 @@ def geology_unit_comparison(
     summary : {"percentiles", "box", None}
         Each unit's summary: a percentile bar, a box plot, or none.
     percentiles : (low, center, high)
-        The bar's ends and center marker, as percentiles from 0 to 100.
-    percentile_method : str
-        Passed to ``numpy.percentile(method=...)``, e.g. ``"hazen"``.
+        The bar's ends and center marker, as percentiles between 0 and 100.
+        They are ``ht.stats.describe()``'s, Hyndman & Fan (1996) definition 7,
+        and each needs a value beyond it on each side: p25 and p75 from 4
+        values, p10 and p90 from 10. A unit with fewer draws its points and
+        its count says why: "n = 6 (no summary: p10 needs 10 values)".
     summary_min_count : int, optional
         The fewest values a unit needs for a summary. By default
-        ``ht.settings.summary_min_count`` (5).
+        ``ht.settings.summary_min_count`` (5). Assumed values are drawn but
+        not summarized, and a unit whose values come from different sources
+        (``correlation_name``, ``source``, ``test_type``) gets no summary:
+        "n = 12 (mixes sources)".
     points : bool
         Draw every value as a point.
     preset : str, optional
@@ -751,7 +775,7 @@ def geology_unit_comparison(
     """
     _check_columns(df, value, color_by)
     chosen_summary = _check_summary(
-        summary, percentiles, percentile_method, summary_min_count
+        summary, percentiles, summary_min_count, style_overrides
     )
     system = _display_units(display_units or settings.display_units)
     where = check_legend(legend)
@@ -905,8 +929,7 @@ def geology_unit_comparisons(
     baseline_label: str | None = None,
     baseline_units: dict[str, str] | None = None,
     summary: Literal["percentiles", "box"] | None = "percentiles",
-    percentiles: tuple[float, float, float] = (10, 50, 90),
-    percentile_method: str = "linear",
+    percentiles: tuple[float, float, float] = (25, 50, 75),
     summary_min_count: int | None = None,
     points: bool = True,
     preset: dict[str, str] | None = None,
@@ -997,7 +1020,7 @@ def geology_unit_comparisons(
             "'property' column naming the value of each row, e.g. water_content."
         )
     chosen_summary = _check_summary(
-        summary, percentiles, percentile_method, summary_min_count
+        summary, percentiles, summary_min_count, style_overrides
     )
     system = _display_units(display_units or settings.display_units)
     n_rows = -(-len(values) // columns)

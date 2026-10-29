@@ -161,7 +161,7 @@ awaiting review.
        the result. There is no method argument, so two summaries of the same rows can't differ by it.
 
      A statistic below its floor is NaN, and the summary says why ("P5/P95 need 20 values"). CoV is NaN on a
-     column the registry marks `scale: interval` (elevation, depth) and for a column not in the registry it is
+     column the registry marks `scale: interval` (elevation) and for a column not in the registry it is
      reported, with the summary saying the scale is unknown. One warning names the groups with count < 3.
    - **`log=True`** 🟡: `geometric_mean` = exp(mean of ln x) and `geometric_standard_deviation` = exp(standard
      deviation of ln x), a dimensionless factor whatever the log's base, replace `mean`, `standard_deviation` and
@@ -293,7 +293,7 @@ Hand-calculated; tolerance 1e-9 relative unless stated.
    errors.
 3. **Small counts:** one value gives mean = median = the value and NaN standard deviation and CoV; counts 1 and 2
    warn once, naming the groups; a group with no numbers has a row with count 0.
-4. **Interval scale:** `elevation` gives NaN CoV, with the reason; `depth` too.
+4. **Interval scale:** `elevation` gives NaN CoV, with the reason. (Changed in the build: `depth` is `scale: ratio` in the registry, since depth below ground has a true zero at the ground surface, so it keeps its CoV. Decision 1's "(elevation, depth)" reads "elevation".)
 5. **`log=True`** (1, 10, 100 m/s; and 0 and −1 added): `geometric_mean` 10, `geometric_standard_deviation` 10,
    median 10; `count_not_positive` 2 with one warning; no `mean` or `coefficient_of_variation` column.
 6. **Refusals** (`spt_n_capped` 12, 18, 25, 100 with `spt_refusal` on the last): count 4, `count_at_least` 1,
