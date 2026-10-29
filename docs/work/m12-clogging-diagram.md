@@ -87,3 +87,42 @@ Rows 1–16 together: zone counts "High: 4 · Medium-high: 1 · Medium: 3 · Low
 10. No `water_content` column is an error naming it and `p.atterberg()`.
 11. Renders with `ax=` into a `Sheet` panel, leaves `rcParams` unchanged, and is the same figure for US and SI.
 12. Docstrings follow the checklist in `docs/drafts/parameters/TEMPLATE.md` (equation, inputs, validity, source); reference entries in `docs/site/reference/plot.md` and `analysis.md`; a page at `docs/site/plots/clogging-diagram.md` with an example; `docs/plots/img/P17.png` from the example project, looked at.
+
+## Plan
+P04's pattern: the classification is an analysis, the zones are one config file both functions read, and the plot returns `(fig, ax)`. Each step is one commit, with ruff and pytest green.
+
+1. **`refactor: move polygon tables out of P04's regions module`.** The analysis can't import from `hangtu.plot`, so the vertex-table reading moves to `src/hangtu/_polygons.py`:
+   - `Polygon` (label, vertices, `centroid()`), moved from `_regions.Region`;
+   - `read_polygons(table, fields, what, start)`, the reader, with the axis columns and error wording as arguments;
+   - `contains(vertices, points, tolerance)`: even-odd ray casting, with a point within 1e-9 of an edge counted as inside.
+
+   `plot/_regions.py` keeps `draw_regions` and P04's wording, so `tests/plot/test_plasticity_regions.py` passes unchanged. New `tests/test_polygons.py`: inside, outside, on an edge, on a vertex, an L-shape, and the centroid of an L.
+2. **`M12: clogging_potential(), the zones and their registry names`.**
+   - `config/clogging_methods.yaml`: `thewes_burger_2004`, with its source, the `axes` box (0–70, 0.3–1.5), and the zones low → high (`name`, `vertices`, optional `label_at`).
+   - `analysis/_clogging.py`:
+     - runs `plasticity()` for PI and Ic;
+     - raises an error when `water_content` is missing;
+     - places rows by testing zones from highest to lowest, so a boundary goes to the higher zone (decision 3);
+     - leaves rows beyond the box blank (decision 6);
+     - warns once with the blank rows counted by reason, as `clay_activity()` does. The plot uses an internal `_place()` that doesn't warn, since its footnote counts them. Spec §4 gets a sentence on the warning.
+   - Docstring per the checklist in `docs/drafts/parameters/TEMPLATE.md`.
+   - Registry: the `clogging_potential` column, the `clogging_zones` template, and P17 in `plasticity_index.used_by`.
+   - The export and the entry in `docs/site/reference/analysis.md`.
+   - Tests in `tests/analysis/test_clogging_potential.py`: the 16 golden rows (criteria 1, 4); rows unchanged; `zones=` from a DataFrame and from a CSV, and a two-vertex error (9); no `water_content` (10); the warning; the config against spec §4 (2).
+3. **`M12: draw the clogging diagram's zones`.**
+   - `plot/_clogging_diagram.py` with the spec §10 signature, drawing the empty chart: the axes and ticks, the zone fills (green → yellow → orange → red in table order), the outlines, and the labels on a white bbox.
+   - Low and medium are L-shapes, so the config's `label_at` places their labels (low (35, 0.45), medium (45, 0.675)). A user zone's label goes at its centroid when that is inside the polygon, else at its vertex mean. Spec §8 changes to match.
+   - The export and the entry in `docs/site/reference/plot.md`.
+   - Tests in `tests/plot/test_clogging_diagram.py`: the patches against the config (2); each label inside its zone (8); `zones=`; no `rcParams` change; `ax=` into a `Sheet` panel; US and SI identical (11).
+4. **`M12: specimens, edge markers and zone counts on P17`.**
+   - Scatter by `color_by` and the legend, as P04 does; `edge_markers()` for points beyond the box.
+   - New footnote reasons `zero_plasticity` and `no_water_content`. NP, blank values and points beyond the box reuse the existing reasons.
+   - The zone counts line, from `_place()`.
+   - `labels=`, `note=`, "No data" and the `geology_unit` hint.
+   - Tests: the edge markers and footnote counts (5, 6); the zone line against `value_counts()` (7); a 50 × 50 grid where each point's drawn zone equals its `clogging_potential` (3). Split if past about 300 lines.
+5. **`M12: close out`.**
+   - `docs/site/examples/clogging-diagram.py`, `docs/site/plots/clogging-diagram.md` and the `nav` entry.
+   - `docs/plots/img/P17.png` at 100 dpi, looked at.
+   - Statuses: P17 → built in its spec and `docs/plots/README.md`; SPEC §12.4 M12 done; the CLAUDE.md status paragraph; TODO #21 closed or reduced to what's still missing.
+   - Before committing: `prepare_site.py` and `zensical build --clean --strict`.
+   - Each acceptance criterion reported as met or not.
