@@ -240,6 +240,7 @@ Each judgment declares what it is keyed by and whether one project-wide value is
 - σ′3max by design case;
 - Bjerrum's μ from PI, so by specimen;
 - settled in M13 (`docs/work/m13a-judgments.md`): unit weight by a log column (`by:`, usually `geology_unit`), water level by hole, each with an optional project-wide value that needs a `reason` and fills unlisted keys with a warning.
+- settled in M14 (b) (`docs/work/m14b-phase-relations.md`): specific gravity by a log column (usually `geology_unit`), with the same optional project-wide value; used only where a row has no particle density.
 
 ### 31. Curves in real files · You · input for wave 0's intent (M16)
 Which user-defined groups and headings real files use for triaxial stress–strain curves, rock triaxial, swelling against time and shear box displacement, gathered from the sample dataset being prepared from real projects.
