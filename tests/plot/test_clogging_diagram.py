@@ -156,3 +156,179 @@ def test_us_and_si_are_the_same_figure():
     assert us.get_ylim() == si.get_ylim()
     assert us.get_xlabel() == si.get_xlabel()
     assert us.get_ylabel() == si.get_ylabel()
+
+
+# --- specimens (criteria 3, 5, 6 and 7) ---------------------------------------
+
+NAN = np.nan
+# The golden table (docs/work/m12-clogging-diagram.md): w, LL, PL.
+GOLDEN = [
+    (30, 60, 25),
+    (8, 50, 20),
+    (20, 35, 20),
+    (32, 60, 20),
+    (20, 40, 20),
+    (8, 60, 20),
+    (30, 60, 20),
+    (36, 60, 20),
+    (20, 28, 20),
+    (8, 40, 20),  # Ic 1.6, top edge
+    (50, 40, 20),  # Ic -0.5, bottom edge
+    (25, 100, 25),  # PI 75, right edge
+    (30, 30, 30),  # PI = 0
+    (25, NAN, NAN),  # NP
+    (31, 40, 20),
+    (34, 40, 20),
+]
+
+
+def golden_frame():
+    frame = pd.DataFrame(
+        GOLDEN, columns=["water_content", "liquid_limit", "plastic_limit"]
+    )
+    frame["non_plastic"] = [False] * 13 + [True] + [False] * 2
+    frame["specimen_id"] = [f"S{i}" for i in range(1, 17)]
+    frame["geology_unit"] = ["Clay"] * 8 + ["Silt"] * 8
+    return frame
+
+
+def drawn(ax):
+    """Filled specimen points, as an (n, 2) array (edge markers are open)."""
+    offsets = [
+        c.get_offsets()
+        for c in ax.collections
+        if len(c.get_offsets()) and len(c.get_facecolors())
+    ]
+    return np.concatenate(offsets) if offsets else np.empty((0, 2))
+
+
+def edges(ax):
+    offsets = [
+        c.get_offsets()
+        for c in ax.collections
+        if len(c.get_offsets()) and not len(c.get_facecolors())
+    ]
+    return np.concatenate(offsets) if offsets else np.empty((0, 2))
+
+
+def footnote(ax):
+    return ax.texts[-1].get_text()
+
+
+def legend_texts(ax):
+    legend = ax.get_legend()
+    return [t.get_text() for t in legend.get_texts()] if legend else []
+
+
+def test_beyond_the_axes_drawn_at_the_edge_and_counted():
+    # Criterion 5: rows 10-12 at the top, bottom and right edges.
+    _, ax = ht.plot.clogging_diagram(golden_frame())
+    np.testing.assert_allclose(
+        sorted(map(tuple, edges(ax))), sorted([(20, 1.5), (20, 0.3), (70, 1.0)])
+    )
+    assert len(drawn(ax)) == 11
+    assert ax.ags_notes["beyond_limit"] == 3
+    assert "3 values beyond axis limit, shown at the edge" in footnote(ax)
+
+
+def test_rows_not_drawn_are_counted_each_on_their_own_line():
+    # Criterion 6.
+    frame = golden_frame()
+    frame.loc[0, "water_content"] = NAN
+    frame.loc[1, "plastic_limit"] = NAN
+    _, ax = ht.plot.clogging_diagram(frame)
+    assert ax.ags_notes == {
+        "nan": 1,
+        "non_plastic_excluded": 1,
+        "zero_plasticity": 1,
+        "no_water_content": 1,
+        "beyond_limit": 3,
+    }
+    text = footnote(ax)
+    for line in (
+        "1 blank value not shown",
+        "1 non-plastic (NP) specimen not shown",
+        "1 specimen with PI = 0 not shown",
+        "1 specimen without water content not shown",
+    ):
+        assert line in text
+
+
+def test_zone_counts_match_the_analysis():
+    # Criterion 7: the golden counts, highest zone first.
+    frame = golden_frame()
+    _, ax = ht.plot.clogging_diagram(frame)
+    assert (
+        "High: 4 · Medium-high: 1 · Medium: 3 · Low: 3 · outside the diagram: 3 "
+        "of 14 specimens" in footnote(ax)
+    )
+    with pytest.warns(UserWarning, match="clogging_potential is blank"):
+        result = ht.analysis.clogging_potential(frame)
+    counts = result["clogging_potential"].value_counts()
+    assert counts.to_dict() == {"high": 4, "low": 3, "medium": 3, "medium-high": 1}
+
+
+def test_zone_counts_can_be_hidden():
+    _, ax = ht.plot.clogging_diagram(golden_frame(), zone_counts=False)
+    assert "High:" not in footnote(ax)
+
+
+def test_each_point_is_drawn_in_its_zone():
+    # Criterion 3: a 50 x 50 grid over the axes, Ic given directly.
+    pi, ic = np.meshgrid(np.linspace(0.5, 70, 50), np.linspace(0.3, 1.5, 50))
+    frame = pd.DataFrame(
+        {
+            "liquid_limit": pi.ravel() + 20,
+            "plastic_limit": 20.0,
+            "consistency_index": ic.ravel(),
+            "geology_unit": "Clay",
+        }
+    )
+    _, ax = ht.plot.clogging_diagram(frame)
+    points = drawn(ax)
+    assert len(points) == 2500
+    patches = list(zone_patches(ax).items())
+    drawn_in = np.full(len(points), None, dtype=object)
+    for name, patch in reversed(patches):  # highest first, as boundaries go
+        inside = pd.isna(drawn_in) & _polygons.contains(patch.get_xy()[:-1], points)
+        drawn_in[inside] = name
+    result = ht.analysis.clogging_potential(frame)
+    order = np.lexsort((result["consistency_index"], result["plasticity_index"]))
+    expected = result["clogging_potential"].to_numpy(dtype=object)[order]
+    found = drawn_in[np.lexsort((points[:, 1], points[:, 0]))]
+    assert found.tolist() == expected.tolist()
+
+
+def test_legend_counts_specimens_by_unit():
+    _, ax = ht.plot.clogging_diagram(golden_frame())
+    assert legend_texts(ax) == ["Clay (n = 8)", "Silt (n = 6)"]
+
+
+def test_specimen_labels():
+    _, ax = ht.plot.clogging_diagram(golden_frame().iloc[:2], labels=True)
+    labels = [t.get_text() for t in ax.texts if t.get_gid() == "specimen_label"]
+    assert labels == ["S1", "S2"]
+
+
+def test_labels_without_specimen_id_is_an_error():
+    frame = golden_frame().drop(columns="specimen_id")
+    with pytest.raises(ht.ColumnError, match="specimen_id"):
+        ht.plot.clogging_diagram(frame, labels=True)
+
+
+def test_no_water_content_is_an_error():
+    frame = golden_frame().drop(columns="water_content")
+    with pytest.raises(ht.ColumnError, match="water_content"):
+        ht.plot.clogging_diagram(frame)
+
+
+def test_no_geology_unit_gives_a_hint():
+    frame = golden_frame().drop(columns="geology_unit")
+    with pytest.warns(ht.HangtuHint, match="geology_unit"):
+        _, ax = ht.plot.clogging_diagram(frame)
+    assert legend_texts(ax) == ["All specimens (n = 14)"]
+
+
+def test_the_plot_does_not_repeat_the_analysis_warning():
+    # The footnote counts the blank rows; warnings are errors in this suite.
+    ht.plot.clogging_diagram(golden_frame())

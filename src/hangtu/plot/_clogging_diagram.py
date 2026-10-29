@@ -15,11 +15,20 @@ from matplotlib.ticker import FixedLocator, MultipleLocator
 
 from hangtu import _polygons
 from hangtu._settings import _display_units, settings
-from hangtu.analysis._clogging import METHODS, Diagram, Zone, diagram
-from hangtu.errors import HangtuError
+from hangtu.analysis._clogging import (
+    METHODS,
+    Diagram,
+    Zone,
+    _check,
+    _place,
+    diagram,
+)
+from hangtu.errors import ColumnError, HangtuError
 from hangtu.plot import _layers, _values, style
+from hangtu.plot._hints import hint_missing
 from hangtu.plot._legend import add_legend, check_legend
 from hangtu.plot._notes import Notes
+from hangtu.plot._plasticity_chart import _check_color_by, _draw_specimens
 from hangtu.plot._spt_profile import _check_choice
 
 PI_STEP = 10.0
@@ -33,6 +42,13 @@ LABEL_COLOR = "0.3"
 #: Zones are colored from green (lowest potential) to red (highest), §8.
 ZONE_COLORS = colormaps["RdYlGn_r"]
 COLOR_RANGE = (0.1, 0.9)
+#: Rows ``_place()`` leaves blank and the plot doesn't draw, by footnote reason.
+NOT_DRAWN = {
+    "non-plastic": "non_plastic_excluded",
+    "no liquid or plastic limit": "nan",
+    "a plasticity index of 0": "zero_plasticity",
+    "no water content": "no_water_content",
+}
 
 
 def zone_colors(n: int) -> list[tuple[float, float, float, float]]:
@@ -54,6 +70,51 @@ def label_position(zone: Zone) -> np.ndarray:
     if _polygons.contains(zone.vertices, centroid)[0]:
         return centroid
     return zone.vertices.mean(axis=0)
+
+
+def _specimens(
+    df: pd.DataFrame, figure: Diagram, labels: bool, notes: Notes
+) -> tuple[pd.DataFrame, np.ndarray, np.ndarray]:
+    """Place the specimens; return their rows, PI and Ic (NaN where not drawn)."""
+    if not len(df):
+        return df, np.empty(0), np.empty(0)
+    _check(df)
+    if labels and "specimen_id" not in df.columns:
+        raise ColumnError(
+            "labels=True writes each specimen's 'specimen_id', but there is no "
+            "such column. Available columns: "
+            f"{', '.join(map(str, df.columns))}. Add it, or use labels=False."
+        )
+    data, reasons = _place(df, figure)
+    hidden = np.zeros(len(df), dtype=bool)
+    for reason, key in NOT_DRAWN.items():
+        notes.count(reasons[reason], key)
+        hidden |= reasons[reason]
+    index = data["plasticity_index"].to_numpy(dtype=float)
+    consistency = data["consistency_index"].to_numpy(dtype=float)
+    return (
+        data,
+        np.where(hidden, np.nan, index),
+        np.where(hidden, np.nan, consistency),
+    )
+
+
+def zone_counts_text(data: pd.DataFrame, figure: Diagram, drawn: np.ndarray) -> str:
+    """Return the footnote line counting the drawn specimens in each zone.
+
+    Highest potential first, e.g. "High: 4 · Medium: 3 · outside the
+    diagram: 1 of 8 specimens".
+    """
+    names = data["clogging_potential"].to_numpy(dtype=object)[drawn]
+    parts = [
+        f"{zone.name[0].upper()}{zone.name[1:]}: {int((names == zone.name).sum())}"
+        for zone in reversed(figure.zones)
+    ]
+    outside = int(pd.isna(names).sum())
+    if outside:
+        parts.append(f"outside the diagram: {outside}")
+    total = int(drawn.sum())
+    return f"{' · '.join(parts)} of {total} specimen{'' if total == 1 else 's'}"
 
 
 def _box(figure: Diagram, xlim: Any, ylim: Any) -> tuple[float, float, float, float]:
@@ -196,12 +257,20 @@ def clogging_diagram(
     if not isinstance(df, pd.DataFrame):
         raise HangtuError(f"df must be a pandas DataFrame, not {type(df).__name__}.")
     figure = diagram(method, zones)
+    _check_color_by(df, color_by)
     where = check_legend(legend)
 
     with style.context(**style_overrides):
+        if len(df) and color_by == "geology_unit":
+            hint_missing(df, {"geology_unit": "all specimens are drawn in one color"})
         notes = Notes()
+        data, index, consistency = _specimens(df, figure, labels, notes)
+        drawn = np.isfinite(index) & np.isfinite(consistency)
+        if zone_counts and drawn.any():
+            notes.add_text(zone_counts_text(data, figure, drawn))
         if note is not None:
             notes.add_text(str(note))
+        groups, colors = _values.color_groups(data, color_by, palette, order)
         box = _box(figure, xlim, ylim)
         if ax is None:
             fig, ax = plt.subplots(
@@ -213,16 +282,20 @@ def clogging_diagram(
         style.style_axes(ax)
         _set_axes(ax, box)
         _draw_zones(ax, figure, zone_labels)
-        ax.text(
-            0.5,
-            0.5,
-            "No data",
-            transform=ax.transAxes,
-            ha="center",
-            va="center",
-            color="0.4",
-            zorder=_layers.ANNOTATIONS,
+        handles = _draw_specimens(
+            ax, data, index, consistency, groups, colors, box, labels, notes
         )
-        placed = add_legend(ax, [[]], notes, where=where)
+        if not handles:
+            ax.text(
+                0.5,
+                0.5,
+                "No data",
+                transform=ax.transAxes,
+                ha="center",
+                va="center",
+                color="0.4",
+                zorder=_layers.ANNOTATIONS,
+            )
+        placed = add_legend(ax, [handles], notes, where=where)
         notes.render(ax, where=placed.where, below=placed.legend)
     return fig, ax
