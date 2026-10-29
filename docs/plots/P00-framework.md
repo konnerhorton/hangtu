@@ -105,12 +105,16 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 - **Conversion helper** `to_display(values, unit, quantity, display_units)` returns `(magnitudes, display_unit)`. Plots draw magnitudes only; pint never reaches matplotlib.
 
 ## 5. Column registry and templates
-- Source: [`src/hangtu/columns.yaml`](../../src/hangtu/columns.yaml). Its header comment lists the fields: `description, type, quantity, scale, label, ags, used_by` (later `agsi`).
+- Source: [`src/hangtu/columns.yaml`](../../src/hangtu/columns.yaml). Its header comment lists the fields: `description, type, quantity, scale, label, ags, used_by, statistics` (later `agsi`).
 - **Rules:**
   - lowercase `snake_case`, one meaning per name across the whole package;
   - number columns must have `quantity`, `scale` and `label`;
   - a plot spec that needs a new column adds it here in the same change;
   - any unregistered numeric column can still be plotted as a `value`, with units from `units=`/`df.attrs` and a label from the column name or `label=`.
+- **`statistics:`** (M15 (a), `docs/work/m15a-describe.md`) marks a flag or source column for the statistics functions, so `describe()`, `fit()` and `compare()` read one list and a new one is added here, not in code:
+  - `role`: `at_least` (the value is a lower bound), `qualifier` (`<` or `>` on the row's value), `non_plastic`, `assumed`, or `source` (rows with different values come from different sources);
+  - `values`: the value columns a flag applies to (all, if omitted; never on `qualifier` or `source`);
+  - `when`: on a text flag, the values that set it (`specific_gravity_source`: `assumed`, `judgment`). A bool flag is set by True.
 - `ht.columns()` returns one row per column (name, description, quantity, US unit, SI unit, used by). `ht.columns("spt")` limits it to a template.
 - **Overlay fields:** names used only in overlay tables (P01 §8: `low`, `high`, `label`, `value`) go in a separate `fields:` section, with a description and type. They share the column namespace and naming rules, and templates may use them, but they aren't data columns: `ht.columns()` leaves them out, and `ht.columns("ranges")` lists them with blank units.
 - `ht.template(name)` returns an empty DataFrame with the template's columns. Unknown names raise `ColumnError` listing the available templates.

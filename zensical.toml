@@ -54,6 +54,7 @@ nav = [
     "reference/project.md",
     "reference/plot.md",
     "reference/analysis.md",
+    "reference/stats.md",
     "reference/correlations.md",
     "reference/data.md",
     "reference/errors.md",

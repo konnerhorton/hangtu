@@ -53,6 +53,7 @@ from hangtu.plot._vertical import (
     vertical_values,
 )
 from hangtu.registry import column_info
+from hangtu.stats import _describe
 
 MARKER_SIZE = 5.0  # points
 INTERVAL_WIDTH = 1.0  # points
@@ -285,6 +286,25 @@ def _draw_intervals(
 
 def _new_axes(figsize: tuple[float, float] | None) -> tuple[Figure, Axes]:
     return plt.subplots(figsize=figsize or figure_size("profile"), layout="constrained")
+
+
+def _mixed_sources(
+    df: pd.DataFrame, counted: np.ndarray, groups: np.ndarray, color_by: str | None
+) -> dict[Any, list[str]]:
+    """Name the source columns that mix in each stats box line (m15a, Decision 7).
+
+    A group's line is checked without ``color_by``, which is one value per
+    line; the "All" line pools every group, so it is checked with it.
+    """
+    mixed = {
+        group: _describe.source_mix(
+            df.loc[counted & (groups == group)], [color_by] if color_by else []
+        )
+        for group in dict.fromkeys(groups[counted])
+        if group is not None
+    }
+    mixed["All"] = _describe.source_mix(df.loc[counted])
+    return mixed
 
 
 def _count_no_estimate(df: pd.DataFrame, blank: np.ndarray, notes: Notes) -> np.ndarray:
@@ -786,15 +806,26 @@ def _draw_profile(
         ax.set_ylabel(vertical.label())
         if statistics is not None:
             info = column_info(value)
-            counted = drawn & ~ranged
+            # Assumed values are drawn but not summarized (m15a, Decision 7).
+            assumed = drawn & ~ranged & _describe.read_flags(df, value).assumed
+            counted = drawn & ~ranged & ~assumed
             rows = stats_table(
                 x[counted],
                 groups[counted],
                 statistics,
                 order=list(colors),
                 interval=bool(info) and info.get("scale") == "interval",
+                mixed=_mixed_sources(df, counted, groups, color_by),
             )
-            also = [_text_values.also_line(texts)]
+            also_text = _text_values.also_line(texts)
+            if assumed.any():
+                counted_assumed = f"assumed {int(assumed.sum())}"
+                also_text = (
+                    f"{also_text}, {counted_assumed}"
+                    if also_text
+                    else f"Also: {counted_assumed}"
+                )
+            also = [also_text]
             if (extra & ranged).any():
                 also.append(f"Ranges not included: {int((extra & ranged).sum())}")
             box = draw_stats_box(

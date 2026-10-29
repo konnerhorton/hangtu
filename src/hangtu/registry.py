@@ -19,6 +19,19 @@ def column_info(name: str) -> dict[str, Any] | None:
     return _registry()["columns"].get(name)
 
 
+def statistics_roles() -> dict[str, dict[str, Any]]:
+    """Return the columns with a ``statistics:`` field, by name, and that field.
+
+    The field says how ``ht.stats`` functions treat a flag or source column
+    (the header of ``columns.yaml``).
+    """
+    return {
+        name: entry["statistics"]
+        for name, entry in _registry()["columns"].items()
+        if "statistics" in entry
+    }
+
+
 def _entry(name: str) -> dict[str, Any]:
     """Return the entry for a template name: a column, or an overlay field."""
     registry = _registry()

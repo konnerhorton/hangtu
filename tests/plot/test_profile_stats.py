@@ -2,6 +2,7 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import pytest
 
 import hangtu as ht
@@ -372,3 +373,76 @@ def test_room_below_the_data_clears_the_box_with_the_also_line(frame):
     assert stats_text(ax).get_text().splitlines()[-1] == "Also: NP 1"
     box_top, data = box_and_lowest(ax, 60.0)
     assert data > box_top
+
+
+# --- sources and assumed values (M15 a, Decision 7) -----------------------------------
+
+STROUD = "undrained_shear_strength_stroud_1974"
+TERZAGHI = "undrained_shear_strength_terzaghi_peck_1967"
+
+
+def _estimates():
+    df = pd.DataFrame(
+        {
+            "loca_id": ["BH1"] * 6,
+            "ground_level": [100.0] * 6,
+            "depth": [1.0, 2.0, 3.0, 1.0, 2.0, 3.0],
+            "undrained_shear_strength": [40.0, 50.0, 60.0, 45.0, 55.0, 65.0],
+            "correlation_name": [STROUD] * 3 + [TERZAGHI] * 3,
+        }
+    )
+    units = {"depth": "m", "ground_level": "m", "undrained_shear_strength": "kPa"}
+    return ht.set_units(df, units)
+
+
+def test_a_line_that_mixes_sources_reads_so():
+    # AC 16: each correlation's line has its numbers; "All" mixes them.
+    _, ax = ht.plot.profile(
+        _estimates(),
+        "undrained_shear_strength",
+        color_by="correlation_name",
+        stats_box=["count", "mean"],
+        display_units="SI",
+    )
+    lines = stats_text(ax).get_text().splitlines()
+    assert lines[1].split()[-2:] == ["3", "50.0"]
+    assert lines[2].split()[-2:] == ["3", "55.0"]
+    assert lines[3].split() == ["All", "mixes", "sources", "(correlation_name)"]
+
+
+def test_one_line_that_mixes_sources():
+    _, ax = ht.plot.profile(
+        _estimates(), "undrained_shear_strength", color_by=None, stats_box=True
+    )
+    lines = stats_text(ax).get_text().splitlines()
+    assert lines[-1] == "All  mixes sources (correlation_name)"
+
+
+def test_assumed_values_are_drawn_and_counted_on_the_also_line():
+    df = pd.DataFrame(
+        {
+            "loca_id": ["BH1"] * 3,
+            "ground_level": [100.0] * 3,
+            "depth": [1.0, 2.0, 3.0],
+            "particle_density": [2.68, 2.65, 2.70],
+            "particle_density_assumed": [False, True, False],
+        }
+    )
+    units = {"depth": "m", "ground_level": "m", "particle_density": "Mg/m3"}
+    df = ht.set_units(df, units)
+    _, ax = ht.plot.profile(
+        df,
+        "particle_density",
+        color_by=None,
+        stats_box=["count", "mean"],
+        display_units="SI",
+    )
+    lines = stats_text(ax).get_text().splitlines()
+    assert lines[1].split() == ["All", "2", "2.69"]
+    assert lines[-1] == "Also: assumed 1"
+    drawn = sum(len(c.get_offsets()) for c in ax.collections) + sum(
+        len(line.get_xdata())
+        for line in ax.lines
+        if line.get_marker() not in ("", "None")
+    )
+    assert drawn == 3

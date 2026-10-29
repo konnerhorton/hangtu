@@ -25,6 +25,7 @@ from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.plot import _layers
 from hangtu.plot._palette import resolve_palette
 from hangtu.plot._vertical import VS, Vertical, convert_pair, convert_vertical
+from hangtu.stats._describe import Summary, summarize
 from hangtu.units import parse_quantity, read_csv, to_display, units_of
 
 TEXT_SIZE = 7  # points
@@ -681,26 +682,24 @@ def format_number(value: float) -> str:
     return f"{rounded:,.{max(0, 2 - exponent)}f}"
 
 
-def _statistic(values: np.ndarray, name: str, interval: bool) -> str:
-    n = values.size
+#: P01's statistic names, by the name ``summarize()`` gives them.
+_SUMMARY_NAMES = {
+    "std": "standard_deviation",
+    "cov": "coefficient_of_variation",
+    "min": "minimum",
+    "max": "maximum",
+}
+
+
+def _statistic(summary: Summary, name: str) -> str:
+    result = summary.statistics[_SUMMARY_NAMES.get(name, name)]
     if name == "count":
-        return str(n)
-    if n == 0 or (name in ("std", "cov") and n < 2):
+        return str(result)
+    if np.isnan(result):
         return "—"
     if name == "cov":
-        mean = values.mean()
-        # CoV needs a true zero (TODO #9).
-        if interval or mean == 0:
-            return "—"
-        return f"{values.std(ddof=1) / abs(mean):.2f}"
-    result = {
-        "mean": np.mean,
-        "std": lambda v: np.std(v, ddof=1),
-        "median": np.median,
-        "min": np.min,
-        "max": np.max,
-    }[name](values)
-    return format_number(float(result))
+        return f"{result:.2f}"
+    return format_number(result)
 
 
 def stats_table(
@@ -710,24 +709,35 @@ def stats_table(
     *,
     order: Sequence[Any] | None = None,
     interval: bool = False,
+    mixed: Mapping[Any, Sequence[str]] | None = None,
 ) -> list[list[str]]:
     """Return the stats box rows: a heading, one row per group, and "All".
 
     Groups are listed when there are at most 6 (with "All" after them when
     there are several); otherwise only "All". ``groups`` holds None for
-    ungrouped data; ``order`` is the legend order of the groups. std is the
-    sample standard deviation, and shows "—" when n < 2.
+    ungrouped data; ``order`` is the legend order of the groups. The numbers
+    are ``ht.stats.describe()``'s: std is the sample standard deviation, and
+    "—" marks a statistic it doesn't report. ``mixed`` names, per group (and
+    ``"All"``), the source columns whose rows mix: that row reads "mixes
+    sources (<column>)" in place of numbers.
     """
+    mixed = mixed or {}
     present = set(groups)
     names = [g for g in (order or dict.fromkeys(groups)) if g in present]
     names = [g for g in names if g is not None]
     rows = [["", *(_STATISTIC_HEADINGS.get(name, name) for name in statistics)]]
+
+    def row(label: str, these: np.ndarray, columns: Sequence[str]) -> list[str]:
+        if columns:
+            return [label, f"mixes sources ({', '.join(columns)})"]
+        summary = summarize(these, percentiles=(), interval=interval)
+        return [label, *(_statistic(summary, s) for s in statistics)]
+
     listed = names if len(names) <= MAX_STATS_UNITS else []
     for name in listed:
-        these = values[groups == name]
-        rows.append([str(name), *(_statistic(these, s, interval) for s in statistics)])
+        rows.append(row(str(name), values[groups == name], mixed.get(name, ())))
     if len(listed) != 1:
-        rows.append(["All", *(_statistic(values, s, interval) for s in statistics)])
+        rows.append(row("All", values, mixed.get("All", ())))
     return rows
 
 
@@ -742,12 +752,16 @@ def draw_stats_box(
     ``also`` is a last line under the table, not aligned with its columns
     (P01: the count of text values).
     """
-    widths = [max(len(row[i]) for row in rows) for i in range(len(rows[0]))]
+    full = [row for row in rows if len(row) == len(rows[0])]
+    widths = [max(len(row[i]) for row in full) for i in range(len(rows[0]))]
+    # A shorter row (a group that mixes sources) is its label, then its text.
     lines = [
         "  ".join(
             cell.ljust(width) if i == 0 else cell.rjust(width)
             for i, (cell, width) in enumerate(zip(row, widths, strict=True))
         )
+        if len(row) == len(widths)
+        else "  ".join([row[0].ljust(widths[0]), *row[1:]])
         for row in rows
     ]
     if also is not None:
