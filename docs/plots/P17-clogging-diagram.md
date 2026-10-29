@@ -115,7 +115,7 @@ Thewes & Burger (2004), Fig. 🔬 (number to confirm). The zones are in §4.
 | Overlay | Argument | Default | Source | Style | Notes |
 |---|---|---|---|---|---|
 | Zones | `method=` / `zones=` | `"thewes_burger_2004"` | config, cited | fill alpha 0.2, from green (low) through yellow and orange to red (high) as the potential rises (one step per zone, in the table's order); outline 0.8 pt in the same hue | Color is never the only carrier: each is labeled |
-| Zone labels | `zone_labels=` | on | config | 8 pt gray on a white background, at the centroid of the zone's largest convex piece (as P04) | Medium's largest convex piece is its bottom strip (50 × 0.15) or its left strip (10 × 0.75), whichever is larger on screen |
+| Zone labels | `zone_labels=` | on | config | 8 pt gray on a white background (as P04), at the config's `label_at` where given, else at the zone's centroid when that is inside it, else at its vertex mean | Low and medium are L-shapes whose centroids fall in other zones, so the config places them in their bottom strips: low (35, 0.45), medium (45, 0.675) |
 | Zone counts | `zone_counts=` | on | the analysis | added to the footnote, one line: "High: 14 · Medium-high: 3 · Medium: 22 · Low: 8 · outside the diagram: 5 of 52 specimens" | Counts the specimens placed, so they match `clogging_potential` |
 | Specimen labels | `labels=` | off | `specimen_id` | 6 pt beside each point | |
 | Note | `note=` | off | user | added to the footnote | |
