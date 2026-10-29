@@ -58,7 +58,7 @@ None. CLAUDE.md's Commands and Git sections change (step 3).
 ### Step 3: focused runs during a build
 - CLAUDE.md, Commands: add the full-suite command with `-n auto --dist loadfile`, and the focused form (`uv run pytest <files>`, `--lf` for failures).
 - CLAUDE.md, Git and commits: while iterating on a step, run the tests it touches. Run the full suite once, in parallel, before the commit.
-- Close-out: final timings in this file.
+- Close-out: final timings in this file. Result: 459 s to 91 s for the whole suite (2,819 tests), about 5×: 256 s from the check cache, then 91 s in parallel.
 
 ### Commits
 1. `tests: cache the AGS4 rule check across the run`
