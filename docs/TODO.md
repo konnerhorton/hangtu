@@ -226,8 +226,8 @@ You are also looking. Candidates found so far:
     - property-based unit tests with `hypothesis`.
 - **To find:** large files with good SPT, Atterberg, PSD and permeability coverage.
 
-### 21. Thewes & Burger (2004) diagram · Claude (verify) · P17 draft §14 · needed for M12
-Confirm the axes (PI or LL against Ic) and the zone coordinates against the paper.
+### 21. Thewes & Burger (2004) diagram · You (from the paper) · P17 §14 · needed for M12's spec
+Axes, zones and limits are settled (P17 §4, §6). Still needed from the paper: the figure number and any stated validity (soil or machine type).
 
 ---
 
