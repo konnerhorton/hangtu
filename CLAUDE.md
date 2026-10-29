@@ -16,11 +16,12 @@ Python library that derives the ground parameters a geotechnical design needs, f
 
 ## Commands
 - `uv sync`: install
-- `uv run pytest`: tests (warnings are errors; assert expected ones with `pytest.warns`)
+- `uv run pytest -n auto --dist loadfile`: the whole suite in parallel, about 1.5 minutes (warnings are errors; assert expected ones with `pytest.warns`)
+- `uv run pytest <files>`: only the tests a change touches; add `--lf` to rerun only the last failures
 - `uv run ruff check . && uv run ruff format .`: lint and format
-- `uv run ruff check . && uv run ruff format --check . && uv run pytest`: what CI runs (`.github/workflows/ci.yml`)
+- `uv run ruff check . && uv run ruff format --check . && uv run pytest -n auto --dist loadfile`: what CI runs (`.github/workflows/ci.yml`)
 - `uv sync --group docs && uv run python docs/prepare_site.py && uv run zensical serve`: the docs site locally (`zensical build --clean --strict` is what CI runs)
-- Oldest allowed dependency versions: `UV_RESOLUTION=lowest-direct UV_PROJECT_ENVIRONMENT=<scratch dir> uv run pytest`, then `git checkout uv.lock`, because it rewrites the lock
+- Oldest allowed dependency versions: `UV_RESOLUTION=lowest-direct UV_PROJECT_ENVIRONMENT=<scratch dir> uv run pytest`, then `git checkout uv.lock`, because it rewrites the lock (commit an intended lock change first, or the checkout discards it)
 
 ## Conventions
 - **Users are engineers, not developers.** Every analysis is a plain function on a DataFrame. Keep objects thin.
@@ -43,7 +44,7 @@ Explicit is better than implicit. Names are written out in full, or full enough 
 ## Git and commits
 - **Each unit of work gets its own branch** off `main`, named after it (`m0-scaffolding`, `p01-property-profile`). It is merged into `main` after review with `git merge --no-ff`, so each unit is one merge commit: `git log --first-parent main` lists the units, and `git revert -m 1 <merge>` undoes one whole.
 - **Each loop step gets its own commit:** intent, spec, plan, then the build. The close-out updates (statuses, SPEC, TODO) go in the last build commit.
-- **During a build, commit at each green, coherent point.** Usually that's one plan step, with ruff and pytest passing. Use judgment: a commit is one idea a reviewer can follow in a single read. If a step goes past roughly 300 changed lines (not counting test data), split it.
+- **During a build, commit at each green, coherent point.** Usually that's one plan step, with ruff and pytest passing. While working on a step, run the tests it touches; run the whole suite in parallel once, before the commit. Use judgment: a commit is one idea a reviewer can follow in a single read. If a step goes past roughly 300 changed lines (not counting test data), split it.
 - **Don't mix kinds of change.** A refactor or rename gets its own commit, separate from new behavior.
 - **Never commit failing tests or lint errors.** Work in progress waits in the working tree.
 - **Stage files by name** (`git add <path> ...`), never with `git add -A`, `git add .` or `git commit -a`. The working tree can hold local files that aren't ignored, and a broad add sweeps them into a public commit.
