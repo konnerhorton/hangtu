@@ -87,7 +87,7 @@ Data for all of these already exists in the MVP scope. P00 is the foundation the
 ### Batch 2: laboratory analysis plots (each is a substantial analysis)
 | ID | Plot | Function | Notes | Status |
 |---|---|---|---|---|
-| P08 | **Distribution fit**: histogram + fitted PDFs + Q-Q plot (2 panels) | `fit_plot` (also `FitResult.plot()`) | plot + analysis (statistics) | P00; statistics research in TODO #8–12 | idea |
+| P08 | **Distribution fit**: histogram + fitted PDFs + Q-Q plot (2 panels) | `distribution_fit` (also `FitResult.plot()`) | plot + analysis (statistics) | P00; `ht.stats.fit()` (M15 (c)) | [built](P08-distribution-fit.md) |
 | P09 | **Characteristic value profile**: data, mean and characteristic lines (constant or depth trend) against depth | `characteristic_profile` | plot + analysis (EC7) | P01; TODO #13 | idea |
 | P10 | *Merged into P12* (stress–strain curves draw the same readings as measured stress paths) | — | ID not reused | — |
 | P11 | Triaxial: **failure envelope** with Mohr-Coulomb fit, drawn as Mohr circles, s′–t or p′–q (`space=`); optional idealized drained paths | `failure_envelope` | **Equal aspect required** in all spaces; total vs effective | idea |

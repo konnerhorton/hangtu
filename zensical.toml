@@ -39,6 +39,7 @@ nav = [
     "plots/grain-size.md",
     "plots/spt-histogram.md",
     "plots/geology-unit-comparison.md",
+    "plots/distribution-fit.md",
   ] },
   { "Parameters" = [
     "parameters/01-unit-weight-and-vertical-stress.md",

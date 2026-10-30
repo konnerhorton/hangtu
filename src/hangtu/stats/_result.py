@@ -8,6 +8,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from hangtu.errors import HangtuError
+
 
 def _plain(value: Any) -> Any:
     """Make ``value`` JSON-serializable: NaN as None, NumPy scalars as Python."""
@@ -138,6 +140,263 @@ class DescribeResult(_Result):
         return f"<pre>{html.escape(str(self))}</pre>"
 
 
+@dataclass(frozen=True, repr=False)
+class FitResult(_Result):
+    """The fits ``ht.stats.fit()`` returns.
+
+    Use ``.to_frame()`` for a table with one row per group and distribution,
+    ``.distribution(name)`` for a fitted SciPy distribution, ``.to_dict()``
+    for a report, or ``print(result)`` to read it. The text is a view of the
+    same numbers.
+    """
+
+    #: The columns grouped by, in order.
+    by: tuple[str, ...]
+    #: The source columns pooled on purpose (``pool=``).
+    pooled: tuple[str, ...]
+    include_assumed: bool
+    #: ``(low, high)`` in the result's unit, None for no bound.
+    bounds: tuple[float | None, float | None]
+    #: The system the values were converted to before fitting, None if not.
+    display_units: str | None
+    #: The distributions asked for, in the order that breaks a tie.
+    distributions: tuple[str, ...]
+    #: One record per group: its key, counts, fits (ranked), the
+    #: distributions left out and why, the reason it has no fits, the values
+    #: fitted (``exact``, and censored ``left`` and ``right``) and the
+    #: plotting positions of the exact ones.
+    groups: tuple[dict[str, Any], ...]
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return one row per group and distribution, ranked within each group.
+
+        A group with no fits has one row, with ``distribution`` blank and its
+        counts. ``attrs["units"]`` gives the unit of each column that has one.
+        """
+        rows = []
+        for group in self.groups:
+            counts = group["counts"]
+            head = {
+                "count": counts["count"],
+                "count_censored": counts["count_censored"],
+            }
+            tail = {name: counts[name] for name in _FIT_COUNTS}
+            if not group["fits"]:
+                rows.append({**group["key"], "distribution": None, **head, **tail})
+            for fit in group["fits"]:
+                rows.append(
+                    {
+                        **group["key"],
+                        "distribution": fit["distribution"],
+                        "rank": fit["rank"],
+                        **head,
+                        **{name: fit[name] for name in _FIT_STATISTICS},
+                        "parameters": _parameter_text(fit, self.unit),
+                        **{name: fit[name] for name in _FIT_COLUMNS},
+                        **tail,
+                    }
+                )
+        columns = [
+            *self.by,
+            "distribution",
+            "rank",
+            "count",
+            "count_censored",
+            *_FIT_STATISTICS,
+            "parameters",
+            *_FIT_COLUMNS,
+            *_FIT_COUNTS,
+        ]
+        frame = pd.DataFrame(rows, columns=columns)
+        frame["rank"] = frame["rank"].astype("Int64")
+        frame.attrs["units"] = (
+            {} if self.unit is None else dict.fromkeys(_FIT_STATISTICS, self.unit)
+        )
+        return frame
+
+    def distribution(self, name: str, group: Any = None) -> Any:
+        """Return the fitted SciPy frozen distribution ``name`` of one group.
+
+        ``group`` is the group's key: its value for one ``by`` column, a tuple
+        for several. It is needed when the result has more than one group.
+        Use it downstream, e.g. ``.ppf(0.05)`` for a 5 % fractile.
+        """
+        from hangtu.stats._fit import frozen  # _fit imports this module
+
+        chosen = self._group(group)
+        for fit in chosen["fits"]:
+            if fit["distribution"] == name:
+                return frozen(name, fit["parameters"])
+        label = _label(chosen["key"])
+        why = chosen["reason"] or chosen["left_out"].get(name)
+        if why is None:
+            why = f"it wasn't asked for; fitted: {', '.join(self.distributions)}"
+        raise HangtuError(f"{label} has no {name} fit: {why}.")
+
+    def _group(self, group: Any) -> dict[str, Any]:
+        """Return the record of the group whose key is ``group``."""
+        if group is None:
+            if len(self.groups) == 1:
+                return self.groups[0]
+            raise HangtuError(
+                f"The result has {len(self.groups)} groups; name one with group=, "
+                f"from: {', '.join(_label(g['key']) for g in self.groups)}."
+            )
+        wanted = group if isinstance(group, tuple) else (group,)
+        for record in self.groups:
+            if tuple(map(str, record["key"].values())) == tuple(map(str, wanted)):
+                return record
+        raise HangtuError(
+            f"The result has no group {group!r}. Groups: "
+            f"{', '.join(_label(g['key']) for g in self.groups)}."
+        )
+
+    def plot(self, group: Any = None, **kwargs: Any) -> Any:
+        """Draw P08 for one group of this result, without refitting.
+
+        ``group`` is needed when the result has more than one. The keyword
+        arguments are ``ht.plot.distribution_fit()``'s drawing ones:
+        ``distributions``, ``qq``, ``bins``, ``log``, ``table``,
+        ``reference_lines``, ``note``, ``figsize`` and style overrides.
+        Returns ``(fig, axs)``.
+        """
+        from hangtu.plot._distribution_fit import draw  # plot imports stats
+
+        return draw(self, group=group, **kwargs)
+
+    def __str__(self) -> str:
+        from hangtu.plot._overlays import format_number  # plot imports stats
+
+        frame = self.to_frame()
+        columns = [
+            name
+            for name in ("rank", *_FIT_STATISTICS, *_FIT_COLUMNS)
+            if frame[name].notna().any()
+        ]
+        headings = {
+            **_FIT_HEADINGS,
+            "probability_below_lower_bound": f"P(< {_number(self.bounds[0])})",
+            "probability_above_upper_bound": f"P(> {_number(self.bounds[1])})",
+        }
+        title = self.value or "Values"
+        lines = [title + (f" ({self.unit})" if self.unit else "")]
+        for group in self.groups:
+            counts = group["counts"]
+            parts = [f"{counts['count']} values"]
+            parts += [
+                f"{counts[name]} {_heading(name)}"
+                for name in ("count_censored", *_FIT_COUNTS)
+                if counts[name] and name not in ("count_at_least", "count_at_most")
+            ]
+            heading = ", ".join(parts)
+            lines.append(f"{_label(group['key'])}: {heading}" if self.by else heading)
+            if not group["fits"]:
+                lines.append(f"  not fitted: {group['reason']}")
+                continue
+            rows = [["", *(headings.get(name, name) for name in columns)]]
+            for fit in group["fits"]:
+                rows.append(
+                    [
+                        fit["distribution"],
+                        *(
+                            "—"
+                            if not math.isfinite(fit[name])
+                            else str(fit[name])
+                            if name == "rank"
+                            else format_number(float(fit[name]))
+                            for name in columns
+                        ),
+                    ]
+                )
+            widths = [max(len(row[i]) for row in rows) for i in range(len(rows[0]))]
+            for row in rows:
+                lines.append(
+                    "  "
+                    + "  ".join(
+                        cell.ljust(width) if i == 0 else cell.rjust(width)
+                        for i, (cell, width) in enumerate(zip(row, widths, strict=True))
+                    ).rstrip()
+                )
+            for fit in group["fits"]:
+                lines.append(
+                    f"  {fit['distribution']}: {_parameter_text(fit, self.unit)}"
+                )
+        return "\n".join([*lines, *self.notes])
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    def _repr_html_(self) -> str:
+        return f"<pre>{html.escape(str(self))}</pre>"
+
+
+#: The fitted distribution's statistics, in the value's unit.
+_FIT_STATISTICS = (
+    "mean",
+    "standard_deviation",
+    "median",
+    "percentile_5",
+    "percentile_95",
+)
+_FIT_COLUMNS = (
+    "log_likelihood",
+    "aicc",
+    "delta_aicc",
+    "akaike_weight",
+    "anderson_darling_statistic",
+    "anderson_darling_p_value",
+    "probability_below_lower_bound",
+    "probability_above_upper_bound",
+)
+_FIT_COUNTS = (
+    "count_at_least",
+    "count_at_most",
+    "count_non_plastic",
+    "count_assumed",
+    "count_range",
+    "count_text",
+    "count_blank",
+)
+_FIT_HEADINGS = {
+    "standard_deviation": "std",
+    "percentile_5": "P5",
+    "percentile_95": "P95",
+    "log_likelihood": "ln L",
+    "aicc": "AICc",
+    "delta_aicc": "ΔAICc",
+    "akaike_weight": "weight",
+    "anderson_darling_statistic": "A²",
+    "anderson_darling_p_value": "AD p",
+}
+#: How each distribution's parameters read: (SciPy name, label, has the unit).
+_PARAMETERS = {
+    "normal": (("loc", "mean", True), ("scale", "standard deviation", True)),
+    "lognormal": (("scale", "median", True), ("s", "σ of ln x", False)),
+    "gamma": (("a", "shape", False), ("scale", "scale", True)),
+    "weibull": (("c", "shape", False), ("scale", "scale", True)),
+    "beta": (("a", "α", False), ("b", "β", False)),
+}
+
+
+def _parameter_text(fit: dict[str, Any], unit: str | None) -> str:
+    """Write a fit's parameters: ``shape = 3.08, scale = 23.3 kPa``."""
+    from hangtu.plot._overlays import format_number  # plot imports stats
+
+    return ", ".join(
+        f"{label} = {format_number(fit['parameters'][name])}"
+        + (f" {unit}" if has_unit and unit else "")
+        for name, label, has_unit in _PARAMETERS[fit["distribution"]]
+    )
+
+
+def _label(key: dict[str, Any]) -> str:
+    return ", ".join(map(str, key.values())) or "All"
+
+
+def _number(value: float | None) -> str:
+    return "None" if value is None else f"{value:g}"
+
+
 #: Short table headings for the statistics (the frame keeps the full names).
 _HEADINGS = {
     "count": "n",
@@ -155,6 +414,7 @@ _HEADINGS = {
     "count_blank": "blank",
     "count_text": "text",
     "count_not_positive": "≤ 0",
+    "count_censored": "censored",
 }
 
 

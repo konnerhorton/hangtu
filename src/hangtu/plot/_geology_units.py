@@ -30,13 +30,13 @@ from hangtu.plot._notes import ARROW_LENGTH, Notes, edge_markers
 from hangtu.plot._overlays import ValueScale, draw_note, draw_reference_lines
 from hangtu.plot._palette import data_order, resolve_palette
 from hangtu.plot._presets import Preset
-from hangtu.stats import _describe
 from hangtu.stats._describe import (
     PERCENTILE_METHOD,
     percentile_floor,
     percentile_name,
     summarize,
 )
+from hangtu.stats._rows import read_flags, source_mix
 
 POINT_SIZE = 3.0  # points
 POINT_ALPHA = 0.4
@@ -538,7 +538,7 @@ def _draw_panel(
     # Blank values are tests not done, so they are skipped, not counted (P07 §14).
     drawn = ~np.isnan(x) & ~non_plastic
     # Assumed values are drawn but not summarized (m15a, Decision 8).
-    assumed = drawn & _describe.read_flags(df, value).assumed
+    assumed = drawn & read_flags(df, value).assumed
     if summary.kind is not None:
         panel.notes.count(assumed, "assumed_excluded")
     if log:
@@ -602,7 +602,7 @@ def _draw_panel(
         if draw_summary is not None:
             summarized = these & ~assumed
             marks, floor = summary.marks(x[summarized])
-            if _describe.source_mix(df.loc[summarized], ["geology_unit"]):
+            if source_mix(df.loc[summarized], ["geology_unit"]):
                 why = "mixes sources"
             elif summarized.sum() < summary.min_count:
                 why = "no summary"

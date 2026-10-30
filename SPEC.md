@@ -197,7 +197,7 @@ Analysis code lives in `ht.analysis.*`, as plain functions usable without plotti
 
 ## 5. Statistics (Phase 3) and model sets
 - All functions take an array, a Series, or a DataFrame plus `value=`/`by=`.
-- All accept `log=True`.
+- All accept `log=True`, except `fit()`: a normal fit to the logs is its lognormal fit (M15 (c)).
 - They return result objects with readable summaries, `.to_frame()` and `.to_dict()` (the latter for later AGSi export).
 - Results record whether they summarize test values (*properties*) or give interpreted design values (*parameters*), plus the method, n and source.
 - **One calculation, many views** (decided 2026-10-21): a result computes and keeps everything (values, n, the statistics behind each value, outliers, the judgments used, §4). What the user asks for (characteristic values, p-values, variance, outlier detail) changes the view (`.to_frame()`, `.to_dict()`, the summary), never the calculation, so two reports of one result can't disagree.
@@ -208,13 +208,14 @@ Analysis code lives in `ht.analysis.*`, as plain functions usable without plotti
   - **Flags come from the registry.** A `statistics:` field on a column (`columns.yaml`, P00 §5) marks it as a flag (`at_least`, `qualifier`, `non_plastic`, `assumed`) or a source (`source`), so every function reads one list and a new one is added there, not in code.
   - **Censored values** (refusals, `<x`, `>x`) enter `describe()` at their value and are counted, with a note that the mean is then biased; `fit()` treats them as censored.
   - **Non-plastic and assumed values are left out and counted**, never treated as blank or 0. Assumed values (M14 (a)) are included only on request (`include_assumed=True`), and the result says so.
-  - **A band is an interval** (`<target>_lower`/`_upper` with no value, M13 b2): left out and counted, never pooled as two values or summarized by its midpoint. `fit()` may take bands as interval-censored values.
+  - **A band is an interval** (`<target>_lower`/`_upper` with no value, M13 b2): left out and counted, never pooled as two values or summarized by its midpoint. `fit()` leaves them out and counts them too: a correlation's band is the spread of its coefficient, not a measurement known to lie in an interval (M15 (c), [`docs/work/m15c-fit.md`](docs/work/m15c-fit.md); TODO #8).
   - **Sources aren't pooled unawares.** Rows from more than one source in one summary (`correlation_name`, blank for a measured value; `source`; `test_type`) are an error naming each value and its count; `pool=` pools on purpose and the result records it. Plots summarize per group they draw and say "mixes sources" instead of raising.
   - **Counts add up:** each row is counted once, under the first reason that applies, so `count` and the counts of rows left out add up to the group's rows.
   - **Percentiles are Hyndman & Fan (1996) definition 7 everywhere**, with no method argument. A percentile is reported only with a value beyond it on each side (n × min(p, 100 − p) / 100 ≥ 1: P25/P75 from 4 values, P5/P95 from 20); the standard deviation and CoV need 2 values, and CoV a ratio scale and a mean above 0.
   - **Units** resolve as for an analysis (§2.6); `display_units=` converts before the statistics and never falls back to the session setting.
-- **The result object:** a frozen dataclass per function (`DescribeResult`), on a shared base recording `kind` (*property* or *parameter*), the function, the value and its unit, the notes, the input's judgments and the hangtu version. It keeps no reference to the input.
-- Functions: `describe` (built, M15 (a)); `fit`, `compare`, `compare_groups`, `crosstab` (M15 (c), (d)); `characteristic` (M18, with selection). Draft behavior is in [`docs/drafts/phase3-stats.md`](docs/drafts/phase3-stats.md) (TODO #8, #10–#13).
+- **The result object:** a frozen dataclass per function (`DescribeResult`, `FitResult`), on a shared base recording `kind` (*property* or *parameter*), the function, the value and its unit, the notes, the input's judgments and the hangtu version. It keeps no reference to the input.
+- **Fitting** (decided 2026-10-30, M15 (c), [`docs/work/m15c-fit.md`](docs/work/m15c-fit.md)): `fit()` fits normal, lognormal, gamma and Weibull (two parameters, the positive ones located at 0), and beta between two given bounds, by maximum likelihood with censored values as censored; ranks them by AICc; checks each with an Anderson–Darling p-value by seeded parametric bootstrap, none when a value is censored; and reports each fit's probability beyond the physical bounds. A group needs 4 uncensored values. It never chooses the distribution: selection (M18) records that choice.
+- Functions: `describe` (built, M15 (a)); `fit` (built, M15 (c), with P08); `compare`, `compare_groups`, `crosstab` (M15 (d)); `characteristic` (M18, with selection). Draft behavior is in [`docs/drafts/phase3-stats.md`](docs/drafts/phase3-stats.md) (TODO #8, #10, #11, #13).
 
 P07 (property by geology unit against a report's baseline ranges) and P01's stats box summarize through the calculation `describe()` uses, so a figure and a table of the same rows agree (M15 (a), TODO #16).
 
@@ -390,7 +391,7 @@ ht.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
   - Zensical and `mkdocstrings-python` are in a `docs` dependency group, not runtime dependencies. Zensical is pinned exactly while it is alpha.
 - **Phase 1 dependencies:** `pandas>=2.1.1,<3`, `numpy>=1.26`, `matplotlib>=3.8`, `pint>=0.24.4`, `pyyaml>=6.0.1`. Each floor is the oldest release that installs and imports on Python 3.12 with current transitive dependencies, and a lowest-version CI job keeps it honest.
 - **Phase 2 adds** `python-ags4>=1.2.0` (LGPL-3.0, used unmodified, which is compatible with MIT; 1.2.0 is the first release with the 4.2 dictionary). It brings `click`, `rich`, `openpyxl` and `defusedxml` with it; its standard dictionaries (4.0.3–4.2) are what ingest reads units, types and keys from. The project database uses the `sqlite3` module with STRICT tables, which need SQLite ≥ 3.37; a test checks it on every CI platform.
-- **Phase 3 adds** `scipy>=1.11`.
+- **Phase 3 adds** `scipy>=1.11.2`, a dependency since M15 (c) (`ht.stats.fit()`, its first use). 1.11 is the first release whose `fit` takes censored data, and 1.11.2 the first of it with Python 3.12 wheels.
 - **Dev dependencies:** `pytest>=8.0`, `ruff>=0.17`, `hypothesis>=6.100`, optionally `pytest-mpl`.
 
 ### 12.2 Package layout
@@ -430,7 +431,7 @@ Rows are in build order; each milestone after M8 names its wave, or statistics o
 | M13 | Wave 1, in four units: (a) the judgments file (§4), `p.stratigraphy()` and vertical stress; (b1) (N1)60, hammer efficiency by hole, the correlations framework and φ′ from SPT; (b2) the **SPT correlations** for s_u, σ′p/OCR and K0, with bands, chaining, the USCS map and PI by geology unit; (b3) E and Vs from SPT | Golden values from each source; out-of-range counts |
 | M14 | Wave 1, in two units (data, then analysis; `docs/reference/process.md`): (a) `p.density()` and `p.particle_density()` from LDEN, IDEN and LPDN, with QC; (b) phase relations (γ, γd, e, n, S with consistency checks), the Gs judgment and activity. LI and Ic are already analyses (`ht.analysis.plasticity()`, M8) | Golden values; consistency checks on the test files |
 | M12 | Wave 1: **P17** clogging diagram (Thewes & Burger 2004) | P17 criteria; zones match the source |
-| M15 | Statistics, in four units: (a) `describe`, the result object and the input rules (done); (b) correlation statistics with the results (done); (c) `fit` (bounded and censored, AICc, Anderson–Darling) and P08; (d) `compare`, `compare_groups`, `crosstab` | Hand-calculated and scipy reference values; the example project's cases |
+| M15 | Statistics, in four units: (a) `describe`, the result object and the input rules (done); (b) correlation statistics with the results (done); (c) `fit` (bounded and censored, AICc, Anderson–Darling) and P08 (done); (d) `compare`, `compare_groups`, `crosstab` | Hand-calculated and scipy reference values; the example project's cases |
 | M16 | Wave 0: user-defined groups and curves | Curves from the sample dataset reach the datasets |
 | M11 | Wave 2: the envelope fitting core; **P11–P12** triaxial: Mohr–Coulomb fit, failure envelope, stress–strain curves and measured stress paths | P11/P12 criteria + fit golden tests |
 | M17 | Wave 2: undrained strength (UU, UCS, vane, pocket penetrometer), joint shear strength, intact Hoek–Brown fit | Golden values from each source |

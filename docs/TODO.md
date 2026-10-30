@@ -71,33 +71,14 @@ A downhole or surface velocity profile (often a user-defined group) can run belo
 
 ## Statistics (research items, with Claude's recommendations)
 
-### 8. Bounded data and the truncated normal · You · docs/drafts/phase3-stats.md · M15 (c)
-**Agreed** (2026-10-29), as recommended below. `describe()`'s part is built (M15 (a), SPEC §5): refusals and `<x`/`>x` enter at their value, counted, with a note. The rest is built with `fit()` in M15 (c).
-
-**Problem:** most geotechnical data are physically bounded:
-- N ≥ 0, and capped at 100 by our refusal rule;
-- 0 ≤ % ≤ 100;
-- k > 0;
-- PI ≥ 0.
-
-A normal fit puts probability on impossible values.
-
-**Claude's recommendation.** The key is to separate **truncation** (values beyond the bound cannot exist) from **censoring** (values beyond the bound exist but were recorded *at* the bound).
-1. **Strictly positive quantities** (k, c_u, E, N): prefer **lognormal, gamma or Weibull**, which are bounded at 0 by construction. A normal fit is fine only when the CoV is small (below about 0.3, where the mass below zero is negligible). `fit()` should always report **P(X < lower bound)** for each fitted distribution as a diagnostic.
-2. **SPT refusals capped at 100 are right-censored, not truncated.** The true N is *at least* 100.
-   - Fitting them as observed 100s biases the fit.
-   - Recommendation: when the dataset has a `refusal` column, `fit()` and `characteristic()` treat those rows as censored, using `scipy.stats.CensoredData` (SciPy ≥ 1.11) for maximum-likelihood fitting.
-   - The same mechanism handles lab values reported as `<x` or `>x`.
-3. **Doubly bounded data** (%, e.g. fines content): offer a **beta** distribution on the rescaled data, and a **truncated normal** with fixed, known bounds (`scipy.stats.truncnorm`). This matters only when the data sit near a bound (e.g. fines near 0% in clean sands).
-   - Note: SciPy's `truncnorm` parameterizes its bounds in standard units, so fitting with *fixed physical bounds* needs a small custom likelihood. This is easy, but should be tested.
-4. **API:** `fit(x, distributions=..., bounds=(lo, hi), censored=mask)`. `bounds` enables `truncnorm`/`beta` and the out-of-bounds diagnostic.
+### 8. The truncated normal, and bands in `fit()` · You · docs/drafts/phase3-stats.md · after M15 (c)
+The rest of this item is built (M15 (c), SPEC §5): refusals and `<x`/`>x` are fitted as censored, positive distributions are bounded at 0, beta fits between two bounds, and each fit reports its probability beyond the bounds. Two options remain:
+1. **A truncated normal with fixed physical bounds**, for doubly bounded data near a bound (fines near 0 %). SciPy's `truncnorm` takes its bounds in standard units, so fixed bounds need a small custom likelihood, tested on its own. Beta covers the case meanwhile.
+2. **Bands as interval-censored values.** `fit()` leaves bands (`<target>_lower`/`_upper` with no value) out and counts them, because a correlation's band is the spread of its coefficient, not a measurement known to lie in an interval. Fitting one as an interval would treat a modeling range as data; revisit only if a source gives true intervals.
 
 **References:**
-- Helsel, D.R. (2012). *Statistics for Censored Environmental Data Using Minitab and R*, 2nd ed. Wiley. The standard practical text on censored (non-detect) data.
 - Johnson, N.L., Kotz, S. & Balakrishnan, N. (1994). *Continuous Univariate Distributions*, Vol. 1, 2nd ed. Wiley. Truncated normal and lognormal.
-- Phoon, K.K. & Kulhawy, F.H. (1999). Characterization of geotechnical variability. *Canadian Geotechnical Journal* 36(4), 612–624.
-- Baecher, G.B. & Christian, J.T. (2003). *Reliability and Statistics in Geotechnical Engineering*. Wiley. Chapters on distributions of soil properties.
-- SciPy docs: `scipy.stats.CensoredData`, `scipy.stats.truncnorm`, `scipy.stats.fit`.
+- SciPy docs: `scipy.stats.truncnorm`.
 
 ### 10. `compare(a, b)` — test selection · You · docs/drafts/phase3-stats.md · M15 (d)
 **Agreed** (2026-10-29), as recommended below; built in M15 (d).
@@ -132,17 +113,6 @@ A normal fit puts probability on impossible values.
 - Dunn, O.J. (1964). Multiple comparisons using rank sums. *Technometrics* 6, 241–252.
 - Holm, S. (1979). A simple sequentially rejective multiple test procedure. *Scandinavian Journal of Statistics* 6, 65–70.
 
-### 12. `fit()` goodness of fit · You · docs/drafts/phase3-stats.md · M15 (c)
-- Distributions agreed (normal, lognormal, Weibull, gamma; see item 8 for bounded ones).
-- To read up on: why a KS test gives misleading p-values once the parameters have been estimated from the same data, and the Anderson-Darling alternative. Also AIC vs BIC at small n (AICc is better for n < ~40; Claude recommends reporting AICc).
-- **Decided** (2026-10-29): rank the fits by AICc, and check each with an Anderson–Darling test (not KS, whose p-values mislead once the parameters are estimated from the same data). Built in M15 (c).
-
-**References:**
-- Lilliefors, H.W. (1967). On the Kolmogorov-Smirnov test for normality with mean and variance unknown. *JASA* 62, 399–402.
-- Stephens, M.A. (1974). EDF statistics for goodness of fit and some comparisons. *JASA* 69, 730–737.
-- D'Agostino, R.B. & Stephens, M.A. (1986). *Goodness-of-Fit Techniques*. Marcel Dekker.
-- Burnham, K.P. & Anderson, D.R. (2002). *Model Selection and Multimodel Inference*, 2nd ed. Springer. AICc.
-
 ### 13. `characteristic()` (Eurocode 7) · You · docs/drafts/phase3-stats.md, docs/reference/eurocode7-summary.md · M18
 **Deferred** (2026-10-29) to M18 (selection), with P09, which needs it. Its judgments (the type of estimate, θ, L, an assumed V_X), the lognormal formulae and the framing for US users are settled there.
 
@@ -160,6 +130,18 @@ Open research points:
 - Angus, J.E. (1988). Inferences on the lognormal mean for complete samples. *Communications in Statistics – Simulation and Computation* 17(4).
 
 ---
+
+### 49. Refusals with a known penetration in `fit()` · You · SPEC §5, `docs/work/m15c-fit.md` (Decision 3) · before M18
+`fit()` takes a refusal as right-censored at its N60: "at least the cap", with no upper limit, so how far the fitted tail reaches above the cap is the distribution's assumption, not the data's. In the example Terrace, 11 of 40 tests are refusals at N60 66.7, and the fits put 24–27 % of their probability above it (lognormal P99 137).
+
+The penetration says more. Every Terrace refusal is 50 blows for 11 in of total penetration (`spt_penetration` is seating plus test drive), so about 5 in into the 12 in test drive; scaled to a foot that is N ≈ 120, N60 ≈ 160, well above the cap. Whether the 50 blows include the seating drive depends on how the file reports them. Options:
+1. Keep right-censoring (today): honest, but it ignores the penetration.
+2. Interval-censor each refusal between the cap and an extrapolated N60 from its penetration. Extrapolating blows isn't standard practice, so this is a judgment and needs a source or a judgment key (SPEC §4).
+3. A judged upper limit for refusals per geology unit (a judgment, with no default).
+Which one matters most for selection (M18): a characteristic value of N is sensitive to this tail.
+
+### 50. Anderson–Darling p-values on heavily tied values · You + Claude · `docs/work/m15c-fit.md` (Decision 7) · with M15 (d) or M18
+The Anderson–Darling check assumes continuous values. N60 takes few distinct values (whole blows × a factor), and the ties read as misfit: the example Alluvium's 30 tests take 6 distinct values, and every fit's p-value is 0.001–0.014 although the Q-Q plot shows a reasonable fit. The statistics guide warns about it; `fit()` doesn't. Options: a note when a group has few distinct values (the threshold to decide, e.g. fewer than half its n), leaving the AD columns blank there as for censored values, or a check that allows for discreteness. Decide what counts as "heavily tied" first.
 
 ## Plots
 
@@ -265,6 +247,14 @@ Proposed: two panels, not one axes with twinned x axes. A second x axis on the s
 
 ### 47. The scale of three correlation standard deviations · Claude (verify) · `config/correlations.yaml`, `docs/work/m15b-correlation-statistics.md`
 Mayne & Kemper's σ′p (S.D. = 4.37 pa) and OCR (3.82), and Kulhawy et al.'s K0 (0.43), have `scale: null`, so none is on the rows yet. Check each against Mayne & Kemper (1988), Kulhawy et al. (1989) or Kulhawy & Mayne (1990), Figs. 3-9, 3-18 and 3-30: whether it is the regression's standard error on the arithmetic values (then `scale: arithmetic`, and its registry column `<target>_correlation_standard_deviation` is added) or on log values (a factor, which needs a column design first). σ′p's, given in pa, suggests arithmetic.
+
+### 48. Sources for `fit()` not yet checked · Claude (verify) · SPEC §5, `docs/work/m15c-fit.md` (Sources)
+M15 (c) cites the NIST e-Handbook (§1.3.5.14) for the Anderson–Darling statistic and SciPy's documentation for the bootstrap p-value and the Kaplan–Meier estimate, because the original papers aren't available free. Check each against the paper when a copy is at hand, and update the docstrings and the statistics guide:
+- Stephens (1974), *JASA*, doi:10.2307/2286009 (the A² statistic).
+- Stute, González Manteiga & Presedo Quindimil (1993), *Metrika* (a parametric bootstrap with estimated parameters; the reference SciPy's `goodness_of_fit` gives).
+- Kaplan & Meier (1958), *JASA* (the estimator).
+
+Titles, volumes and pages are to be taken from each paper, not from memory.
 
 ### 41. Gravelly sands under `not_for` · You + Claude · page 04, `docs/work/m13b1-spt-framework.md`
 Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads only the group symbol. The example site's Terrace is "SAND with gravel (SP)": SP passes, so its rows get estimates with no note. USCS group names (ASTM D2487) add "with gravel" at ≥ 15 % gravel, which the symbol does not carry.

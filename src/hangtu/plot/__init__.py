@@ -2,6 +2,7 @@
 
 from hangtu.plot import common, style
 from hangtu.plot._clogging_diagram import clogging_diagram
+from hangtu.plot._distribution_fit import distribution_fit
 from hangtu.plot._geology_units import (
     geology_unit_comparison,
     geology_unit_comparisons,
@@ -17,6 +18,7 @@ from hangtu.plot._water_content_profile import water_content_profile
 __all__ = [
     "clogging_diagram",
     "common",
+    "distribution_fit",
     "geology_unit_comparison",
     "geology_unit_comparisons",
     "grain_size",

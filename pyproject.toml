@@ -38,6 +38,7 @@ dependencies = [
     "pint>=0.24.4",
     "pyyaml>=6.0.1",
     "python-ags4>=1.2.0",
+    "scipy>=1.11.2",
 ]
 
 [project.urls]
@@ -71,8 +72,9 @@ exclude = ["*.md"]
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "D"]
 # Greek symbols appear in axis labels (registry `label`), e.g. "Bulk unit weight, γ",
-# and in messages naming effective stress and friction angle (σ′v, φ′).
-allowed-confusables = ["γ", "ρ", "σ", "φ", "′"]
+# in messages naming effective stress and friction angle (σ′v, φ′), and in beta's
+# parameters, α and β (ht.stats.fit()).
+allowed-confusables = ["α", "γ", "ρ", "σ", "φ", "′"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
