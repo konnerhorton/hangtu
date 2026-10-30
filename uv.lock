@@ -281,7 +281,7 @@ requires-dist = [
     { name = "pint", specifier = ">=0.24.4" },
     { name = "python-ags4", specifier = ">=1.2.0" },
     { name = "pyyaml", specifier = ">=6.0.1" },
-    { name = "scipy", specifier = ">=1.11" },
+    { name = "scipy", specifier = ">=1.11.2" },
 ]
 
 [package.metadata.requires-dev]

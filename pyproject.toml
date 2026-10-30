@@ -38,7 +38,7 @@ dependencies = [
     "pint>=0.24.4",
     "pyyaml>=6.0.1",
     "python-ags4>=1.2.0",
-    "scipy>=1.11",
+    "scipy>=1.11.2",
 ]
 
 [project.urls]
