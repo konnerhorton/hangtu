@@ -535,6 +535,32 @@ columns:
     type: text
     ags: ["derived: docs/work/m13b1-spt-framework.md"]
     used_by: [P01]
+  correlation_data_count:
+    description: The number of data points a correlation's source fit it to (its n); blank when not stated
+    type: number
+    quantity: count
+    scale: ratio
+    label: Correlation's data points, n
+    ags: ["derived: docs/work/m15b-correlation-statistics.md"]
+    used_by: []
+  correlation_r_squared:
+    description: The coefficient of determination a correlation's source gives (its r²); blank when not stated
+    type: number
+    quantity: dimensionless
+    scale: ratio
+    label: Correlation's coefficient of determination, r²
+    ags: ["derived: docs/work/m15b-correlation-statistics.md"]
+    used_by: []
+  correlation_scatter:
+    description: A correlation's scatter as its source states it, or "Not stated."
+    type: text
+    ags: ["derived: docs/work/m15b-correlation-statistics.md"]
+    used_by: []
+  correlation_advice:
+    description: "The source's advice on using a correlation, quoted with its citation, or hangtu's own marked \"hangtu:\""
+    type: text
+    ags: ["derived: docs/work/m15b-correlation-statistics.md"]
+    used_by: []
 
   # --- SPT (P02, P03) ------------------------------------------------------------------
   spt_n:

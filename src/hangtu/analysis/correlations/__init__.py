@@ -4,8 +4,10 @@ Each function reads the one input column its correlation was derived with,
 returns a copy of ``df`` with the estimate in the target property's column,
 ``correlation_name`` and ``correlation_note``, and gives NaN, never an
 extrapolated value, where the correlation doesn't apply. A correlation
-published as a band gives ``<target>_lower`` and ``<target>_upper``. Each is
-named target first: ``<target>_<authors>_<year>``. Several estimates
+published as a band gives ``<target>_lower`` and ``<target>_upper``. Every
+row carries the source's statistics and advice (``correlation_data_count``,
+``correlation_r_squared``, ``correlation_scatter``, ``correlation_advice``).
+Each is named target first: ``<target>_<authors>_<year>``. Several estimates
 compare with ``pd.concat`` and ``ht.plot.profile(..., color_by="correlation_name")``.
 """
 
