@@ -771,3 +771,88 @@ class CompareGroupsResult(_Result):
 
     def _repr_html_(self) -> str:
         return f"<pre>{html.escape(str(self))}</pre>"
+
+
+#: The label of the totals row and column of a ``CrosstabResult``.
+TOTAL = "(total)"
+
+
+@dataclass(frozen=True, repr=False)
+class CrosstabResult(_Result):
+    """The table ``ht.stats.crosstab()`` returns.
+
+    Use ``.to_frame()`` for the counts with totals, ``.mismatches`` for the
+    rows whose classes disagree, ``.to_dict()`` for a report, or
+    ``print(result)`` to read it. The text is a view of the same numbers.
+    """
+
+    #: The column whose classes are the rows.
+    rows: str
+    #: The column whose classes are the columns.
+    columns: str
+    #: ``"same"``, the mapping (each value a list of text), or None.
+    agree: str | dict[str, list[str]] | None
+    #: The classes of ``rows`` present, in order, without ``"(blank)"``.
+    row_values: tuple[str, ...]
+    #: The classes of ``columns`` present, in order, without ``"(blank)"``.
+    column_values: tuple[str, ...]
+    #: Row class -> column class -> rows, ``"(blank)"`` last where present.
+    counts: dict[str, dict[str, int]]
+    #: Rows with both values; the agreement fields are None without ``agree=``.
+    count_compared: int | None
+    count_agreeing: int | None
+    count_disagreeing: int | None
+    #: Rows blank in ``rows`` only.
+    count_blank_in_rows: int | None
+    #: Rows blank in ``columns`` only.
+    count_blank_in_columns: int | None
+    count_blank_in_both: int | None
+    #: ``count_agreeing / count_compared``, NaN when nothing is compared.
+    proportion_agreeing: float | None
+    #: The mismatch listing's columns, its rows' index labels and values.
+    mismatch_columns: tuple[str, ...]
+    mismatch_index: tuple[Any, ...]
+    mismatch_values: tuple[tuple[Any, ...], ...]
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return the counts, with ``"(total)"`` last on each side.
+
+        One row per ``rows`` class and one column per ``columns`` class.
+        """
+        frame = pd.DataFrame.from_dict(self.counts, orient="index")
+        column_labels = next(iter(self.counts.values()), {}).keys()
+        frame = frame.reindex(columns=list(column_labels)).astype("int64")
+        frame[TOTAL] = frame.sum(axis=1)
+        frame.loc[TOTAL] = frame.sum(axis=0)
+        frame = frame.astype("int64")
+        frame.index.name = self.rows
+        frame.columns.name = self.columns
+        return frame
+
+    @property
+    def mismatches(self) -> pd.DataFrame:
+        """The rows whose classes disagree, indexed as in the input.
+
+        ``df.loc[result.mismatches.index]`` gives their full rows. Empty
+        without ``agree=``.
+        """
+        return pd.DataFrame(
+            [list(values) for values in self.mismatch_values],
+            index=pd.Index(list(self.mismatch_index)),
+            columns=list(self.mismatch_columns),
+        )
+
+    def __str__(self) -> str:
+        frame = self.to_frame()
+        rows = [[self.rows, *map(str, frame.columns)]]
+        rows += [
+            [str(label), *(str(int(count)) for count in counts)]
+            for label, counts in zip(frame.index, frame.to_numpy(), strict=True)
+        ]
+        return "\n".join([f"{self.rows} × {self.columns}", *_table(rows), *self.notes])
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    def _repr_html_(self) -> str:
+        return f"<pre>{html.escape(str(self))}</pre>"

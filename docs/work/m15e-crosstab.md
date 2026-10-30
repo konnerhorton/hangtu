@@ -142,8 +142,10 @@ agreed in review on 2026-10-30.
 8. **`CrosstabResult`,** a frozen dataclass on the shared base: `kind="property"`, `function="crosstab"`,
    `value=None`, `unit=None`, the notes, judgments and version as every result; and `rows`, `columns`,
    `agree` (`"same"`, the mapping with each value as a list of text, or None), `row_values`, `column_values`
-   (without blank or totals), `counts` (one tuple per row value, blank row last), the counts and proportion of
-   Decision 6, and the mismatch records (index label and the listing's columns). `.mismatches` is built from
+   (without blank or totals), `counts` (row class → column class → rows, `"(blank)"` last on each side where present;
+   *changed in the build:* a nested mapping rather than one tuple per row, so `.to_dict()` labels every cell),
+   the counts and proportion of Decision 6, and the mismatch records (`mismatch_columns`, `mismatch_index`,
+   `mismatch_values`). `.mismatches` is built from
    those records, so `.to_dict()` holds everything and is JSON-serializable (an index label that isn't a str or
    int is written as text).
 9. **The summary** (`print(result)`): a title (`legend_code × uscs_symbol`), the table with totals, then the

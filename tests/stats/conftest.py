@@ -52,3 +52,21 @@ def three_groups():
         }
     )
     return ht.set_units(frame, {"undrained_shear_strength": "kPa"})
+
+
+@pytest.fixture(scope="module")
+def example_index(tmp_path_factory):
+    """The example project's index properties with USCS symbols (m15e, 20 rows)."""
+    folder = tmp_path_factory.mktemp("example")
+    p = ht.Project.from_ags(ht.examples.path("site.ags"), db=folder / "site.sqlite")
+    p.set_geology_map(ht.examples.path("strata.csv"))
+    # The example's expected warnings: Terrace curves stop above D10, and the
+    # specimens without grain size or a plasticity class have no symbol.
+    with (
+        pytest.warns(UserWarning, match="D10 in 6 curves"),
+        pytest.warns(UserWarning, match="uscs_symbol is blank for 6 of 14"),
+        pytest.warns(UserWarning, match="aashto_group is blank for 6 of 14"),
+        pytest.warns(UserWarning, match="uscs_symbol is blank for 12 of 20"),
+    ):
+        index = p.index_properties(geology_fields=["GEOL_GEOL", "GEOL_LEG"])
+        return ht.analysis.uscs(index)
