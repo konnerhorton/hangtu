@@ -178,7 +178,9 @@ agreed in review on 2026-10-30. The figure's spec is [`docs/plots/P08-distributi
      about 0.007 at p = 0.05, enough for a check; 9999 cost ten times the time for a third digit nobody reads.
    - **Weibull through the Gumbel of ln x:** ln of a Weibull variable is a Gumbel (minimum) variable, the fit is
      the same maximum-likelihood fit, and A² is unchanged under the transform. Fitting `gumbel_l` to ln x takes
-     about a tenth of the time of `weibull_min` with the location fixed, which matters 999 times.
+     about a tenth of the time of `weibull_min` with the location fixed, which matters 999 times. *Changed in
+     the build:* with censored values, which have no bootstrap, Weibull is fitted by `weibull_min` directly:
+     `gumbel_l`'s censored fit falls back to a generic optimizer that stops short of `weibull_min`'s maximum.
    - **With any censored value in the group, no AD:** `anderson_darling_statistic` and
      `anderson_darling_p_value` are blank and the notes say "no Anderson–Darling check: n values are censored;
      judge the fit on the Q-Q plot". Never 0, never computed on the uncensored values alone.

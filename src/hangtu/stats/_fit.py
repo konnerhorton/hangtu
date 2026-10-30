@@ -18,6 +18,7 @@ from scipy import stats as _stats
 from hangtu._data import text_values
 from hangtu.errors import HangtuError, warn
 from hangtu.stats import _rows
+from hangtu.stats._positions import plotting_positions
 from hangtu.stats._result import FitResult
 from hangtu.stats._rows import COUNTS
 
@@ -101,8 +102,8 @@ def fit(
     - ``lognormal``: median and σ of ln x, located at 0. A normal fit to the
       logs is this fit, so ``fit()`` has no ``log=``;
     - ``gamma``: shape and scale, located at 0;
-    - ``weibull``: shape and scale, located at 0, fitted as the Gumbel
-      (minimum) distribution of ln x, which is the same fit;
+    - ``weibull``: shape and scale, located at 0; without censored values,
+      fitted as the Gumbel (minimum) distribution of ln x, the same fit;
     - ``beta``: α and β on ``bounds``, fitted when both bounds are given.
 
     Lognormal, gamma and Weibull have no density at or below 0: a group with
@@ -139,14 +140,29 @@ def fit(
     distribution; a large one is not evidence for it, least of all with few
     values. It is reported, not turned into a pass or fail.
 
-    **At least 4 values per group** (AICc needs $n > k + 1$): a group with
-    fewer has no fits, with a warning; one with fewer than 10 is fitted with
-    a warning that the ranking says little. No group to fit is an error.
+    **At least 4 uncensored values per group** (AICc needs $n > k + 1$): a
+    group with fewer has no fits, with a warning; one with fewer than 10 is
+    fitted with a warning that the ranking says little. A group whose values
+    are all equal has no spread to fit. No group to fit is an error.
 
     The SPT N is a count but is fitted as continuous, as is usual.
 
-    **Rows are chosen as by** :func:`describe`: non-plastic, assumed, text,
-    blank and band rows are left out and counted; sources aren't pooled
+    **Censored values are fitted as censored**, not at their limits
+    (Helsel et al. 2020, §12.7): a refusal (``spt_refusal``) or a ``>``
+    value (``qualifier``) is known only to be at least the value the column
+    holds, a ``<`` value at most. Each enters the likelihood as the
+    probability beyond its limit, $1 - F(c)$ or $F(c)$, through SciPy's
+    ``CensoredData``, and every candidate is fitted to the same censored
+    data, so their AICc compare. They are counted (``count_censored``,
+    ``count_at_least``, ``count_at_most``) and the notes give the share.
+    With any censored value in a group there is no Anderson-Darling check:
+    its p-value assumes complete data. Judge the fit on P08's Q-Q panel.
+    A band (``<value>_lower``/``_upper`` with no value) is the spread of a
+    correlation's coefficient, not a censored measurement, so it is left
+    out and counted (``count_range``).
+
+    **Rows are chosen as by** :func:`describe`: non-plastic, assumed, text
+    and blank rows are left out and counted; sources aren't pooled
     unawares (``pool=``); the counts add up to the group's rows.
 
     Parameters
@@ -208,6 +224,10 @@ def fit(
     understanding AIC and BIC in model selection. *Sociological Methods &
     Research* 33(2), 261-304.
 
+    Helsel, D.R., Hirsch, R.M., Ryberg, K.R., Archfield, S.A. & Gilroy,
+    E.J. (2020). *Statistical Methods in Water Resources*. USGS Techniques
+    and Methods 4-A3, §12.7, pp. 356-357.
+
     NIST/SEMATECH *e-Handbook of Statistical Methods*, §1.3.5.14,
     Anderson-Darling test. It cites Stephens (1974); the bootstrap with
     estimated parameters follows SciPy's ``goodness_of_fit`` documentation
@@ -245,7 +265,14 @@ def fit(
     for key, rows in keys:
         label = ", ".join(map(str, key.values())) or "All"
         chosen = rows & included
-        values = Values(exact=numbers[chosen], left=np.empty(0), right=np.empty(0))
+        # Decision 3: refusals and ">" are right-censored, "<" left-censored.
+        right = chosen & marks["count_at_least"]
+        left = chosen & marks["count_at_most"] & ~right
+        values = Values(
+            exact=numbers[chosen & ~left & ~right],
+            left=numbers[left],
+            right=numbers[right],
+        )
         counts = {
             "count": values.count,
             "count_censored": values.left.size + values.right.size,
@@ -260,6 +287,7 @@ def fit(
             "fits": [],
             "left_out": {},
             "reason": None,
+            "positions": None,
             "text": _rows.spellings(texts[rows]),
             "sources": {
                 column: _rows.breakdown(frame.loc[chosen, column]) for column in pooled
@@ -272,9 +300,23 @@ def fit(
             )
             too_few.append(f"{label} ({values.exact.size})")
             continue
+        if np.ptp(values.all()) == 0:
+            group["reason"] = (
+                f"all {values.count} values are {values.exact[0]:g}, so there is "
+                "no spread to fit"
+            )
+            continue
         if values.exact.size < FEW:
             few.append(f"{label} ({values.exact.size})")
         group["fits"], group["left_out"] = _fit_group(values, names, low, high)
+        if not group["fits"]:
+            group["reason"] = "no distribution could be fitted"
+        positions = plotting_positions(values.exact, values.left, values.right)
+        if positions is not None:
+            group["positions"] = {
+                "values": positions[0].tolist(),
+                "probabilities": positions[1].tolist(),
+            }
         notes.extend(_group_notes(group, label, values, low))
 
     _rows.warn_left_out(reasons, read.column, function)
@@ -285,6 +327,15 @@ def fit(
             f"in a group to fit two parameters and rank them by AICc, and no group "
             f"has them: {', '.join(too_few)}. Group more widely, or report the "
             "values themselves."
+        )
+    if not any(group["fits"] for group in groups):
+        reasons = "; ".join(
+            f"{', '.join(map(str, group['key'].values())) or 'All'}: {group['reason']}"
+            for group in groups
+        )
+        raise HangtuError(
+            f"fit() could fit no group of {read.column!r}: {reasons}. Check the "
+            "values, or report them themselves."
         )
     if too_few:
         warn(
@@ -442,21 +493,40 @@ def estimate(
 ) -> dict[str, float]:
     """Return the maximum-likelihood parameters of ``name``, by SciPy's names."""
     x = values.exact
-    if name in CLOSED_FORM:
+    censored = bool(values.left.size or values.right.size)
+    if name in CLOSED_FORM and not censored:
         return {key: float(value) for key, value in _closed_form(name, x).items()}
+    # Decision 3: censored values enter by maximum likelihood, as CensoredData.
+    data = (
+        _stats.CensoredData(uncensored=x, left=values.left, right=values.right)
+        if censored
+        else x
+    )
     with warnings.catch_warnings():
         # A failed fit shows as non-finite parameters, checked by the caller.
         warnings.simplefilter("ignore", RuntimeWarning)
+        if name == "normal":
+            location, scale = _stats.norm.fit(data)
+            return {"loc": float(location), "scale": float(scale)}
+        if name == "lognormal":
+            sigma, _, scale = _stats.lognorm.fit(data, floc=0)
+            return {"s": float(sigma), "scale": float(scale)}
         if name == "gamma":
-            shape, _, scale = _stats.gamma.fit(x, floc=0)
+            shape, _, scale = _stats.gamma.fit(data, floc=0)
             return {"a": float(shape), "scale": float(scale)}
-        if name == "weibull":
+        if name == "weibull" and not censored:
             # ln of a Weibull variable is Gumbel (minimum): location ln(scale),
-            # scale 1/shape. The same fit, about ten times faster (Decision 7).
+            # scale 1/shape. The same fit, about ten times faster for the
+            # bootstrap, and exact where weibull_min's stops short (Decision 7).
             location, scale = _stats.gumbel_l.fit(np.log(x))
             return {"c": float(1 / scale), "scale": float(np.exp(location))}
+        if name == "weibull":
+            # With censoring, gumbel_l falls back to a generic optimizer that
+            # stops short of weibull_min's; there is no bootstrap to speed up.
+            shape, _, scale = _stats.weibull_min.fit(data, floc=0)
+            return {"c": float(shape), "scale": float(scale)}
         low, high = bounds
-        a, b, _, _ = _stats.beta.fit(x, floc=low, fscale=high - low)
+        a, b, _, _ = _stats.beta.fit(data, floc=low, fscale=high - low)
         return {"a": float(a), "b": float(b), "loc": low, "scale": high - low}
 
 
@@ -611,6 +681,28 @@ def _group_notes(
     group: dict[str, Any], label: str, values: Values, low: float | None
 ) -> list[str]:
     notes = []
+    censored = values.left.size + values.right.size
+    if censored:
+        sides = [
+            f"{values.right.size} at least (refusal or '>')"
+            if values.right.size
+            else "",
+            f"{values.left.size} at most ('<')" if values.left.size else "",
+        ]
+        notes.append(
+            f"{label}: {censored} of {values.count} values censored "
+            f"({censored / values.count:.0%}: {', '.join(filter(None, sides))}), "
+            "fitted as censored by maximum likelihood, not at their limits."
+        )
+        notes.append(
+            f"{label}: no Anderson-Darling check: {_count(censored)} are censored; "
+            "judge the fit on the Q-Q plot."
+        )
+        if values.left.size and values.right.size:
+            notes.append(
+                f"{label}: no plotting positions: values are censored both ways, "
+                "so the Q-Q plot can't place them. The fits and AICc stand."
+            )
     by_reason: dict[str, list[str]] = {}
     for name, why in group["left_out"].items():
         by_reason.setdefault(why, []).append(name)
