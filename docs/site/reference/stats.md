@@ -5,3 +5,7 @@ Each statistics function is a plain function on a DataFrame, a Series or a list 
 ::: hangtu.stats.describe
 
 ::: hangtu.stats.DescribeResult
+
+::: hangtu.stats.fit
+
+::: hangtu.stats.FitResult

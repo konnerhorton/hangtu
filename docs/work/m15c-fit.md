@@ -244,7 +244,8 @@ Checked 2026-10-30 against the copies in `sandbox/sources/` (not in the repo).
   and SciPy's `goodness_of_fit` and `ecdf` documentation for these until the papers are checked, and say so.
 
 ### Acceptance criteria
-Hand-calculated from the formulas above; tolerance 1e-9 relative unless stated.
+Hand-calculated from the formulas above; tolerance 1e-9 relative unless stated, or the golden value's own
+precision where it is given to fewer figures (the ln-mean and median of AC 1, 1e-8).
 1. **Normal and lognormal, closed form** (10, 12, 15, 20, 23 kPa):
    - normal: mean 16, standard deviation 4.8579831 (√23.6), ln L −14.99780945, AICc 39.99561889, P(X < 0)
      4.946575e−4 (Φ(−16/4.8579831));
@@ -254,7 +255,9 @@ Hand-calculated from the formulas above; tolerance 1e-9 relative unless stated.
    - A² normal 0.26640897, lognormal 0.23962352 (1e-6).
 2. **Gamma and Weibull:** parameters, ln L and AICc equal SciPy's `gamma.fit(x, floc=0)` and
    `weibull_min.fit(x, floc=0)` and their `logpdf` sums (1e-6); the Weibull fit through `gumbel_l` on ln x
-   equals `weibull_min`'s (1e-6).
+   equals `weibull_min`'s (1e-5). *Changed in the build:* SciPy's `weibull_min.fit(floc=0)` stops about 2e-6
+   short in scale, while the `gumbel_l` route solves the likelihood equation exactly, so the fit is also checked
+   against that equation (1e-9) and its ln L is at least SciPy's.
 3. **AD p-value:** on 30 values drawn from a normal, the p-value is within 0.03 of `goodness_of_fit`'s at 9999
    samples on the same fit; on 30 values from an exponential, the normal fit's p-value is below 0.05; the same
    data give the same p-value on two calls.

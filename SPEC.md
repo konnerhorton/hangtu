@@ -390,7 +390,7 @@ ht.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
   - Zensical and `mkdocstrings-python` are in a `docs` dependency group, not runtime dependencies. Zensical is pinned exactly while it is alpha.
 - **Phase 1 dependencies:** `pandas>=2.1.1,<3`, `numpy>=1.26`, `matplotlib>=3.8`, `pint>=0.24.4`, `pyyaml>=6.0.1`. Each floor is the oldest release that installs and imports on Python 3.12 with current transitive dependencies, and a lowest-version CI job keeps it honest.
 - **Phase 2 adds** `python-ags4>=1.2.0` (LGPL-3.0, used unmodified, which is compatible with MIT; 1.2.0 is the first release with the 4.2 dictionary). It brings `click`, `rich`, `openpyxl` and `defusedxml` with it; its standard dictionaries (4.0.3–4.2) are what ingest reads units, types and keys from. The project database uses the `sqlite3` module with STRICT tables, which need SQLite ≥ 3.37; a test checks it on every CI platform.
-- **Phase 3 adds** `scipy>=1.11`.
+- **Phase 3 adds** `scipy>=1.11`, a dependency since M15 (c) (`ht.stats.fit()`, its first use; 1.11 is the first release whose `fit` takes censored data).
 - **Dev dependencies:** `pytest>=8.0`, `ruff>=0.17`, `hypothesis>=6.100`, optionally `pytest-mpl`.
 
 ### 12.2 Package layout
