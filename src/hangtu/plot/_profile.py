@@ -53,7 +53,7 @@ from hangtu.plot._vertical import (
     vertical_values,
 )
 from hangtu.registry import column_info
-from hangtu.stats import _describe
+from hangtu.stats import _rows
 
 MARKER_SIZE = 5.0  # points
 INTERVAL_WIDTH = 1.0  # points
@@ -297,13 +297,13 @@ def _mixed_sources(
     line; the "All" line pools every group, so it is checked with it.
     """
     mixed = {
-        group: _describe.source_mix(
+        group: _rows.source_mix(
             df.loc[counted & (groups == group)], [color_by] if color_by else []
         )
         for group in dict.fromkeys(groups[counted])
         if group is not None
     }
-    mixed["All"] = _describe.source_mix(df.loc[counted])
+    mixed["All"] = _rows.source_mix(df.loc[counted])
     return mixed
 
 
@@ -807,7 +807,7 @@ def _draw_profile(
         if statistics is not None:
             info = column_info(value)
             # Assumed values are drawn but not summarized (m15a, Decision 7).
-            assumed = drawn & ~ranged & _describe.read_flags(df, value).assumed
+            assumed = drawn & ~ranged & _rows.read_flags(df, value).assumed
             counted = drawn & ~ranged & ~assumed
             rows = stats_table(
                 x[counted],
