@@ -131,6 +131,18 @@ Open research points:
 
 ---
 
+### 49. Refusals with a known penetration in `fit()` · You · SPEC §5, `docs/work/m15c-fit.md` (Decision 3) · before M18
+`fit()` takes a refusal as right-censored at its N60: "at least the cap", with no upper limit, so how far the fitted tail reaches above the cap is the distribution's assumption, not the data's. In the example Terrace, 11 of 40 tests are refusals at N60 66.7, and the fits put 24–27 % of their probability above it (lognormal P99 137).
+
+The penetration says more. Every Terrace refusal is 50 blows for 11 in of total penetration (`spt_penetration` is seating plus test drive), so about 5 in into the 12 in test drive; scaled to a foot that is N ≈ 120, N60 ≈ 160, well above the cap. Whether the 50 blows include the seating drive depends on how the file reports them. Options:
+1. Keep right-censoring (today): honest, but it ignores the penetration.
+2. Interval-censor each refusal between the cap and an extrapolated N60 from its penetration. Extrapolating blows isn't standard practice, so this is a judgment and needs a source or a judgment key (SPEC §4).
+3. A judged upper limit for refusals per geology unit (a judgment, with no default).
+Which one matters most for selection (M18): a characteristic value of N is sensitive to this tail.
+
+### 50. Anderson–Darling p-values on heavily tied values · You + Claude · `docs/work/m15c-fit.md` (Decision 7) · with M15 (d) or M18
+The Anderson–Darling check assumes continuous values. N60 takes few distinct values (whole blows × a factor), and the ties read as misfit: the example Alluvium's 30 tests take 6 distinct values, and every fit's p-value is 0.001–0.014 although the Q-Q plot shows a reasonable fit. The statistics guide warns about it; `fit()` doesn't. Options: a note when a group has few distinct values (the threshold to decide, e.g. fewer than half its n), leaving the AD columns blank there as for censored values, or a check that allows for discreteness. Decide what counts as "heavily tied" first.
+
 ## Plots
 
 ### 23. Text in P07's value column · You + Claude · P07 §3, §11
