@@ -42,9 +42,9 @@ CENSORED_COLOR = "0.25"
 BEST_WIDTH = 1.8  # points, the rank-1 fit
 OTHER_WIDTH = 1.0
 CURVE_POINTS = 400
-#: The y axis clears the tallest bar and the rank-1 curve by this factor;
-#: other curves may run off the top.
-HEADROOM = 1.1
+#: The y axis clears the tallest bar and the rank-1 curve by this factor,
+#: leaving the top corners for the legend; other curves may run off the top.
+HEADROOM = 1.4
 QQ_MARKER_SIZE = 4.0
 PANEL_RATIO = (3, 2)
 TOO_FEW = "too few values to fit (n = {n}; 4 needed)"
@@ -285,7 +285,9 @@ def draw(
             )
             draw_reference_lines(histogram, reference_lines, scale)
         _draw_quantiles(quantiles, result, record, qq, limits, log, x_label)
-        placed = add_legend(histogram, [handles], notes)
+        # Inside always: a legend below would be wider than the histogram and
+        # squeeze the Q-Q panel.
+        placed = add_legend(histogram, [handles], notes, where="inside")
         if table and fits:
             _draw_table(quantiles, _table_text(fits))
         notes.render(histogram, where=placed.where, below=placed.legend)
@@ -367,7 +369,7 @@ def _draw_histogram(
                 facecolor=HISTOGRAM_FILL,
                 edgecolor=HISTOGRAM_EDGE,
                 linewidth=0.5,
-                label=f"Values (n = {count})",
+                label=f"Values (n = {exact.size})",
             )
         )
     for values, marker, sign in ((right, ">", "≥"), (left, "<", "<")):

@@ -101,6 +101,8 @@ def test_refusals_are_open_triangles_with_a_count():
     assert triangles[0].get_markerfacecolor() == "none"
     labels = [text.get_text() for text in axs[0].get_legend().get_texts()]
     assert "≥ 100: 2" in labels
+    # The bars are the uncensored values; the refusals have their own entry.
+    assert "Values (n = 5)" in labels
     table = _table(axs[1]).splitlines()
     assert all(row.rstrip().endswith("—") for row in table[1:])
     assert "No AD check: 2 censored" in _footnote(axs[0])
@@ -264,3 +266,20 @@ def test_missing_units_are_fits_error():
     df = pd.DataFrame({"undrained_shear_strength": TWELVE})
     with pytest.raises(UnitsError, match="has no units"):
         ht.plot.distribution_fit(df, value="undrained_shear_strength")
+
+
+def test_the_legend_stays_inside_the_histogram(tmp_path, monkeypatch):
+    # With less headroom, the example project's Terrace leaves no corner clear.
+    # A legend below the histogram would be wider than it and squeeze the Q-Q
+    # panel, so it takes the least-covered corner instead.
+    from hangtu.plot import _distribution_fit
+
+    monkeypatch.setattr(_distribution_fit, "HEADROOM", 1.1)
+    p = ht.Project.from_ags(ht.examples.path("site.ags"), db=tmp_path / "site.sqlite")
+    p.set_geology_map(ht.examples.path("strata.csv"))
+    spt = ht.analysis.spt(p.spt())
+    _, axs, _ = ht.plot.distribution_fit(
+        spt, value="spt_n60", by="geology_unit", group="Terrace"
+    )
+    legend = axs[0].get_legend()
+    assert legend._loc in (1, 2, 3, 4)  # a corner, not "upper center" below

@@ -67,6 +67,10 @@ from the histogram's bins.
 - **Panels:** two, side by side: histogram with the PDFs (left, wider, 3:2), Q-Q (right, equal aspect).
 - **Default size:** the `default` kind (6.5 × 4.5 in), whole figure with the legend and footnote.
 - **Orientation:** landscape.
+- **Legend:** inside the histogram, in the first clear corner, else the least covered, never below the axes
+  (*changed in the build* from README's fallback: a legend below is wider than the histogram and squeezes the
+  Q-Q panel). The y axis has 40 % headroom over the tallest bar and the rank-1 curve, so the top corners are
+  usually clear.
 
 ## 6. Axes
 | | Histogram x | Histogram y | Q-Q x | Q-Q y |
