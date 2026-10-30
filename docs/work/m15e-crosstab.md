@@ -222,3 +222,71 @@ and `uscs_symbol`, read from the dataset row by row (loca_id, depth in ft):
     empty frame gives a table of only `"(total)"`, 0.
 11. **Docs:** `crosstab` and `CrosstabResult` have reference entries (the existing test fails without them); the
     example runs in `docs/prepare_site.py` and prints AC 2's summary.
+
+## Plan
+Two build commits, then the docs pages (a docs commit, with approval) and the close-out: four commits in all,
+each with ruff and the whole suite green. Reused, not rebuilt:
+- `stats/_rows.BLANK_GROUP` (`"(blank)"`), and `_rows._frame_input`'s `ColumnError` wording for a missing
+  column (the same sentence, written for two columns);
+- `registry.column_info()` for Decision 2's `quantity` check;
+- `stats/_result._Result` and `_plain()`; `DescribeResult.__str__`'s column-aligned text table, as a helper
+  shared with `CrosstabResult` only if it lifts out without changing `describe()`'s output (else a short copy,
+  noted in the commit).
+
+New module `stats/_crosstab.py` (the function and its reading). `CrosstabResult` goes in `stats/_result.py`.
+New tests in `tests/stats/`; an `example_index` fixture in `tests/stats/conftest.py` builds the example project
+in `tmp_path` and returns `ht.analysis.uscs(p.index_properties(geology_fields=["GEOL_GEOL", "GEOL_LEG"]))`
+with its warnings asserted, so AC 1–4 run on the spec's 20 rows.
+
+### 1. `M15: ht.stats.crosstab(), the table`
+- `stats/_crosstab.py`: `crosstab(df, rows, columns)` with Decisions 1–5: the input checks, the text reading
+  (whole numbers without a decimal, blanks including whitespace-only as `"(blank)"`, other values exactly as
+  written), the order (categories present in category order, else text sort, `"(blank)"` last), the counts.
+  `agree=` is added in step 2.
+- `stats/_result.py`: `CrosstabResult` (Decision 8) with every field, the agreement ones None;
+  `.to_frame()` with `"(total)"`; `.mismatches` (empty, with the listing's columns); `.to_dict()`; `str()`
+  with the title, table and Decision 9's "No agreement counted" note; `_repr_html_`.
+- `stats/__init__.py` exports `crosstab` and `CrosstabResult`; `docs/site/reference/stats.md` entries (the
+  reference test, AC 11's first part).
+- Docstring: what it counts, blanks, order, `agree=` (described in step 2), an example on a small frame, and
+  "See also" `describe()` and `compare()`.
+- Tests: new `tests/stats/test_crosstab.py`: AC 1, AC 4, AC 5, AC 7's table, AC 8 except `agree=`, AC 9's table
+  part, AC 10's empty frame; new `tests/stats/test_crosstab_result.py`: frozen, `.to_dict()` through
+  `json.dumps`, the summary's table and note.
+
+### 2. `M15: agreement and mismatches in crosstab()`
+- `_crosstab.py`: the `agree=` argument, `"same"` or a mapping (Decision 6): the mapping read as text on both sides, a
+  single value as a one-item list, the missing-key error listing each value and its count and `[]`; the six
+  counts and `proportion_agreeing`; the mismatch records with the listing's columns (Decision 7) and index
+  labels (text when not str or int).
+- `_result.py`: `.mismatches` built from the records; the notes of Decision 9 (agreement line, blank-count
+  lines, the first 20 mismatches then "… and N more").
+- Docstring: the `agree=` forms, the counts, why a blank on one side is never a mismatch, and why no kappa
+  (intent).
+- Tests: new `tests/stats/test_crosstab_agree.py`: AC 2, AC 3, AC 6, AC 7's agreement, AC 8's `agree=` errors,
+  AC 9 with `agree=`, AC 10's all-blank case and the records round trip; the 20-row cut-off in the summary on a
+  synthetic frame of 25 mismatches.
+
+### 3. `docs: comparing classifications` (docs commit, with approval)
+- `docs/site/guides/statistics.md`: a "Comparing classifications" section before "See also": the log against
+  the lab, choosing a geology key (SPEC §8.3), why agreement needs `agree=`, blanks on one side, reading
+  `.mismatches` back into the frame.
+- `docs/site/examples/statistics-crosstab.py`: the example project, `legend_code × uscs_symbol` with
+  `agree="same"`, then the mapping, printing both summaries (AC 11).
+- Check: `uv run python docs/prepare_site.py && uv run zensical build --clean --strict`, and read the example's
+  output by eye.
+
+### 4. `M15: close out (e)`
+- SPEC §5 (the input bullets scoped to the functions that summarize values; `crosstab` built; `CrosstabResult`
+  in the result list), §8.3 (`ht.stats.crosstab()`), §12.4 (M15 row: (e) done, M15 closed);
+  `docs/drafts/phase3-stats.md` (the `crosstab` row decided, pointing here); TODO #52 (kappa) added; the
+  CLAUDE.md status paragraph (M15 (e) done, next wave 0).
+- The whole suite and the oldest-versions run, then `git checkout uv.lock`.
+- Each acceptance criterion reported met or not, with evidence.
+
+### Verification
+- Per step: `uv run pytest tests/stats/test_crosstab*.py` while working; the whole suite
+  (`uv run pytest -n auto --dist loadfile`) and `uv run ruff check . && uv run ruff format --check .` before
+  each commit.
+- Golden tables are the spec's hand counts from the listed rows, never from running the implementation.
+- Read `print(result)` for AC 1–3 by eye before step 2's commit and in the site example.
