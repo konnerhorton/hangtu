@@ -2,11 +2,14 @@
 
 Spec: docs/work/m15d-compare.md, Decisions 4 and 6. ``brunner_munzel()``
 carries its degrees of freedom, an interval for the probability of
-superiority, and a permutation p-value for small groups.
+superiority, and a permutation p-value for small groups. ``dunn()`` and
+``holm()`` are the pairwise rank tests of ``compare_groups()``, which SciPy
+doesn't have. Not yet checked against the original papers (TODO #48): Brunner
+& Munzel (2000), Neubert & Brunner (2007), Dunn (1964), Holm (1979).
 """
 
 import math
-from itertools import combinations
+from itertools import combinations, pairwise
 from typing import Any
 
 import numpy as np
@@ -151,3 +154,69 @@ def _permutation(
     if method == "permutation, exact":
         return extreme / len(chosen), method
     return (extreme + 1) / (RESAMPLES + 1), method
+
+
+def dunn_z(
+    mean_rank_i: float,
+    mean_rank_j: float,
+    count_i: int,
+    count_j: int,
+    total: int,
+    ties: float,
+) -> float:
+    """Return Dunn's z for groups i and j from their mean joint ranks.
+
+    z = (R̄i - R̄j) / √{[N(N + 1)/12 - Σ(t³ - t)/(12(N - 1))](1/ni + 1/nj)},
+    with ``ties`` = Σ(t³ - t) over the tied values of all N (Dunn 1964, as
+    Dinno 2015 §2.2 describes it).
+    """
+    variance = total * (total + 1) / 12 - ties / (12 * (total - 1))
+    return (mean_rank_i - mean_rank_j) / math.sqrt(
+        variance * (1 / count_i + 1 / count_j)
+    )
+
+
+def tie_term(values: np.ndarray) -> float:
+    """Return Σ(t³ - t) over each set of t tied values."""
+    _, counts = np.unique(values, return_counts=True)
+    return float((counts**3 - counts).sum())
+
+
+def dunn(
+    groups: list[np.ndarray],
+) -> tuple[list[float], list[tuple[int, int, float, float]]]:
+    """Return each group's mean joint rank, and every pair's Dunn z and p.
+
+    All values are ranked together, mid-ranks for ties, as Kruskal-Wallis
+    ranks them. Pairs are (i, j) with i < j, in group order; z is positive when
+    group i has the higher ranks, and p is two-sided, 2(1 - Φ(|z|)),
+    unadjusted (``holm()`` adjusts it).
+    """
+    values = np.concatenate(groups)
+    ranks = _stats.rankdata(values)
+    bounds = np.cumsum([0, *(group.size for group in groups)])
+    means = [float(ranks[start:end].mean()) for start, end in pairwise(bounds)]
+    ties = tie_term(values)
+    pairs = []
+    for i, j in combinations(range(len(groups)), 2):
+        z = dunn_z(
+            means[i], means[j], groups[i].size, groups[j].size, values.size, ties
+        )
+        pairs.append((i, j, z, float(2 * _stats.norm.sf(abs(z)))))
+    return means, pairs
+
+
+def holm(p_values: list[float]) -> list[float]:
+    """Return Holm's adjusted p-values, in the order given.
+
+    The i-th smallest of m is multiplied by m + 1 - i, capped at 1, and the
+    running maximum carried forward so the adjusted values keep their order
+    (Holm 1979, as Dinno 2015 §2.3 describes it).
+    """
+    m = len(p_values)
+    adjusted = [0.0] * m
+    running = 0.0
+    for rank, index in enumerate(np.argsort(p_values, kind="stable")):
+        running = max(running, min(1.0, (m - rank) * p_values[index]))
+        adjusted[index] = running
+    return adjusted
