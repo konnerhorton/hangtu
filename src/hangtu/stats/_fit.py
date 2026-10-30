@@ -39,6 +39,17 @@ MIN_COUNT = 4
 FEW = 10
 #: A normal fit putting more than this below the lower bound gets a note.
 BELOW_BOUND_NOTE = 0.01
+#: Parametric bootstrap of the Anderson-Darling p-value (Decision 7): 999
+#: samples give a standard error of about 0.007 at p = 0.05. The seed is fixed,
+#: so the same data give the same p-value.
+BOOTSTRAP_SAMPLES = 999
+SEED = 20261030
+ANDERSON_DARLING = (
+    "Anderson-Darling p-values are by parametric bootstrap (999 samples from "
+    "each fit, refitted): a small one (below 0.05, say) is evidence against the "
+    "distribution; a large one is not evidence for it, least of all below 10 "
+    "values."
+)
 BURNHAM_ANDERSON = (
     "AICc ranks the fits within each group (Burnham & Anderson 2004, p. 271): "
     "ΔAICc ≤ 2 is substantial support, 4 to 7 considerably less, above 10 "
@@ -114,6 +125,20 @@ def fit(
     ``probability_above_upper_bound`` $= 1 - F(\text{high})$, and a normal
     fit with more than 1 % below the lower bound gets a note.
 
+    **Goodness of fit** (Anderson-Darling): for each fit,
+    $A^2 = -n - \frac{1}{n}\sum_{i=1}^{n} (2i - 1)[\ln F(x_{(i)}) +
+    \ln(1 - F(x_{(n+1-i)}))]$ with $F$ the fitted CDF and $x_{(i)}$ the
+    values in order (NIST/SEMATECH e-Handbook of Statistical Methods,
+    §1.3.5.14). Published critical values exist only for some distributions,
+    and they assume the parameters weren't estimated from the same data, so
+    the p-value is a parametric bootstrap instead, as in SciPy's
+    ``scipy.stats.goodness_of_fit``: 999 samples of $n$ values drawn from the
+    fit, each refitted the same way, and $p$ = (1 + the number with $A^2$ at
+    least the observed) / 1000. The seed is fixed, so the same data give the
+    same p-value. A small p-value (below 0.05, say) is evidence against the
+    distribution; a large one is not evidence for it, least of all with few
+    values. It is reported, not turned into a pass or fail.
+
     **At least 4 values per group** (AICc needs $n > k + 1$): a group with
     fewer has no fits, with a warning; one with fewer than 10 is fitted with
     a warning that the ranking says little. No group to fit is an error.
@@ -182,6 +207,11 @@ def fit(
     Burnham, K.P. & Anderson, D.R. (2004). Multimodel inference:
     understanding AIC and BIC in model selection. *Sociological Methods &
     Research* 33(2), 261-304.
+
+    NIST/SEMATECH *e-Handbook of Statistical Methods*, §1.3.5.14,
+    Anderson-Darling test. It cites Stephens (1974); the bootstrap with
+    estimated parameters follows SciPy's ``goodness_of_fit`` documentation
+    until the primary papers are checked.
 
     Examples
     --------
@@ -393,9 +423,16 @@ def _fit_group(
         ):
             left_out[name] = "the fit didn't converge"
             continue
-        fits.append(
-            _record(name, parameters, distribution, log_likelihood, values, low, high)
+        record = _record(
+            name, parameters, distribution, log_likelihood, values, low, high
         )
+        if not values.left.size and not values.right.size:
+            statistic = anderson_darling(name, parameters, values.exact)
+            record["anderson_darling_statistic"] = statistic
+            record["anderson_darling_p_value"] = _anderson_darling_p_value(
+                name, distribution, statistic, values.exact.size, (low, high)
+            )
+        fits.append(record)
     _rank(fits)
     return fits, left_out
 
@@ -405,14 +442,11 @@ def estimate(
 ) -> dict[str, float]:
     """Return the maximum-likelihood parameters of ``name``, by SciPy's names."""
     x = values.exact
+    if name in CLOSED_FORM:
+        return {key: float(value) for key, value in _closed_form(name, x).items()}
     with warnings.catch_warnings():
         # A failed fit shows as non-finite parameters, checked by the caller.
         warnings.simplefilter("ignore", RuntimeWarning)
-        if name == "normal":
-            return {"loc": float(x.mean()), "scale": float(x.std())}
-        if name == "lognormal":
-            logs = np.log(x)
-            return {"s": float(logs.std()), "scale": float(np.exp(logs.mean()))}
         if name == "gamma":
             shape, _, scale = _stats.gamma.fit(x, floc=0)
             return {"a": float(shape), "scale": float(scale)}
@@ -424,6 +458,87 @@ def estimate(
         low, high = bounds
         a, b, _, _ = _stats.beta.fit(x, floc=low, fscale=high - low)
         return {"a": float(a), "b": float(b), "loc": low, "scale": high - low}
+
+
+#: Fitted in closed form without censoring (Decision 2).
+CLOSED_FORM = ("normal", "lognormal")
+
+
+def _closed_form(name: str, x: np.ndarray) -> dict[str, np.ndarray]:
+    """Fit normal or lognormal along the last axis: one fit per row of ``x``."""
+    if name == "normal":
+        return {"loc": x.mean(axis=-1), "scale": x.std(axis=-1)}
+    logs = np.log(x)
+    return {"s": logs.std(axis=-1), "scale": np.exp(logs.mean(axis=-1))}
+
+
+def anderson_darling(
+    name: str, parameters: Mapping[str, Any], values: np.ndarray
+) -> Any:
+    """Return A² of ``values`` against distribution ``name`` at ``parameters``.
+
+    The formula is in ``fit()``'s docstring (NIST/SEMATECH e-Handbook,
+    §1.3.5.14). With 2-D ``values`` and a parameter array per row, it
+    returns one A² per row. It doesn't freeze the distribution, which costs
+    more than the statistic.
+    """
+    x = np.sort(np.atleast_2d(values), axis=-1)
+    n = x.shape[-1]
+    weights = 2 * np.arange(1, n + 1) - 1
+    columns = {
+        key: np.reshape(np.asarray(value, float), (-1, 1))
+        for key, value in parameters.items()
+    }
+    distribution = getattr(_stats, SCIPY_NAMES[name])
+    with np.errstate(divide="ignore", invalid="ignore"):
+        total = (
+            weights
+            * (
+                distribution.logcdf(x, **columns)
+                + distribution.logsf(x[:, ::-1], **columns)
+            )
+        ).sum(axis=-1)
+    statistic = -n - total / n
+    return float(statistic[0]) if np.ndim(values) == 1 else statistic
+
+
+def _anderson_darling_p_value(
+    name: str,
+    distribution: Any,
+    statistic: float,
+    n: int,
+    bounds: tuple[float | None, float | None],
+) -> float:
+    """Return the share of refitted bootstrap samples with A² at least ``statistic``.
+
+    Each sample is drawn from the fit and refitted with the same routine, so
+    the estimated parameters are accounted for. A sample whose refit fails is
+    left out of both counts.
+    """
+    random = np.random.default_rng(SEED)
+    samples = distribution.rvs(size=(BOOTSTRAP_SAMPLES, n), random_state=random)
+    if name in CLOSED_FORM:
+        parameters = _closed_form(name, samples)
+    else:
+        parameters = _estimates(name, samples, bounds)
+    refits = anderson_darling(name, parameters, samples)
+    valid = np.isfinite(refits)
+    return float((1 + (refits[valid] >= statistic).sum()) / (1 + valid.sum()))
+
+
+def _estimates(
+    name: str, samples: np.ndarray, bounds: tuple[float | None, float | None]
+) -> dict[str, np.ndarray]:
+    """Refit each sample with ``estimate()``; NaN parameters where a refit fails."""
+    empty = np.empty(0)
+    rows = []
+    for sample in samples:
+        try:
+            rows.append(estimate(name, Values(sample, empty, empty), bounds))
+        except Exception:  # SciPy raises several kinds
+            rows.append({})
+    keys = next((row.keys() for row in rows if row), ())
+    return {key: np.array([row.get(key, np.nan) for row in rows]) for key in keys}
 
 
 def frozen(name: str, parameters: Mapping[str, float]) -> Any:
@@ -538,6 +653,12 @@ def _notes(
             where = f" in {label}" if read.by else ""
             notes.append(f"Pooled across {column}{where}: {listed}.")
     notes.append(BURNHAM_ANDERSON)
+    if any(
+        math.isfinite(fit["anderson_darling_p_value"])
+        for group in groups
+        for fit in group["fits"]
+    ):
+        notes.append(ANDERSON_DARLING)
     if read.by:
         notes.append("AICc compares fits within a group, never across groups.")
     return notes

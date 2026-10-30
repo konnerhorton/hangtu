@@ -9,10 +9,20 @@ from scipy import stats
 
 import hangtu as ht
 from hangtu.errors import ColumnError, HangtuError
+from hangtu.stats import _fit as fit_module
 from hangtu.units import to_display
 
 STRENGTH = [10, 12, 15, 20, 23]
 FEW = "fewer than 10"
+
+
+@pytest.fixture(autouse=True)
+def _short_bootstrap(monkeypatch):
+    """Draw few bootstrap samples: no test here checks a p-value.
+
+    test_fit_anderson_darling.py checks them at the full 999.
+    """
+    monkeypatch.setattr(fit_module, "BOOTSTRAP_SAMPLES", 19)
 
 
 def _strength(values=STRENGTH, unit="kPa", **columns):
