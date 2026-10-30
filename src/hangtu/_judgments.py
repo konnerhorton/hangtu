@@ -1,4 +1,4 @@
-"""The judgments file: a project's unit weights, water levels, PI and Gs (SPEC §4).
+"""The judgments file: a project's unit weights, water levels, PI, Gs and α (SPEC §4).
 
 A judgment has no default. Analyses take it from an argument, then from
 ``judgments=``, then from the Project's file, else raise. The file format and
@@ -29,6 +29,7 @@ class Kind:
     one_of: tuple[str, ...]  # exactly one of these, when not empty
     by: str | None  # the column keys match, when fixed
     unitless: bool = False  # a pure number: no units block (m14b, Decision 4)
+    project_only: bool = False  # one value for the project, no keys (m15d, Decision 8)
 
 
 KINDS = {
@@ -66,12 +67,24 @@ KINDS = {
         by=None,
         unitless=True,
     ),
+    # docs/work/m15d-compare.md, Decision 8.
+    "significance_level": Kind(
+        keyed="values",
+        fields={"significance_level": "dimensionless"},
+        required=("significance_level",),
+        one_of=(),
+        by=None,
+        unitless=True,
+        project_only=True,
+    ),
 }
 
 #: Fields that must be positive (a water level may be above ground).
 POSITIVE = {"bulk_unit_weight", "saturated_unit_weight", "specific_gravity"}
 #: Fields that may be zero but not negative.
 NON_NEGATIVE = {"plasticity_index"}
+#: Fields strictly between 0 and 1: a probability.
+PROBABILITY = {"significance_level"}
 #: Fields that warn outside a range, with what lies outside it: QC B003's
 #: particle density range (docs/data/qc.md §4.11).
 PLAUSIBLE = {
@@ -79,7 +92,13 @@ PLAUSIBLE = {
         2.0,
         3.2,
         "peat and organic soils lie lower, ores and some rock higher",
-    )
+    ),
+    "significance_level": (
+        0.001,
+        0.2,
+        "0.05 and 0.01 are the usual conventions; a level this far from them "
+        "is rarely meant",
+    ),
 }
 
 #: Units shown in examples, as they are written in the file.
@@ -128,7 +147,7 @@ def quantity_text(value: float, unit: str) -> str:
 
 
 class Judgments:
-    """A project's judgments file: unit weights, water levels, PI and Gs.
+    """A project's judgments file: unit weights, water levels, PI, Gs and α.
 
     Made by ``ht.judgments(path)`` or ``p.judgments``. It holds the path, not
     the values: each analysis re-reads the file, so an edit shows up in the next
@@ -188,7 +207,7 @@ class Judgments:
 
 
 def judgments(path: str | PathLike[str]) -> Judgments:
-    """Open a judgments file: the unit weights, water levels, PI and Gs a project uses.
+    """Open a judgments file: a project's unit weights, water levels, PI, Gs and α.
 
     Judgments have no defaults in hangtu (SPEC §4). They live in one YAML file
     with their units and reasons, and every analysis that needs one reads it
@@ -222,6 +241,8 @@ def judgments(path: str | PathLike[str]) -> Judgments:
           by: geology_unit          # no units: Gs is a pure number
           values:
             Alluvium: {specific_gravity: 2.68, reason: "median of 6 LPDN, measured"}
+        significance_level:         # one value for the project, no keys
+          project: {significance_level: 0.05, reason: "the usual convention"}
         ```
 
         - `unit_weight` entries take `bulk_unit_weight` (required) and
@@ -237,10 +258,15 @@ def judgments(path: str | PathLike[str]) -> Judgments:
         - `specific_gravity` entries take `specific_gravity`, a positive
           number, which warns outside 2.0-3.2. `ht.analysis.phase_relations()`
           uses it only for rows with no particle density.
+        - `significance_level` takes only a `project:` entry: α, between 0
+          and 1, which warns outside 0.001-0.2. `ht.stats.compare()` and
+          `ht.stats.compare_groups()` test at it and give intervals at
+          1 - α.
         - `units:` gives a unit for every field used, except for
-          `specific_gravity`, which has none.
-        - `project:` is optional and needs a `reason`. It is used, with a
-          warning, for every unit or hole the keyed entries don't list.
+          `specific_gravity` and `significance_level`, which have none.
+        - `project:` needs a `reason`. It is optional except for
+          `significance_level`, and used, with a warning, for every unit or
+          hole the keyed entries don't list.
         - Keys match exactly and case-sensitively. Quote keys YAML would read
           as something else (`"yes"`, `"1"`).
 
@@ -255,8 +281,9 @@ def judgments(path: str | PathLike[str]) -> Judgments:
     HangtuError
         Naming the file, the judgment and the entry for an unknown key or
         field, a missing `units`, `by` or `reason`, a wrong unit, a value that
-        isn't a number (or isn't positive, for unit weights and Gs), a
-        `units` block for Gs, or invalid YAML.
+        isn't a number (or isn't positive, for unit weights and Gs, or isn't
+        between 0 and 1, for α), a `units` block for Gs or α, keys for α, or
+        invalid YAML.
     FileNotFoundError
         If there is no file at `path`.
 
@@ -330,6 +357,8 @@ def _check_judgment(name: str, body: Any, where: str) -> Judgment:
         sections = ("units", "project", kind.keyed)
     if kind.unitless:
         sections = tuple(section for section in sections if section != "units")
+    if kind.project_only:
+        sections = ("project",)
     if not isinstance(body, Mapping):
         raise HangtuError(
             f"{where}: must be a mapping of {', '.join(sections)}, not {body!r}."
@@ -340,6 +369,12 @@ def _check_judgment(name: str, body: Any, where: str) -> Judgment:
                 f"{where}: {name} is a pure number and takes no units. Remove "
                 "the units: line; a % would be read as a ratio and change the "
                 "value 100-fold."
+            )
+        if kind.project_only and key != "project":
+            raise HangtuError(
+                f"{where}: {name} takes only project:, one value for the whole "
+                f"project with its reason, not {key}:. Example: project: "
+                f'{{{name}: 0.05, reason: "the usual convention"}}'
             )
         if key not in sections:
             raise HangtuError(
@@ -365,14 +400,22 @@ def _check_judgment(name: str, body: Any, where: str) -> Judgment:
                 f"{where}, by: must be a column name such as geology_unit, not {by!r}."
             )
     project = body.get("project")
+    if kind.project_only and project is None:
+        raise HangtuError(
+            f"{where}: 'project' is missing. Example: project: "
+            f'{{{name}: 0.05, reason: "the usual convention"}}'
+        )
     if project is not None:
         project = _check_entry(kind, project, units_by_field, f"{where}, project")
         if project.reason is None:
-            raise HangtuError(
-                f"{where}, project: 'reason' is missing. A project-wide value "
-                "fills in for every key not listed, so say why it holds, "
-                "e.g. reason: median of all tests."
+            why = (
+                "It applies to every call in the project, so say why it was "
+                'chosen, e.g. reason: "the usual convention"'
+                if kind.project_only
+                else "A project-wide value fills in for every key not listed, "
+                "so say why it holds, e.g. reason: median of all tests"
             )
+            raise HangtuError(f"{where}, project: 'reason' is missing. {why}.")
     values = {}
     if keyed is not None:
         if not isinstance(keyed, Mapping):
@@ -459,9 +502,12 @@ def _check_entry(
             or not math.isfinite(value)
             or (field in POSITIVE and value <= 0)
             or (field in NON_NEGATIVE and value < 0)
+            or (field in PROBABILITY and not 0 < value < 1)
         ):
             sign = (
-                "a positive number"
+                "a number between 0 and 1, e.g. 0.05"
+                if field in PROBABILITY
+                else "a positive number"
                 if field in POSITIVE
                 else "a number of 0 or more"
                 if field in NON_NEGATIVE
