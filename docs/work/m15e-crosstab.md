@@ -150,7 +150,7 @@ agreed in review on 2026-10-30.
    int is written as text).
 9. **The summary** (`print(result)`): a title (`legend_code × uscs_symbol`), the table with totals, then the
    notes:
-   - with `agree=`: "Agree (same text): 2 of 8 rows with both values (25%)." or "Agree (by the mapping): …";
+   - with `agree=`: "Agree (same text): 2 of 8 rows with both values (25 %)." or "Agree (by the mapping): …";
    - one line per nonzero blank count: "12 rows have a legend_code but no uscs_symbol.";
    - with mismatches, the listing, the first 20 rows, then "… and 14 more: result.mismatches lists them all.";
    - without `agree=`: "No agreement counted: pass agree=\"same\" if the two columns use one vocabulary, or a
@@ -193,7 +193,7 @@ and `uscs_symbol`, read from the dataset row by row (loca_id, depth in ft):
    B-3 1.5 (FILL, SC), B-4 13 (CL, CH), B-6 13 (CL, ML); its columns are `loca_id`, `sample_reference`, `depth`,
    `water_content_specimen_id`, `atterberg_specimen_id`, `grain_size_specimen_id`, `legend_code`,
    `uscs_symbol`, `source_line` (the dataset's own order), and `d.loc[result.mismatches.index]` returns those
-   six rows. The summary says "2 of 8 rows with both values (25%)" and "12 rows have a legend_code but no
+   six rows. The summary says "2 of 8 rows with both values (25 %)" and "12 rows have a legend_code but no
    uscs_symbol."
 3. **A mapping (example project):** `agree={"CL": "CL", "FILL": ["SC", "SM", "GC"], "SP": ["SP", "SP-SM"]}`
    gives `count_agreeing` 4 of 8 (0.5) and the four CH and ML rows as mismatches. Leaving `"FILL"` out is an

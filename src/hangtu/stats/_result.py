@@ -775,6 +775,12 @@ class CompareGroupsResult(_Result):
 
 #: The label of the totals row and column of a ``CrosstabResult``.
 TOTAL = "(total)"
+#: The mismatches ``print(result)`` shows; ``.mismatches`` has them all.
+MISMATCHES_SHOWN = 20
+
+
+def _listed(value: Any) -> str:
+    return value if isinstance(value, str) else _cell(value)
 
 
 @dataclass(frozen=True, repr=False)
@@ -849,7 +855,27 @@ class CrosstabResult(_Result):
             [str(label), *(str(int(count)) for count in counts)]
             for label, counts in zip(frame.index, frame.to_numpy(), strict=True)
         ]
-        return "\n".join([f"{self.rows} × {self.columns}", *_table(rows), *self.notes])
+        lines = [f"{self.rows} × {self.columns}", *_table(rows), *self.notes]
+        return "\n".join([*lines, *self._listing()])
+
+    def _listing(self) -> list[str]:
+        """Return the first mismatches as a table (Decision 9)."""
+        n = len(self.mismatch_values)
+        if not n:
+            return []
+        verb = "row disagrees" if n == 1 else "rows disagree"
+        shown = self.mismatch_values[:MISMATCHES_SHOWN]
+        cells = [
+            [str(label), *(_listed(value) for value in values)]
+            for label, values in zip(self.mismatch_index, shown, strict=False)
+        ]
+        header = ["", *self.mismatch_columns]
+        lines = [f"{n} {verb}:", *_table([header, *cells], "  ")]
+        if n > MISMATCHES_SHOWN:
+            lines.append(
+                f"… and {n - MISMATCHES_SHOWN} more: result.mismatches lists them all."
+            )
+        return lines
 
     def __repr__(self) -> str:
         return str(self)
