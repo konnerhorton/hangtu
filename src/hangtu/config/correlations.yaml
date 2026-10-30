@@ -23,7 +23,20 @@
 #               {wording, coefficient, uscs}}, the source's wording, its coefficient,
 #               and hangtu's proposed USCS groups for it; soil= names the row and
 #               uscs= checks it (docs/work/m13b3-spt-stiffness.md, Decision 3)
-#   applies_to, not_for, scatter, notes   as the sources state them
+#   applies_to, not_for, notes   as the sources state them
+#   scatter     the source's own statistics (docs/work/m15b-correlation-statistics.md):
+#               words (its statement, verbatim; "Not stated." when none), data_count
+#               (its n), r_squared, standard_deviation {value, unit, scale}; null when
+#               not stated. unit: a unit, pa (the entry's pa = 100 kPa), or null for a
+#               dimensionless target. scale: arithmetic (the regression's standard
+#               error in the target's terms), log10 or ln (a factor), or null while
+#               not verified; only arithmetic goes on the rows
+#   advice      {words, by}: the source's advice on use, at most a sentence, quoted
+#               with by = its citation and locator, or hangtu's own with by = hangtu;
+#               null when none
+#   evaluations other databases' checks of the correlation, [] when none: bias (mean
+#               of measured over estimated), coefficient_of_variation, data_count,
+#               database, cite, locator. Kept off the rows; applying them is M18's
 #   uscs        hangtu's proposed USCS groups for applies_to, used only with
 #               uscs="proposed" (Decision 10); uscs_basis says how they were read
 #   label       optional: the legend text, e.g. "Stroud (1974)"; by default the first
@@ -46,7 +59,13 @@ effective_friction_angle_hatanaka_uchida_1996:
   uscs_basis: >-
     hangtu's reading of "relatively clean" sands: the clean and the
     clean-with-silt USCS sands; gravels and clayey or silty sands are left out
-  scatter: "±3° for most of the data"
+  scatter:
+    words: "±3° for most of the data"
+    data_count: null
+    r_squared: null
+    standard_deviation: null
+  advice: null
+  evaluations: []
   notes: >-
     The source's φ′ = (20 N1)^0.5 + 20 is for N1 at the 78 % energy of the
     Japanese tombi trip hammer, for 3.5 ≤ N1 ≤ 30, from drained triaxial tests
@@ -76,7 +95,13 @@ effective_friction_angle_kulhawy_mayne_1990:
   uscs_basis: >-
     hangtu's reading of "relatively clean" sands: the clean and the
     clean-with-silt USCS sands; gravels and clayey or silty sands are left out
-  scatter: null
+  scatter:
+    words: "Not stated."
+    data_count: null
+    r_squared: null
+    standard_deviation: null
+  advice: {words: "somewhat conservative, especially for depths less than 6 ft", by: "Loehr et al. (2016), pp. 7-54 to 7-55"}
+  evaluations: []
   notes: >-
     An approximation of Schmertmann's (1975) chart, drawn for σ′v up to 300 kPa
     and N60 up to 60. GEC 5 calls it "somewhat conservative, especially for
@@ -110,9 +135,13 @@ undrained_shear_strength_terzaghi_peck_1967:
   uscs: [CL, CH]
   uscs_basis: >-
     hangtu's reading of "clays": the USCS lean and fat clays
-  scatter: >-
-    Not stated. GEC 5 (p. 7-38): "SPT N-values are generally a poor predictor
-    of undrained shear strength".
+  scatter:
+    words: "Not stated."
+    data_count: null
+    r_squared: null
+    standard_deviation: null
+  advice: {words: "SPT N-values are generally a poor predictor of undrained shear strength", by: "Loehr et al. (2016), p. 7-38"}
+  evaluations: []
   notes: >-
     "Developed primarily using unconfined compression tests" (EPRI p. 4-53). The N values "have
     not all been standardized to the same energy level", so the input is
@@ -145,9 +174,13 @@ undrained_shear_strength_stroud_1974:
   uscs: [CL, CH]
   uscs_basis: >-
     hangtu's reading of "clays": the USCS lean and fat clays
-  scatter: >-
-    Not stated. GEC 5 (p. 7-38) gives them as "somewhat lower bound values",
-    and SPT N as "generally a poor predictor of undrained shear strength".
+  scatter:
+    words: "Not stated."
+    data_count: null
+    r_squared: null
+    standard_deviation: null
+  advice: {words: "somewhat lower bound values", by: "Loehr et al. (2016), p. 7-38"}
+  evaluations: []
   notes: >-
     GEC 5 gives f1 = 4.5 for PI ≳ 30 and 5.5 for PI ≅ 15, and nothing between.
     hangtu gives one value at PI ≥ 30 and, for 15 ≤ PI < 30, the band 4.5 to
@@ -173,7 +206,13 @@ preconsolidation_stress_mayne_kemper_1988:
   uscs: [CL, CH]
   uscs_basis: >-
     hangtu's reading of "clays": the USCS lean and fat clays
-  scatter: "n = 126, r² = 0.699, S.D. = 4.37 pa"
+  scatter:
+    words: "n = 126, r² = 0.699, S.D. = 4.37 pa"
+    data_count: 126
+    r_squared: 0.699
+    standard_deviation: {value: 4.37, unit: pa, scale: null}   # 🔬 arithmetic or log: docs/work/m15b-correlation-statistics.md
+  advice: {words: "SPT N is a poor predictor in clay: use the estimate to check oedometer σ′p, not in its place.", by: hangtu}
+  evaluations: []
   notes: >-
     A regression on 49 intact and 2 fissured clays; the fissured clays plot
     above the trend. The range is the chart's N axis, 0.5 to 200 blows/ft. A
@@ -204,7 +243,13 @@ overconsolidation_ratio_mayne_kemper_1988:
   uscs: [CL, CH]
   uscs_basis: >-
     hangtu's reading of "clays": the USCS lean and fat clays
-  scatter: "n = 112, r² = 0.661, S.D. = 3.82"
+  scatter:
+    words: "n = 112, r² = 0.661, S.D. = 3.82"
+    data_count: 112
+    r_squared: 0.661
+    standard_deviation: {value: 3.82, unit: null, scale: null}   # 🔬 as above
+  advice: {words: "SPT N is a poor predictor in clay: use the estimate to check oedometer OCR, not in its place.", by: hangtu}
+  evaluations: []
   notes: >-
     A regression on 48 intact and 3 fissured clays. The range is the chart's
     axis, 1 ≤ N pa/σ′v0 ≤ 100 (OCR 1 to 50).
@@ -233,12 +278,27 @@ at_rest_earth_pressure_coefficient_kulhawy_et_al_1989:
   uscs: [CL, CH]
   uscs_basis: >-
     hangtu's reading of "clays": the USCS lean and fat clays
-  scatter: "n = 57, r² = 0.771, S.D. = 0.43"
+  scatter:
+    words: "n = 57, r² = 0.771, S.D. = 0.43"
+    data_count: 57
+    r_squared: 0.771
+    standard_deviation: {value: 0.43, unit: null, scale: null}   # 🔬 as above
+  advice: 
+    words: >-
+      Measured K0 averaged about twice the estimate on another clay
+      database (see evaluations): use it to check measured K0, not in its place.
+    by: hangtu
+  evaluations: 
+    # b: the mean of measured over estimated; its coefficient of variation
+    - bias: 2.16
+      coefficient_of_variation: 0.70
+      data_count: 74
+      database: "TC304 clay database, CLAY/12/3997"
+      cite: Ching & Schweckendiek (2021)
+      locator: "Table 5.2, p. 178"
   notes: >-
     A regression on 13 intact and 5 fissured clays. The range is the chart's
-    axis, 0 < N pa/σ′v0 ≤ 60. On the TC304 clay database (CLAY/12/3997, n = 74)
-    the mean of measured over predicted K0 is b = 2.16, with COV δ = 0.70:
-    measured K0 averaged about twice the estimate.
+    axis, 0 < N pa/σ′v0 ≤ 60.
   sources:
     - cite: Kulhawy et al. (1989)
       reference: >-
@@ -284,10 +344,13 @@ drained_youngs_modulus_aashto_2004:
     Each row's groups are hangtu's reading of its wording. A USCS symbol
     doesn't say whether a sand is fine or coarse, so the two sand rows share
     their groups: the check catches a gravel or a clay, not the wrong sand.
-  scatter: >-
-    Not stated. FHWA NHI-06-088 (pp. 5-83 to 5-84) gives the table "for
-    preliminary design", and GEC 5 (p. 8-25) calls such relationships "only
-    approximate estimates".
+  scatter:
+    words: "Not stated."
+    data_count: null
+    r_squared: null
+    standard_deviation: null
+  advice: {words: "only approximate estimates", by: "Loehr et al. (2016), p. 8-25"}
+  evaluations: []
   notes: >-
     The source calls the estimate Es, Young's modulus for elastic
     settlement; GEC 5 gives it as an "equivalent modulus" at working
@@ -338,9 +401,15 @@ drained_youngs_modulus_kulhawy_mayne_1990:
     Each row's groups are hangtu's reading of its wording. A USCS symbol
     doesn't say whether a sand is normally consolidated or overconsolidated,
     so the two clean rows share their groups.
-  scatter: >-
-    Not stated. EPRI (p. 5-17): "all attempts to date which correlate a
-    modulus with N show considerable scatter".
+  scatter:
+    words: >-
+      Not stated. "All attempts to date which correlate a modulus with N show
+      considerable scatter" (p. 5-17).
+    data_count: null
+    r_squared: null
+    standard_deviation: null
+  advice: {words: "as a first order estimator", by: "Kulhawy & Mayne (1990), p. 5-17"}
+  evaluations: []
   notes: >-
     Given "as a first order estimator", beside Fig. 5-13, "Comparative Plot
     of Drained Modulus Correlations for Sand", in the section on
@@ -365,7 +434,13 @@ shear_wave_velocity_imai_tonouchi_1982:
   not_for: null
   uscs: null
   uscs_basis: None proposed; the source is for all soils.
-  scatter: "n = 1654 pairs from 386 borings at 250 sites, r² = 0.75"
+  scatter:
+    words: "n = 1654 pairs from 386 borings at 250 sites, r² = 0.75"
+    data_count: 1654
+    r_squared: 0.75
+    standard_deviation: null
+  advice: null
+  evaluations: []
   notes: >-
     The source's Vs = 97.0 N^0.31 m/s is on uncorrected Japanese N. Wair et
     al. give it for N60 at an assumed 67 % energy, typical of Japanese
@@ -394,7 +469,13 @@ shear_wave_velocity_ohta_goto_1978:
   not_for: null
   uscs: null
   uscs_basis: None proposed; the source is for all soils.
-  scatter: "r² = 0.52, on 289 pairs"
+  scatter:
+    words: "r² = 0.52, on 289 pairs"
+    data_count: 289
+    r_squared: 0.52
+    standard_deviation: null
+  advice: null
+  evaluations: []
   notes: >-
     The source's Vs = 85.3 N^0.35 m/s is its regression on N alone, for
     Quaternary soils, on uncorrected Japanese N. Wair et al. give it for N60

@@ -64,8 +64,16 @@ def describe(name: str) -> dict[str, Any]:
     dict
         A copy of its entry in ``config/correlations.yaml``: ``target``,
         ``equation``, ``inputs`` (column, variant and unit), ``range``,
-        ``applies_to``, ``not_for``, ``scatter``, ``notes``, ``sources``
-        (each with its locator) and ``label``. ``label`` is the text a plot's
+        ``applies_to``, ``not_for``, ``notes``, ``sources`` (each with its
+        locator) and ``label``. ``scatter`` holds the source's own statistics:
+        its ``words``, ``data_count`` (n), ``r_squared`` and
+        ``standard_deviation`` (``value``, ``unit`` and ``scale``), each None
+        where the source states none. ``advice`` is the source's advice on use
+        (``words`` and ``by``, its citation, or "hangtu" for hangtu's own), or
+        None. ``evaluations`` lists other databases' checks of the
+        correlation: ``bias`` (mean of measured over estimated),
+        ``coefficient_of_variation``, ``data_count``, ``database``, ``cite``
+        and ``locator``. ``label`` is the text a plot's
         legend shows for the correlation when it colors or marks points by
         ``correlation_name``: the entry's ``label:`` if it has one, else the
         first source's citation, e.g. "Hatanaka & Uchida (1996)".
