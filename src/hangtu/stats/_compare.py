@@ -18,7 +18,7 @@ from scipy import stats as _stats
 from hangtu import units as _units
 from hangtu._data import text_values
 from hangtu.errors import HangtuError, warn
-from hangtu.stats import _rows, _significance
+from hangtu.stats import _rank, _rows, _significance
 from hangtu.stats._describe import summarize
 from hangtu.stats._result import CompareResult
 from hangtu.stats._rows import COUNTS
@@ -337,15 +337,18 @@ def blank_welch(log: bool) -> dict[str, float]:
     )
 
 
-#: Brunner-Munzel's columns, blank until it runs.
-BRUNNER_MUNZEL = (
-    "probability_of_superiority",
-    "probability_of_superiority_lower",
-    "probability_of_superiority_upper",
-    "brunner_munzel_statistic",
-    "brunner_munzel_degrees_of_freedom",
-    "brunner_munzel_p_value",
-)
+def blank_brunner_munzel() -> dict[str, Any]:
+    """Brunner-Munzel's columns, blank: no test was run."""
+    nan = float("nan")
+    return {
+        "probability_of_superiority": nan,
+        "probability_of_superiority_lower": nan,
+        "probability_of_superiority_upper": nan,
+        "brunner_munzel_statistic": nan,
+        "brunner_munzel_degrees_of_freedom": nan,
+        "brunner_munzel_p_value": nan,
+        "brunner_munzel_method": None,
+    }
 
 
 def compare(
@@ -379,7 +382,17 @@ def compare(
       its interval (§5.3.4), for values that span orders of magnitude.
     - **A rank-based test**, the Brunner-Munzel test, with its effect size
       ``probability_of_superiority``, the probability that a value from the
-      first group exceeds one from the second (0.5: neither tends larger).
+      first group exceeds one from the second, ties counting half (0.5:
+      neither tends larger; Karch 2021, p. 6). Unlike Mann-Whitney it doesn't
+      assume the groups have the same shape, the case Welch's test is for.
+      Its statistic is positive when the first group tends larger. With 10 or
+      more values in each group the p-value is from the t approximation and
+      p̂ has an interval at 1 - α; below 10 in either, where that
+      approximation is poor (Karch 2021, p. 8), the p-value is by permutation
+      of the same statistic (exact up to 9999 splits, else 9999 random splits
+      from a fixed seed; ``brunner_munzel_method`` says which) and p̂ has no
+      interval. Groups that don't overlap have an infinite statistic. Ranks
+      are the same on a log scale, so ``log=`` doesn't change this test.
 
     **Two groups, three ways:** ``compare(a, b)`` with two lists, arrays or
     Series (named by the Series' names, else ``"first"`` and ``"second"``);
@@ -405,7 +418,10 @@ def compare(
     The tests assume independent values. Values from one hole, or close
     together, aren't, and the p-values are then too small.
 
-    Not yet checked against the original papers (TODO #48): Welch (1947).
+    Not yet checked against the original papers (TODO #48): Welch (1947);
+    Brunner & Munzel (2000) and Neubert & Brunner (2007), for the statistic,
+    its variance and the permutation form, which follow SciPy's
+    ``brunnermunzel`` and Karch (2021).
 
     Parameters
     ----------
@@ -503,15 +519,21 @@ def compare(
     test = (
         welch(first.values, second.values, alpha, log) if tested else blank_welch(log)
     )
-    nan = float("nan")
-    rank = dict.fromkeys(BRUNNER_MUNZEL, nan)
-    rank["brunner_munzel_method"] = None
+    rank, rank_notes = (
+        _rank.brunner_munzel(
+            first.values, second.values, alpha, (first.label, second.label)
+        )
+        if tested
+        else (blank_brunner_munzel(), [])
+    )
     return CompareResult(
         kind="property",
         function="compare",
         value=read.value,
         unit=read.unit,
-        notes=tuple(_notes(chosen, read, test, tested, include_assumed, log)),
+        notes=tuple(
+            [*_notes(chosen, read, test, tested, include_assumed, log), *rank_notes]
+        ),
         judgments=_judgments_record(read.frames, record),
         hangtu_version=version("hangtu"),
         by=tuple(read.by),
