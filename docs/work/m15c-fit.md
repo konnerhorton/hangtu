@@ -284,3 +284,89 @@ Hand-calculated from the formulas above; tolerance 1e-9 relative unless stated.
     `json.dumps`; `.distribution("lognormal")` returns a frozen `lognorm` with AC 1's parameters; `str()`
     shows every number in the frame to 3 significant figures; `kind` is `"property"`.
 12. **No `log=`:** passing it is Python's `TypeError`; the docstring says to use lognormal.
+
+## Plan
+Five build commits, each with ruff and pytest green, then the docs pages (a docs commit, with approval) and the
+close-out: seven commits in all. Reused, not rebuilt:
+- `describe()`'s row reading (input forms, units, `display_units=`, flags, bands, sources, `pool=`, groups,
+  order of checks, warnings), moved to a shared module in step 1 so `fit()` chooses the same rows;
+- `_result._Result` (the shared base) and `_plain()` for `.to_dict()`; `DescribeResult`'s text table for `str()`;
+- `registry.column_info()` for `scale`; `hangtu.units` for conversion;
+- the plot framework: `style` context, `_labels`, `_legend`, `_notes` (footnote), `_overlays.draw_stats_box()`
+  for the fit table, `common` for figure sizes.
+
+New modules: `stats/_rows.py` (shared reading), `stats/_fit.py` (fitting), `stats/_positions.py` (plotting
+positions), `plot/_distribution_fit.py` (P08). `FitResult` goes in `stats/_result.py`.
+
+### 1. `stats: move describe()'s row reading into a shared module`
+A refactor, no change in behavior.
+- `src/hangtu/stats/_rows.py`: `_Input`, `_read_input`, `_frame_input`, `_holds_no_numbers`, `_convert`,
+  `_scale`, `_assign`, `_group_keys`, `Flags`, `read_flags`, `_source_columns`, `_check_pool`, `_source_values`,
+  `_breakdown`, `source_mix`, `_check_sources`, `_warn_left_out`, `_warn_text`, `_spellings`, and the
+  order-of-checks block of `describe()` as `choose_rows(frame, column, numbers, texts, flags, *,
+  include_assumed, positive_only) -> (reasons, marks)`. Every message takes the calling function's name
+  (`function="describe()"`) in place of the literal.
+- `_describe.py` imports them; `plot/_profile.py` and `plot/_geology_units.py` import `source_mix` from the new
+  place.
+- Tests: the existing `tests/stats/` and P01/P07 stats tests pass unchanged; no new tests.
+
+### 2. `M15: ht.stats.fit() and FitResult for uncensored values`
+- `pyproject.toml`: `scipy>=1.11`; `uv.lock`. SPEC §12.1 moves SciPy from "Phase 3 adds" into the list, in this
+  commit.
+- `stats/_fit.py`: `fit()` with Decision 1's signature, reading through `_rows`; the distribution table of
+  Decision 2 (normal and lognormal closed form; gamma by `gamma.fit(floc=0)`; Weibull through `gumbel_l` on ln x;
+  beta with fixed `floc`/`fscale`); `bounds="auto"` from `scale`; values outside the bounds an error; values ≤ 0
+  leave out the three positive distributions with the note; a fit that doesn't converge left out with SciPy's
+  message; ln L, AICc, Δ, Akaike weights and rank (Decision 6, with Burnham & Anderson's rough guide in the
+  notes); bound probabilities (Decision 9); minimum n (Decision 5). AD columns present and blank until step 3.
+- `stats/_result.py`: `FitResult` (Decision 10): fields, `.to_frame()`, `.distribution()`, `.to_dict()`,
+  `str()`, `_repr_html_`. `.plot()` raises `NotImplementedError` until step 5.
+- `stats/__init__.py` exports `fit` and `FitResult`; `docs/site/reference/stats.md` gains both (the reference test).
+- Tests (new `tests/stats/test_fit.py`, `tests/stats/test_fit_result.py`): AC 1 (except A²), 2, 6, 7, 8, 10, 11,
+  12; AC 9's input forms.
+
+### 3. `M15: Anderson–Darling p-values by parametric bootstrap`
+- `stats/_fit.py`: A² (Decision 7) for every fit; the bootstrap of 999 samples refitting with the same routine,
+  seeded with a fixed value; p = (1 + count ≥ A²)/1000; the notes on reading a p-value.
+- Docstring cites the NIST e-Handbook §1.3.5.14 and SciPy's `goodness_of_fit` for the method (TODO #48).
+- Tests (`tests/stats/test_fit_anderson_darling.py`): AC 1's A² values; AC 3 (agreement with `goodness_of_fit`
+  within 0.03, an exponential sample rejected, the same p-value twice). The runtime of a 4-distribution fit on
+  30 values is checked by hand and stated in the commit body; if a test file takes over 5 s, its samples are
+  shared through a module fixture.
+
+### 4. `M15: censored values in fit()`
+- `stats/_fit.py`: right- and left-censored values from `Flags` (`at_least`, `at_most`) into
+  `scipy.stats.CensoredData`; ln L with `logcdf`/`logsf` (Decision 6); `count_at_least`, `count_at_most`,
+  `count_censored` and the share censored in the notes; no AD with censored values, with the note
+  (Decision 7). Bands stay left out and counted (Decision 4), as `describe()`.
+- `stats/_positions.py`: Hazen positions; the Kaplan–Meier midpoint via `scipy.stats.ecdf` for right-censored
+  values, mirrored for left-censored; none for a group censored both ways, with the note (Decision 8). Stored
+  in each group's record.
+- Tests (`tests/stats/test_fit_censored.py`, `tests/stats/test_positions.py`): AC 4, 5; the rest of AC 9 (NP,
+  assumed, bands, sources, `pool=`, counts add up) on CSV frames and the test project's SPT with refusals.
+
+### 5. `P08: ht.plot.distribution_fit() and FitResult.plot()`
+- `plot/_distribution_fit.py`: P08 §4–§11: two panels (3:2, Q-Q equal aspect, shared limits), histogram
+  scaled to the share uncensored with `bins=` and log-spaced bins with `log=True`, PDFs in rank order (rank 1
+  solid), censored values as open triangles with their legend count, Q-Q of `qq=` against the 1:1 line, the fit
+  table through `draw_stats_box()`, the footnote, `group=` with `by=`, `(fig, axs, result)`.
+- `FitResult.plot()` draws through the same function without refitting.
+- `plot/__init__.py` exports it; `docs/site/reference/plot.md` gains it (the reference test).
+- Tests (new `tests/plot/test_distribution_fit.py`): P08 AC 1–6.
+
+### 6. `docs: fitting a distribution and the P08 page` (docs commit, with approval)
+- `docs/site/guides/statistics.md`: a "Fitting a distribution" section (what AICc and the AD p-value say and
+  don't, censored values, bounds), with `docs/site/examples/statistics-fit.py`.
+- `docs/site/plots/distribution-fit.md` with `docs/site/examples/distribution-fit.py`, in the `nav` of
+  `zensical.toml` and `docs/site/plots/index.md`.
+- Check: `uv run python docs/prepare_site.py && uv run zensical build --clean --strict`.
+
+### 7. `M15: close out (c)`
+- `docs/plots/img/P08.png` (100 dpi, N60 in one unit of the example project with refusals), looked at. N60 has
+  no unit, so one image.
+- Every new public function's docstring checked against the Sources (cited, with TODO #48's stand-ins named).
+- SPEC §5 (`fit` built, `FitResult` in the result objects), §12.4 (M15 row, (c) done); P08 status `built` in
+  `docs/plots/README.md` and its spec; TODO #12 removed, #8 cut to the truncated normal and bands; the CLAUDE.md
+  status paragraph; `docs/drafts/phase3-stats.md`.
+- The oldest-versions run (`UV_RESOLUTION=lowest-direct`, SciPy 1.11), then `git checkout uv.lock`.
+- Each acceptance criterion reported met or not, with evidence.
