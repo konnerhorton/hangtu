@@ -294,7 +294,9 @@ precision where it is given to fewer figures (the ln-mean and median of AC 1, 1e
 
 ## Plan
 Five build commits, each with ruff and pytest green, then the docs pages (a docs commit, with approval) and the
-close-out: seven commits in all. Reused, not rebuilt:
+close-out: seven commits in all. *Changed in the build:* nine in all. Two more came up: `P08: keep the legend inside
+the histogram` (on the example data a legend below squeezed the Q-Q panel), and `M15: raise the SciPy floor to
+1.11.2` (the oldest-versions run found no Python 3.12 wheels for 1.11.0 and 1.11.1). Reused, not rebuilt:
 - `describe()`'s row reading (input forms, units, `display_units=`, flags, bands, sources, `pool=`, groups,
   order of checks, warnings), moved to a shared module in step 1 so `fit()` chooses the same rows;
 - `_result._Result` (the shared base) and `_plain()` for `.to_dict()`; `DescribeResult`'s text table for `str()`;

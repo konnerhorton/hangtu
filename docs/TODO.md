@@ -71,33 +71,14 @@ A downhole or surface velocity profile (often a user-defined group) can run belo
 
 ## Statistics (research items, with Claude's recommendations)
 
-### 8. Bounded data and the truncated normal · You · docs/drafts/phase3-stats.md · M15 (c)
-**Agreed** (2026-10-29), as recommended below. `describe()`'s part is built (M15 (a), SPEC §5): refusals and `<x`/`>x` enter at their value, counted, with a note. The rest is specified in M15 (c) (`docs/work/m15c-fit.md`, Spec): censored values and beta with bounds are built with `fit()`; the **truncated normal is deferred** (fixed physical bounds need a custom likelihood), and **bands are left out** of `fit()`, with interval-censoring a possible later option. Those two stay here after M15 (c) closes.
-
-**Problem:** most geotechnical data are physically bounded:
-- N ≥ 0, and capped at 100 by our refusal rule;
-- 0 ≤ % ≤ 100;
-- k > 0;
-- PI ≥ 0.
-
-A normal fit puts probability on impossible values.
-
-**Claude's recommendation.** The key is to separate **truncation** (values beyond the bound cannot exist) from **censoring** (values beyond the bound exist but were recorded *at* the bound).
-1. **Strictly positive quantities** (k, c_u, E, N): prefer **lognormal, gamma or Weibull**, which are bounded at 0 by construction. A normal fit is fine only when the CoV is small (below about 0.3, where the mass below zero is negligible). `fit()` should always report **P(X < lower bound)** for each fitted distribution as a diagnostic.
-2. **SPT refusals capped at 100 are right-censored, not truncated.** The true N is *at least* 100.
-   - Fitting them as observed 100s biases the fit.
-   - Recommendation: when the dataset has a `refusal` column, `fit()` and `characteristic()` treat those rows as censored, using `scipy.stats.CensoredData` (SciPy ≥ 1.11) for maximum-likelihood fitting.
-   - The same mechanism handles lab values reported as `<x` or `>x`.
-3. **Doubly bounded data** (%, e.g. fines content): offer a **beta** distribution on the rescaled data, and a **truncated normal** with fixed, known bounds (`scipy.stats.truncnorm`). This matters only when the data sit near a bound (e.g. fines near 0% in clean sands).
-   - Note: SciPy's `truncnorm` parameterizes its bounds in standard units, so fitting with *fixed physical bounds* needs a small custom likelihood. This is easy, but should be tested.
-4. **API:** `fit(x, distributions=..., bounds=(lo, hi), censored=mask)`. `bounds` enables `truncnorm`/`beta` and the out-of-bounds diagnostic.
+### 8. The truncated normal, and bands in `fit()` · You · docs/drafts/phase3-stats.md · after M15 (c)
+The rest of this item is built (M15 (c), SPEC §5): refusals and `<x`/`>x` are fitted as censored, positive distributions are bounded at 0, beta fits between two bounds, and each fit reports its probability beyond the bounds. Two options remain:
+1. **A truncated normal with fixed physical bounds**, for doubly bounded data near a bound (fines near 0 %). SciPy's `truncnorm` takes its bounds in standard units, so fixed bounds need a small custom likelihood, tested on its own. Beta covers the case meanwhile.
+2. **Bands as interval-censored values.** `fit()` leaves bands (`<target>_lower`/`_upper` with no value) out and counts them, because a correlation's band is the spread of its coefficient, not a measurement known to lie in an interval. Fitting one as an interval would treat a modeling range as data; revisit only if a source gives true intervals.
 
 **References:**
-- Helsel, D.R. (2012). *Statistics for Censored Environmental Data Using Minitab and R*, 2nd ed. Wiley. The standard practical text on censored (non-detect) data.
 - Johnson, N.L., Kotz, S. & Balakrishnan, N. (1994). *Continuous Univariate Distributions*, Vol. 1, 2nd ed. Wiley. Truncated normal and lognormal.
-- Phoon, K.K. & Kulhawy, F.H. (1999). Characterization of geotechnical variability. *Canadian Geotechnical Journal* 36(4), 612–624.
-- Baecher, G.B. & Christian, J.T. (2003). *Reliability and Statistics in Geotechnical Engineering*. Wiley. Chapters on distributions of soil properties.
-- SciPy docs: `scipy.stats.CensoredData`, `scipy.stats.truncnorm`, `scipy.stats.fit`.
+- SciPy docs: `scipy.stats.truncnorm`.
 
 ### 10. `compare(a, b)` — test selection · You · docs/drafts/phase3-stats.md · M15 (d)
 **Agreed** (2026-10-29), as recommended below; built in M15 (d).
@@ -131,18 +112,6 @@ A normal fit puts probability on impossible values.
 - Kruskal, W.H. & Wallis, W.A. (1952). Use of ranks in one-criterion variance analysis. *JASA* 47, 583–621.
 - Dunn, O.J. (1964). Multiple comparisons using rank sums. *Technometrics* 6, 241–252.
 - Holm, S. (1979). A simple sequentially rejective multiple test procedure. *Scandinavian Journal of Statistics* 6, 65–70.
-
-### 12. `fit()` goodness of fit · You · docs/drafts/phase3-stats.md · M15 (c)
-- Distributions agreed (normal, lognormal, Weibull, gamma; see item 8 for bounded ones).
-- To read up on: why a KS test gives misleading p-values once the parameters have been estimated from the same data, and the Anderson-Darling alternative. Also AIC vs BIC at small n (AICc is better for n < ~40; Claude recommends reporting AICc).
-- **Decided** (2026-10-29): rank the fits by AICc, and check each with an Anderson–Darling test (not KS, whose p-values mislead once the parameters are estimated from the same data). Built in M15 (c).
-- **Specified** (2026-10-30, `docs/work/m15c-fit.md`, Decisions 6–7): AICc with Akaike weights; the AD p-value by a seeded parametric bootstrap of 999 samples, none when a value is censored. Removed at M15 (c)'s close-out.
-
-**References:**
-- Lilliefors, H.W. (1967). On the Kolmogorov-Smirnov test for normality with mean and variance unknown. *JASA* 62, 399–402.
-- Stephens, M.A. (1974). EDF statistics for goodness of fit and some comparisons. *JASA* 69, 730–737.
-- D'Agostino, R.B. & Stephens, M.A. (1986). *Goodness-of-Fit Techniques*. Marcel Dekker.
-- Burnham, K.P. & Anderson, D.R. (2002). *Model Selection and Multimodel Inference*, 2nd ed. Springer. AICc.
 
 ### 13. `characteristic()` (Eurocode 7) · You · docs/drafts/phase3-stats.md, docs/reference/eurocode7-summary.md · M18
 **Deferred** (2026-10-29) to M18 (selection), with P09, which needs it. Its judgments (the type of estimate, θ, L, an assumed V_X), the lognormal formulae and the framing for US users are settled there.

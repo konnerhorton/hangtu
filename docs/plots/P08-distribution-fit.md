@@ -3,11 +3,11 @@
 | | |
 |---|---|
 | **ID / function** | P08 · `ht.plot.distribution_fit()` (+ `ht.stats.fit()`; also `FitResult.plot()`) |
-| **Status** | approved |
+| **Status** | built (M15 (c), 2026-10-30); image [`img/P08.png`](img/P08.png) |
 | **Type** | plot + analysis (statistics) |
 | **Milestone** | M15 (c) (SPEC §12.4), [`docs/work/m15c-fit.md`](../work/m15c-fit.md) |
 | **Depends on** | P00; `ht.stats.fit()` (M15 (c) Spec) |
-| **Related** | SPEC §5; TODO #8, #12; P24 and P27 (drafts) |
+| **Related** | SPEC §5; TODO #8, #48; P24 and P27 (drafts) |
 
 ---
 
