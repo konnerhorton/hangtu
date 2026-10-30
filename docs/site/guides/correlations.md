@@ -56,6 +56,21 @@ UserWarning: effective_friction_angle_kulhawy_mayne_1990 gave no estimate for 12
 
 Results from the same input concatenate with `pd.concat`, one row per test and correlation, and keep their units. `ht.plot.profile(..., color_by="correlation_name")` draws them together, and its footnote counts the blank estimates by their `correlation_note`: "9 refusals, no estimate", "12 above range, no estimate". The two correlations above differ by about 3° here; which to use, or how to combine them with measured values, is the engineer's call (stage D). [Drained shear strength of soil](../parameters/04-drained-shear-strength-soil.md) compares the methods.
 
+## Scatter and advice
+
+Every row also carries what its source says about the correlation's quality, so it travels with the estimate through a merge or a CSV, where `df.attrs` is lost:
+
+| Column | What it holds |
+|---|---|
+| `correlation_data_count` | the n the source fit the correlation to |
+| `correlation_r_squared` | the source's r² |
+| `correlation_scatter` | the source's statement of its scatter, in its words, or "Not stated." |
+| `correlation_advice` | the source's advice on use, quoted with its citation; or hangtu's own, marked "hangtu:"; blank where there is none |
+
+Each is blank where the source states none, never 0. The example prints them for the two φ′ correlations above: Hatanaka & Uchida give "±3° for most of the data" and Kulhawy & Mayne no statistic, with GEC 5's caution about shallow depths as its advice.
+
+Where a source gives a standard deviation in the target's terms, it goes on the rows as `<target>_correlation_standard_deviation`, in the target's units. Mayne & Kemper (σ′p, OCR) and Kulhawy et al. (K0) give one, but whether each is on arithmetic or log values is still being checked against the sources, so none is on the rows yet; until then it is in `correlation_scatter`. Checks of a correlation on other databases, such as Ching & Schweckendiek's (2021) for K0 (measured K0 averaged about twice the estimate), are in `ht.analysis.correlations.describe(name)["evaluations"]`, not on the rows: using them is part of selecting a value.
+
 ## Bands and PI
 
 Some sources give a band rather than a value. Terzaghi & Peck (1967) give s_u by class of N; Stroud (1974), as FHWA GEC 5 gives it, gives f1 at PI ≳ 30 and PI ≅ 15 and nothing between. A correlation published as a band writes it in `<target>_lower` and `<target>_upper` and leaves the value blank where the source gives no central value: hangtu doesn't invent a midpoint.

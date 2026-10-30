@@ -200,6 +200,9 @@ Open research points:
 
 ---
 
+### 46. A correlation's standard deviation on P01 · You + Claude · P01, `docs/work/m15b-correlation-statistics.md`
+M15 (b) puts a correlation's standard deviation on its rows (`<target>_correlation_standard_deviation`), but P01 doesn't draw it. Proposed: ±1 standard deviation as a whisker on each estimate, named in the legend, drawn only where the column has a value. Open: whether a whisker of the source's scatter beside the soil's own spread reads as a confidence interval, which it isn't.
+
 ## Test data
 
 ### 14. Public AGS datasets · Claude + You · SPEC §12.3
@@ -260,17 +263,8 @@ Today the estimates draw on one P01 profile by `correlation_name`, and a blank e
 
 Proposed: two panels, not one axes with twinned x axes. A second x axis on the same profile makes the reader match each marker to one of two unrelated scales; the input and estimate markers interleave at the same depths, and the axis limits of each are arbitrary relative to the other. Two panels keep one quantity per axis (P01's contract) and still line up by depth. Open: a helper (`ht.plot.correlation_profile(est, ...)`) or a recipe in the correlations guide using `ht.Sheet` with `ax=`; `Sheet` has no shared vertical axis yet, so either needs one (matching depth limits across panels).
 
-### 40. Correlation statistics with the results · You · SPEC §4, `docs/work/m13b2-spt-strength-history.md` · M15 (b)
-A correlation's estimates carry `correlation_name`, `correlation_note` and `correlation_input`, but not its statistics. Each config entry's `scatter` (n, r², S.D., ±x°) and the published bias checks (e.g. Ching & Schweckendiek (2021) for Kulhawy et al.'s K0: b = 2.16, COV 0.70) are in `describe()` and the docstrings only, so they are lost once the values leave the function.
-- **Questions:**
-  - Which statistics travel with the results: the source's own (n, r², S.D.), later evaluations on other databases (bias b, COV), or both?
-  - As what: columns on each row (e.g. a standard deviation in the target's units, or bounds like the band outputs `<target>_lower` / `_upper`), `df.attrs`, or a separate table keyed by `correlation_name`?
-  - How do they meet M15's statistics (a band is an interval: `docs/drafts/phase3-stats.md`) and selection (M18)?
-  - Should the source's advice on use (e.g. "check oedometer σ′p, not in its place") travel with them, and in whose words?
-- **Decided** (2026-10-29), for M15 (b)'s spec:
-  - a correlation's estimates carry the statistics of its own source data as columns on the rows;
-  - the source's advice on use travels with them, in the original authors' words where possible (at most a sentence each, TODO #30).
-  - To reconcile in the spec: the M15 (a) intent (`docs/work/m15a-describe.md`, Decision 7) put only a standard deviation in the target's units on the rows, and n, r², the advice and later evaluations in one table per correlation joined on `correlation_name`.
+### 47. The scale of three correlation standard deviations · Claude (verify) · `config/correlations.yaml`, `docs/work/m15b-correlation-statistics.md`
+Mayne & Kemper's σ′p (S.D. = 4.37 pa) and OCR (3.82), and Kulhawy et al.'s K0 (0.43), have `scale: null`, so none is on the rows yet. Check each against Mayne & Kemper (1988), Kulhawy et al. (1989) or Kulhawy & Mayne (1990), Figs. 3-9, 3-18 and 3-30: whether it is the regression's standard error on the arithmetic values (then `scale: arithmetic`, and its registry column `<target>_correlation_standard_deviation` is added) or on log values (a factor, which needs a column design first). σ′p's, given in pa, suggests arithmetic.
 
 ### 41. Gravelly sands under `not_for` · You + Claude · page 04, `docs/work/m13b1-spt-framework.md`
 Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads only the group symbol. The example site's Terrace is "SAND with gravel (SP)": SP passes, so its rows get estimates with no note. USCS group names (ASTM D2487) add "with gravel" at ≥ 15 % gravel, which the symbol does not carry.
@@ -302,6 +296,7 @@ Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads o
 - A helper for deciding cohesive vs cohesionless from lab data (fines %, PI).
 
 ## Done
+- ✅ #40 Correlation statistics decided and built (2026-10-30, M15 (b)): each estimate row carries its source's n, r², scatter in its own words and advice on use (quoted with its citation, or marked as hangtu's), and an arithmetic standard deviation in the target's units once verified (#47). Other databases' checks (bias, COV) stay in the entry's `evaluations`; applying them is M18. SPEC §4.
 - ✅ #9 `describe()` floors decided and built (2026-10-29, M15 (a)): n = 1 gives the value as the mean and no std or CoV; fewer than 3 values warns; a percentile is reported only with a value beyond it on each side (P25/P75 from 4, P5/P95 from 20); Hyndman & Fan definition 7, stated in the output; no CoV on an interval scale or a mean ≤ 0. SPEC §5.
 - ✅ #20 Which SPT correlations for M13 settled (2026-10-26, M13 b1–b3): φ′ from Hatanaka & Uchida (1996) and Kulhawy & Mayne (1990); s_u from Stroud (1974) and Terzaghi & Peck (1967); σ′p, OCR and K0 from Mayne & Kemper (1988) and Kulhawy et al. (1989); E from AASHTO (2004) and Kulhawy & Mayne (1990), by a required soil row; Vs from Imai & Tonouchi (1982) and Ohta & Goto (1978) in Wair et al.'s (2012) N60 forms. Each verified against its source; Wolff (1989) and Sowers (1979) cut (#36, #39).
 - ✅ #37 Soil types for correlations decided (2026-10-23, M13 b2): an opt-in USCS map. Each config entry keeps the source's words and gains hangtu's proposed USCS groups, labeled as hangtu's reading; `uscs="proposed"` or a list of groups turns it on and reads a `uscs_symbol` column the user supplies, never derived. Rows outside get NaN, "not for this soil"; a blank symbol, "soil type unknown". SPEC §4.
