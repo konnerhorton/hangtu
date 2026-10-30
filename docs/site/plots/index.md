@@ -32,6 +32,7 @@ Every plot takes a DataFrame and returns an ordinary matplotlib figure and axes.
 | [Grain size distribution](grain-size.md) | Grading curves with the soil fractions, D-values and envelopes |
 | [SPT histogram](spt-histogram.md) | The share of tests in each density or consistency class |
 | [Property by geology unit](geology-unit-comparison.md) | A property's spread in each geology unit, against a report's ranges |
+| [Distribution fit](distribution-fit.md) | The distributions fitted to a property in one group, with a Q-Q plot |
 
 ## See also
 
