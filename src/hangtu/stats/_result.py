@@ -589,3 +589,185 @@ class CompareResult(_Result):
 
     def _repr_html_(self) -> str:
         return f"<pre>{html.escape(str(self))}</pre>"
+
+
+@dataclass(frozen=True, repr=False)
+class CompareGroupsResult(_Result):
+    """The comparison ``ht.stats.compare_groups()`` returns.
+
+    Use ``.to_frame()`` for one row per pair, ``.overall()`` for the overall
+    tests, ``.groups_frame()`` for each group's statistics and counts,
+    ``.to_dict()`` for a report, or ``print(result)`` to read them with the
+    note. The text is a view of the same numbers.
+    """
+
+    #: The columns grouped by.
+    by: tuple[str, ...]
+    #: Every group, in order: label, key, statistics, counts, and the reason it
+    #: was left out of the tests (None if tested).
+    groups: tuple[dict[str, Any], ...]
+    log: bool
+    #: The source columns pooled on purpose (``pool=``), within each group.
+    pooled: tuple[str, ...]
+    include_assumed: bool
+    #: α, a judgment (SPEC §4).
+    significance_level: float
+    #: 1 - α, the level of every interval.
+    confidence_level: float
+    #: Where α came from: ``"argument"`` or the judgments file's path.
+    significance_level_source: str
+    #: Welch's ANOVA and Kruskal-Wallis (``.overall()`` as a frame).
+    overall_tests: dict[str, Any]
+    #: One record per pair of tested groups, first in group order.
+    pairs: tuple[dict[str, Any], ...]
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return one row per pair: the groups, their statistics, both pair tests.
+
+        Columns ending ``_1`` are the pair's first group's, ``_2`` the
+        second's. ``attrs["units"]`` gives the unit of each column that has one.
+        """
+        by_label = {group["label"]: group for group in self.groups}
+        statistics = list(self.groups[0]["statistics"])
+        name = "ratio" if self.log else "difference"
+        columns = [
+            "group_1",
+            "group_2",
+            *(f"{s}_{i}" for s in statistics for i in (1, 2)),
+            name,
+            f"{name}_lower",
+            f"{name}_upper",
+            "games_howell_p_value",
+            "dunn_z_statistic",
+            "dunn_p_value",
+            "significance_level",
+            "confidence_level",
+        ]
+        rows = []
+        for pair in self.pairs:
+            row = dict(pair)
+            for s in statistics:
+                for i in (1, 2):
+                    row[f"{s}_{i}"] = by_label[pair[f"group_{i}"]]["statistics"][s]
+            row["significance_level"] = self.significance_level
+            row["confidence_level"] = self.confidence_level
+            rows.append(row)
+        frame = pd.DataFrame(rows, columns=columns)
+        frame.attrs["units"] = self._units(columns)
+        return frame
+
+    def overall(self) -> pd.DataFrame:
+        """Return one row: Welch's ANOVA, Kruskal-Wallis and α."""
+        return pd.DataFrame(
+            [
+                {
+                    **self.overall_tests,
+                    "significance_level": self.significance_level,
+                    "confidence_level": self.confidence_level,
+                }
+            ]
+        )
+
+    def groups_frame(self) -> pd.DataFrame:
+        """Return one row per group: the ``by`` columns, statistics, counts, reason.
+
+        ``reason_not_tested`` is blank for a group in the tests.
+        """
+        rows = [
+            {
+                **group["key"],
+                **group["statistics"],
+                **group["counts"],
+                "reason_not_tested": group["reason"],
+            }
+            for group in self.groups
+        ]
+        frame = pd.DataFrame(rows)
+        frame.attrs["units"] = self._units(frame.columns)
+        return frame
+
+    def _units(self, columns: Any) -> dict[str, str]:
+        if self.unit is None:
+            return {}
+        stems = (
+            ("geometric_mean",)
+            if self.log
+            else ("mean", "standard_deviation", "difference")
+        )
+        return {
+            column: self.unit
+            for column in columns
+            if any(column == stem or column.startswith(f"{stem}_") for stem in stems)
+        }
+
+    def __str__(self) -> str:
+        title = self.value or "Values"
+        title += f" ({self.unit})" if self.unit else ""
+        statistics = list(self.groups[0]["statistics"])
+        counts = [
+            name
+            for name in self.groups[0]["counts"]
+            if any(group["counts"][name] for group in self.groups)
+        ]
+        rows = [["", *(_heading(name) for name in (*statistics, *counts))]]
+        for group in self.groups:
+            rows.append(
+                [
+                    group["label"],
+                    *(_cell(group["statistics"][name]) for name in statistics),
+                    *(str(group["counts"][name]) for name in counts),
+                ]
+            )
+        lines = [title, *_table(rows)]
+        overall = self.overall_tests
+        lines.append(
+            f"Welch's ANOVA: F = {_cell(overall['welch_f_statistic'])}, df = "
+            f"{_cell(overall['welch_degrees_of_freedom_numerator'])} and "
+            f"{_cell(overall['welch_degrees_of_freedom_denominator'])}, "
+            f"p = {_cell(overall['welch_p_value'])}"
+        )
+        lines.append(
+            f"Kruskal-Wallis: H = {_cell(overall['kruskal_wallis_statistic'])}, "
+            f"df = {_cell(overall['kruskal_wallis_degrees_of_freedom'])}, "
+            f"p = {_cell(overall['kruskal_wallis_p_value'])}"
+        )
+        name = "ratio" if self.log else "difference"
+        unit = f" ({self.unit})" if self.unit and not self.log else ""
+        lines.append(
+            f"Pairs, {_percent(self.confidence_level)} intervals, family-wise "
+            f"p-values{unit}:"
+        )
+        pair_rows = [
+            ["", name, "lower", "upper", "Games-Howell p", "Dunn z", "Dunn p (Holm)"]
+        ]
+        joiner = " / " if self.log else " - "
+        for pair in self.pairs:
+            pair_rows.append(
+                [
+                    f"{pair['group_1']}{joiner}{pair['group_2']}",
+                    *(
+                        _cell(pair[column])
+                        for column in (
+                            name,
+                            f"{name}_lower",
+                            f"{name}_upper",
+                            "games_howell_p_value",
+                            "dunn_z_statistic",
+                            "dunn_p_value",
+                        )
+                    ),
+                ]
+            )
+        lines.extend(_table(pair_rows, indent="  "))
+        source = self.significance_level_source
+        lines.append(
+            f"Significance level {self.significance_level:g} "
+            f"({'argument' if source == 'argument' else Path(source).name})"
+        )
+        return "\n".join([*lines, *self.notes])
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    def _repr_html_(self) -> str:
+        return f"<pre>{html.escape(str(self))}</pre>"

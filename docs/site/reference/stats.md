@@ -13,3 +13,5 @@ Each statistics function is a plain function on a DataFrame, a Series or a list 
 ::: hangtu.stats.compare
 
 ::: hangtu.stats.CompareResult
+
+::: hangtu.stats.CompareGroupsResult

@@ -3,6 +3,19 @@
 from hangtu.stats._compare import compare
 from hangtu.stats._describe import describe
 from hangtu.stats._fit import fit
-from hangtu.stats._result import CompareResult, DescribeResult, FitResult
+from hangtu.stats._result import (
+    CompareGroupsResult,
+    CompareResult,
+    DescribeResult,
+    FitResult,
+)
 
-__all__ = ["CompareResult", "DescribeResult", "FitResult", "compare", "describe", "fit"]
+__all__ = [
+    "CompareGroupsResult",
+    "CompareResult",
+    "DescribeResult",
+    "FitResult",
+    "compare",
+    "describe",
+    "fit",
+]
