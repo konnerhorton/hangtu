@@ -73,3 +73,152 @@ listing of the rows that don't, each with its hole, depth and sample, so it can 
    with the mismatches would mix "disagrees" with "wasn't classified".
 5. **No `pool=` or `include_assumed=`.** Those input rules (SPEC §5) concern measured values; a class column
    carries no source or flag in the registry. If a class is ever derived from a correlation, this is revisited.
+
+## Spec
+Numbered items refer to this section's decisions; "intent n" to the intent's. The choices proposed here were
+agreed in review on 2026-10-30.
+
+### Changes
+- **SPEC §5:** `crosstab` built. The first two bullets ("an array, a Series, or a DataFrame plus `value=`/`by=`";
+  `log=True`) and the input rules are scoped to the functions that summarize values; `crosstab()` takes a
+  DataFrame and two text columns, and of the input rules follows only "counts add up", with blanks as a category
+  (Decision 3). The result list gains `CrosstabResult`.
+- **SPEC §8.3:** "compared using `crosstab`" becomes "compared with `ht.stats.crosstab()`".
+- **SPEC §12.4:** M15 row, (e) done; M15 closed.
+- **`docs/drafts/phase3-stats.md`:** the `crosstab` row decided, pointing here.
+- **TODO:** new #52, chance-corrected agreement (Cohen's kappa) if a use appears
+  where the two classifications are made independently (intent, out of scope).
+- **Docs site:** `crosstab` and `CrosstabResult` in `docs/site/reference/stats.md`; a "Comparing
+  classifications" section in `docs/site/guides/statistics.md`, with `docs/site/examples/statistics-crosstab.py`
+  on the example project.
+- **CLAUDE.md:** the status paragraph.
+
+### Decisions
+1. **`ht.stats.crosstab()`.**
+   ```python
+   crosstab(df, rows, columns, *, agree=None) -> CrosstabResult
+   ```
+   - `df` is a DataFrame; `rows` and `columns` name two of its columns (intent 3). A list, array or Series is an
+     error that says to pass the frame and two column names.
+   - A missing column is a `ColumnError` listing the frame's columns, as `describe()`. `rows == columns` is an
+     error.
+2. **Text only, judged by the registry.** A column the registry gives a `quantity` (a measurement) is an
+   error naming it and pointing to `ht.stats.compare()` for values, or to binning it first (`pd.cut`) for a
+   table. Every other column, a registry `type: text` column or one the registry doesn't know, is read as text
+   whatever its dtype, so geology codes a CSV read as numbers (`101`) still work; a whole number is written without
+   a decimal (`101`, not `101.0`), and other numbers as
+   Python writes them.
+3. **Values as written; blanks a category.** A value is its text exactly, case and inner spaces included (SPEC
+   §8.3's exact, case-sensitive match), so `CL` and `cl` are two columns the reader sees, never merged
+   silently. Leading and trailing spaces are kept too, for the same reason. NaN, None and empty or
+   whitespace-only text are blank, shown as `"(blank)"`, the label `describe()` gives a blank group (intent 2).
+4. **Order.** Each side lists only the values present (an unused category of an ordered categorical isn't a
+   row of zeros). An ordered or unordered categorical keeps its category order, as `describe()`; other values
+   sort as text. `"(blank)"` comes last on each side, then the totals.
+5. **The table.** `.to_frame()` returns the counts: index named `rows`' column, columns named `columns`' column,
+   integers, with a last row and column `"(total)"` (in parentheses, like `"(blank)"`, so it can't be
+   mistaken for a class named "Total"). Every row of `df` is counted once, so the grand total is `len(df)`.
+6. **Agreement, only with `agree=`** (intent 1, 4).
+   - `agree="same"`: a row agrees when its two values are the same text.
+   - `agree={row value: column value or list of column values, ...}`: a row agrees when its column value is in
+     its row value's list. A row value with rows to compare that the mapping doesn't name is an error listing
+     each such value and its count, and saying that `[]` means "agrees with nothing": a missing key is far more
+     often an oversight than a deliberate "never agrees". Keys or listed values not in the data are fine, so one
+     mapping serves several projects. Keys and values are compared as text (Decision 2), so `{101: "ALV"}`
+     and `{"101": "ALV"}` are the same.
+   - Any other `agree=` is an error showing both forms.
+   - **Counts:** `count_compared` (both values present), `count_agreeing`, `count_disagreeing`,
+     `count_blank_in_rows` (blank in `rows` only), `count_blank_in_columns` (blank in `columns` only) and
+     `count_blank_in_both`; the last three and `count_compared` add up to `len(df)`. `proportion_agreeing` is
+     `count_agreeing / count_compared`, NaN when nothing is compared. A row blank on either side is never a
+     mismatch (intent 4).
+   - Without `agree=`, every agreement field is None and there are no mismatches.
+7. **The mismatches.** `.mismatches` is a DataFrame of the disagreeing rows in `df`'s order, indexed by `df`'s
+   own index labels, so `df.loc[result.mismatches.index]` gives the full rows. Its columns are those of
+   `loca_id`, `depth`, `sample_reference`, `specimen_id` and every `<test>_specimen_id` present in `df`, in
+   `df`'s order, then `rows`' and `columns`' columns, then `source_line` if present (this list: the registry's
+   identifiers that say where a row is and which test it came from). With no `agree=`, or nothing disagreeing,
+   it is empty with those columns.
+8. **`CrosstabResult`,** a frozen dataclass on the shared base: `kind="property"`, `function="crosstab"`,
+   `value=None`, `unit=None`, the notes, judgments and version as every result; and `rows`, `columns`,
+   `agree` (`"same"`, the mapping with each value as a list of text, or None), `row_values`, `column_values`
+   (without blank or totals), `counts` (one tuple per row value, blank row last), the counts and proportion of
+   Decision 6, and the mismatch records (index label and the listing's columns). `.mismatches` is built from
+   those records, so `.to_dict()` holds everything and is JSON-serializable (an index label that isn't a str or
+   int is written as text).
+9. **The summary** (`print(result)`): a title (`legend_code × uscs_symbol`), the table with totals, then the
+   notes:
+   - with `agree=`: "Agree (same text): 2 of 8 rows with both values (25%)." or "Agree (by the mapping): …";
+   - one line per nonzero blank count: "12 rows have a legend_code but no uscs_symbol.";
+   - with mismatches, the listing, the first 20 rows, then "… and 14 more: result.mismatches lists them all.";
+   - without `agree=`: "No agreement counted: pass agree=\"same\" if the two columns use one vocabulary, or a
+     mapping of which pairs agree."
+   `_repr_html_` shows the same text, as the other results.
+10. **No warning.** Blanks are counted in the table and the notes, so nothing is dropped and nothing warns.
+
+### Sources
+None: the function counts, with no equation or coefficient. The golden values are hand counts from the rows
+listed below.
+
+### Acceptance criteria
+The example project (`site.ags`, `strata.csv`) as
+`ht.analysis.uscs(p.index_properties(geology_fields=["GEOL_GEOL", "GEOL_LEG"]))`, 20 rows. Its `legend_code`
+and `uscs_symbol`, read from the dataset row by row (loca_id, depth in ft):
+
+| Rows | legend_code | uscs_symbol |
+|---|---|---|
+| B-1 1.5, B-3 1.5 | FILL | SC |
+| B-1 13, B-2 13, B-4 13 | CL | CH |
+| B-3 13, B-5 13 | CL | CL |
+| B-6 13 | CL | ML |
+| B-1, B-2, B-3, B-4, B-5, B-6 at 18 | CL | blank (no grain size) |
+| the six Terrace rows (B-1 25.75 … B-6 30.75) | SP | blank (no plasticity class) |
+
+1. **The table (example project):** `crosstab(d, "legend_code", "uscs_symbol")` gives
+
+   | legend_code | CH | CL | ML | SC | (blank) | (total) |
+   |---|---|---|---|---|---|---|
+   | CL | 3 | 2 | 1 | 0 | 6 | 12 |
+   | FILL | 0 | 0 | 0 | 2 | 0 | 2 |
+   | SP | 0 | 0 | 0 | 0 | 6 | 6 |
+   | (total) | 3 | 2 | 1 | 2 | 12 | 20 |
+
+   with no `"(blank)"` row (no `legend_code` is blank), every agreement field None, an empty `.mismatches`, and
+   the "No agreement counted" note.
+2. **`agree="same"` (example project):** `count_compared` 8, `count_agreeing` 2, `count_disagreeing` 6,
+   `count_blank_in_columns` 12, `count_blank_in_rows` 0, `count_blank_in_both` 0, `proportion_agreeing` 0.25.
+   `.mismatches` has six rows in the dataset's order: B-1 1.5 (FILL, SC), B-1 13 (CL, CH), B-2 13 (CL, CH),
+   B-3 1.5 (FILL, SC), B-4 13 (CL, CH), B-6 13 (CL, ML); its columns are `loca_id`, `sample_reference`, `depth`,
+   `water_content_specimen_id`, `atterberg_specimen_id`, `grain_size_specimen_id`, `legend_code`,
+   `uscs_symbol`, `source_line` (the dataset's own order), and `d.loc[result.mismatches.index]` returns those
+   six rows. The summary says "2 of 8 rows with both values (25%)" and "12 rows have a legend_code but no
+   uscs_symbol."
+3. **A mapping (example project):** `agree={"CL": "CL", "FILL": ["SC", "SM", "GC"], "SP": ["SP", "SP-SM"]}`
+   gives `count_agreeing` 4 of 8 (0.5) and the four CH and ML rows as mismatches. Leaving `"FILL"` out is an
+   error naming `'FILL' (2 rows)` and `[]`; `{"CL": "CL", "FILL": [], "SP": []}` gives 2 of 8.
+4. **Categorical order (example project):** `crosstab(d, "geology_unit", "legend_code")` lists the rows Fill,
+   Alluvium, Terrace (the map's order, not alphabetical) with Fill–FILL 2, Alluvium–CL 12, Terrace–SP 6, and
+   the columns CL, FILL, SP.
+5. **Categorical order, blanks and case (synthetic, 6 rows):** `rows` an ordered categorical
+   `["B", "a", None, "B", "a", "C"]` with categories `["C", "B", "a", "Z"]`, `columns`
+   `["x", "X", "x", None, "X", "y"]`. Rows C, B, a, (blank), with no Z row; columns X, x, y, (blank) (text sort,
+   uppercase first; `X` and `x` stay apart). Counts C–y 1; B–x 1, B–(blank) 1; a–X 2; (blank)–x 1. Row totals
+   1, 2, 2, 1; column totals 2, 2, 1, 1; grand total 6.
+6. **Whitespace and spaces kept (synthetic):** an object column `["CL", "CL ", "  ", "cl"]` against
+   `["CL", "CL", "CL", "CL"]` with `agree="same"`: rows `CL`, `CL `, `cl`, `(blank)`; `count_compared` 3,
+   `count_agreeing` 1, `count_blank_in_rows` 1.
+7. **Integer codes (synthetic):** a column `[101, 101, 102]` (int) and one `[101.0, NaN, 102.0]` (float, not in
+   the registry) give rows `101`, `102` and columns `101`, `102`, `(blank)`; `agree="same"` gives 2 of 2, and
+   `agree={101: "101", "102": [102]}` the same.
+8. **Errors:** a missing column (`ColumnError`, listing columns); `rows == columns`; a registry measurement
+   (`plasticity_index`) naming `compare()` and `pd.cut`; a Series or array as `df`; `agree=` of another type
+   (`True`, `"equal"`) showing both forms; a mapping missing a row value (AC 3). Each message says what is wrong,
+   where and what to do (CLAUDE.md).
+9. **Counts add up:** in AC 1–7, the table's grand total is `len(df)`, and with `agree=`, `count_compared` and
+   the three blank counts add up to `len(df)`, and `count_agreeing + count_disagreeing == count_compared`.
+10. **Result:** `CrosstabResult` is frozen; `.to_dict()` goes through `json.dumps` for AC 1–7; `.mismatches`
+    rebuilt from the dict's records equals the property. A comparison where every row is blank on one side, with
+    `agree="same"`, gives `count_compared` 0 and `proportion_agreeing` NaN, written `null` by `.to_dict()`. An
+    empty frame gives a table of only `"(total)"`, 0.
+11. **Docs:** `crosstab` and `CrosstabResult` have reference entries (the existing test fails without them); the
+    example runs in `docs/prepare_site.py` and prints AC 2's summary.
