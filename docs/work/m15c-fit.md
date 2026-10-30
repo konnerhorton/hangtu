@@ -201,9 +201,11 @@ agreed in review on 2026-10-30. The figure's spec is [`docs/plots/P08-distributi
    positive distributions at low = 0 and for beta, reported as 0, not blank, so the column reads the same down
    the frame. A normal fit with more than 1 % below the lower bound gets a note.
 10. **`FitResult`**, a frozen dataclass on the shared base (`_result.py`), `function="fit"`, `kind="property"`.
-    - **Fields:** the base's, plus `by`, `pooled`, `include_assumed`, `bounds`, `distributions`, and `groups`:
-      one record per group with its counts, its fits (name, SciPy parameters by name, ln L, AICc, Δ, weight,
-      rank, A², p-value, the bound probabilities, convergence) and its plotting positions.
+    - **Fields:** the base's, plus `by`, `pooled`, `include_assumed`, `bounds`, `display_units`,
+      `distributions`, and `groups`: one record per group with its counts, its fits (name, SciPy parameters by
+      name, ln L, AICc, Δ, weight, rank, A², p-value, the bound probabilities, convergence), its values (exact,
+      left- and right-censored) and its plotting positions. *Changed in the build:* `display_units` and the
+      values were added so `.plot()` draws P08 without the input.
     - **`.to_frame()`:** one row per group and distribution, ranked: the `by` columns, `distribution`, `rank`,
       `count`, `count_censored`, the fitted distribution's `mean`, `standard_deviation`, `median`,
       `percentile_5` and `percentile_95` (in the value's units, so fits compare at a glance),

@@ -28,7 +28,8 @@ table.
   │ ██████████████  △ ≥100: 2    │  │    ●╱   lognormal     │
   └──────────────────────────────┘  └───────────────────────┘
         Value (kPa)                     Fitted quantile (kPa)
-  Rank  Distribution  ΔAICc  AD p     (text box, histogram panel)
+                                      Rank  Distribution  ΔAICc  AD p
+                                      (text box, under the Q-Q panel)
 ```
 A good version: the histogram and the curves share the density scale, so their areas agree; the Q-Q points sit
 on the 1:1 line where the fit is good, and the eye goes to the tails, where fits differ.
@@ -48,7 +49,9 @@ value lies, with a count in the legend ("≥ 100: 2"). NP, assumed values and ba
 counted in the footnote.
 
 **Minimum data:** as `fit()`: a group with fewer than 4 uncensored values draws the histogram and the note "too
-few values to fit (n = 3; 4 needed)", no curves and an empty Q-Q panel with the same note.
+few values to fit (n = 3; 4 needed)", no curves and an empty Q-Q panel with the same note. *Changed in the
+build:* `distribution_fit()` fits only the rows of the group drawn (faster, and the source check reads only
+them), so for it such a group is `fit()`'s error; `FitResult.plot()` of a result with other groups draws it.
 
 ## 4. Analysis / calculations
 `ht.stats.fit()` (M15 (c) Spec, Decisions 1–10). The plot draws the result; it computes nothing of its own apart
@@ -89,7 +92,7 @@ from the histogram's bins.
 ## 8. Overlays and annotations
 | Overlay | Argument | Default | Style |
 |---|---|---|---|
-| Fit table | `table=` | on | text box in the histogram panel's clear corner: rank, distribution, ΔAICc, AD p (or "—" with censored values) |
+| Fit table | `table=` | on | text box under the Q-Q panel's x label: rank, distribution, ΔAICc, AD p (or "—" with censored values). *Changed in the build* from the histogram's clear corner: the legend and the curves leave none reliably, and the Q-Q panel's equal aspect leaves room below it |
 | Distributions drawn | `distributions=` | all fitted | names from the result |
 | Q-Q distribution | `qq=` | the rank-1 fit | a name |
 | Footnote | — | always when something is left out | counts left out, "no AD check: n censored", "no plotting positions: censored both ways", "values ≤ 0: lognormal, gamma, Weibull not fitted" |
@@ -139,10 +142,10 @@ fig, axs, result = ht.plot.distribution_fit(p.spt(), value="spt_n60", by="geolog
 | Situation | Behavior |
 |---|---|
 | Empty group | Error from `fit()` naming the group |
-| Fewer than 4 uncensored values | Histogram only, note, empty Q-Q with the note |
+| Fewer than 4 uncensored values | `FitResult.plot()`: histogram only, note, empty Q-Q with the note; `distribution_fit()`: `fit()`'s error (§3) |
 | Censored both ways | Fits and table drawn; Q-Q panel empty with "no plotting positions: censored both ways" |
 | Values ≤ 0 | Normal (and beta) drawn; footnote names the distributions not fitted |
-| Missing units | "(units unknown)" in labels, as README; `fit()`'s error for an analysis does not apply to the label |
+| Missing units | `fit()`'s error naming the column and how to declare its units: the fit's parameters and table need the unit (*changed in the build* from "(units unknown)") |
 | Sources mixed | `fit()`'s error, raised: one group of one source is what P08 is for, unlike P01's box |
 
 ## 12. Acceptance criteria and tests

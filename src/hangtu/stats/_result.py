@@ -157,10 +157,14 @@ class FitResult(_Result):
     include_assumed: bool
     #: ``(low, high)`` in the result's unit, None for no bound.
     bounds: tuple[float | None, float | None]
+    #: The system the values were converted to before fitting, None if not.
+    display_units: str | None
     #: The distributions asked for, in the order that breaks a tie.
     distributions: tuple[str, ...]
     #: One record per group: its key, counts, fits (ranked), the
-    #: distributions left out and why, and the reason it has no fits.
+    #: distributions left out and why, the reason it has no fits, the values
+    #: fitted (``exact``, and censored ``left`` and ``right``) and the
+    #: plotting positions of the exact ones.
     groups: tuple[dict[str, Any], ...]
 
     def to_frame(self) -> pd.DataFrame:
@@ -248,8 +252,17 @@ class FitResult(_Result):
         )
 
     def plot(self, group: Any = None, **kwargs: Any) -> Any:
-        """Draw P08 for one group of this result, without refitting."""
-        raise NotImplementedError("FitResult.plot() arrives with P08.")
+        """Draw P08 for one group of this result, without refitting.
+
+        ``group`` is needed when the result has more than one. The keyword
+        arguments are ``ht.plot.distribution_fit()``'s drawing ones:
+        ``distributions``, ``qq``, ``bins``, ``log``, ``table``,
+        ``reference_lines``, ``note``, ``figsize`` and style overrides.
+        Returns ``(fig, axs)``.
+        """
+        from hangtu.plot._distribution_fit import draw  # plot imports stats
+
+        return draw(self, group=group, **kwargs)
 
     def __str__(self) -> str:
         from hangtu.plot._overlays import format_number  # plot imports stats

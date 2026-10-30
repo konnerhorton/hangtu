@@ -132,8 +132,3 @@ def test_text_shows_every_number_to_three_figures(result):
     assert "P(< 0)" in text
     assert text.endswith("AICc compares fits within a group, never across groups.")
     assert result._repr_html_().startswith("<pre>undrained_shear_strength")
-
-
-def test_plot_arrives_with_p08(result):
-    with pytest.raises(NotImplementedError):
-        result.plot(group="A")

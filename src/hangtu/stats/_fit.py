@@ -287,6 +287,11 @@ def fit(
             "fits": [],
             "left_out": {},
             "reason": None,
+            "values": {
+                "exact": values.exact.tolist(),
+                "left": values.left.tolist(),
+                "right": values.right.tolist(),
+            },
             "positions": None,
             "text": _rows.spellings(texts[rows]),
             "sources": {
@@ -366,6 +371,7 @@ def fit(
         pooled=tuple(pooled),
         include_assumed=include_assumed,
         bounds=(low, high),
+        display_units=display_units,
         distributions=names,
         groups=tuple(groups),
     )
