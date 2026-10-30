@@ -20,7 +20,7 @@ from hangtu._data import text_values
 from hangtu.errors import HangtuError, warn
 from hangtu.stats import _note, _rank, _rows, _significance
 from hangtu.stats._describe import summarize
-from hangtu.stats._result import CompareResult
+from hangtu.stats._result import CompareGroupsResult, CompareResult
 from hangtu.stats._rows import COUNTS
 
 #: Fewer values than this in a group warn: the tests have very little power.
@@ -543,7 +543,16 @@ def compare(
                     read.unit,
                     log,
                 ),
-                *_notes(chosen, read, test, tested, include_assumed, log),
+                *_bound_notes(chosen, "neither test is"),
+                *(
+                    [
+                        "No Welch's t-test: each group's values are all the same, "
+                        "so there is no spread to compare the difference with."
+                    ]
+                    if tested and math.isnan(test["welch_t_statistic"])
+                    else []
+                ),
+                *_notes(chosen, read, include_assumed, log, "Welch's t-test"),
                 *rank_notes,
             ]
         ),
@@ -582,24 +591,12 @@ def _all_one_bound(group: Group) -> bool:
 def _notes(
     groups: list[Group],
     read: Groups,
-    test: dict[str, float],
-    tested: bool,
     include_assumed: bool,
     log: bool,
+    parametric: str,
 ) -> list[str]:
-    """Return the lines under the table, but the note on what the tests found."""
+    """Return the notes on bounds, assumed values, pooling and the log scale."""
     notes = [] if read.unit_given else ["(units not given)"]
-    for group in groups:
-        if _all_one_bound(group):
-            notes.append(
-                f"{group.label}: every value is a bound at {group.values[0]:g}, "
-                "so neither test is run."
-            )
-    if tested and math.isnan(test["welch_t_statistic"]):
-        notes.append(
-            "No Welch's t-test: each group's values are all the same, so there is "
-            "no spread to compare the difference with."
-        )
     for name, kind, effect in (
         ("count_at_least", "Lower bounds (refusal or '>')", "underestimate"),
         ("count_at_most", "Upper bounds ('<')", "overestimate"),
@@ -608,8 +605,8 @@ def _notes(
         if counted:
             notes.append(
                 f"{kind}: {', '.join(counted)}, entered at their value. That "
-                f"group's mean is an {effect}, and Welch's results are biased by "
-                "it; the ranks treat values at a common limit as tied, which is "
+                f"group's mean is an {effect}, and {parametric} results are biased "
+                "by it; the ranks treat values at a common limit as tied, which is "
                 "closer to right but not right either."
             )
     if include_assumed:
@@ -628,7 +625,279 @@ def _notes(
             notes.append(f"Pooled across {column} in {group.label}: {listed}.")
     if log:
         notes.append(
-            "Log scale: Welch's t-test is on ln x and compares geometric means, "
-            "as their ratio; the geometric standard deviation is a factor."
+            f"Log scale: {parametric} is on ln x and compares geometric means, "
+            "as their ratio; the geometric standard deviation is a factor. The "
+            "ranks are the same either way."
         )
     return notes
+
+
+def _bound_notes(groups: list[Group], tests: str) -> list[str]:
+    return [
+        f"{group.label}: every value is a bound at {group.values[0]:g}, so {tests} run."
+        for group in groups
+        if _all_one_bound(group)
+    ]
+
+
+def welch_anova(values: list[np.ndarray]) -> dict[str, Any]:
+    """Return Welch's ANOVA: F, its degrees of freedom and p.
+
+    F and p from ``f_oneway(equal_var=False)``; the denominator degrees of
+    freedom (k² - 1) / (3λ), λ = Σ (1 - wⱼ/W)² / (nⱼ - 1), wⱼ = nⱼ/sⱼ²
+    (Delacre et al. 2019, eqs. 7-9), which SciPy doesn't return.
+    """
+    k = len(values)
+    counts = np.array([v.size for v in values], float)
+    weights = counts / np.array([v.var(ddof=1) for v in values])
+    spread = ((1 - weights / weights.sum()) ** 2 / (counts - 1)).sum()
+    test = _stats.f_oneway(*values, equal_var=False)
+    return {
+        "welch_f_statistic": float(test.statistic),
+        "welch_degrees_of_freedom_numerator": k - 1,
+        "welch_degrees_of_freedom_denominator": float((k**2 - 1) / (3 * spread)),
+        "welch_p_value": float(test.pvalue),
+    }
+
+
+def compare_groups(
+    data: pd.DataFrame,
+    *,
+    value: str | None = None,
+    by: str | Sequence[str] | None = None,
+    log: bool = False,
+    significance_level: float | None = None,
+    judgments: Any = None,
+    pool: str | Sequence[str] | None = None,
+    include_assumed: bool = False,
+    units: str | Mapping[str, str] | None = None,
+    display_units: str | None = None,
+) -> CompareGroupsResult:
+    r"""Test whether a property differs among several groups, and between each pair.
+
+    For questions such as "does PI differ among the geology units, and which
+    differ from which?". Two overall tests and two pairwise tests, each a
+    parametric one and a rank-based one side by side, never one chosen by a
+    pre-test:
+
+    - **Welch's ANOVA** (Welch 1951; Delacre et al. 2019), which doesn't
+      assume equal variances, and **Kruskal-Wallis** with the tie correction
+      (Helsel et al. 2020 §7.1), on whether any group differs.
+    - **Every pair**, first in group order: the ``difference`` in means (or,
+      with ``log=True``, the ``ratio`` of geometric means) with its
+      Games-Howell interval at 1 - α and ``games_howell_p_value`` (Games &
+      Howell 1976); and Dunn's test on the joint ranks, ``dunn_z_statistic``
+      and ``dunn_p_value``, Holm-adjusted (Dunn 1964; Dinno 2015). Both
+      p-values are family-wise, adjusted for the number of pairs, so they
+      answer the same question. Pairs are reported whatever the overall
+      tests say: neither procedure needs a significant overall test first
+      (Helsel et al. 2020 §7.7).
+
+    Rows, flags, sources, units and the significance level are read as
+    ``ht.stats.compare()`` reads them. A group with fewer than 2 values, or
+    whose values are all bounds at one value, is left out of the tests, its
+    row kept in ``.groups_frame()`` with the reason. For two groups,
+    ``compare()`` adds the Brunner-Munzel test and the probability of
+    superiority.
+
+    The tests assume independent values. Values from one hole, or close
+    together, aren't, and the p-values are then too small.
+
+    Not yet checked against the original papers (TODO #48): Welch (1951),
+    Games & Howell (1976), Dunn (1964), Holm (1979).
+
+    Parameters
+    ----------
+    data : pandas.DataFrame
+        The values, with the column to compare and the ``by`` column(s).
+    value : str
+        The column to compare, e.g. ``"plasticity_index"``.
+    by : str or list of str
+        The column(s) whose groups are compared, e.g. ``"geology_unit"``.
+        Groups are in ``describe()``'s order.
+    log, significance_level, judgments, pool, include_assumed, units, display_units
+        As ``ht.stats.compare()``.
+
+    Returns
+    -------
+    CompareGroupsResult
+        ``.to_frame()`` has one row per pair, ``.overall()`` one row with the
+        overall tests, ``.groups_frame()`` one row per group with its counts.
+        ``print(result)`` shows them with a plain-English note.
+
+    Raises
+    ------
+    HangtuError
+        For no ``by``, fewer than 2 groups with 2 values or more, no
+        significance level, rows from different sources in one group, or a
+        value at or below 0 with ``log=True``.
+    ColumnError
+        For a missing column, or one that holds no numbers.
+
+    Examples
+    --------
+    >>> limits = p.atterberg()
+    >>> result = ht.stats.compare_groups(
+    ...     limits, value="plasticity_index", by="geology_unit",
+    ...     significance_level=0.05,
+    ... )
+    >>> result.to_frame()
+    """
+    function = "compare_groups()"
+    if by is None:
+        raise HangtuError(
+            f"{function} needs by=, the column whose groups are compared, e.g. "
+            'ht.stats.compare_groups(df, value="plasticity_index", '
+            'by="geology_unit").'
+        )
+    read = _read_groups(
+        data,
+        None,
+        value=value,
+        by=by,
+        pool=pool,
+        include_assumed=include_assumed,
+        units=units,
+        display_units=display_units,
+        log=log,
+        function=function,
+    )
+    alpha, record = _significance.resolve(
+        significance_level, judgments, read.frames, function
+    )
+    column = read.value or "the values"
+    reasons = {}
+    for group in read.groups:
+        if group.values.size < 2:
+            reasons[group.label] = f"fewer than 2 values ({group.values.size})"
+        elif _all_one_bound(group):
+            reasons[group.label] = f"every value is a bound at {group.values[0]:g}"
+    tested = [group for group in read.groups if group.label not in reasons]
+    if reasons:
+        listed = "; ".join(f"{label}: {why}" for label, why in reasons.items())
+        if len(tested) < 2:
+            raise HangtuError(
+                f"{function} needs at least 2 groups with 2 values of {column!r} "
+                f"or more, and has {len(tested)}. Left out: {listed}. Group more "
+                "widely, or report the values themselves."
+            )
+        warn(
+            f"{function} left {len(reasons)} group{'s' if len(reasons) != 1 else ''} "
+            f"of {column!r} out of the tests: {listed}. Their rows in "
+            ".groups_frame() keep their counts."
+        )
+    _warn_few(tested, column, function)
+    values = [np.log(g.values) if log else g.values for g in tested]
+    spread = all(np.ptp(v) > 0 for v in values)
+    overall = (
+        welch_anova(values)
+        if spread
+        else {
+            "welch_f_statistic": float("nan"),
+            "welch_degrees_of_freedom_numerator": len(values) - 1,
+            "welch_degrees_of_freedom_denominator": float("nan"),
+            "welch_p_value": float("nan"),
+        }
+    )
+    kruskal = _stats.kruskal(*values) if np.ptp(np.concatenate(values)) > 0 else None
+    overall.update(
+        {
+            "kruskal_wallis_statistic": float("nan")
+            if kruskal is None
+            else float(kruskal.statistic),
+            "kruskal_wallis_degrees_of_freedom": len(tested) - 1,
+            "kruskal_wallis_p_value": float("nan")
+            if kruskal is None
+            else float(kruskal.pvalue),
+        }
+    )
+    pairs = _pairs(tested, values, alpha, log, spread)
+    confidence = f"{(1 - alpha) * 100:g} %"
+    notes = [
+        *_note.groups_note(overall, pairs, alpha, confidence, log),
+        *(
+            [
+                "Two groups: Welch's F is Welch's t squared and Games-Howell's p "
+                "is Welch's. ht.stats.compare() adds the Brunner-Munzel test and "
+                "the probability of superiority."
+            ]
+            if len(tested) == 2
+            else []
+        ),
+        *(
+            [
+                "No Welch's ANOVA or Games-Howell: a group's values are all the "
+                "same, so its variance is 0 and its weight infinite."
+            ]
+            if not spread
+            else []
+        ),
+        f"Pair p-values are family-wise, adjusted for the {len(pairs)} "
+        f"pair{'s' if len(pairs) != 1 else ''}: Games-Howell by its own "
+        "distribution, Dunn by Holm's method.",
+        *[f"{label}: not tested, {why}." for label, why in reasons.items()],
+        *_notes(
+            read.groups, read, include_assumed, log, "Welch's ANOVA and Games-Howell"
+        ),
+    ]
+    return CompareGroupsResult(
+        kind="property",
+        function="compare_groups",
+        value=read.value,
+        unit=read.unit,
+        notes=tuple(notes),
+        judgments=_judgments_record(read.frames, record),
+        hangtu_version=version("hangtu"),
+        by=tuple(read.by),
+        groups=tuple(
+            {**group.record(log), "reason": reasons.get(group.label)}
+            for group in read.groups
+        ),
+        log=log,
+        pooled=tuple(read.pooled),
+        include_assumed=include_assumed,
+        significance_level=alpha,
+        confidence_level=1 - alpha,
+        significance_level_source=record["source"],
+        overall_tests=overall,
+        pairs=tuple(pairs),
+    )
+
+
+def _pairs(
+    groups: list[Group],
+    values: list[np.ndarray],
+    alpha: float,
+    log: bool,
+    spread: bool,
+) -> list[dict[str, Any]]:
+    """Return every pair, first in group order: Games-Howell and Dunn (Holm)."""
+    name = "ratio" if log else "difference"
+    nan = float("nan")
+    _, dunn = _rank.dunn(values)
+    adjusted = _rank.holm([p for *_, p in dunn])
+    if spread:
+        games_howell = _stats.tukey_hsd(*values, equal_var=False)
+        interval = games_howell.confidence_interval(confidence_level=1 - alpha)
+    pairs = []
+    for (i, j, z, _), dunn_p in zip(dunn, adjusted, strict=True):
+        estimate = float(values[i].mean() - values[j].mean())
+        low = high = p = nan
+        if spread:
+            low, high = float(interval.low[i, j]), float(interval.high[i, j])
+            p = float(games_howell.pvalue[i, j])
+        if log:
+            estimate, low, high = math.exp(estimate), math.exp(low), math.exp(high)
+        pairs.append(
+            {
+                "group_1": groups[i].label,
+                "group_2": groups[j].label,
+                name: estimate,
+                f"{name}_lower": low,
+                f"{name}_upper": high,
+                "games_howell_p_value": p,
+                "dunn_z_statistic": z,
+                "dunn_p_value": dunn_p,
+            }
+        )
+    return pairs
