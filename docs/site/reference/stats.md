@@ -9,3 +9,7 @@ Each statistics function is a plain function on a DataFrame, a Series or a list 
 ::: hangtu.stats.fit
 
 ::: hangtu.stats.FitResult
+
+::: hangtu.stats.compare
+
+::: hangtu.stats.CompareResult

@@ -3,6 +3,7 @@
 import html
 import math
 from dataclasses import asdict, dataclass
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -423,3 +424,168 @@ def _heading(name: str) -> str:
     if name.startswith("percentile_"):
         return "P" + name.removeprefix("percentile_").replace("_", ".")
     return _HEADINGS.get(name, name)
+
+
+def _table(rows: list[list[str]], indent: str = "") -> list[str]:
+    """Lay out rows of cells: the first column left-aligned, the rest right."""
+    widths = [max(len(row[i]) for row in rows) for i in range(len(rows[0]))]
+    return [
+        indent
+        + "  ".join(
+            cell.ljust(width) if i == 0 else cell.rjust(width)
+            for i, (cell, width) in enumerate(zip(row, widths, strict=True))
+        ).rstrip()
+        for row in rows
+    ]
+
+
+def _cell(value: Any) -> str:
+    from hangtu.plot._overlays import format_number  # plot imports stats
+
+    if value is None or (isinstance(value, float) and math.isnan(value)):
+        return "—"
+    if isinstance(value, int | np.integer):
+        return str(int(value))
+    return format_number(float(value))
+
+
+def _percent(level: float) -> str:
+    return f"{level * 100:g} %"
+
+
+@dataclass(frozen=True, repr=False)
+class CompareResult(_Result):
+    """The comparison ``ht.stats.compare()`` returns.
+
+    Use ``.to_frame()`` for one row with both groups, the difference and both
+    tests, ``.to_dict()`` for a report, or ``print(result)`` to read it with
+    its note. The text is a view of the same numbers.
+    """
+
+    #: The columns grouped by, empty for two inputs.
+    by: tuple[str, ...]
+    #: The two groups, first then second: label, key, statistics and counts.
+    groups: tuple[dict[str, Any], ...]
+    log: bool
+    #: The source columns pooled on purpose (``pool=``), within each group.
+    pooled: tuple[str, ...]
+    include_assumed: bool
+    #: α, a judgment (SPEC §4).
+    significance_level: float
+    #: 1 - α, the level of every interval.
+    confidence_level: float
+    #: Where α came from: ``"argument"`` or the judgments file's path.
+    significance_level_source: str
+    #: Welch's t-test and the difference (or ratio) with its interval.
+    welch: dict[str, float]
+    #: The Brunner-Munzel test and the probability of superiority.
+    brunner_munzel: dict[str, Any]
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return one row: the groups, their statistics, both tests, α, the counts.
+
+        Columns ending ``_1`` are the first group's, ``_2`` the second's.
+        ``attrs["units"]`` gives the unit of each column that has one.
+        """
+        first, second = self.groups
+        row: dict[str, Any] = {"group_1": first["label"], "group_2": second["label"]}
+        for name in first["statistics"]:
+            for i, group in enumerate(self.groups, start=1):
+                row[f"{name}_{i}"] = group["statistics"][name]
+        row.update(self.welch)
+        row.update(self.brunner_munzel)
+        row["significance_level"] = self.significance_level
+        row["confidence_level"] = self.confidence_level
+        for name in first["counts"]:
+            for i, group in enumerate(self.groups, start=1):
+                row[f"{name}_{i}"] = group["counts"][name]
+        frame = pd.DataFrame([row])
+        frame.attrs["units"] = (
+            {}
+            if self.unit is None
+            else dict.fromkeys(
+                (name for name in row if name in self._with_unit()), self.unit
+            )
+        )
+        return frame
+
+    def _with_unit(self) -> set[str]:
+        if self.log:
+            return {"geometric_mean_1", "geometric_mean_2"}
+        return {
+            "mean_1",
+            "mean_2",
+            "standard_deviation_1",
+            "standard_deviation_2",
+            "difference",
+            "difference_lower",
+            "difference_upper",
+        }
+
+    def __str__(self) -> str:
+        first, second = (group["label"] for group in self.groups)
+        title = self.value or "Values"
+        title += f" ({self.unit})" if self.unit else ""
+        lines = [title, *self._groups_table()]
+        level = _percent(self.confidence_level)
+        unit = f" {self.unit}" if self.unit and not self.log else ""
+        name = "ratio" if self.log else "difference"
+        welch = self.welch
+        what = (
+            f"Ratio of geometric means, {first} / {second}"
+            if self.log
+            else f"Difference in means, {first} - {second}"
+        )
+        lines.append(
+            f"{what}: {_cell(welch[name])}{unit}; {level} interval "
+            f"{_cell(welch[f'{name}_lower'])} to {_cell(welch[f'{name}_upper'])}{unit}"
+        )
+        lines.append(
+            f"Welch's t-test: t = {_cell(welch['welch_t_statistic'])}, "
+            f"df = {_cell(welch['welch_degrees_of_freedom'])}, "
+            f"p = {_cell(welch['welch_p_value'])}"
+        )
+        rank = self.brunner_munzel
+        lines.append(
+            f"P({first} > {second}): {_cell(rank['probability_of_superiority'])}; "
+            f"{level} interval {_cell(rank['probability_of_superiority_lower'])} to "
+            f"{_cell(rank['probability_of_superiority_upper'])}"
+        )
+        method = rank["brunner_munzel_method"]
+        lines.append(
+            f"Brunner-Munzel test: statistic = "
+            f"{_cell(rank['brunner_munzel_statistic'])}, "
+            f"df = {_cell(rank['brunner_munzel_degrees_of_freedom'])}, "
+            f"p = {_cell(rank['brunner_munzel_p_value'])}"
+            + (f" ({method})" if method else "")
+        )
+        source = self.significance_level_source
+        lines.append(
+            f"Significance level {self.significance_level:g} "
+            f"({'argument' if source == 'argument' else Path(source).name})"
+        )
+        return "\n".join([*lines, *self.notes])
+
+    def _groups_table(self) -> list[str]:
+        statistics = list(self.groups[0]["statistics"])
+        counts = [
+            name
+            for name in self.groups[0]["counts"]
+            if any(group["counts"][name] for group in self.groups)
+        ]
+        rows = [["", *(_heading(name) for name in (*statistics, *counts))]]
+        for group in self.groups:
+            rows.append(
+                [
+                    group["label"],
+                    *(_cell(group["statistics"][name]) for name in statistics),
+                    *(str(group["counts"][name]) for name in counts),
+                ]
+            )
+        return _table(rows)
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    def _repr_html_(self) -> str:
+        return f"<pre>{html.escape(str(self))}</pre>"
