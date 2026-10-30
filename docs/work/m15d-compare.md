@@ -347,3 +347,110 @@ relative unless stated, or the source's printed precision.
     0.04788026, and every p-value, statistic and p̂ is unchanged (1e-9).
 14. **Result:** `.to_frame()` columns as Decision 11; `.to_dict()` passes `json.dumps`; `str()` shows every
     number in the frame to 3 significant figures and the note; `kind` is `"property"`.
+
+## Plan
+Seven build commits, then the docs pages (a docs commit, with approval) and the close-out: eight commits in all.
+Reused, not rebuilt:
+- the row reading in `stats/_rows.py` (`read_input`, `check_pool`, `convert`, `read_flags`, `choose_rows`,
+  `group_keys`, `check_sources`, `warn_left_out`, `warn_text`, `spellings`, `COUNTS`), run as `fit()` runs it
+  (`stats/_fit.py`, top of `fit()`), so the three functions choose the same rows;
+- `_describe.summarize()` for each group's count, mean and standard deviation (with `log=True` its
+  `geometric_mean` and `geometric_standard_deviation`, so the names agree with `describe()`; *changed in the
+  plan:* spec Decision 11 said "the standard deviation of ln x");
+- `_result._Result` and `_plain()`; `DescribeResult`'s text table for `str()`;
+- judgments: `_judgments.KINDS`/`_check_judgment` and `analysis/_judgment_values.read_judgments()`;
+- SciPy: `ttest_ind(equal_var=False)`, `f_oneway(equal_var=False)`, `tukey_hsd(equal_var=False)`, `kruskal`,
+  `brunnermunzel` (as the check), `permutation_test`, `t`, `norm`.
+
+New modules: `stats/_compare.py` (both functions and their shared reading), `stats/_rank.py` (Brunner–Munzel,
+Dunn, Holm), `stats/_significance.py` (the judgment), `stats/_note.py` (the plain-English note).
+`CompareResult` and `CompareGroupsResult` go in `stats/_result.py`.
+
+### 1. `M15: raise the SciPy floor to 1.16.0`
+- `pyproject.toml` `scipy>=1.16.0`; `uv.lock`; SPEC §12.1's SciPy line (Decision 1), in this commit.
+- The oldest-versions run (`UV_RESOLUTION=lowest-direct`) on the existing suite, then `git checkout uv.lock`;
+  a patch release instead if 1.16.0 fails. No new tests.
+
+### 2. `judgments: significance_level, a project-wide judgment with no keys`
+- `_judgments.py`: `Kind` gains `project_only: bool`; `KINDS["significance_level"]` (unitless, field
+  `significance_level`, sections `project` only). `_check_judgment` gives a `values:` or `by:` under it an error
+  saying it takes only `project:`; `reason` stays required. 0 < α < 1 else an error; `PLAUSIBLE` warns outside
+  0.001–0.2. `ht.judgments()`'s docstring lists it.
+- `stats/_significance.py`: `resolve(argument, judgments, frames) -> (alpha, record)`: argument, then
+  `judgments=`, then the file a DataFrame input carries (`read_judgments`), then an error naming
+  `significance_level` and showing the entry (SPEC §4). The argument over a file value warns. No
+  "project value used for every key" warning: it has no keys.
+- SPEC §4's judgment list, in this commit.
+- Tests: `tests/test_judgments.py` (file checks), new `tests/stats/test_significance.py` (resolution order,
+  the error text, the warnings): AC 9 except the interval part.
+
+### 3. `M15: ht.stats.compare() with Welch's t-test`
+- `stats/_compare.py`: `compare()` with Decision 2's signature; the three input forms, `groups=`, the order
+  rule; a shared `_read_groups()` that runs `_rows` per frame (and per `by` group) and checks units match
+  across two frames; `summarize()` per group; Welch by `ttest_ind`, interval at 1 − α, `log=True` as the ratio
+  of geometric means; both standard deviations 0 noted (Decision 3); censored counts and note (Decision 7);
+  minimum n (Decision 10). Brunner–Munzel columns present and blank until step 4.
+- `stats/_result.py`: `CompareResult` (Decision 11): fields, `.to_frame()`, `.to_dict()`, `str()`,
+  `_repr_html_`. `stats/__init__.py` exports; `docs/site/reference/stats.md` entries (the reference test).
+- Docstring: Helsel et al. (2020) §5.3.3–5.3.4; Welch (1947) named as not yet checked (TODO #48).
+- Tests: new `tests/stats/test_compare.py` (AC 1; AC 10; AC 12's `compare()` part; AC 13's Welch part),
+  `tests/stats/test_compare_result.py` (AC 14), `tests/stats/test_compare_flags.py` (AC 11).
+
+### 4. `M15: Brunner–Munzel test in compare()`
+- `stats/_rank.py`: `brunner_munzel(first, second, alpha)`: p̂ (Decision 4), the statistic and degrees of
+  freedom as SciPy computes them, signed for the first group; the t p-value at ≥ 10 per group, else
+  `permutation_test` (exact up to 9999 splits, else 9999 from a fixed seed) with the method recorded;
+  non-overlap as ±inf without SciPy's warning reaching the user; the interval (≥ 10 only, clipped and noted).
+- `_compare.py` fills the columns. Docstring: Karch (2021); Brunner & Munzel (2000) and Neubert & Brunner
+  (2007) named as not yet checked.
+- Tests: new `tests/stats/test_brunner_munzel.py` (AC 3; AC 13's p̂ and statistic unchanged by units).
+
+### 5. `M15: the plain-English note in compare()`
+- `stats/_note.py`: Decision 9's note: what each test found at α, agree or disagree with its likely reason, the
+  independence caveat, then the censored, small-group, permutation and non-overlap notes. `CompareResult`'s
+  notes and `str()` show it.
+- Tests: `tests/stats/test_compare_note.py`: AC 2; one case per branch (both, neither, Welch only, rank only),
+  the "doesn't show the groups are the same" wording, the independence line always present.
+
+### 6. `stats: Dunn's test and Holm's adjustment`
+- `stats/_rank.py`: `dunn(groups) -> z, p` with joint mid-ranks and the tie term (Decision 6); `holm(p)` with the
+  running maximum. Docstrings: Dinno (2015); Dunn (1964) and Holm (1979) named as not yet checked.
+- Tests: new `tests/stats/test_dunn_holm.py`: AC 5's Dunn and Holm values, AC 6, AC 8.
+
+### 7. `M15: ht.stats.compare_groups()`
+- `_compare.py`: `compare_groups()` (Decision 5) through `_read_groups()`; Welch's ANOVA by `f_oneway`,
+  Kruskal–Wallis by `kruskal`, Games–Howell by `tukey_hsd` with its interval at 1 − α, Dunn with Holm; every
+  pair in group order; `log=True` on ln x for the parametric results; groups below 2 values left out with
+  their row and one warning, fewer than 2 groups an error; a note per pair whose tests disagree, one for the
+  overall tests (through `_note.py`).
+- `CompareGroupsResult` (Decision 11): `.to_frame()` (pairs), `.overall()`, `.groups_frame()`, `.to_dict()`,
+  `str()`. Exports and reference entries.
+- Docstring: Delacre et al. (2019), Helsel et al. (2020) §7.1, §7.7; Welch (1951), Games & Howell (1976) named
+  as not yet checked.
+- Tests: new `tests/stats/test_compare_groups.py`: AC 4, AC 5's H and mean ranks, AC 7, AC 12's
+  `compare_groups()` part, two groups (W = t², Games–Howell p = Welch p), the frames' columns.
+- If this step passes ~300 changed lines, `CompareGroupsResult` goes in its own commit before it.
+
+### 8. `docs: comparing groups and the significance level` (docs commit, with approval)
+- `docs/site/guides/statistics.md`: a "Comparing groups" section (why both tests, reading a disagreement, what
+  "no difference found" doesn't mean, independence), with `docs/site/examples/statistics-compare.py` on the
+  example project (N60 between two geology units; PI across several; a correlation's s_u against another's).
+- `docs/site/guides/judgments.md`: `significance_level` and its file entry.
+- Check: `uv run python docs/prepare_site.py && uv run zensical build --clean --strict`.
+
+### 9. `M15: close out (d)`
+- Every new public docstring checked against the spec's Sources, with TODO #48's stand-ins named.
+- SPEC §5 (`compare`, `compare_groups` built; the no-pre-tests rule; `crosstab` to (e); the result list), §12.4
+  (M15 row: (d) done, (e) `crosstab`); `docs/drafts/phase3-stats.md`; TODO #10 and #11 removed, #48 widened,
+  #49 added; the CLAUDE.md status paragraph.
+- The whole suite, then the oldest-versions run on the new tests, then `git checkout uv.lock`.
+- Each acceptance criterion reported met or not, with evidence.
+
+### Verification
+- Per step: `uv run pytest tests/stats tests/test_judgments.py` while working; the whole suite
+  (`uv run pytest -n auto --dist loadfile`) and `uv run ruff check . && uv run ruff format --check .` before
+  each commit.
+- Golden values are the spec's (published results from Helsel, Dinno; hand calculations from Delacre's
+  eqs. 7–9, Dunn's formula, Holm's rule), never from running the implementation.
+- Step 8's site build in strict mode; read the example's output and the note text by eye.
+- Close-out: the oldest-versions run (SciPy 1.16.0).
