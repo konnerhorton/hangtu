@@ -18,7 +18,7 @@ from scipy import stats as _stats
 from hangtu import units as _units
 from hangtu._data import text_values
 from hangtu.errors import HangtuError, warn
-from hangtu.stats import _rank, _rows, _significance
+from hangtu.stats import _note, _rank, _rows, _significance
 from hangtu.stats._describe import summarize
 from hangtu.stats._result import CompareResult
 from hangtu.stats._rows import COUNTS
@@ -532,7 +532,20 @@ def compare(
         value=read.value,
         unit=read.unit,
         notes=tuple(
-            [*_notes(chosen, read, test, tested, include_assumed, log), *rank_notes]
+            [
+                *_note.compare_note(
+                    first.label,
+                    second.label,
+                    test,
+                    rank,
+                    alpha,
+                    f"{(1 - alpha) * 100:g} %",
+                    read.unit,
+                    log,
+                ),
+                *_notes(chosen, read, test, tested, include_assumed, log),
+                *rank_notes,
+            ]
         ),
         judgments=_judgments_record(read.frames, record),
         hangtu_version=version("hangtu"),
