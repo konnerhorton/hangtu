@@ -229,3 +229,36 @@ Numbered items refer to this section's decisions; "intent n" to the intent's. Re
    carry the standard deviation (σ′p 437 kPa; OCR 3.82; K0 0.43). The close-out lists any left unverified.
 10. The registry has an entry for each new column; the correlations guide shows them; ruff and the whole suite
     pass, and the docs site builds with `--strict`.
+
+## Plan
+Three build commits, each green. AC = the spec's acceptance criteria.
+
+1. **`M15: structure the correlations' scatter, advice and evaluations`**
+   - `src/hangtu/config/correlations.yaml`: `scatter` as a mapping, `advice` and `evaluations` on every entry
+     (Decisions 1, 4, 5); the header comment; K0's TC304 sentence moves from `notes` to `evaluations`; the
+     "Not stated. GEC 5 …" quotes move from `scatter.words` to `advice`. The three standard deviations get
+     `scale: null` (🔬).
+   - `src/hangtu/analysis/correlations/__init__.py`: `describe()`'s docstring lists the new fields.
+   - `tests/analysis/test_correlations.py`: every entry has the keys, with a failure naming the entry; each
+     number appears in `scatter.words`; each quoted `advice.words` appears in the function's docstring
+     (Decision 6); K0's evaluation through `describe()` (AC 1, 8).
+2. **`M15: carry correlation statistics and advice on the rows`**
+   - `src/hangtu/analysis/correlations/_framework.py`: `estimate()` writes `correlation_data_count`,
+     `correlation_r_squared`, `correlation_scatter` and `correlation_advice` on every row, and
+     `<target>_correlation_standard_deviation` when the registry has it: the arithmetic value converted from
+     the entry's unit (pa → × 100 kPa) to the display units with the target, NaN on rows with a note or where
+     the scale isn't arithmetic, its unit in `attrs["units"]` (Decisions 2, 3). `OUTPUT_COLUMNS` gains the four
+     shared columns.
+   - `src/hangtu/columns.yaml`: the four shared columns. No `<target>_correlation_standard_deviation` entries
+     while every scale is 🔬.
+   - `docs/site/reference/correlations.md`: the intro names the new columns.
+   - Tests: AC 2 on real correlations; AC 3–6 with a test entry and a monkeypatched registry column for
+     `preconsolidation_stress` (437 kPa, 9126.9 psf, NaN on noted rows, units in attrs, concat keeps attrs, no
+     column for a target without one); AC 7 the replaced-columns warning.
+3. **`M15: close out (b)`**
+   - `docs/site/guides/correlations.md`: a "Scatter and advice" section; `docs/site/examples/correlations.py`
+     prints the new columns for one row.
+   - `SPEC.md` §12.4: M15 (b) done. `docs/TODO.md`: #40 removed; a new item for P01 drawing the standard
+     deviation, and one for verifying the three standard deviations' scales (AC 9) if still open.
+   - `CLAUDE.md`: `r_squared` in the accepted short forms; the status paragraph.
+   - The whole suite, ruff and `zensical build --clean --strict` (AC 10).
