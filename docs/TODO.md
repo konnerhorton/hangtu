@@ -72,7 +72,7 @@ A downhole or surface velocity profile (often a user-defined group) can run belo
 ## Statistics (research items, with Claude's recommendations)
 
 ### 8. Bounded data and the truncated normal · You · docs/drafts/phase3-stats.md · M15 (c)
-**Agreed** (2026-10-29), as recommended below. `describe()`'s part is built (M15 (a), SPEC §5): refusals and `<x`/`>x` enter at their value, counted, with a note. The rest is built with `fit()` in M15 (c).
+**Agreed** (2026-10-29), as recommended below. `describe()`'s part is built (M15 (a), SPEC §5): refusals and `<x`/`>x` enter at their value, counted, with a note. The rest is specified in M15 (c) (`docs/work/m15c-fit.md`, Spec): censored values and beta with bounds are built with `fit()`; the **truncated normal is deferred** (fixed physical bounds need a custom likelihood), and **bands are left out** of `fit()`, with interval-censoring a possible later option. Those two stay here after M15 (c) closes.
 
 **Problem:** most geotechnical data are physically bounded:
 - N ≥ 0, and capped at 100 by our refusal rule;
@@ -136,6 +136,7 @@ A normal fit puts probability on impossible values.
 - Distributions agreed (normal, lognormal, Weibull, gamma; see item 8 for bounded ones).
 - To read up on: why a KS test gives misleading p-values once the parameters have been estimated from the same data, and the Anderson-Darling alternative. Also AIC vs BIC at small n (AICc is better for n < ~40; Claude recommends reporting AICc).
 - **Decided** (2026-10-29): rank the fits by AICc, and check each with an Anderson–Darling test (not KS, whose p-values mislead once the parameters are estimated from the same data). Built in M15 (c).
+- **Specified** (2026-10-30, `docs/work/m15c-fit.md`, Decisions 6–7): AICc with Akaike weights; the AD p-value by a seeded parametric bootstrap of 999 samples, none when a value is censored. Removed at M15 (c)'s close-out.
 
 **References:**
 - Lilliefors, H.W. (1967). On the Kolmogorov-Smirnov test for normality with mean and variance unknown. *JASA* 62, 399–402.
@@ -265,6 +266,14 @@ Proposed: two panels, not one axes with twinned x axes. A second x axis on the s
 
 ### 47. The scale of three correlation standard deviations · Claude (verify) · `config/correlations.yaml`, `docs/work/m15b-correlation-statistics.md`
 Mayne & Kemper's σ′p (S.D. = 4.37 pa) and OCR (3.82), and Kulhawy et al.'s K0 (0.43), have `scale: null`, so none is on the rows yet. Check each against Mayne & Kemper (1988), Kulhawy et al. (1989) or Kulhawy & Mayne (1990), Figs. 3-9, 3-18 and 3-30: whether it is the regression's standard error on the arithmetic values (then `scale: arithmetic`, and its registry column `<target>_correlation_standard_deviation` is added) or on log values (a factor, which needs a column design first). σ′p's, given in pa, suggests arithmetic.
+
+### 48. Sources for `fit()` not yet checked · Claude (verify) · SPEC §5, `docs/work/m15c-fit.md` (Sources)
+M15 (c) cites the NIST e-Handbook (§1.3.5.14) for the Anderson–Darling statistic and SciPy's documentation for the bootstrap p-value and the Kaplan–Meier estimate, because the original papers aren't available free. Check each against the paper when a copy is at hand, and update the docstrings and the statistics guide:
+- Stephens (1974), *JASA*, doi:10.2307/2286009 (the A² statistic).
+- Stute, González Manteiga & Presedo Quindimil (1993), *Metrika* (a parametric bootstrap with estimated parameters; the reference SciPy's `goodness_of_fit` gives).
+- Kaplan & Meier (1958), *JASA* (the estimator).
+
+Titles, volumes and pages are to be taken from each paper, not from memory.
 
 ### 41. Gravelly sands under `not_for` · You + Claude · page 04, `docs/work/m13b1-spt-framework.md`
 Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads only the group symbol. The example site's Terrace is "SAND with gravel (SP)": SP passes, so its rows get estimates with no note. USCS group names (ASTM D2487) add "with gravel" at ≥ 15 % gravel, which the symbol does not carry.

@@ -13,7 +13,7 @@
 | Function | Behavior |
 |---|---|
 | `describe` ✅ | Decided and built in M15 (a): `docs/work/m15a-describe.md` and SPEC §5 |
-| `fit` 🔬 | MLE; AICc; Anderson-Darling / Lilliefors. Reports P(X outside bounds). `bounds=` enables truncnorm/beta. Censored data (refusals, `<x`) via `scipy.stats.CensoredData`. `.plot()` = P08 (TODO #8, #12) |
+| `fit` ✅ | Decided in M15 (c): `docs/work/m15c-fit.md` (Spec) and P08 |
 | `compare` 🔬 | Welch's t-test plus a rank-based test side by side; effect size with CI; plain-English summary; low-power warning (TODO #10) |
 | `compare_groups` 🔬 | Welch's ANOVA + Games-Howell, alongside Kruskal-Wallis + Dunn (Holm) (TODO #11) |
 | `crosstab` | Contingency table between classification columns (e.g. lab USCS vs logged unit), with mismatch listing |

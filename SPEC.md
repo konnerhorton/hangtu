@@ -197,7 +197,7 @@ Analysis code lives in `ht.analysis.*`, as plain functions usable without plotti
 
 ## 5. Statistics (Phase 3) and model sets
 - All functions take an array, a Series, or a DataFrame plus `value=`/`by=`.
-- All accept `log=True`.
+- All accept `log=True`, except `fit()`: a normal fit to the logs is its lognormal fit (M15 (c)).
 - They return result objects with readable summaries, `.to_frame()` and `.to_dict()` (the latter for later AGSi export).
 - Results record whether they summarize test values (*properties*) or give interpreted design values (*parameters*), plus the method, n and source.
 - **One calculation, many views** (decided 2026-10-21): a result computes and keeps everything (values, n, the statistics behind each value, outliers, the judgments used, §4). What the user asks for (characteristic values, p-values, variance, outlier detail) changes the view (`.to_frame()`, `.to_dict()`, the summary), never the calculation, so two reports of one result can't disagree.
@@ -208,7 +208,7 @@ Analysis code lives in `ht.analysis.*`, as plain functions usable without plotti
   - **Flags come from the registry.** A `statistics:` field on a column (`columns.yaml`, P00 §5) marks it as a flag (`at_least`, `qualifier`, `non_plastic`, `assumed`) or a source (`source`), so every function reads one list and a new one is added there, not in code.
   - **Censored values** (refusals, `<x`, `>x`) enter `describe()` at their value and are counted, with a note that the mean is then biased; `fit()` treats them as censored.
   - **Non-plastic and assumed values are left out and counted**, never treated as blank or 0. Assumed values (M14 (a)) are included only on request (`include_assumed=True`), and the result says so.
-  - **A band is an interval** (`<target>_lower`/`_upper` with no value, M13 b2): left out and counted, never pooled as two values or summarized by its midpoint. `fit()` may take bands as interval-censored values.
+  - **A band is an interval** (`<target>_lower`/`_upper` with no value, M13 b2): left out and counted, never pooled as two values or summarized by its midpoint. `fit()` leaves them out and counts them too: a correlation's band is the spread of its coefficient, not a measurement known to lie in an interval (M15 (c), [`docs/work/m15c-fit.md`](docs/work/m15c-fit.md); TODO #8).
   - **Sources aren't pooled unawares.** Rows from more than one source in one summary (`correlation_name`, blank for a measured value; `source`; `test_type`) are an error naming each value and its count; `pool=` pools on purpose and the result records it. Plots summarize per group they draw and say "mixes sources" instead of raising.
   - **Counts add up:** each row is counted once, under the first reason that applies, so `count` and the counts of rows left out add up to the group's rows.
   - **Percentiles are Hyndman & Fan (1996) definition 7 everywhere**, with no method argument. A percentile is reported only with a value beyond it on each side (n × min(p, 100 − p) / 100 ≥ 1: P25/P75 from 4 values, P5/P95 from 20); the standard deviation and CoV need 2 values, and CoV a ratio scale and a mean above 0.
