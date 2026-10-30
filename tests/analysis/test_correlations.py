@@ -30,6 +30,17 @@ KULHAWY_MAYNE = [
     (5, 25.0, 33.27),
 ]
 KPA_TO_PSF = 1000 / 47.880259
+# A test entry's scatter, advice and evaluations, all not stated.
+NO_STATISTICS = {
+    "scatter": {
+        "words": "Not stated.",
+        "data_count": None,
+        "r_squared": None,
+        "standard_deviation": None,
+    },
+    "advice": None,
+    "evaluations": [],
+}
 FUNCTIONS = {
     name: getattr(correlations, name)
     for name in (
@@ -402,6 +413,7 @@ def chain_entry(monkeypatch):
             "equation": "s_u = φ′ kPa",
             "inputs": {"effective_friction_angle": {"variant": "φ′", "unit": None}},
             "range": {},
+            **NO_STATISTICS,
             "sources": [],
         },
     }
@@ -591,6 +603,7 @@ def rows_entry(monkeypatch):
                 "sands": {"wording": "Sands", "coefficient": 7, "uscs": ["SP"]},
             },
             "uscs": None,
+            **NO_STATISTICS,
             "sources": [],
         },
     }

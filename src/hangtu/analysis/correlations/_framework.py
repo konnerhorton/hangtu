@@ -5,7 +5,10 @@ estimate in the units its entry gives, and returns ``estimate()``'s frame: the
 target column, ``correlation_name`` and ``correlation_note``, with NaN and a
 count by reason wherever there is no estimate. A correlation published as a
 band also gives ``<target>_lower`` and ``<target>_upper``
-(docs/work/m13b2-spt-strength-history.md, Decision 6).
+(docs/work/m13b2-spt-strength-history.md, Decision 6). Every row carries the
+source's statistics and advice, and a target with a
+``<target>_correlation_standard_deviation`` in the registry gets the source's
+standard deviation (docs/work/m15b-correlation-statistics.md, Decisions 2-3).
 """
 
 import copy
@@ -25,12 +28,22 @@ from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.registry import column_info
 
 CONFIG = "config/correlations.yaml"
+#: The source's statistics and advice, the same on every row of one correlation.
+STATISTICS_COLUMNS = (
+    "correlation_data_count",
+    "correlation_r_squared",
+    "correlation_scatter",
+    "correlation_advice",
+)
 OUTPUT_COLUMNS = (
     "correlation_name",
     "correlation_note",
     "correlation_input",
     "correlation_soil",
+    *STATISTICS_COLUMNS,
 )
+#: The reference pressure, in kPa, of a standard deviation given in "pa".
+PA_KPA = 100.0
 #: correlation_note's reasons, in priority order: a row gets the first that applies.
 #: The soil comes first: outside its soils, the correlation doesn't apply at all.
 NOT_FOR_SOIL = "not for this soil"
@@ -315,6 +328,40 @@ def chained(df: pd.DataFrame, item: Mapping[str, Any]) -> np.ndarray:
     return upstream
 
 
+def statistics(item: Mapping[str, Any]) -> dict[str, Any]:
+    """Return the values of ``STATISTICS_COLUMNS`` for one entry (Decision 2)."""
+    scatter = item["scatter"]
+    advice = item["advice"]
+    if advice is None:
+        words = None
+    elif advice["by"] == "hangtu":
+        words = f"hangtu: {advice['words']}"
+    else:
+        words = f'"{advice["words"]}" ({advice["by"]})'
+    count, r_squared = scatter["data_count"], scatter["r_squared"]
+    return {
+        "correlation_data_count": np.nan if count is None else float(count),
+        "correlation_r_squared": np.nan if r_squared is None else float(r_squared),
+        "correlation_scatter": scatter["words"],
+        "correlation_advice": words,
+    }
+
+
+def standard_deviation(item: Mapping[str, Any]) -> tuple[float, str | None]:
+    """Return the source's standard deviation for the rows, and its unit.
+
+    Only an arithmetic one goes on the rows (Decision 3): a log-scale one is a
+    factor, and a scale not yet verified is never guessed. Otherwise NaN, in
+    the target's own unit.
+    """
+    deviation = item["scatter"]["standard_deviation"]
+    if deviation is None or deviation["scale"] != "arithmetic":
+        return np.nan, item["target"]["unit"]
+    if deviation["unit"] == "pa":
+        return deviation["value"] * PA_KPA, "kPa"
+    return deviation["value"], deviation["unit"]
+
+
 def estimate(
     df: pd.DataFrame,
     name: str,
@@ -346,17 +393,21 @@ def estimate(
     system = _display_units(display_units or settings.display_units)
     noted = np.array([reason is not None for reason in note], dtype=bool)
     quantity = column_info(target)["quantity"]
-    columns = {target: values}
+    unit = item["target"]["unit"]
+    columns = {target: (values, unit)}
     if lower is not None or upper is not None:
         nan = np.full(len(df), np.nan)
-        columns[f"{target}_lower"] = nan if lower is None else lower
-        columns[f"{target}_upper"] = nan if upper is None else upper
+        columns[f"{target}_lower"] = (nan if lower is None else lower, unit)
+        columns[f"{target}_upper"] = (nan if upper is None else upper, unit)
+    # Per target, so results for one target have the same columns (Decision 3).
+    deviation_column = f"{target}_correlation_standard_deviation"
+    if column_info(deviation_column) is not None:
+        deviation, deviation_unit = standard_deviation(item)
+        columns[deviation_column] = (np.full(len(df), deviation), deviation_unit)
     shown = {}
-    for column, data in columns.items():
+    for column, (data, from_unit) in columns.items():
         data = np.where(noted, np.nan, np.asarray(data, dtype=float))
-        shown[column], unit_text = _units.to_display(
-            data, item["target"]["unit"], quantity, system
-        )
+        shown[column], unit_text = _units.to_display(data, from_unit, quantity, system)
 
     if noted.any():
         counts = pd.Series(note[noted]).value_counts()
@@ -390,6 +441,11 @@ def estimate(
         index=df.index,
         dtype=object,
     )
+    for column, value in statistics(item).items():
+        text = value is None or isinstance(value, str)
+        result[column] = pd.Series(
+            [value] * len(df), index=df.index, dtype=object if text else float
+        )
     # A dimensionless target (OCR, K0) has no unit to record.
     result.attrs["units"] = {
         **_units.units_of(df),

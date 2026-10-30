@@ -26,6 +26,12 @@ columns = ["loca_id", "depth", "spt_n60", "spt_n1_60", "effective_friction_angle
 rows = estimates[estimates["loca_id"] == "B-5"]
 print(rows[[*columns, "correlation_name"]].round(1).to_string(index=False))
 
+# Each row carries its source's scatter and advice on use.
+for _, row in estimates.drop_duplicates("correlation_name").iterrows():
+    print(f"\n{row['correlation_name']}")
+    print(f"  scatter: {row['correlation_scatter']}")
+    print(f"  advice: {row['correlation_advice'] or '(none)'}")
+
 fig, ax = ht.plot.profile(
     estimates,
     "effective_friction_angle",

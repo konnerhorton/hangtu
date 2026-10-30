@@ -4,8 +4,10 @@ Each function reads the one input column its correlation was derived with,
 returns a copy of ``df`` with the estimate in the target property's column,
 ``correlation_name`` and ``correlation_note``, and gives NaN, never an
 extrapolated value, where the correlation doesn't apply. A correlation
-published as a band gives ``<target>_lower`` and ``<target>_upper``. Each is
-named target first: ``<target>_<authors>_<year>``. Several estimates
+published as a band gives ``<target>_lower`` and ``<target>_upper``. Every
+row carries the source's statistics and advice (``correlation_data_count``,
+``correlation_r_squared``, ``correlation_scatter``, ``correlation_advice``).
+Each is named target first: ``<target>_<authors>_<year>``. Several estimates
 compare with ``pd.concat`` and ``ht.plot.profile(..., color_by="correlation_name")``.
 """
 
@@ -64,8 +66,16 @@ def describe(name: str) -> dict[str, Any]:
     dict
         A copy of its entry in ``config/correlations.yaml``: ``target``,
         ``equation``, ``inputs`` (column, variant and unit), ``range``,
-        ``applies_to``, ``not_for``, ``scatter``, ``notes``, ``sources``
-        (each with its locator) and ``label``. ``label`` is the text a plot's
+        ``applies_to``, ``not_for``, ``notes``, ``sources`` (each with its
+        locator) and ``label``. ``scatter`` holds the source's own statistics:
+        its ``words``, ``data_count`` (n), ``r_squared`` and
+        ``standard_deviation`` (``value``, ``unit`` and ``scale``), each None
+        where the source states none. ``advice`` is the source's advice on use
+        (``words`` and ``by``, its citation, or "hangtu" for hangtu's own), or
+        None. ``evaluations`` lists other databases' checks of the
+        correlation: ``bias`` (mean of measured over estimated),
+        ``coefficient_of_variation``, ``data_count``, ``database``, ``cite``
+        and ``locator``. ``label`` is the text a plot's
         legend shows for the correlation when it colors or marks points by
         ``correlation_name``: the entry's ``label:`` if it has one, else the
         first source's citation, e.g. "Hatanaka & Uchida (1996)".
