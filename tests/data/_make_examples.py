@@ -97,7 +97,7 @@ TRC,Terrace,coarse,3,#e0b040
 
 # The site's judgments (SPEC §4), in the file's US units.
 JUDGMENTS = """\
-# judgments.yaml: the example site's unit weights, water levels and Gs (SPEC §4).
+# judgments.yaml: the example site's unit weights, water levels, Gs and α (SPEC §4).
 unit_weight:
   by: geology_unit
   units: {bulk_unit_weight: pcf, saturated_unit_weight: pcf}
@@ -125,6 +125,8 @@ specific_gravity:
   values:
     Alluvium: {specific_gravity: 2.70, reason: "median of 6 LPDN, measured (168.9 pcf)"}
     Terrace: {specific_gravity: 2.67, reason: "median of 6 LPDN, measured (166.4 pcf)"}
+significance_level:
+  project: {significance_level: 0.05, reason: "the usual convention"}
 """
 
 

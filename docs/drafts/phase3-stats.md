@@ -14,7 +14,7 @@
 |---|---|
 | `describe` ✅ | Decided and built in M15 (a): `docs/work/m15a-describe.md` and SPEC §5 |
 | `fit` ✅ | Decided and built in M15 (c): `docs/work/m15c-fit.md`, SPEC §5 and P08 |
-| `compare` 🔬 | Welch's t-test plus a rank-based test side by side; effect size with CI; plain-English summary; low-power warning (TODO #10) |
-| `compare_groups` 🔬 | Welch's ANOVA + Games-Howell, alongside Kruskal-Wallis + Dunn (Holm) (TODO #11) |
-| `crosstab` | Contingency table between classification columns (e.g. lab USCS vs logged unit), with mismatch listing |
+| `compare` ✅ | Decided and built in M15 (d): `docs/work/m15d-compare.md` and SPEC §5 |
+| `compare_groups` ✅ | Decided and built in M15 (d): `docs/work/m15d-compare.md` and SPEC §5 |
+| `crosstab` | M15 (e). Contingency table between classification columns (e.g. lab USCS vs logged unit), with mismatch listing |
 | `characteristic` 🔬 | Moved to M18 (selection). EC7 characteristic value (see `docs/reference/eurocode7-summary.md` §7; TODO #13). Plot: P09 |

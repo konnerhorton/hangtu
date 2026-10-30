@@ -70,6 +70,17 @@ plasticity_index:
 
 The nearest Atterberg test is never used in its place. To see what the tests say before you choose, `ht.stats.describe(p.atterberg(), value="plasticity_index", by="geology_unit")` gives each geology unit's count, mean, standard deviation, median, minimum, maximum and percentiles, and counts the non-plastic specimens it leaves out.
 
+## The significance level
+
+`ht.stats.compare()` and `ht.stats.compare_groups()` test at a significance level α, which is a judgment like any other: there is no default, because 0.05 is a convention rather than a property of the data. It is one value for the whole project, with no keys, and its reason is required:
+
+```yaml
+significance_level:
+  project: {significance_level: 0.05, reason: "the usual convention"}
+```
+
+It must lie strictly between 0 and 1, and warns outside 0.001 to 0.2. `values:` or `by:` under it is an error. `significance_level=` on a call replaces it, with a warning. It sets the note's conclusions and the intervals' level, 1 − α; the p-values don't depend on it. See [comparing groups](statistics.md#comparing-groups).
+
 ## The log
 
 Vertical stress is integrated through each hole's log, `p.stratigraphy()` or a table in the shape of `ht.template("stratigraphy")`. It is always passed explicitly, because it's data you may have edited, such as layers reclassified by USCS.

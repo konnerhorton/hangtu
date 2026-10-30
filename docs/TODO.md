@@ -80,39 +80,6 @@ The rest of this item is built (M15 (c), SPEC §5): refusals and `<x`/`>x` are f
 - Johnson, N.L., Kotz, S. & Balakrishnan, N. (1994). *Continuous Univariate Distributions*, Vol. 1, 2nd ed. Wiley. Truncated normal and lognormal.
 - SciPy docs: `scipy.stats.truncnorm`.
 
-### 10. `compare(a, b)` — test selection · You · docs/drafts/phase3-stats.md · M15 (d)
-**Agreed** (2026-10-29), as recommended below; built in M15 (d).
-
-**Claude's recommendation (a change from the current spec):** drop the two-stage "test normality first, then choose the test" logic. Statisticians advise against it: the pre-test changes the error rates of the main test, and normality tests have little power at the small n we usually have.
-- Instead, **always run Welch's t-test** (robust to unequal variances and sizes), and **report a rank-based test alongside** it (Mann-Whitney U, or Brunner-Munzel, which also tolerates unequal variances).
-- Add an effect size with a confidence interval, and a plain-English note on whether the two tests agree.
-- Offer `log=True` for lognormal-type data (k, c_u). This compares geometric means.
-- Warn when n < 5 per group (very low power).
-
-**References:**
-- Welch, B.L. (1947). The generalization of "Student's" problem when several different population variances are involved. *Biometrika* 34, 28–35.
-- Ruxton, G.D. (2006). The unequal variance t-test is an underused alternative to Student's t-test and the Mann–Whitney U test. *Behavioral Ecology* 17(4), 688–690.
-- Delacre, M., Lakens, D. & Leys, C. (2017). Why psychologists should by default use Welch's t-test instead of Student's t-test. *International Review of Social Psychology* 30(1), 92–101.
-- Rasch, D., Kubinger, K.D. & Moder, K. (2011). The two-sample t test: pre-testing its assumptions does not pay off. *Statistical Papers* 52, 219–231.
-- Zimmerman, D.W. (2004). A note on preliminary tests of equality of variances. *British Journal of Mathematical and Statistical Psychology* 57, 173–181.
-- Mann, H.B. & Whitney, D.R. (1947). *Annals of Mathematical Statistics* 18(1), 50–60.
-- Brunner, E. & Munzel, U. (2000). The nonparametric Behrens–Fisher problem. *Biometrical Journal* 42, 17–25.
-- Fagerland, M.W. & Sandvik, L. (2009). The Wilcoxon–Mann–Whitney test under scrutiny. *Statistics in Medicine* 28, 1487–1497.
-
-### 11. `compare_groups()` — more than two groups · You · docs/drafts/phase3-stats.md · M15 (d)
-**Agreed** (2026-10-29), as recommended below; built in M15 (d).
-
-**Claude's recommendation:** the same "report both" approach as `compare()`:
-- **Welch's ANOVA** with **Games-Howell** pairwise comparisons;
-- alongside **Kruskal-Wallis** with **Dunn's** pairwise tests, with Holm correction.
-
-**References:**
-- Welch, B.L. (1951). On the comparison of several mean values: an alternative approach. *Biometrika* 38, 330–336.
-- Games, P.A. & Howell, J.F. (1976). Pairwise multiple comparison procedures with unequal n's and/or variances. *Journal of Educational Statistics* 1, 113–125.
-- Kruskal, W.H. & Wallis, W.A. (1952). Use of ranks in one-criterion variance analysis. *JASA* 47, 583–621.
-- Dunn, O.J. (1964). Multiple comparisons using rank sums. *Technometrics* 6, 241–252.
-- Holm, S. (1979). A simple sequentially rejective multiple test procedure. *Scandinavian Journal of Statistics* 6, 65–70.
-
 ### 13. `characteristic()` (Eurocode 7) · You · docs/drafts/phase3-stats.md, docs/reference/eurocode7-summary.md · M18
 **Deferred** (2026-10-29) to M18 (selection), with P09, which needs it. Its judgments (the type of estimate, θ, L, an assumed V_X), the lognormal formulae and the framing for US users are settled there.
 
@@ -245,14 +212,24 @@ Today the estimates draw on one P01 profile by `correlation_name`, and a blank e
 
 Proposed: two panels, not one axes with twinned x axes. A second x axis on the same profile makes the reader match each marker to one of two unrelated scales; the input and estimate markers interleave at the same depths, and the axis limits of each are arbitrary relative to the other. Two panels keep one quantity per axis (P01's contract) and still line up by depth. Open: a helper (`ht.plot.correlation_profile(est, ...)`) or a recipe in the correlations guide using `ht.Sheet` with `ax=`; `Sheet` has no shared vertical axis yet, so either needs one (matching depth limits across panels).
 
+### 51. Comparing groups with censored values · You + Claude · SPEC §5, `docs/work/m15d-compare.md` (Decision 7) · before M18
+`compare()` and `compare_groups()` take refusals and `<x`/`>x` at their value and count them, with a note that the means, and so Welch's results, are biased; the ranks treat a common cap as tied at the top, closer to right but not right either. A group that is all bounds at one value isn't tested. Tests made for censored data compare groups properly: the Gehan and Peto–Prentice generalized Wilcoxon tests, and the score tests of survival analysis (Helsel et al. 2020, ch. 13, is a starting point). Decide which, and whether `fit()`'s censored likelihood (M15 (c)) gives a parametric counterpart.
+
 ### 47. The scale of three correlation standard deviations · Claude (verify) · `config/correlations.yaml`, `docs/work/m15b-correlation-statistics.md`
 Mayne & Kemper's σ′p (S.D. = 4.37 pa) and OCR (3.82), and Kulhawy et al.'s K0 (0.43), have `scale: null`, so none is on the rows yet. Check each against Mayne & Kemper (1988), Kulhawy et al. (1989) or Kulhawy & Mayne (1990), Figs. 3-9, 3-18 and 3-30: whether it is the regression's standard error on the arithmetic values (then `scale: arithmetic`, and its registry column `<target>_correlation_standard_deviation` is added) or on log values (a factor, which needs a column design first). σ′p's, given in pa, suggests arithmetic.
 
-### 48. Sources for `fit()` not yet checked · Claude (verify) · SPEC §5, `docs/work/m15c-fit.md` (Sources)
+### 48. Statistics sources not yet checked · Claude (verify) · SPEC §5, `docs/work/m15c-fit.md` and `docs/work/m15d-compare.md` (Sources)
 M15 (c) cites the NIST e-Handbook (§1.3.5.14) for the Anderson–Darling statistic and SciPy's documentation for the bootstrap p-value and the Kaplan–Meier estimate, because the original papers aren't available free. Check each against the paper when a copy is at hand, and update the docstrings and the statistics guide:
 - Stephens (1974), *JASA*, doi:10.2307/2286009 (the A² statistic).
 - Stute, González Manteiga & Presedo Quindimil (1993), *Metrika* (a parametric bootstrap with estimated parameters; the reference SciPy's `goodness_of_fit` gives).
 - Kaplan & Meier (1958), *JASA* (the estimator).
+
+M15 (d) cites Helsel et al. (2020), Delacre et al. (2019), Dinno (2015) and Karch (2021), all checked, and SciPy for what they describe only by reference. Not yet checked against the papers:
+- Welch (1947) and (1951), *Biometrika* (the t-test and the ANOVA).
+- Games & Howell (1976), *Journal of Educational Statistics* (SciPy's `tukey_hsd` cites it).
+- Brunner & Munzel (2000), *Biometrical Journal*, and Neubert & Brunner (2007), *Computational Statistics & Data Analysis* (the variance estimate, the interval for p̂, the permutation form).
+- Dunn (1964), *Technometrics*, and Holm (1979), *Scandinavian Journal of Statistics*.
+- Fagerland & Sandvik (2009), *Statistics in Medicine* (why not Mann–Whitney).
 
 Titles, volumes and pages are to be taken from each paper, not from memory.
 
@@ -286,6 +263,7 @@ Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads o
 - A helper for deciding cohesive vs cohesionless from lab data (fines %, PI).
 
 ## Done
+- ✅ #10 and #11 Comparing groups decided and built (2026-10-30, M15 (d)): no pre-tests; `compare()` reports Welch's t-test with the difference and its interval beside Brunner–Munzel with the probability of superiority (permutation below 10 per group); `compare_groups()` Welch's ANOVA and Games–Howell beside Kruskal–Wallis and Dunn with Holm; a plain-English note; fewer than 5 per group warns; α a judgment. SPEC §4, §5.
 - ✅ #40 Correlation statistics decided and built (2026-10-30, M15 (b)): each estimate row carries its source's n, r², scatter in its own words and advice on use (quoted with its citation, or marked as hangtu's), and an arithmetic standard deviation in the target's units once verified (#47). Other databases' checks (bias, COV) stay in the entry's `evaluations`; applying them is M18. SPEC §4.
 - ✅ #9 `describe()` floors decided and built (2026-10-29, M15 (a)): n = 1 gives the value as the mean and no std or CoV; fewer than 3 values warns; a percentile is reported only with a value beyond it on each side (P25/P75 from 4, P5/P95 from 20); Hyndman & Fan definition 7, stated in the output; no CoV on an interval scale or a mean ≤ 0. SPEC §5.
 - ✅ #20 Which SPT correlations for M13 settled (2026-10-26, M13 b1–b3): φ′ from Hatanaka & Uchida (1996) and Kulhawy & Mayne (1990); s_u from Stroud (1974) and Terzaghi & Peck (1967); σ′p, OCR and K0 from Mayne & Kemper (1988) and Kulhawy et al. (1989); E from AASHTO (2004) and Kulhawy & Mayne (1990), by a required soil row; Vs from Imai & Tonouchi (1982) and Ohta & Goto (1978) in Wair et al.'s (2012) N60 forms. Each verified against its source; Wolff (1989) and Sowers (1979) cut (#36, #39).

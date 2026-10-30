@@ -1,6 +1,6 @@
 # Statistics
 
-Summarize test values by geology unit, with the count, spread and percentiles a design report needs, and with every flagged value counted rather than dropped; then fit distributions to them.
+Summarize test values by geology unit, with the count, spread and percentiles a design report needs, and with every flagged value counted rather than dropped; fit distributions to them; and test whether groups differ.
 
 ```python
 --8<-- "statistics.py"
@@ -75,8 +75,41 @@ The unit comes from `units=`, then from the dataset's declared units, and counts
 
 `fit()` doesn't choose a distribution for you. It shows how the candidates compare, so the choice you make, and record, rests on the data.
 
+## Comparing groups
+
+`ht.stats.compare()` tests whether a property differs between two groups: two geology units (one parameter set or two?), two areas of a site, or two sources before you pool them (`by="correlation_name"`, `by="source"`). `ht.stats.compare_groups()` does the same for three or more, overall and for every pair. Both read the rows as `describe()` does: the same flags, counts, sources, `pool=` and units.
+
+```python
+--8<-- "statistics-compare.py"
+```
+
+``` { .text .no-copy }
+--8<-- "statistics-compare.txt"
+```
+
+**Two tests, always.** Each function reports a test on the means and a test on the ranks, side by side:
+
+| | Means | Ranks |
+|---|---|---|
+| `compare()` | Welch's t-test, with the difference and its interval | Brunner-Munzel, with the probability that a value in the first group exceeds one in the second |
+| `compare_groups()`, overall | Welch's ANOVA | Kruskal-Wallis |
+| `compare_groups()`, each pair | Games-Howell, with the difference and its interval | Dunn's test, Holm-adjusted |
+
+The usual recipe, test for normality and then choose a t-test or a rank test, changes the error rates of the test it chooses, and at 5 to 20 values a normality test has little power anyway. So hangtu never pre-tests: it reports both, and the note says whether they agree. None of these tests assumes equal variances, and the rank tests don't assume the groups have the same shape. The pair p-values of `compare_groups()` are family-wise, adjusted for the number of pairs, and pairs are reported whatever the overall tests say.
+
+**Reading a disagreement.** When the means differ but the ranks don't, one or two extreme values are usually moving a mean. When the ranks differ but the means don't, a skewed group or an extreme value is usually widening the spread; `log=True` compares geometric means, as their ratio, which such values move less. Either way, look at the values: the [geology unit comparison](../plots/geology-unit-comparison.md) draws them side by side.
+
+**"No difference found" isn't "the same".** A p-value above the significance level says the data don't show a difference, not that there is none; with few values a real difference often goes undetected. The note gives the interval of the difference instead, so you can judge whether a difference that large would matter. Fewer than 5 values in a group warns; fewer than 2 is an error in `compare()`, and leaves the group out of `compare_groups()`'s tests.
+
+**The significance level is a judgment.** α has no default: 0.05 is a convention, not a law, so you set it on purpose, in the call (`significance_level=0.05`) or in the [judgments file](judgments.md#the-significance-level). It decides the note's conclusions and the intervals' level (1 − α); the p-values don't depend on it. The result records it and where it came from.
+
+**Independent values.** Every test here assumes the values are independent. Values from one hole, or from close together, aren't, and the p-values are then too small. hangtu doesn't yet account for this, so treat a small p-value from a few holes with care. Comparing two correlations' estimates for the same tests is a paired comparison, which these tests aren't made for.
+
+**Bounds.** Refusals and `>`/`<` values enter at their value and are counted, as in `describe()`: the means, and so the tests on them, are biased, and the note says so. The ranks treat values at a common cap as tied at the top, which is closer to right.
+
 ## See also
 
 - [`ht.stats.describe`](../reference/stats.md#hangtu.stats.describe), [`ht.stats.DescribeResult`](../reference/stats.md#hangtu.stats.DescribeResult)
 - [`ht.stats.fit`](../reference/stats.md#hangtu.stats.fit), [`ht.stats.FitResult`](../reference/stats.md#hangtu.stats.FitResult), and the [distribution fit plot](../plots/distribution-fit.md)
+- [`ht.stats.compare`](../reference/stats.md#hangtu.stats.compare), [`ht.stats.compare_groups`](../reference/stats.md#hangtu.stats.compare_groups), [`ht.stats.CompareResult`](../reference/stats.md#hangtu.stats.CompareResult), [`ht.stats.CompareGroupsResult`](../reference/stats.md#hangtu.stats.CompareGroupsResult)
 - [Judgments](judgments.md): a summary informs a judgment, such as each unit's PI, but never sets one.

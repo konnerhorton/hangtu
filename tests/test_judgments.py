@@ -278,3 +278,69 @@ def test_specific_gravity_outside_the_plausible_range_warns(tmp_path):
         UserWarning, match=r"Peat, specific_gravity: 1.5 is outside 2-3.2"
     ):
         ht.judgments(write(tmp_path, text))
+
+
+# --- significance_level (docs/work/m15d-compare.md, Decision 8) ----------------------
+
+ALPHA = (
+    "significance_level:\n"
+    '  project: {significance_level: 0.05, reason: "the usual convention"}\n'
+)
+
+
+def test_significance_level_reads_as_one_project_value(tmp_path):
+    judgment = (
+        ht.judgments(write(tmp_path, ALPHA)).read().judgments["significance_level"]
+    )
+    assert judgment.by is None
+    assert judgment.values == {}
+    assert judgment.project.values == {"significance_level": 0.05}
+    assert judgment.project.reason == "the usual convention"
+
+
+def test_repr_shows_significance_level(tmp_path):
+    text = repr(ht.judgments(write(tmp_path, ALPHA)))
+    assert "significance_level:" in text
+    assert "project: significance_level 0.05 (the usual convention)" in text
+
+
+@pytest.mark.parametrize(
+    ("text", "message"),
+    [
+        (
+            "significance_level:\n  by: geology_unit\n",
+            r"significance_level takes only project:.*not by:",
+        ),
+        (
+            "significance_level:\n  values:\n    Fill: {significance_level: 0.05}\n",
+            r"significance_level takes only project:.*not values:",
+        ),
+        (
+            "significance_level:\n  units: {significance_level: '%'}\n",
+            "takes no units",
+        ),
+        ("significance_level: {}\n", r"significance_level: 'project' is missing"),
+        (
+            "significance_level:\n  project: {significance_level: 0.05}\n",
+            r"significance_level, project: 'reason' is missing.*every call",
+        ),
+        (
+            "significance_level:\n  project: {significance_level: 0, reason: x}\n",
+            r"significance_level: must be a number between 0 and 1, e.g. 0.05, not 0",
+        ),
+        (
+            "significance_level:\n  project: {significance_level: 1, reason: x}\n",
+            r"between 0 and 1.*not 1",
+        ),
+    ],
+)
+def test_significance_level_errors(tmp_path, text, message):
+    # Criterion 9: a values: entry is an error; 0 and 1 are errors.
+    with pytest.raises(ht.HangtuError, match=message):
+        ht.judgments(write(tmp_path, text))
+
+
+def test_significance_level_outside_the_plausible_range_warns(tmp_path):
+    text = "significance_level:\n  project: {significance_level: 0.3, reason: x}\n"
+    with pytest.warns(UserWarning, match=r"significance_level: 0.3 is outside"):
+        ht.judgments(write(tmp_path, text))
