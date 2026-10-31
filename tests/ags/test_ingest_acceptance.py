@@ -90,6 +90,10 @@ def test_ac3_older_version_gives_the_same_tables_for_shared_groups(projects):
         "LDEN",
         "LPDN",
         "IDEN",
+        "TREG",
+        "TRET",
+        "TRIG",
+        "TRIT",
         "ABBR",
     ]
     for group in shared:

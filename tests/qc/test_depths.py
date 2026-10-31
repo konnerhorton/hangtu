@@ -111,10 +111,11 @@ def test_sample_top_in_a_lab_group_is_checked_once(build):
 def test_d007_specimen_in_two_tests_is_checked_once(projects):
     report = projects["qc_defects"].qc()
     rule = report.rules.set_index("rule_id").loc["D007"]
-    # Eight specimens, though LLPL, GRAG, GRAT, PTST, LDEN and LPDN hold 27 rows
-    # of them: LDEN uses four of the six, and LPDN adds two.
-    assert rule["records_checked"] == 8
-    assert report.rules.set_index("rule_id").loc["D008", "records_checked"] == 8
+    # Sixteen specimens, though LLPL, GRAG, GRAT, PTST, LDEN, LPDN, TREG, TRET
+    # and TRIG hold 44 rows of them: LDEN uses four of the six, LPDN adds two,
+    # TREG seven and TRIG one; TRET's are TREG's.
+    assert rule["records_checked"] == 16
+    assert report.rules.set_index("rule_id").loc["D008", "records_checked"] == 16
 
 
 def _severities(report, *rule_ids):
