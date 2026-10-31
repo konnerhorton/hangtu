@@ -39,7 +39,7 @@ A unit of work is a milestone, a plot, a fix or a decision. Keep it small enough
 3. **Plan**: Claude Code plan mode, then add the `## Plan` section and commit it. It names the files, the order, and the tests that prove each acceptance criterion.
 4. **Build**: implement the plan. If the plan has to change, update the `## Plan` section in the same commit.
 5. **Test**: check against the acceptance criteria and golden values, and look at the figure yourself.
-6. **Close**: merge. In the same PR, update `SPEC.md` (decisions, and the unit's Status in §12.4), the plot status in `docs/plots/README.md`, `docs/TODO.md`, and the "Next" sentence at the top of `CLAUDE.md` when the next unit changes. `CLAUDE.md` names what's next, never what's done.
+6. **Close**: merge. In the same PR, update `SPEC.md` (decisions, and the unit's Status in §12.4), the plot status in `docs/plots/README.md`, `docs/TODO.md`, and the "Next" sentence at the top of `CLAUDE.md` when the next unit changes. `CLAUDE.md` names what's next, never what's done. Before merging, ask what a future session would get wrong without being told: put a recurring mistake in `CLAUDE.md` Conventions, a decision in `SPEC.md`, and a preference of the user's in Claude's memory.
 
 For a trivial fix, skip the intent and plan and just write a good commit message. Use the full loop when a decision is involved.
 
