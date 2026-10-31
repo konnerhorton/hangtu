@@ -43,6 +43,15 @@ A unit of work is a milestone, a plot, a fix or a decision. Keep it small enough
 
 For a trivial fix, skip the intent and plan and just write a good commit message. Use the full loop when a decision is involved.
 
+## Git and commits
+
+The rules that hold for every commit (staging by name, never committing red, the message format and approval) are in `CLAUDE.md`, "Git and commits", so they're in front of Claude every session. The rest:
+
+- **Each unit of work gets its own branch** off `main`, named after it (`m0-scaffolding`, `p01-property-profile`). It is merged into `main` after review with `git merge --no-ff`, so each unit is one merge commit: `git log --first-parent main` lists the units, and `git revert -m 1 <merge>` undoes one whole.
+- **Each loop step gets its own commit:** intent, spec, plan, then the build. The close-out updates (statuses, SPEC, TODO) go in the last build commit.
+- **During a build, commit at each green, coherent point.** Usually that's one plan step, with ruff and pytest passing. While working on a step, run the tests it touches; run the whole suite in parallel once, before the commit. Use judgment: a commit is one idea a reviewer can follow in a single read. If a step goes past roughly 300 changed lines (not counting test data), split it.
+- **Don't mix kinds of change.** A refactor or rename gets its own commit, separate from new behavior.
+
 ## Starting from zero
 
 The playbook's loop needs something for each intent to point at. In an existing product that's the code. In a new project it's `SPEC.md`. So the order is:

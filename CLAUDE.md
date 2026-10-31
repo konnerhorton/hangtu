@@ -42,12 +42,9 @@ Explicit is better than implicit. Names are written out in full, or full enough 
 - New names are checked against the whole registry before they are added.
 
 ## Git and commits
-- **Each unit of work gets its own branch** off `main`, named after it (`m0-scaffolding`, `p01-property-profile`). It is merged into `main` after review with `git merge --no-ff`, so each unit is one merge commit: `git log --first-parent main` lists the units, and `git revert -m 1 <merge>` undoes one whole.
-- **Each loop step gets its own commit:** intent, spec, plan, then the build. The close-out updates (statuses, SPEC, TODO) go in the last build commit.
-- **During a build, commit at each green, coherent point.** Usually that's one plan step, with ruff and pytest passing. While working on a step, run the tests it touches; run the whole suite in parallel once, before the commit. Use judgment: a commit is one idea a reviewer can follow in a single read. If a step goes past roughly 300 changed lines (not counting test data), split it.
-- **Don't mix kinds of change.** A refactor or rename gets its own commit, separate from new behavior.
-- **Never commit failing tests or lint errors.** Work in progress waits in the working tree.
+Branches, merges, one commit per loop step and commit sizes: `docs/reference/process.md`, "Git and commits". These rules hold every time:
 - **Stage files by name** (`git add <path> ...`), never with `git add -A`, `git add .` or `git commit -a`. The working tree can hold local files that aren't ignored, and a broad add sweeps them into a public commit.
+- **Never commit failing tests or lint errors.** Work in progress waits in the working tree.
 - **Message:** `<scope>: <imperative summary>`, at most 72 characters. The scope is the work item (`M0`, `P01`) or an area (`spec`, `docs`, `registry`, `units`). The body says *why* and names any SPEC section or TODO item a decision touched. No attribution lines.
   Example: `P01: count values beyond axis limits in the footnote`
 - **Approval:** Claude commits intermediate build steps of an approved plan without asking. Everything else needs the user's approval first: intent, spec and plan commits, docs-only commits, branch creation and merges, pushes, and anything that rewrites history. For a commit, show the message and wait.
