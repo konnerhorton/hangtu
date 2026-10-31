@@ -61,7 +61,7 @@
 
 | Wave | Engine | Moves |
 |---|---|---|
-| 0 | User-defined groups and curves | Curves (triaxial q–ε and εv, rock triaxial, swelling against time, shear box displacement) carried in the AGS file, read robustly; built against a sample dataset from real projects. Waves 4 and 5 need it. Wave 2 reads its curves and rock triaxial results from a CSV until then (TODO #19) |
+| 0 | User-defined groups and curves | Curves (triaxial q–ε and εv, rock triaxial, swelling against time, shear box displacement) carried in the AGS file, read robustly; built against a sample dataset from real projects. Waves 4 and 5 need it. Wave 2 reads its curves and rock triaxial results from a CSV until then (decided 2026-10-15; the P12 draft §3) |
 | 1 | Stress and state | 01 and 03 A–B (vertical stress, phase relations), 02 B (activity; LI and Ic as analyses); SPT correlations and (N1)60, stage C for 04–08 and 10; P17 (drawn from Ic) |
 | 2 | Strength envelopes | One fitting core for 04 A–B, 05 A–B, 22 A–B and 15 B (intact Hoek–Brown fit); P11–P12 |
 | 3 | Oedometer | 06 A–B, 11 (Eoed, Eur,oed), 12 B (k from cv·mv), 21 A–B (Grob, Huder–Amberg); then 07 B (K0 from OCR) and 05 B (SHANSEP); P13–P15 |
@@ -69,7 +69,7 @@
 | 5 | Stiffness | 08, 10 and 11 (the full set), 09 (soil); P19, P20 |
 | 6 | Hydraulic | 12 A–C (field permeability tests) |
 
-**Order of work:** wave 1, statistics, wave 2, wave 0, selection (stage D, starting with the Mohr–Coulomb set), then waves 3–6, each adding stage D and the model sets its sheets complete. Statistics come ahead of waves 2 and 0 because by then there are measured properties, derived values with depth trends and several correlations per property to compare, so they are designed against real uses. Wave 2 comes ahead of wave 0 (decided 2026-10-31, `docs/work/m11a-triaxial-data.md`) because nothing in it waits on curves in the AGS file: the values at failure are in standard groups (`TRET`, `TRIT`, `SHBT`), and readings during shearing come from a CSV the user shapes (TODO #19). Wave 0 is built against the sample dataset of real files (TODO #31), which isn't ready. §12.4 has the milestones.
+**Order of work:** wave 1, statistics, wave 2, wave 0, selection (stage D, starting with the Mohr–Coulomb set), then waves 3–6, each adding stage D and the model sets its sheets complete. Statistics come ahead of waves 2 and 0 because by then there are measured properties, derived values with depth trends and several correlations per property to compare, so they are designed against real uses. Wave 2 comes ahead of wave 0 (decided 2026-10-31, `docs/work/m11a-triaxial-data.md`) because nothing in it waits on curves in the AGS file: the values at failure are in standard groups (`TRET`, `TRIT`, `SHBT`), and readings during shearing come from a CSV the user shapes (decided 2026-10-15; the P12 draft §3). Wave 0 is built against the sample dataset of real files (TODO #31), which isn't ready. §12.4 has the milestones.
 
 **Releases** (decided 2026-10-21) are cut when a milestone leaves something usable, and aren't tied to waves or planned ahead. 0.1.0 (the plots P00–P03 and P07 and the data layer) is the first, on PyPI.
 
@@ -417,35 +417,35 @@ ht.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
 - **Phase 3:** JRC worked examples for EC7; scipy reference values.
 
 ### 12.4 Milestones
-Rows are in build order; each milestone after M8 names its wave, or statistics or selection (§1.3). Milestones keep their numbers when the order changes, because other documents refer to them, so M8 comes after M9 and M16 after M17. M10 (a feedback round) was dropped, and its number isn't reused. A milestone can split into several units of work, as M8 did; units without a milestone go where §1.3's order of work puts them.
+Rows are in build order; each milestone after M8 names its wave, or statistics or selection (§1.3). Milestones keep their numbers when the order changes, because other documents refer to them, so M8 comes after M9 and M16 after M17. M10 (a feedback round) was dropped, and its number isn't reused. A milestone can split into several units of work, as M8 did; units without a milestone go where §1.3's order of work puts them. The Status column is where a unit's close-out records it; `CLAUDE.md` names only what's next.
 
-| M | Deliverable | Done when |
-|---|---|---|
-| M0 | Scaffolding: src layout, deps, ruff, pytest, CI matrix, MIT license | CI green |
-| M1 | **P00 framework**: settings, units for DataFrames (§2.6), column registry, style, palette, label and out-of-range helpers, `Sheet` | Framework tests pass; a dummy plot composes on a Sheet |
-| M2 | **P01** property profile | P01 acceptance criteria met |
-| M2b | **P07** property by geology unit (moved ahead of M3 from M5) | P07 acceptance criteria met |
-| M3 | **P02–P03** + SPT analysis | P02/P03 criteria + SPT golden tests |
-| M4 | Phase 2 design: data model decided (§7) and Phase 2 built ahead of the rest of Phase 1. Each later Phase 2 unit turns its part of `docs/drafts/phase2-data.md` into its own intent and spec | Decisions recorded in SPEC |
-| M5 | AGS4 ingest: raw and canonical layers in SQLite, units on ingest, value flags (§6, §7) | Twin-file test and ingest acceptance criteria met |
-| M6 | QC level 1, CSV report and `diff()` (§9) | One defects-file test per rule |
-| M7 | Depth/elevation/geology joins and ready-made datasets (§8, §10) | Datasets feed the Phase 1 plots directly |
-| M9 | Examples (CSV → plot and AGS → QC → plot), CSV templates, README → **v0.1.0 on PyPI** | Examples run from a clean `pip install` |
-| M8 | **P04–P06** + classification and gradation analyses, and the datasets that need them | P04–P06 criteria + classification/Dx golden tests |
-| M13 | Wave 1, in four units: (a) the judgments file (§4), `p.stratigraphy()` and vertical stress; (b1) (N1)60, hammer efficiency by hole, the correlations framework and φ′ from SPT; (b2) the **SPT correlations** for s_u, σ′p/OCR and K0, with bands, chaining, the USCS map and PI by geology unit; (b3) E and Vs from SPT | Golden values from each source; out-of-range counts |
-| M14 | Wave 1, in two units (data, then analysis; `docs/reference/process.md`): (a) `p.density()` and `p.particle_density()` from LDEN, IDEN and LPDN, with QC; (b) phase relations (γ, γd, e, n, S with consistency checks), the Gs judgment and activity. LI and Ic are already analyses (`ht.analysis.plasticity()`, M8) | Golden values; consistency checks on the test files |
-| M12 | Wave 1: **P17** clogging diagram (Thewes & Burger 2004) | P17 criteria; zones match the source |
-| M15 | Statistics, in five units: (a) `describe`, the result object and the input rules (done); (b) correlation statistics with the results (done); (c) `fit` (bounded and censored, AICc, Anderson–Darling) and P08 (done); (d) `compare`, `compare_groups` (done); (e) `crosstab` (done) | Hand-calculated and scipy reference values; the example project's cases |
-| M11 | Wave 2, in two units (data, then analysis): (a) `p.triaxial()`, the stresses at failure from TREG/TRET and TRIG/TRIT, with QC; (b) the envelope fitting core and **P11–P12** triaxial: Mohr–Coulomb fit, failure envelope, stress–strain curves and measured stress paths | P11/P12 criteria + fit golden tests |
-| M17 | Wave 2: undrained strength (UU, UCS, vane, pocket penetrometer), the shear box (soil and rock joints), intact Hoek–Brown fit | Golden values from each source |
-| M16 | Wave 0: user-defined groups and curves | Curves from the sample dataset reach the datasets |
-| M18 | Selection (stage D): sources compared by depth or geology unit, EC7 `characteristic` values (moved from M15, TODO #13) with P09, design lines, model-set results; the Mohr–Coulomb set | A set per unit, its judgments recorded; views agree; JRC worked examples |
-| M19 | Wave 3: oedometer (σ′p, Cc, Cs, Eoed, Eur,oed, k from cv·mv, Grob and Huder–Amberg swelling); P13–P15 | Golden values; plot criteria |
-| M20 | Wave 3: K0 from OCR, SHANSEP; the Soft Soil set | Golden values |
-| M21 | Wave 4: rock lab datasets (UCS, tensile, point load, slake durability, intact moduli) and RQD | Datasets feed P01 and P07 |
-| M22 | Wave 4: the Hoek–Brown chain, rock dilatancy, in situ stress; the generalized Hoek–Brown set with residual values | Published worked examples reproduced |
-| M23 | Wave 5: soil stiffness (elastic, small-strain, Hardening Soil), soil dilatancy; P19, P20; the HS and HS-small sets | Golden values; plot criteria |
-| M24 | Wave 6: field permeability tests | Golden values; censored values kept |
+| M | Deliverable | Done when | Status |
+|---|---|---|---|
+| M0 | Scaffolding: src layout, deps, ruff, pytest, CI matrix, MIT license | CI green | done |
+| M1 | **P00 framework**: settings, units for DataFrames (§2.6), column registry, style, palette, label and out-of-range helpers, `Sheet` | Framework tests pass; a dummy plot composes on a Sheet | done |
+| M2 | **P01** property profile | P01 acceptance criteria met | done |
+| M2b | **P07** property by geology unit (moved ahead of M3 from M5) | P07 acceptance criteria met | done |
+| M3 | **P02–P03** + SPT analysis | P02/P03 criteria + SPT golden tests | done |
+| M4 | Phase 2 design: data model decided (§7) and Phase 2 built ahead of the rest of Phase 1. Each later Phase 2 unit turns its part of `docs/drafts/phase2-data.md` into its own intent and spec | Decisions recorded in SPEC | done |
+| M5 | AGS4 ingest: raw and canonical layers in SQLite, units on ingest, value flags (§6, §7) | Twin-file test and ingest acceptance criteria met | done |
+| M6 | QC level 1, CSV report and `diff()` (§9) | One defects-file test per rule | done |
+| M7 | Depth/elevation/geology joins and ready-made datasets (§8, §10) | Datasets feed the Phase 1 plots directly | done |
+| M9 | Examples (CSV → plot and AGS → QC → plot), CSV templates, README → **v0.1.0 on PyPI** | Examples run from a clean `pip install` | done |
+| M8 | **P04–P06** + classification and gradation analyses, and the datasets that need them | P04–P06 criteria + classification/Dx golden tests | done |
+| M13 | Wave 1, in four units: (a) the judgments file (§4), `p.stratigraphy()` and vertical stress; (b1) (N1)60, hammer efficiency by hole, the correlations framework and φ′ from SPT; (b2) the **SPT correlations** for s_u, σ′p/OCR and K0, with bands, chaining, the USCS map and PI by geology unit; (b3) E and Vs from SPT | Golden values from each source; out-of-range counts | done |
+| M14 | Wave 1, in two units (data, then analysis; `docs/reference/process.md`): (a) `p.density()` and `p.particle_density()` from LDEN, IDEN and LPDN, with QC; (b) phase relations (γ, γd, e, n, S with consistency checks), the Gs judgment and activity. LI and Ic are already analyses (`ht.analysis.plasticity()`, M8) | Golden values; consistency checks on the test files | done |
+| M12 | Wave 1: **P17** clogging diagram (Thewes & Burger 2004) | P17 criteria; zones match the source | done |
+| M15 | Statistics, in five units: (a) `describe`, the result object and the input rules; (b) correlation statistics with the results; (c) `fit` (bounded and censored, AICc, Anderson–Darling) and P08; (d) `compare`, `compare_groups`; (e) `crosstab` | Hand-calculated and scipy reference values; the example project's cases | done |
+| M11 | Wave 2, in two units (data, then analysis): (a) `p.triaxial()`, the stresses at failure from TREG/TRET and TRIG/TRIT, with QC; (b) the envelope fitting core and **P11–P12** triaxial: Mohr–Coulomb fit, failure envelope, stress–strain curves and measured stress paths | P11/P12 criteria + fit golden tests | (a) done; (b) next |
+| M17 | Wave 2: undrained strength (UU, UCS, vane, pocket penetrometer), the shear box (soil and rock joints), intact Hoek–Brown fit | Golden values from each source |  |
+| M16 | Wave 0: user-defined groups and curves | Curves from the sample dataset reach the datasets |  |
+| M18 | Selection (stage D): sources compared by depth or geology unit, EC7 `characteristic` values (moved from M15, TODO #13) with P09, design lines, model-set results; the Mohr–Coulomb set | A set per unit, its judgments recorded; views agree; JRC worked examples |  |
+| M19 | Wave 3: oedometer (σ′p, Cc, Cs, Eoed, Eur,oed, k from cv·mv, Grob and Huder–Amberg swelling); P13–P15 | Golden values; plot criteria |  |
+| M20 | Wave 3: K0 from OCR, SHANSEP; the Soft Soil set | Golden values |  |
+| M21 | Wave 4: rock lab datasets (UCS, tensile, point load, slake durability, intact moduli) and RQD | Datasets feed P01 and P07 |  |
+| M22 | Wave 4: the Hoek–Brown chain, rock dilatancy, in situ stress; the generalized Hoek–Brown set with residual values | Published worked examples reproduced |  |
+| M23 | Wave 5: soil stiffness (elastic, small-strain, Hardening Soil), soil dilatancy; P19, P20; the HS and HS-small sets | Golden values; plot criteria |  |
+| M24 | Wave 6: field permeability tests | Golden values; censored values kept |  |
 
 ---
 

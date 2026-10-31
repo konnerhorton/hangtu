@@ -399,7 +399,7 @@ The principles are decided in SPEC §4. The framework, C_N and (N1)60 are specif
 
 C_N is settled in `docs/work/m13b1-spt-framework.md`: Liao & Whitman (1986) or Kayen et al. (1992) by a required `method=`, capped at 1.7, blank above 300 kPa (Youd et al. 2001).
 
-### 4.2 Candidate correlations (TODO #20)
+### 4.2 Candidate correlations (settled in M13 b1–b3; the built set is in `src/hangtu/config/correlations.yaml`)
 Friction angle is built in M13 unit (b1) (Hatanaka & Uchida 1996; Kulhawy & Mayne 1990; Wolff 1989 cut, TODO #36). Undrained shear strength, σ′p/OCR and K0 are unit (b2)'s, specified in `docs/work/m13b2-spt-strength-history.md` (decided 2026-10-23): Stroud (1974), Terzaghi & Peck (1967) as a band, Mayne & Kemper (1988) for σ′p and for OCR, and Kulhawy et al. (1989) for K0; Sowers (1979) cut (TODO #39). Functions are named target first (`undrained_shear_strength_stroud_1974`). Young's modulus and Vs are unit (b3)'s, specified in `docs/work/m13b3-spt-stiffness.md` (decided 2026-10-26): AASHTO (2004) on (N1)60 and Kulhawy & Mayne (1990) on N60 for drained E, each with a coefficient by a required soil row (`soil=`), and Imai & Tonouchi (1982) and Ohta & Goto (1978) for Vs in Wair et al.'s (2012) N60 forms. The table is the draft it was:
 
 | Property | Candidates |

@@ -7,7 +7,7 @@ Personal reference notes. Adapted from Anthropic's [AI-native SDLC playbook](htt
 | Document | Scope | Lifetime | Answers |
 |---|---|---|---|
 | `SPEC.md` | Whole product | Permanent; changes with the product | What is hangtu, and what holds for every feature? |
-| `CLAUDE.md` | Whole repo | Permanent; under a page | How do I work in this repo (commands, conventions, recurring mistakes)? |
+| `CLAUDE.md` | Whole repo | Permanent; under a page | How do I work in this repo (commands, conventions, recurring mistakes)? What's next? Done work is in SPEC §12.4 and git, not here |
 | `docs/work/<id>.md` | One unit of work | `## Intent` frozen once done, `## Plan` frozen once merged | What do we want and why (Intent)? Which files, in what order, proven by which tests (Plan)? |
 | Feature spec | One feature | Kept while the feature exists | What exactly does it do, and how do we know it works? |
 | `docs/drafts/` | Upcoming features and future phases | Until promoted to a feature spec | Draft feature specs and early notes. Input for intents; only items marked "decided" are decisions |
@@ -26,7 +26,7 @@ hangtu's roadmap is organized by parameter (SPEC §1.3). Every parameter climbs 
 **Data and analysis are separate units.** When a wave or milestone proposes both a dataset (stage A) and the analyses built on it (stage B or C), they become two units, data first: for example M14 (a) density data, then M14 (b) phase relations. Each then fits in one review, and the shape of the data is settled before formulas are built on it.
 
 A wave's units add three things to the loop:
-- **Spec:** promote the sheets the wave covers from `docs/drafts/parameters/` to site pages (`docs/site/parameters/NN-*.md`, from the sheets' `TEMPLATE.md`), verify the [U] citations the wave relies on and hand-calculate the golden values from the verified source, check what of the sheet can be published (values and citations, not whole tables or charts; TODO #30), and propose the new names against the whole registry. The wave's acceptance criteria go in its `docs/work/` file.
+- **Spec:** promote the sheets the wave covers from `docs/drafts/parameters/` to site pages (`docs/site/parameters/NN-*.md`, from the sheets' `TEMPLATE.md`), verify the [U] citations the wave relies on and hand-calculate the golden values from the verified source, check what of the sheet can be published (values and citations, not whole tables or charts; `docs/drafts/parameters/README.md`, "What is reproduced"), and propose the new names against the whole registry. The wave's acceptance criteria go in its `docs/work/` file.
 - **Build:** each method's equation, inputs, validity and source go in its function's docstring (the checklist in `TEMPLATE.md`); the page links to the API reference rather than restating them.
 - **Close:** update the stage status of each sheet in the parameter index.
 
@@ -39,9 +39,18 @@ A unit of work is a milestone, a plot, a fix or a decision. Keep it small enough
 3. **Plan**: Claude Code plan mode, then add the `## Plan` section and commit it. It names the files, the order, and the tests that prove each acceptance criterion.
 4. **Build**: implement the plan. If the plan has to change, update the `## Plan` section in the same commit.
 5. **Test**: check against the acceptance criteria and golden values, and look at the figure yourself.
-6. **Close**: merge. In the same PR, update `SPEC.md` (decisions), the plot status in `docs/plots/README.md`, `docs/TODO.md`, and `CLAUDE.md` if a mistake recurred or a convention emerged.
+6. **Close**: merge. In the same PR, update `SPEC.md` (decisions, and the unit's Status in §12.4), the plot status in `docs/plots/README.md`, `docs/TODO.md`, and the "Next" sentence at the top of `CLAUDE.md` when the next unit changes. `CLAUDE.md` names what's next, never what's done. Before merging, ask what a future session would get wrong without being told: put a recurring mistake in `CLAUDE.md` Conventions, a decision in `SPEC.md`, and a preference of the user's in Claude's memory.
 
 For a trivial fix, skip the intent and plan and just write a good commit message. Use the full loop when a decision is involved.
+
+## Git and commits
+
+The rules that hold for every commit (staging by name, never committing red, the message format and approval) are in `CLAUDE.md`, "Git and commits", so they're in front of Claude every session. The rest:
+
+- **Each unit of work gets its own branch** off `main`, named after it (`m0-scaffolding`, `p01-property-profile`). It is merged into `main` after review with `git merge --no-ff`, so each unit is one merge commit: `git log --first-parent main` lists the units, and `git revert -m 1 <merge>` undoes one whole.
+- **Each loop step gets its own commit:** intent, spec, plan, then the build. The close-out updates (statuses, SPEC, TODO) go in the last build commit.
+- **During a build, commit at each green, coherent point.** Usually that's one plan step, with ruff and pytest passing. While working on a step, run the tests it touches; run the whole suite in parallel once, before the commit. Use judgment: a commit is one idea a reviewer can follow in a single read. If a step goes past roughly 300 changed lines (not counting test data), split it.
+- **Don't mix kinds of change.** A refactor or rename gets its own commit, separate from new behavior.
 
 ## Starting from zero
 
