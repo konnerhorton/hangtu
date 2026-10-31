@@ -825,9 +825,14 @@ class CrosstabResult(_Result):
 
         One row per ``rows`` class and one column per ``columns`` class.
         """
-        frame = pd.DataFrame.from_dict(self.counts, orient="index")
-        column_labels = next(iter(self.counts.values()), {}).keys()
-        frame = frame.reindex(columns=list(column_labels)).astype("int64")
+        # Built from lists: pandas 2.1 sorts the labels of a dict of dicts.
+        column_labels = list(next(iter(self.counts.values()), {}))
+        frame = pd.DataFrame(
+            [[row[label] for label in column_labels] for row in self.counts.values()],
+            index=list(self.counts),
+            columns=column_labels,
+            dtype="int64",
+        )
         frame[TOTAL] = frame.sum(axis=1)
         frame.loc[TOTAL] = frame.sum(axis=0)
         frame = frame.astype("int64")
