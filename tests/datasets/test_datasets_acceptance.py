@@ -102,6 +102,34 @@ def test_2_twin_files(projects, system):
     )
 
 
+# M11 a, AC 5: the triaxial twins agree, with the one back pressure warning each.
+@pytest.mark.parametrize("system", ["SI", "US"])
+def test_2_twin_files_triaxial(projects, system):
+    stages = {}
+    for name in ("site_si", "site_us"):
+        with pytest.warns(UserWarning, match="1 drained triaxial stage") as caught:
+            stages[name] = projects[name].triaxial(display_units=system)
+        assert len(caught) == 1
+    # σ′3 = σ3 - u_f takes one 10-significant-figure value from another about
+    # ten times larger, so its relative error is about ten times the file's:
+    # the effective stresses agree to 1e-9 of the cell pressure instead.
+    effective = [
+        "effective_minor_principal_stress_at_failure",
+        "effective_major_principal_stress_at_failure",
+    ]
+    drop = ["source_line", "sample_reference", *effective]
+    si, us = stages["site_si"], stages["site_us"]
+    pd.testing.assert_frame_equal(
+        si.drop(columns=drop), us.drop(columns=drop), rtol=1e-9
+    )
+    scale = si["cell_pressure"].max()
+    for column in effective:
+        assert us[column].to_numpy() == pytest.approx(
+            si[column].to_numpy(), rel=1e-9, abs=1e-9 * scale, nan_ok=True
+        )
+    assert si.attrs == us.attrs
+
+
 # 3. An older version: IPRG gives one field row per stage.
 def test_3_older_version(projects):
     k = _quiet(projects["site_v404"].permeability)
@@ -220,7 +248,7 @@ def test_8_plots_draw_a_refusal_with_a_blank_n(joins_spt):
 def test_9_filters(projects):
     p = projects["site_si"]
     spt = _quiet(p.spt, geology=["Alluvium"], holes=["BH1", "BH2"], depth=(0, 4))
-    assert list(spt["source_line"]) == [53, 55]
+    assert list(spt["source_line"]) == [55, 57]
 
 
 # 10. Incomplete records left out, or kept on request.

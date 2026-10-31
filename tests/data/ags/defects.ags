@@ -120,4 +120,10 @@
 "DATA","LPDN_TYPE","SMALL PYK","Small pyknometer"
 "DATA","IDEN_TYPE","SAND","Sand Replacement/Cone"
 "DATA","IDEN_TYPE","NUCLEAR","Nuclear"
+"DATA","TREG_TYPE","CU","Consolidated undrained with pwp measurement (single stage)"
+"DATA","TREG_TYPE","CDM","Consolidated drained (multi-stage)"
+"DATA","TREG_TYPE","CIDE","Isotropically consolidated drained extension with pwp measurement"
+"DATA","TREG_COND","UNDISTURBED","Undisturbed"
+"DATA","TRIG_TYPE","UU","Unconsolidated quick undrained (single stage)"
+"DATA","TRIG_COND","UNDISTURBED","Undisturbed"
 

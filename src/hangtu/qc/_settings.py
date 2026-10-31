@@ -278,12 +278,13 @@ def _threshold(rule_id: str, name: str, given: Any) -> Threshold:
     """Check one threshold against its kind and convert it to the canonical unit."""
     kind = THRESHOLDS[rule_id][name]
     where = f"QC rule {rule_id}, threshold {name}"
-    if kind == "count":
+    if kind in ("count", "dimensionless"):
         number = _plain_number(given)
         if number is None:
+            what, example = ("a count", 5) if kind == "count" else ("a ratio", 0.95)
             raise UnitsError(
-                f"{where} is a count and takes a plain number with no unit, "
-                f"e.g. {name}: 5, not {given!r}."
+                f"{where} is {what} and takes a plain number with no unit, "
+                f"e.g. {name}: {example}, not {given!r}."
             )
         return Threshold(str(given), number, kind)
     example = _config.load("qc/rules.yaml")["rules"][rule_id]["thresholds"][name]

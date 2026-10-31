@@ -24,8 +24,8 @@ def _rewrite(tmp_path, old, new):
 def test_locations_and_samples_are_numbered_in_file_order():
     _, keys = _keys_of(DATA / "site_si.ags")
     assert keys.columns["LOCA"] == {"location_id": [1, 2, 3]}
-    assert keys.columns["SAMP"]["location_id"] == [1, 1, 2, 2, 3]
-    assert keys.columns["SAMP"]["sample_id"] == [1, 2, 3, 4, 5]
+    assert keys.columns["SAMP"]["location_id"] == [1, 1, 2, 2, 3, 1, 1]
+    assert keys.columns["SAMP"]["sample_id"] == [1, 2, 3, 4, 5, 6, 7]
 
 
 def test_every_child_row_in_the_good_files_has_its_keys():

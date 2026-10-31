@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | done (M7); the M8 additions (classification columns in §6.2, §6.5 and §6.6) done; M14 (a)'s §6.8–6.9 done |
-| **Intent** | [`docs/work/m7-datasets.md`](../work/m7-datasets.md#intent); M8: [`docs/work/m8-index-plots.md`](../work/m8-index-plots.md#intent); M14 (a): [`docs/work/m14a-density-data.md`](../work/m14a-density-data.md) (decisions and acceptance criteria) |
+| **Status** | done (M7); the M8 additions (classification columns in §6.2, §6.5 and §6.6) done; M14 (a)'s §6.8–6.9 done; M11 (a)'s §6.10 done |
+| **Intent** | [`docs/work/m7-datasets.md`](../work/m7-datasets.md#intent); M8: [`docs/work/m8-index-plots.md`](../work/m8-index-plots.md#intent); M14 (a): [`docs/work/m14a-density-data.md`](../work/m14a-density-data.md) (decisions and acceptance criteria); M11 (a): [`docs/work/m11a-triaxial-data.md`](../work/m11a-triaxial-data.md) |
 | **Parent** | SPEC §2.6 (units), §7 (data model), §8 (depth, elevation, geology), §10 (datasets, registry), §11 (errors) |
 | **Related** | [`ingest.md`](ingest.md) (canonical layer, value flags), [`qc.md`](qc.md) (C001, G004, D004/D005). `docs/drafts/analysis.md` §1 (SPT), §2–3 (classification, gradation). P01–P07 (the plots these feed) |
 
@@ -37,6 +37,7 @@ index = p.index_properties()             # §6.6, one row per sample
 strata = p.stratigraphy()                # §6.7, one row per GEOL layer
 density = p.density()                    # §6.8, lab and field unit weights (M14)
 rho_s = p.particle_density()             # §6.9 (M14)
+triaxial = p.triaxial()                  # §6.10, one row per stage at failure (M11 a)
 
 p.set_judgments("judgments.yaml")        # the project's judgments file (SPEC §4)
 p.judgments                              # a Judgments, or None; datasets carry its path
@@ -327,13 +328,53 @@ One row per `LPDN` row: the particle density results, reviewed by geology unit w
 - Specific gravity, Gs = ρs / ρw, is M14 (b)'s, decided with γw.
 - No `LPDN` group: an empty frame with the warning "No LPDN group".
 
+### 6.10 `p.triaxial()` (M11 a)
+```python
+p.triaxial(**common)
+```
+One row per triaxial stage at failure: each `TRET` row (effective stress, parent `TREG`), then each `TRIT` row (total stress, parent `TRIG`), in file order (`docs/work/m11a-triaxial-data.md`). A single-stage test is one specimen with one stage; a multistage test is one specimen with several. The principal stresses come from `ht.analysis.triaxial_failure_stresses()`, so CSV and AGS rows follow the same rules (as `p.spt()` passes through `ht.analysis.spt()`).
+
+| Column | `TRET` row | `TRIT` row |
+|---|---|---|
+| `loca_id`, `specimen_id`, `sample_reference`, `specimen_reference` | As §6.2 | As §6.2 |
+| `ground_level`, `depth`, `depth_basis`, `elevation` | Lab depth (§6.2) | Lab depth (§6.2) |
+| `test_type` | `TREG_TYPE` | `TRIG_TYPE` |
+| `test_stage` | `TRET_TESN`, as text | `TRIT_TESN`, as text |
+| `multistage_test` | True when the type is multistage (`CDM`, `CUM`, `CIUCM`) or the specimen has more than one stage | As `TRET`, with `UUM` |
+| `sample_condition` | `TREG_COND` | `TRIG_COND` |
+| `failure_criterion` | `TREG_FCR`, as written | blank (no heading) |
+| `water_content` | `TRET_IMC` (initial) | `TRIT_IMC` (initial) |
+| `bulk_unit_weight`, `dry_unit_weight` | `TRET_BDEN`, `TRET_DDEN` × g (initial) | `TRIT_BDEN`, `TRIT_DDEN` × g (initial) |
+| `void_ratio` | `TRET_IVR` (initial) | blank |
+| `effective_consolidation_stress` | `TRET_CONP` | blank |
+| `back_pressure` | `TRET_BACK` | blank |
+| `pore_pressure_parameter_b` | `TRET_BVAL` | blank |
+| `cell_pressure` | `TRET_CELL` | `TRIT_CELL` |
+| `deviator_stress_at_failure` | `TRET_DEVF` | `TRIT_DEVF` |
+| `pore_pressure_at_failure` | `TRET_PWPF`: the total pore pressure, back pressure included | blank |
+| `axial_strain_at_failure` | `TRET_STRN` | `TRIT_STRN` |
+| `volumetric_strain_at_failure` | `TRET_STV` | blank |
+| `minor_principal_stress_at_failure`, `major_principal_stress_at_failure` | σ3 = cell pressure, σ1 = σ3 + q_f | As `TRET` |
+| `effective_minor_principal_stress_at_failure`, `effective_major_principal_stress_at_failure` | σ′3 = σ3 − u_f, σ′1 = σ′3 + q_f, below | blank |
+| `effective_stress_basis` | Where u_f came from: `pore_pressure_at_failure` or `back_pressure`, below; blank where σ′ is blank | blank |
+| `reported_effective_friction_angle`, `reported_effective_cohesion` | `TREG_PHI`, `TREG_COH`: the lab's own fit, repeated on each stage of the specimen | blank |
+| `test_remarks`, `remarks` | `TREG_REM`, `TRET_REM` | `TRIG_REM`, `TRIT_REM` |
+
+- **The pore pressure at failure** is `TRET_PWPF`. Where it is blank, and the test type is drained (`CD`, `CDM`, `CIDC`, `CADC`), u_f is the back pressure `TRET_BACK`: a drained test keeps the pore pressure at the back pressure. `effective_stress_basis` says which was used, and one warning per call counts the stages that used the back pressure. Otherwise, including an undrained test without a pore pressure and a type the dictionary doesn't list, σ′3 and σ′1 are blank and nothing is guessed. QC X002 lists the undrained ones.
+- **Extension tests** (`CIDE`, `CADE`, `CAUE`) are kept, with every principal stress blank and one warning per call naming them: the dictionary doesn't give the sign of `TRET_DEVF` in extension, and in extension the axial stress is the minor one, so the compression formulas would be wrong.
+- **A deviator stress of 0 or less** in a compression test gives blank principal stresses, and one warning per call names the stages and points to `p.qc()` (X003). A dataset doesn't stop on the file's data (as §6.2).
+- **The lab's fit is repeated on each stage** of its specimen, and often on every specimen of a set, so a summary of it counts one value many times. Summarize it on one row per specimen (`drop_duplicates("specimen_id")`); (b) compares it with hangtu's fit per test.
+- **Initial state, not in situ:** the unit weights, water content and void ratio are the specimen's as set up for the test (for a recompacted specimen, as made). They are carried so a fit can be read against density, not pooled with `p.density()` (M14 a, decision 2).
+- **No `TREG`/`TRIG` row** above a stage (a broken parent link, which python-ags4 reports as Rule 10): the stage is kept, with blank test type, criterion and the lab's fit.
+- With neither `TRET` nor `TRIT`, it is an empty frame with every column and the warning "No TRET or TRIT group". A `TREG` or `TRIG` with no stage rows gives no row; QC X005 reports it.
+
 ## 7. Incomplete records
 - A record is **incomplete** when QC C001 says so (with `SPEC_REF` and `SPEC_DPTH` recommended, §14): a `required` field of its own group in `qc/min_fields.yaml` is blank (qc.md §4.10). Only the dataset's source group is checked, not its parents: a hole with no `LOCA_GL` keeps its tests, with a blank elevation.
 - **Left out by default**, with one warning per call: "Left out 2 of 5 ISPT records with a blank required field (ISPT_NVAL on lines 98, 103). p.qc() lists them; include them with include_incomplete=True."
 - `include_incomplete=True` keeps them, with their blanks.
 
 ## 8. Warnings
-Each dataset call gives at most one warning per kind (`UserWarning`, as the rest of hangtu): the missing group (§2), the missing geology key (§5.1), unmapped codes (§5.2), overlapping layers (§5.4), records left out (§7), specimens with several water contents (§6.2), and samples with several particle density specimens (§6.8). A call on the good test files with a complete map gives none.
+Each dataset call gives at most one warning per kind (`UserWarning`, as the rest of hangtu): the missing group (§2), the missing geology key (§5.1), unmapped codes (§5.2), overlapping layers (§5.4), records left out (§7), specimens with several water contents (§6.2), samples with several particle density specimens (§6.8), and triaxial stages with the back pressure as u_f, extension tests or a deviator stress of 0 or less (§6.10). A call on the good test files with a complete map gives none, but for `p.triaxial()`'s back pressure count: BH2-U2's stage 2 has `TRET_PWPF` blank on purpose.
 
 ## 9. QC: G004
 | ID | Rule | Severity | Thresholds |
@@ -354,6 +395,7 @@ New columns, each checked against the whole registry (CLAUDE.md, "Naming"): `loc
 - The CSV templates (`ht.template()`) don't change: they describe what a user types in, and a dataset is a superset of its template.
 - M13 (`docs/work/m13a-judgments.md`): `total_vertical_stress`, `pore_pressure`, `effective_vertical_stress` and `saturated_unit_weight`; `depth_top`/`depth_base` describe any interval, a tested zone or a layer, and add `GEOL_TOP`/`GEOL_BASE`; the `stratigraphy` template (§6.7).
 - M14 (`docs/work/m14a-density-data.md`): `dry_unit_weight`, `particle_density`, `particle_density_assumed`, `particle_density_specimen_id`, `sample_condition`, `stabilizer_content`; new AGS sources for `bulk_unit_weight` (`LDEN_BDEN`, `IDEN_IDEN` × g, replacing `RDEN_BDEN` until M21 reads RDEN), `water_content` (`LDEN_MC`, `IDEN_MC`) and `test_type`; `depth_basis` gains `test_depth`; the `density` and `particle_density` templates.
+- M11 a (`docs/work/m11a-triaxial-data.md`): `test_stage`, `multistage_test`, `failure_criterion`, `effective_consolidation_stress`, `back_pressure`, `pore_pressure_parameter_b`, `cell_pressure`, `deviator_stress_at_failure`, `pore_pressure_at_failure`, `axial_strain_at_failure`, `volumetric_strain_at_failure`, the four principal stresses at failure, `effective_stress_basis`, `reported_effective_friction_angle`, `reported_effective_cohesion`, `test_remarks`; new AGS sources for `test_type`, `sample_condition`, `water_content`, `bulk_unit_weight`, `dry_unit_weight`, `void_ratio` and `remarks`; the `triaxial` template.
 
 ## 12. Test files
 The good files (`site_si.ags`, `site_us.ags`, `site_v404.ags`) get, through the generator script and in all three so the twin tests still hold:
@@ -363,6 +405,8 @@ The good files (`site_si.ags`, `site_us.ags`, `site_v404.ags`) get, through the 
 A new `joins.ags` (4.2, SI, passes python-ags4) holds the edge cases: a test exactly on a layer boundary and at the base of the deepest layer; overlapping layers; a gap in the log; a hole with no GEOL; a test with no `LOCA_GL`; an SPT refusal in the seating drive; an SPT refusal with `ISPT_NVAL` blank (`22-30-50/3"`); a sample with no base; a specimen with no `SPEC_DPTH`; a code missing from the test map; an incomplete record. Two `LNMC` rows on one specimen break AGS Rule 10a (duplicate key), so that case is built in the test instead of in a file that passes python-ags4. A test map `strata.csv` sits next to it.
 
 M14 adds `LDEN`, `LPDN` and `IDEN` to the three good files (a recompacted record, a stabilized field test and an assumed particle density among them), and to `joins.ags` a sample with two `LPDN` specimens at different depths, one with two at the same depth, a sample with none, and an `LDEN` row with no bulk density.
+
+M11 (a) adds `TREG`/`TRET` and `TRIG`/`TRIT` to the three good files: a set of three single-stage CU specimens from one sample, a multistage CD specimen with three stages (one with `TRET_PWPF` blank), and three UU specimens. `joins.ags` gains an extension test, a CU stage with no pore pressure and a stage with no `TRET_CELL` (incomplete, §7). A stage with no `TREG` row breaks AGS Rule 10c, so that case is built in `tests/datasets/test_triaxial.py`, as the duplicate `LNMC` is.
 
 ## 13. Acceptance criteria
 1. **Feeds the plots unchanged:** `ht.plot.spt_profile(p.spt())`, `ht.plot.spt_histogram(p.spt())`, `ht.plot.profile(p.permeability(), "hydraulic_conductivity")`, `ht.plot.profile(p.atterberg(), "liquid_limit")` and `ht.plot.geology_unit_comparison(p.atterberg(), "plasticity_index")` run on the good files with no error, no warning and no hint, and with the map's colors and order.

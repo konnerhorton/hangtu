@@ -205,6 +205,31 @@ rules:
     title: Assumed particle density
     severity: info
 
+  # Triaxial (§4.12, M11 a). X001's 0.95 is the commonly quoted B-value, not
+  # yet checked against ASTM D4767 or ISO 17892-9 (TODO #53).
+  X001:
+    title: Saturation below the test standard's B-value
+    severity: warning
+    thresholds:
+      lowest_pore_pressure_parameter_b: 0.95
+  X002:
+    title: Undrained triaxial stage without a pore pressure at failure
+    severity: warning
+  X003:
+    title: Deviator stress at failure 0 or less in a compression test
+    severity: error
+  X004:
+    title: Pore pressure at failure above the cell pressure
+    severity: warning
+  X005:
+    title: Triaxial stages don't match the test
+    severity: warning
+  X006:
+    title: Consolidation stress doesn't match cell less back pressure
+    severity: warning
+    thresholds:
+      consolidation_stress_tolerance: 2 kPa
+
   # Minimally useful fields (§4.10); the fields are in min_fields.yaml.
   C001:
     title: Required field is missing

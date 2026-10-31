@@ -52,6 +52,13 @@ EXPECTED = {
     ("B002", 129),  # LDEN_DDEN 1.90 above LDEN_BDEN 1.80
     ("B003", 130),  # LDEN_BDEN 19.5: kN/m3 written as Mg/m3
     ("B003", 137),  # LPDN_PDEN 26.5
+    ("X001", 156),  # TRET_BVAL 0.90
+    ("X002", 158),  # CU stage with TRET_PWPF blank
+    ("X003", 159),  # TRET_DEVF -20 in a CU stage
+    ("X004", 160),  # TRET_PWPF 410 above TRET_CELL 400
+    ("X005", 149),  # a CU test with two stages
+    ("X005", 169),  # a TRIG with no TRIT rows
+    ("X006", 157),  # TRET_CONP 150, cell 400 less back 300 is 100
 }
 # Info findings seeded on qc_defects.ags (C002 also lists absent headings).
 EXPECTED_INFO = {
@@ -100,7 +107,7 @@ def test_1_every_computed_rule_has_a_case(defects_report):
     computed = {
         rule_id
         for rule_id in defects_report.rules["rule_id"]
-        if rule_id[0] in "LGDSAPKBC"
+        if rule_id[0] in "LGDSAPKBXC"
     }
     # G004 needs a geology map, so its case is joins.ags with strata.csv
     # (tests/qc/test_geology.py), not the defects file.
@@ -153,7 +160,9 @@ def test_1_ingest_rules_appear_in_the_report(projects, tmp_path):
 def test_2_good_files_have_no_errors_or_warnings(projects, name):
     found = projects[name].qc().findings
     assert found.query("severity != 'info'").empty
-    allowed = {"S003", "A004", "B004", "C002"}  # no L006: LOCA_DATM names the datum
+    # No L006 (LOCA_DATM names the datum), and no X or C001 (M11 a, AC 9): the
+    # C002 is TRET_PWPF, blank on purpose in BH2-U2's stage 2.
+    allowed = {"S003", "A004", "B004", "C002"}
     allowed |= {"site_v404": {"M001"}, "site_us": {"U002"}}.get(name, set())
     assert set(found["rule_id"]) <= allowed
 

@@ -25,3 +25,5 @@ Each analysis is a plain function on a DataFrame. It returns a new DataFrame or 
 ::: hangtu.analysis.spt_n1_60
 
 ::: hangtu.analysis.phase_relations
+
+::: hangtu.analysis.triaxial_failure_stresses

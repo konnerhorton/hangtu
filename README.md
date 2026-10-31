@@ -85,8 +85,8 @@ The work comes in waves, each built around a shared piece of engineering:
 | Built | Plots, SPT N60 and classes, AGS4 ingest and checks, the datasets, plasticity and grading classification |
 | 1 | Vertical stress, phase relations, SPT correlations with (N1)60, the clogging diagram |
 | Statistics | Distribution fitting, group comparisons, Eurocode 7 characteristic values |
-| 0 | Test curves (triaxial, swelling, shear box) carried in the AGS file |
 | 2 | Strength envelopes: soil (triaxial, shear box, undrained tests), rock joints, intact Hoek–Brown |
+| 0 | Test curves (triaxial, swelling, shear box) carried in the AGS file |
 | Selection | Comparing sources, design lines, model parameter sets |
 | 3–6 | Oedometer and swelling; rock mass (Hoek–Brown, modulus, in situ stress); soil stiffness; field permeability |
 

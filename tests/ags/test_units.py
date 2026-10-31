@@ -291,6 +291,10 @@ def test_us_file_resolves_pcf_by_heading():
         ("U002", "LDEN_DDEN"),
         ("U002", "LPDN_PDEN"),
         ("U002", "IDEN_IDEN"),
+        ("U002", "TRET_BDEN"),  # triaxial initial state (M11 a)
+        ("U002", "TRET_DDEN"),
+        ("U002", "TRIT_BDEN"),
+        ("U002", "TRIT_DDEN"),
     }
     assert headings["PTST", "PTST_BDEN"].unit == "Mg/m3"
     assert headings["CPTP", "CPTP_SUW1"].unit == "kN/m3"

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | done (M6); §4.11 (density, M14) done |
+| **Status** | done (M6); §4.11 (density, M14) done; §4.12 (triaxial, M11 a) done |
 | **Intent** | [`docs/work/m6-qc.md`](../work/m6-qc.md#intent) |
 | **Parent** | SPEC §2.6 (units), §7 (data model), §8 (depth and geology), §9 (data quality), §11 (errors) |
 | **Related** | [`ingest.md`](ingest.md) §8–§9 (value flags, findings raised at ingest). [`docs/work/qc-review.md`](../work/qc-review.md) (accepted findings, D008), [`docs/work/vertical-datum.md`](../work/vertical-datum.md) (L006, L007). TODO #6 (P001/P003 tolerances), #7 (minimally useful fields) |
@@ -236,6 +236,11 @@ IPRG: {required: [LOCA_ID, IPRG_TOP, IPRG_BASE, IPRG_IPRM], recommended: [IPRG_T
 LDEN: {required: [<SPEC_KEY>, LDEN_BDEN], recommended: [LDEN_DDEN, LDEN_MC, LDEN_TYPE, LDEN_COND]}   # M14
 LPDN: {required: [<SPEC_KEY>, LPDN_PDEN], recommended: [LPDN_TYPE]}                                # M14
 IDEN: {required: [LOCA_ID, IDEN_DPTH, IDEN_IDEN], recommended: [IDEN_MC, IDEN_TYPE]}               # M14
+TREG: {required: [<SPEC_KEY>, TREG_TYPE], recommended: [TREG_FCR, TREG_COND]}                     # M11 a
+TRET: {required: [<SPEC_KEY>, TRET_TESN, TRET_CELL, TRET_DEVF],
+       recommended: [TRET_PWPF, TRET_CONP, TRET_BACK, TRET_BVAL, TRET_STRN]}                       # M11 a
+TRIG: {required: [<SPEC_KEY>, TRIG_TYPE], recommended: [TRIG_COND]}                               # M11 a
+TRIT: {required: [<SPEC_KEY>, TRIT_TESN, TRIT_CELL, TRIT_DEVF], recommended: [TRIT_STRN]}          # M11 a
 # <SPEC_KEY> = LOCA_ID, SAMP_TOP, SAMP_REF, SAMP_TYPE, SAMP_ID (the sample key); SPEC_REF and SPEC_DPTH lead each lab group's recommended list (M7)
 ```
 In the shipped file the lists are written out in full; `<SPEC_KEY>` is a YAML anchor.
@@ -254,6 +259,25 @@ From `docs/work/m14a-density-data.md`. Checks within one record, plus wide range
 - B002 doesn't need a water content: a dry density can't exceed the bulk density for any w ≥ 0.
 - B003's message names what lies outside the range (peat and organic soils below, ores and some rock above), so the engineer checks the material as well as the unit. An assumed value is checked like a measured one.
 - B004 is one finding per record, so the engineer sees which particle densities are assumed; it's info, not a defect.
+
+### 4.12 Triaxial (X) (M11 a)
+From `docs/work/m11a-triaxial-data.md`. Each rule checks one stage, or one test against its own stages: a record that can't give a valid failure state, or doesn't meet its test standard's own requirement. Plausible ranges for strength are level 2.
+
+| ID | Rule | Severity | Thresholds |
+|---|---|---|---|
+| X001 | `TRET_BVAL` below the saturation the test standard requires | warning | `lowest_pore_pressure_parameter_b: 0.95` (🔬 to verify, below) |
+| X002 | An undrained effective-stress stage (`CU`, `CUM`, `CIUC`, `CIUCM`, `CAUC`, `CAUE`, `UUP`) with `TRET_PWPF` blank | warning | |
+| X003 | `TRET_DEVF` or `TRIT_DEVF` 0 or less in a compression test | error | |
+| X004 | Negative effective minor principal stress at failure: `TRET_PWPF` above `TRET_CELL` | warning | |
+| X005 | Stages don't match the test: a `TREG` or `TRIG` with no stage rows, a single-stage type with several, or a multistage type with one | warning | |
+| X006 | `TRET_CONP` differs from `TRET_CELL` − `TRET_BACK` | warning | `consolidation_stress_tolerance: 2 kPa` |
+
+- X001: only where `TRET_BVAL` is given (a blank one is C002's). The threshold is the B-value the standards ask for before shearing (ASTM D4767, ISO 17892-9; 🔬 not yet checked against them, TODO #53). The message names both, and says that stiff soils may be accepted at a lower B-value where the standard allows it, so the engineer reads the lab's remarks before accepting the finding (§3.4).
+- X002: `p.triaxial()` leaves σ′ blank on these stages; the message says that φ′ can't be fitted from them.
+- X003 is an error: a compression test can't fail at a deviator stress of 0 or less. Extension tests aren't checked (`datasets.md` §6.10).
+- X004: σ′3 < 0 isn't possible in an uncemented saturated specimen; the usual cause is a pore pressure recorded without the back pressure taken off, or the reverse.
+- X005: a multistage type is `CDM`, `CUM`, `CIUCM` or `UUM`. A type the dictionary doesn't list is checked only for "no stage rows".
+- X006: only where all three are given, and only for single-stage tests and the first stage of a multistage test, since later stages change the cell pressure after consolidation. The tolerance clears 0DP rounding of the three values (at most 1.5 kPa).
 
 ## 5. The report
 ### 5.1 `report.findings`
@@ -373,13 +397,14 @@ Synthetic, written by `tests/data/ags/_make_files.py` (SPEC §12.3).
 | P001, P002, P003, P004 | a curve that rises at 0.425 mm; `GRAT_PERP` 104; fractions summing to 94; a curve with 3 points |
 | K001 | `PTST_K` 0, `FGHG_IPRM` 5 m/s |
 | B001, B002, B003, B004 | `LDEN` ρ 2.00, w 20, ρd 1.80 (expected 1.667); ρ 1.80, ρd 1.90, w blank; `LDEN_BDEN` 19.5 and `LPDN_PDEN` 26.5; `LPDN_PDEN` `#2.65` (M14) |
+| X001–X006 | `TRET_BVAL` 0.90; a `CU` stage with `TRET_PWPF` blank; `TRET_DEVF` −20 in a `CU` stage; `TRET_PWPF` 410 with `TRET_CELL` 400; a `CU` test with two stages, and a `TRIG` with none; `TRET_CONP` 150 with `TRET_CELL` 400 and `TRET_BACK` 300 (M11 a) |
 | C001, C002 | `GEOL_DESC` blank on one row; `LOCA_TYPE` absent |
 
 - The good files (`site_si.ags`, `site_us.ags` and `site_v404.ags`) must stay QC-clean (§9, #2). They have `LOCA_DATM` `NAVD88` in every hole, so they raise no L006.
 - Accepted entries are written in the tests (a YAML file in `tmp_path` and the same entries as a list), against `qc_defects.ags`.
 
 ## 9. Acceptance criteria
-1. **One test per rule:** on `qc_defects.ags`, each rule in §4.2–§4.11 raises exactly the findings its case seeds, with the right `group`, `loca_id`, `heading` and `source_line`; no other errors or warnings. Each ingest rule (§4.1) appears in the report of `defects.ags` or `site_v404.ags` with `loca_id` and `depth` filled where the line has a row.
+1. **One test per rule:** on `qc_defects.ags`, each rule in §4.2–§4.12 raises exactly the findings its case seeds, with the right `group`, `loca_id`, `heading` and `source_line`; no other errors or warnings. Each ingest rule (§4.1) appears in the report of `defects.ags` or `site_v404.ags` with `loca_id` and `depth` filled where the line has a row.
 2. **Good files:** `site_si.ags`, `site_us.ags` and `site_v404.ags` give no errors or warnings. Their info findings are only `S003`, `A004`, `B004`, `C002`, `M001` (v404) and `U002` (US).
 3. **Twin files:** `site_si.ags` and `site_us.ags` give the same findings (`rule_id`, `severity`, `group`, `loca_id`, `heading`, `depth` to 1e-9) apart from `U002`.
 4. **Golden values:** L005's median and difference for BH4, S005's computed N60, P003's sum and A002's difference are hand-calculated in the test and match the message.

@@ -7,6 +7,7 @@ from hangtu.datasets._lab import atterberg, grain_size, grain_size_summary
 from hangtu.datasets._permeability import permeability
 from hangtu.datasets._spt import spt
 from hangtu.datasets._stratigraphy import stratigraphy
+from hangtu.datasets._triaxial import triaxial
 
 __all__ = [
     "atterberg",
@@ -19,4 +20,5 @@ __all__ = [
     "permeability",
     "spt",
     "stratigraphy",
+    "triaxial",
 ]

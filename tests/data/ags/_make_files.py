@@ -103,6 +103,16 @@ ABBR = [
     ("LPDN_TYPE", "SMALL PYK", "Small pyknometer"),
     ("IDEN_TYPE", "SAND", "Sand Replacement/Cone"),
     ("IDEN_TYPE", "NUCLEAR", "Nuclear"),
+    ("TREG_TYPE", "CU", "Consolidated undrained with pwp measurement (single stage)"),
+    ("TREG_TYPE", "CDM", "Consolidated drained (multi-stage)"),
+    (
+        "TREG_TYPE",
+        "CIDE",
+        "Isotropically consolidated drained extension with pwp measurement",
+    ),
+    ("TREG_COND", "UNDISTURBED", "Undisturbed"),
+    ("TRIG_TYPE", "UU", "Unconsolidated quick undrained (single stage)"),
+    ("TRIG_COND", "UNDISTURBED", "Undisturbed"),
 ]
 
 
@@ -307,6 +317,8 @@ SAMP = group(
         ["BH2", 2.00, "1", "D", "BH2-D1", 2.45, None],
         ["BH2", 4.50, "2", "U", "BH2-U2", 4.95, 1.0],
         ["BH3", 1.00, "1", "B", "BH3-B1", 1.50, None],
+        ["BH1", 5.00, "3", "U", "BH1-U3", 5.45, 1.0],  # triaxial CU (M11 a)
+        ["BH1", 8.00, "4", "U", "BH1-U4", 8.45, 1.0],  # triaxial UU (M11 a)
     ],
     us=["SAMP_TOP", "SAMP_BASE"],
 )
@@ -478,6 +490,180 @@ IDEN = group(
         ["BH2", 0.40, "1", "NUCLEAR", 1.92, "12", 3.0],
     ],
     us=["IDEN_DPTH", "IDEN_IDEN"],
+)
+
+# Triaxial (M11 a, docs/work/m11a-triaxial-data.md). BH1-U3: three single-stage
+# CU specimens; specimen 1 is AC 1's (cell 400, back 300, u_f 360, q_f 180 kPa:
+# σ′3 40, σ′1 220). BH2-U2 specimen 3: a CDM test with three stages, TRET_PWPF
+# blank on stage 2 (AC 2: u_f is the back pressure, 300). BH1-U4: three UU
+# specimens (AC 3). TRET_CONP is cell - back on every first stage (no X006),
+# and every B-value is at least 0.95 (no X001).
+TREG_HEADINGS = [
+    *SPECIMEN,
+    ("TREG_TYPE", "PA", ""),
+    ("TREG_COND", "PA", ""),
+    ("TREG_COH", "0DP", "kPa"),
+    ("TREG_PHI", "1DP", "deg"),
+    ("TREG_FCR", "X", ""),
+    ("TREG_REM", "X", ""),
+]
+TREG_US = [*SPECIMEN_US, "TREG_COH"]
+BH1_U3 = ["BH1", 5.00, "3", "U", "BH1-U3"]
+BH2_U2_T = ["BH2", 4.50, "2", "U", "BH2-U2", "3", 4.70]
+BH1_U4 = ["BH1", 8.00, "4", "U", "BH1-U4"]
+MAXIMUM_DEVIATOR = "Maximum deviator stress"
+TREG = group(
+    "TREG",
+    TREG_HEADINGS,
+    [
+        *(
+            [*BH1_U3, ref, depth, "CU", "UNDISTURBED", 5, 27.0, MAXIMUM_DEVIATOR, None]
+            for ref, depth in [("1", 5.05), ("2", 5.15), ("3", 5.25)]
+        ),
+        [*BH2_U2_T, "CDM", "UNDISTURBED", 29, 30.0, MAXIMUM_DEVIATOR, "Three stages"],
+    ],
+    us=TREG_US,
+)
+
+TRET_HEADINGS = [
+    *SPECIMEN,
+    ("TRET_TESN", "X", ""),
+    ("TRET_IMC", "X", "%"),
+    ("TRET_BDEN", "2DP", "Mg/m3"),
+    ("TRET_DDEN", "2DP", "Mg/m3"),
+    ("TRET_CONP", "0DP", "kPa"),
+    ("TRET_CELL", "0DP", "kPa"),
+    ("TRET_STRN", "1DP", "%"),
+    ("TRET_DEVF", "0DP", "kPa"),
+    ("TRET_PWPF", "0DP", "kPa"),
+    ("TRET_STV", "2DP", "%"),
+    ("TRET_REM", "X", ""),
+    ("TRET_BACK", "0DP", "kPa"),
+    ("TRET_BVAL", "2DP", ""),
+    ("TRET_IVR", "3DP", ""),
+]
+TRET_US = [
+    *SPECIMEN_US,
+    "TRET_BDEN",
+    "TRET_DDEN",
+    "TRET_CONP",
+    "TRET_CELL",
+    "TRET_DEVF",
+    "TRET_PWPF",
+    "TRET_BACK",
+]
+
+
+def tret_row(
+    key, tesn, *, initial, conp, cell, strn, devf, pwpf, bval, stv=None, rem=None
+):
+    """A ``TRET`` row in ``TRET_HEADINGS``' order, with ``TRET_BACK`` 300 kPa.
+
+    ``initial`` is the specimen's (``TRET_IMC``, ``TRET_BDEN``, ``TRET_DDEN``,
+    ``TRET_IVR``).
+    """
+    imc, bden, dden, ivr = initial
+    stage = [conp, cell, strn, devf, pwpf, stv, rem, 300, bval]
+    return [*key, tesn, imc, bden, dden, *stage, ivr]
+
+
+CDM_INITIAL = ("30", 1.98, 1.52, 0.763)
+TRET = group(
+    "TRET",
+    TRET_HEADINGS,
+    [
+        tret_row(
+            [*BH1_U3, "1", 5.05],
+            "1",
+            initial=("27", 2.05, 1.62, 0.654),
+            conp=100,
+            cell=400,
+            strn=8.5,
+            devf=180,
+            pwpf=360,
+            bval=0.97,
+        ),
+        tret_row(
+            [*BH1_U3, "2", 5.15],
+            "1",
+            initial=("26", 2.06, 1.63, 0.644),
+            conp=200,
+            cell=500,
+            strn=9.0,
+            devf=263,
+            pwpf=410,
+            bval=0.96,
+        ),
+        tret_row(
+            [*BH1_U3, "3", 5.25],
+            "1",
+            initial=("25", 2.08, 1.66, 0.614),
+            conp=400,
+            cell=700,
+            strn=10.5,
+            devf=413,
+            pwpf=520,
+            bval=0.98,
+        ),
+        *(
+            tret_row(
+                BH2_U2_T,
+                tesn,
+                initial=CDM_INITIAL,
+                conp=conp,
+                cell=cell,
+                strn=strn,
+                devf=devf,
+                pwpf=pwpf,
+                stv=stv,
+                rem=rem,
+                bval=0.96,
+            )
+            for tesn, conp, cell, strn, devf, pwpf, stv, rem in [
+                ("1", 100, 400, 4.0, 300, 300, 1.20, None),
+                ("2", 200, 500, 3.5, 520, None, 2.10, "Pore pressure not recorded"),
+                ("3", 400, 700, 6.0, 900, 300, 3.40, None),
+            ]
+        ),
+    ],
+    us=TRET_US,
+)
+
+TRIG = group(
+    "TRIG",
+    [
+        *SPECIMEN,
+        ("TRIG_TYPE", "PA", ""),
+        ("TRIG_COND", "PA", ""),
+        ("TRIG_REM", "X", ""),
+    ],
+    [
+        [*BH1_U4, ref, depth, "UU", "UNDISTURBED", None]
+        for ref, depth in [("1", 8.05), ("2", 8.15), ("3", 8.25)]
+    ],
+    us=SPECIMEN_US,
+)
+
+TRIT_HEADINGS = [
+    *SPECIMEN,
+    ("TRIT_TESN", "X", ""),
+    ("TRIT_IMC", "X", "%"),
+    ("TRIT_CELL", "0DP", "kPa"),
+    ("TRIT_DEVF", "0DP", "kPa"),
+    ("TRIT_BDEN", "2DP", "Mg/m3"),
+    ("TRIT_DDEN", "2DP", "Mg/m3"),
+    ("TRIT_STRN", "2SF", "%"),
+    ("TRIT_REM", "X", ""),
+]
+TRIT = group(
+    "TRIT",
+    TRIT_HEADINGS,
+    [
+        [*BH1_U4, "1", 8.05, "1", "34", 100, 120, 1.90, 1.42, 12, None],
+        [*BH1_U4, "2", 8.15, "1", "33", 200, 124, 1.91, 1.44, 14, None],
+        [*BH1_U4, "3", 8.25, "1", "35", 300, 118, 1.89, 1.40, 15, None],
+    ],
+    us=[*SPECIMEN_US, "TRIT_CELL", "TRIT_DEVF", "TRIT_BDEN", "TRIT_DDEN"],
 )
 
 CPTP = group(
@@ -716,6 +902,10 @@ def site_groups(us=False):
         LDEN,
         LPDN,
         IDEN,
+        TREG,
+        TRET,
+        TRIG,
+        TRIT,
     ]
 
 
@@ -737,6 +927,7 @@ def defects_groups():
     }
     samp = {
         **SAMP,
+        "rows": SAMP["rows"][:5],  # without the triaxial samples (M11 a)
         "headings": [
             *SAMP["headings"][:5],
             ("SAMP_BASE", "2DP", "feet"),  # U002: pint reads it, no alias
@@ -968,7 +1159,85 @@ def qc_defects_groups():
             ["BH2", 1.00, "1", "U", "BH2-U1", "2", 1.20, "#2.65", "SMALL PYK"],  # B004
         ],
     )
-    return [loca, horn, geol, samp, ispt, llpl, grag, grat, ptst, fghg, lden, lpdn]
+    # Triaxial rules (qc.md §4.12). Each CU specimen is one case on the stage
+    # cell 400, back 300, consolidation 100, u_f 350, q_f 150 kPa, B 0.97.
+    # BH3-B1 T1 raises nothing: consolidation 101 kPa, B exactly 0.95.
+    specimens = {
+        "bh1_t1": ["BH1", 1.00, "1", "U", "BH1-U1", "T1", 1.20],  # X001
+        "bh1_t2": ["BH1", 1.00, "1", "U", "BH1-U1", "T2", 1.30],  # X006
+        "bh2_t1": ["BH2", 1.00, "1", "U", "BH2-U1", "T1", 1.20],  # X002
+        "bh2_t2": ["BH2", 4.00, "2", "D", "BH2-D2", "T1", 4.20],  # X003
+        "bh4_t1": ["BH4", 4.00, "2", "U", "BH4-U2", "T1", 4.20],  # X004
+        "bh4_t2": ["BH4", 2.30, "1", "U", "BH4-U1", "T1", 2.50],  # X005
+        "bh3_t1": ["BH3", 1.00, "1", "B", "BH3-B1", "T1", 1.20],
+    }
+    treg = group(
+        "TREG",
+        [
+            *SPECIMEN,
+            ("TREG_TYPE", "PA", ""),
+            ("TREG_COND", "PA", ""),
+            ("TREG_FCR", "X", ""),
+        ],
+        [[*key, "CU", "UNDISTURBED", MAXIMUM_DEVIATOR] for key in specimens.values()],
+    )
+    stage = {"conp": 100, "cell": 400, "devf": 150, "pwpf": 350, "bval": 0.97}
+    cases = [
+        ("bh1_t1", "1", {"bval": 0.90}),  # X001
+        ("bh1_t2", "1", {"conp": 150}),  # X006: expected 100, 50 kPa off
+        ("bh2_t1", "1", {"pwpf": None}),  # X002 (and C002, TRET_PWPF)
+        ("bh2_t2", "1", {"devf": -20}),  # X003
+        ("bh4_t1", "1", {"pwpf": 410}),  # X004: σ′3 = 400 - 410 = -10
+        ("bh4_t2", "1", {}),  # X005: a CU test with two stages
+        ("bh4_t2", "2", {"conp": 200, "cell": 500}),
+        ("bh3_t1", "1", {"conp": 101, "bval": 0.95}),
+    ]
+    tret = group(
+        "TRET",
+        [
+            *SPECIMEN,
+            ("TRET_TESN", "X", ""),
+            ("TRET_CONP", "0DP", "kPa"),
+            ("TRET_CELL", "0DP", "kPa"),
+            ("TRET_STRN", "1DP", "%"),
+            ("TRET_DEVF", "0DP", "kPa"),
+            ("TRET_PWPF", "0DP", "kPa"),
+            ("TRET_BACK", "0DP", "kPa"),
+            ("TRET_BVAL", "2DP", ""),
+        ],
+        [
+            [*specimens[key], tesn, *_stage({**stage, **change})]
+            for key, tesn, change in cases
+        ],
+    )
+    trig = group(  # X005: a TRIG with no TRIT rows
+        "TRIG",
+        [*SPECIMEN, ("TRIG_TYPE", "PA", ""), ("TRIG_COND", "PA", "")],
+        [["BH3", 1.00, "1", "B", "BH3-B1", "T2", 1.30, "UU", "UNDISTURBED"]],
+    )
+    return [
+        loca,
+        horn,
+        geol,
+        samp,
+        ispt,
+        llpl,
+        grag,
+        grat,
+        ptst,
+        fghg,
+        lden,
+        lpdn,
+        treg,
+        tret,
+        trig,
+    ]
+
+
+def _stage(values):
+    """A ``TRET`` stage's values after ``TRET_TESN``, in qc_defects' headings."""
+    v = values
+    return [v["conp"], v["cell"], 5.0, v["devf"], v["pwpf"], 300, v["bval"]]
 
 
 def joins_groups():
@@ -1142,7 +1411,48 @@ def joins_groups():
             [*j1_u3, "D", 6.20, "2.71", "SMALL PYK"],
         ],
     )
-    return [loca, geol, samp, ispt, llpl, lnmc, grag, grat, lden, lpdn]
+    # Triaxial stages that give no effective stresses (datasets.md §6.10):
+    # - J1-U3 T1: a CU stage with TRET_PWPF blank: total stresses only.
+    # - J1-U1 T1: an extension test (CIDE): every principal stress blank.
+    # - J2-U1 T1: TRET_CELL blank, so incomplete (C001).
+    # A stage with no TREG row breaks AGS Rule 10c, so that case is built in
+    # tests/datasets/test_triaxial.py.
+    treg = group(
+        "TREG",
+        TREG_HEADINGS,
+        [
+            [*key, "UNDISTURBED", None, None, MAXIMUM_DEVIATOR, None]
+            for key in [
+                [*j1_u3, "T1", 6.35, "CU"],
+                [*j1_u1, "T1", 1.30, "CIDE"],
+                [*j2_u1, "T1", 2.30, "CU"],
+            ]
+        ],
+    )
+    tret = group(
+        "TRET",
+        TRET_HEADINGS,
+        [
+            tret_row(
+                [*key, "T1", depth],
+                "1",
+                initial=initial,
+                conp=100,
+                cell=cell,
+                strn=strn,
+                devf=devf,
+                pwpf=pwpf,
+                stv=stv,
+                bval=0.97,
+            )
+            for key, depth, initial, cell, strn, devf, pwpf, stv in [
+                (j1_u3, 6.35, ("28", 1.95, 1.52, 0.770), 400, 6.0, 160, None, None),
+                (j1_u1, 1.30, ("25", 2.00, 1.60, 0.680), 400, 3.0, 90, 300, 0.50),
+                (j2_u1, 2.30, ("29", 1.92, 1.49, 0.799), None, 7.0, 170, 340, None),
+            ]
+        ],
+    )
+    return [loca, geol, samp, ispt, llpl, lnmc, grag, grat, lden, lpdn, treg, tret]
 
 
 #: Geology map for the test files (datasets.md §5.2). BED is left out on purpose.
@@ -1176,6 +1486,10 @@ def main(out=HERE):
         LDEN,
         LPDN,
         IDEN,
+        TREG,
+        without(TRET, "TRET_BACK", "TRET_BVAL", "TRET_IVR"),
+        TRIG,
+        TRIT,
     ]
     write_file(out / "site_v404.ags", "4.0.4", v404)
     # V000: unknown version
