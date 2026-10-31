@@ -201,8 +201,10 @@ changes noted), the derivations of decision 2 and the acceptance criteria.
      summary says c′ is an intercept outside it;
    - one warning per kind per call, naming the groups or rows; a fit of two points notes that it passes through
      both (R² = 1 by construction).
-8. **`group_by=`** (intent proposal 8, as proposed): one fit per group, groups in order of first appearance; a
-   missing column is an error naming it. No `group_by=`: one group of every row.
+8. **`group_by=`** (intent proposal 8, as proposed): one fit per group, in the statistics functions' order
+   (`group_keys()`: sorted, a categorical's own order, blank last; *changed in the plan* from first appearance,
+   so a fit's table and a `describe()` of the same groups agree); a missing column is an error naming it. No
+   `group_by=`: one group of every row.
 9. **The lab's values are a view** (intent proposal 9): each group lists its distinct
    (`reported_effective_cohesion`, `reported_effective_friction_angle`) pairs with their counts of stages, from the
    rows fitted. `.to_frame()` gives the pair when the group has one, else blanks and `count_reported_pairs`.
@@ -305,3 +307,114 @@ Golden values hand-calculated from the derivations, with the arithmetic done to 
 13. **The plot:** P11's §12 criteria.
 14. **Reference:** `mohr_coulomb_fit`, `MohrCoulombFit` and `failure_envelope` in the API reference (the test that
     fails without an entry), with the docstring checklist of the sheets' `TEMPLATE.md`.
+
+## Plan
+Six build commits, each with ruff and pytest green. Steps 2 and 4 split in two if they pass about 300 changed
+lines without test data. Reused, not rebuilt:
+- **Units:** `resolve_units`, `parse_unit`, `check_dimension`, `convert` (`hangtu.units`), as
+  `analysis/_triaxial.py` uses them; `numeric_column`, `rows_text` (`_data`); `ColumnError`, `HangtuError`,
+  `warn` (`errors`).
+- **Triaxial:** `STRESS_COLUMNS` and `DRAINED` (`analysis/_triaxial.py`), for the columns read and P11's
+  `paths=` check.
+- **Grouping and pooling:** `group_keys()`, `breakdown()` and `_source_values()` (`stats/_rows.py`), for groups and
+  for the pooling message's shape. The fit has its own list of columns checked (decision 4), not the registry's
+  `source` roles, which include `test_type` and would refuse CU with CD.
+- **Results:** `_plain()` (`stats/_result.py`), for `.to_dict()`; `format_number()` (`plot/_overlays.py`) for the
+  summary and the box.
+- **Plotting:** `style.context`/`style_axes`, `figure_size`, `axis_label`, `add_legend`, `Notes`, `hint_missing`,
+  `nice_limits`, `resolve_palette`, as `plot/_clogging_diagram.py` (one panel, `ax=`) and
+  `plot/_distribution_fit.py` (a plot that returns its result) use them.
+
+**One change to the spec, made in this commit:** decision 8's groups come in `group_keys()`'s order (sorted, a
+categorical's own order, blank last), as every statistics function orders them, not in order of first appearance.
+Two orders in one package would make a fit's table and a `describe()` of the same groups disagree.
+
+### 1. `M11: add the line-fit core and the derived-result base`
+- `src/hangtu/analysis/_line_fit.py` (new): `line_fit(x, y, *, intercept=None)` → a frozen record (a, b, n, R²,
+  residuals, `no_fit_reason`), with the formulas and the can't-fit cases of spec decision 3.
+- `src/hangtu/analysis/_derived.py` (new): `_DerivedResult`, a frozen dataclass with `kind = "derived"`, the
+  function, the unit, the notes, the judgments, the hangtu version and `.to_dict()` (spec decision 12), plus
+  `__repr__`/`_repr_html_` as `stats/_result.py` has them.
+- Tests: `tests/analysis/test_line_fit.py` (new): the line parts of AC 1–3 (golden 1 free: a = 33.333333,
+  b = 1/3, R² = 1; fixed: b = 29/65, R² = 57/65; one point fixed; R² NaN), each can't-fit reason (fewer than 2
+  points, Sxx = 0, fixed with no point), and a negative centered R² for a poor fit through the origin.
+
+### 2. `M11: add mohr_coulomb_fit() and MohrCoulombFit`
+- `columns.yaml`: `effective_cohesion`, `total_stress_cohesion`, `total_stress_friction_angle` (stress or angle,
+  ratio scale, labels "Effective cohesion, c′" and so on, `ags: ["derived: docs/work/m11b-envelope-fit.md"]`);
+  `effective_friction_angle`'s `ags` list gains the same.
+- `src/hangtu/analysis/_mohr_coulomb.py` (new), exported with `MohrCoulombFit` in `analysis/__init__.py`:
+  - reads the stress pair of `stress=` (error naming `triaxial_failure_stresses()` when missing); units as spec
+    decision 14, converted before fitting;
+  - σ1 < σ3 error; rows left out and counted (decision 6); per group: the pooling check (decision 4), `"all"` and
+    `"single_stage"` fits (decision 5), s′–t through `line_fit()`, the back-transform, the slope range, and the
+    tangent points (derivations 1–3); the lab's pairs (decision 9);
+  - one warning per kind (decision 7); `cohesion=` other than None or 0 is an error (decision 10).
+  - `MohrCoulombFit(_DerivedResult)`: the groups, `.to_frame()` (decision 13), a printed summary that says c′ is
+    an intercept outside the σ′n range.
+  - Docstring per the sheets' `TEMPLATE.md` checklist: the equations (t = c′ cos φ′ + s′ sin φ′; φ′ = arcsin tan α;
+    c′ = a / cos φ′), inputs and outputs with units, validity (0 ≤ tan α < 1, 2 points), the derived-not-cited
+    note pointing to the spec, the pooling and multistage rules, an example on `p.triaxial()`.
+- `docs/site/reference/analysis.md`: `mohr_coulomb_fit` and `MohrCoulombFit`.
+- Tests: `tests/analysis/test_mohr_coulomb_fit.py` (new): AC 1–3 and 6–8 on hand-built frames, 11 (units) and 12
+  (errors); AC 4, 5, 9 and 10 on `site_si.ags` via `Project.from_ags`, as `tests/datasets/test_triaxial.py`
+  loads it.
+- If past about 300 lines: (2a) one group (AC 1–4, 6, 7, 11, 12), then (2b) `group_by=`, pooling, multistage, the
+  lab's pairs and `.to_frame()` (AC 5, 8–10).
+
+### 3. `M11: add triaxial tests to the example project`
+- `tests/data/_make_examples.py`:
+  - `treg()` and `tret()`: three single-stage `CU` specimens from one Alluvium sample and one `CDM` specimen (three
+    stages) from a Terrace sample, in psf like the file's other stresses, with `TREG_FCR` "Maximum deviator
+    stress" and a lab c′ and φ′. B-values ≥ 0.95 and `TRET_CONP` = cell − back on single stages and first stages,
+    so no X finding.
+  - The values give a fit like real tests: a lean clay with φ′ near 26° and a small c′; a sand with φ′ near 35°
+    and c′ near 0. Each stage's σ′3 and σ′1 is written in a comment beside it, worked by hand.
+  - The samples they need in `samples()`; the codes in `ABBR` (`CU`, `CDM`); `site_groups()` puts the groups
+    after `LPDN`, so no existing line moves.
+- Regenerate `src/hangtu/examples/data/site.ags`. `tests/test_examples.py`'s python-ags4 check, its exact QC
+  findings and the generator check stay green unchanged. Other tests on `site.ags` (`tests/test_project.py`, the
+  plot acceptance tests) are checked for group counts.
+
+### 4. `M11: add ht.plot.failure_envelope() (P11)`
+- `src/hangtu/plot/_failure_envelope.py` (new), exported in `plot/__init__.py`. It calls `mohr_coulomb_fit()` with
+  the shared arguments in the display units, then draws:
+  - the points in `space=` (P11 §4's table);
+  - each group's envelope, solid between the tangent points mapped into the space and dashed to the axes' edges,
+    and the dotted fit without multistage stages;
+  - the user envelopes, the idealized paths with the `DRAINED` check, the result box, the footnote counts, and the
+    hint for missing optional columns;
+  - equal aspect and P11 §6's limits.
+
+  `color_by=` defaults to `geology_unit` when present and is an error with `group_by=`. `fit=False` returns None.
+- `docs/site/reference/plot.md`: `failure_envelope`.
+- Tests:
+  - `tests/plot/test_failure_envelope.py` (new): P11 AC 1–5, 7 and 9, read from the drawn artists (line
+    intercepts and slopes, circle centers and radii, solid and dashed extents, `ax.get_aspect()`);
+  - `tests/plot/test_failure_envelope_acceptance.py` (new): P11 AC 6 and 8 on `site_si.ags` and `site_us.ags`.
+- If past about 300 lines: (4a) the three spaces, envelopes and limits (AC 1–3, 5, 7); (4b) paths, user envelopes,
+  the box, groups and edge cases (AC 4, 6, 8, 9).
+
+### 5. `M11: draw the triaxial tests on the docs site`
+- `docs/site/examples/failure-envelope.py` (new): the example project's `p.triaxial()`, one fit per geology unit
+  in `mohr` with US units.
+- `docs/site/plots/failure-envelope.md` (new): what it shows, the three spaces, the fitted range, the lab's values,
+  common options. Linked in `zensical.toml`'s `nav` and `docs/site/plots/index.md`.
+- `docs/site/parameters/04-drained-shear-strength-soil.md`: the "s′–t fit of triaxial results" row links
+  `mohr_coulomb_fit()`; a sentence under Methods on fitting with and without multistage stages.
+- `docs/site/guides/datasets.md`: `p.triaxial()`'s row points to P11.
+- Run `docs/prepare_site.py` and `zensical build --clean --strict`.
+
+### 6. `M11: close out (b)`
+- **Visual check:** `docs/plots/img/P11-us.png` (example project, `mohr`, US) and `P11-si.png` (`site_si.ags`,
+  `s_t` with idealized paths), 100 dpi, looked at, committed.
+- **Close-out:**
+  - `docs/plots/P11-failure-envelope.md` status `built` with its images; `docs/plots/README.md` P11 `built`;
+  - SPEC §4: one line for the fit (it reads `triaxial_failure_stresses()`'s columns; the line core M17's fits
+    reuse); §12.4 M11 status "(a), (b) done; (c) next";
+  - the parameter index: 04 B part built (triaxial, M11 b; the shear box in M17);
+  - the `CLAUDE.md` "Next" sentence;
+  - TODO #53's text checked against what was built (it stays open);
+  - what a future session would get wrong without being told, written where it will be read.
+- **Verification:** every AC of the Spec and of P11 §12 reported as met or not, with its test; the whole suite in
+  parallel; ruff; the lowest-versions run (then `git checkout uv.lock`); the strict docs build.
