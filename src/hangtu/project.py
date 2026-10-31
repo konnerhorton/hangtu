@@ -829,6 +829,94 @@ class Project:
             display_units=display_units,
         )
 
+    def triaxial(
+        self,
+        *,
+        holes: "str | list[str] | None" = None,
+        geology: "str | list[str] | None" = None,
+        depth: "tuple | None" = None,
+        elevation: "tuple | None" = None,
+        where: dict | None = None,
+        contains: "str | list[str] | None" = None,
+        geology_fields: "str | list[str] | None" = None,
+        include_incomplete: bool = False,
+        display_units: str | None = None,
+    ) -> pd.DataFrame:
+        """Return each triaxial stage's state at failure, for P01, P07 and a fit.
+
+        One row per stage: each ``TRET`` row (effective stress, under its
+        ``TREG`` test), then each ``TRIT`` row (total stress, under ``TRIG``),
+        at the specimen's depth. ``test_type`` tells them apart (``CU``,
+        ``CDM``, ``UU``, ...), and ``test_stage`` and ``multistage_test`` mark
+        the stages of a multistage test, which are all kept.
+
+        The stresses at failure are the file's: ``cell_pressure``,
+        ``deviator_stress_at_failure`` and ``pore_pressure_at_failure`` (the
+        total pore pressure, back pressure included). The principal stresses
+        σ3, σ1, σ′3 and σ′1 at failure come from
+        ``ht.analysis.triaxial_failure_stresses()``, whose docstring has the
+        rules: a drained stage with no pore pressure takes its back pressure
+        (``effective_stress_basis`` says which, and a warning counts them); an
+        undrained one keeps blank effective stresses, which QC X002 lists;
+        extension stages and a deviator stress of 0 or less keep blank
+        principal stresses, with a warning. ``failure_criterion`` is the lab's,
+        as written: don't pool stages with different criteria in one fit.
+
+        **The lab's own fit**, ``reported_effective_friction_angle`` and
+        ``reported_effective_cohesion`` (``TREG_PHI``, ``TREG_COH``), is
+        repeated on every stage of its test, so summarize it on one row per
+        specimen (``drop_duplicates("specimen_id")``). It is the lab's derived
+        value, kept apart from ``effective_friction_angle``.
+
+        **Initial state, not in situ:** ``water_content``, ``bulk_unit_weight``
+        and ``dry_unit_weight`` (density × g) and ``void_ratio`` are the
+        specimen's as set up for the test (as made, if recompacted:
+        ``sample_condition``). Don't pool them with ``p.density()``. See
+        ``docs/data/datasets.md`` §6.10.
+
+        Parameters
+        ----------
+        holes, geology
+            Keep these holes (``LOCA_ID``) or geology units.
+        depth, elevation
+            Keep ``low <= value <= high``, given in the dataset's units
+            (``(0, 30)``) or as quantity strings (``("0 ft", "30 ft")``).
+            Either end may be None.
+        where
+            Keep rows matching ``{column: value or list of values}``, e.g.
+            ``{"test_type": ["CU", "CIUC"]}``.
+        contains
+            Keep rows whose geology description contains this text (any
+            case), or any of a list.
+        geology_fields
+            GEOL headings to add as columns, e.g. ``["GEOL_FORM"]``.
+        include_incomplete
+            Keep records with a blank required field (QC C001), such as a
+            stage with no ``TRET_CELL``, with blank principal stresses. By
+            default they're left out, with a warning that counts them.
+        display_units
+            ``"US"`` or ``"SI"``; by default the project's. Stresses are in
+            kPa (SI) or psf (US).
+
+        Examples
+        --------
+        >>> stages = p.triaxial(where={"test_type": "CU"})
+        >>> stages[["loca_id", "test_stage", "effective_stress_basis"]]
+        >>> fig, ax = ht.plot.profile(p.triaxial(), "deviator_stress_at_failure")
+        """
+        return datasets.triaxial(
+            self._path,
+            holes=holes,
+            geology=geology,
+            depth=depth,
+            elevation=elevation,
+            where=where,
+            contains=contains,
+            geology_fields=geology_fields,
+            include_incomplete=include_incomplete,
+            display_units=display_units,
+        )
+
     # --- Geology map (datasets.md §5.2) -----------------------------------------
 
     def stratigraphy(

@@ -210,6 +210,7 @@ DATASETS = (
     "stratigraphy",
     "particle_density",
     "density",
+    "triaxial",
 )
 # Columns only hangtu can produce, so a CSV template leaves them out.
 ONLY_HANGTU = {
@@ -221,7 +222,15 @@ ONLY_HANGTU = {
     "plasticity_class_uscs",
     "plasticity_class_bs5930",
     "particle_density_specimen_id",
+    "minor_principal_stress_at_failure",
+    "major_principal_stress_at_failure",
+    "effective_minor_principal_stress_at_failure",
+    "effective_major_principal_stress_at_failure",
+    "effective_stress_basis",
 }
+#: The one warning a good file's dataset gives: BH2-U2's CDM stage 2 takes its
+#: back pressure (datasets.md §6.10).
+BACK_PRESSURE = r"1 drained triaxial stage had TRET_PWPF blank"
 
 
 @pytest.fixture(scope="module")
@@ -236,6 +245,7 @@ def site(tmp_path_factory):
 def test_dataset_templates_follow_their_dataset(site, name):
     with warnings.catch_warnings():
         warnings.simplefilter("error")
+        warnings.filterwarnings("ignore", message=BACK_PRESSURE)
         dataset = getattr(site, name)()
     expected = [column for column in dataset.columns if column not in ONLY_HANGTU]
     assert list(ht.template(name).columns) == expected
@@ -246,6 +256,7 @@ def test_filled_templates_feed_the_plots(site, tmp_path):
     for name in DATASETS:
         with warnings.catch_warnings():
             warnings.simplefilter("error")
+            warnings.filterwarnings("ignore", message=BACK_PRESSURE)
             dataset = getattr(site, name)()
         path = tmp_path / f"{name}.csv"
         dataset[list(ht.template(name).columns)].to_csv(path, index=False)
