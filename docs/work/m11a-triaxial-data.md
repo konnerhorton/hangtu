@@ -263,3 +263,97 @@ Golden values hand-calculated from the test files' values. 1 psf = 0.45359237 ×
     stresses and `effective_stress_basis`, in the same order (`tests/test_registry.py`).
 14. **Common arguments:** `depth=`, `geology=`, `holes=` and `where={"test_type": "CU"}` filter `p.triaxial()` as
     §2 says.
+
+## Plan
+Five build commits, each with ruff and pytest green; step 4 splits in two if it passes about 300 changed lines
+without test data. Reused, not rebuilt:
+- `Build` (`datasets/_frame.py`): `has()`, `rows()`, `numbers()`, `texts()`, `finish()`, and the §7 incomplete
+  records through `min_fields.yaml`;
+- `specimens()` and `SPECIMEN_COLUMNS` (`datasets/_lab.py`), for the specimen and lab-depth columns of `TRET` and
+  `TRIT` rows, which carry the full specimen key;
+- `STANDARD_GRAVITY` (`units`), for the initial unit weights, as `p.density()` does;
+- the QC `@rule` registry and `THRESHOLDS` (`qc/_registry.py`), and `_unflagged`, `_where`, `_value` and `SLACK`
+  (`qc/_tests.py`).
+
+The test and stage are joined by `specimen_id`: `TREG` and `TRET` (and `TRIG` and `TRIT`) carry the same specimen
+key, which ingest resolves to one `specimen_id` (ingest.md §5). Stresses are kPa in the canonical layer, so the
+formulas run in kPa and `finish()` converts for display.
+
+### 1. `M11: add TREG, TRET, TRIG and TRIT to the test files`
+- `tests/data/ags/_make_files.py`:
+  - **Good files** (`site_groups()`, so `site_si`, `site_us` and `site_v404` all get them): the three `CU`
+    specimens of AC 1 (one sample, 5.00 m in BH1), the `CDM` specimen of AC 2 (BH2, three stages, `TRET_PWPF`
+    blank on stage 2) and the three `UU` specimens of AC 3 (BH1, 8.00 m). Every recommended heading present,
+    `TRET_BVAL` ≥ 0.95, and `TRET_CONP` = cell − back on single-stage tests and first stages, so no X finding.
+    The US file's stresses come out of `to_us()` like the other kPa headings.
+  - **`ABBR`:** the codes used (`CU`, `CDM`, `UU`, `CIDE`, `UNDISTURBED`), so python-ags4 passes.
+  - **`joins.ags`:** AC 6's cases (a `CU` stage with no pore pressure, a `CIDE` stage, a `TRET` row with no `TREG`
+    row) and AC 7's stage with `TRET_CELL` blank.
+  - **`qc_defects.ags`:** the X cases of qc.md §8.
+  - New groups go after the existing data groups, and `UNIT`, `TYPE` and `ABBR` stay last (M14 a, step 0), so no
+    line number that a test names moves.
+- `tests/data/ags/README.md`: the new groups and cases.
+- Regenerate the files. The existing tests stay green: the good files' QC findings gain only C002 where a
+  recommended heading is deliberately blank (none planned), and the ingest acceptance tests' group lists gain the
+  four groups.
+
+### 2. `M11: add QC rules X001-X006 and triaxial minimum fields`
+- `src/hangtu/qc/_triaxial.py` (new), imported in `qc/__init__.py`: the six rules of qc.md §4.12, with the drained,
+  undrained, multistage and extension type lists defined once here and imported by step 3's analysis.
+- `qc/_registry.py` `THRESHOLDS`: `X001` `lowest_pore_pressure_parameter_b` (`dimensionless`, checked against
+  `_threshold()`'s handling of that kind; a plain number), `X006` `consolidation_stress_tolerance` (`stress`).
+- `qc/rules.yaml` (X001's title and comment say the 0.95 is to verify, TODO #53) and `qc/min_fields.yaml`
+  (spec decision 10).
+- Tests:
+  - `tests/qc/test_triaxial.py` (new): AC 8, each rule's finding on `qc_defects.ags` with its group, heading,
+    hole and line; X006's expected value and difference in the message; `TRET_CONP` 101 raising nothing; a B-value
+    of exactly 0.95 accepted; X006's tolerance given in psf.
+  - `tests/qc/test_qc_acceptance.py`: AC 9 (good files raise no X finding and no C001) and the twin files' same
+    findings.
+
+### 3. `M11: add ht.analysis.triaxial_failure_stresses()`
+- `src/hangtu/analysis/_triaxial.py` (new), exported in `analysis/__init__.py`: spec decision 4. Units resolve
+  as SPEC §2.6 (`df.attrs["units"]`, else an error naming the column). The docstring follows the page template's
+  checklist: the equations, inputs and outputs with units, the drained back-pressure rule, the extension and
+  deviator-stress behavior, and that it reads the lab's corrected values as given.
+- `columns.yaml`: the columns it reads and writes (`cell_pressure`, `back_pressure`,
+  `deviator_stress_at_failure`, `pore_pressure_at_failure`, the four principal stresses at failure,
+  `effective_stress_basis`), each `quantity: stress` and `scale: ratio` (the basis is text), with `label`s
+  ("Effective minor principal stress at failure, σ′3f").
+- `docs/site/reference/analysis.md`: its entry.
+- Tests: `tests/analysis/test_triaxial.py` (new), AC 10 on hand-built frames (AC 1's and AC 2's values in kPa,
+  and again with `attrs["units"]` in psf); each error naming its rows; extension rows blank with the warning; no
+  pore pressure column giving total stresses only.
+
+### 4. `M11: add p.triaxial()`
+- `columns.yaml`: the remaining new columns (`test_stage`, `multistage_test`, `failure_criterion`,
+  `effective_consolidation_stress`, `pore_pressure_parameter_b`, `axial_strain_at_failure`,
+  `volumetric_strain_at_failure`, `reported_effective_friction_angle`, `reported_effective_cohesion`,
+  `test_remarks`), the new AGS sources of spec "Changes", and the `triaxial` template (spec decision 11).
+- `src/hangtu/datasets/_triaxial.py` (new), `datasets/__init__.py`, and `Project.triaxial()` in `project.py`
+  with the common arguments and a docstring that names the columns, the initial-state caveat and the repeated lab
+  fit:
+  - `TRET` rows through `specimens()`, then `TRIT` rows; the `TREG`/`TRIG` columns joined by `specimen_id`;
+  - `multistage_test` from the type or the stage count per specimen;
+  - unit weights × g; then `triaxial_failure_stresses()` on the rows a dataset doesn't stop on, with the warnings
+    of §6.10 (back pressure count, extension, deviator stress ≤ 0).
+- Tests:
+  - `tests/datasets/test_triaxial.py` (new): AC 1–4 (golden values, US display), 6, 7, 11, 12 and 14;
+  - `tests/datasets/test_datasets_acceptance.py`: AC 5, the twins;
+  - `tests/test_registry.py`: `p.triaxial` in `DATASETS`, and its computed columns in `ONLY_HANGTU` (AC 13).
+
+### 5. `M11: close out (a)`
+- `docs/site/guides/datasets.md`: `p.triaxial()` in the table, pointing to P01 for now (P11 comes with (b)); the
+  QC guide's rule list, if it lists rules by letter. Run `prepare_site.py` and the strict docs build.
+- **Close-out:**
+  - SPEC §2.6 (the `triaxial` template), §10.2 (`p.triaxial()`), §4 (one line: the failure stresses come from
+    `triaxial_failure_stresses()`, for (b), P11, P12 and M17);
+  - `datasets.md` and `qc.md` status rows;
+  - the parameter index: 04 A part built (triaxial in M11 a; the shear box in M17);
+  - the `CLAUDE.md` status paragraph;
+  - TODO #53 stays open, and its text is checked against what was built.
+- **Look at the output:** `p.triaxial()` on `site_us.ags` printed in US and SI, and
+  `ht.plot.profile(p.triaxial(), "deviator_stress_at_failure")` saved to the scratchpad and looked at. No PNG is
+  committed: (a) adds no plot.
+- **Verification:** every AC reported as met or not, with its test; the whole suite in parallel; the
+  lowest-versions run; the strict docs build.
