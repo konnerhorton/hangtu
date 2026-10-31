@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **ID / function** | P11 · `ht.plot.failure_envelope()` (+ `ht.analysis.mohr_coulomb_fit()`) |
-| **Status** | draft (M11 (b) spec, 2026-10-31) |
+| **Status** | built |
 | **Type** | plot + analysis |
 | **Milestone** | M11 (b) (SPEC §12.4), [`docs/work/m11b-envelope-fit.md`](../work/m11b-envelope-fit.md) |
 | **Depends on** | P00; `p.triaxial()` and `ht.analysis.triaxial_failure_stresses()` (M11 a); `mohr_coulomb_fit()` (M11 (b) Spec) |
@@ -247,7 +247,12 @@ unless stated.
 9. **Edge cases:** each row of §11 that raises raises, with its message naming what §11 says; each that draws,
    draws (a hand-built frame per case).
 10. **Visual check:** `docs/plots/img/P11-us.png` and `P11-si.png` at 100 dpi, the example project's triaxial
-    stages in `mohr` (US) and `s_t` with idealized paths (SI), looked at and committed in the close-out.
+    stages in `mohr` (US, one fit per geology unit) and `site_si.ags`'s CDM stages in `s_t` with idealized paths
+    (SI; the paths are for drained tests only), looked at and committed in the close-out.
+
+![P11, the example project in mohr (US)](img/P11-us.png)
+
+![P11, site_si.ags's CDM stages in s_t with idealized paths (SI)](img/P11-si.png)
 
 ## 13. References
 The constructions are derived in the M11 (b) Spec (decision 2), not cited. ASTM D4767 (CU), D7181 (CD) and D2850

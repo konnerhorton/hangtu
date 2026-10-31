@@ -8,6 +8,9 @@ The site is synthetic: a river valley with fill over soft alluvial clay over
 terrace sand, in US units as a US consultant's file would have them. Values
 come from fixed rules plus a seeded ``random.Random``, whose sequence Python
 keeps the same across versions, so the files are reproduced exactly.
+The seeded tests loop over ``samples()``, so a sample added there changes
+every value after it: list a new test's samples apart, as
+``TRIAXIAL_SAMPLES`` does, or give the new values their own sequence.
 
 The fill and the upper alluvium tubes have hydrometer tests, so their
 grading curves continue into the fines; the terrace sands are sieved only.
