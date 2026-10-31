@@ -20,6 +20,7 @@ A dataset is a table with one row per test, with its depth, elevation and geolog
 | `p.permeability()` | Permeability test, lab or field | [Property profile](../plots/profile.md) |
 | `p.density()` | Density test, lab or field, as bulk and dry unit weights with the specimen's own water content and its sample's particle density | [Property profile](../plots/profile.md), [property by geology unit](../plots/geology-unit-comparison.md) |
 | `p.particle_density()` | Particle density test, with assumed values (`#2.65`) flagged | [Property by geology unit](../plots/geology-unit-comparison.md) |
+| `p.triaxial()` | Triaxial stage at failure, effective stress (CU, CD) or total stress (UU): cell pressure, deviator stress and pore pressure, the principal stresses from them, and the lab's own c′ and φ′ | [Property profile](../plots/profile.md), [property by geology unit](../plots/geology-unit-comparison.md) |
 
 Each comes in the project's display units, or in `display_units="SI"` or `"US"` if you ask.
 

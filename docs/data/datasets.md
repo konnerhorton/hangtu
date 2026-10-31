@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | done (M7); the M8 additions (classification columns in §6.2, §6.5 and §6.6) done; M14 (a)'s §6.8–6.9 done; M11 (a)'s §6.10 specified |
+| **Status** | done (M7); the M8 additions (classification columns in §6.2, §6.5 and §6.6) done; M14 (a)'s §6.8–6.9 done; M11 (a)'s §6.10 done |
 | **Intent** | [`docs/work/m7-datasets.md`](../work/m7-datasets.md#intent); M8: [`docs/work/m8-index-plots.md`](../work/m8-index-plots.md#intent); M14 (a): [`docs/work/m14a-density-data.md`](../work/m14a-density-data.md) (decisions and acceptance criteria); M11 (a): [`docs/work/m11a-triaxial-data.md`](../work/m11a-triaxial-data.md) |
 | **Parent** | SPEC §2.6 (units), §7 (data model), §8 (depth, elevation, geology), §10 (datasets, registry), §11 (errors) |
 | **Related** | [`ingest.md`](ingest.md) (canonical layer, value flags), [`qc.md`](qc.md) (C001, G004, D004/D005). `docs/drafts/analysis.md` §1 (SPT), §2–3 (classification, gradation). P01–P07 (the plots these feed) |
@@ -374,7 +374,7 @@ One row per triaxial stage at failure: each `TRET` row (effective stress, parent
 - `include_incomplete=True` keeps them, with their blanks.
 
 ## 8. Warnings
-Each dataset call gives at most one warning per kind (`UserWarning`, as the rest of hangtu): the missing group (§2), the missing geology key (§5.1), unmapped codes (§5.2), overlapping layers (§5.4), records left out (§7), specimens with several water contents (§6.2), samples with several particle density specimens (§6.8), and triaxial stages with the back pressure as u_f, extension tests or a deviator stress of 0 or less (§6.10). A call on the good test files with a complete map gives none.
+Each dataset call gives at most one warning per kind (`UserWarning`, as the rest of hangtu): the missing group (§2), the missing geology key (§5.1), unmapped codes (§5.2), overlapping layers (§5.4), records left out (§7), specimens with several water contents (§6.2), samples with several particle density specimens (§6.8), and triaxial stages with the back pressure as u_f, extension tests or a deviator stress of 0 or less (§6.10). A call on the good test files with a complete map gives none, but for `p.triaxial()`'s back pressure count: BH2-U2's stage 2 has `TRET_PWPF` blank on purpose.
 
 ## 9. QC: G004
 | ID | Rule | Severity | Thresholds |
@@ -406,7 +406,7 @@ A new `joins.ags` (4.2, SI, passes python-ags4) holds the edge cases: a test exa
 
 M14 adds `LDEN`, `LPDN` and `IDEN` to the three good files (a recompacted record, a stabilized field test and an assumed particle density among them), and to `joins.ags` a sample with two `LPDN` specimens at different depths, one with two at the same depth, a sample with none, and an `LDEN` row with no bulk density.
 
-M11 (a) adds `TREG`/`TRET` and `TRIG`/`TRIT` to the three good files: a set of three single-stage CU specimens from one sample, a multistage CD specimen with three stages (one with `TRET_PWPF` blank), and three UU specimens. `joins.ags` gains an extension test, a CU stage with no pore pressure, a stage with no `TREG` row, and a stage with no `TRET_CELL` (incomplete, §7).
+M11 (a) adds `TREG`/`TRET` and `TRIG`/`TRIT` to the three good files: a set of three single-stage CU specimens from one sample, a multistage CD specimen with three stages (one with `TRET_PWPF` blank), and three UU specimens. `joins.ags` gains an extension test, a CU stage with no pore pressure and a stage with no `TRET_CELL` (incomplete, §7). A stage with no `TREG` row breaks AGS Rule 10c, so that case is built in `tests/datasets/test_triaxial.py`, as the duplicate `LNMC` is.
 
 ## 13. Acceptance criteria
 1. **Feeds the plots unchanged:** `ht.plot.spt_profile(p.spt())`, `ht.plot.spt_histogram(p.spt())`, `ht.plot.profile(p.permeability(), "hydraulic_conductivity")`, `ht.plot.profile(p.atterberg(), "liquid_limit")` and `ht.plot.geology_unit_comparison(p.atterberg(), "plasticity_index")` run on the good files with no error, no warning and no hint, and with the map's colors and order.

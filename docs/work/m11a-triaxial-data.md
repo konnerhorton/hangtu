@@ -357,3 +357,19 @@ formulas run in kPa and `finish()` converts for display.
   committed: (a) adds no plot.
 - **Verification:** every AC reported as met or not, with its test; the whole suite in parallel; the
   lowest-versions run; the strict docs build.
+
+### As built
+Where the build differs from the plan above:
+- **AC 1's sample** is BH1-U3 (`SAMP_REF` 3), since BH1 already has a sample 2 at 3.00 m; the values are AC 1's.
+  The good files' `SAMP` gains BH1-U3 and BH1-U4, which moves their `ISPT` lines down by two (the tests that
+  name them follow). `defects.ags` keeps its old samples.
+- **The type lists** (drained, undrained, extension, multistage) live in `analysis/_triaxial.py`, and QC imports
+  them: `qc` already imports from `analysis`, so the reverse would be circular.
+- **A stage with no `TREG` row** (AC 6) is built in `tests/datasets/test_triaxial.py`, not kept in `joins.ags`: it
+  breaks AGS Rule 10c, and `joins.ags` passes python-ags4 (datasets.md §12).
+- **X001's threshold** has the `dimensionless` kind, which takes a plain number as a count does.
+- **The twins' effective stresses** (AC 5) agree to 1e-9 of the cell pressure rather than 1e-9 relative: σ′3
+  subtracts two 10-significant-figure file values about ten times larger than itself.
+- **The good files' `p.triaxial()` gives one warning**, the back pressure count for BH2-U2's stage 2 (AC 2), so
+  datasets.md §8 notes it; the warnings count the rows returned, after the filters.
+- **Step 4** went past 300 lines and was committed in two: the registry, then the dataset.
