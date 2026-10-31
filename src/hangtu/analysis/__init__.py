@@ -6,6 +6,7 @@ from hangtu.analysis._classification import aashto, uscs
 from hangtu.analysis._clay_activity import clay_activity
 from hangtu.analysis._clogging import clogging_potential
 from hangtu.analysis._gradation import gradation
+from hangtu.analysis._mohr_coulomb import MohrCoulombFit, mohr_coulomb_fit
 from hangtu.analysis._overburden import spt_n1_60
 from hangtu.analysis._phase_relations import phase_relations
 from hangtu.analysis._plasticity import plasticity
@@ -14,12 +15,14 @@ from hangtu.analysis._triaxial import triaxial_failure_stresses
 from hangtu.analysis._vertical_stress import vertical_stress
 
 __all__ = [
+    "MohrCoulombFit",
     "aashto",
     "add_judgment",
     "clay_activity",
     "clogging_potential",
     "correlations",
     "gradation",
+    "mohr_coulomb_fit",
     "phase_relations",
     "plasticity",
     "spt",

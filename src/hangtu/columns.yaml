@@ -454,8 +454,32 @@ columns:
     quantity: angle
     scale: ratio
     label: Effective friction angle, φ′
-    ags: ["derived: docs/work/m13b1-spt-framework.md"]
+    ags: ["derived: docs/work/m13b1-spt-framework.md", "derived: docs/work/m11b-envelope-fit.md"]
     used_by: [P01]
+  effective_cohesion:
+    description: Effective cohesion intercept of a Mohr-Coulomb envelope fitted to failure points
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Effective cohesion, c′
+    ags: ["derived: docs/work/m11b-envelope-fit.md"]
+    used_by: []
+  total_stress_cohesion:
+    description: Cohesion intercept of a Mohr-Coulomb envelope fitted to total-stress failure points
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Total stress cohesion, c
+    ags: ["derived: docs/work/m11b-envelope-fit.md"]
+    used_by: []
+  total_stress_friction_angle:
+    description: Friction angle of a Mohr-Coulomb envelope fitted to total-stress failure points
+    type: number
+    quantity: angle
+    scale: ratio
+    label: Total stress friction angle, φ
+    ags: ["derived: docs/work/m11b-envelope-fit.md"]
+    used_by: []
   undrained_shear_strength_lower:
     description: Lower bound of an undrained shear strength given as a band, such as a correlation's
     type: number
