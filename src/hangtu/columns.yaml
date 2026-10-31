@@ -37,6 +37,8 @@ templates:
   grain_size:     [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, particle_size, percent_passing, qualifier, geology_unit, soil_class, geology_description]
   density:        [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, bulk_unit_weight, dry_unit_weight, water_content, particle_density, particle_density_assumed, sample_condition, stabilizer_content, source, test_type, geology_unit, soil_class, geology_description]
   particle_density: [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, particle_density, particle_density_assumed, test_type, geology_unit, soil_class, geology_description]
+  # One row per stage at failure; p.triaxial() adds the principal stresses and their basis (M11 a).
+  triaxial:       [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, test_type, test_stage, multistage_test, sample_condition, failure_criterion, water_content, bulk_unit_weight, dry_unit_weight, void_ratio, effective_consolidation_stress, back_pressure, pore_pressure_parameter_b, cell_pressure, deviator_stress_at_failure, pore_pressure_at_failure, axial_strain_at_failure, volumetric_strain_at_failure, reported_effective_friction_angle, reported_effective_cohesion, test_remarks, remarks, geology_unit, soil_class, geology_description]
   # A log per hole (ht.analysis.vertical_stress); p.stratigraphy() adds source_line.
   stratigraphy:   [loca_id, depth_top, depth_base, geology_unit, soil_class, geology_description]
   # Overlays (P01 §8): fill in one depth or elevation pair and leave the other blank.
@@ -267,13 +269,13 @@ columns:
   test_type:
     description: Test method, e.g. falling head, packer, UU, torvane
     type: text
-    ags: [PTST.PTST_TYPE, FGHG.FGHG_TYPE, IPRG.IPRG_TYPE, LPDN.LPDN_TYPE, LDEN.LDEN_TYPE, IDEN.IDEN_TYPE]
+    ags: [PTST.PTST_TYPE, FGHG.FGHG_TYPE, IPRG.IPRG_TYPE, LPDN.LPDN_TYPE, LDEN.LDEN_TYPE, IDEN.IDEN_TYPE, TREG.TREG_TYPE, TRIG.TRIG_TYPE]
     used_by: [P01]
     statistics: {role: source}
   remarks:
     description: Remarks the file gives for the record
     type: text
-    ags: [LOCA.LOCA_REM, ISPT.ISPT_REM]
+    ags: [LOCA.LOCA_REM, ISPT.ISPT_REM, TRET.TRET_REM, TRIT.TRIT_REM]
     used_by: []
   source_line:
     description: Line of the record in the AGS file, to check a value against the file
@@ -313,7 +315,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Water content, w
-    ags: [LNMC.LNMC_MC, LDEN.LDEN_MC, IDEN.IDEN_MC]
+    ags: [LNMC.LNMC_MC, LDEN.LDEN_MC, IDEN.IDEN_MC, TRET.TRET_IMC, TRIT.TRIT_IMC]
     used_by: [P01, P06, P07]
   bulk_unit_weight:
     description: Bulk unit weight
@@ -321,7 +323,7 @@ columns:
     quantity: unit_weight
     scale: ratio
     label: Bulk unit weight, γ
-    ags: ["derived: LDEN.LDEN_BDEN × g", "derived: IDEN.IDEN_IDEN × g"]
+    ags: ["derived: LDEN.LDEN_BDEN × g", "derived: IDEN.IDEN_IDEN × g", "derived: TRET.TRET_BDEN × g", "derived: TRIT.TRIT_BDEN × g"]
     used_by: [P01, P07]
   saturated_unit_weight:
     description: Saturated unit weight, used below the water level
@@ -337,12 +339,12 @@ columns:
     quantity: unit_weight
     scale: ratio
     label: Dry unit weight, γ_d
-    ags: ["derived: LDEN.LDEN_DDEN × g", "derived: ht.analysis.phase_relations()"]
+    ags: ["derived: LDEN.LDEN_DDEN × g", "derived: TRET.TRET_DDEN × g", "derived: TRIT.TRIT_DDEN × g", "derived: ht.analysis.phase_relations()"]
     used_by: []
   sample_condition:
     description: The specimen's condition as tested (UNDISTURBED, RECOMPACTED)
     type: text
-    ags: [LDEN.LDEN_COND]
+    ags: [LDEN.LDEN_COND, TREG.TREG_COND, TRIG.TRIG_COND]
     used_by: []
   stabilizer_content:
     description: Stabilizer added to the ground before a field density test
@@ -390,12 +392,12 @@ columns:
       when: [assumed, judgment]
       values: [specific_gravity, void_ratio, porosity, degree_of_saturation, saturated_unit_weight]
   void_ratio:
-    description: Void ratio, volume of voids / volume of solids, from gamma, w and Gs
+    description: Void ratio, volume of voids / volume of solids (a specimen's initial, or from gamma, w and Gs)
     type: number
     quantity: dimensionless
     scale: ratio
     label: Void ratio, e
-    ags: ["derived: ht.analysis.phase_relations()"]
+    ags: [TRET.TRET_IVR, "derived: ht.analysis.phase_relations()"]
     used_by: [P01, P07]
   porosity:
     description: Porosity, volume of voids / total volume
@@ -963,4 +965,72 @@ columns:
     description: Where the pore pressure at failure came from (pore_pressure_at_failure, back_pressure)
     type: text
     ags: ["derived: ht.analysis.triaxial_failure_stresses()"]
+    used_by: []
+  test_stage:
+    description: Stage of a test, as the file names it (a single-stage test has one)
+    type: text
+    ags: [TRET.TRET_TESN, TRIT.TRIT_TESN]
+    used_by: []
+  multistage_test:
+    description: The test is multistage, by its type or by its specimen having more than one stage
+    type: bool
+    ags: ["derived: datasets.md §6.10"]
+    used_by: []
+  failure_criterion:
+    description: The lab's failure criterion, as written (e.g. maximum deviator stress)
+    type: text
+    ags: [TREG.TREG_FCR]
+    used_by: []
+  effective_consolidation_stress:
+    description: Effective stress at the end of consolidation, the start of shearing
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Effective consolidation stress, σ′c
+    ags: [TRET.TRET_CONP]
+    used_by: []
+  pore_pressure_parameter_b:
+    description: Skempton's pore pressure parameter B before shearing, a measure of saturation
+    type: number
+    quantity: dimensionless
+    scale: ratio
+    label: Pore pressure parameter, B
+    ags: [TRET.TRET_BVAL]
+    used_by: []
+  axial_strain_at_failure:
+    description: Axial strain at failure of a triaxial stage
+    type: number
+    quantity: percent
+    scale: ratio
+    label: Axial strain at failure, ε_af
+    ags: [TRET.TRET_STRN, TRIT.TRIT_STRN]
+    used_by: []
+  volumetric_strain_at_failure:
+    description: Volumetric strain at failure of a drained triaxial stage
+    type: number
+    quantity: percent
+    scale: ratio
+    label: Volumetric strain at failure, ε_vf
+    ags: [TRET.TRET_STV]
+    used_by: []
+  reported_effective_friction_angle:
+    description: The lab's effective friction angle for the test, its own fit
+    type: number
+    quantity: angle
+    scale: ratio
+    label: Reported effective friction angle, φ′
+    ags: [TREG.TREG_PHI]
+    used_by: []
+  reported_effective_cohesion:
+    description: The lab's cohesion intercept with its reported friction angle
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Reported effective cohesion, c′
+    ags: [TREG.TREG_COH]
+    used_by: []
+  test_remarks:
+    description: Remarks the file gives for the test as a whole, apart from each record's
+    type: text
+    ags: [TREG.TREG_REM, TRIG.TRIG_REM]
     used_by: []
