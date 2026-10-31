@@ -33,6 +33,7 @@ Every plot takes a DataFrame and returns an ordinary matplotlib figure and axes.
 | [SPT histogram](spt-histogram.md) | The share of tests in each density or consistency class |
 | [Property by geology unit](geology-unit-comparison.md) | A property's spread in each geology unit, against a report's ranges |
 | [Distribution fit](distribution-fit.md) | The distributions fitted to a property in one group, with a Q-Q plot |
+| [Failure envelope](failure-envelope.md) | Triaxial stages at failure as Mohr circles, s′–t or p′–q, with the fitted c′ and φ′ |
 
 ## See also
 

@@ -8,6 +8,9 @@ The site is synthetic: a river valley with fill over soft alluvial clay over
 terrace sand, in US units as a US consultant's file would have them. Values
 come from fixed rules plus a seeded ``random.Random``, whose sequence Python
 keeps the same across versions, so the files are reproduced exactly.
+The seeded tests loop over ``samples()``, so a sample added there changes
+every value after it: list a new test's samples apart, as
+``TRIAXIAL_SAMPLES`` does, or give the new values their own sequence.
 
 The fill and the upper alluvium tubes have hydrometer tests, so their
 grading curves continue into the fines; the terrace sands are sieved only.
@@ -65,6 +68,9 @@ ABBR = [
     ("LDEN_TYPE", "LINEAR", "Linear measurement"),
     ("LDEN_COND", "UNDISTURBED", "Undisturbed"),
     ("LPDN_TYPE", "SMALL PYK", "Small pyknometer"),
+    ("TREG_TYPE", "CU", "Consolidated undrained with pwp measurement (single stage)"),
+    ("TREG_TYPE", "CDM", "Consolidated drained (multi-stage)"),
+    ("TREG_COND", "UNDISTURBED", "Undisturbed"),
 ]
 
 # Hole, easting, northing (ft), ground level, final depth, fill base and
@@ -275,10 +281,15 @@ def samples():
     return numbered
 
 
+#: Samples taken for triaxial tests only, apart from samples() so that the
+#: seeded values of the other tests stay as they were.
+TRIAXIAL_SAMPLES = [("B-5", 35.0, 37.0, "U", "4")]
+
+
 def samp():
     rows = [
         [name, top, ref, kind, f"{name}-{kind}{ref}", base]
-        for name, top, base, kind, ref in samples()
+        for name, top, base, kind, ref in [*samples(), *TRIAXIAL_SAMPLES]
     ]
     return group("SAMP", [*SAMPLE_HEADINGS, ("SAMP_BASE", "1DP", "ft")], rows)
 
@@ -509,6 +520,88 @@ def fghg():
     return group("FGHG", headings, rows)
 
 
+# Triaxial tests (M11 b): a CU set on B-2's lower Alluvium tube (lean clay,
+# about 26° and a small c′) and a three-stage CDM test on a Terrace tube
+# (sand, about 35° and c′ near 0). Stresses in psf, back pressure 8640 psf
+# (60 psi). Beside each stage, σ′3 = cell - u_f and σ′1 = σ′3 + q_f (psf).
+# Every B-value is at least 0.95 and TRET_CONP is cell - back on the single
+# stages and the first stage, so the tests raise no QC finding.
+TRIAXIAL_SPECIMEN_HEADINGS = [
+    *SAMPLE_HEADINGS,
+    ("SPEC_REF", "X", ""),
+    ("SPEC_DPTH", "1DP", "ft"),
+]
+BACK_PRESSURE = 8640  # psf
+CU_SAMPLE = ["B-2", 17.5, "2", "U", "B-2-U2"]
+CDM_SAMPLE = ["B-5", 35.0, "4", "U", "B-5-U4"]
+
+
+def treg():
+    headings = [
+        *TRIAXIAL_SPECIMEN_HEADINGS,
+        ("TREG_TYPE", "PA", ""),
+        ("TREG_COND", "PA", ""),
+        ("TREG_COH", "0DP", "psf"),
+        ("TREG_PHI", "1DP", "deg"),
+        ("TREG_FCR", "X", ""),
+        ("TREG_REM", "X", ""),
+    ]
+    criterion = "Maximum deviator stress"
+    rows = [
+        [*CU_SAMPLE, ref, depth, "CU", "UNDISTURBED", 110, 25.8, criterion, None]
+        for ref, depth in [("3", 17.8), ("4", 18.2), ("5", 18.6)]
+    ]
+    rows.append(
+        [*CDM_SAMPLE, "1", 35.5, "CDM", "UNDISTURBED", 0, 35.0, criterion, None]
+    )
+    return group("TREG", headings, rows)
+
+
+def tret():
+    headings = [
+        *TRIAXIAL_SPECIMEN_HEADINGS,
+        ("TRET_TESN", "X", ""),
+        ("TRET_IMC", "X", "%"),
+        ("TRET_BDEN", "1DP", "pcf"),
+        ("TRET_DDEN", "1DP", "pcf"),
+        ("TRET_CONP", "0DP", "psf"),
+        ("TRET_CELL", "0DP", "psf"),
+        ("TRET_STRN", "1DP", "%"),
+        ("TRET_DEVF", "0DP", "psf"),
+        ("TRET_PWPF", "0DP", "psf"),
+        ("TRET_STV", "2DP", "%"),
+        ("TRET_BACK", "0DP", "psf"),
+        ("TRET_BVAL", "2DP", ""),
+        ("TRET_IVR", "3DP", ""),
+    ]
+    # Each specimen's water content, bulk and dry density and void ratio.
+    initial = {
+        "3": ("29", 118.5, 91.9, 0.834),
+        "4": ("30", 117.9, 90.7, 0.858),
+        "5": ("28", 119.2, 93.1, 0.811),
+        "1": ("18", 127.0, 107.6, 0.549),
+    }
+    # Specimen, depth, stage, consolidation, cell, strain, q_f, u_f, ε_v, B.
+    cu = [
+        ("3", 17.8, "1", 1000, 9640, 12.0, 1250, 9040, None, 0.97),  # σ′3 600, σ′1 1850
+        ("4", 18.2, "1", 2000, 10640, 10.5, 2290, 9390, None, 0.96),  # 1250, 3540
+        ("5", 18.6, "1", 4000, 12640, 9.0, 4200, 10140, None, 0.98),  # 2500, 6700
+    ]
+    cdm = [
+        ("1", 35.5, "1", 2000, 10640, 3.5, 5450, 8640, 0.40, 0.96),  # 2000, 7450
+        ("1", 35.5, "2", 4000, 12640, 4.0, 10700, 8640, 0.90, 0.96),  # 4000, 14700
+        ("1", 35.5, "3", 8000, 16640, 5.5, 21400, 8640, 1.60, 0.96),  # 8000, 29400
+    ]
+    rows = []
+    for sample, stages in ((CU_SAMPLE, cu), (CDM_SAMPLE, cdm)):
+        for ref, depth, tesn, *test, stv, bval in stages:
+            water, bulk, dry, void_ratio = initial[ref]
+            initial_state = [water, bulk, dry]
+            stage = [*test, stv, BACK_PRESSURE, bval, void_ratio]
+            rows.append([*sample, ref, depth, tesn, *initial_state, *stage])
+    return group("TRET", headings, rows)
+
+
 # --- Writing --------------------------------------------------------------------------
 
 
@@ -516,7 +609,7 @@ def site_groups():
     llpl, lnmc = atterberg()
     grag, grat = grading()
     groups = [loca(), geol(), samp(), ispt(), llpl, lnmc, grag, grat, ptst(), fghg()]
-    return [*groups, lden(lnmc), lpdn()]
+    return [*groups, lden(lnmc), lpdn(), treg(), tret()]
 
 
 def write_site(path):
