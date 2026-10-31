@@ -236,6 +236,9 @@ M15 (d) cites Helsel et al. (2020), Delacre et al. (2019), Dinno (2015) and Karc
 
 Titles, volumes and pages are to be taken from each paper, not from memory.
 
+### 53. Triaxial test standards · You (copies) + Claude (verify) · `docs/data/qc.md` §4.12, `docs/work/m11a-triaxial-data.md` (Sources)
+QC X001's `lowest_pore_pressure_parameter_b: 0.95` is the B-value commonly quoted as the requirement before shearing, not yet checked against a standard. Check it, and what each allows for stiff soils (a lower B where B stops rising with back pressure), in ASTM D4767 (CU), ASTM D7181 (CD) and ISO 17892-9, with the clause. Then cite it in `qc/rules.yaml`, X001's message and qc.md. M11 (b) needs the same standards, and D2850 (UU), for the failure criteria (maximum deviator stress, maximum principal stress ratio, a limiting strain).
+
 ### 41. Gravelly sands under `not_for` · You + Claude · page 04, `docs/work/m13b1-spt-framework.md`
 Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads only the group symbol. The example site's Terrace is "SAND with gravel (SP)": SP passes, so its rows get estimates with no note. USCS group names (ASTM D2487) add "with gravel" at ≥ 15 % gravel, which the symbol does not carry.
 - **Questions:**
