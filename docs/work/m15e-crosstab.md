@@ -223,7 +223,8 @@ and `uscs_symbol`, read from the dataset row by row (loca_id, depth in ft):
     `agree="same"`, gives `count_compared` 0 and `proportion_agreeing` NaN, written `null` by `.to_dict()`. An
     empty frame gives a table of only `"(total)"`, 0.
 11. **Docs:** `crosstab` and `CrosstabResult` have reference entries (the existing test fails without them); the
-    example runs in `docs/prepare_site.py` and prints AC 2's summary.
+    example runs in `docs/prepare_site.py` without a warning and prints its summary (the Atterberg limits, not
+    AC 2's rows: Plan, step 3).
 
 ## Plan
 Two build commits, then the docs pages (a docs commit, with approval) and the close-out: four commits in all,
@@ -273,8 +274,10 @@ with its warnings asserted, so AC 1–4 run on the spec's 20 rows.
 - `docs/site/guides/statistics.md`: a "Comparing classifications" section before "See also": the log against
   the lab, choosing a geology key (SPEC §8.3), why agreement needs `agree=`, blanks on one side, reading
   `.mismatches` back into the frame.
-- `docs/site/examples/statistics-crosstab.py`: the example project, `legend_code × uscs_symbol` with
-  `agree="same"`, then the mapping, printing both summaries (AC 11).
+- `docs/site/examples/statistics-crosstab.py`: the example project, `legend_code × plasticity_class_uscs` from
+  `p.atterberg()` with `agree="same"`, then a mapping (AC 11). *Changed in the build:* not `uscs_symbol` from
+  `p.index_properties()`, whose expected warnings (curves short of D10, specimens without a symbol) fail the
+  site build, which allows no warning in an example.
 - Check: `uv run python docs/prepare_site.py && uv run zensical build --clean --strict`, and read the example's
   output by eye.
 

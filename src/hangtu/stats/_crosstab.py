@@ -57,8 +57,8 @@ def crosstab(
 
     No chance-corrected statistic (Cohen's kappa) is given: it assumes the
     two classifications were made independently, and a log written after the
-    lab results weren't. The share that agree, with the rows that don't, is
-    what a reviewer checks.
+    lab results isn't independent of them. The share that agree, with the
+    rows that don't, is what a reviewer checks.
 
     Parameters
     ----------

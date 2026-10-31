@@ -1,6 +1,6 @@
 # Statistics
 
-Summarize test values by geology unit, with the count, spread and percentiles a design report needs, and with every flagged value counted rather than dropped; fit distributions to them; and test whether groups differ.
+Summarize test values by geology unit, with the count, spread and percentiles a design report needs, and with every flagged value counted rather than dropped; fit distributions to them; test whether groups differ; and count one classification against another.
 
 ```python
 --8<-- "statistics.py"
@@ -107,9 +107,32 @@ The usual recipe, test for normality and then choose a t-test or a rank test, ch
 
 **Bounds.** Refusals and `>`/`<` values enter at their value and are counted, as in `describe()`: the means, and so the tests on them, are biased, and the note says so. The ranks treat values at a common cap as tied at the top, which is closer to right.
 
+## Comparing classifications
+
+`ht.stats.crosstab()` counts two classifications of the same rows against each other: the class logged in the field against the lab's, or one GEOL key against another when choosing which to map ([datasets](datasets.md); `geology_fields=` carries the codes as written). Every row is counted once, so the table's total is the number of rows.
+
+```python
+--8<-- "statistics-crosstab.py"
+```
+
+``` { .text .no-copy }
+--8<-- "statistics-crosstab.txt"
+```
+
+**Values as written.** Classes are compared as text, case and spaces included, so `CL`, `cl` and `CL ` are three classes, never merged for you: a stray space shows up as its own column. A blank is the class `(blank)`, counted, never dropped. Codes a CSV read as numbers still work (`101`, not `101.0`). A categorical column keeps its order, so `geology_unit` lists the units in the geology map's order.
+
+**Agreement only when you say what agrees.** Without `agree=`, the result is the table alone. `agree="same"` counts a row as agreeing when its two classes are the same text, for two columns in one vocabulary. When they aren't (a GEOL code against a formation, or fill logged by its origin), pass a mapping from each class in `rows` to the classes it agrees with; `[]` means it agrees with nothing. The mapping has to name every class it is asked about, so a class you didn't think of is an error, not a silent mismatch.
+
+**Blank on one side isn't a mismatch.** A specimen the lab didn't classify hasn't disagreed with the log. Such rows are counted on their own (`count_blank_in_rows`, `count_blank_in_columns`, `count_blank_in_both`) and left out of the share that agree.
+
+**The mismatches, to check.** `.mismatches` lists each disagreeing row with its hole, depth, sample and specimen, under the input's own index, so `df.loc[result.mismatches.index]` gives the full rows. `print()` shows the first 20.
+
+**No test.** A test of whether two classifications are related would only confirm what is plain for a log and a lab classification of the same soil, and a chance-corrected agreement (Cohen's kappa) assumes the two were made independently, and a log written after the lab results isn't independent of them. The share that agree, with the rows that don't, is what a reviewer checks.
+
 ## See also
 
 - [`ht.stats.describe`](../reference/stats.md#hangtu.stats.describe), [`ht.stats.DescribeResult`](../reference/stats.md#hangtu.stats.DescribeResult)
 - [`ht.stats.fit`](../reference/stats.md#hangtu.stats.fit), [`ht.stats.FitResult`](../reference/stats.md#hangtu.stats.FitResult), and the [distribution fit plot](../plots/distribution-fit.md)
 - [`ht.stats.compare`](../reference/stats.md#hangtu.stats.compare), [`ht.stats.compare_groups`](../reference/stats.md#hangtu.stats.compare_groups), [`ht.stats.CompareResult`](../reference/stats.md#hangtu.stats.CompareResult), [`ht.stats.CompareGroupsResult`](../reference/stats.md#hangtu.stats.CompareGroupsResult)
+- [`ht.stats.crosstab`](../reference/stats.md#hangtu.stats.crosstab), [`ht.stats.CrosstabResult`](../reference/stats.md#hangtu.stats.CrosstabResult)
 - [Judgments](judgments.md): a summary informs a judgment, such as each unit's PI, but never sets one.
