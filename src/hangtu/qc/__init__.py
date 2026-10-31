@@ -10,6 +10,7 @@ from hangtu.qc import (  # noqa: F401
     _geology,
     _locations,
     _tests,
+    _triaxial,
 )
 from hangtu.qc._accepted import AcceptedSource, read_accepted
 from hangtu.qc._data import Data

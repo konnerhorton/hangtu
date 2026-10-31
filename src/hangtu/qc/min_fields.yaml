@@ -55,3 +55,15 @@ min_fields:
   IDEN:
     required: [LOCA_ID, IDEN_DPTH, IDEN_IDEN]
     recommended: [IDEN_MC, IDEN_TYPE]
+  TREG:
+    required: [*sample_key, TREG_TYPE]
+    recommended: [SPEC_REF, SPEC_DPTH, TREG_FCR, TREG_COND]
+  TRET:
+    required: [*sample_key, TRET_TESN, TRET_CELL, TRET_DEVF]
+    recommended: [SPEC_REF, SPEC_DPTH, TRET_PWPF, TRET_CONP, TRET_BACK, TRET_BVAL, TRET_STRN]
+  TRIG:
+    required: [*sample_key, TRIG_TYPE]
+    recommended: [SPEC_REF, SPEC_DPTH, TRIG_COND]
+  TRIT:
+    required: [*sample_key, TRIT_TESN, TRIT_CELL, TRIT_DEVF]
+    recommended: [SPEC_REF, SPEC_DPTH, TRIT_STRN]

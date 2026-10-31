@@ -56,6 +56,8 @@ THRESHOLDS: dict[str, dict[str, str]] = {
         "lowest_particle_density": "density",
         "highest_particle_density": "density",
     },
+    "X001": {"lowest_pore_pressure_parameter_b": "dimensionless"},
+    "X006": {"consolidation_stress_tolerance": "stress"},
 }
 
 #: Rules that run with another rule's thresholds: D008 is the lower band of
