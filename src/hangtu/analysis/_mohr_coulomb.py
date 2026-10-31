@@ -423,6 +423,9 @@ def _fit(
     radius = (major[fitted] - minor[fitted]) / 2
     line = line_fit(mean, radius, intercept=cohesion, x_name="mean stress")
     reason = line.no_fit_reason
+    if reason is not None and cohesion is None and line.count < 2:
+        plural = "" if line.count == 1 else "s"
+        reason = f"{line.count} point{plural} (2 needed, or cohesion=0)"
     slope = line.slope
     if reason is None and not 0 <= slope < 1:
         reason = (

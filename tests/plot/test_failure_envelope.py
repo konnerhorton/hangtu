@@ -1,4 +1,4 @@
-"""P11 failure envelope (docs/plots/P11-failure-envelope.md, AC 1-3, 5 and 7).
+"""P11 failure envelope (docs/plots/P11-failure-envelope.md, AC 1-5, 7 and 9).
 
 Golden values are the M11 (b) spec's, hand-calculated there: golden 1 is
 (σ′3, σ′1) = (100, 300) and (200, 500) kPa, golden 2 (100, 300) and
@@ -135,6 +135,41 @@ def test_golden_2_through_the_origin(cohesion, space, slope):
     assert fit.groups[0]["fits"][0]["friction_angle"] == pytest.approx(30.0, rel=REL)
 
 
+# --- AC 4: idealized drained paths --------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("space", "end"), [("s_t", (200.0, 100.0)), ("p_q", (500 / 3, 200.0))]
+)
+def test_idealized_path(space, end):
+    df = _points([(100, 300)], test_type=["CD"])
+    _, ax, _ = _draw(df, space=space, paths="idealized_drained", cohesion=0)
+    (path,) = _lines(ax, "idealized_path")
+    assert path.get_xydata() == pytest.approx(np.array([(100.0, 0.0), end]), rel=REL)
+    labels = [t.get_text().replace("\n", " ") for t in ax.get_legend().get_texts()]
+    assert "Idealized drained path" in labels
+
+
+def test_path_of_an_undrained_test_raises():
+    df = _points(GOLDEN_1, test_type=["CU", "CD"])
+    with pytest.raises(HangtuError, match=r"\['CU'\]"):
+        _draw(df, space="s_t", paths="idealized_drained")
+
+
+@pytest.mark.parametrize("columns", [{}, {"test_type": [None, "CD"]}])
+def test_path_without_a_type_is_assumed_drained(columns):
+    _, ax, _ = _draw(
+        _points(GOLDEN_1, **columns), space="s_t", paths="idealized_drained"
+    )
+    labels = [t.get_text().replace("\n", " ") for t in ax.get_legend().get_texts()]
+    assert "Idealized drained path (assumed CD)" in labels
+
+
+def test_paths_in_mohr_raise():
+    with pytest.raises(HangtuError, match=r"s′-t or p′-q"):
+        _draw(_points(GOLDEN_1), paths="idealized_drained")
+
+
 # --- AC 5: equal aspect and limits --------------------------------------------------
 
 
@@ -181,7 +216,14 @@ def test_fit_false_draws_no_line():
     _, ax, fit = _draw(_points(GOLDEN_1), fit=False)
     assert fit is None
     assert not _lines(ax, "envelope") and not _lines(ax, "envelope_beyond")
+    assert not [text for text in ax.texts if text.get_gid() == "result_box"]
     assert len(_lines(ax, "failure_point")) == 2
+
+
+def test_fit_false_draws_mixed_criteria():
+    df = _points(GOLDEN_1, failure_criterion=["Maximum deviator stress", None])
+    _, _, fit = _draw(df, fit=False)
+    assert fit is None
 
 
 def test_draws_into_a_given_axes(assert_no_global_state):
@@ -192,7 +234,7 @@ def test_draws_into_a_given_axes(assert_no_global_state):
     assert_no_global_state(ht.plot.failure_envelope, _points(GOLDEN_1))
 
 
-# --- errors and edge cases ----------------------------------------------------------
+# --- AC 9: edge cases (§11) ---------------------------------------------------------
 
 
 def test_no_principal_stresses_raises():
@@ -212,6 +254,40 @@ def test_negative_minor_stress_is_drawn_below_zero():
     assert len(_lines(ax, "failure_point")) == 3
 
 
+def test_one_point_draws_without_a_fit():
+    _, ax, _ = _draw(_points([(100, 300)]))
+    assert not _lines(ax, "envelope")
+    assert "no fit: 1 point (2 needed, or cohesion=0)" in _box(ax).get_text()
+    assert len(_lines(ax, "failure_point")) == 1
+
+
+def test_a_group_without_a_fit_among_several():
+    df = _points(
+        [(100, 300), (200, 600), (150, 400)], geology_unit=["ALV", "ALV", "TRC"]
+    )
+    _, ax, _ = _draw(df, group_by="geology_unit")
+    assert len(_lines(ax, "envelope")) == 1
+    text = _box(ax).get_text()
+    assert "ALV: c′ = 0" in text
+    assert "TRC: no fit: 1 point" in text
+    assert len(_lines(ax, "failure_point")) == 3
+
+
+def test_slope_outside_its_range_draws_no_envelope():
+    _, ax, _ = _draw(_points([(300, 500), (100, 900)]))
+    assert not _lines(ax, "envelope")
+    assert "slope tan α = 3.0" in _box(ax).get_text()
+
+
+def test_negative_intercept_is_drawn_as_fitted():
+    with pytest.warns(UserWarning, match=r"negative"):
+        _, ax, _ = _draw(_points([(100, 250), (300, 1000)]))
+    (solid,) = _lines(ax, "envelope")
+    intercept, _ = _intercept_and_slope(solid)
+    assert intercept == pytest.approx(-32.274861, rel=1e-7)
+    assert "(c′ < 0)" in _box(ax).get_text()
+
+
 def test_mixed_criteria_raise_and_pool_draws_one_fit():
     df = _points(
         [(100, 300), (200, 600), (300, 900)],
@@ -224,6 +300,17 @@ def test_mixed_criteria_raise_and_pool_draws_one_fit():
     assert fit.pooled == ("failure_criterion",)
 
 
+def test_missing_group_by_column_raises():
+    with pytest.raises(ColumnError, match=r"can't group by 'geology_unit'"):
+        _draw(_points(GOLDEN_1), group_by="geology_unit")
+
+
+def test_color_by_with_group_by_raises():
+    df = _points(GOLDEN_1, geology_unit=["ALV", "ALV"])
+    with pytest.raises(HangtuError, match=r"color_by= can't be used with group_by="):
+        _draw(df, group_by="geology_unit", color_by="geology_unit")
+
+
 def test_missing_units_raise():
     df = _points(GOLDEN_1)
     df.attrs = {}
@@ -231,6 +318,33 @@ def test_missing_units_raise():
         _draw(df)
 
 
-def test_unknown_space_raises():
-    with pytest.raises(HangtuError, match=r"space must be one of"):
-        _draw(_points(GOLDEN_1), space="q_p")
+def test_missing_optional_columns_give_one_hint():
+    ht.settings.hints = True
+    with pytest.warns(ht.HangtuHint) as caught:
+        _draw(_points(GOLDEN_1))
+    assert len(caught) == 1
+    message = str(caught[0].message)
+    for column in ("failure_criterion", "multistage_test", "geology_unit"):
+        assert column in message
+
+
+def test_user_envelopes_are_transformed():
+    _, ax, _ = _draw(_points(GOLDEN_2), space="p_q", envelopes=[(0, 30, "Design")])
+    (line,) = _lines(ax, "user_envelope")
+    assert _intercept_and_slope(line) == pytest.approx((0.0, 1.2), abs=1e-9)
+    assert line.get_label() == "Design"
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "match"),
+    [
+        ({"space": "q_p"}, r"space must be one of"),
+        ({"paths": "measured", "space": "s_t"}, r"paths must be one of"),
+        ({"envelopes": [(0, 95, "Steep")]}, r"from 0 to below 90"),
+        ({"envelopes": [(0, 30)]}, r"envelopes= takes a list"),
+        ({"color_by": "geology_unit"}, r"df has no such column"),
+    ],
+)
+def test_argument_errors(kwargs, match):
+    with pytest.raises(HangtuError, match=match):
+        _draw(_points(GOLDEN_1), **kwargs)
