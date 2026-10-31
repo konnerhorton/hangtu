@@ -893,3 +893,74 @@ columns:
     label: Coarse sand content
     ags: ["derived: docs/drafts/analysis.md §3.5"]
     used_by: [P05]
+  # Triaxial stages at failure (M11 a, docs/work/m11a-triaxial-data.md). Values
+  # at failure end in _at_failure; the state before shearing doesn't.
+  cell_pressure:
+    description: Total cell pressure during the shearing stage of a triaxial test
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Cell pressure, σ_c
+    ags: [TRET.TRET_CELL, TRIT.TRIT_CELL]
+    used_by: []
+  back_pressure:
+    description: Back pressure applied before shearing a triaxial stage
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Back pressure, u_b
+    ags: [TRET.TRET_BACK]
+    used_by: []
+  deviator_stress_at_failure:
+    description: Deviator stress at failure of a triaxial stage, as the lab corrected it
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Deviator stress at failure, q_f
+    ags: [TRET.TRET_DEVF, TRIT.TRIT_DEVF]
+    used_by: []
+  pore_pressure_at_failure:
+    description: Total pore pressure at failure of a triaxial stage, back pressure included
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Pore pressure at failure, u_f
+    ags: [TRET.TRET_PWPF]
+    used_by: []
+  minor_principal_stress_at_failure:
+    description: Total minor principal stress at failure, the cell pressure in compression
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Minor principal stress at failure, σ3f
+    ags: ["derived: ht.analysis.triaxial_failure_stresses()"]
+    used_by: []
+  major_principal_stress_at_failure:
+    description: Total major principal stress at failure, cell pressure plus deviator stress
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Major principal stress at failure, σ1f
+    ags: ["derived: ht.analysis.triaxial_failure_stresses()"]
+    used_by: []
+  effective_minor_principal_stress_at_failure:
+    description: Effective minor principal stress at failure, σ3f less the pore pressure
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Effective minor principal stress at failure, σ′3f
+    ags: ["derived: ht.analysis.triaxial_failure_stresses()"]
+    used_by: []
+  effective_major_principal_stress_at_failure:
+    description: Effective major principal stress at failure, σ′3f plus the deviator stress
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Effective major principal stress at failure, σ′1f
+    ags: ["derived: ht.analysis.triaxial_failure_stresses()"]
+    used_by: []
+  effective_stress_basis:
+    description: Where the pore pressure at failure came from (pore_pressure_at_failure, back_pressure)
+    type: text
+    ags: ["derived: ht.analysis.triaxial_failure_stresses()"]
+    used_by: []
