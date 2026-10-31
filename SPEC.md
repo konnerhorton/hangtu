@@ -61,7 +61,7 @@
 
 | Wave | Engine | Moves |
 |---|---|---|
-| 0 | User-defined groups and curves | Curves (triaxial q–ε and εv, rock triaxial, swelling against time, shear box displacement) carried in the AGS file, read robustly; built against a sample dataset from real projects. Waves 4 and 5 need it. Wave 2 reads its curves and rock triaxial results from a CSV until then (TODO #19) |
+| 0 | User-defined groups and curves | Curves (triaxial q–ε and εv, rock triaxial, swelling against time, shear box displacement) carried in the AGS file, read robustly; built against a sample dataset from real projects. Waves 4 and 5 need it. Wave 2 reads its curves and rock triaxial results from a CSV until then (decided 2026-10-15; the P12 draft §3) |
 | 1 | Stress and state | 01 and 03 A–B (vertical stress, phase relations), 02 B (activity; LI and Ic as analyses); SPT correlations and (N1)60, stage C for 04–08 and 10; P17 (drawn from Ic) |
 | 2 | Strength envelopes | One fitting core for 04 A–B, 05 A–B, 22 A–B and 15 B (intact Hoek–Brown fit); P11–P12 |
 | 3 | Oedometer | 06 A–B, 11 (Eoed, Eur,oed), 12 B (k from cv·mv), 21 A–B (Grob, Huder–Amberg); then 07 B (K0 from OCR) and 05 B (SHANSEP); P13–P15 |
@@ -69,7 +69,7 @@
 | 5 | Stiffness | 08, 10 and 11 (the full set), 09 (soil); P19, P20 |
 | 6 | Hydraulic | 12 A–C (field permeability tests) |
 
-**Order of work:** wave 1, statistics, wave 2, wave 0, selection (stage D, starting with the Mohr–Coulomb set), then waves 3–6, each adding stage D and the model sets its sheets complete. Statistics come ahead of waves 2 and 0 because by then there are measured properties, derived values with depth trends and several correlations per property to compare, so they are designed against real uses. Wave 2 comes ahead of wave 0 (decided 2026-10-31, `docs/work/m11a-triaxial-data.md`) because nothing in it waits on curves in the AGS file: the values at failure are in standard groups (`TRET`, `TRIT`, `SHBT`), and readings during shearing come from a CSV the user shapes (TODO #19). Wave 0 is built against the sample dataset of real files (TODO #31), which isn't ready. §12.4 has the milestones.
+**Order of work:** wave 1, statistics, wave 2, wave 0, selection (stage D, starting with the Mohr–Coulomb set), then waves 3–6, each adding stage D and the model sets its sheets complete. Statistics come ahead of waves 2 and 0 because by then there are measured properties, derived values with depth trends and several correlations per property to compare, so they are designed against real uses. Wave 2 comes ahead of wave 0 (decided 2026-10-31, `docs/work/m11a-triaxial-data.md`) because nothing in it waits on curves in the AGS file: the values at failure are in standard groups (`TRET`, `TRIT`, `SHBT`), and readings during shearing come from a CSV the user shapes (decided 2026-10-15; the P12 draft §3). Wave 0 is built against the sample dataset of real files (TODO #31), which isn't ready. §12.4 has the milestones.
 
 **Releases** (decided 2026-10-21) are cut when a milestone leaves something usable, and aren't tied to waves or planned ahead. 0.1.0 (the plots P00–P03 and P07 and the data layer) is the first, on PyPI.
 

@@ -26,7 +26,7 @@ hangtu's roadmap is organized by parameter (SPEC §1.3). Every parameter climbs 
 **Data and analysis are separate units.** When a wave or milestone proposes both a dataset (stage A) and the analyses built on it (stage B or C), they become two units, data first: for example M14 (a) density data, then M14 (b) phase relations. Each then fits in one review, and the shape of the data is settled before formulas are built on it.
 
 A wave's units add three things to the loop:
-- **Spec:** promote the sheets the wave covers from `docs/drafts/parameters/` to site pages (`docs/site/parameters/NN-*.md`, from the sheets' `TEMPLATE.md`), verify the [U] citations the wave relies on and hand-calculate the golden values from the verified source, check what of the sheet can be published (values and citations, not whole tables or charts; TODO #30), and propose the new names against the whole registry. The wave's acceptance criteria go in its `docs/work/` file.
+- **Spec:** promote the sheets the wave covers from `docs/drafts/parameters/` to site pages (`docs/site/parameters/NN-*.md`, from the sheets' `TEMPLATE.md`), verify the [U] citations the wave relies on and hand-calculate the golden values from the verified source, check what of the sheet can be published (values and citations, not whole tables or charts; `docs/drafts/parameters/README.md`, "What is reproduced"), and propose the new names against the whole registry. The wave's acceptance criteria go in its `docs/work/` file.
 - **Build:** each method's equation, inputs, validity and source go in its function's docstring (the checklist in `TEMPLATE.md`); the page links to the API reference rather than restating them.
 - **Close:** update the stage status of each sheet in the parameter index.
 
