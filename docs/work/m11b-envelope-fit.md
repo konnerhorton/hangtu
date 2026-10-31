@@ -370,8 +370,10 @@ Two orders in one package would make a fit's table and a `describe()` of the sam
     so no X finding.
   - The values give a fit like real tests: a lean clay with φ′ near 26° and a small c′; a sand with φ′ near 35°
     and c′ near 0. Each stage's σ′3 and σ′1 is written in a comment beside it, worked by hand.
-  - The samples they need in `samples()`; the codes in `ABBR` (`CU`, `CDM`); `site_groups()` puts the groups
-    after `LPDN`, so no existing line moves.
+  - The CU set on an existing Alluvium tube (B-2's at 17.5 ft); the Terrace tube in `TRIAXIAL_SAMPLES`, written
+    to `SAMP` beside `samples()` (*changed in the build*: every other test's seeded values loop over `samples()`,
+    so a sample added there would change them all); the codes in `ABBR` (`CU`, `CDM`, `TREG_COND`);
+    `site_groups()` puts the groups after `LPDN`, so no existing line moves.
 - Regenerate `src/hangtu/examples/data/site.ags`. `tests/test_examples.py`'s python-ags4 check, its exact QC
   findings and the generator check stay green unchanged. Other tests on `site.ags` (`tests/test_project.py`, the
   plot acceptance tests) are checked for group counts.

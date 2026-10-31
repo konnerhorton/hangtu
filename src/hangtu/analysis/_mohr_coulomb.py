@@ -161,7 +161,8 @@ def mohr_coulomb_fit(
     --------
     The effective-stress envelope of each geology unit's triaxial tests:
 
-    >>> p = ht.examples.project()
+    >>> p = ht.Project.from_ags(ht.examples.path("site.ags"), db="site.sqlite")
+    >>> p.set_geology_map(ht.examples.path("strata.csv"))
     >>> fit = ht.analysis.mohr_coulomb_fit(p.triaxial(), group_by="geology_unit")
     >>> print(fit)
     >>> fit.to_frame()[["geology_unit", "effective_cohesion"]]
