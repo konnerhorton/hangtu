@@ -52,6 +52,6 @@ Each stage cell gives the wave (W0–W6) or milestone that builds it, and **buil
 | 22 | [Discontinuity shear strength](22-discontinuity-shear-strength.md) | φj, cj | W2 | W2 | — | M18 |
 | 23 | [Slake durability](23-slake-durability.md) | Id1, Id2 | W4 | W4 | — | W4 |
 
-Curves (triaxial stress–strain, rock triaxial, swelling against time, shear box displacement) come with wave 0,
-ahead of wave 2. Stage D for the sheets whose derivations land in waves 1–2 is the selection milestone (M18); each
+Curves (triaxial stress–strain, rock triaxial, swelling against time, shear box displacement) come from the AGS
+file with wave 0, after wave 2; wave 2 reads them from a CSV (SPEC §1.3). Stage D for the sheets whose derivations land in waves 1–2 is the selection milestone (M18); each
 later wave builds stage D for its own sheets.
