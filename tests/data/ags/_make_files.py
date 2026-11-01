@@ -1298,7 +1298,41 @@ def qc_defects_groups():
     trig = group(  # X005: a TRIG with no TRIT rows
         "TRIG",
         [*SPECIMEN, ("TRIG_TYPE", "PA", ""), ("TRIG_COND", "PA", "")],
-        [["BH3", 1.00, "1", "B", "BH3-B1", "T2", 1.30, "UU", "UNDISTURBED"]],
+        [
+            ["BH3", 1.00, "1", "B", "BH3-B1", "T2", 1.30, "UU", "UNDISTURBED"],
+            ["BH2", 1.00, "1", "U", "BH2-U1", "T9", 1.25, "UU", "UNDISTURBED"],
+        ],
+    )
+    # Undrained strength (M17 a, qc.md §4.13):
+    # - Q001: TRIT_CU 70 with TRIT_DEVF 120 (q_f / 2 = 60, 10 kPa off);
+    # - Q002: LVAN_VNRM 25 above LVAN_VNPK 20;
+    # - Q003: LUCT_UCS 0.
+    trit = group(
+        "TRIT",
+        [
+            *SPECIMEN,
+            ("TRIT_TESN", "X", ""),
+            ("TRIT_CELL", "0DP", "kPa"),
+            ("TRIT_DEVF", "0DP", "kPa"),
+            ("TRIT_STRN", "2SF", "%"),
+            ("TRIT_CU", "0DP", "kPa"),
+        ],
+        [["BH2", 1.00, "1", "U", "BH2-U1", "T9", 1.25, "1", 100, 120, 12, 70]],
+    )
+    lvan = group(
+        "LVAN",
+        [
+            *SPECIMEN,
+            ("LVAN_VNPK", "0DP", "kPa"),
+            ("LVAN_VNRM", "0DP", "kPa"),
+            ("LVAN_TYPE", "PA", ""),
+        ],
+        [["BH4", 2.30, "1", "U", "BH4-U1", "V1", 2.40, 20, 25, "LV"]],
+    )
+    luct = group(
+        "LUCT",
+        [*SPECIMEN, ("LUCT_UCS", "0DP", "kPa"), ("LUCT_STRA", "2SF", "%")],
+        [["BH4", 4.00, "2", "U", "BH4-U2", "C1", 4.10, 0, 5.0]],
     )
     return [
         loca,
@@ -1316,6 +1350,9 @@ def qc_defects_groups():
         treg,
         tret,
         trig,
+        trit,
+        luct,
+        lvan,
     ]
 
 

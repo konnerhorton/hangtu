@@ -230,6 +230,20 @@ rules:
     thresholds:
       consolidation_stress_tolerance: 2 kPa
 
+  # Undrained strength (§4.13, M17 a). Q001's tolerance clears 0DP rounding of
+  # TRIT_CU and TRIT_DEVF in kPa (at most 0.25 + 0.5 = 0.75 kPa).
+  Q001:
+    title: Reported UU s_u differs from half the deviator stress
+    severity: warning
+    thresholds:
+      undrained_strength_tolerance: 1 kPa
+  Q002:
+    title: Remolded strength above its peak
+    severity: warning
+  Q003:
+    title: Undrained strength 0 or less
+    severity: error
+
   # Minimally useful fields (§4.10); the fields are in min_fields.yaml.
   C001:
     title: Required field is missing

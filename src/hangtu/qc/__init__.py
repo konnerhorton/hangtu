@@ -11,6 +11,7 @@ from hangtu.qc import (  # noqa: F401
     _locations,
     _tests,
     _triaxial,
+    _undrained,
 )
 from hangtu.qc._accepted import AcceptedSource, read_accepted
 from hangtu.qc._data import Data

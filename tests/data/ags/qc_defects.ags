@@ -167,6 +167,25 @@
 "UNIT","","m","","","","","m","",""
 "TYPE","ID","2DP","X","PA","ID","X","2DP","PA","PA"
 "DATA","BH3","1.00","1","B","BH3-B1","T2","1.30","UU","UNDISTURBED"
+"DATA","BH2","1.00","1","U","BH2-U1","T9","1.25","UU","UNDISTURBED"
+
+"GROUP","TRIT"
+"HEADING","LOCA_ID","SAMP_TOP","SAMP_REF","SAMP_TYPE","SAMP_ID","SPEC_REF","SPEC_DPTH","TRIT_TESN","TRIT_CELL","TRIT_DEVF","TRIT_STRN","TRIT_CU"
+"UNIT","","m","","","","","m","","kPa","kPa","%","kPa"
+"TYPE","ID","2DP","X","PA","ID","X","2DP","X","0DP","0DP","2SF","0DP"
+"DATA","BH2","1.00","1","U","BH2-U1","T9","1.25","1","100","120","12","70"
+
+"GROUP","LUCT"
+"HEADING","LOCA_ID","SAMP_TOP","SAMP_REF","SAMP_TYPE","SAMP_ID","SPEC_REF","SPEC_DPTH","LUCT_UCS","LUCT_STRA"
+"UNIT","","m","","","","","m","kPa","%"
+"TYPE","ID","2DP","X","PA","ID","X","2DP","0DP","2SF"
+"DATA","BH4","4.00","2","U","BH4-U2","C1","4.10","0","5.0"
+
+"GROUP","LVAN"
+"HEADING","LOCA_ID","SAMP_TOP","SAMP_REF","SAMP_TYPE","SAMP_ID","SPEC_REF","SPEC_DPTH","LVAN_VNPK","LVAN_VNRM","LVAN_TYPE"
+"UNIT","","m","","","","","m","kPa","kPa",""
+"TYPE","ID","2DP","X","PA","ID","X","2DP","0DP","0DP","PA"
+"DATA","BH4","2.30","1","U","BH4-U1","V1","2.40","20","25","LV"
 
 "GROUP","UNIT"
 "HEADING","UNIT_UNIT","UNIT_DESC"
@@ -189,6 +208,7 @@
 "DATA","1DP","Value with 1 decimal place"
 "DATA","1SCI","Scientific notation with 1 decimal place"
 "DATA","2DP","Value with 2 decimal places"
+"DATA","2SF","Value with 2 significant figures"
 "DATA","3SF","Value with 3 significant figures"
 "DATA","DT","Date time"
 "DATA","ID","Unique identifier"
