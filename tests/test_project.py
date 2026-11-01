@@ -32,7 +32,7 @@ def test_from_ags_puts_the_database_next_to_the_file_by_default(site):
 
 def test_groups_in_file_order(project):
     assert project.groups[:3] == ["PROJ", "TRAN", "DICT"]
-    last = ["TRIG", "TRIT", "LUCT", "LVAN", "LPEN", "LFCN", "IVAN", "IPEN"]
+    last = ["SHBG", "SHBT", "LUCT", "LVAN", "LPEN", "LFCN", "IVAN", "IPEN"]
     assert project.groups[-11:] == [*last, "UNIT", "TYPE", "ABBR"]
 
 

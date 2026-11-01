@@ -212,6 +212,12 @@ quantity_kinds:
     canonical: meter / second
     US: {unit: foot / second, text: ft/s}
     SI: {unit: meter / second, text: m/s}
+  # After velocity, so ingest (a unit's first matching kind) keeps reading m/s
+  # headings as velocity; columns name this kind (M17 a, Decision 13).
+  displacement_rate:
+    canonical: millimeter / minute
+    US: {unit: inch / minute, text: in/min}
+    SI: {unit: millimeter / minute, text: mm/min}
   percent:
     canonical: null
     US: {unit: null, text: "%"}

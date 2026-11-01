@@ -183,6 +183,20 @@
 "DATA","BH1","8.00","4","U","BH1-U4","2","8.15","1","33","200","124","1.91","1.44","14","62",""
 "DATA","BH1","8.00","4","U","BH1-U4","3","8.25","1","35","300","118","1.89","1.40","15","59",""
 
+"GROUP","SHBG"
+"HEADING","LOCA_ID","SAMP_TOP","SAMP_REF","SAMP_TYPE","SAMP_ID","SPEC_REF","SPEC_DPTH","SHBG_TYPE","SHBG_COND","SHBG_PCOH","SHBG_PHI","SHBG_RCOH","SHBG_RPHI","SHBG_REM"
+"UNIT","","m","","","","","m","","","kPa","deg","kPa","deg",""
+"TYPE","ID","2DP","X","PA","ID","X","2DP","PA","PA","0DP","1DP","0DP","1DP","X"
+"DATA","BH2","2.00","1","D","BH2-D1","S1","2.10","SMALL SBOX","RECOMPACTED","8","31.0","2","28.5",""
+
+"GROUP","SHBT"
+"HEADING","LOCA_ID","SAMP_TOP","SAMP_REF","SAMP_TYPE","SAMP_ID","SPEC_REF","SPEC_DPTH","SHBT_TESN","SHBT_BDEN","SHBT_DDEN","SHBT_NORM","SHBT_DISP","SHBT_DISR","SHBT_REVS","SHBT_PEAK","SHBT_RES","SHBT_PDIS","SHBT_RDIS","SHBT_PDIN","SHBT_RDIN","SHBT_PDEN","SHBT_IVR","SHBT_MCI","SHBT_MCF","SHBT_HGT","SHBT_CRIT","SHBT_REM"
+"UNIT","","m","","","","","m","","Mg/m3","Mg/m3","kPa","mm/min","mm/min","","kPa","kPa","mm","mm","mm","mm","Mg/m3","","%","%","mm","",""
+"TYPE","ID","2DP","X","PA","ID","X","2DP","X","2DP","2DP","0DP","3DP","3DP","0DP","0DP","0DP","2DP","2DP","2DP","2DP","XN","3DP","X","X","1DP","X","X"
+"DATA","BH2","2.00","1","D","BH2-D1","S1","2.10","1","1.95","1.62","50","0.024","0.120","3","38","30","2.10","12.00","0.30","-0.40","2.68","0.650","20","22","20.0","Maximum shear stress",""
+"DATA","BH2","2.00","1","D","BH2-D1","S1","2.10","2","1.95","1.62","100","0.024","0.120","3","68","58","2.60","12.40","0.10","-0.60","2.68","0.650","20","22","20.0","Maximum shear stress",""
+"DATA","BH2","2.00","1","D","BH2-D1","S1","2.10","3","1.95","1.62","200","0.024","0.120","3","128","112","3.40","12.80","-0.15","-0.90","2.68","0.650","20","22","20.0","Maximum shear stress",""
+
 "GROUP","LVAN"
 "HEADING","LOCA_ID","SAMP_TOP","SAMP_REF","SAMP_TYPE","SAMP_ID","SPEC_REF","SPEC_DPTH","LVAN_VNPK","LVAN_VNRM","LVAN_MC"
 "UNIT","","m","","","","","m","kPa","kPa","%"
@@ -225,6 +239,7 @@
 "DATA","m","metre"
 "DATA","m/s","metres per second"
 "DATA","mm","millimetre"
+"DATA","mm/min","millimetres per minute"
 "DATA","mm:ss","minutes seconds"
 "DATA","yyyy-mm-dd","year month day"
 
@@ -237,6 +252,7 @@
 "DATA","1SCI","Scientific notation with 1 decimal place"
 "DATA","2DP","Value with 2 decimal places"
 "DATA","2SF","Value with 2 significant figures"
+"DATA","3DP","Value with 3 decimal places"
 "DATA","3SF","Value with 3 significant figures"
 "DATA","DMS","Degrees:Minutes:Seconds"
 "DATA","DT","Date time"
@@ -272,4 +288,8 @@
 "DATA","LUCT_TYPE","UNDISTURBED","Undisturbed"
 "DATA","LVAN_TYPE","LV","Laboratory vane"
 "DATA","IVAN_TYPE","BOREHOLE","Borehole vane"
+"DATA","SHBG_TYPE","SMALL SBOX","Small Shearbox"
+"DATA","SHBG_TYPE","SMALL RSHEAR","Small Ring shear"
+"DATA","SHBG_COND","RECOMPACTED","Recompacted"
+"DATA","SHBG_COND","UNDISTURBED","Undisturbed"
 

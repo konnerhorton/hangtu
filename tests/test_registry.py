@@ -32,6 +32,7 @@ def test_quantity_kinds_match_p00_table():
         "hydraulic_conductivity",
         "modulus",
         "velocity",
+        "displacement_rate",
         "percent",
         "dimensionless",
         "count",
@@ -218,6 +219,7 @@ DATASETS = (
     "density",
     "triaxial",
     "undrained_strength",
+    "shear_box",
 )
 #: Arguments a dataset needs to give every row of the good files.
 ARGUMENTS = {

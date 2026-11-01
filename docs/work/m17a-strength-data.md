@@ -437,8 +437,9 @@ a criterion says otherwise.
 ## Plan
 Eight build commits, each with ruff and the touched tests green, and the whole suite in parallel before
 each commit. A step past about 300 changed lines (not counting test data or the test-file generators) splits as
-noted. One finding from reading the code, built into step 5: ingest stores a heading in mm/min under its first
-matching kind, `velocity` (m/s), so `p.shear_box()` converts the rates to `displacement_rate` itself.
+noted. `p.shear_box()` converts the displacement rates to `displacement_rate` itself, from the unit ingest stored
+them in (*changed in the build*: the plan read ingest as storing mm/min as m/s; it keeps them in mm/min, as
+written, so the dataset reads the stored unit rather than assume either).
 
 **Reused, not rebuilt:**
 - **Dataset plumbing:** `Build` (`src/hangtu/datasets/_frame.py`: `rows()` drops incomplete records, `numbers()`,
@@ -510,7 +511,7 @@ matching kind, `velocity` (m/s), so `p.shear_box()` converts the rates to `displ
 - `columns.yaml`: the shear box columns (spec Changes), `shear_box` template, new AGS sources.
 - `src/hangtu/datasets/_shear_box.py` (new): one row per `SHBT` stage with its `SHBG` values (the `TRET`/`TREG`
   join of `_triaxial._stages()`), `SHBT_PDEN` with its `ASSUMED` flag (as `p.particle_density()`), unit weights × g,
-  and the rates converted from ingest's m/s (a `velocity` heading) to mm/min before `finish()`.
+  and the rates converted from the unit ingest stored them in to mm/min before `finish()`.
 - `src/hangtu/project.py`: `Project.shear_box()`; reference entry.
 - Test files: `SHBG`/`SHBT` on BH2-D1 (SMALL SBOX, RECOMPACTED; NORM 50/100/200, PEAK 38/68/128, RES 30/58/112,
   PVST = NORM, DISP 0.024, BDEN 1.95, PCOH 8, PHI 31.0) in the three good files; in `joins.ags` a rock joint test in

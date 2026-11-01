@@ -94,6 +94,8 @@ def test_ac3_older_version_gives_the_same_tables_for_shared_groups(projects):
         "TRET",
         "TRIG",
         "TRIT",
+        "SHBG",
+        "SHBT",
         "LVAN",
         "LPEN",
         "IVAN",

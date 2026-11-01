@@ -63,6 +63,7 @@ UNIT_DESCRIPTIONS = {
     "um": "micrometre",
     "mm:ss": "minutes seconds",
     "MPa": "megapascal",
+    "mm/min": "millimetres per minute",
     "deg": "degree",
     "GPa": "gigapascal",
     "Ft": "foot (wrong case)",
@@ -116,6 +117,10 @@ ABBR = [
     ("LUCT_TYPE", "UNDISTURBED", "Undisturbed"),
     ("LVAN_TYPE", "LV", "Laboratory vane"),
     ("IVAN_TYPE", "BOREHOLE", "Borehole vane"),
+    ("SHBG_TYPE", "SMALL SBOX", "Small Shearbox"),
+    ("SHBG_TYPE", "SMALL RSHEAR", "Small Ring shear"),
+    ("SHBG_COND", "RECOMPACTED", "Recompacted"),
+    ("SHBG_COND", "UNDISTURBED", "Undisturbed"),
 ]
 
 
@@ -750,6 +755,107 @@ IPEN = group(
 )
 UNDRAINED = [LUCT, LVAN, LPEN, LFCN, IVAN, IPEN]
 
+# Shear box (M17 a, datasets.md §6.12): a recompacted small shear box set of
+# three stages on BH2-D1, at SHBT_NORM 50, 100 and 200 kPa, with peak 38, 68
+# and 128 and residual 30, 58 and 112 kPa; SHBT_PVST and SHBT_RVST equal to
+# SHBT_NORM. SHBT_BDEN 1.95 Mg/m3 is a unit weight of 1.95 × 9.80665 =
+# 19.1229675 kN/m3; SHBT_DISP 0.024 mm/min. The lab's fit is c 8 kPa, φ 31.0°
+# (peak) and c 2 kPa, φ 28.5° (residual).
+BH2_D1_S = ["BH2", 2.00, "1", "D", "BH2-D1", "S1", 2.10]
+SHBG = group(
+    "SHBG",
+    [
+        *SPECIMEN,
+        ("SHBG_TYPE", "PA", ""),
+        ("SHBG_COND", "PA", ""),
+        ("SHBG_PCOH", "0DP", "kPa"),
+        ("SHBG_PHI", "1DP", "deg"),
+        ("SHBG_RCOH", "0DP", "kPa"),
+        ("SHBG_RPHI", "1DP", "deg"),
+        ("SHBG_REM", "X", ""),
+    ],
+    [[*BH2_D1_S, "SMALL SBOX", "RECOMPACTED", 8, 31.0, 2, 28.5, None]],
+    us=[*SPECIMEN_US, "SHBG_PCOH", "SHBG_RCOH"],
+)
+SHBT_HEADINGS = [
+    *SPECIMEN,
+    ("SHBT_TESN", "X", ""),
+    ("SHBT_BDEN", "2DP", "Mg/m3"),
+    ("SHBT_DDEN", "2DP", "Mg/m3"),
+    ("SHBT_NORM", "0DP", "kPa"),
+    ("SHBT_DISP", "3DP", "mm/min"),
+    ("SHBT_DISR", "3DP", "mm/min"),
+    ("SHBT_REVS", "0DP", ""),
+    ("SHBT_PEAK", "0DP", "kPa"),
+    ("SHBT_RES", "0DP", "kPa"),
+    ("SHBT_PDIS", "2DP", "mm"),
+    ("SHBT_RDIS", "2DP", "mm"),
+    ("SHBT_PDIN", "2DP", "mm"),
+    ("SHBT_RDIN", "2DP", "mm"),
+    ("SHBT_PDEN", "XN", "Mg/m3"),
+    ("SHBT_IVR", "3DP", ""),
+    ("SHBT_MCI", "X", "%"),
+    ("SHBT_MCF", "X", "%"),
+    ("SHBT_HGT", "1DP", "mm"),
+    ("SHBT_CRIT", "X", ""),
+    ("SHBT_REM", "X", ""),
+    ("SHBT_PVST", "0DP", "kPa"),
+    ("SHBT_RVST", "0DP", "kPa"),
+]
+SHBT_US = [
+    *SPECIMEN_US,
+    "SHBT_BDEN",
+    "SHBT_DDEN",
+    "SHBT_NORM",
+    "SHBT_PEAK",
+    "SHBT_RES",
+    "SHBT_PDIS",
+    "SHBT_RDIS",
+    "SHBT_PDIN",
+    "SHBT_RDIN",
+    "SHBT_PDEN",
+    "SHBT_HGT",
+    "SHBT_PVST",
+    "SHBT_RVST",
+]
+SHBT = group(
+    "SHBT",
+    SHBT_HEADINGS,
+    [
+        [
+            *BH2_D1_S,
+            tesn,
+            1.95,
+            1.62,
+            norm,
+            0.024,
+            0.120,
+            3,
+            peak,
+            res,
+            pdis,
+            rdis,
+            pdin,
+            rdin,
+            "2.68",
+            0.650,
+            "20",
+            "22",
+            20.0,
+            "Maximum shear stress",
+            None,
+            norm,
+            norm,
+        ]
+        for tesn, norm, peak, res, pdis, rdis, pdin, rdin in [
+            ("1", 50, 38, 30, 2.10, 12.00, 0.30, -0.40),
+            ("2", 100, 68, 58, 2.60, 12.40, 0.10, -0.60),
+            ("3", 200, 128, 112, 3.40, 12.80, -0.15, -0.90),
+        ]
+    ],
+    us=SHBT_US,
+)
+
 CPTP = group(
     "CPTP",
     [("LOCA_ID", "ID", ""), ("CPTP_DPTH", "2DP", "m"), ("CPTP_SUW1", "1DP", "kN/m3")],
@@ -990,6 +1096,10 @@ def site_groups(us=False):
         TRET,
         TRIG,
         TRIT,
+        # Before the undrained groups, so its specimen key is the same in the
+        # 4.0.4 file, which has no LFCN (whose specimen comes first otherwise).
+        SHBG,
+        SHBT,
         *UNDRAINED,
     ]
 
@@ -1597,6 +1707,39 @@ def joins_groups():
             ["J1", 4.00, "4", "BOREHOLE", None, "12"],
         ],
     )
+    # Shear box cases (M17 a, datasets.md §6.12):
+    # - J1-U3 R1: a rock joint, set in resin, with SHBT_DIA1 and SHBT_DIA2 and
+    #   its stresses in MPa (0.5 and 0.42 MPa: 500 and 420 kPa).
+    # - J1-D2 R2: a small ring shear test with only a residual stress, 21 kPa.
+    shbg = group(
+        "SHBG",
+        [
+            *SPECIMEN,
+            ("SHBG_TYPE", "PA", ""),
+            ("SHBG_COND", "PA", ""),
+            ("SHBG_ENCA", "X", ""),
+        ],
+        [
+            [*j1_u3, "R1", 6.20, None, "UNDISTURBED", "Resin"],
+            [*j1_d2, "R2", 3.20, "SMALL RSHEAR", "RECOMPACTED", None],
+        ],
+    )
+    shbt = group(
+        "SHBT",
+        [
+            *SPECIMEN,
+            ("SHBT_TESN", "X", ""),
+            ("SHBT_NORM", "2DP", "MPa"),
+            ("SHBT_PEAK", "2DP", "MPa"),
+            ("SHBT_RES", "3DP", "MPa"),
+            ("SHBT_DIA1", "1DP", "mm"),
+            ("SHBT_DIA2", "1DP", "mm"),
+        ],
+        [
+            [*j1_u3, "R1", 6.20, "1", 0.50, 0.42, None, 85.2, 89.3],
+            [*j1_d2, "R2", 3.20, "1", 0.10, None, 0.021, None, None],
+        ],
+    )
     return [
         loca,
         geol,
@@ -1611,6 +1754,8 @@ def joins_groups():
         treg,
         tret,
         ivan,
+        shbg,
+        shbt,
     ]
 
 
@@ -1649,6 +1794,8 @@ def main(out=HERE):
         without(TRET, "TRET_BACK", "TRET_BVAL", "TRET_IVR"),
         TRIG,
         TRIT,
+        SHBG,
+        without(SHBT, "SHBT_PVST", "SHBT_RVST"),
         without(LVAN, "LVAN_TYPE"),  # LUCT, LFCN and LVAN_TYPE are 4.1's
         LPEN,
         IVAN,

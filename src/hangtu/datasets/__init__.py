@@ -5,6 +5,7 @@ from hangtu.datasets._frame import locations
 from hangtu.datasets._index import index_properties
 from hangtu.datasets._lab import atterberg, grain_size, grain_size_summary
 from hangtu.datasets._permeability import permeability
+from hangtu.datasets._shear_box import shear_box
 from hangtu.datasets._spt import spt
 from hangtu.datasets._stratigraphy import stratigraphy
 from hangtu.datasets._triaxial import triaxial
@@ -19,6 +20,7 @@ __all__ = [
     "locations",
     "particle_density",
     "permeability",
+    "shear_box",
     "spt",
     "stratigraphy",
     "triaxial",

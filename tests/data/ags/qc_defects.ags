@@ -242,4 +242,8 @@
 "DATA","LUCT_TYPE","UNDISTURBED","Undisturbed"
 "DATA","LVAN_TYPE","LV","Laboratory vane"
 "DATA","IVAN_TYPE","BOREHOLE","Borehole vane"
+"DATA","SHBG_TYPE","SMALL SBOX","Small Shearbox"
+"DATA","SHBG_TYPE","SMALL RSHEAR","Small Ring shear"
+"DATA","SHBG_COND","RECOMPACTED","Recompacted"
+"DATA","SHBG_COND","UNDISTURBED","Undisturbed"
 
