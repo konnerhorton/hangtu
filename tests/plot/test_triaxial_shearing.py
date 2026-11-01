@@ -1,17 +1,17 @@
 """P12 triaxial shearing (docs/plots/P12-triaxial-shearing.md, AC 1-9 and 12).
 
-This commit covers the stress-strain view (AC 6, 7, 9 and 12 in part).
-
 The readings are the M11 (c) spec's golden readings in
 ``tests/data/triaxial_readings_goldens.csv`` (kPa, percent): R1 is stages A
 and B (CU), R3 stage C (CD, Δu blank), R4 stage D (UU). Expected positions
 are the spec's hand calculations. Positions are read from the drawn artists.
 """
 
+import math
 import warnings
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -67,6 +67,111 @@ def twin_of(ax):
     return twin
 
 
+# --- AC 1-2: failure readings and the fit -------------------------------------------
+
+
+def test_ac1_max_deviator_stress_fit_is_p11_golden_1():
+    _, ax, fit = draw(
+        readings("A", "B"), space="s_t", failure_criterion="max_deviator_stress"
+    )
+    row = fit.to_frame().iloc[0]
+    assert row["effective_cohesion"] == pytest.approx(25 * math.sqrt(2), rel=1e-7)
+    assert row["effective_friction_angle"] == pytest.approx(19.471221, rel=1e-7)
+    assert dots(ax) == pytest.approx([(200, 100), (350, 150)], rel=REL)
+
+
+def test_ac2_max_stress_ratio():
+    _, ax, fit = draw(
+        readings("A", "B"), space="s_t", failure_criterion="max_stress_ratio"
+    )
+    row = fit.to_frame().iloc[0]
+    assert row["effective_cohesion"] == pytest.approx(37.123106, rel=1e-7)
+    assert row["effective_friction_angle"] == pytest.approx(19.471221, rel=1e-7)
+    # (σ′3, σ′1) = (90, 285) and (185, 475): s′ = 187.5, 330; t = 97.5, 145.
+    assert dots(ax) == pytest.approx([(187.5, 97.5), (330, 145)], rel=REL)
+
+
+# --- AC 4: paths --------------------------------------------------------------------
+
+
+def test_ac4_r1_paths():
+    _, ax, _ = draw(readings("A"), space="s_t", failure_criterion="max_deviator_stress")
+    (path,) = lines(ax, "stress_path")
+    xy = np.column_stack([path.get_xdata(), path.get_ydata()])
+    assert xy[0] == pytest.approx([200, 0])
+    assert xy[2] == pytest.approx([200, 90])  # 4 %: σ′3 110, σ′1 290
+    _, ax, _ = draw(readings("A"), space="p_q", failure_criterion="max_deviator_stress")
+    (path,) = lines(ax, "stress_path")
+    assert [path.get_xdata()[2], path.get_ydata()[2]] == pytest.approx([170, 180])
+    assert [path.get_xdata()[0], path.get_ydata()[0]] == pytest.approx([200, 0])
+
+
+def test_ac4_r3_drained_path_has_slope_1_and_3():
+    with pytest.warns(UserWarning, match=BACK_PRESSURE):
+        _, ax, _ = ht.plot.triaxial_shearing(
+            readings("C"),
+            space="s_t",
+            failure_criterion="max_deviator_stress",
+            display_units="SI",
+        )
+    (path,) = lines(ax, "stress_path")
+    x, y = path.get_xdata(), path.get_ydata()
+    assert [x[3], y[3]] == pytest.approx([225, 125])
+    assert np.diff(y) / np.diff(x) == pytest.approx(np.ones(4))
+    with pytest.warns(UserWarning, match=BACK_PRESSURE):
+        _, ax, _ = ht.plot.triaxial_shearing(
+            readings("C"),
+            space="p_q",
+            failure_criterion="max_deviator_stress",
+            display_units="SI",
+        )
+    (path,) = lines(ax, "stress_path")
+    x, y = path.get_xdata(), path.get_ydata()
+    assert [x[3], y[3]] == pytest.approx([100 + 250 / 3, 250])
+    assert np.diff(y) / np.diff(x) == pytest.approx(np.full(4, 3.0))
+
+
+# --- AC 5-6: the same reading in every view; aspect --------------------------------
+
+
+@pytest.mark.parametrize("criterion", ["max_deviator_stress", "max_stress_ratio"])
+def test_ac5_the_same_reading_in_every_view(criterion):
+    df = readings("A", "B")
+    _, ax, _ = draw(df, failure_criterion=criterion)
+    strains = [x for x, _ in dots(ax)]
+    rows = ht.analysis.triaxial_failure_from_readings(df, failure_criterion=criterion)
+    assert strains == list(rows["axial_strain_at_failure"])
+    stresses = ht.analysis.triaxial_failure_stresses(rows)
+    minor = stresses["effective_minor_principal_stress_at_failure"].to_numpy()
+    major = stresses["effective_major_principal_stress_at_failure"].to_numpy()
+    _, ax, _ = draw(df, space="s_t", failure_criterion=criterion)
+    assert dots(ax) == pytest.approx(
+        list(zip((major + minor) / 2, (major - minor) / 2, strict=True))
+    )
+    _, ax, _ = draw(df, space="p_q", failure_criterion=criterion)
+    assert dots(ax) == pytest.approx(
+        list(zip((major + 2 * minor) / 3, major - minor, strict=True))
+    )
+    _, p11, _ = ht.plot.failure_envelope(stresses, space="s_t", display_units="SI")
+    assert dots(p11) == pytest.approx(
+        list(zip((major + minor) / 2, (major - minor) / 2, strict=True))
+    )
+
+
+def test_ac6_equal_aspect_in_stress_spaces_only():
+    df = readings("A", "B")
+    for space in ("s_t", "p_q"):
+        _, ax, _ = draw(df, space=space, failure_criterion="max_deviator_stress")
+        assert ax.get_aspect() == 1
+    _, ax, _ = draw(df, failure_criterion="max_deviator_stress")
+    assert ax.get_aspect() == "auto"
+    assert ax.get_xlim()[0] == 0 and ax.get_ylim()[0] == 0
+    assert ax.get_xlim()[1] > 15 and ax.get_ylim()[1] > 300
+
+
+# --- AC 7: the second axis ----------------------------------------------------------
+
+
 def test_ac7_excess_pore_pressure_on_a_twin_axis():
     _, ax, _ = draw(
         readings("A", "B"),
@@ -97,6 +202,61 @@ def test_ac7_volumetric_strain_shows_dilation():
     assert twin.get_ylim()[0] < -0.8
 
 
+# --- AC 8: left out and counted -----------------------------------------------------
+
+
+def test_ac8_uu_is_left_out_of_effective_paths():
+    _, ax, _ = draw(
+        readings("A", "B", "D"),
+        space="s_t",
+        failure_criterion="max_deviator_stress",
+        fit=False,
+    )
+    assert len(lines(ax, "stress_path")) == 2
+    assert "1 without effective stresses" in footnote(ax)
+
+
+def test_ac8_uu_total_path():
+    _, ax, fit = draw(
+        readings("D"),
+        space="s_t",
+        stress="total",
+        failure_criterion="max_deviator_stress",
+    )
+    (path,) = lines(ax, "stress_path")
+    assert [path.get_xdata()[0], path.get_ydata()[0]] == pytest.approx([200, 0])
+    assert [path.get_xdata()[2], path.get_ydata()[2]] == pytest.approx([260, 60])
+    assert dots(ax) == pytest.approx([(260, 60)])
+    assert fit.groups[0]["fits"][0]["no_fit_reason"] is not None
+
+
+# --- AC 9: returns ------------------------------------------------------------------
+
+
+def test_ac9_returns():
+    df = readings("A", "B")
+    fig, ax, fit = draw(df, space="s_t", failure_criterion="max_deviator_stress")
+    rows = ht.analysis.triaxial_failure_stresses(
+        ht.analysis.triaxial_failure_from_readings(
+            df, failure_criterion="max_deviator_stress"
+        )
+    )
+    expected = ht.analysis.mohr_coulomb_fit(rows, display_units="SI")
+    pd.testing.assert_frame_equal(fit.to_frame(), expected.to_frame())
+    assert ax.figure is fig
+    assert draw(df, failure_criterion="max_deviator_stress")[2] is None
+    _, ax, fit = draw(
+        df, space="s_t", failure_criterion="max_deviator_stress", fit=False
+    )
+    assert fit is None and not lines(ax, "envelope")
+    fig, given = plt.subplots()
+    _, ax, _ = draw(df, failure_criterion="max_deviator_stress", ax=given)
+    assert ax is given
+
+
+# --- AC 12: edge cases (P12 §11) ----------------------------------------------------
+
+
 def test_no_failure_reading_raises():
     with pytest.raises(HangtuError, match=r"No failure reading.*failure_criterion="):
         draw(readings("A"))
@@ -113,6 +273,11 @@ def test_decreasing_strain_raises():
             readings("E", axial_strain=[0, 4, 2, 6]),
             failure_criterion="max_deviator_stress",
         )
+
+
+def test_second_axis_outside_stress_strain_raises():
+    with pytest.raises(HangtuError, match='needs space="stress_strain"'):
+        draw(readings("A"), space="s_t", second_axis="excess_pore_pressure")
 
 
 @pytest.mark.parametrize(
@@ -163,6 +328,20 @@ def test_negative_deviator_stress_is_drawn():
     assert ax.get_ylim()[0] < -5
 
 
+def test_extension_is_counted_in_paths():
+    df = readings("A", "B", test_type=["CU"] * 6 + ["CAUE"] * 6)
+    with pytest.warns(UserWarning, match="extension"):
+        _, ax, _ = ht.plot.triaxial_shearing(
+            df,
+            space="s_t",
+            failure_criterion="max_deviator_stress",
+            fit=False,
+            display_units="SI",
+        )
+    assert len(lines(ax, "stress_path")) == 1
+    assert "1 extension stage" in footnote(ax)
+
+
 def test_missing_units_raise():
     df = readings("A")
     df.attrs["units"] = {}
@@ -170,13 +349,15 @@ def test_missing_units_raise():
         draw(df, failure_criterion="max_deviator_stress")
 
 
-def test_stress_strain_axes_and_return():
+def test_group_by_colors_and_fits_per_group():
     df = readings("A", "B")
-    fig, ax, fit = draw(df, failure_criterion="max_deviator_stress")
-    assert fit is None and ax.figure is fig
-    assert ax.get_aspect() == "auto"
-    assert ax.get_xlim()[0] == 0 and ax.get_ylim()[0] == 0
-    assert ax.get_xlim()[1] > 15 and ax.get_ylim()[1] > 300
-    assert [x for x, _ in dots(ax)] == [8, 8]
-    fig, given = plt.subplots()
-    assert draw(df, failure_criterion="max_deviator_stress", ax=given)[1] is given
+    df["geology_unit"] = ["ALV"] * 6 + ["TRC"] * 6
+    _, ax, fit = draw(
+        df,
+        space="s_t",
+        failure_criterion="max_deviator_stress",
+        group_by="geology_unit",
+    )
+    colors = {line.get_color() for line in lines(ax, "stress_path")}
+    assert len(colors) == 2
+    assert len(fit.groups) == 2

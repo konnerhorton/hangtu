@@ -1,5 +1,6 @@
 """P12 triaxial shearing (docs/plots/P12-triaxial-shearing.md)."""
 
+import math
 from collections.abc import Sequence
 from typing import Any, Literal
 
@@ -12,8 +13,8 @@ from matplotlib.lines import Line2D
 
 from hangtu import units as _units
 from hangtu._settings import _display_units, settings
-from hangtu.analysis._mohr_coulomb import MohrCoulombFit
-from hangtu.analysis._triaxial import triaxial_failure_stresses
+from hangtu.analysis._mohr_coulomb import MohrCoulombFit, mohr_coulomb_fit
+from hangtu.analysis._triaxial import EXTENSION, triaxial_failure_stresses
 from hangtu.analysis._triaxial_readings import Reduced, reduce_readings
 from hangtu.errors import HangtuError
 from hangtu.plot import _envelope_drawing as envelope
@@ -26,7 +27,7 @@ from hangtu.plot._palette import resolve_palette
 from hangtu.plot._spt_profile import _check_choice
 from hangtu.registry import _entry
 
-SPACES = ("stress_strain",)
+SPACES = ("stress_strain", "s_t", "p_q")
 STRESSES = ("effective", "total")
 SECOND_AXES = ("excess_pore_pressure", "volumetric_strain")
 USER_ENVELOPE_COLOR = "0.55"
@@ -183,11 +184,10 @@ def triaxial_shearing(
                 f"color_by={color_by!r}, but df has no such column. Available "
                 f"columns: {', '.join(map(str, df.columns))}."
             )
-    envelope.check_envelopes(envelopes)
+    user_envelopes = envelope.check_envelopes(envelopes)
     system = _display_units(display_units or settings.display_units)
     reduced = reduce_readings(df, failure_criterion, units)
-    # Its warnings (extension, drained back pressure) are the user's to see.
-    triaxial_failure_stresses(reduced.rows)
+    stages = triaxial_failure_stresses(reduced.rows)
 
     with style.context(**style_overrides):
         if ax is None:
@@ -200,6 +200,7 @@ def triaxial_shearing(
         style.style_axes(ax)
         notes = Notes()
         labels, colors = _stage_colors(reduced, group_by, color_by)
+        stress_unit = _display_stress_unit(reduced, system)
         if space == "stress_strain":
             handles = _draw_curves(ax, reduced, labels, colors, system, notes)
             if second_axis is not None:
@@ -207,6 +208,40 @@ def triaxial_shearing(
                     ax, reduced, second_axis, labels, colors, system, notes
                 )
             result = None
+        else:
+            result = None
+            if fit:
+                result = mohr_coulomb_fit(
+                    stages,
+                    stress=stress,
+                    group_by=group_by,
+                    cohesion=cohesion,
+                    multistage=multistage,
+                    pool=pool,
+                    display_units=system,
+                )
+            handles = _draw_paths(
+                ax, reduced, space, stress, labels, colors, system, stress_unit, notes
+            )
+            xlim = ax.get_xlim()
+            for cohesion_value, angle, label in user_envelopes:
+                intercept, slope = envelope.line(
+                    space, cohesion_value, math.radians(angle)
+                )
+                handles += ax.plot(
+                    xlim,
+                    [intercept + slope * x for x in xlim],
+                    color=USER_ENVELOPE_COLOR,
+                    linewidth=envelope.LINE_WIDTH,
+                    label=label,
+                    gid="user_envelope",
+                    zorder=_layers.LINES,
+                )
+            if result is not None:
+                handles += envelope.draw_fits(ax, result, space, colors, xlim)
+                if result_box:
+                    envelope.draw_box(ax, result)
+                _fit_footnote(result, notes)
         if note is not None:
             notes.add_text(str(note))
         placed = add_legend(ax, [handles], notes)
@@ -443,3 +478,91 @@ def _draw_second_axis(
             label=f"{short} (dashed)",
         )
     ]
+
+
+def _draw_paths(
+    ax: Axes,
+    reduced: Reduced,
+    space: str,
+    stress: str,
+    labels: dict[tuple, str],
+    colors: dict[str, Any],
+    system: str,
+    unit: str | None,
+    notes: Notes,
+) -> list[Line2D]:
+    """Draw each stage's measured path and its failure reading (P12 §4)."""
+    readings = reduced.readings
+    if stress == "effective":
+        minor = _display(readings.effective_minor, reduced, system)
+        major = _display(readings.effective_major, reduced, system)
+    else:
+        minor = _display(readings.cell, reduced, system)
+        major = minor + _display(readings.deviator, reduced, system)
+    if space == "s_t":
+        x, y = (major + minor) / 2, (major - minor) / 2
+    else:
+        x, y = (major + 2 * minor) / 3, major - minor
+    usable = ~np.isnan(x) & ~np.isnan(y) & ~np.isnan(readings.strain)
+    extension = readings.types.isin(EXTENSION).to_numpy()
+    counts = {"extension": 0, "no_stress": 0}
+    drawn = set()
+    xs, ys = [], []
+    for key, rows in reduced.stages.items():
+        if extension[rows].any():
+            counts["extension"] += 1
+            continue
+        shown = rows[usable[rows]]
+        if not len(shown):
+            counts["no_stress"] += 1
+            continue
+        drawn.add(key)
+        color = colors[labels[key]]
+        ax.plot(
+            x[shown],
+            y[shown],
+            color=color,
+            linewidth=CURVE_WIDTH,
+            gid="stress_path",
+            zorder=_layers.LINES,
+        )
+        xs.extend(x[shown])
+        ys.extend(y[shown])
+        pick = reduced.picks[key]
+        if usable[pick]:
+            ax.plot(
+                [x[pick]],
+                [y[pick]],
+                marker="o",
+                markersize=MARKER_SIZE,
+                color=color,
+                linestyle="none",
+                gid="failure_point",
+                zorder=_layers.MARKERS,
+            )
+    parts = []
+    if counts["no_stress"]:
+        kind = "effective" if stress == "effective" else "total"
+        parts.append(f"{counts['no_stress']} without {kind} stresses")
+    if counts["extension"]:
+        n = counts["extension"]
+        parts.append(f"{n} extension stage{'s' if n > 1 else ''}")
+    if parts:
+        notes.add_text("Left out of the paths: " + ", ".join(parts))
+    if xs:
+        x_low = min(0.0, min(xs))
+        xlim = nice_limits(x_low, max(xs), start_at_zero=True)
+        ylim = nice_limits(0.0, max(max(ys), 0.0), start_at_zero=True)
+    else:
+        xlim, ylim = (0.0, 1.0), (0.0, 1.0)
+    envelope.set_axes(ax, space, stress, unit, xlim, ylim)
+    return _legend_entries(labels, colors, drawn)
+
+
+def _fit_footnote(result: MohrCoulombFit, notes: Notes) -> None:
+    """Count the multistage stages the main fit leaves out; P12 counts the rest."""
+    left_out = sum(
+        group["fits"][0]["count_multistage_left_out"] for group in result.groups
+    )
+    if left_out:
+        notes.add_text(f"Left out of the fit: {left_out} multistage stages")
