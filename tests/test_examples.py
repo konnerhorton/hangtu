@@ -23,8 +23,9 @@ FILES = [
     "site.ags",
     "spt.csv",
     "strata.csv",
+    "triaxial_readings.csv",
 ]
-CSVS = ["atterberg.csv", "permeability.csv", "spt.csv"]
+CSVS = ["atterberg.csv", "permeability.csv", "spt.csv", "triaxial_readings.csv"]
 NOT_FINDINGS = {"Metadata", "Summary of data"}
 
 
@@ -89,7 +90,7 @@ def test_unknown_name_lists_the_files():
         ht.examples.path("site.csv")
     assert str(caught.value) == (
         "No example file 'site.csv'. Files: atterberg.csv, judgments.yaml, "
-        "permeability.csv, site.ags, spt.csv, strata.csv."
+        "permeability.csv, site.ags, spt.csv, strata.csv, triaxial_readings.csv."
     )
 
 
@@ -135,3 +136,46 @@ def test_example_runs_clean(tmp_path, script, outputs):
     for name in outputs:
         assert (tmp_path / name).is_file(), name
     assert "Wrote" in done.stdout
+
+
+# --- Triaxial readings (M11 c, spec AC 11) -----------------------------------------
+
+READING_UNITS = dict.fromkeys(
+    [
+        "effective_consolidation_stress",
+        "back_pressure",
+        "cell_pressure",
+        "deviator_stress",
+        "excess_pore_pressure",
+    ],
+    "psf",
+)
+AT_FAILURE = [
+    "deviator_stress_at_failure",
+    "pore_pressure_at_failure",
+    "axial_strain_at_failure",
+    "volumetric_strain_at_failure",
+]
+
+
+@pytest.mark.parametrize("criterion", ["max_deviator_stress", None])
+def test_readings_end_at_the_example_stages(site, criterion):
+    readings = ht.read_csv(
+        ht.examples.path("triaxial_readings.csv"),
+        units=READING_UNITS,
+        dtype={"specimen_id": str, "test_stage": str, "specimen_reference": str},
+    )
+    if criterion is not None:
+        # Picked by the criterion, not by the lab's mark the file carries.
+        readings = readings.drop(columns="reported_failure_reading")
+    rows = ht.analysis.triaxial_failure_from_readings(
+        readings, failure_criterion=criterion
+    )
+    stages = site.triaxial()
+    for column in ["specimen_id", "test_stage", "multistage_test", *AT_FAILURE]:
+        pd.testing.assert_series_equal(
+            rows[column].reset_index(drop=True),
+            stages[column].reset_index(drop=True),
+            check_dtype=False,
+            obj=column,
+        )

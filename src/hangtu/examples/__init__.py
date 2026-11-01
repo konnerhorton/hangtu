@@ -5,6 +5,11 @@ A synthetic site in US units: ``site.ags`` with its geology map
 water levels), and the same tests as CSV files (``spt.csv``,
 ``atterberg.csv``, ``permeability.csv``) laid out like ``ht.template()``.
 
+``triaxial_readings.csv`` has readings during shearing for the site's six
+triaxial stages, in psf, laid out like ``ht.template("triaxial_readings")``.
+They are synthetic, made to end at each stage's failure values in
+``site.ags``, for ``ht.plot.triaxial_shearing()``.
+
 Examples
 --------
 >>> p = ht.Project.from_ags(ht.examples.path("site.ags"), db="site.sqlite")
