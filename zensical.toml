@@ -41,6 +41,7 @@ nav = [
     "plots/geology-unit-comparison.md",
     "plots/distribution-fit.md",
     "plots/failure-envelope.md",
+    "plots/triaxial-shearing.md",
   ] },
   { "Parameters" = [
     "parameters/01-unit-weight-and-vertical-stress.md",
