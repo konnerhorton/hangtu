@@ -278,3 +278,37 @@ def test_filled_templates_feed_the_plots(site, tmp_path):
             warnings.simplefilter("error")
             fig, _ax = plot(*args)
         plt.close(fig)
+
+
+# --- Triaxial readings (M11 c) -----------------------------------------------------
+
+
+def test_triaxial_readings_template_has_p12_columns():
+    expected = [
+        "loca_id",
+        "specimen_id",
+        "sample_reference",
+        "specimen_reference",
+        "depth",
+        "test_type",
+        "test_stage",
+        "failure_criterion",
+        "effective_consolidation_stress",
+        "back_pressure",
+        "cell_pressure",
+        "axial_strain",
+        "deviator_stress",
+        "excess_pore_pressure",
+        "volumetric_strain",
+        "reported_failure_reading",
+        "geology_unit",
+    ]
+    assert list(ht.template("triaxial_readings").columns) == expected
+    table = ht.columns("triaxial_readings").set_index("name")
+    assert list(table.index) == expected
+    assert table.loc["deviator_stress", ["us_unit", "si_unit"]].tolist() == [
+        "psf",
+        "kPa",
+    ]
+    assert table.loc["axial_strain", "quantity"] == "percent"
+    assert ht.template("triaxial_readings")["reported_failure_reading"].dtype == bool

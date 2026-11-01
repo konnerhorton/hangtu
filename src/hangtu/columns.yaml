@@ -39,6 +39,8 @@ templates:
   particle_density: [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, particle_density, particle_density_assumed, test_type, geology_unit, soil_class, geology_description]
   # One row per stage at failure; p.triaxial() adds the principal stresses and their basis (M11 a).
   triaxial:       [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, test_type, test_stage, multistage_test, sample_condition, failure_criterion, water_content, bulk_unit_weight, dry_unit_weight, void_ratio, effective_consolidation_stress, back_pressure, pore_pressure_parameter_b, cell_pressure, deviator_stress_at_failure, pore_pressure_at_failure, axial_strain_at_failure, volumetric_strain_at_failure, reported_effective_friction_angle, reported_effective_cohesion, test_remarks, remarks, geology_unit, soil_class, geology_description]
+  # One row per reading during shearing (M11 c, P12 §3); stage values repeat on each row.
+  triaxial_readings: [loca_id, specimen_id, sample_reference, specimen_reference, depth, test_type, test_stage, failure_criterion, effective_consolidation_stress, back_pressure, cell_pressure, axial_strain, deviator_stress, excess_pore_pressure, volumetric_strain, reported_failure_reading, geology_unit]
   # A log per hole (ht.analysis.vertical_stress); p.stratigraphy() adds source_line.
   stratigraphy:   [loca_id, depth_top, depth_base, geology_unit, soil_class, geology_description]
   # Overlays (P01 §8): fill in one depth or elevation pair and leave the other blank.
@@ -1058,3 +1060,44 @@ columns:
     type: text
     ags: [TREG.TREG_REM, TRIG.TRIG_REM]
     used_by: []
+  # Readings during shearing (M11 c, docs/work/m11c-triaxial-shearing.md): one
+  # row per strain step, from a CSV the user shapes. Bare names, against the
+  # _at_failure values of a stage; ht.analysis.triaxial_failure_from_readings()
+  # reduces them to those.
+  axial_strain:
+    description: Axial strain at a reading during shearing, from the start of shearing
+    type: number
+    quantity: percent
+    scale: ratio
+    label: Axial strain, ε_a
+    ags: ["none: a user CSV of readings, P12 §3"]
+    used_by: [P12]
+  deviator_stress:
+    description: Deviator stress σ1 − σ3 at a reading during shearing, as the lab corrected it
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Deviator stress, q
+    ags: ["none: a user CSV of readings, P12 §3"]
+    used_by: [P12]
+  excess_pore_pressure:
+    description: Change in pore pressure from the start of shearing at a reading, positive for a rise
+    type: number
+    quantity: stress
+    scale: interval
+    label: Excess pore pressure, Δu
+    ags: ["none: a user CSV of readings, P12 §3"]
+    used_by: [P12]
+  volumetric_strain:
+    description: Volumetric strain at a reading during shearing, from its start, positive in compression
+    type: number
+    quantity: percent
+    scale: interval
+    label: Volumetric strain, ε_v
+    ags: ["none: a user CSV of readings, P12 §3"]
+    used_by: [P12]
+  reported_failure_reading:
+    description: True on the reading the lab took as its stage's failure, at most one per stage
+    type: bool
+    ags: ["none: a user CSV of readings, P12 §3"]
+    used_by: [P12]

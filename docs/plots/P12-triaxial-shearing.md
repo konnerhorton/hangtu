@@ -55,7 +55,8 @@ every view and on the fit; equal aspect in s′–t and p′–q, so the paths' 
 
 ## 3. Input data
 **Row grain:** one row per reading. The stage's values repeat on each of its rows, so the file is one sheet.
-`ht.template("triaxial_readings")` gives the columns, in this order:
+`ht.template("triaxial_readings")` has these columns, ordered as `ht.template("triaxial")` orders its own, with
+the reading columns after the stage's and `geology_unit` last:
 
 | Column | Per | Quantity kind | Req.? | Notes |
 |---|---|---|---|---|
