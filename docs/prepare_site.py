@@ -38,14 +38,16 @@ WORDMARK = SITE / "img" / "wordmark.svg"
 
 def run_example(script: Path, folder: Path) -> subprocess.CompletedProcess:
     """Run a page example in ``folder`` as a user would, in a fresh Python."""
-    env = {**os.environ, "MPLBACKEND": "Agg"}
+    # Piped output on Windows defaults to cp1252, which can't encode the
+    # symbols (φ′, Δ) that results print.
+    env = {**os.environ, "MPLBACKEND": "Agg", "PYTHONIOENCODING": "utf-8"}
     env.pop("PYTHONWARNINGS", None)
     return subprocess.run(
         [sys.executable, str(script)],
         cwd=folder,
         env=env,
         capture_output=True,
-        text=True,
+        encoding="utf-8",
         timeout=300,
     )
 
