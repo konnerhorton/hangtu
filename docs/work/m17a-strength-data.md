@@ -430,3 +430,112 @@ a criterion says otherwise.
     says.
 20. **Reference:** `undrained_shear_strength_from_tests` in the API reference, with the docstring checklist of the
     sheets' `TEMPLATE.md`; page 22 builds with `zensical build --clean --strict`.
+
+## Plan
+Eight build commits, each with ruff and the touched tests green, and the whole suite in parallel before
+each commit. A step past about 300 changed lines (not counting test data or the test-file generators) splits as
+noted. One finding from reading the code, built into step 5: ingest stores a heading in mm/min under its first
+matching kind, `velocity` (m/s), so `p.shear_box()` converts the rates to `displacement_rate` itself.
+
+**Reused, not rebuilt:**
+- **Dataset plumbing:** `Build` (`src/hangtu/datasets/_frame.py`: `rows()` drops incomplete records, `numbers()`,
+  `texts()`, `qualifier()`, `flagged()`, `finish()` for geology, filters, display units, empty frames and the
+  missing-group warning); `specimens()` and `SPECIMEN_COLUMNS` (`datasets/_lab.py`) for lab depth; the `IDEN`
+  pattern in `datasets/_density.py` for field rows at `test_depth`; `STANDARD_GRAVITY` for unit weights.
+- **UU rows:** `_stages(build, "TRIT")`, `is_multistage()` and the deviator-≤0 handling of `datasets/_triaxial.py`
+  and `analysis/_triaxial.py`, so UU depths, stages and geology match `p.triaxial()` (decision 8).
+- **Analysis pattern:** `analysis/_triaxial.py` (`triaxial_failure_stresses()`): `resolve_units`, `check_dimension`,
+  `convert` (`hangtu.units`), `numeric_column`, `rows_text` (`_data`), `ColumnError`/`HangtuError`/`warn`.
+- **QC:** `qc/_triaxial.py`'s shape (`@rule`, `Finding`, `RuleResult`, `_unflagged`, `_value`, `_where`,
+  `SLACK` from `qc/_tests.py`), `rules.yaml` thresholds as quantity strings, `min_fields.yaml` with the
+  `<SPEC_KEY>` anchor.
+- **Statistics flags:** `read_flags()` in `src/hangtu/stats/_rows.py` (one change, step 1).
+- **Test files:** `group()` and the SI/US twin mechanism of `tests/data/ags/_make_files.py`; the example
+  generator `tests/data/_make_examples.py`.
+
+### 1. `M17: read a second qualifier on rows with two values`
+- `src/hangtu/stats/_rows.py` `read_flags()`: a value named in a qualifier-role column's `values:` reads only those
+  qualifier columns (spec decision 9); other roles unchanged.
+- `columns.yaml`: `remolded_undrained_shear_strength` (stress, ratio) and `remolded_qualifier` (text,
+  `statistics: {role: qualifier, values: [remolded_undrained_shear_strength]}`).
+- Tests: `tests/stats/test_flags.py` (or the existing describe-flags test file): a frame with `qualifier` ">" and
+  `remolded_qualifier` blank → `describe()` of s_u counts one censored, of the remolded value none; and the reverse
+  (AC 8's statistics half). Existing describe/fit tests stay green (no current qualifier has `values:`).
+
+### 2. `M17: add undrained_shear_strength_from_tests()`
+- `src/hangtu/analysis/_undrained.py` (new), exported in `analysis/__init__.py`: spec decision 3's table, the
+  two-inputs error, q ≤ 0 and missing-scale errors naming rows, units (SPEC §2.6; s_u in the declared unit, else
+  the first input's), sensitivity (decision 6) with its blank-and-count warning; returns a copy. Docstring by the
+  sheets' `TEMPLATE.md` checklist (the derivation of s_u = q / 2, the basis values, uncorrected field vane).
+- `columns.yaml`: `undrained_shear_strength_basis`, `strength_sensitivity`, `reported_undrained_shear_strength`,
+  `unconfined_compressive_strength`, `hand_penetrometer_reading`; `undrained_shear_strength`'s sources (TRIT_CU
+  out); `axial_strain_at_failure` gains `LUCT_STRA`.
+- `docs/site/reference/analysis.md`: the entry (the reference test fails without it).
+- Tests: `tests/analysis/test_undrained_strength.py` (new): each table row with hand values (q 120 → 60; q_u 96 →
+  48; reading 150 → 75 or 150; vane 42/14 → St 3.0), AC 10's errors, flagged and zero remolded → blank St with the
+  warning, units (a frame in psf → psf; a length unit raises).
+
+### 3. `M17: add p.undrained_strength()`
+- `src/hangtu/datasets/_undrained.py` (new): the seven groups in spec order (§6.11's tables), `test_type` fallbacks
+  (decision 2), `LUCT_TYPE` → `sample_condition`, both qualifiers via `build.qualifier()`, `IPEN` rows left out and
+  counted without `hand_penetrometer_scale=` (decision 4), then `undrained_shear_strength_from_tests()`.
+- `src/hangtu/project.py`: `Project.undrained_strength()` with the common arguments and the docstring;
+  `docs/site/reference/project.md` entry.
+- `columns.yaml`: the `strength` template reshaped (decision 14); new AGS sources for `test_type`,
+  `sample_condition`, `test_stage`, `water_content`, `bulk_unit_weight`, `dry_unit_weight`, `remarks`.
+- Test files (`tests/data/ags/_make_files.py`, regenerated): `TRIT_CU` 60, 62, 59 on BH1-U4; `LUCT` 96 on BH1-U1;
+  `LPEN` 45 on BH1-U1; `LVAN` LV 38/12 on BH2-U2; `LFCN` 30/9 on BH1-U3; `IVAN` BOREHOLE 42/14 at BH2 3.00 m and
+  55/22 at 6.00 m; `IPEN` 150 and `>200` at BH3 0.50 and 0.80 m; ABBR codes; in `site_si`, `site_us`, `site_v404`
+  (with every recommended heading filled, so no new C002). `joins.ags`: `IVAN_IVAN` `>120` with IVAR 30; IVAR 0;
+  an `IVAN` with no type; an `IVAN` with `IVAN_IVAN` blank.
+- Tests: `tests/datasets/test_undrained_strength.py` (new): AC 1–9, 15 (undrained half), 16, 17, 19;
+  `tests/test_registry.py` covers the `strength` template (AC 18's half). Existing tests counting groups in the
+  good files (`tests/test_project.py`, ingest acceptance) updated.
+- Split if large: (3a) the lab groups, UU and the template; (3b) `IVAN`, `IPEN` and `hand_penetrometer_scale=`.
+
+### 4. `M17: check undrained strength results in QC (Q001–Q003)`
+- `src/hangtu/qc/_undrained.py` (new), registered in `qc/__init__.py`; `rules.yaml` Q001 (with
+  `undrained_strength_tolerance: 1 kPa`), Q002, Q003; `min_fields.yaml` `LUCT`, `LVAN`, `LPEN`, `LFCN`, `IVAN`,
+  `IPEN` (spec decision 16).
+- `qc_defects.ags`: `TRIT_CU` 70 with `TRIT_DEVF` 120 (and a 61 that passes, built in the test); `LVAN_VNPK` 20 with
+  VNRM 25; `LUCT_UCS` 0.
+- Tests: `tests/qc/test_undrained.py` (new): AC 13's Q half (the 60 kPa expected and 10 kPa difference in Q001's
+  message; the tolerance in psf); `tests/qc/test_qc_acceptance.py` keeps the good files clean (AC 14's Q half).
+
+### 5. `M17: add p.shear_box()`
+- `src/hangtu/config/defaults.yaml`: quantity kind `displacement_rate` after `velocity` (decision 13).
+- `columns.yaml`: the shear box columns (spec Changes), `shear_box` template, new AGS sources.
+- `src/hangtu/datasets/_shear_box.py` (new): one row per `SHBT` stage with its `SHBG` values (the `TRET`/`TREG`
+  join of `_triaxial._stages()`), `SHBT_PDEN` with its `ASSUMED` flag (as `p.particle_density()`), unit weights × g,
+  and the rates converted from ingest's m/s (a `velocity` heading) to mm/min before `finish()`.
+- `src/hangtu/project.py`: `Project.shear_box()`; reference entry.
+- Test files: `SHBG`/`SHBT` on BH2-D1 (SMALL SBOX, RECOMPACTED; NORM 50/100/200, PEAK 38/68/128, RES 30/58/112,
+  PVST = NORM, DISP 0.024, BDEN 1.95, PCOH 8, PHI 31.0) in the three good files; in `joins.ags` a rock joint test in
+  MPa with `SHBG_ENCA` "Resin" and `SHBT_DIA1`/`DIA2`, and a SMALL RSHEAR test with only `SHBT_RES`.
+- Tests: `tests/datasets/test_shear_box.py` (new): AC 6 (twins), 11, 12, 15 (shear box half), 18, 19.
+
+### 6. `M17: check shear box results in QC (H001–H003)`
+- `src/hangtu/qc/_shear_box.py` (new); `rules.yaml` H001–H003; `min_fields.yaml` `SHBG`, `SHBT`.
+- `qc_defects.ags`: PEAK 50 with RES 60; a stage with both blank; NORM 0.
+- Tests: `tests/qc/test_shear_box.py` (new): AC 13's H half; the good files stay clean (AC 14).
+
+### 7. `M17: draw undrained strength on the docs site`
+- `tests/data/_make_examples.py`: UU (`TRIG`/`TRIT` with `TRIT_CU`), `IVAN`, `LVAN` and `LPEN` in the example
+  project's clay, in psf, each value worked by hand in a comment; regenerate `src/hangtu/examples/data/site.ags`.
+  `tests/test_examples.py`'s exact QC findings checked (recommended headings filled, so none new).
+- `docs/site/examples/undrained-strength.py` (new): P01 of `p.undrained_strength()` colored by `test_type`, US.
+- `docs/site/parameters/05-undrained-shear-strength.md`: the q / 2 method row and the tests linked to
+  `undrained_shear_strength_from_tests()` and `p.undrained_strength()`; the figure; the hand penetrometer pitfall
+  names `hand_penetrometer_scale=`. Page 04: the shear box row points to `p.shear_box()`. Page 22: stage A linked.
+- `docs/site/guides/datasets.md`: both datasets in the table; the AGS and QC guide: Q and H rules.
+- Run `docs/prepare_site.py` and `zensical build --clean --strict`.
+
+### 8. `M17: close out (a)`
+- SPEC: §2.6 the `strength` and `shear_box` templates; §10.2 both datasets; §4 a line for
+  `undrained_shear_strength_from_tests()`; §12.4 M17 status "(a) done; (b) next".
+- `docs/data/datasets.md` and `qc.md` status lines to done; the parameter index (04 A part built with the shear
+  box, 05 A and B part built, 22 A built); `CLAUDE.md`'s Next sentence; TODO #45 text checked (stays open).
+- What a future session would get wrong without being told, written where it will be read (e.g. ingest stores
+  mm/min as m/s; a second value on a row needs its own qualifier).
+- **Verification:** every AC reported met or not with its test; the whole suite in parallel; ruff check and format
+  check; the lowest-versions run (then `git checkout uv.lock`); the strict docs build.
