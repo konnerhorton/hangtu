@@ -67,7 +67,8 @@ aren't design values.
 
 `SHBG_TYPE`'s codes are shear box and ring shear, with none for a rock joint, and no heading records the
 orientation of the sheared plane against bedding: check the specimen description, `SHBG_REM` and the test sheets.
-`p.shear_box()` gives one row per stage, soil and rock joint tests alike, and doesn't label which a test is.
+[`p.shear_box()`](../reference/project.md#hangtu.Project.shear_box) gives one row per stage, soil and rock joint
+tests alike, and doesn't label which a test is (`docs/data/datasets.md` §6.12).
 
 ## Methods
 

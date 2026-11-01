@@ -171,7 +171,8 @@ def test_readings_end_at_the_example_stages(site, criterion):
     rows = ht.analysis.triaxial_failure_from_readings(
         readings, failure_criterion=criterion
     )
-    stages = site.triaxial()
+    # The readings are the CU and CDM tests'; the UU stages (M17 a) have none.
+    stages = site.triaxial(where={"test_type": ["CU", "CDM"]})
     for column in ["specimen_id", "test_stage", "multistage_test", *AT_FAILURE]:
         pd.testing.assert_series_equal(
             rows[column].reset_index(drop=True),

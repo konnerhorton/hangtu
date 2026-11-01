@@ -65,8 +65,9 @@ The N classes place a clay roughly; SPT N is a poor predictor of s_u (below), so
 |---|---|---|---|
 | Stroud (1974), as given by Loehr et al. (2016) | N60, PI | clays with PI ≥ 15; a band for 15 ≤ PI < 30 | [`ht.analysis.correlations.undrained_shear_strength_stroud_1974()`](../reference/correlations.md#hangtu.analysis.correlations.undrained_shear_strength_stroud_1974) |
 | Terzaghi & Peck (1967), as given by Kulhawy & Mayne (1990) | field N | clays; a band by class | [`ht.analysis.correlations.undrained_shear_strength_terzaghi_peck_1967()`](../reference/correlations.md#hangtu.analysis.correlations.undrained_shear_strength_terzaghi_peck_1967) |
-| UU triaxial and unconfined compression, s_u = q_f / 2 | deviator stress at failure | saturated, intact specimens | W2 |
-| Field vane, with Bjerrum's correction μ(PI) (Kulhawy & Mayne 1990, Fig. 4-48, p. 4-52) | vane s_u, PI | clays; μ applies to the field vane only | W2 |
+| UU triaxial and unconfined compression, s_u = q_f / 2 and q_u / 2 (definition, φu = 0) | deviator stress at failure, q_u | saturated, intact specimens | [`ht.analysis.undrained_shear_strength_from_tests()`](../reference/analysis.md#hangtu.analysis.undrained_shear_strength_from_tests) |
+| Vanes, fall cone and hand penetrometer, s_u as measured, and S_t = s_u / s_u,r | peak and remolded s_u | the test's own mode; an index test for the penetrometer and fall cone | [`ht.analysis.undrained_shear_strength_from_tests()`](../reference/analysis.md#hangtu.analysis.undrained_shear_strength_from_tests) |
+| Field vane, with Bjerrum's correction μ(PI) (Kulhawy & Mayne 1990, Fig. 4-48, p. 4-52) | vane s_u, PI | clays; μ applies to the field vane only | M18 (selection) |
 | SHANSEP, s_u/σ′v0 = S OCR^m (Ladd & Foott 1974; Ladd 1991) | σ′v0, OCR, CU or DSS tests | sedimentary clays of low to moderate sensitivity; not fissured, cemented or structured clays | W3 |
 | CPTu, s_u = (q_t − σv0) / N_kt | q_t, σv0, a site N_kt | clays | later |
 
@@ -76,6 +77,18 @@ PI by unit to choose it. Both SPT methods give a band where their source gives o
 `undrained_shear_strength_lower` and `undrained_shear_strength_upper`, and leave the value blank there;
 `ht.plot.profile()` draws a band as a bar. The equations, ranges and sources are in each function's reference
 entry, and [(N1)60 and correlations](../guides/correlations.md) shows them on the example project.
+
+`p.undrained_strength()` gives every test's s_u side by side, one row per result, with `test_type` and `source`
+keeping them apart so `ht.stats.describe()` won't pool a vane with a UU test unless asked
+(`docs/data/datasets.md` §6.11). Each row says how its s_u was found (`undrained_shear_strength_basis`), and the
+lab's own UU s_u is kept beside hangtu's q_f / 2 as `reported_undrained_shear_strength`; QC Q001 compares them.
+Field vane values are as measured, without Bjerrum's correction.
+
+```python
+--8<-- "undrained-strength.py"
+```
+
+![Undrained shear strength of the example project's Alluvium against depth, one color per test](../img/generated/undrained-strength.png){ width="420" }
 
 ## How the methods compare
 
@@ -109,7 +122,9 @@ Choosing a design value is stage D (M18).
   doesn't give s_u.
 - Check for disturbance (low strain at failure, the sample-quality ratio Δe/e0 on
   [preconsolidation](06-preconsolidation-and-compressibility.md)).
-- A pocket penetrometer may read q_u or s_u, a factor of 2 apart: check the instrument.
+- A pocket penetrometer may read q_u or s_u, a factor of 2 apart: check the instrument. AGS defines `LPEN_PPEN` as
+  an s_u, but `IPEN_IPEN` only as a "result", so `p.undrained_strength()` leaves `IPEN` rows out until
+  `hand_penetrometer_scale=` says which.
 - SHANSEP needs a reliable σ′p profile, and carries its uncertainty.
 
 ## References
