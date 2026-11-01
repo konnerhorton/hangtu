@@ -309,8 +309,45 @@ columns:
     quantity: stress
     scale: ratio
     label: Undrained shear strength, s_u
-    ags: [TRIT.TRIT_CU, IVAN.IVAN_IVAN, LVAN.LVAN_VNPK]   # to verify against the 4.2 dictionary
+    ags: ["derived: q_f / 2 or q_u / 2, docs/work/m17a-strength-data.md", IVAN.IVAN_IVAN, LVAN.LVAN_VNPK, LPEN.LPEN_PPEN, LFCN.LFCN_FCPK]
     used_by: [P01, P07]
+  undrained_shear_strength_basis:
+    description: How s_u was found (half_deviator_stress, half_unconfined_compressive_strength, half_hand_penetrometer_reading, hand_penetrometer_reading, as_reported)
+    type: text
+    ags: ["derived: ht.analysis.undrained_shear_strength_from_tests()"]
+    used_by: []
+  reported_undrained_shear_strength:
+    description: The lab's own s_u for a test hangtu computes s_u from (TRIT_CU beside q_f / 2)
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Reported undrained shear strength, s_u
+    ags: [TRIT.TRIT_CU]
+    used_by: []
+  unconfined_compressive_strength:
+    description: Unconfined compressive strength of a soil specimen, q_u (not rock's uniaxial compressive strength)
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Unconfined compressive strength, q_u
+    ags: [LUCT.LUCT_UCS]
+    used_by: []
+  hand_penetrometer_reading:
+    description: A hand penetrometer's reading as written, s_u or q_u by the instrument (IPEN_IPEN)
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Hand penetrometer reading
+    ags: [IPEN.IPEN_IPEN]
+    used_by: []
+  strength_sensitivity:
+    description: Sensitivity, the peak over the remolded undrained shear strength of one test
+    type: number
+    quantity: dimensionless
+    scale: ratio
+    label: Sensitivity, S_t = s_u / s_u,r
+    ags: ["derived: ht.analysis.undrained_shear_strength_from_tests()"]
+    used_by: []
   remolded_undrained_shear_strength:
     description: Undrained shear strength of the soil remolded, from the same test as the peak (vane, fall cone)
     type: number
@@ -1038,12 +1075,12 @@ columns:
     ags: [TRET.TRET_BVAL]
     used_by: []
   axial_strain_at_failure:
-    description: Axial strain at failure of a triaxial stage
+    description: Axial strain at failure of a triaxial stage or an unconfined compression test
     type: number
     quantity: percent
     scale: ratio
     label: Axial strain at failure, ε_af
-    ags: [TRET.TRET_STRN, TRIT.TRIT_STRN]
+    ags: [TRET.TRET_STRN, TRIT.TRIT_STRN, LUCT.LUCT_STRA]
     used_by: []
   volumetric_strain_at_failure:
     description: Volumetric strain at failure of a drained triaxial stage
