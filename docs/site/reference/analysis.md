@@ -28,6 +28,8 @@ Each analysis is a plain function on a DataFrame. It returns a new DataFrame or 
 
 ::: hangtu.analysis.triaxial_failure_stresses
 
+::: hangtu.analysis.triaxial_failure_from_readings
+
 ::: hangtu.analysis.mohr_coulomb_fit
 
 ::: hangtu.analysis.MohrCoulombFit

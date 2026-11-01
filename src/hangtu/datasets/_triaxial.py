@@ -9,8 +9,8 @@ import pandas as pd
 from hangtu import units
 from hangtu.analysis._triaxial import (
     EXTENSION,
-    MULTISTAGE,
     STRESS_COLUMNS,
+    is_multistage,
     triaxial_failure_stresses,
 )
 from hangtu.datasets._frame import Build
@@ -160,7 +160,7 @@ def _stages(build: Build, stage: str) -> pd.DataFrame:
     # Every stage in the file counts, so a stage left out as incomplete (§7)
     # doesn't make its test look single-stage.
     count = specimen.map(build.data.table(stage)["specimen_id"].value_counts())
-    frame["multistage_test"] = frame["test_type"].isin(MULTISTAGE) | (count > 1)
+    frame["multistage_test"] = is_multistage(frame["test_type"], count)
     return frame
 
 
