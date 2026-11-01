@@ -346,7 +346,8 @@ in two if it passes about 300 changed lines without test data. Reused, not rebui
 ### 4. `P11: move envelope drawing helpers to a shared module`
 - Pure refactor, no behavior change: `AXES`, `_line`, `_set_axes`, `_draw_fits`, `_fitted_range`, `_same_fit`,
   `_draw_box`, `_check_envelopes` and `_footnote` move from `plot/_failure_envelope.py` to
-  `plot/_envelope_drawing.py`. `_limits` gains optional extra (x, y) points, so P12 can include its paths.
+  `plot/_envelope_drawing.py`, without their leading underscores. *Changed in the build:* `_limits` moves
+  unchanged; P12 takes its limits from its paths, which hold every failure reading.
 - Tests: P11's tests (`tests/plot/test_failure_envelope*.py`) unchanged and green.
 
 ### 5. `M11: add ht.plot.triaxial_shearing() (P12)`
