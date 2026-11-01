@@ -380,7 +380,8 @@ a criterion says otherwise.
    depth 3.00 with `depth_basis` `test_depth`, source field; at 6.00 m 55 and 22 kPa gives 2.5; laboratory vane on
    BH2-U2 (`LV`) 38 and 12 kPa gives 3.1666667 (1e-7); fall cone on BH1-U3, 30 and 9 kPa, gives 3.3333333 (1e-7);
    each `as_reported`.
-4. **Hand penetrometer:** `LPEN_PPEN` 45 kPa on BH1-U1 is s_u 45, `as_reported`. `IPEN` in BH3 at 0.50 and 0.80 m,
+4. **Hand penetrometer:** `LPEN_PPEN` 45 kPa on BH1-U1 is s_u 45, `as_reported`. `IPEN` in BH2 at 0.50 and 0.80 m
+   (*changed in the build* from BH3, whose sand a hand penetrometer wouldn't test),
    150 and `>200` kPa: with no `hand_penetrometer_scale=`, both rows are left out with the warning naming the
    argument, and the other rows come back; with `"unconfined_compressive_strength"`, s_u 75 and 100 with
    `qualifier` ">" on the second, basis `half_hand_penetrometer_reading`; with `"undrained_shear_strength"`, 150 and
@@ -390,7 +391,9 @@ a criterion says otherwise.
 6. **Twins:** `site_si.ags` and `site_us.ags` give equal `p.undrained_strength()` and `p.shear_box()` (1e-9
    relative) for each `display_units`, and no Q or H finding.
 7. **Never pooled by accident:** `ht.stats.describe(p.undrained_strength(), value="undrained_shear_strength")` raises
-   naming each `test_type` and `source` and its count; with `by="test_type"` it runs, one group per test.
+   naming each `test_type` and `source` and its count; `by="test_type"` still raises, since the lab and in situ
+   hand penetrometers share a test type (*changed in the build*), and `by=["test_type", "source"]` runs, one group
+   per test.
 8. **Flags (`joins.ags`):** a field vane with `IVAN_IVAN` `>120` and `IVAN_IVAR` 30 has `qualifier` ">",
    `remolded_qualifier` blank and a blank sensitivity, with the warning; `describe()` of
    `remolded_undrained_shear_strength` counts it as a plain value, and of `undrained_shear_strength` as censored.
@@ -485,7 +488,7 @@ matching kind, `velocity` (m/s), so `p.shear_box()` converts the rates to `displ
   `sample_condition`, `test_stage`, `water_content`, `bulk_unit_weight`, `dry_unit_weight`, `remarks`.
 - Test files (`tests/data/ags/_make_files.py`, regenerated): `TRIT_CU` 60, 62, 59 on BH1-U4; `LUCT` 96 on BH1-U1;
   `LPEN` 45 on BH1-U1; `LVAN` LV 38/12 on BH2-U2; `LFCN` 30/9 on BH1-U3; `IVAN` BOREHOLE 42/14 at BH2 3.00 m and
-  55/22 at 6.00 m; `IPEN` 150 and `>200` at BH3 0.50 and 0.80 m; ABBR codes; in `site_si`, `site_us`, `site_v404`
+  55/22 at 6.00 m; `IPEN` 150 and `>200` at BH2 0.50 and 0.80 m; ABBR codes; in `site_si`, `site_us`, `site_v404`
   (with every recommended heading filled, so no new C002). `joins.ags`: `IVAN_IVAN` `>120` with IVAR 30; IVAR 0;
   an `IVAN` with no type; an `IVAN` with `IVAN_IVAN` blank.
 - Tests: `tests/datasets/test_undrained_strength.py` (new): AC 1–9, 15 (undrained half), 16, 17, 19;
@@ -495,8 +498,8 @@ matching kind, `velocity` (m/s), so `p.shear_box()` converts the rates to `displ
 
 ### 4. `M17: check undrained strength results in QC (Q001–Q003)`
 - `src/hangtu/qc/_undrained.py` (new), registered in `qc/__init__.py`; `rules.yaml` Q001 (with
-  `undrained_strength_tolerance: 1 kPa`), Q002, Q003; `min_fields.yaml` `LUCT`, `LVAN`, `LPEN`, `LFCN`, `IVAN`,
-  `IPEN` (spec decision 16).
+  `undrained_strength_tolerance: 1 kPa`), Q002, Q003. (*Changed in the build:* `min_fields.yaml`'s undrained groups
+  moved to step 3, since the dataset leaves out incomplete records by them, AC 16.)
 - `qc_defects.ags`: `TRIT_CU` 70 with `TRIT_DEVF` 120 (and a 61 that passes, built in the test); `LVAN_VNPK` 20 with
   VNRM 25; `LUCT_UCS` 0.
 - Tests: `tests/qc/test_undrained.py` (new): AC 13's Q half (the 60 kPa expected and 10 kPa difference in Q001's

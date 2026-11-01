@@ -127,6 +127,15 @@
 "DATA","J1","1.00","1","U","J1-U1","T1","1.30","1","25","2.00","1.60","100","400","3.0","90","300","0.50","","300","0.97","0.680"
 "DATA","J2","2.00","1","U","J2-U1","T1","2.30","1","29","1.92","1.49","100","","7.0","170","340","","","300","0.97","0.799"
 
+"GROUP","IVAN"
+"HEADING","LOCA_ID","IVAN_DPTH","IVAN_TESN","IVAN_TYPE","IVAN_IVAN","IVAN_IVAR"
+"UNIT","","m","","","kPa","kPa"
+"TYPE","ID","2DP","X","PA","XN","XN"
+"DATA","J1","2.50","1","BOREHOLE",">120","30"
+"DATA","J1","3.00","2","BOREHOLE","55","0"
+"DATA","J1","3.50","3","","40","10"
+"DATA","J1","4.00","4","BOREHOLE","","12"
+
 "GROUP","UNIT"
 "HEADING","UNIT_UNIT","UNIT_DESC"
 "UNIT","",""
@@ -177,4 +186,7 @@
 "DATA","TREG_COND","UNDISTURBED","Undisturbed"
 "DATA","TRIG_TYPE","UU","Unconsolidated quick undrained (single stage)"
 "DATA","TRIG_COND","UNDISTURBED","Undisturbed"
+"DATA","LUCT_TYPE","UNDISTURBED","Undisturbed"
+"DATA","LVAN_TYPE","LV","Laboratory vane"
+"DATA","IVAN_TYPE","BOREHOLE","Borehole vane"
 

@@ -217,7 +217,14 @@ DATASETS = (
     "particle_density",
     "density",
     "triaxial",
+    "undrained_strength",
 )
+#: Arguments a dataset needs to give every row of the good files.
+ARGUMENTS = {
+    "undrained_strength": {"hand_penetrometer_scale": "unconfined_compressive_strength"}
+}
+#: Each dataset's template, where the names differ.
+TEMPLATES = {"undrained_strength": "strength"}
 # Columns only hangtu can produce, so a CSV template leaves them out.
 ONLY_HANGTU = {
     "source_line",
@@ -233,6 +240,8 @@ ONLY_HANGTU = {
     "effective_minor_principal_stress_at_failure",
     "effective_major_principal_stress_at_failure",
     "effective_stress_basis",
+    "undrained_shear_strength_basis",
+    "strength_sensitivity",
 }
 #: The one warning a good file's dataset gives: BH2-U2's CDM stage 2 takes its
 #: back pressure (datasets.md §6.10).
@@ -252,9 +261,9 @@ def test_dataset_templates_follow_their_dataset(site, name):
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         warnings.filterwarnings("ignore", message=BACK_PRESSURE)
-        dataset = getattr(site, name)()
+        dataset = getattr(site, name)(**ARGUMENTS.get(name, {}))
     expected = [column for column in dataset.columns if column not in ONLY_HANGTU]
-    assert list(ht.template(name).columns) == expected
+    assert list(ht.template(TEMPLATES.get(name, name)).columns) == expected
 
 
 def test_filled_templates_feed_the_plots(site, tmp_path):
@@ -263,13 +272,14 @@ def test_filled_templates_feed_the_plots(site, tmp_path):
         with warnings.catch_warnings():
             warnings.simplefilter("error")
             warnings.filterwarnings("ignore", message=BACK_PRESSURE)
-            dataset = getattr(site, name)()
+            dataset = getattr(site, name)(**ARGUMENTS.get(name, {}))
         path = tmp_path / f"{name}.csv"
-        dataset[list(ht.template(name).columns)].to_csv(path, index=False)
+        template = ht.template(TEMPLATES.get(name, name)).columns
+        dataset[list(template)].to_csv(path, index=False)
         units = {
             column: unit
             for column, unit in dataset.attrs["units"].items()
-            if column in ht.template(name).columns
+            if column in template
         }
         read[name] = ht.read_csv(path, units=units)
     calls = [
@@ -278,6 +288,7 @@ def test_filled_templates_feed_the_plots(site, tmp_path):
         (ht.plot.profile, read["permeability"], "hydraulic_conductivity"),
         (ht.plot.profile, read["atterberg"], "liquid_limit"),
         (ht.plot.geology_unit_comparison, read["atterberg"], "plasticity_index"),
+        (ht.plot.profile, read["undrained_strength"], "undrained_shear_strength"),
     ]
     for plot, *args in calls:
         with warnings.catch_warnings():

@@ -67,3 +67,21 @@ min_fields:
   TRIT:
     required: [*sample_key, TRIT_TESN, TRIT_CELL, TRIT_DEVF]
     recommended: [SPEC_REF, SPEC_DPTH, TRIT_STRN]
+  # Undrained strength (M17 a, docs/work/m17a-strength-data.md Decision 16).
+  LUCT:
+    required: [*sample_key, LUCT_UCS]
+    recommended: [SPEC_REF, SPEC_DPTH, LUCT_STRA]
+  LVAN:
+    required: [*sample_key, LVAN_VNPK]
+    recommended: [SPEC_REF, SPEC_DPTH, LVAN_TYPE, LVAN_VNRM]
+  LPEN:
+    required: [*sample_key, LPEN_PPEN]
+    recommended: [SPEC_REF, SPEC_DPTH]
+  LFCN:
+    required: [*sample_key, LFCN_FCPK]
+    recommended: [SPEC_REF, SPEC_DPTH, LFCN_FCRM]
+  IVAN:
+    required: [LOCA_ID, IVAN_DPTH, IVAN_IVAN]
+    recommended: [IVAN_TYPE, IVAN_IVAR]
+  IPEN:
+    required: [LOCA_ID, IPEN_DPTH, IPEN_IPEN]

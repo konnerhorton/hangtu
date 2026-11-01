@@ -30,7 +30,9 @@ templates:
   # without those only hangtu produces (SPEC §2.6; tests/test_registry.py).
   profile:        [loca_id, depth, elevation, ground_level, geology_unit, source]   # plus the user's value column
   permeability:   [loca_id, ground_level, depth, depth_top, depth_base, depth_basis, elevation, hydraulic_conductivity, qualifier, source, test_type, geology_unit, soil_class, geology_description]
-  strength:       [loca_id, depth, ground_level, elevation, undrained_shear_strength, qualifier, test_type, geology_unit]
+  # The strength template is p.undrained_strength()'s columns without those the
+  # analysis adds (M17 a, docs/work/m17a-strength-data.md Decision 14).
+  strength:       [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, source, test_type, test_stage, multistage_test, sample_condition, undrained_shear_strength, qualifier, remolded_undrained_shear_strength, remolded_qualifier, reported_undrained_shear_strength, cell_pressure, deviator_stress_at_failure, unconfined_compressive_strength, hand_penetrometer_reading, axial_strain_at_failure, water_content, bulk_unit_weight, dry_unit_weight, test_remarks, remarks, geology_unit, soil_class, geology_description]
   index:          [loca_id, depth, ground_level, elevation, water_content, bulk_unit_weight, geology_unit]
   spt:            [loca_id, ground_level, depth, depth_basis, elevation, spt_n, spt_n60, energy_ratio, spt_refusal, spt_penetration, remarks, geology_unit, soil_class, geology_description]
   atterberg:      [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, depth_top, depth_base, liquid_limit, plastic_limit, plasticity_index, non_plastic, water_content, geology_unit, soil_class, geology_description]

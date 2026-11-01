@@ -8,6 +8,7 @@ from hangtu.datasets._permeability import permeability
 from hangtu.datasets._spt import spt
 from hangtu.datasets._stratigraphy import stratigraphy
 from hangtu.datasets._triaxial import triaxial
+from hangtu.datasets._undrained import undrained_strength
 
 __all__ = [
     "atterberg",
@@ -21,4 +22,5 @@ __all__ = [
     "spt",
     "stratigraphy",
     "triaxial",
+    "undrained_strength",
 ]

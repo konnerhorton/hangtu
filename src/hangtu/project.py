@@ -917,6 +917,99 @@ class Project:
             display_units=display_units,
         )
 
+    def undrained_strength(
+        self,
+        *,
+        hand_penetrometer_scale: str | None = None,
+        holes: "str | list[str] | None" = None,
+        geology: "str | list[str] | None" = None,
+        depth: "tuple | None" = None,
+        elevation: "tuple | None" = None,
+        where: dict | None = None,
+        contains: "str | list[str] | None" = None,
+        geology_fields: "str | list[str] | None" = None,
+        include_incomplete: bool = False,
+        display_units: str | None = None,
+    ) -> pd.DataFrame:
+        """Return every undrained shear strength result, test by test, for P01 and P07.
+
+        One row per result, the tests side by side and never combined:
+        UU triaxial stages (``TRIT``), unconfined compression (``LUCT``),
+        laboratory vane (``LVAN``), hand penetrometer (``LPEN``) and fall cone
+        (``LFCN``), with ``source = "lab"`` at the specimen's depth; then field
+        vanes (``IVAN``) and hand penetrometer readings in situ (``IPEN``),
+        with ``source = "field"`` at their test depth. ``test_type`` is the
+        file's type code (``UU``, ``LV``, ``BOREHOLE``), else the test's name,
+        so ``ht.stats.describe()`` won't pool two tests unless asked.
+
+        ``undrained_shear_strength`` comes from
+        ``ht.analysis.undrained_shear_strength_from_tests()``: q_f / 2 for UU,
+        q_u / 2 for unconfined compression, the value as reported for vanes,
+        fall cone and ``LPEN``; ``undrained_shear_strength_basis`` says which
+        on every row. The lab's own UU s_u (``TRIT_CU``) is kept as
+        ``reported_undrained_shear_strength``. ``strength_sensitivity`` is
+        s_u / s_u,r where a test gives both. Field vane values are as
+        measured: Bjerrum's correction isn't applied. A value beyond an
+        instrument's range (``>200``) is a bound, with ``qualifier`` (and
+        ``remolded_qualifier`` for the remolded value). See
+        ``docs/data/datasets.md`` §6.11.
+
+        Parameters
+        ----------
+        hand_penetrometer_scale
+            ``"undrained_shear_strength"`` or ``"unconfined_compressive_strength"``:
+            what the in situ hand penetrometer (``IPEN_IPEN``) read, which
+            instruments differ in by a factor of 2. No default: without it the
+            ``IPEN`` rows are left out, with a warning. ``LPEN_PPEN`` is an s_u
+            by the AGS dictionary's definition and needs nothing.
+        holes, geology
+            Keep these holes (``LOCA_ID``) or geology units.
+        depth, elevation
+            Keep ``low <= value <= high``, given in the dataset's units
+            (``(0, 30)``) or as quantity strings (``("0 ft", "30 ft")``).
+            Either end may be None.
+        where
+            Keep rows matching ``{column: value or list of values}``, e.g.
+            ``{"test_type": "UU"}``.
+        contains
+            Keep rows whose geology description contains this text (any
+            case), or any of a list.
+        geology_fields
+            GEOL headings to add as columns, e.g. ``["GEOL_FORM"]``.
+        include_incomplete
+            Keep records with a blank required field (QC C001), such as a vane
+            with no ``IVAN_IVAN``, with a blank s_u. By default they're left
+            out, with a warning that counts them.
+        display_units
+            ``"US"`` or ``"SI"``; by default the project's. Stresses are in
+            kPa (SI) or psf (US).
+
+        Examples
+        --------
+        >>> su = p.undrained_strength(
+        ...     hand_penetrometer_scale="unconfined_compressive_strength"
+        ... )
+        >>> ht.stats.describe(
+        ...     su, value="undrained_shear_strength", by=["test_type", "source"]
+        ... )
+        >>> fig, ax = ht.plot.profile(
+        ...     su, "undrained_shear_strength", color_by="test_type"
+        ... )
+        """
+        return datasets.undrained_strength(
+            self._path,
+            hand_penetrometer_scale=hand_penetrometer_scale,
+            holes=holes,
+            geology=geology,
+            depth=depth,
+            elevation=elevation,
+            where=where,
+            contains=contains,
+            geology_fields=geology_fields,
+            include_incomplete=include_incomplete,
+            display_units=display_units,
+        )
+
     # --- Geology map (datasets.md §5.2) -----------------------------------------
 
     def stratigraphy(

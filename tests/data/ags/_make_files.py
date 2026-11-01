@@ -113,6 +113,9 @@ ABBR = [
     ("TREG_COND", "UNDISTURBED", "Undisturbed"),
     ("TRIG_TYPE", "UU", "Unconsolidated quick undrained (single stage)"),
     ("TRIG_COND", "UNDISTURBED", "Undisturbed"),
+    ("LUCT_TYPE", "UNDISTURBED", "Undisturbed"),
+    ("LVAN_TYPE", "LV", "Laboratory vane"),
+    ("IVAN_TYPE", "BOREHOLE", "Borehole vane"),
 ]
 
 
@@ -653,18 +656,99 @@ TRIT_HEADINGS = [
     ("TRIT_BDEN", "2DP", "Mg/m3"),
     ("TRIT_DDEN", "2DP", "Mg/m3"),
     ("TRIT_STRN", "2SF", "%"),
+    ("TRIT_CU", "0DP", "kPa"),
     ("TRIT_REM", "X", ""),
 ]
 TRIT = group(
     "TRIT",
     TRIT_HEADINGS,
     [
-        [*BH1_U4, "1", 8.05, "1", "34", 100, 120, 1.90, 1.42, 12, None],
-        [*BH1_U4, "2", 8.15, "1", "33", 200, 124, 1.91, 1.44, 14, None],
-        [*BH1_U4, "3", 8.25, "1", "35", 300, 118, 1.89, 1.40, 15, None],
+        [*BH1_U4, "1", 8.05, "1", "34", 100, 120, 1.90, 1.42, 12, 60, None],
+        [*BH1_U4, "2", 8.15, "1", "33", 200, 124, 1.91, 1.44, 14, 62, None],
+        [*BH1_U4, "3", 8.25, "1", "35", 300, 118, 1.89, 1.40, 15, 59, None],
     ],
-    us=[*SPECIMEN_US, "TRIT_CELL", "TRIT_DEVF", "TRIT_BDEN", "TRIT_DDEN"],
+    us=[*SPECIMEN_US, "TRIT_CELL", "TRIT_DEVF", "TRIT_BDEN", "TRIT_DDEN", "TRIT_CU"],
 )
+
+# Undrained strength (M17 a, docs/work/m17a-strength-data.md). Hand values:
+# - BH1-U4's UU stages above: s_u = q_f / 2 = 60, 62, 59 kPa, as TRIT_CU.
+# - BH1-U1: LUCT_UCS 96 kPa, so s_u = 48 kPa; LPEN_PPEN 45 kPa, an s_u.
+# - BH2-U2: a laboratory vane (LV), 38 and 12 kPa: S_t = 38 / 12 = 3.1666667.
+# - BH1-U3: a fall cone, 30 and 9 kPa: S_t = 30 / 9 = 3.3333333.
+# - BH2 at 3.00 m and 6.00 m: borehole vanes, 42 / 14 = 3.0 and 55 / 22 = 2.5.
+# - BH2 at 0.50 m and 0.80 m: hand penetrometer readings 150 and >200 kPa.
+LUCT = group(
+    "LUCT",
+    [
+        *SPECIMEN,
+        ("LUCT_TYPE", "PA", ""),
+        ("LUCT_IWC", "X", "%"),
+        ("LUCT_BDEN", "2DP", "Mg/m3"),
+        ("LUCT_DDEN", "2DP", "Mg/m3"),
+        ("LUCT_UCS", "0DP", "kPa"),
+        ("LUCT_STRA", "2SF", "%"),
+        ("LUCT_REM", "X", ""),
+    ],
+    [[*BH1_U1, "UNDISTURBED", "26", 1.94, 1.54, 96, 8.5, None]],
+    us=[*SPECIMEN_US, "LUCT_BDEN", "LUCT_DDEN", "LUCT_UCS"],
+)
+LVAN = group(
+    "LVAN",
+    [
+        *SPECIMEN,
+        ("LVAN_VNPK", "0DP", "kPa"),
+        ("LVAN_VNRM", "0DP", "kPa"),
+        ("LVAN_MC", "X", "%"),
+        ("LVAN_TYPE", "PA", ""),
+    ],
+    [[*BH2_U2, 38, 12, "31", "LV"]],
+    us=[*SPECIMEN_US, "LVAN_VNPK", "LVAN_VNRM"],
+)
+LPEN = group(
+    "LPEN",
+    [*SPECIMEN, ("LPEN_PPEN", "0DP", "kPa"), ("LPEN_MC", "X", "%")],
+    [[*BH1_U1, 45, "26"]],
+    us=[*SPECIMEN_US, "LPEN_PPEN"],
+)
+LFCN = group(
+    "LFCN",
+    [
+        *SPECIMEN,
+        ("LFCN_FCPK", "1DP", "kPa"),
+        ("LFCN_FCRM", "1DP", "kPa"),
+        ("LFCN_WC", "X", "%"),
+    ],
+    [["BH1", 5.00, "3", "U", "BH1-U3", "4", 5.30, 30.0, 9.0, "30"]],
+    us=[*SPECIMEN_US, "LFCN_FCPK", "LFCN_FCRM"],
+)
+IVAN = group(
+    "IVAN",
+    [
+        ("LOCA_ID", "ID", ""),
+        ("IVAN_DPTH", "2DP", "m"),
+        ("IVAN_TESN", "X", ""),
+        ("IVAN_TYPE", "PA", ""),
+        ("IVAN_IVAN", "0DP", "kPa"),
+        ("IVAN_IVAR", "0DP", "kPa"),
+    ],
+    [
+        ["BH2", 3.00, "1", "BOREHOLE", 42, 14],
+        ["BH2", 6.00, "2", "BOREHOLE", 55, 22],
+    ],
+    us=["IVAN_DPTH", "IVAN_IVAN", "IVAN_IVAR"],
+)
+IPEN = group(
+    "IPEN",
+    [
+        ("LOCA_ID", "ID", ""),
+        ("IPEN_DPTH", "2DP", "m"),
+        ("IPEN_TESN", "X", ""),
+        ("IPEN_IPEN", "XN", "kPa"),
+    ],
+    [["BH2", 0.50, "1", "150"], ["BH2", 0.80, "2", ">200"]],
+    us=["IPEN_DPTH", "IPEN_IPEN"],
+)
+UNDRAINED = [LUCT, LVAN, LPEN, LFCN, IVAN, IPEN]
 
 CPTP = group(
     "CPTP",
@@ -906,6 +990,7 @@ def site_groups(us=False):
         TRET,
         TRIG,
         TRIT,
+        *UNDRAINED,
     ]
 
 
@@ -1452,7 +1537,44 @@ def joins_groups():
             ]
         ],
     )
-    return [loca, geol, samp, ispt, llpl, lnmc, grag, grat, lden, lpdn, treg, tret]
+    # Field vanes in J1's Alluvium (M17 a, datasets.md §6.11):
+    # - 2.50 m: a peak beyond the vane's range (>120) with a remolded 30: a blank
+    #   sensitivity, counted in the warning.
+    # - 3.00 m: a remolded value of 0: a blank sensitivity, in the same warning.
+    # - 3.50 m: no IVAN_TYPE: test_type "in situ vane, type not given".
+    # - 4.00 m: IVAN_IVAN blank: incomplete (C001), left out by default.
+    ivan = group(
+        "IVAN",
+        [
+            ("LOCA_ID", "ID", ""),
+            ("IVAN_DPTH", "2DP", "m"),
+            ("IVAN_TESN", "X", ""),
+            ("IVAN_TYPE", "PA", ""),
+            ("IVAN_IVAN", "XN", "kPa"),
+            ("IVAN_IVAR", "XN", "kPa"),
+        ],
+        [
+            ["J1", 2.50, "1", "BOREHOLE", ">120", "30"],
+            ["J1", 3.00, "2", "BOREHOLE", "55", "0"],
+            ["J1", 3.50, "3", None, "40", "10"],
+            ["J1", 4.00, "4", "BOREHOLE", None, "12"],
+        ],
+    )
+    return [
+        loca,
+        geol,
+        samp,
+        ispt,
+        llpl,
+        lnmc,
+        grag,
+        grat,
+        lden,
+        lpdn,
+        treg,
+        tret,
+        ivan,
+    ]
 
 
 #: Geology map for the test files (datasets.md §5.2). BED is left out on purpose.
@@ -1490,6 +1612,10 @@ def main(out=HERE):
         without(TRET, "TRET_BACK", "TRET_BVAL", "TRET_IVR"),
         TRIG,
         TRIT,
+        without(LVAN, "LVAN_TYPE"),  # LUCT, LFCN and LVAN_TYPE are 4.1's
+        LPEN,
+        IVAN,
+        IPEN,
     ]
     write_file(out / "site_v404.ags", "4.0.4", v404)
     # V000: unknown version
