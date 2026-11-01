@@ -74,7 +74,9 @@ The SPT classes place a sand roughly; they aren't a design value.
 
 The triaxial fit reads the principal stresses at failure from `p.triaxial()` and fits each group with and without
 its multistage stages: a later stage starts from a specimen already sheared, so compare the two fits before using
-either. It lists the lab's own c′ and φ′ beside its own.
+either. It lists the lab's own c′ and φ′ beside its own. Check the failure points against the curves they come from
+with [`ht.plot.triaxial_shearing()`](../plots/triaxial-shearing.md), which draws the readings during shearing and
+marks the same failure reading the fit uses.
 
 The SPT correlations need (N1)60 or N60 and σ′v0, from `ht.analysis.spt_n1_60()` and
 `ht.analysis.vertical_stress()`. Each reads the one N it was derived with, and gives no estimate, with a count,

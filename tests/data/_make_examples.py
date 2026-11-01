@@ -30,6 +30,8 @@ import random
 import tempfile
 from pathlib import Path
 
+import pandas as pd
+
 import hangtu as ht
 
 HERE = Path(__file__).parent
@@ -675,6 +677,91 @@ def write_csvs(out):
                 float_format="%.6g",
                 lineterminator="\n",
             )
+        write_readings(out, p.triaxial())
+
+
+# Readings during shearing (M11 c, docs/work/m11c-triaxial-shearing.md, spec
+# decision 10): synthetic, not a test hangtu reads anything from. Each stage of
+# treg()/tret() gets readings at fixed strains, the deviator stress on a
+# hyperbola q = ε / (a + ε) scaled so its largest value is TRET_DEVF at
+# TRET_STRN. The hyperbola only shapes the curves; it isn't a method hangtu
+# offers. CU: Δu rises and flattens to TRET_PWPF - back pressure. CDM: Δu is
+# 0 (drained), and ε_v contracts to a peak at 0.75 ε_f, then turns toward
+# dilation, passing TRET_STV at failure. Each stage's failure reading is the
+# lab's mark; the last stage of each test runs on past failure, with q falling.
+READING_STRAINS = [0, 0.25, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15]
+PAST_FAILURE = [(1.5, 0.98), (3.0, 0.96)]  # strain beyond ε_f, fraction of q_f
+
+
+def readings_of(stage, last):
+    """One stage's readings, as (ε_a, q, Δu, ε_v, failure) tuples."""
+    strain_f = stage["axial_strain_at_failure"]
+    q_f = stage["deviator_stress_at_failure"]
+    excess_f = stage["pore_pressure_at_failure"] - stage["back_pressure"]
+    drained = stage["test_type"] == "CDM"
+    a = strain_f / 10
+
+    def q(strain):
+        return q_f * (strain / (a + strain)) / (strain_f / (a + strain_f))
+
+    def excess(strain):
+        if drained:
+            return 0.0
+        b = strain_f / 4
+        return excess_f * (1 - math.exp(-strain / b)) / (1 - math.exp(-strain_f / b))
+
+    def volumetric(strain):
+        if not drained:
+            return None
+        c2 = 2 * stage["volumetric_strain_at_failure"] / strain_f**2
+        return round(1.5 * strain_f * c2 * strain - c2 * strain**2, 2)
+
+    rows = [
+        (strain, round(q(strain)), round(excess(strain)), volumetric(strain), False)
+        for strain in READING_STRAINS
+        if strain < strain_f
+    ]
+    rows.append((strain_f, q_f, excess_f, volumetric(strain_f), True))
+    if last:
+        for extra, fraction in PAST_FAILURE:
+            strain = strain_f + extra
+            rows.append(
+                (
+                    strain,
+                    round(q_f * fraction),
+                    round(excess_f * (1 + extra / 100)),
+                    volumetric(strain),
+                    False,
+                )
+            )
+    return rows
+
+
+def write_readings(out, stages):
+    """Write ``triaxial_readings.csv``: the example stages' readings, in psf."""
+    columns = list(ht.template("triaxial_readings").columns)
+    stage_columns = [c for c in columns if c in stages.columns]
+    rows = []
+    for position, (_, stage) in enumerate(stages.iterrows()):
+        following = stages.iloc[position + 1 :]
+        last = not (following["specimen_id"] == stage["specimen_id"]).any()
+        for strain, q, excess, volumetric, failure in readings_of(stage, last):
+            rows.append(
+                {
+                    **stage[stage_columns].to_dict(),
+                    "axial_strain": strain,
+                    "deviator_stress": q,
+                    "excess_pore_pressure": excess,
+                    "volumetric_strain": volumetric,
+                    "reported_failure_reading": failure,
+                }
+            )
+    pd.DataFrame(rows, columns=columns).to_csv(
+        out / "triaxial_readings.csv",
+        index=False,
+        float_format="%.6g",
+        lineterminator="\n",
+    )
 
 
 def main(out=OUT):

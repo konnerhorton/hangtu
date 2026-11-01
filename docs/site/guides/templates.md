@@ -16,6 +16,8 @@ A template is an empty table with the columns hangtu expects. Save it as a CSV f
 
 The `spt`, `atterberg`, `grain_size` and `permeability` templates have the same columns as the datasets an AGS project gives, so a filled-in template and an AGS file reach the plots in the same shape. Columns hangtu calculates, such as `spt_n60` and `elevation`, can be left blank. Every template and its columns are listed on the [column reference](../reference/columns.md#templates).
 
+`triaxial_readings` is the one template with no AGS counterpart: one row per reading during shearing, from the lab's export, for [triaxial shearing](../plots/triaxial-shearing.md) plots. `ht.analysis.triaxial_failure_from_readings()` turns it into the `triaxial` template's shape.
+
 ## The column registry
 
 Every column name hangtu uses comes from one registry. `ht.columns()` lists them all; `ht.columns("spt")` lists one template's. For each column it gives a description, its quantity (length, stress, percent, ...) and the US and SI units it is shown in.

@@ -14,6 +14,7 @@ from hangtu.plot._plasticity_chart import plasticity_chart
 from hangtu.plot._profile import profile
 from hangtu.plot._spt_histogram import spt_histogram
 from hangtu.plot._spt_profile import spt_profile
+from hangtu.plot._triaxial_shearing import triaxial_shearing
 from hangtu.plot._water_content_profile import water_content_profile
 
 __all__ = [
@@ -32,5 +33,6 @@ __all__ = [
     "spt_histogram",
     "spt_profile",
     "style",
+    "triaxial_shearing",
     "water_content_profile",
 ]

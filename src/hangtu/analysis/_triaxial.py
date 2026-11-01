@@ -19,6 +19,17 @@ MULTISTAGE = frozenset({"CDM", "CUM", "CIUCM", "UUM"})
 #: Every type in the two pick lists: ``TREG_TYPE``'s, then ``TRIG_TYPE``'s.
 LISTED = DRAINED | UNDRAINED | EXTENSION | {"UU", "UUM", "UNC"}
 
+
+def is_multistage(test_type: pd.Series, stage_count: pd.Series) -> pd.Series:
+    """Mark a stage multistage: by its type, or its specimen having several stages.
+
+    The rule of ``datasets.md`` §6.10, shared by ``p.triaxial()`` and
+    ``triaxial_failure_from_readings()``. ``stage_count`` is the number of
+    stages of each row's specimen.
+    """
+    return test_type.isin(MULTISTAGE) | (stage_count > 1)
+
+
 REQUIRED = ("test_type", "cell_pressure", "deviator_stress_at_failure")
 #: The stresses read where present, besides the cell pressure and deviator stress.
 OPTIONAL = ("pore_pressure_at_failure", "back_pressure")

@@ -1,0 +1,26 @@
+specimen_id,test_type,test_stage,failure_criterion,cell_pressure,back_pressure,axial_strain,deviator_stress,excess_pore_pressure,volumetric_strain
+A,CU,1,Maximum deviator stress,400,200,0,0,0,
+A,CU,1,Maximum deviator stress,400,200,1,100,50,
+A,CU,1,Maximum deviator stress,400,200,4,180,90,
+A,CU,1,Maximum deviator stress,400,200,8,200,100,
+A,CU,1,Maximum deviator stress,400,200,12,195,110,
+A,CU,1,Maximum deviator stress,400,200,15,190,112,
+B,CU,1,Maximum deviator stress,500,200,0,0,0,
+B,CU,1,Maximum deviator stress,500,200,1,150,40,
+B,CU,1,Maximum deviator stress,500,200,4,270,80,
+B,CU,1,Maximum deviator stress,500,200,8,300,100,
+B,CU,1,Maximum deviator stress,500,200,12,290,115,
+B,CU,1,Maximum deviator stress,500,200,15,280,120,
+C,CD,1,Maximum deviator stress,300,200,0,0,,0
+C,CD,1,Maximum deviator stress,300,200,1,100,,0.3
+C,CD,1,Maximum deviator stress,300,200,3,200,,0.2
+C,CD,1,Maximum deviator stress,300,200,6,250,,-0.4
+C,CD,1,Maximum deviator stress,300,200,9,240,,-0.8
+D,UU,1,,200,,0,0,,
+D,UU,1,,200,,2,80,,
+D,UU,1,,200,,5,120,,
+D,UU,1,,200,,10,110,,
+E,CU,1,Maximum deviator stress,400,200,0,0,0,
+E,CU,1,Maximum deviator stress,400,200,2,150,50,
+E,CU,1,Maximum deviator stress,400,200,4,150,60,
+E,CU,1,Maximum deviator stress,400,200,6,140,70,
