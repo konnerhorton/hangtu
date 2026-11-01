@@ -1,6 +1,6 @@
 # hangtu
 
-Python library that derives the ground parameters a geotechnical design needs, from AGS4 or CSV test data through to model parameter sets, for soil and rock, with plots, analyses, AGS4 ingest/QC and statistics along the way (SPEC §1). Work is organized as stages A–D per parameter and waves 0–6 (SPEC §1.3). Done through M15 and M11 (b); 0.1.0 is on PyPI. Next: wave 2 (M11 (c), P12; then M17, on M11 (b)'s line-fit core), then wave 0 (M16, waiting on TODO #31), selection (M18) and waves 3–6. Status: SPEC §12.4 for milestones, `docs/drafts/parameters/README.md` for parameters.
+Python library that derives the ground parameters a geotechnical design needs, from AGS4 or CSV test data through to model parameter sets, for soil and rock, with plots, analyses, AGS4 ingest/QC and statistics along the way (SPEC §1). Work is organized as stages A–D per parameter and waves 0–6 (SPEC §1.3). Done through M15 and M11; 0.1.0 is on PyPI. Next: wave 2's M17 (undrained strength, the shear box and the Hoek–Brown fit, on M11 (b)'s line-fit core), then wave 0 (M16, waiting on TODO #31), selection (M18) and waves 3–6. Status: SPEC §12.4 for milestones, `docs/drafts/parameters/README.md` for parameters.
 
 ## Where things are
 - `SPEC.md`: product spec and cross-cutting decisions. Read the relevant section before designing anything.
