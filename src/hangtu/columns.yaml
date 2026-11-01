@@ -311,6 +311,20 @@ columns:
     label: Undrained shear strength, s_u
     ags: [TRIT.TRIT_CU, IVAN.IVAN_IVAN, LVAN.LVAN_VNPK]   # to verify against the 4.2 dictionary
     used_by: [P01, P07]
+  remolded_undrained_shear_strength:
+    description: Undrained shear strength of the soil remolded, from the same test as the peak (vane, fall cone)
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Remolded undrained shear strength, s_u,r
+    ags: [IVAN.IVAN_IVAR, LVAN.LVAN_VNRM, LFCN.LFCN_FCRM]
+    used_by: [P01, P07]
+  remolded_qualifier:
+    description: '"<" or ">" when the true remolded strength is below or above the reported value; empty otherwise'
+    type: text
+    ags: ["derived: value flags LT / GT"]
+    used_by: []
+    statistics: {role: qualifier, values: [remolded_undrained_shear_strength]}
   water_content:
     description: Water (moisture) content
     type: number

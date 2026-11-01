@@ -132,9 +132,14 @@ def test_statistics_field_follows_the_rules(name):
     assert field["role"] in STATISTICS_ROLES
     for value in field.get("values", []):
         assert COLUMNS[value]["type"] == "number", value
-    if field["role"] in {"source", "qualifier"}:
+    if field["role"] == "source":
         assert entry["type"] == "text"
         assert {"values", "when"}.isdisjoint(field)
+    elif field["role"] == "qualifier":
+        # A qualifier may name its values: the one for a second value on a
+        # row (m17a Decision 9).
+        assert entry["type"] == "text"
+        assert "when" not in field
     elif "when" in field:
         assert entry["type"] == "text"
         assert field["when"]
@@ -147,6 +152,7 @@ def test_statistics_roles_lists_the_flag_and_source_columns():
     assert {name: field["role"] for name, field in roles.items()} == {
         "spt_refusal": "at_least",
         "qualifier": "qualifier",
+        "remolded_qualifier": "qualifier",
         "non_plastic": "non_plastic",
         "particle_density_assumed": "assumed",
         "specific_gravity_source": "assumed",
