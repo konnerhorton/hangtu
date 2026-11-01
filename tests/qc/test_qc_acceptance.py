@@ -62,6 +62,9 @@ EXPECTED = {
     ("Q001", 176),  # TRIT_CU 70, TRIT_DEVF 120 / 2 is 60 (M17 a)
     ("Q003", 182),  # LUCT_UCS 0
     ("Q002", 188),  # LVAN_VNRM 25 above LVAN_VNPK 20
+    ("H001", 200),  # SHBT_RES 60 above SHBT_PEAK 50 (M17 a)
+    ("H002", 201),  # a stage with SHBT_PEAK and SHBT_RES blank
+    ("H003", 202),  # SHBT_NORM 0
 }
 # Info findings seeded on qc_defects.ags (C002 also lists absent headings).
 EXPECTED_INFO = {

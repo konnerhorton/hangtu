@@ -9,6 +9,7 @@ from hangtu.qc import (  # noqa: F401
     _fields,
     _geology,
     _locations,
+    _shear_box,
     _tests,
     _triaxial,
     _undrained,

@@ -1444,6 +1444,34 @@ def qc_defects_groups():
         [*SPECIMEN, ("LUCT_UCS", "0DP", "kPa"), ("LUCT_STRA", "2SF", "%")],
         [["BH4", 4.00, "2", "U", "BH4-U2", "C1", 4.10, 0, 5.0]],
     )
+    # Shear box (M17 a, qc.md §4.14), three stages on BH1-U1:
+    # - H001: SHBT_RES 60 above SHBT_PEAK 50;
+    # - H002: SHBT_PEAK and SHBT_RES both blank;
+    # - H003: SHBT_NORM 0.
+    shbg = group(
+        "SHBG",
+        [*SPECIMEN, ("SHBG_TYPE", "PA", ""), ("SHBG_COND", "PA", "")],
+        [["BH1", 1.00, "1", "U", "BH1-U1", "H1", 1.10, "SMALL SBOX", "UNDISTURBED"]],
+    )
+    shbt = group(
+        "SHBT",
+        [
+            *SPECIMEN,
+            ("SHBT_TESN", "X", ""),
+            ("SHBT_NORM", "0DP", "kPa"),
+            ("SHBT_DISP", "3DP", "mm/min"),
+            ("SHBT_PEAK", "0DP", "kPa"),
+            ("SHBT_RES", "0DP", "kPa"),
+        ],
+        [
+            ["BH1", 1.00, "1", "U", "BH1-U1", "H1", 1.10, tesn, norm, 0.024, peak, res]
+            for tesn, norm, peak, res in [
+                ("1", 50, 50, 60),
+                ("2", 100, None, None),
+                ("3", 0, 10, 8),
+            ]
+        ],
+    )
     return [
         loca,
         horn,
@@ -1463,6 +1491,8 @@ def qc_defects_groups():
         trit,
         luct,
         lvan,
+        shbg,
+        shbt,
     ]
 
 

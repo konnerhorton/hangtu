@@ -85,3 +85,10 @@ min_fields:
     recommended: [IVAN_TYPE, IVAN_IVAR]
   IPEN:
     required: [LOCA_ID, IPEN_DPTH, IPEN_IPEN]
+  # Shear box (M17 a).
+  SHBG:
+    required: [*sample_key]
+    recommended: [SPEC_REF, SPEC_DPTH, SHBG_TYPE, SHBG_COND]
+  SHBT:
+    required: [*sample_key, SHBT_TESN, SHBT_NORM]
+    recommended: [SPEC_REF, SPEC_DPTH, SHBT_PEAK, SHBT_RES, SHBT_DISP]

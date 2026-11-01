@@ -244,6 +244,17 @@ rules:
     title: Undrained strength 0 or less
     severity: error
 
+  # Shear box (§4.14, M17 a).
+  H001:
+    title: Residual shear stress above the peak
+    severity: error
+  H002:
+    title: Shear box stage with no shear stress
+    severity: warning
+  H003:
+    title: Normal stress 0 or less in a shear box stage
+    severity: error
+
   # Minimally useful fields (§4.10); the fields are in min_fields.yaml.
   C001:
     title: Required field is missing
