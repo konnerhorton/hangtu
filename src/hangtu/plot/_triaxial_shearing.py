@@ -15,7 +15,7 @@ from hangtu import units as _units
 from hangtu._settings import _display_units, settings
 from hangtu.analysis._mohr_coulomb import MohrCoulombFit, mohr_coulomb_fit
 from hangtu.analysis._triaxial import EXTENSION, triaxial_failure_stresses
-from hangtu.analysis._triaxial_readings import Reduced, reduce_readings
+from hangtu.analysis._triaxial_readings import CRITERIA, Reduced, reduce_readings
 from hangtu.errors import HangtuError
 from hangtu.plot import _envelope_drawing as envelope
 from hangtu.plot import _layers, _values, style
@@ -203,6 +203,7 @@ def triaxial_shearing(
         stress_unit = _display_stress_unit(reduced, system)
         if space == "stress_strain":
             handles = _draw_curves(ax, reduced, labels, colors, system, notes)
+            handles.append(_failure_handle(failure_criterion))
             if second_axis is not None:
                 handles += _draw_second_axis(
                     ax, reduced, second_axis, labels, colors, system, notes
@@ -223,6 +224,7 @@ def triaxial_shearing(
             handles = _draw_paths(
                 ax, reduced, space, stress, labels, colors, system, stress_unit, notes
             )
+            handles.append(_failure_handle(failure_criterion))
             xlim = ax.get_xlim()
             for cohesion_value, angle, label in user_envelopes:
                 intercept, slope = envelope.line(
@@ -339,6 +341,12 @@ def _display_stress_unit(reduced: Reduced, system: str) -> str | None:
 
 def _display(values: np.ndarray, reduced: Reduced, system: str) -> np.ndarray:
     return _units.to_display(values, reduced.readings.stress_unit, "stress", system)[0]
+
+
+def _failure_handle(criterion: str | None) -> Line2D:
+    """Return the failure dots' legend entry, saying how they were picked."""
+    how = CRITERIA[criterion].lower() if criterion is not None else "lab's reading"
+    return _values.legend_marker("o", "0.3", f"Failure: {how}", MARKER_SIZE)
 
 
 def _legend_entries(

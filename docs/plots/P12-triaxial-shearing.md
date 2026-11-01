@@ -139,7 +139,7 @@ space as P11 §4.
 |---|---|---|---|
 | Curve (`stress_strain`) or path (`s_t`, `p_q`) | solid line per stage, readings in strain order | by stage, else group or `color_by` | one entry per color |
 | Second axis (`stress_strain`) | dashed line per stage, same color | as the curve | "Δu (dashed)" or "ε_v (dashed)" |
-| Failure reading | filled dot, the same reading in every view | as the curve | — |
+| Failure reading | filled dot, the same reading in every view | as the curve | one gray dot saying how it was picked: "Failure: maximum deviator stress", "Failure: maximum principal stress ratio" or "Failure: lab's reading" (*added in review*) |
 | Envelope (`s_t`, `p_q`) | as P11 §7 | as P11 | as P11 |
 | User envelopes | as P11 | | |
 

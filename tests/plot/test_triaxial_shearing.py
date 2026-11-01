@@ -361,3 +361,22 @@ def test_group_by_colors_and_fits_per_group():
     colors = {line.get_color() for line in lines(ax, "stress_path")}
     assert len(colors) == 2
     assert len(fit.groups) == 2
+
+
+@pytest.mark.parametrize(
+    ("criterion", "text"),
+    [
+        ("max_deviator_stress", "Failure: maximum deviator stress"),
+        ("max_stress_ratio", "Failure: maximum principal stress ratio"),
+        (None, "Failure: lab's reading"),
+    ],
+)
+@pytest.mark.parametrize("space", ["stress_strain", "s_t"])
+def test_the_legend_says_the_dot_is_the_failure_reading(criterion, text, space):
+    df = readings("A", "B")
+    df["reported_failure_reading"] = df["axial_strain"] == 8
+    if criterion is not None:
+        df = df.drop(columns="reported_failure_reading")
+    _, ax, _ = draw(df, space=space, failure_criterion=criterion)
+    labels = [t.get_text().replace("\n", " ") for t in ax.get_legend().get_texts()]
+    assert text in labels
