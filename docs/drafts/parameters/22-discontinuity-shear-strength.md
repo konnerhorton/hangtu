@@ -1,5 +1,7 @@
 # 22 — Discontinuity shear strength
 
+Promoted to the docs site as [`docs/site/parameters/22-discontinuity-shear-strength.md`](../../site/parameters/22-discontinuity-shear-strength.md) (M17 a); the page is current where they differ.
+
 | | |
 |---|---|
 | **Parameters** | φj, cj (peak friction angle and cohesion intercept of a joint or bedding plane), φr (residual), φb (basic), i (Patton roughness angle), JRC, JCS (Barton-Bandis) |

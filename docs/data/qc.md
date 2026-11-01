@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | done (M6); §4.11 (density, M14) done; §4.12 (triaxial, M11 a) done |
+| **Status** | done (M6); §4.11 (density, M14) done; §4.12 (triaxial, M11 a) done; §4.13–4.14 (undrained strength and shear box, M17 a) in progress |
 | **Intent** | [`docs/work/m6-qc.md`](../work/m6-qc.md#intent) |
 | **Parent** | SPEC §2.6 (units), §7 (data model), §8 (depth and geology), §9 (data quality), §11 (errors) |
 | **Related** | [`ingest.md`](ingest.md) §8–§9 (value flags, findings raised at ingest). [`docs/work/qc-review.md`](../work/qc-review.md) (accepted findings, D008), [`docs/work/vertical-datum.md`](../work/vertical-datum.md) (L006, L007). TODO #6 (P001/P003 tolerances), #7 (minimally useful fields) |
@@ -241,6 +241,14 @@ TRET: {required: [<SPEC_KEY>, TRET_TESN, TRET_CELL, TRET_DEVF],
        recommended: [TRET_PWPF, TRET_CONP, TRET_BACK, TRET_BVAL, TRET_STRN]}                       # M11 a
 TRIG: {required: [<SPEC_KEY>, TRIG_TYPE], recommended: [TRIG_COND]}                               # M11 a
 TRIT: {required: [<SPEC_KEY>, TRIT_TESN, TRIT_CELL, TRIT_DEVF], recommended: [TRIT_STRN]}          # M11 a
+LUCT: {required: [<SPEC_KEY>, LUCT_UCS], recommended: [LUCT_STRA]}                                 # M17 a
+LVAN: {required: [<SPEC_KEY>, LVAN_VNPK], recommended: [LVAN_TYPE, LVAN_VNRM]}                     # M17 a
+LPEN: {required: [<SPEC_KEY>, LPEN_PPEN]}                                                          # M17 a
+LFCN: {required: [<SPEC_KEY>, LFCN_FCPK], recommended: [LFCN_FCRM]}                                # M17 a
+IVAN: {required: [LOCA_ID, IVAN_DPTH, IVAN_IVAN], recommended: [IVAN_TYPE, IVAN_IVAR]}             # M17 a
+IPEN: {required: [LOCA_ID, IPEN_DPTH, IPEN_IPEN]}                                                  # M17 a
+SHBG: {required: [<SPEC_KEY>], recommended: [SHBG_TYPE, SHBG_COND]}                                # M17 a
+SHBT: {required: [<SPEC_KEY>, SHBT_TESN, SHBT_NORM], recommended: [SHBT_PEAK, SHBT_RES, SHBT_DISP]}  # M17 a
 # <SPEC_KEY> = LOCA_ID, SAMP_TOP, SAMP_REF, SAMP_TYPE, SAMP_ID (the sample key); SPEC_REF and SPEC_DPTH lead each lab group's recommended list (M7)
 ```
 In the shipped file the lists are written out in full; `<SPEC_KEY>` is a YAML anchor.
@@ -278,6 +286,32 @@ From `docs/work/m11a-triaxial-data.md`. Each rule checks one stage, or one test 
 - X004: σ′3 < 0 isn't possible in an uncemented saturated specimen; the usual cause is a pore pressure recorded without the back pressure taken off, or the reverse.
 - X005: a multistage type is `CDM`, `CUM`, `CIUCM` or `UUM`. A type the dictionary doesn't list is checked only for "no stage rows".
 - X006: only where all three are given, and only for single-stage tests and the first stage of a multistage test, since later stages change the cell pressure after consolidation. The tolerance clears 0DP rounding of the three values (at most 1.5 kPa).
+
+### 4.13 Undrained strength (Q) (M17 a)
+From `docs/work/m17a-strength-data.md`. Checks within one record. Plausible ranges for s_u are level 2. `Q` is for `TRIG_TYPE`'s "quick undrained"; `U` (units) is taken.
+
+| ID | Rule | Severity | Thresholds |
+|---|---|---|---|
+| Q001 | `TRIT_CU` differs from `TRIT_DEVF` / 2 | warning | `undrained_strength_tolerance: 1 kPa` |
+| Q002 | A remolded strength above its peak: `IVAN_IVAR` > `IVAN_IVAN`, `LVAN_VNRM` > `LVAN_VNPK`, `LFCN_FCRM` > `LFCN_FCPK` | warning | |
+| Q003 | A strength of 0 or less: `LUCT_UCS`, `IVAN_IVAN`, `LVAN_VNPK`, `LPEN_PPEN`, `IPEN_IPEN`, `LFCN_FCPK` | error | |
+
+- Q001: only where both are given. The tolerance clears 0DP rounding of both (at most 0.25 + 0.5 = 0.75 kPa). The message gives hangtu's q_f / 2 and the difference, and says that `p.undrained_strength()` uses q_f / 2 and keeps the lab's value beside it.
+- Q002: only where both are unflagged. A remolded value above the peak usually means the two were swapped.
+- Q003 is an error: a strength can't be 0 or less. A flagged value (`<5`) isn't checked.
+
+### 4.14 Shear box (H) (M17 a)
+From `docs/work/m17a-strength-data.md`. Checks within one stage. `S` (SPT) is taken.
+
+| ID | Rule | Severity | Thresholds |
+|---|---|---|---|
+| H001 | `SHBT_RES` above `SHBT_PEAK` | error | |
+| H002 | A stage with neither `SHBT_PEAK` nor `SHBT_RES` | warning | |
+| H003 | `SHBT_NORM` 0 or less | error | |
+
+- H001 is an error: the peak is the largest shear stress of the stage. Only where both are given and unflagged.
+- H002: the stage can't give a point for either fit.
+- Not rules, for want of a threshold a source supports: `SHBT_PVST` or `SHBT_RVST` far from `SHBT_NORM` (they differ where the lab corrects for the contact area; the dictionary's example is 100, 100 and 125 kPa), and a residual reached at a small displacement.
 
 ## 5. The report
 ### 5.1 `report.findings`
@@ -398,6 +432,8 @@ Synthetic, written by `tests/data/ags/_make_files.py` (SPEC §12.3).
 | K001 | `PTST_K` 0, `FGHG_IPRM` 5 m/s |
 | B001, B002, B003, B004 | `LDEN` ρ 2.00, w 20, ρd 1.80 (expected 1.667); ρ 1.80, ρd 1.90, w blank; `LDEN_BDEN` 19.5 and `LPDN_PDEN` 26.5; `LPDN_PDEN` `#2.65` (M14) |
 | X001–X006 | `TRET_BVAL` 0.90; a `CU` stage with `TRET_PWPF` blank; `TRET_DEVF` −20 in a `CU` stage; `TRET_PWPF` 410 with `TRET_CELL` 400; a `CU` test with two stages, and a `TRIG` with none; `TRET_CONP` 150 with `TRET_CELL` 400 and `TRET_BACK` 300 (M11 a) |
+| Q001–Q003 | `TRIT_CU` 70 with `TRIT_DEVF` 120; `LVAN_VNPK` 20 with `LVAN_VNRM` 25; `LUCT_UCS` 0 (M17 a) |
+| H001–H003 | `SHBT_PEAK` 50 with `SHBT_RES` 60; a stage with both blank; `SHBT_NORM` 0 (M17 a) |
 | C001, C002 | `GEOL_DESC` blank on one row; `LOCA_TYPE` absent |
 
 - The good files (`site_si.ags`, `site_us.ags` and `site_v404.ags`) must stay QC-clean (§9, #2). They have `LOCA_DATM` `NAVD88` in every hole, so they raise no L006.

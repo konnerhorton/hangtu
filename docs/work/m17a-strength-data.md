@@ -184,3 +184,249 @@ under one specimen fill `multistage_test`), the spec step settles it.
 - **Wave 0 (M16):** shear box displacement curves and rock triaxial results from user-defined groups.
 - **Wave 4:** Barton–Bandis, scale corrections and JRC/JCS (sheet 22 §5.4–5.5); rock UCS (`RUCS`).
 - **Later:** CPT s_u (Nkt), direct simple shear (no AGS 4.2 group).
+
+## Spec
+The rules live in the topic docs: the datasets in `docs/data/datasets.md` §6.11 and §6.12, the QC rules in
+`docs/data/qc.md` §4.13 and §4.14. This section lists what changes where, the decisions behind it (the intent's
+decisions settled, with the open points of the intent decided) and the acceptance criteria.
+
+### Changes
+- **`docs/data/datasets.md`:** §6.11 `p.undrained_strength()` and §6.12 `p.shear_box()` (new); §1, §2, §8, §11
+  and §12 updated for them.
+- **`docs/data/qc.md`:** §4.13 undrained strength rules Q001–Q003 and §4.14 shear box rules H001–H003 (new); §4.10's
+  minimum fields gain `LUCT`, `IVAN`, `LVAN`, `LPEN`, `IPEN`, `LFCN`, `SHBG` and `SHBT`; §8 has the defects cases.
+- **`ht.analysis.undrained_shear_strength_from_tests()`** (new, decision 3), with its reference entry.
+- **SPEC, in this commit:** §4 and §5, "M17's fits (φu = 0, shear box, Hoek–Brown)" becomes "M17's fits (shear
+  box, Hoek–Brown)" (intent decision 2); §5's "Flags come from the registry" gains the rule of decision 9; §8.2
+  gains the row for `IVAN` and `IPEN`. **At close-out:** §2.6, the `strength` and `shear_box` templates; §10.2, the
+  two datasets; §4, a line for `undrained_shear_strength_from_tests()`.
+- **Registry** (each name checked against the whole registry and every spec, 2026-11-01; decision 12):
+  - new columns: `undrained_shear_strength_basis`, `remolded_undrained_shear_strength`, `remolded_qualifier`,
+    `strength_sensitivity`, `reported_undrained_shear_strength`, `unconfined_compressive_strength`,
+    `hand_penetrometer_reading`, `applied_normal_stress`, `normal_stress_at_peak`, `normal_stress_at_residual`,
+    `peak_shear_stress`, `residual_shear_stress`, `horizontal_displacement_at_peak`,
+    `horizontal_displacement_at_residual`, `vertical_displacement_at_peak`, `vertical_displacement_at_residual`,
+    `peak_displacement_rate`, `residual_displacement_rate`, `shear_traverses`, `specimen_height`,
+    `specimen_diameter_along_shear`, `specimen_diameter_across_shear`, `encapsulation`, `final_water_content`,
+    `reported_peak_cohesion`, `reported_peak_friction_angle`, `reported_residual_cohesion`,
+    `reported_residual_friction_angle`;
+  - changed: `undrained_shear_strength` (its sources: q / 2, `IVAN_IVAN`, `LVAN_VNPK`, `LPEN_PPEN`, `LFCN_FCPK`;
+    `TRIT_CU` moves to `reported_undrained_shear_strength`); `axial_strain_at_failure` (UU and unconfined
+    compression, `LUCT_STRA`); new AGS sources for `test_type`, `sample_condition` (`LUCT_TYPE`, `SHBG_COND`),
+    `test_stage`, `failure_criterion` (`SHBT_CRIT`), `water_content`, `bulk_unit_weight`, `dry_unit_weight`,
+    `particle_density`, `particle_density_assumed`, `void_ratio`, `test_remarks` and `remarks`;
+  - a quantity kind `displacement_rate` (decision 13);
+  - the `strength` template reshaped and `shear_box` new (decision 14).
+- **Test files:** the undrained and shear box groups in `site_si.ags`, `site_us.ags` and `site_v404.ags`
+  (datasets.md §12); the edge cases in `joins.ags`; the Q and H cases in `qc_defects.ags`.
+- **Example file:** `site.ags` gains `TRIG`/`TRIT` (UU), `IVAN`, `LVAN` and `LPEN`, drawn on page 05. The shear box
+  groups wait for (b), whose page draws them (as M11 a left the triaxial groups to (b)).
+- **Docs site:** both datasets in the datasets guide's table and the reference; the Q and H rules where the AGS
+  and QC guide lists rules; page 05's tests and its "q / 2" method row linked to the function; page 04's shear box
+  row; **page 22 promoted** from its sheet (decision 15).
+
+### Decisions
+**Undrained strength**
+1. **One row per test result**, in group order `TRIT`, `LUCT`, `LVAN`, `LPEN`, `LFCN` (lab), then `IVAN`, `IPEN`
+   (field), each in file order, with the columns of §6.11. `source` is `lab` or `field`, as in `p.density()` and
+   `p.permeability()`.
+2. **`test_type` is never blank, so tests never pool by accident.** It is the file's type code where the group has
+   one and it is filled (`TRIG_TYPE`, `IVAN_TYPE`, `LVAN_TYPE`), as every other dataset; else a name for the
+   group: `"unconfined compression"`, `"hand penetrometer"`, `"fall cone"`, and for a blank code
+   `"total stress triaxial, type not given"`, `"in situ vane, type not given"`, `"laboratory vane, type not
+   given"`. A blank `test_type` would pool a vane of unknown type with a fall cone in `describe()`. `LUCT_TYPE`
+   (whose only dictionary code is `UNDISTURBED`) is a specimen condition, so it goes to `sample_condition`.
+3. **s_u comes from `ht.analysis.undrained_shear_strength_from_tests(df, *, hand_penetrometer_scale=None)`**, which
+   the dataset calls, so CSV and AGS rows follow the same rules (as `p.triaxial()` calls
+   `triaxial_failure_stresses()`). Per row, from the one input it has:
+
+   | Input on the row | s_u | `undrained_shear_strength_basis` |
+   |---|---|---|
+   | `deviator_stress_at_failure` (UU) | q_f / 2 | `half_deviator_stress` |
+   | `unconfined_compressive_strength` | q_u / 2 | `half_unconfined_compressive_strength` |
+   | `hand_penetrometer_reading`, scale `"unconfined_compressive_strength"` | reading / 2 | `half_hand_penetrometer_reading` |
+   | `hand_penetrometer_reading`, scale `"undrained_shear_strength"` | reading | `hand_penetrometer_reading` |
+   | `undrained_shear_strength` only (vanes, fall cone, `LPEN`) | as given | `as_reported` |
+
+   - A row with two of these inputs is an error naming the rows (a CSV that typed the lab's s_u beside q_f puts it
+     in `reported_undrained_shear_strength`).
+   - For CSV input the analysis errors where the dataset blanks: q ≤ 0 (naming the rows), a hand penetrometer
+     reading without `hand_penetrometer_scale=`, stresses of different dimensions. The dataset blanks or leaves
+     out instead, with a warning, since a dataset doesn't stop on the file's data (§6.10's rule).
+   - **Units:** each stress column resolves as SPEC §2.6; s_u comes back in `undrained_shear_strength`'s unit
+     where declared, else in the unit of the first input column the frame has, in the table's order.
+   - It returns a copy with `undrained_shear_strength`, its basis and `strength_sensitivity` filled.
+4. **`hand_penetrometer_scale=` is an argument** of the dataset and the analysis, with no default (intent decision
+   4 settled). It states what the instrument read, which is a fact about the investigation, not about the ground,
+   so it is neither a judgment (SPEC §4 keys judgments by geology unit, hole or depth) nor guessed. With `IPEN`
+   rows and no argument, the dataset leaves them out and counts them in one warning that names the argument and
+   points to `IPEN_METH` and `IPEN_REM`; the other tests still come back. The basis column records it on every
+   row. `LPEN_PPEN` is s_u by the dictionary's definition and takes no argument. TODO #45 (file-carried values)
+   stays open; this doesn't need it.
+5. **The lab's s_u is kept, not used.** `TRIT_CU` is `reported_undrained_shear_strength` on the UU rows, beside
+   hangtu's q_f / 2; QC Q001 compares them. Where a test's only result is s_u (vanes, fall cone, `LPEN`), that value
+   is the measurement and goes in `undrained_shear_strength`. The line between the two columns is "could hangtu
+   compute it from the row": the same line M11 (a) drew for the lab's c′ and φ′.
+6. **Sensitivity is `strength_sensitivity` = s_u / s_u,r**, from one test's peak and remolded values (field vane,
+   laboratory vane, fall cone), both unflagged, with s_u,r > 0. A flagged value on either side, or s_u,r = 0,
+   gives a blank, counted in one warning ("sensitivity left blank on 2 rows: a value beyond the instrument's
+   range"); both values stay on the row. The name: `sensitivity` alone is used across the docs for a model's
+   sensitivity to a parameter (sheet 05 §6), so it would be misread.
+7. **Field vane values are uncorrected** (intent decision 5): `undrained_shear_strength_basis` is `as_reported` and
+   the docstring and §6.11 say Bjerrum's μ isn't applied. `TRET_CU` isn't read (intent decision 6).
+8. **UU rows come through `p.triaxial()`'s build**, so their depths, geology and stage columns are the same as
+   there; `multistage_test` follows §6.10 (`UUM`, or several stages on one specimen). Every UU stage is a row.
+
+**Flags**
+
+9. **A second flag column for a second value on the row.** A vane gives two values, so its row has `qualifier` (for
+   s_u) and `remolded_qualifier` (for s_u,r), both `"<"`, `">"` or blank. The registry gives
+   `remolded_qualifier` the qualifier role with `values: [remolded_undrained_shear_strength]`, and a rule is added
+   to the statistics' flag reading: **a value named in a qualifier column's `values:` reads only the qualifier
+   columns that name it**, so `qualifier`, which names none, no longer applies to the remolded value. Other roles
+   (`at_least`, `non_plastic`, `assumed`) are untouched, and no current qualifier column has `values:`, so nothing
+   else changes. SPEC §5, "Flags come from the registry", gains the
+   rule. Rejected: giving `qualifier` a `values:` list of every column it qualifies, which a new dataset would
+   have to remember to extend.
+10. **A hand penetrometer value beyond its range** (`>20`) is a bound with `qualifier = ">"` (SPEC §6.2). With the
+    `unconfined_compressive_strength` scale, `>200` gives s_u > 100.
+
+**Shear box**
+
+11. **One row per `SHBT` stage**, in file order, with its `SHBG` test's values on each (§6.12). The decisions of
+    the intent hold as written:
+    - all three normal stresses are columns, and the dataset picks none (intent decision 7);
+    - **no `multistage_test` column** (intent decision 8 settled): `SHBT_TESN` is a "stage/specimen reference", and
+      a soil test's three specimens are commonly entered as three `SHBT_TESN` under one `SPEC_REF`, so several
+      rows on one specimen isn't evidence of a multistage test either. A column that could only ever be blank
+      would read as an answer. (b)'s fit, like `mohr_coulomb_fit()`, notes that stages weren't told apart, and
+      reads the column when a user adds it;
+    - no soil or rock joint label (intent decision 9); `test_type` is `SHBG_TYPE` as written, so shear box and
+      ring shear stay apart (`SMALL SBOX`, `LARGE RSHEAR`);
+    - no effective or total label on the stresses (intent decision 10).
+12. **Names.** Checked against the registry and every spec (2026-11-01). Points that shaped them:
+    - `applied_normal_stress`, not `normal_stress`: the M11 (b) fit's points already have `normal_stress` and
+      `shear_stress`, the fitted tangent point, and the shear box rows will go through a fit beside them;
+    - `peak_shear_stress` and `residual_shear_stress`, with `normal_stress_at_peak` and `normal_stress_at_residual`
+      (`SHBT_PVST`, `SHBT_RVST`), so each pair reads as one point;
+    - `reported_peak_cohesion` and so on, not `reported_effective_…`: the lab's shear box fit isn't labeled effective
+      (decision 11), and a rock joint's c_j, φ_j aren't c′, φ′ of a soil;
+    - `unconfined_compressive_strength` (soil q_u, ASTM D2166's term) and, in wave 4, `uniaxial_compressive_strength`
+      (rock σci, D7012's term): both are "UCS", written out they aren't, and each label names its material;
+    - existing names where the quantity is the same (`void_ratio` for `SHBT_IVR`, initial as for `TRET_IVR`;
+      `water_content` for the initial `SHBT_MCI`; `particle_density` for `SHBT_PDEN`, with its `#` flag;
+      `axial_strain_at_failure` for `LUCT_STRA`); `final_water_content` for `SHBT_MCF`;
+    - `shear_traverses` (`SHBT_REVS`, the dictionary's "number of traverses"), `specimen_diameter_along_shear` and
+      `specimen_diameter_across_shear` (`SHBT_DIA1`, `DIA2`), `specimen_height`, `encapsulation`.
+13. **A quantity kind `displacement_rate`** (canonical mm/min; SI mm/min, US in/min), for `SHBT_DISP` and
+    `SHBT_DISR`. `velocity` (m/s, ft/s) would show 0.024 mm/min as 4.0e-7 m/s. It comes after `velocity` in
+    `defaults.yaml`, so ingest, which takes a unit's first matching kind, keeps assigning `velocity` to m/s headings;
+    the dataset converts by the column's kind.
+
+**Both**
+
+14. **Templates:** `strength` is `p.undrained_strength()`'s columns without `source_line`,
+    `undrained_shear_strength_basis` and `strength_sensitivity` (the analysis adds them); `shear_box` is
+    `p.shear_box()`'s without `source_line`. The `strength` template gains columns; the P01 and P07 fixtures that
+    use a few of them still work, since a frame needn't have every template column.
+15. **Page 22 is promoted** from its sheet: what it is, units, typical values (Hoek 2023 ch. 4, Table 1, values
+    quoted with the locator, after Barton 1974), tests (D5607 noted as withdrawn in 2025, the ISRM method), and
+    methods with the shear box fit as M17 (b) and Patton, Barton–Choubey and the scale corrections as wave 4, each
+    cited through Hoek 2023 ch. 4 [V]; the originals stay [U] and aren't cited as read. Stage A: `p.shear_box()`.
+16. **QC (level 1):**
+    - Q001 `TRIT_CU` differs from `TRIT_DEVF` / 2 (warning; `undrained_strength_tolerance: 1 kPa`: both 0DP in kPa,
+      so rounding is at most 0.25 + 0.5 = 0.75 kPa);
+    - Q002 a remolded value above its peak (`IVAN_IVAR`, `LVAN_VNRM`, `LFCN_FCRM`) (warning);
+    - Q003 a strength of 0 or less (`LUCT_UCS`, `IVAN_IVAN`, `LVAN_VNPK`, `LPEN_PPEN`, `IPEN_IPEN`, `LFCN_FCPK`) (error);
+    - H001 `SHBT_RES` above `SHBT_PEAK` (error: the peak is the largest shear stress of the stage);
+    - H002 a stage with neither `SHBT_PEAK` nor `SHBT_RES` (warning);
+    - H003 `SHBT_NORM` of 0 or less (error).
+    - **Not rules**, for want of a threshold a source supports: `SHBT_PVST` or `SHBT_RVST` far from `SHBT_NORM`
+      (they differ legitimately when the lab corrects for the contact area; the dictionary's example is 100, 100 and
+      125) and a residual reached at a small displacement.
+    - **Minimum fields:** `LUCT`: `LUCT_UCS` required, `LUCT_STRA` recommended; `IVAN`: `LOCA_ID`, `IVAN_DPTH`,
+      `IVAN_IVAN` required, `IVAN_TYPE`, `IVAN_IVAR` recommended; `LVAN`: `LVAN_VNPK` required, `LVAN_TYPE`,
+      `LVAN_VNRM` recommended; `LPEN`: `LPEN_PPEN`; `IPEN`: `LOCA_ID`, `IPEN_DPTH`, `IPEN_IPEN`; `LFCN`: `LFCN_FCPK`
+      required, `LFCN_FCRM` recommended; `SHBG`: `SHBG_TYPE`, `SHBG_COND` recommended; `SHBT`: `SHBT_TESN`,
+      `SHBT_NORM` required, `SHBT_PEAK`, `SHBT_RES`, `SHBT_DISP` recommended; lab groups with the sample key, as §4.10.
+    - The letters: `Q` for undrained strength (`TRIG_TYPE`'s "quick undrained"), `H` for the shear box; `U` (units)
+      and `S` (SPT) are taken.
+17. **Depth:** lab tests by the §6.2 rule; `IVAN_DPTH` and `IPEN_DPTH` as test depths (`test_depth`, as `IDEN`).
+    SPEC §8.2 gains the row.
+
+### Sources
+- **AGS 4.2 dictionary** (python-ags4 1.2.0, `Standard_dictionary_v4_2.ags`), checked 2026-11-01: the headings,
+  units and descriptions quoted in the intent's evidence; the pick lists `TRIG_TYPE`, `IVAN_TYPE`, `LVAN_TYPE`,
+  `LUCT_TYPE` and `SHBG_TYPE`.
+- **s_u = q / 2** is derived, not cited. With φu = 0 the total-stress envelope is the horizontal line τ = s_u. It
+  touches a Mohr circle of center s and radius t = (σ1 − σ3)/2 at its top, so s_u = t = q / 2 for any cell
+  pressure; unconfined compression is the case σ3 = 0, so s_u = q_u / 2.
+- **Sensitivity**, S_t = s_u / s_u,r: the definition (page 05's header). No coefficient.
+- **Hoek, E. (2023)**, *Practical Rock Engineering*, ch. 4, "Shear strength of discontinuities", Rocscience: eqs.
+  1–8 (pp. 2, 5, 6), p. 10, Table 1 (p. 11, after Barton 1974), Fig. 8 (p. 12). [V] in sheet 22; page 22 quotes
+  only what the sheet marks [V], and nothing of this unit's code depends on it.
+- **ASTM D5607-16**: withdrawn in 2025 with no replacement ([V] status, sheet 22 [4]).
+- **Standard gravity and the US units** are exact by definition (P00 §4): 1 psf = 47.880259 Pa.
+
+### Acceptance criteria
+Golden values hand-calculated from the test files' values; 1 psf = 0.047880259 kPa. Tolerance 1e-9 relative unless
+a criterion says otherwise.
+1. **UU (`site_si.ags`, BH1-U4):** deviator 120, 124, 118 kPa give s_u 60, 62, 59 kPa, basis `half_deviator_stress`,
+   `test_type` UU, `source` lab, `cell_pressure` 100, 200, 300, and `reported_undrained_shear_strength` 60, 62, 59
+   (`TRIT_CU`, new in the file). The depths and geology are `p.triaxial()`'s for the same stages.
+2. **Unconfined compression (BH1-U1):** `LUCT_UCS` 96 kPa gives s_u 48 kPa, basis
+   `half_unconfined_compressive_strength`, `test_type` "unconfined compression", `sample_condition` UNDISTURBED.
+3. **Vanes and fall cone:** field vane BH2 at 3.00 m (`BOREHOLE`) 42 and 14 kPa gives `strength_sensitivity` 3.0,
+   depth 3.00 with `depth_basis` `test_depth`, source field; at 6.00 m 55 and 22 kPa gives 2.5; laboratory vane on
+   BH2-U2 (`LV`) 38 and 12 kPa gives 3.1666667 (1e-7); fall cone on BH1-U3, 30 and 9 kPa, gives 3.3333333 (1e-7);
+   each `as_reported`.
+4. **Hand penetrometer:** `LPEN_PPEN` 45 kPa on BH1-U1 is s_u 45, `as_reported`. `IPEN` in BH3 at 0.50 and 0.80 m,
+   150 and `>200` kPa: with no `hand_penetrometer_scale=`, both rows are left out with the warning naming the
+   argument, and the other rows come back; with `"unconfined_compressive_strength"`, s_u 75 and 100 with
+   `qualifier` ">" on the second, basis `half_hand_penetrometer_reading`; with `"undrained_shear_strength"`, 150 and
+   200 with ">".
+5. **US display:** s_u 60 kPa reads 1253.1261 psf and 48 kPa 1002.5008 psf (1e-6 relative, the precision of the
+   hand calculation); sensitivity is unchanged.
+6. **Twins:** `site_si.ags` and `site_us.ags` give equal `p.undrained_strength()` and `p.shear_box()` (1e-9
+   relative) for each `display_units`, and no Q or H finding.
+7. **Never pooled by accident:** `ht.stats.describe(p.undrained_strength(), value="undrained_shear_strength")` raises
+   naming each `test_type` and `source` and its count; with `by="test_type"` it runs, one group per test.
+8. **Flags (`joins.ags`):** a field vane with `IVAN_IVAN` `>120` and `IVAN_IVAR` 30 has `qualifier` ">",
+   `remolded_qualifier` blank and a blank sensitivity, with the warning; `describe()` of
+   `remolded_undrained_shear_strength` counts it as a plain value, and of `undrained_shear_strength` as censored.
+   A remolded value of 0 gives a blank sensitivity, counted in the same warning.
+9. **Blank types:** an `IVAN` row with `IVAN_TYPE` blank has `test_type` "in situ vane, type not given".
+10. **The analysis on a CSV:** on a frame in `ht.template("strength")`'s shape with criterion 1's, 2's and 3's inputs,
+    `ht.analysis.undrained_shear_strength_from_tests()` gives the same s_u, basis and sensitivity as the dataset. It
+    raises, naming the rows, on a deviator stress of 0, on a row with both `deviator_stress_at_failure` and
+    `undrained_shear_strength`, on a hand penetrometer reading without the scale, and on a strength in a length
+    unit.
+11. **Shear box (`site_si.ags`, BH2-D1, `SMALL SBOX`, `RECOMPACTED`):** three stages at `SHBT_NORM` 50, 100, 200 kPa
+    with peak 38, 68, 128 and residual 30, 58, 112 kPa give three rows with `test_stage` "1", "2", "3",
+    `applied_normal_stress` and `normal_stress_at_peak` equal, the lab's `SHBG_PCOH` 8 kPa and `SHBG_PHI` 31.0° as
+    `reported_peak_cohesion` and `reported_peak_friction_angle` on each, and `SHBT_BDEN` 1.95 Mg/m³ as
+    `bulk_unit_weight` 19.1229675 kN/m³. In US display the peak 68 kPa reads 1420.2095 psf (1e-6) and `SHBT_DISP`
+    0.024 mm/min reads 0.00094488189 in/min (0.024 / 25.4).
+12. **Rock joint and ring shear (`joins.ags`):** a test with `SHBG_ENCA` "Resin", `SHBT_DIA1`/`DIA2` and stresses
+    in MPa comes back in display units, with `encapsulation` and both diameters as written and nothing labeling it
+    a rock joint; a `SMALL RSHEAR` test with only `SHBT_RES` has a blank peak and is kept.
+13. **QC (`qc_defects.ags`):** each Q and H rule raises exactly the findings its case seeds (qc.md §8). Q001's case
+    (`TRIT_CU` 70 with `TRIT_DEVF` 120) gives an expected 60 kPa and a difference of 10 kPa in its message; `TRIT_CU`
+    61 with the same deviator raises nothing. The tolerance takes a quantity string in psf as well as kPa.
+14. **Good files stay clean:** the three good files raise no Q, H or C001 finding; their info findings gain nothing
+    but C002 where a recommended heading is blank.
+15. **Empty:** a file with none of the undrained groups gives an empty `p.undrained_strength()` with every column and
+    the warning "No TRIT, LUCT, LVAN, LPEN, LFCN, IVAN or IPEN group"; with no `SHBT`, an empty `p.shear_box()` and
+    "No SHBT group". An `SHBG` with no `SHBT` rows gives no row.
+16. **Incomplete:** an `IVAN` row with `IVAN_IVAN` blank is left out with the §7 warning, and kept by
+    `include_incomplete=True` with a blank s_u.
+17. **Feeds the plots:** `ht.plot.profile(p.undrained_strength(), "undrained_shear_strength", color_by="test_type")`
+    and `ht.plot.geology_unit_comparison(p.undrained_strength(), "undrained_shear_strength")` run on the good files
+    with no warning beyond "mixes sources" on P07 (SPEC §5).
+18. **Templates and registry:** `ht.template("strength")` and `ht.template("shear_box")` are their datasets' columns
+    without decision 14's, in the same order (`tests/test_registry.py`); every new column has a description,
+    quantity and AGS source.
+19. **Common arguments:** `depth=`, `geology=`, `holes=` and `where={"test_type": "UU"}` filter both datasets as §2
+    says.
+20. **Reference:** `undrained_shear_strength_from_tests` in the API reference, with the docstring checklist of the
+    sheets' `TEMPLATE.md`; page 22 builds with `zensical build --clean --strict`.
