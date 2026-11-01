@@ -1,6 +1,7 @@
 """Triaxial failure rows from readings during shearing (M11 c; P12 §4)."""
 
 from collections.abc import Mapping
+from typing import NamedTuple
 
 import numpy as np
 import pandas as pd
@@ -153,6 +154,22 @@ def triaxial_failure_from_readings(
     ...     ht.analysis.triaxial_failure_stresses(stages)
     ... )
     """
+    return reduce_readings(df, failure_criterion, units).rows
+
+
+class Reduced(NamedTuple):
+    """The readings, their stages, each stage's failure reading and the rows."""
+
+    readings: "Readings"
+    stages: dict[tuple, np.ndarray]
+    picks: dict[tuple, int]
+    rows: pd.DataFrame
+
+
+def reduce_readings(
+    df: pd.DataFrame, failure_criterion: str | None, units: Mapping[str, str] | None
+) -> Reduced:
+    """``triaxial_failure_from_readings()``, keeping what P12 draws from."""
     if not isinstance(df, pd.DataFrame):
         raise HangtuError(f"df must be a pandas DataFrame, not {type(df).__name__}.")
     if failure_criterion is not None and failure_criterion not in CRITERIA:
@@ -183,7 +200,8 @@ def triaxial_failure_from_readings(
             )
     else:
         picks = readings.marks(stages, marked)
-    return readings.failure_rows(stages, picks, failure_criterion)
+    rows = readings.failure_rows(stages, picks, failure_criterion)
+    return Reduced(readings, stages, picks, rows)
 
 
 class Readings:
