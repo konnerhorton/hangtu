@@ -100,9 +100,6 @@ Open research points:
 
 ---
 
-### 50. Anderson–Darling p-values on heavily tied values · You + Claude · `docs/work/m15c-fit.md` (Decision 7) · with M15 (d) or M18
-The Anderson–Darling check assumes continuous values. N60 takes few distinct values (whole blows × a factor), and the ties read as misfit: the example Alluvium's 30 tests take 6 distinct values, and every fit's p-value is 0.001–0.014 although the Q-Q plot shows a reasonable fit. The statistics guide warns about it; `fit()` doesn't. Options: a note when a group has few distinct values (the threshold to decide, e.g. fewer than half its n), leaving the AD columns blank there as for censored values, or a check that allows for discreteness. Decide what counts as "heavily tied" first.
-
 ## Plots
 
 ### 23. Text in P07's value column · You + Claude · P07 §3, §11

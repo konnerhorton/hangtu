@@ -74,3 +74,20 @@ def test_the_same_data_give_the_same_p_value(normal_30):
 
 def test_the_notes_say_what_a_p_value_means(normal_30):
     assert any("evidence against" in note for note in normal_30.notes)
+
+
+def test_tied_values_get_a_note():
+    # TODO #50: 6 distinct values among 30, as the example Alluvium's N60.
+    tied = np.repeat([10.0, 12.5, 15.0, 17.5, 20.0, 25.0], 5)
+    result = ht.stats.fit(tied, distributions=["normal"])
+    assert (
+        "All: 6 distinct values among 30. The Anderson-Darling check assumes "
+        "continuous values and reads ties as misfit, so its p-values are likely "
+        "too small. Compare the fits by AICc and the Q-Q plot."
+    ) in result.notes
+    # The p-values are still reported.
+    assert _fits(result)["normal"]["anderson_darling_p_value"] > 0
+
+
+def test_distinct_values_get_no_tie_note(normal_30):
+    assert not any("distinct values among" in note for note in normal_30.notes)
