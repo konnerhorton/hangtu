@@ -98,15 +98,6 @@ Open research points:
 
 ---
 
-### 49. Refusals with a known penetration in `fit()` · You · SPEC §5, `docs/work/m15c-fit.md` (Decision 3) · before M18
-`fit()` takes a refusal as right-censored at its N60: "at least the cap", with no upper limit, so how far the fitted tail reaches above the cap is the distribution's assumption, not the data's. In the example Terrace, 11 of 40 tests are refusals at N60 66.7, and the fits put 24–27 % of their probability above it (lognormal P99 137).
-
-The penetration says more. Every Terrace refusal is 50 blows for 11 in of total penetration (`spt_penetration` is seating plus test drive), so about 5 in into the 12 in test drive; scaled to a foot that is N ≈ 120, N60 ≈ 160, well above the cap. Whether the 50 blows include the seating drive depends on how the file reports them. Options:
-1. Keep right-censoring (today): honest, but it ignores the penetration.
-2. Interval-censor each refusal between the cap and an extrapolated N60 from its penetration. Extrapolating blows isn't standard practice, so this is a judgment and needs a source or a judgment key (SPEC §4).
-3. A judged upper limit for refusals per geology unit (a judgment, with no default).
-Which one matters most for selection (M18): a characteristic value of N is sensitive to this tail.
-
 ### 50. Anderson–Darling p-values on heavily tied values · You + Claude · `docs/work/m15c-fit.md` (Decision 7) · with M15 (d) or M18
 The Anderson–Darling check assumes continuous values. N60 takes few distinct values (whole blows × a factor), and the ties read as misfit: the example Alluvium's 30 tests take 6 distinct values, and every fit's p-value is 0.001–0.014 although the Q-Q plot shows a reasonable fit. The statistics guide warns about it; `fit()` doesn't. Options: a note when a group has few distinct values (the threshold to decide, e.g. fewer than half its n), leaving the AD columns blank there as for censored values, or a check that allows for discreteness. Decide what counts as "heavily tied" first.
 
@@ -212,8 +203,8 @@ Today the estimates draw on one P01 profile by `correlation_name`, and a blank e
 
 Proposed: two panels, not one axes with twinned x axes. A second x axis on the same profile makes the reader match each marker to one of two unrelated scales; the input and estimate markers interleave at the same depths, and the axis limits of each are arbitrary relative to the other. Two panels keep one quantity per axis (P01's contract) and still line up by depth. Open: a helper (`ht.plot.correlation_profile(est, ...)`) or a recipe in the correlations guide using `ht.Sheet` with `ax=`; `Sheet` has no shared vertical axis yet, so either needs one (matching depth limits across panels).
 
-### 51. Comparing groups with censored values · You + Claude · SPEC §5, `docs/work/m15d-compare.md` (Decision 7) · before M18
-`compare()` and `compare_groups()` take refusals and `<x`/`>x` at their value and count them, with a note that the means, and so Welch's results, are biased; the ranks treat a common cap as tied at the top, closer to right but not right either. A group that is all bounds at one value isn't tested. Tests made for censored data compare groups properly: the Gehan and Peto–Prentice generalized Wilcoxon tests, and the score tests of survival analysis (Helsel et al. 2020, ch. 13, is a starting point). Decide which, and whether `fit()`'s censored likelihood (M15 (c)) gives a parametric counterpart.
+### 51. Comparing groups with censored values · You + Claude · SPEC §5, `docs/work/m15d-compare.md` (Decision 7) · when a lab dataset needs it
+`compare()` and `compare_groups()` take censored values at their value and count them, with a note that the means, and so Welch's results, are biased; the ranks treat a common bound as tied, and order bounds at different values as if they were measured. Statistics are designed for lab data (SPEC §5), so the cases that matter are lab ones: s_u from a hand vane or pocket penetrometer at the instrument's maximum (`>x`), hydraulic conductivity below what the test resolves (`<x`), percent passing `<x`. SPT refusals aren't the reason to build this. Candidates (Helsel et al. 2020, ch. 13): the Peto–Prentice generalized Wilcoxon test for values censored in one direction, preferred to Gehan's when censoring differs between groups, with a k-group form for `compare_groups()` (not in SciPy, about 50 lines and a hand-checked golden value); a likelihood ratio test from `fit()`'s censored likelihood (M15 (c)), one distribution against one per group, as the parametric counterpart; no test, with a note, when a comparison has values censored both ways. Build when a lab dataset with censored values needs a comparison.
 
 ### 52. Chance-corrected agreement in `crosstab()` · You · SPEC §5, `docs/work/m15e-crosstab.md` (intent, out of scope) · when a use appears
 `crosstab()` reports the share of rows that agree and lists the rest, with no test or kappa: a log and a lab classification of the same soil are plainly related, and Cohen's kappa assumes the two classifications were made independently, which a log written after the lab results isn't. Revisit if a use appears where they are independent (two loggers, two labs), and decide then whether kappa, weighted kappa for ordered classes, or another measure fits, with its interval.
