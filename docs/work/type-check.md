@@ -105,7 +105,7 @@ How each error is fixed: a wrong annotation is changed to what the code returns 
 ### Step 1: `type-check: configure mypy and ship py.typed`
 - `pyproject.toml`: `mypy>=2.4.1` and `types-PyYAML` in `dev`; `[tool.mypy]` and the override from Decision 1. `uv lock`.
 - `src/hangtu/py.typed`, empty.
-- Before this step, record the suite's pass/skip/xfail counts on `c61d9eb` here (AC4).
+- Baseline on `5639507` (AC4): 3,411 passed, no skips or xfails.
 - AC5: `uv build`, and the wheel lists `hangtu/py.typed`.
 
 ### Step 2: `type-check: fix annotations in ags and the top-level modules`
