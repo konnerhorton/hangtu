@@ -29,7 +29,7 @@ from hangtu.plot._limits import (
     set_linear_axis,
     set_log_axis,
 )
-from hangtu.plot._notes import Notes, edge_markers
+from hangtu.plot._notes import Notes, edge_markers, figure_of
 from hangtu.plot._overlays import (
     ValueScale,
     draw_design_lines,
@@ -96,7 +96,7 @@ def _room_below_data(ax: Axes, box: Text, lowest: float) -> None:
     (the deepest depth, or the lowest elevation). The bottom limit moves out
     to a nice value; the top limit only rounds out to the same step.
     """
-    figure = ax.figure
+    figure = figure_of(ax)
     figure.draw_without_rendering()  # runs the layout, so sizes are final
     renderer = figure.canvas.get_renderer()
     box_top = box.get_bbox_patch().get_window_extent(renderer).y1
@@ -662,7 +662,7 @@ def _draw_profile(
         if ax is None:
             fig, ax = _new_axes(figsize)
         else:
-            fig = ax.figure
+            fig = figure_of(ax)
         style.style_axes(ax)
 
         covered = x[drawn] if companion is None else np.append(x[drawn], companion.x)

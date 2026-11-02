@@ -16,7 +16,7 @@ from hangtu.errors import HangtuError
 from hangtu.plot import _layers, _values
 from hangtu.plot._labels import axis_label
 from hangtu.plot._limits import nice_limits
-from hangtu.plot._notes import Notes
+from hangtu.plot._notes import Notes, figure_of
 from hangtu.plot._overlays import format_number
 
 ENVELOPE_COLOR = "black"
@@ -126,9 +126,9 @@ def set_axes(
     ax.grid(True, which="major")
     # Equal aspect leaves one axis short of the space it has; extend it
     # (P11 §6), which also gives the result box room above the envelope.
-    ax.figure.draw_without_rendering()
+    figure_of(ax).draw_without_rendering()
     box = ax.get_position(original=True)
-    width, height = ax.figure.get_size_inches()
+    width, height = figure_of(ax).get_size_inches()
     ratio = (box.height * height) / (box.width * width)
     if ylim[0] + (xlim[1] - xlim[0]) * ratio > ylim[1]:
         ax.set_ylim(ylim[0], ylim[0] + (xlim[1] - xlim[0]) * ratio)

@@ -27,7 +27,7 @@ from hangtu.errors import ColumnError, HangtuError
 from hangtu.plot import _layers, _values, style
 from hangtu.plot._hints import hint_missing
 from hangtu.plot._legend import add_legend, check_legend
-from hangtu.plot._notes import Notes
+from hangtu.plot._notes import Notes, figure_of
 from hangtu.plot._plasticity_chart import _check_color_by, _draw_specimens
 from hangtu.plot._spt_profile import _check_choice
 
@@ -278,7 +278,7 @@ def clogging_diagram(
                 layout="constrained",
             )
         else:
-            fig = ax.figure
+            fig = figure_of(ax)
         style.style_axes(ax)
         _set_axes(ax, box)
         _draw_zones(ax, figure, zone_labels)

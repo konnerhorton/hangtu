@@ -20,6 +20,7 @@ from hangtu.plot._notes import (
     Notes,
     Placement,
     below_x_label,
+    figure_of,
     renderer,
 )
 
@@ -115,7 +116,7 @@ def add_legend(
     # The footnote below the x label shortens the axes, so it takes its room
     # before the layout engine sets the axes' final size.
     footnote = notes.render(ax, where="inside")
-    ax.figure.draw_without_rendering()
+    figure_of(ax).draw_without_rendering()
     legend = _inside(ax, handles, labels)
     counts = _corner_obstacles(ax, legend, exclude={footnote})
     if footnote is not None:
@@ -144,7 +145,9 @@ def _right(ax: Axes, handles: list[Artist], labels: list[str], offset: float) ->
         labels=labels,
         loc="upper left",
         bbox_to_anchor=(1.02, 1.0),
-        bbox_transform=offset_copy(ax.transAxes, ax.figure, x=offset, units="points"),
+        bbox_transform=offset_copy(
+            ax.transAxes, figure_of(ax), x=offset, units="points"
+        ),
         borderaxespad=0.0,
         frameon=False,
         fontsize=8,
@@ -159,7 +162,7 @@ def _bottom(ax: Axes, handles: list[Artist], labels: list[str]) -> Legend:
         loc="upper center",
         bbox_to_anchor=(0.5, 0.0),
         bbox_transform=offset_copy(
-            ax.transAxes, ax.figure, y=-below_x_label(ax), units="points"
+            ax.transAxes, figure_of(ax), y=-below_x_label(ax), units="points"
         ),
         borderaxespad=0.0,
         frameon=False,
@@ -191,8 +194,8 @@ def _corner_obstacles(
     their radius), line segments crossing the box, data patches, and texts;
     artists below ``_layers.LINES`` (bands, regions, envelopes) don't count.
     """
-    draw = renderer(ax.figure)
-    pad = CLEARANCE * ax.figure.dpi / 72
+    draw = renderer(figure_of(ax))
+    pad = CLEARANCE * figure_of(ax).dpi / 72
     points, radii, lines, shapes, boxes = _obstacles(ax, draw, exclude)
     counts = {}
     for corner in CORNERS:
@@ -220,7 +223,7 @@ def _obstacles(
 
     Marker centers and radii, polylines, filled shapes, and text boxes.
     """
-    to_pixels = ax.figure.dpi / 72
+    to_pixels = figure_of(ax).dpi / 72
     points, radii, lines, shapes, boxes = [], [], [], [], []
 
     def counted(artist: Artist) -> bool:

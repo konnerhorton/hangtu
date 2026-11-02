@@ -27,7 +27,7 @@ from hangtu.plot import _envelopes, _fraction_band, _layers, _values, style
 from hangtu.plot._hints import hint_missing
 from hangtu.plot._legend import add_legend, check_legend
 from hangtu.plot._limits import clear_of_data, log_limits, set_log_axis
-from hangtu.plot._notes import Notes, edge_markers
+from hangtu.plot._notes import Notes, edge_markers, figure_of
 from hangtu.plot._palette import AUTOMATIC
 from hangtu.plot._plasticity_chart import _check_color_by
 
@@ -458,7 +458,7 @@ def grain_size(
                 layout="constrained",
             )
         else:
-            fig = ax.figure
+            fig = figure_of(ax)
         style.style_axes(ax)
         _set_axes(ax, limits, reverse)
         # The strip first, so it sits between the frame and the band.

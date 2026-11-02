@@ -18,7 +18,7 @@ from hangtu import units as _units
 from hangtu._data import numeric_column, rows_text
 from hangtu.errors import ColumnError
 from hangtu.plot import _layers, _values
-from hangtu.plot._notes import edge_markers
+from hangtu.plot._notes import edge_markers, figure_of
 
 BAR_WIDTH = 1.2  # points
 END = "|"  # a bar's end drawn at the edge of fixed limits
@@ -129,7 +129,9 @@ def shifted(ax: Axes, points: float) -> Transform:
     """Return data coordinates moved ``points`` up the page."""
     if not points:
         return ax.transData
-    return ax.transData + ScaledTranslation(0, points / 72, ax.figure.dpi_scale_trans)
+    return ax.transData + ScaledTranslation(
+        0, points / 72, figure_of(ax).dpi_scale_trans
+    )
 
 
 def draw(

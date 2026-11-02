@@ -26,7 +26,7 @@ from hangtu.plot._baseline import Baseline, legend_text, read_baseline
 from hangtu.plot._labels import axis_label
 from hangtu.plot._legend import add_legend, check_legend
 from hangtu.plot._limits import set_linear_axis, set_log_axis
-from hangtu.plot._notes import ARROW_LENGTH, Notes, edge_markers
+from hangtu.plot._notes import ARROW_LENGTH, Notes, edge_markers, figure_of
 from hangtu.plot._overlays import ValueScale, draw_note, draw_reference_lines
 from hangtu.plot._palette import data_order, resolve_palette
 from hangtu.plot._presets import Preset
@@ -490,7 +490,7 @@ def _legend_offset(ax: Axes, counts: Sequence[Artist]) -> float:
     """Return the space in points the legend needs to clear the count labels."""
     if not counts:
         return 0.0
-    figure = ax.figure
+    figure = figure_of(ax)
     figure.draw_without_rendering()
     renderer = figure.canvas.get_renderer()
     right = ax.get_window_extent(renderer).x1
@@ -784,7 +784,7 @@ def geology_unit_comparison(
         if ax is None:
             fig, ax = _new_axes(figsize)
         else:
-            fig = ax.figure
+            fig = figure_of(ax)
         panel = _draw_panel(
             ax,
             df,

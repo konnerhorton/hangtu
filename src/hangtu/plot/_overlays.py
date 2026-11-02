@@ -23,6 +23,7 @@ from matplotlib.transforms import blended_transform_factory, offset_copy
 from hangtu._data import numeric_column, rows_text
 from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.plot import _layers
+from hangtu.plot._notes import figure_of
 from hangtu.plot._palette import resolve_palette
 from hangtu.plot._vertical import VS, Vertical, convert_pair, convert_vertical
 from hangtu.stats._describe import Summary, summarize
@@ -209,7 +210,7 @@ def draw_strata(
         data_palette={**strata.attrs.get("palette", {}), **(data_palette or {})},
     )
     edge = blended_transform_factory(ax.transAxes, ax.transData)
-    below_top = offset_copy(edge, ax.figure, y=-2, units="points")
+    below_top = offset_copy(edge, figure_of(ax), y=-2, units="points")
     for unit, t, b in zip(units, top, base, strict=True):
         if np.isnan(t):
             continue
@@ -284,7 +285,9 @@ def _water_symbol(ax: Axes, x: float, y: float) -> None:
         markeredgecolor=WATER_COLOR,
         markeredgewidth=WATER_WIDTH,
         linestyle="none",
-        transform=offset_copy(edge, ax.figure, y=WATER_SYMBOL_SIZE / 2, units="points"),
+        transform=offset_copy(
+            edge, figure_of(ax), y=WATER_SYMBOL_SIZE / 2, units="points"
+        ),
         clip_on=True,
         zorder=_layers.WATER_LEVEL,
     )
@@ -297,7 +300,7 @@ def _water_label(ax: Axes, x: float, y: float, text: str) -> None:
         y,
         text,
         transform=offset_copy(
-            edge, ax.figure, x=-WATER_SYMBOL_SIZE, y=1, units="points"
+            edge, figure_of(ax), x=-WATER_SYMBOL_SIZE, y=1, units="points"
         ),
         ha="right",
         va="bottom",
@@ -425,7 +428,7 @@ def _top_label(
         y,
         text,
         transform=offset_copy(
-            transform, ax.figure, x=shift, y=2 if above_axes else -2, units="points"
+            transform, figure_of(ax), x=shift, y=2 if above_axes else -2, units="points"
         ),
         ha=ha,
         va="bottom" if above_axes else "top",
@@ -771,7 +774,9 @@ def draw_stats_box(
         0.02,
         0.02,
         "\n".join(lines),
-        transform=offset_copy(ax.transAxes, ax.figure, y=above_note, units="points"),
+        transform=offset_copy(
+            ax.transAxes, figure_of(ax), y=above_note, units="points"
+        ),
         ha="left",
         va="bottom",
         fontsize=TEXT_SIZE,

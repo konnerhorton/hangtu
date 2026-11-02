@@ -22,7 +22,7 @@ from hangtu.plot import _layers, _values, style
 from hangtu.plot._labels import axis_label
 from hangtu.plot._legend import add_legend
 from hangtu.plot._limits import nice_limits
-from hangtu.plot._notes import Notes
+from hangtu.plot._notes import Notes, figure_of
 from hangtu.plot._palette import resolve_palette
 from hangtu.plot._spt_profile import _check_choice
 from hangtu.registry import _entry
@@ -196,7 +196,7 @@ def triaxial_shearing(
                 layout="constrained",
             )
         else:
-            fig = ax.figure
+            fig = figure_of(ax)
         style.style_axes(ax)
         notes = Notes()
         labels, colors = _stage_colors(reduced, group_by, color_by)

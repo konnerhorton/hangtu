@@ -19,7 +19,7 @@ from hangtu.plot import _envelope_drawing as envelope
 from hangtu.plot import _layers, _values, style
 from hangtu.plot._hints import hint_missing
 from hangtu.plot._legend import add_legend
-from hangtu.plot._notes import Notes
+from hangtu.plot._notes import Notes, figure_of
 from hangtu.plot._palette import resolve_palette
 from hangtu.plot._spt_profile import _check_choice
 
@@ -182,7 +182,7 @@ def failure_envelope(
                 layout="constrained",
             )
         else:
-            fig = ax.figure
+            fig = figure_of(ax)
         style.style_axes(ax)
         notes = Notes()
         colors = _colors(df, result, color_by)
