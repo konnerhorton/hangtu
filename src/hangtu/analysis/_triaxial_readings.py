@@ -402,7 +402,9 @@ class Readings:
         known = [c for c in order if c in result.columns]
         result = result[known + [c for c in result.columns if c not in known]]
         declared = {**_units.units_of(df), **self.units}
-        units = {c: u for c, u in declared.items() if c in result.columns}
+        units: dict[str, str | None] = {
+            c: u for c, u in declared.items() if c in result.columns
+        }
         units.update(
             dict.fromkeys(
                 ["deviator_stress_at_failure", "pore_pressure_at_failure"],

@@ -55,7 +55,7 @@ def _where(column: str | None) -> str:
     return f" for column {column!r}" if column else ""
 
 
-def parse_unit(text: str, column: str | None = None) -> pint.Unit:
+def parse_unit(text: str | None, column: str | None = None) -> pint.Unit:
     """Read a unit string, in the lookup order of P00 §4.2.
 
     1. The alias table (``units/aliases.yaml`` plus ``ht.add_unit_alias``).

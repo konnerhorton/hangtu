@@ -103,7 +103,7 @@ def _check_d_values(d_values: Any) -> tuple[int, ...]:
         if (
             not isinstance(value, Integral)
             or isinstance(value, bool)
-            or not 1 <= value <= 99
+            or not 1 <= value <= 99  # type: ignore[operator]
         ):
             raise HangtuError(
                 "d_values must be whole-number percentages from 1 to 99, not "

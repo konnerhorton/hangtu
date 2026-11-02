@@ -216,6 +216,8 @@ def uscs(df: pd.DataFrame) -> pd.DataFrame:
 
     symbols: list[str | None] = []
     reasons: dict[str, int] = {}
+    symbol: str | None
+    reason: str | None
     for i in range(len(df)):
         values = (gravel[i] * scale[i], sand[i] * scale[i], fines[i] * scale[i])
         if any(np.isnan(value) or np.isinf(value) for value in values):
@@ -272,7 +274,7 @@ def _group_index(group: str, fines: float, liquid: float, index: float) -> float
         value = plastic_part
     else:
         value = (fines - 35) * (0.2 + 0.005 * (liquid - 40)) + plastic_part
-    return float(max(_half_up(np.array(value)), 0.0))
+    return max(float(_half_up(np.array(value))), 0.0)
 
 
 def aashto(df: pd.DataFrame) -> pd.DataFrame:
