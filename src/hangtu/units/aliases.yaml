@@ -64,6 +64,7 @@
 "m/hr": "meter / hour"
 "mm/s": "millimeter / second"
 "mm/min": "millimeter / minute"
+"in/min": "inch / minute"                 # US shear box displacement rate (M17 a)
 "%/hr": "percent / hour"
 "%/min": "percent / minute"
 "degC": "degC"                           # AGS 4.0.x spelling of DegC

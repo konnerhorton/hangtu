@@ -63,6 +63,7 @@ UNIT_DESCRIPTIONS = {
     "um": "micrometre",
     "mm:ss": "minutes seconds",
     "MPa": "megapascal",
+    "mm/min": "millimetres per minute",
     "deg": "degree",
     "GPa": "gigapascal",
     "Ft": "foot (wrong case)",
@@ -113,6 +114,13 @@ ABBR = [
     ("TREG_COND", "UNDISTURBED", "Undisturbed"),
     ("TRIG_TYPE", "UU", "Unconsolidated quick undrained (single stage)"),
     ("TRIG_COND", "UNDISTURBED", "Undisturbed"),
+    ("LUCT_TYPE", "UNDISTURBED", "Undisturbed"),
+    ("LVAN_TYPE", "LV", "Laboratory vane"),
+    ("IVAN_TYPE", "BOREHOLE", "Borehole vane"),
+    ("SHBG_TYPE", "SMALL SBOX", "Small Shearbox"),
+    ("SHBG_TYPE", "SMALL RSHEAR", "Small Ring shear"),
+    ("SHBG_COND", "RECOMPACTED", "Recompacted"),
+    ("SHBG_COND", "UNDISTURBED", "Undisturbed"),
 ]
 
 
@@ -653,17 +661,199 @@ TRIT_HEADINGS = [
     ("TRIT_BDEN", "2DP", "Mg/m3"),
     ("TRIT_DDEN", "2DP", "Mg/m3"),
     ("TRIT_STRN", "2SF", "%"),
+    ("TRIT_CU", "0DP", "kPa"),
     ("TRIT_REM", "X", ""),
 ]
 TRIT = group(
     "TRIT",
     TRIT_HEADINGS,
     [
-        [*BH1_U4, "1", 8.05, "1", "34", 100, 120, 1.90, 1.42, 12, None],
-        [*BH1_U4, "2", 8.15, "1", "33", 200, 124, 1.91, 1.44, 14, None],
-        [*BH1_U4, "3", 8.25, "1", "35", 300, 118, 1.89, 1.40, 15, None],
+        [*BH1_U4, "1", 8.05, "1", "34", 100, 120, 1.90, 1.42, 12, 60, None],
+        [*BH1_U4, "2", 8.15, "1", "33", 200, 124, 1.91, 1.44, 14, 62, None],
+        [*BH1_U4, "3", 8.25, "1", "35", 300, 118, 1.89, 1.40, 15, 59, None],
     ],
-    us=[*SPECIMEN_US, "TRIT_CELL", "TRIT_DEVF", "TRIT_BDEN", "TRIT_DDEN"],
+    us=[*SPECIMEN_US, "TRIT_CELL", "TRIT_DEVF", "TRIT_BDEN", "TRIT_DDEN", "TRIT_CU"],
+)
+
+# Undrained strength (M17 a, docs/work/m17a-strength-data.md). Hand values:
+# - BH1-U4's UU stages above: s_u = q_f / 2 = 60, 62, 59 kPa, as TRIT_CU.
+# - BH1-U1: LUCT_UCS 96 kPa, so s_u = 48 kPa; LPEN_PPEN 45 kPa, an s_u.
+# - BH2-U2: a laboratory vane (LV), 38 and 12 kPa: S_t = 38 / 12 = 3.1666667.
+# - BH1-U3: a fall cone, 30 and 9 kPa: S_t = 30 / 9 = 3.3333333.
+# - BH2 at 3.00 m and 6.00 m: borehole vanes, 42 / 14 = 3.0 and 55 / 22 = 2.5.
+# - BH2 at 0.50 m and 0.80 m: hand penetrometer readings 150 and >200 kPa.
+LUCT = group(
+    "LUCT",
+    [
+        *SPECIMEN,
+        ("LUCT_TYPE", "PA", ""),
+        ("LUCT_IWC", "X", "%"),
+        ("LUCT_BDEN", "2DP", "Mg/m3"),
+        ("LUCT_DDEN", "2DP", "Mg/m3"),
+        ("LUCT_UCS", "0DP", "kPa"),
+        ("LUCT_STRA", "2SF", "%"),
+        ("LUCT_REM", "X", ""),
+    ],
+    [[*BH1_U1, "UNDISTURBED", "26", 1.94, 1.54, 96, 8.5, None]],
+    us=[*SPECIMEN_US, "LUCT_BDEN", "LUCT_DDEN", "LUCT_UCS"],
+)
+LVAN = group(
+    "LVAN",
+    [
+        *SPECIMEN,
+        ("LVAN_VNPK", "0DP", "kPa"),
+        ("LVAN_VNRM", "0DP", "kPa"),
+        ("LVAN_MC", "X", "%"),
+        ("LVAN_TYPE", "PA", ""),
+    ],
+    [[*BH2_U2, 38, 12, "31", "LV"]],
+    us=[*SPECIMEN_US, "LVAN_VNPK", "LVAN_VNRM"],
+)
+LPEN = group(
+    "LPEN",
+    [*SPECIMEN, ("LPEN_PPEN", "0DP", "kPa"), ("LPEN_MC", "X", "%")],
+    [[*BH1_U1, 45, "26"]],
+    us=[*SPECIMEN_US, "LPEN_PPEN"],
+)
+LFCN = group(
+    "LFCN",
+    [
+        *SPECIMEN,
+        ("LFCN_FCPK", "1DP", "kPa"),
+        ("LFCN_FCRM", "1DP", "kPa"),
+        ("LFCN_WC", "X", "%"),
+    ],
+    [["BH1", 5.00, "3", "U", "BH1-U3", "4", 5.30, 30.0, 9.0, "30"]],
+    us=[*SPECIMEN_US, "LFCN_FCPK", "LFCN_FCRM"],
+)
+IVAN = group(
+    "IVAN",
+    [
+        ("LOCA_ID", "ID", ""),
+        ("IVAN_DPTH", "2DP", "m"),
+        ("IVAN_TESN", "X", ""),
+        ("IVAN_TYPE", "PA", ""),
+        ("IVAN_IVAN", "0DP", "kPa"),
+        ("IVAN_IVAR", "0DP", "kPa"),
+    ],
+    [
+        ["BH2", 3.00, "1", "BOREHOLE", 42, 14],
+        ["BH2", 6.00, "2", "BOREHOLE", 55, 22],
+    ],
+    us=["IVAN_DPTH", "IVAN_IVAN", "IVAN_IVAR"],
+)
+IPEN = group(
+    "IPEN",
+    [
+        ("LOCA_ID", "ID", ""),
+        ("IPEN_DPTH", "2DP", "m"),
+        ("IPEN_TESN", "X", ""),
+        ("IPEN_IPEN", "XN", "kPa"),
+    ],
+    [["BH2", 0.50, "1", "150"], ["BH2", 0.80, "2", ">200"]],
+    us=["IPEN_DPTH", "IPEN_IPEN"],
+)
+UNDRAINED = [LUCT, LVAN, LPEN, LFCN, IVAN, IPEN]
+
+# Shear box (M17 a, datasets.md §6.12): a recompacted small shear box set of
+# three stages on BH2-D1, at SHBT_NORM 50, 100 and 200 kPa, with peak 38, 68
+# and 128 and residual 30, 58 and 112 kPa; SHBT_PVST and SHBT_RVST equal to
+# SHBT_NORM. SHBT_BDEN 1.95 Mg/m3 is a unit weight of 1.95 × 9.80665 =
+# 19.1229675 kN/m3; SHBT_DISP 0.024 mm/min. The lab's fit is c 8 kPa, φ 31.0°
+# (peak) and c 2 kPa, φ 28.5° (residual).
+BH2_D1_S = ["BH2", 2.00, "1", "D", "BH2-D1", "S1", 2.10]
+SHBG = group(
+    "SHBG",
+    [
+        *SPECIMEN,
+        ("SHBG_TYPE", "PA", ""),
+        ("SHBG_COND", "PA", ""),
+        ("SHBG_PCOH", "0DP", "kPa"),
+        ("SHBG_PHI", "1DP", "deg"),
+        ("SHBG_RCOH", "0DP", "kPa"),
+        ("SHBG_RPHI", "1DP", "deg"),
+        ("SHBG_REM", "X", ""),
+    ],
+    [[*BH2_D1_S, "SMALL SBOX", "RECOMPACTED", 8, 31.0, 2, 28.5, None]],
+    us=[*SPECIMEN_US, "SHBG_PCOH", "SHBG_RCOH"],
+)
+SHBT_HEADINGS = [
+    *SPECIMEN,
+    ("SHBT_TESN", "X", ""),
+    ("SHBT_BDEN", "2DP", "Mg/m3"),
+    ("SHBT_DDEN", "2DP", "Mg/m3"),
+    ("SHBT_NORM", "0DP", "kPa"),
+    ("SHBT_DISP", "3DP", "mm/min"),
+    ("SHBT_DISR", "3DP", "mm/min"),
+    ("SHBT_REVS", "0DP", ""),
+    ("SHBT_PEAK", "0DP", "kPa"),
+    ("SHBT_RES", "0DP", "kPa"),
+    ("SHBT_PDIS", "2DP", "mm"),
+    ("SHBT_RDIS", "2DP", "mm"),
+    ("SHBT_PDIN", "2DP", "mm"),
+    ("SHBT_RDIN", "2DP", "mm"),
+    ("SHBT_PDEN", "XN", "Mg/m3"),
+    ("SHBT_IVR", "3DP", ""),
+    ("SHBT_MCI", "X", "%"),
+    ("SHBT_MCF", "X", "%"),
+    ("SHBT_HGT", "1DP", "mm"),
+    ("SHBT_CRIT", "X", ""),
+    ("SHBT_REM", "X", ""),
+    ("SHBT_PVST", "0DP", "kPa"),
+    ("SHBT_RVST", "0DP", "kPa"),
+]
+SHBT_US = [
+    *SPECIMEN_US,
+    "SHBT_BDEN",
+    "SHBT_DDEN",
+    "SHBT_NORM",
+    "SHBT_PEAK",
+    "SHBT_RES",
+    "SHBT_PDIS",
+    "SHBT_RDIS",
+    "SHBT_PDIN",
+    "SHBT_RDIN",
+    "SHBT_PDEN",
+    "SHBT_HGT",
+    "SHBT_PVST",
+    "SHBT_RVST",
+]
+SHBT = group(
+    "SHBT",
+    SHBT_HEADINGS,
+    [
+        [
+            *BH2_D1_S,
+            tesn,
+            1.95,
+            1.62,
+            norm,
+            0.024,
+            0.120,
+            3,
+            peak,
+            res,
+            pdis,
+            rdis,
+            pdin,
+            rdin,
+            "2.68",
+            0.650,
+            "20",
+            "22",
+            20.0,
+            "Maximum shear stress",
+            None,
+            norm,
+            norm,
+        ]
+        for tesn, norm, peak, res, pdis, rdis, pdin, rdin in [
+            ("1", 50, 38, 30, 2.10, 12.00, 0.30, -0.40),
+            ("2", 100, 68, 58, 2.60, 12.40, 0.10, -0.60),
+            ("3", 200, 128, 112, 3.40, 12.80, -0.15, -0.90),
+        ]
+    ],
+    us=SHBT_US,
 )
 
 CPTP = group(
@@ -906,6 +1096,11 @@ def site_groups(us=False):
         TRET,
         TRIG,
         TRIT,
+        # Before the undrained groups, so its specimen key is the same in the
+        # 4.0.4 file, which has no LFCN (whose specimen comes first otherwise).
+        SHBG,
+        SHBT,
+        *UNDRAINED,
     ]
 
 
@@ -1213,7 +1408,69 @@ def qc_defects_groups():
     trig = group(  # X005: a TRIG with no TRIT rows
         "TRIG",
         [*SPECIMEN, ("TRIG_TYPE", "PA", ""), ("TRIG_COND", "PA", "")],
-        [["BH3", 1.00, "1", "B", "BH3-B1", "T2", 1.30, "UU", "UNDISTURBED"]],
+        [
+            ["BH3", 1.00, "1", "B", "BH3-B1", "T2", 1.30, "UU", "UNDISTURBED"],
+            ["BH2", 1.00, "1", "U", "BH2-U1", "T9", 1.25, "UU", "UNDISTURBED"],
+        ],
+    )
+    # Undrained strength (M17 a, qc.md §4.13):
+    # - Q001: TRIT_CU 70 with TRIT_DEVF 120 (q_f / 2 = 60, 10 kPa off);
+    # - Q002: LVAN_VNRM 25 above LVAN_VNPK 20;
+    # - Q003: LUCT_UCS 0.
+    trit = group(
+        "TRIT",
+        [
+            *SPECIMEN,
+            ("TRIT_TESN", "X", ""),
+            ("TRIT_CELL", "0DP", "kPa"),
+            ("TRIT_DEVF", "0DP", "kPa"),
+            ("TRIT_STRN", "2SF", "%"),
+            ("TRIT_CU", "0DP", "kPa"),
+        ],
+        [["BH2", 1.00, "1", "U", "BH2-U1", "T9", 1.25, "1", 100, 120, 12, 70]],
+    )
+    lvan = group(
+        "LVAN",
+        [
+            *SPECIMEN,
+            ("LVAN_VNPK", "0DP", "kPa"),
+            ("LVAN_VNRM", "0DP", "kPa"),
+            ("LVAN_TYPE", "PA", ""),
+        ],
+        [["BH4", 2.30, "1", "U", "BH4-U1", "V1", 2.40, 20, 25, "LV"]],
+    )
+    luct = group(
+        "LUCT",
+        [*SPECIMEN, ("LUCT_UCS", "0DP", "kPa"), ("LUCT_STRA", "2SF", "%")],
+        [["BH4", 4.00, "2", "U", "BH4-U2", "C1", 4.10, 0, 5.0]],
+    )
+    # Shear box (M17 a, qc.md §4.14), three stages on BH1-U1:
+    # - H001: SHBT_RES 60 above SHBT_PEAK 50;
+    # - H002: SHBT_PEAK and SHBT_RES both blank;
+    # - H003: SHBT_NORM 0.
+    shbg = group(
+        "SHBG",
+        [*SPECIMEN, ("SHBG_TYPE", "PA", ""), ("SHBG_COND", "PA", "")],
+        [["BH1", 1.00, "1", "U", "BH1-U1", "H1", 1.10, "SMALL SBOX", "UNDISTURBED"]],
+    )
+    shbt = group(
+        "SHBT",
+        [
+            *SPECIMEN,
+            ("SHBT_TESN", "X", ""),
+            ("SHBT_NORM", "0DP", "kPa"),
+            ("SHBT_DISP", "3DP", "mm/min"),
+            ("SHBT_PEAK", "0DP", "kPa"),
+            ("SHBT_RES", "0DP", "kPa"),
+        ],
+        [
+            ["BH1", 1.00, "1", "U", "BH1-U1", "H1", 1.10, tesn, norm, 0.024, peak, res]
+            for tesn, norm, peak, res in [
+                ("1", 50, 50, 60),
+                ("2", 100, None, None),
+                ("3", 0, 10, 8),
+            ]
+        ],
     )
     return [
         loca,
@@ -1231,6 +1488,11 @@ def qc_defects_groups():
         treg,
         tret,
         trig,
+        trit,
+        luct,
+        lvan,
+        shbg,
+        shbt,
     ]
 
 
@@ -1452,7 +1714,79 @@ def joins_groups():
             ]
         ],
     )
-    return [loca, geol, samp, ispt, llpl, lnmc, grag, grat, lden, lpdn, treg, tret]
+    # Field vanes in J1's Alluvium (M17 a, datasets.md §6.11):
+    # - 2.50 m: a peak beyond the vane's range (>120) with a remolded 30: a blank
+    #   sensitivity, counted in the warning.
+    # - 3.00 m: a remolded value of 0: a blank sensitivity, in the same warning.
+    # - 3.50 m: no IVAN_TYPE: test_type "in situ vane, type not given".
+    # - 4.00 m: IVAN_IVAN blank: incomplete (C001), left out by default.
+    ivan = group(
+        "IVAN",
+        [
+            ("LOCA_ID", "ID", ""),
+            ("IVAN_DPTH", "2DP", "m"),
+            ("IVAN_TESN", "X", ""),
+            ("IVAN_TYPE", "PA", ""),
+            ("IVAN_IVAN", "XN", "kPa"),
+            ("IVAN_IVAR", "XN", "kPa"),
+        ],
+        [
+            ["J1", 2.50, "1", "BOREHOLE", ">120", "30"],
+            ["J1", 3.00, "2", "BOREHOLE", "55", "0"],
+            ["J1", 3.50, "3", None, "40", "10"],
+            ["J1", 4.00, "4", "BOREHOLE", None, "12"],
+        ],
+    )
+    # Shear box cases (M17 a, datasets.md §6.12):
+    # - J1-U3 R1: a rock joint, set in resin, with SHBT_DIA1 and SHBT_DIA2 and
+    #   its stresses in MPa (0.5 and 0.42 MPa: 500 and 420 kPa).
+    # - J1-D2 R2: a small ring shear test with only a residual stress, 21 kPa.
+    shbg = group(
+        "SHBG",
+        [
+            *SPECIMEN,
+            ("SHBG_TYPE", "PA", ""),
+            ("SHBG_COND", "PA", ""),
+            ("SHBG_ENCA", "X", ""),
+        ],
+        [
+            [*j1_u3, "R1", 6.20, None, "UNDISTURBED", "Resin"],
+            [*j1_d2, "R2", 3.20, "SMALL RSHEAR", "RECOMPACTED", None],
+        ],
+    )
+    shbt = group(
+        "SHBT",
+        [
+            *SPECIMEN,
+            ("SHBT_TESN", "X", ""),
+            ("SHBT_NORM", "2DP", "MPa"),
+            ("SHBT_PEAK", "2DP", "MPa"),
+            ("SHBT_RES", "3DP", "MPa"),
+            ("SHBT_DIA1", "1DP", "mm"),
+            ("SHBT_DIA2", "1DP", "mm"),
+        ],
+        [
+            [*j1_u3, "R1", 6.20, "1", 0.50, 0.42, None, 85.2, 89.3],
+            [*j1_d2, "R2", 3.20, "1", 0.10, None, 0.021, None, None],
+        ],
+    )
+    return [
+        loca,
+        geol,
+        samp,
+        ispt,
+        llpl,
+        lnmc,
+        grag,
+        grat,
+        lden,
+        lpdn,
+        treg,
+        tret,
+        ivan,
+        shbg,
+        shbt,
+    ]
 
 
 #: Geology map for the test files (datasets.md §5.2). BED is left out on purpose.
@@ -1490,6 +1824,12 @@ def main(out=HERE):
         without(TRET, "TRET_BACK", "TRET_BVAL", "TRET_IVR"),
         TRIG,
         TRIT,
+        SHBG,
+        without(SHBT, "SHBT_PVST", "SHBT_RVST"),
+        without(LVAN, "LVAN_TYPE"),  # LUCT, LFCN and LVAN_TYPE are 4.1's
+        LPEN,
+        IVAN,
+        IPEN,
     ]
     write_file(out / "site_v404.ags", "4.0.4", v404)
     # V000: unknown version

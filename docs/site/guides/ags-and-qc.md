@@ -22,7 +22,7 @@ The vertical datum comes from the file when the file is clear about it: when eve
 
 ## Checking the data
 
-`p.qc()` runs about 40 rules on locations, geology, depths, SPT, Atterberg limits, grading and permeability, and on the fields each group needs. Printed, the report counts findings by rule. `report.findings` is a table of every finding with its hole, depth and line in the file, and `report.to_csv("qc_report.csv")` saves it, with the rules used in `qc_report_rules.csv`.
+`p.qc()` runs about 60 rules on locations, geology, depths, SPT, Atterberg limits, grading, permeability, density, triaxial, undrained strength (Q) and shear box (H) results, and on the fields each group needs. Printed, the report counts findings by rule. `report.findings` is a table of every finding with its hole, depth and line in the file, and `report.to_csv("qc_report.csv")` saves it, with the rules used in `qc_report_rules.csv`.
 
 Rules can be changed or turned off for a project, for example a tolerance with its unit:
 

@@ -30,7 +30,11 @@ templates:
   # without those only hangtu produces (SPEC §2.6; tests/test_registry.py).
   profile:        [loca_id, depth, elevation, ground_level, geology_unit, source]   # plus the user's value column
   permeability:   [loca_id, ground_level, depth, depth_top, depth_base, depth_basis, elevation, hydraulic_conductivity, qualifier, source, test_type, geology_unit, soil_class, geology_description]
-  strength:       [loca_id, depth, ground_level, elevation, undrained_shear_strength, qualifier, test_type, geology_unit]
+  # One row per shear box stage, p.shear_box()'s columns without source_line (M17 a).
+  shear_box:      [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, test_type, test_stage, sample_condition, encapsulation, failure_criterion, applied_normal_stress, normal_stress_at_peak, normal_stress_at_residual, peak_shear_stress, residual_shear_stress, horizontal_displacement_at_peak, horizontal_displacement_at_residual, vertical_displacement_at_peak, vertical_displacement_at_residual, peak_displacement_rate, residual_displacement_rate, shear_traverses, specimen_height, specimen_diameter_along_shear, specimen_diameter_across_shear, water_content, final_water_content, bulk_unit_weight, dry_unit_weight, particle_density, particle_density_assumed, void_ratio, reported_peak_cohesion, reported_peak_friction_angle, reported_residual_cohesion, reported_residual_friction_angle, test_remarks, remarks, geology_unit, soil_class, geology_description]
+  # The strength template is p.undrained_strength()'s columns without those the
+  # analysis adds (M17 a, docs/work/m17a-strength-data.md Decision 14).
+  strength:       [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, source, test_type, test_stage, multistage_test, sample_condition, undrained_shear_strength, qualifier, remolded_undrained_shear_strength, remolded_qualifier, reported_undrained_shear_strength, cell_pressure, deviator_stress_at_failure, unconfined_compressive_strength, hand_penetrometer_reading, axial_strain_at_failure, water_content, bulk_unit_weight, dry_unit_weight, test_remarks, remarks, geology_unit, soil_class, geology_description]
   index:          [loca_id, depth, ground_level, elevation, water_content, bulk_unit_weight, geology_unit]
   spt:            [loca_id, ground_level, depth, depth_basis, elevation, spt_n, spt_n60, energy_ratio, spt_refusal, spt_penetration, remarks, geology_unit, soil_class, geology_description]
   atterberg:      [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, depth_top, depth_base, liquid_limit, plastic_limit, plasticity_index, non_plastic, water_content, geology_unit, soil_class, geology_description]
@@ -271,13 +275,13 @@ columns:
   test_type:
     description: Test method, e.g. falling head, packer, UU, torvane
     type: text
-    ags: [PTST.PTST_TYPE, FGHG.FGHG_TYPE, IPRG.IPRG_TYPE, LPDN.LPDN_TYPE, LDEN.LDEN_TYPE, IDEN.IDEN_TYPE, TREG.TREG_TYPE, TRIG.TRIG_TYPE]
+    ags: [PTST.PTST_TYPE, FGHG.FGHG_TYPE, IPRG.IPRG_TYPE, LPDN.LPDN_TYPE, LDEN.LDEN_TYPE, IDEN.IDEN_TYPE, TREG.TREG_TYPE, TRIG.TRIG_TYPE, IVAN.IVAN_TYPE, LVAN.LVAN_TYPE, SHBG.SHBG_TYPE]
     used_by: [P01]
     statistics: {role: source}
   remarks:
     description: Remarks the file gives for the record
     type: text
-    ags: [LOCA.LOCA_REM, ISPT.ISPT_REM, TRET.TRET_REM, TRIT.TRIT_REM]
+    ags: [LOCA.LOCA_REM, ISPT.ISPT_REM, TRET.TRET_REM, TRIT.TRIT_REM, LUCT.LUCT_REM, LVAN.LVAN_REM, LPEN.LPEN_REM, LFCN.LFCN_REM, IVAN.IVAN_REM, IPEN.IPEN_REM, SHBT.SHBT_REM]
     used_by: []
   source_line:
     description: Line of the record in the AGS file, to check a value against the file
@@ -309,15 +313,66 @@ columns:
     quantity: stress
     scale: ratio
     label: Undrained shear strength, s_u
-    ags: [TRIT.TRIT_CU, IVAN.IVAN_IVAN, LVAN.LVAN_VNPK]   # to verify against the 4.2 dictionary
+    ags: ["derived: q_f / 2 or q_u / 2, docs/work/m17a-strength-data.md", IVAN.IVAN_IVAN, LVAN.LVAN_VNPK, LPEN.LPEN_PPEN, LFCN.LFCN_FCPK]
     used_by: [P01, P07]
+  undrained_shear_strength_basis:
+    description: How s_u was found (half_deviator_stress, half_unconfined_compressive_strength, half_hand_penetrometer_reading, hand_penetrometer_reading, as_reported)
+    type: text
+    ags: ["derived: ht.analysis.undrained_shear_strength_from_tests()"]
+    used_by: []
+  reported_undrained_shear_strength:
+    description: The lab's own s_u for a test hangtu computes s_u from (TRIT_CU beside q_f / 2)
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Reported undrained shear strength, s_u
+    ags: [TRIT.TRIT_CU]
+    used_by: []
+  unconfined_compressive_strength:
+    description: Unconfined compressive strength of a soil specimen, q_u (not rock's uniaxial compressive strength)
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Unconfined compressive strength, q_u
+    ags: [LUCT.LUCT_UCS]
+    used_by: []
+  hand_penetrometer_reading:
+    description: A hand penetrometer's reading as written, s_u or q_u by the instrument (IPEN_IPEN)
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Hand penetrometer reading
+    ags: [IPEN.IPEN_IPEN]
+    used_by: []
+  strength_sensitivity:
+    description: Sensitivity, the peak over the remolded undrained shear strength of one test
+    type: number
+    quantity: dimensionless
+    scale: ratio
+    label: Sensitivity, S_t = s_u / s_u,r
+    ags: ["derived: ht.analysis.undrained_shear_strength_from_tests()"]
+    used_by: []
+  remolded_undrained_shear_strength:
+    description: Undrained shear strength of the soil remolded, from the same test as the peak (vane, fall cone)
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Remolded undrained shear strength, s_u,r
+    ags: [IVAN.IVAN_IVAR, LVAN.LVAN_VNRM, LFCN.LFCN_FCRM]
+    used_by: [P01, P07]
+  remolded_qualifier:
+    description: '"<" or ">" when the true remolded strength is below or above the reported value; empty otherwise'
+    type: text
+    ags: ["derived: value flags LT / GT"]
+    used_by: []
+    statistics: {role: qualifier, values: [remolded_undrained_shear_strength]}
   water_content:
     description: Water (moisture) content
     type: number
     quantity: percent
     scale: ratio
     label: Water content, w
-    ags: [LNMC.LNMC_MC, LDEN.LDEN_MC, IDEN.IDEN_MC, TRET.TRET_IMC, TRIT.TRIT_IMC]
+    ags: [LNMC.LNMC_MC, LDEN.LDEN_MC, IDEN.IDEN_MC, TRET.TRET_IMC, TRIT.TRIT_IMC, LUCT.LUCT_IWC, LVAN.LVAN_MC, LPEN.LPEN_MC, LFCN.LFCN_WC, SHBT.SHBT_MCI]
     used_by: [P01, P06, P07]
   bulk_unit_weight:
     description: Bulk unit weight
@@ -325,7 +380,7 @@ columns:
     quantity: unit_weight
     scale: ratio
     label: Bulk unit weight, γ
-    ags: ["derived: LDEN.LDEN_BDEN × g", "derived: IDEN.IDEN_IDEN × g", "derived: TRET.TRET_BDEN × g", "derived: TRIT.TRIT_BDEN × g"]
+    ags: ["derived: LDEN.LDEN_BDEN × g", "derived: IDEN.IDEN_IDEN × g", "derived: TRET.TRET_BDEN × g", "derived: TRIT.TRIT_BDEN × g", "derived: LUCT.LUCT_BDEN × g", "derived: SHBT.SHBT_BDEN × g"]
     used_by: [P01, P07]
   saturated_unit_weight:
     description: Saturated unit weight, used below the water level
@@ -341,12 +396,12 @@ columns:
     quantity: unit_weight
     scale: ratio
     label: Dry unit weight, γ_d
-    ags: ["derived: LDEN.LDEN_DDEN × g", "derived: TRET.TRET_DDEN × g", "derived: TRIT.TRIT_DDEN × g", "derived: ht.analysis.phase_relations()"]
+    ags: ["derived: LDEN.LDEN_DDEN × g", "derived: TRET.TRET_DDEN × g", "derived: TRIT.TRIT_DDEN × g", "derived: ht.analysis.phase_relations()", "derived: LUCT.LUCT_DDEN × g", "derived: SHBT.SHBT_DDEN × g"]
     used_by: []
   sample_condition:
     description: The specimen's condition as tested (UNDISTURBED, RECOMPACTED)
     type: text
-    ags: [LDEN.LDEN_COND, TREG.TREG_COND, TRIG.TRIG_COND]
+    ags: [LDEN.LDEN_COND, TREG.TREG_COND, TRIG.TRIG_COND, LUCT.LUCT_TYPE, SHBG.SHBG_COND]
     used_by: []
   stabilizer_content:
     description: Stabilizer added to the ground before a field density test
@@ -362,7 +417,7 @@ columns:
     quantity: density
     scale: ratio
     label: Particle density, ρ_s
-    ags: [LPDN.LPDN_PDEN]
+    ags: [LPDN.LPDN_PDEN, SHBT.SHBT_PDEN]
     used_by: []
   particle_density_assumed:
     description: True if the file marked the particle density as assumed (#)
@@ -399,7 +454,7 @@ columns:
     quantity: dimensionless
     scale: ratio
     label: Void ratio, e
-    ags: [TRET.TRET_IVR, "derived: ht.analysis.phase_relations()"]
+    ags: [TRET.TRET_IVR, "derived: ht.analysis.phase_relations()", SHBT.SHBT_IVR]
     used_by: [P01, P07]
   porosity:
     description: Porosity, volume of voids / total volume
@@ -995,7 +1050,7 @@ columns:
   test_stage:
     description: Stage of a test, as the file names it (a single-stage test has one)
     type: text
-    ags: [TRET.TRET_TESN, TRIT.TRIT_TESN]
+    ags: [TRET.TRET_TESN, TRIT.TRIT_TESN, IVAN.IVAN_TESN, IPEN.IPEN_TESN, SHBT.SHBT_TESN]
     used_by: []
   multistage_test:
     description: The test is multistage, by its type or by its specimen having more than one stage
@@ -1005,7 +1060,7 @@ columns:
   failure_criterion:
     description: The lab's failure criterion, as written (e.g. maximum deviator stress)
     type: text
-    ags: [TREG.TREG_FCR]
+    ags: [TREG.TREG_FCR, SHBT.SHBT_CRIT]
     used_by: []
   effective_consolidation_stress:
     description: Effective stress at the end of consolidation, the start of shearing
@@ -1024,12 +1079,12 @@ columns:
     ags: [TRET.TRET_BVAL]
     used_by: []
   axial_strain_at_failure:
-    description: Axial strain at failure of a triaxial stage
+    description: Axial strain at failure of a triaxial stage or an unconfined compression test
     type: number
     quantity: percent
     scale: ratio
     label: Axial strain at failure, ε_af
-    ags: [TRET.TRET_STRN, TRIT.TRIT_STRN]
+    ags: [TRET.TRET_STRN, TRIT.TRIT_STRN, LUCT.LUCT_STRA]
     used_by: []
   volumetric_strain_at_failure:
     description: Volumetric strain at failure of a drained triaxial stage
@@ -1055,10 +1110,176 @@ columns:
     label: Reported effective cohesion, c′
     ags: [TREG.TREG_COH]
     used_by: []
+  # --- Shear box (M17 a, docs/work/m17a-strength-data.md) ---
+  encapsulation:
+    description: How the specimen was set in the shear box, as written (resin, plaster), for rock joints
+    type: text
+    ags: [SHBG.SHBG_ENCA]
+    used_by: []
+  applied_normal_stress:
+    description: Normal stress applied to a shear box stage
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Applied normal stress, σ_n
+    ags: [SHBT.SHBT_NORM]
+    used_by: []
+  normal_stress_at_peak:
+    description: Normal stress on the shear plane at the peak shear stress
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Normal stress at peak, σ_n,p
+    ags: [SHBT.SHBT_PVST]
+    used_by: []
+  normal_stress_at_residual:
+    description: Normal stress on the shear plane at the residual shear stress
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Normal stress at residual, σ_n,r
+    ags: [SHBT.SHBT_RVST]
+    used_by: []
+  peak_shear_stress:
+    description: Peak shear stress of a shear box stage
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Peak shear stress, τ_p
+    ags: [SHBT.SHBT_PEAK]
+    used_by: []
+  residual_shear_stress:
+    description: Residual shear stress of a shear box stage
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Residual shear stress, τ_r
+    ags: [SHBT.SHBT_RES]
+    used_by: []
+  horizontal_displacement_at_peak:
+    description: Horizontal (shear) displacement at the peak shear stress
+    type: number
+    quantity: small_length
+    scale: ratio
+    label: Horizontal displacement at peak
+    ags: [SHBT.SHBT_PDIS]
+    used_by: []
+  horizontal_displacement_at_residual:
+    description: Horizontal (shear) displacement at the residual shear stress
+    type: number
+    quantity: small_length
+    scale: ratio
+    label: Horizontal displacement at residual
+    ags: [SHBT.SHBT_RDIS]
+    used_by: []
+  vertical_displacement_at_peak:
+    description: Vertical displacement at the peak shear stress, sign as the file gives it
+    type: number
+    quantity: small_length
+    scale: interval
+    label: Vertical displacement at peak
+    ags: [SHBT.SHBT_PDIN]
+    used_by: []
+  vertical_displacement_at_residual:
+    description: Vertical displacement at the residual shear stress, sign as the file gives it
+    type: number
+    quantity: small_length
+    scale: interval
+    label: Vertical displacement at residual
+    ags: [SHBT.SHBT_RDIN]
+    used_by: []
+  peak_displacement_rate:
+    description: Displacement rate of the stage sheared to its peak
+    type: number
+    quantity: displacement_rate
+    scale: ratio
+    label: Displacement rate to peak
+    ags: [SHBT.SHBT_DISP]
+    used_by: []
+  residual_displacement_rate:
+    description: Displacement rate of the residual stage
+    type: number
+    quantity: displacement_rate
+    scale: ratio
+    label: Displacement rate, residual
+    ags: [SHBT.SHBT_DISR]
+    used_by: []
+  shear_traverses:
+    description: Number of traverses of a residual shear box test
+    type: number
+    quantity: count
+    scale: ratio
+    label: Number of traverses
+    ags: [SHBT.SHBT_REVS]
+    used_by: []
+  specimen_height:
+    description: Height of the test specimen
+    type: number
+    quantity: small_length
+    scale: ratio
+    label: Specimen height
+    ags: [SHBT.SHBT_HGT]
+    used_by: []
+  specimen_diameter_along_shear:
+    description: Specimen diameter in the direction of shear (rock joints)
+    type: number
+    quantity: small_length
+    scale: ratio
+    label: Specimen diameter along shear
+    ags: [SHBT.SHBT_DIA1]
+    used_by: []
+  specimen_diameter_across_shear:
+    description: Specimen diameter perpendicular to shear (rock joints)
+    type: number
+    quantity: small_length
+    scale: ratio
+    label: Specimen diameter across shear
+    ags: [SHBT.SHBT_DIA2]
+    used_by: []
+  final_water_content:
+    description: Water content of the specimen after the test
+    type: number
+    quantity: percent
+    scale: ratio
+    label: Final water content, w_f
+    ags: [SHBT.SHBT_MCF]
+    used_by: []
+  reported_peak_cohesion:
+    description: The lab's peak cohesion intercept for a shear box test, its own fit
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Reported peak cohesion, c_p
+    ags: [SHBG.SHBG_PCOH]
+    used_by: []
+  reported_peak_friction_angle:
+    description: The lab's peak friction angle for a shear box test, its own fit
+    type: number
+    quantity: angle
+    scale: ratio
+    label: Reported peak friction angle, φ_p
+    ags: [SHBG.SHBG_PHI]
+    used_by: []
+  reported_residual_cohesion:
+    description: The lab's residual cohesion intercept for a shear box test
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Reported residual cohesion, c_r
+    ags: [SHBG.SHBG_RCOH]
+    used_by: []
+  reported_residual_friction_angle:
+    description: The lab's residual friction angle for a shear box test
+    type: number
+    quantity: angle
+    scale: ratio
+    label: Reported residual friction angle, φ_r
+    ags: [SHBG.SHBG_RPHI]
+    used_by: []
   test_remarks:
     description: Remarks the file gives for the test as a whole, apart from each record's
     type: text
-    ags: [TREG.TREG_REM, TRIG.TRIG_REM]
+    ags: [TREG.TREG_REM, TRIG.TRIG_REM, SHBG.SHBG_REM]
     used_by: []
   # Readings during shearing (M11 c, docs/work/m11c-triaxial-shearing.md): one
   # row per strain step, from a CSV the user shapes. Bare names, against the

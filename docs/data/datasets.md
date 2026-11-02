@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | done (M7); the M8 additions (classification columns in §6.2, §6.5 and §6.6) done; M14 (a)'s §6.8–6.9 done; M11 (a)'s §6.10 done |
-| **Intent** | [`docs/work/m7-datasets.md`](../work/m7-datasets.md#intent); M8: [`docs/work/m8-index-plots.md`](../work/m8-index-plots.md#intent); M14 (a): [`docs/work/m14a-density-data.md`](../work/m14a-density-data.md) (decisions and acceptance criteria); M11 (a): [`docs/work/m11a-triaxial-data.md`](../work/m11a-triaxial-data.md) |
+| **Status** | done (M7); the M8 additions (classification columns in §6.2, §6.5 and §6.6) done; M14 (a)'s §6.8–6.9 done; M11 (a)'s §6.10 done; M17 (a)'s §6.11–6.12 done |
+| **Intent** | [`docs/work/m7-datasets.md`](../work/m7-datasets.md#intent); M8: [`docs/work/m8-index-plots.md`](../work/m8-index-plots.md#intent); M14 (a): [`docs/work/m14a-density-data.md`](../work/m14a-density-data.md) (decisions and acceptance criteria); M11 (a): [`docs/work/m11a-triaxial-data.md`](../work/m11a-triaxial-data.md); M17 (a): [`docs/work/m17a-strength-data.md`](../work/m17a-strength-data.md) |
 | **Parent** | SPEC §2.6 (units), §7 (data model), §8 (depth, elevation, geology), §10 (datasets, registry), §11 (errors) |
 | **Related** | [`ingest.md`](ingest.md) (canonical layer, value flags), [`qc.md`](qc.md) (C001, G004, D004/D005). `docs/drafts/analysis.md` §1 (SPT), §2–3 (classification, gradation). P01–P07 (the plots these feed) |
 
@@ -16,7 +16,7 @@ Turn a project's canonical tables into the DataFrames the plots take:
 
 **Added in M8:** the plasticity class columns in `p.atterberg()` (§6.2), `p.grain_size_summary()` (§6.5) and `p.index_properties()` (§6.6), built on the analyses in `docs/drafts/analysis.md` §2–3.
 
-**Not in scope:** settings export (`to_yaml()`) and stored QC overrides; datasets for other tests (undrained strength, consolidation); inclined holes (QC L004); changing the data (SPEC §1.4).
+**Not in scope:** settings export (`to_yaml()`) and stored QC overrides; datasets for other tests (consolidation); inclined holes (QC L004); changing the data (SPEC §1.4).
 
 ## 2. Public API
 ```python
@@ -38,6 +38,8 @@ strata = p.stratigraphy()                # §6.7, one row per GEOL layer
 density = p.density()                    # §6.8, lab and field unit weights (M14)
 rho_s = p.particle_density()             # §6.9 (M14)
 triaxial = p.triaxial()                  # §6.10, one row per stage at failure (M11 a)
+su = p.undrained_strength(hand_penetrometer_scale="unconfined_compressive_strength")  # §6.11 (M17 a)
+shear = p.shear_box()                    # §6.12, one row per stage (M17 a)
 
 p.set_judgments("judgments.yaml")        # the project's judgments file (SPEC §4)
 p.judgments                              # a Judgments, or None; datasets carry its path
@@ -368,13 +370,100 @@ One row per triaxial stage at failure: each `TRET` row (effective stress, parent
 - **No `TREG`/`TRIG` row** above a stage (a broken parent link, which python-ags4 reports as Rule 10): the stage is kept, with blank test type, criterion and the lab's fit.
 - With neither `TRET` nor `TRIT`, it is an empty frame with every column and the warning "No TRET or TRIT group". A `TREG` or `TRIG` with no stage rows gives no row; QC X005 reports it.
 
+### 6.11 `p.undrained_strength()` (M17 a)
+```python
+p.undrained_strength(hand_penetrometer_scale=None, **common)
+```
+One row per undrained strength result, from seven groups (`docs/work/m17a-strength-data.md`): `TRIT` (UU stages, through §6.10's build), `LUCT`, `LVAN`, `LPEN` and `LFCN` (lab), then `IVAN` and `IPEN` (field), each in file order. The tests are side by side, never combined or converted between: each measures its own s_u (page 05), and `test_type` and `source` keep them apart in the statistics (SPEC §5). s_u comes from `ht.analysis.undrained_shear_strength_from_tests()`, so CSV and AGS rows follow the same rules.
+
+| Group | `source` | `test_type` | Depth (`depth_basis`) | Input to s_u | Remolded |
+|---|---|---|---|---|---|
+| `TRIT` | `lab` | `TRIG_TYPE` (`UU`, `UUM`) | lab depth (§6.2) | `TRIT_DEVF` → `deviator_stress_at_failure` | – |
+| `LUCT` | `lab` | `unconfined compression` | lab depth | `LUCT_UCS` → `unconfined_compressive_strength` | – |
+| `LVAN` | `lab` | `LVAN_TYPE` (`HV`, `LV`, `TV`) | lab depth | `LVAN_VNPK` → `undrained_shear_strength` | `LVAN_VNRM` |
+| `LPEN` | `lab` | `hand penetrometer` | lab depth | `LPEN_PPEN` → `undrained_shear_strength` | – |
+| `LFCN` | `lab` | `fall cone` | lab depth | `LFCN_FCPK` → `undrained_shear_strength` | `LFCN_FCRM` |
+| `IVAN` | `field` | `IVAN_TYPE` (`BOREHOLE`, `CPT`, `FIELD`, `TORVANE`) | `IVAN_DPTH` (`test_depth`) | `IVAN_IVAN` → `undrained_shear_strength` | `IVAN_IVAR` |
+| `IPEN` | `field` | `hand penetrometer` | `IPEN_DPTH` (`test_depth`) | `IPEN_IPEN` → `hand_penetrometer_reading` | – |
+
+A blank type code gives `"total stress triaxial, type not given"`, `"laboratory vane, type not given"` or `"in situ vane, type not given"`, so `test_type` is never blank and two unknown tests never pool.
+
+| Column | From |
+|---|---|
+| `loca_id`, `specimen_id`, `sample_reference`, `specimen_reference` | As §6.2 for lab rows; blank but `loca_id` for `IVAN` and `IPEN` (parent `LOCA`) |
+| `ground_level`, `depth`, `depth_basis`, `elevation` | The table above |
+| `source`, `test_type` | The table above |
+| `test_stage` | `TRIT_TESN`, `IVAN_TESN`, `IPEN_TESN`, as text; blank for the others |
+| `multistage_test` | UU rows as §6.10; blank for the others |
+| `sample_condition` | `TRIG_COND`; `LUCT_TYPE` (its only dictionary code is `UNDISTURBED`, a condition) |
+| `undrained_shear_strength` | Below |
+| `qualifier` | `"<"` or `">"` where the input to s_u is flagged (`>20`), with the bound |
+| `undrained_shear_strength_basis` | How s_u was found: `half_deviator_stress`, `half_unconfined_compressive_strength`, `half_hand_penetrometer_reading`, `hand_penetrometer_reading` or `as_reported` |
+| `remolded_undrained_shear_strength`, `remolded_qualifier` | The table's remolded value and its flag |
+| `strength_sensitivity` | s_u / s_u,r, below |
+| `reported_undrained_shear_strength` | `TRIT_CU`: the lab's s_u, beside hangtu's q_f / 2 |
+| `cell_pressure`, `deviator_stress_at_failure` | `TRIT_CELL`, `TRIT_DEVF` |
+| `unconfined_compressive_strength` | `LUCT_UCS`, q_u |
+| `hand_penetrometer_reading` | `IPEN_IPEN` as written |
+| `axial_strain_at_failure` | `TRIT_STRN`, `LUCT_STRA` |
+| `water_content` | `TRIT_IMC`, `LUCT_IWC`, `LVAN_MC`, `LPEN_MC`, `LFCN_WC` |
+| `bulk_unit_weight`, `dry_unit_weight` | `TRIT_BDEN`, `TRIT_DDEN`, `LUCT_BDEN`, `LUCT_DDEN` × g |
+| `test_remarks`, `remarks` | `TRIG_REM`; `TRIT_REM`, `LUCT_REM`, `LVAN_REM`, `LPEN_REM`, `LFCN_REM`, `IVAN_REM`, `IPEN_REM` |
+
+- **s_u:** q_f / 2 for UU and q_u / 2 for unconfined compression (with φu = 0 the envelope touches each Mohr circle at its top, τ = t); as reported for the vanes, the fall cone and `LPEN_PPEN`, which the dictionary defines as an undrained shear strength. The basis column says which on every row.
+- **The hand penetrometer in situ (`IPEN_IPEN`)** is a "hand penetrometer result", and instruments read s_u or q_u, a factor of 2 apart. `hand_penetrometer_scale=` (`"undrained_shear_strength"` or `"unconfined_compressive_strength"`) says which; it has no default. Without it, `IPEN` rows are left out and counted in one warning: "Left out 4 IPEN results: IPEN_IPEN doesn't say whether the instrument read s_u or q_u. Check IPEN_METH and IPEN_REM, then pass hand_penetrometer_scale="undrained_shear_strength" or "unconfined_compressive_strength"."
+- **The lab's s_u** (`TRIT_CU`) is kept as `reported_undrained_shear_strength` and never used in place of q_f / 2; QC Q001 compares them.
+- **Field vane values are as measured:** Bjerrum's correction μ isn't applied (it is a judgment, applied in selection, M18).
+- **Sensitivity** is the peak over the remolded value of one test, where both are unflagged and the remolded value is above 0; otherwise it is blank, with one warning counting the rows. Both values stay.
+- **Two flags on one row:** `qualifier` is s_u's and `remolded_qualifier` the remolded value's, so the statistics read each value's own (SPEC §5).
+- **UU deviator stress of 0 or less** gives a blank s_u, with the warning of §6.10. `TRET_CU` (CU stages, s_u at the consolidation stress) isn't read: it is the SHANSEP input of wave 3.
+- With none of the seven groups, it is an empty frame with every column and the warning "No TRIT, LUCT, LVAN, LPEN, LFCN, IVAN or IPEN group".
+
+### 6.12 `p.shear_box()` (M17 a)
+```python
+p.shear_box(**common)
+```
+One row per `SHBT` stage, in file order, with its `SHBG` test's values on each: shear box and ring shear, soil and rock joint tests alike (`docs/work/m17a-strength-data.md`). An `SHBG` with no stage rows gives no row.
+
+| Column | From |
+|---|---|
+| `loca_id`, `specimen_id`, `sample_reference`, `specimen_reference` | As §6.2 |
+| `ground_level`, `depth`, `depth_basis`, `elevation` | Lab depth (§6.2) |
+| `test_type` | `SHBG_TYPE` as written (`SMALL SBOX`, `LARGE SBOX`, `SMALL RSHEAR`, `LARGE RSHEAR`) |
+| `test_stage` | `SHBT_TESN`, as text |
+| `sample_condition` | `SHBG_COND` |
+| `encapsulation` | `SHBG_ENCA` as written |
+| `failure_criterion` | `SHBT_CRIT` as written |
+| `applied_normal_stress` | `SHBT_NORM` |
+| `normal_stress_at_peak`, `normal_stress_at_residual` | `SHBT_PVST`, `SHBT_RVST` |
+| `peak_shear_stress`, `residual_shear_stress` | `SHBT_PEAK`, `SHBT_RES` |
+| `horizontal_displacement_at_peak`, `horizontal_displacement_at_residual` | `SHBT_PDIS`, `SHBT_RDIS` |
+| `vertical_displacement_at_peak`, `vertical_displacement_at_residual` | `SHBT_PDIN`, `SHBT_RDIN`, sign as written |
+| `peak_displacement_rate`, `residual_displacement_rate` | `SHBT_DISP`, `SHBT_DISR` |
+| `shear_traverses` | `SHBT_REVS` |
+| `specimen_height`, `specimen_diameter_along_shear`, `specimen_diameter_across_shear` | `SHBT_HGT`, `SHBT_DIA1`, `SHBT_DIA2` |
+| `water_content`, `final_water_content` | `SHBT_MCI`, `SHBT_MCF` |
+| `bulk_unit_weight`, `dry_unit_weight` | `SHBT_BDEN`, `SHBT_DDEN` × g (initial) |
+| `particle_density`, `particle_density_assumed` | `SHBT_PDEN`, with its `#` flag |
+| `void_ratio` | `SHBT_IVR` (initial) |
+| `reported_peak_cohesion`, `reported_peak_friction_angle` | `SHBG_PCOH`, `SHBG_PHI`: the lab's own fit, repeated on each stage |
+| `reported_residual_cohesion`, `reported_residual_friction_angle` | `SHBG_RCOH`, `SHBG_RPHI` |
+| `test_remarks`, `remarks` | `SHBG_REM`, `SHBT_REM` |
+
+- **All three normal stresses are kept** and none is chosen: `SHBT_NORM` is the stress applied, `SHBT_PVST` and `SHBT_RVST` the stress at peak and at residual, which differ where the lab corrects for the contact area. The fit (M17 b) chooses, and records its choice.
+- **Stages, not multistage tests.** `SHBT_TESN` is a "stage/specimen reference": a soil test's specimens are often entered as stages of one `SPEC_REF`, so the file doesn't say whether a set of rows is one specimen sheared several times. There is no `multistage_test` column; a user who knows can add one, and the fit reads it.
+- **No soil or rock joint label.** No heading says which a test is; `encapsulation` and the diameters suggest a rock joint but aren't markers. Tell them apart with `where=`, `geology=` or a pandas filter.
+- **No effective or total label.** A shear box measures no pore pressure; its stresses are effective only if it drained, which the rates suggest but don't prove. The names say what was measured.
+- **The lab's fit is repeated on each stage**, as §6.10's: summarize it on one row per specimen.
+- No `SHBT` group: an empty frame with every column and the warning "No SHBT group".
+
 ## 7. Incomplete records
 - A record is **incomplete** when QC C001 says so (with `SPEC_REF` and `SPEC_DPTH` recommended, §14): a `required` field of its own group in `qc/min_fields.yaml` is blank (qc.md §4.10). Only the dataset's source group is checked, not its parents: a hole with no `LOCA_GL` keeps its tests, with a blank elevation.
 - **Left out by default**, with one warning per call: "Left out 2 of 5 ISPT records with a blank required field (ISPT_NVAL on lines 98, 103). p.qc() lists them; include them with include_incomplete=True."
 - `include_incomplete=True` keeps them, with their blanks.
 
 ## 8. Warnings
-Each dataset call gives at most one warning per kind (`UserWarning`, as the rest of hangtu): the missing group (§2), the missing geology key (§5.1), unmapped codes (§5.2), overlapping layers (§5.4), records left out (§7), specimens with several water contents (§6.2), samples with several particle density specimens (§6.8), and triaxial stages with the back pressure as u_f, extension tests or a deviator stress of 0 or less (§6.10). A call on the good test files with a complete map gives none, but for `p.triaxial()`'s back pressure count: BH2-U2's stage 2 has `TRET_PWPF` blank on purpose.
+Each dataset call gives at most one warning per kind (`UserWarning`, as the rest of hangtu): the missing group (§2), the missing geology key (§5.1), unmapped codes (§5.2), overlapping layers (§5.4), records left out (§7), specimens with several water contents (§6.2), samples with several particle density specimens (§6.8), triaxial stages with the back pressure as u_f, extension tests or a deviator stress of 0 or less (§6.10), and hand penetrometer results left out without a scale or sensitivities left blank (§6.11). A call on the good test files with a complete map gives none, but for `p.triaxial()`'s back pressure count: BH2-U2's stage 2 has `TRET_PWPF` blank on purpose.
 
 ## 9. QC: G004
 | ID | Rule | Severity | Thresholds |
@@ -396,6 +485,7 @@ New columns, each checked against the whole registry (CLAUDE.md, "Naming"): `loc
 - M13 (`docs/work/m13a-judgments.md`): `total_vertical_stress`, `pore_pressure`, `effective_vertical_stress` and `saturated_unit_weight`; `depth_top`/`depth_base` describe any interval, a tested zone or a layer, and add `GEOL_TOP`/`GEOL_BASE`; the `stratigraphy` template (§6.7).
 - M14 (`docs/work/m14a-density-data.md`): `dry_unit_weight`, `particle_density`, `particle_density_assumed`, `particle_density_specimen_id`, `sample_condition`, `stabilizer_content`; new AGS sources for `bulk_unit_weight` (`LDEN_BDEN`, `IDEN_IDEN` × g, replacing `RDEN_BDEN` until M21 reads RDEN), `water_content` (`LDEN_MC`, `IDEN_MC`) and `test_type`; `depth_basis` gains `test_depth`; the `density` and `particle_density` templates.
 - M11 a (`docs/work/m11a-triaxial-data.md`): `test_stage`, `multistage_test`, `failure_criterion`, `effective_consolidation_stress`, `back_pressure`, `pore_pressure_parameter_b`, `cell_pressure`, `deviator_stress_at_failure`, `pore_pressure_at_failure`, `axial_strain_at_failure`, `volumetric_strain_at_failure`, the four principal stresses at failure, `effective_stress_basis`, `reported_effective_friction_angle`, `reported_effective_cohesion`, `test_remarks`; new AGS sources for `test_type`, `sample_condition`, `water_content`, `bulk_unit_weight`, `dry_unit_weight`, `void_ratio` and `remarks`; the `triaxial` template.
+- M17 a (`docs/work/m17a-strength-data.md`, Changes): the undrained strength and shear box columns; `undrained_shear_strength`'s sources (`TRIT_CU` moves to `reported_undrained_shear_strength`); `axial_strain_at_failure` gains `LUCT_STRA`; the quantity kind `displacement_rate`; the `strength` template reshaped and `shear_box` new.
 
 ## 12. Test files
 The good files (`site_si.ags`, `site_us.ags`, `site_v404.ags`) get, through the generator script and in all three so the twin tests still hold:
@@ -407,6 +497,8 @@ A new `joins.ags` (4.2, SI, passes python-ags4) holds the edge cases: a test exa
 M14 adds `LDEN`, `LPDN` and `IDEN` to the three good files (a recompacted record, a stabilized field test and an assumed particle density among them), and to `joins.ags` a sample with two `LPDN` specimens at different depths, one with two at the same depth, a sample with none, and an `LDEN` row with no bulk density.
 
 M11 (a) adds `TREG`/`TRET` and `TRIG`/`TRIT` to the three good files: a set of three single-stage CU specimens from one sample, a multistage CD specimen with three stages (one with `TRET_PWPF` blank), and three UU specimens. `joins.ags` gains an extension test, a CU stage with no pore pressure and a stage with no `TRET_CELL` (incomplete, §7). A stage with no `TREG` row breaks AGS Rule 10c, so that case is built in `tests/datasets/test_triaxial.py`, as the duplicate `LNMC` is.
+
+M17 (a) adds `TRIT_CU` to the UU stages, `LUCT`, `LVAN`, `LPEN` and `LFCN` on existing samples, `IVAN` (two borehole vanes) and `IPEN` (one reading beyond the instrument's range, `>200`), and `SHBG`/`SHBT` (a recompacted small shear box set of three stages), to the three good files. `joins.ags` gains a vane with a flagged peak, a vane with a remolded value of 0, an `IVAN` with no type, an `IVAN` with `IVAN_IVAN` blank (incomplete, §7), a rock joint test in MPa with encapsulation and diameters, and a ring shear test with only a residual stress.
 
 ## 13. Acceptance criteria
 1. **Feeds the plots unchanged:** `ht.plot.spt_profile(p.spt())`, `ht.plot.spt_histogram(p.spt())`, `ht.plot.profile(p.permeability(), "hydraulic_conductivity")`, `ht.plot.profile(p.atterberg(), "liquid_limit")` and `ht.plot.geology_unit_comparison(p.atterberg(), "plasticity_index")` run on the good files with no error, no warning and no hint, and with the map's colors and order.

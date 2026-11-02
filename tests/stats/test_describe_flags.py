@@ -192,3 +192,29 @@ def test_flags_and_text_count_once_in_order():
     assert row["count_blank"] == 1
     assert row["count"] == 2
     _adds_up(result, [7])
+
+
+def test_a_second_qualifier_flags_only_its_own_value():
+    # m17a Decision 9: a vane row with a flagged peak (>120) and a plain
+    # remolded value, and one with a plain peak and a flagged remolded value.
+    df = pd.DataFrame(
+        {
+            "undrained_shear_strength": [42.0, 120.0, 55.0, 60.0],
+            "qualifier": [None, ">", None, None],
+            "remolded_undrained_shear_strength": [14.0, 30.0, 22.0, 5.0],
+            "remolded_qualifier": [None, None, None, "<"],
+        }
+    )
+    df = ht.set_units(
+        df,
+        {"undrained_shear_strength": "kPa", "remolded_undrained_shear_strength": "kPa"},
+    )
+    peak = ht.stats.describe(df, value="undrained_shear_strength").to_frame()
+    assert peak.loc[0, "count_at_least"] == 1
+    assert peak.loc[0, "count_at_most"] == 0
+    remolded = ht.stats.describe(
+        df, value="remolded_undrained_shear_strength"
+    ).to_frame()
+    assert remolded.loc[0, "count_at_least"] == 0
+    assert remolded.loc[0, "count_at_most"] == 1
+    assert remolded.loc[0, "count"] == 4

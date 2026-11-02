@@ -9,8 +9,10 @@ from hangtu.qc import (  # noqa: F401
     _fields,
     _geology,
     _locations,
+    _shear_box,
     _tests,
     _triaxial,
+    _undrained,
 )
 from hangtu.qc._accepted import AcceptedSource, read_accepted
 from hangtu.qc._data import Data

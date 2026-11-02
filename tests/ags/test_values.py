@@ -268,4 +268,5 @@ def test_site_file_flags():
         ("FGHS", "FGHS_ILUG", 1): "LT",
         ("FGHS", "FGHS_ILUG", 2): "GT",
         ("LPDN", "LPDN_PDEN", 2): "ASSUMED",
+        ("IPEN", "IPEN_IPEN", 2): "GT",  # >200 kPa (M17 a)
     }

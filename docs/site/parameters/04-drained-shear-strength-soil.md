@@ -56,7 +56,7 @@ The SPT classes place a sand roughly; they aren't a design value.
 |---|---|---|---|---|
 | Drained triaxial (CD) | D7181 | ISO 17892-9; BS 1377-8 | `TREG`: `TREG_TYPE`, `TREG_PHI`, `TREG_COH`, `TREG_FCR`; `TRET`: `TRET_CELL`, `TRET_DEVF`, `TRET_PWPF`, `TRET_STRN` | σ′1f, σ′3f per specimen, for an s′–t fit |
 | Undrained triaxial with pore pressure (CU) | D4767 | ISO 17892-9; BS 1377-8 | as above (`TREG_TYPE` CU, CIUC, CAUC) | effective stresses at failure; also s_u |
-| Direct shear (shear box) | D3080/D3080M | ISO 17892-10; BS 1377-7 | `SHBG`: `SHBG_PHI`, `SHBG_PCOH`, `SHBG_RPHI`, `SHBG_RCOH`; `SHBT`: `SHBT_NORM`, `SHBT_PEAK`, `SHBT_RES` | τ–σ′n pairs, peak and residual |
+| Direct shear (shear box) | D3080/D3080M | ISO 17892-10; BS 1377-7 | `SHBG`: `SHBG_PHI`, `SHBG_PCOH`, `SHBG_RPHI`, `SHBG_RCOH`; `SHBT`: `SHBT_NORM`, `SHBT_PVST`, `SHBT_PEAK`, `SHBT_RES` | τ–σ′n pairs, peak and residual, from `p.shear_box()` |
 | Ring shear (residual) | D6467; D7608 (fully softened) | BS 1377-7 | `SHBG_TYPE` ring shear; `SHBG_RPHI`, `SHBT_RES` | φ′r |
 | SPT (correlation input) | D1586/D1586M; energy D4633 | ISO 22476-3 | `ISPT`: `ISPT_NVAL`, `ISPT_ERAT`, `ISPT_N60` | N, N60, (N1)60 for the correlations below |
 

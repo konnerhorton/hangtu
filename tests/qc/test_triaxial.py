@@ -107,10 +107,11 @@ def test_x006_tolerance_in_any_stress_unit(projects, tolerance, lines):
 
 def test_records_checked(report):
     checked = report.rules.set_index("rule_id")["records_checked"]
-    # Eight TRET rows, all CU; one has no TRET_PWPF (X004); X006 checks each
-    # specimen's first stage (7); X005 seven TREG and one TRIG.
+    # Eight TRET rows, all CU, and one TRIT row (X003, M17 a's Q001 case); one
+    # TRET has no TRET_PWPF (X004); X006 checks each specimen's first stage
+    # (7); X005 seven TREG and two TRIG.
     rules = ["X001", "X002", "X003", "X004", "X005", "X006"]
-    assert checked[rules].tolist() == [8, 8, 8, 7, 8, 7]
+    assert checked[rules].tolist() == [8, 8, 9, 7, 9, 7]
 
 
 # --- Cases built here ---------------------------------------------------------------

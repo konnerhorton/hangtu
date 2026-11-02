@@ -73,6 +73,10 @@ ABBR = [
     ("TREG_TYPE", "CU", "Consolidated undrained with pwp measurement (single stage)"),
     ("TREG_TYPE", "CDM", "Consolidated drained (multi-stage)"),
     ("TREG_COND", "UNDISTURBED", "Undisturbed"),
+    ("TRIG_TYPE", "UU", "Unconsolidated quick undrained (single stage)"),
+    ("TRIG_COND", "UNDISTURBED", "Undisturbed"),
+    ("LVAN_TYPE", "LV", "Laboratory vane"),
+    ("IVAN_TYPE", "BOREHOLE", "Borehole vane"),
 ]
 
 # Hole, easting, northing (ft), ground level, final depth, fill base and
@@ -604,6 +608,84 @@ def tret():
     return group("TRET", headings, rows)
 
 
+# Undrained strength (M17 a): a UU set on B-1's lower Alluvium tube, laboratory
+# vanes and hand penetrometer readings on upper Alluvium tubes, and borehole
+# vanes down B-6's Alluvium, all in psf. Beside each, s_u: q_f / 2 for UU (the
+# lab's TRIT_CU is the same), as reported for the rest; and S_t = s_u / s_u,r.
+UU_SAMPLE = ["B-1", 17.5, "3", "U", "B-1-U3"]
+
+
+def trig():
+    headings = [
+        *TRIAXIAL_SPECIMEN_HEADINGS,
+        ("TRIG_TYPE", "PA", ""),
+        ("TRIG_COND", "PA", ""),
+    ]
+    rows = [
+        [*UU_SAMPLE, ref, depth, "UU", "UNDISTURBED"]
+        for ref, depth in [("3", 17.8), ("4", 18.2), ("5", 18.6)]
+    ]
+    return group("TRIG", headings, rows)
+
+
+def trit():
+    headings = [
+        *TRIAXIAL_SPECIMEN_HEADINGS,
+        ("TRIT_TESN", "X", ""),
+        ("TRIT_IMC", "X", "%"),
+        ("TRIT_CELL", "0DP", "psf"),
+        ("TRIT_DEVF", "0DP", "psf"),
+        ("TRIT_STRN", "1DP", "%"),
+        ("TRIT_CU", "0DP", "psf"),
+    ]
+    rows = [
+        [*UU_SAMPLE, "3", 17.8, "1", "31", 1000, 1100, 11.0, 550],  # s_u 550
+        [*UU_SAMPLE, "4", 18.2, "1", "30", 2000, 1160, 12.5, 580],  # 580
+        [*UU_SAMPLE, "5", 18.6, "1", "32", 3000, 1080, 13.0, 540],  # 540
+    ]
+    return group("TRIT", headings, rows)
+
+
+def lvan():
+    headings = [
+        *TRIAXIAL_SPECIMEN_HEADINGS,
+        ("LVAN_VNPK", "0DP", "psf"),
+        ("LVAN_VNRM", "0DP", "psf"),
+        ("LVAN_TYPE", "PA", ""),
+    ]
+    rows = [
+        ["B-3", 12.5, "2", "U", "B-3-U2", "2", 13.0, 520, 180, "LV"],  # S_t 2.89
+        ["B-4", 12.5, "1", "U", "B-4-U1", "2", 13.0, 610, 230, "LV"],  # 2.65
+    ]
+    return group("LVAN", headings, rows)
+
+
+def lpen():
+    headings = [*TRIAXIAL_SPECIMEN_HEADINGS, ("LPEN_PPEN", "0DP", "psf")]
+    rows = [
+        ["B-2", 12.5, "1", "U", "B-2-U1", "2", 13.0, 600],
+        ["B-5", 12.5, "1", "U", "B-5-U1", "2", 13.0, 700],
+    ]
+    return group("LPEN", headings, rows)
+
+
+def ivan():
+    headings = [
+        ("LOCA_ID", "ID", ""),
+        ("IVAN_DPTH", "1DP", "ft"),
+        ("IVAN_TESN", "X", ""),
+        ("IVAN_TYPE", "PA", ""),
+        ("IVAN_IVAN", "0DP", "psf"),
+        ("IVAN_IVAR", "0DP", "psf"),
+    ]
+    rows = [
+        ["B-6", 10.0, "1", "BOREHOLE", 480, 160],  # S_t 3.00
+        ["B-6", 15.0, "2", "BOREHOLE", 560, 200],  # 2.80
+        ["B-6", 20.0, "3", "BOREHOLE", 640, 210],  # 3.05
+    ]
+    return group("IVAN", headings, rows)
+
+
 # --- Writing --------------------------------------------------------------------------
 
 
@@ -611,7 +693,8 @@ def site_groups():
     llpl, lnmc = atterberg()
     grag, grat = grading()
     groups = [loca(), geol(), samp(), ispt(), llpl, lnmc, grag, grat, ptst(), fghg()]
-    return [*groups, lden(lnmc), lpdn(), treg(), tret()]
+    undrained = [trig(), trit(), lvan(), lpen(), ivan()]
+    return [*groups, lden(lnmc), lpdn(), treg(), tret(), *undrained]
 
 
 def write_site(path):
@@ -677,7 +760,8 @@ def write_csvs(out):
                 float_format="%.6g",
                 lineterminator="\n",
             )
-        write_readings(out, p.triaxial())
+        # The readings are treg()/tret()'s; the UU stages (M17 a) have none.
+        write_readings(out, p.triaxial(where={"test_type": ["CU", "CDM"]}))
 
 
 # Readings during shearing (M11 c, docs/work/m11c-triaxial-shearing.md, spec

@@ -295,6 +295,11 @@ def test_us_file_resolves_pcf_by_heading():
         ("U002", "TRET_DDEN"),
         ("U002", "TRIT_BDEN"),
         ("U002", "TRIT_DDEN"),
+        ("U002", "LUCT_BDEN"),  # unconfined compression (M17 a)
+        ("U002", "LUCT_DDEN"),
+        ("U002", "SHBT_BDEN"),  # shear box (M17 a)
+        ("U002", "SHBT_DDEN"),
+        ("U002", "SHBT_PDEN"),
     }
     assert headings["PTST", "PTST_BDEN"].unit == "Mg/m3"
     assert headings["CPTP", "CPTP_SUW1"].unit == "kN/m3"

@@ -255,7 +255,7 @@ Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads o
   - A band too thin on the axes for its label: leave the label out, or count it in the footnote?
 
 ### 45. Recommended user-defined AGS fields · You + Claude · SPEC §4, §6.2 · raised in `docs/work/m14a-density-data.md`
-- **Idea:** hangtu could ship a set of recommended user-defined headings or groups, so a file can carry values that the AGS dictionary has no place for. One example is a specific gravity chosen for a geology unit. With those fields filled in, users get all of hangtu's functionality straight from the file.
+- **Idea:** hangtu could ship a set of recommended user-defined headings or groups, so a file can carry values that the AGS dictionary has no place for. One example is a specific gravity chosen for a geology unit; another is what an in situ hand penetrometer reads (`IPEN_IPEN`, s_u or q_u), which `p.undrained_strength()` takes as `hand_penetrometer_scale=` (M17 a). With those fields filled in, users get all of hangtu's functionality straight from the file.
 - **Questions:**
   - Which values would be in the set?
   - A value carried in the AGS file: is it data, or a judgment? SPEC §4 keeps judgments in `judgments.yaml`, where they can be reviewed, so a judgment in the file would have to say where it came from.

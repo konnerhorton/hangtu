@@ -32,6 +32,7 @@ def test_quantity_kinds_match_p00_table():
         "hydraulic_conductivity",
         "modulus",
         "velocity",
+        "displacement_rate",
         "percent",
         "dimensionless",
         "count",
@@ -132,9 +133,14 @@ def test_statistics_field_follows_the_rules(name):
     assert field["role"] in STATISTICS_ROLES
     for value in field.get("values", []):
         assert COLUMNS[value]["type"] == "number", value
-    if field["role"] in {"source", "qualifier"}:
+    if field["role"] == "source":
         assert entry["type"] == "text"
         assert {"values", "when"}.isdisjoint(field)
+    elif field["role"] == "qualifier":
+        # A qualifier may name its values: the one for a second value on a
+        # row (m17a Decision 9).
+        assert entry["type"] == "text"
+        assert "when" not in field
     elif "when" in field:
         assert entry["type"] == "text"
         assert field["when"]
@@ -147,6 +153,7 @@ def test_statistics_roles_lists_the_flag_and_source_columns():
     assert {name: field["role"] for name, field in roles.items()} == {
         "spt_refusal": "at_least",
         "qualifier": "qualifier",
+        "remolded_qualifier": "qualifier",
         "non_plastic": "non_plastic",
         "particle_density_assumed": "assumed",
         "specific_gravity_source": "assumed",
@@ -211,7 +218,15 @@ DATASETS = (
     "particle_density",
     "density",
     "triaxial",
+    "undrained_strength",
+    "shear_box",
 )
+#: Arguments a dataset needs to give every row of the good files.
+ARGUMENTS = {
+    "undrained_strength": {"hand_penetrometer_scale": "unconfined_compressive_strength"}
+}
+#: Each dataset's template, where the names differ.
+TEMPLATES = {"undrained_strength": "strength"}
 # Columns only hangtu can produce, so a CSV template leaves them out.
 ONLY_HANGTU = {
     "source_line",
@@ -227,6 +242,8 @@ ONLY_HANGTU = {
     "effective_minor_principal_stress_at_failure",
     "effective_major_principal_stress_at_failure",
     "effective_stress_basis",
+    "undrained_shear_strength_basis",
+    "strength_sensitivity",
 }
 #: The one warning a good file's dataset gives: BH2-U2's CDM stage 2 takes its
 #: back pressure (datasets.md §6.10).
@@ -246,9 +263,9 @@ def test_dataset_templates_follow_their_dataset(site, name):
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         warnings.filterwarnings("ignore", message=BACK_PRESSURE)
-        dataset = getattr(site, name)()
+        dataset = getattr(site, name)(**ARGUMENTS.get(name, {}))
     expected = [column for column in dataset.columns if column not in ONLY_HANGTU]
-    assert list(ht.template(name).columns) == expected
+    assert list(ht.template(TEMPLATES.get(name, name)).columns) == expected
 
 
 def test_filled_templates_feed_the_plots(site, tmp_path):
@@ -257,13 +274,14 @@ def test_filled_templates_feed_the_plots(site, tmp_path):
         with warnings.catch_warnings():
             warnings.simplefilter("error")
             warnings.filterwarnings("ignore", message=BACK_PRESSURE)
-            dataset = getattr(site, name)()
+            dataset = getattr(site, name)(**ARGUMENTS.get(name, {}))
         path = tmp_path / f"{name}.csv"
-        dataset[list(ht.template(name).columns)].to_csv(path, index=False)
+        template = ht.template(TEMPLATES.get(name, name)).columns
+        dataset[list(template)].to_csv(path, index=False)
         units = {
             column: unit
             for column, unit in dataset.attrs["units"].items()
-            if column in ht.template(name).columns
+            if column in template
         }
         read[name] = ht.read_csv(path, units=units)
     calls = [
@@ -272,6 +290,7 @@ def test_filled_templates_feed_the_plots(site, tmp_path):
         (ht.plot.profile, read["permeability"], "hydraulic_conductivity"),
         (ht.plot.profile, read["atterberg"], "liquid_limit"),
         (ht.plot.geology_unit_comparison, read["atterberg"], "plasticity_index"),
+        (ht.plot.profile, read["undrained_strength"], "undrained_shear_strength"),
     ]
     for plot, *args in calls:
         with warnings.catch_warnings():
