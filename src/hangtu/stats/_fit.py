@@ -38,6 +38,9 @@ PARAMETER_COUNT = 2
 #: Fewer uncensored values per group is no fit; fewer than ``FEW`` warns.
 MIN_COUNT = 4
 FEW = 10
+#: Fewer distinct values than this share of a group's values gets a note
+#: that the Anderson-Darling p-values read the ties as misfit (TODO #50).
+TIED_SHARE = 0.5
 #: A normal fit putting more than this below the lower bound gets a note.
 BELOW_BOUND_NOTE = 0.01
 #: Parametric bootstrap of the Anderson-Darling p-value (Decision 7): 999
@@ -138,7 +141,10 @@ def fit(
     least the observed) / 1000. The seed is fixed, so the same data give the
     same p-value. A small p-value (below 0.05, say) is evidence against the
     distribution; a large one is not evidence for it, least of all with few
-    values. It is reported, not turned into a pass or fail.
+    values. It is reported, not turned into a pass or fail. A group with
+    fewer distinct values than half its count (SPT N60, a whole number of
+    blows times a factor) gets a note that the check reads the ties as
+    misfit, so its p-values are likely too small.
 
     **At least 4 uncensored values per group** (AICc needs $n > k + 1$): a
     group with fewer has no fits, with a warning; one with fewer than 10 is
@@ -712,6 +718,15 @@ def _group_notes(
             notes.append(
                 f"{label}: no plotting positions: values are censored both ways, "
                 "so the Q-Q plot can't place them. The fits and AICc stand."
+            )
+    else:
+        distinct = np.unique(values.exact).size
+        if distinct < values.exact.size * TIED_SHARE:
+            notes.append(
+                f"{label}: {distinct} distinct values among {values.exact.size}. "
+                "The Anderson-Darling check assumes continuous values and reads "
+                "ties as misfit, so its p-values are likely too small. Compare "
+                "the fits by AICc and the Q-Q plot."
             )
     by_reason: dict[str, list[str]] = {}
     for name, why in group["left_out"].items():
