@@ -307,7 +307,8 @@ def welch(
     estimate = float(x.mean() - y.mean())
     bounds = (float(interval.low), float(interval.high))
     if log:
-        estimate, bounds = math.exp(estimate), tuple(map(math.exp, bounds))
+        estimate = math.exp(estimate)
+        bounds = (math.exp(bounds[0]), math.exp(bounds[1]))
     result.update(
         {
             name: estimate,

@@ -20,7 +20,9 @@ def plotting_positions(
     if left.size and right.size:
         return None
     if left.size:
-        values, positions = plotting_positions(-exact, np.empty(0), -left)
+        found = plotting_positions(-exact, np.empty(0), -left)
+        assert found is not None  # censored one way only
+        values, positions = found
         return -values[::-1], 1 - positions[::-1]
     x = np.sort(np.asarray(exact, float))
     if not right.size:

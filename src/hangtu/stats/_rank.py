@@ -72,7 +72,7 @@ def brunner_munzel(
     joint = _stats.rankdata(values)
     p_hat, error, df = (float(x) for x in _statistic(joint, first, second))
     statistic = float(_signed(np.array(p_hat), np.array(error)))
-    result = {
+    result: dict[str, Any] = {
         "probability_of_superiority": p_hat,
         "probability_of_superiority_lower": nan,
         "probability_of_superiority_upper": nan,
