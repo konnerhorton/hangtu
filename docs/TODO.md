@@ -83,11 +83,13 @@ The rest of this item is built (M15 (c), SPEC §5): refusals and `<x`/`>x` are f
 ### 13. `characteristic()` (Eurocode 7) · You · docs/drafts/phase3-stats.md, docs/reference/eurocode7-summary.md · M18
 **Deferred** (2026-10-29) to M18 (selection), with P09, which needs it. Its judgments (the type of estimate, θ, L, an assumed V_X), the lognormal formulae and the framing for US users are settled there.
 
+**One view among several** (decided 2026-11-02): M18's selection is not built around `characteristic()`. Most users will want a design line with depth or a cautious estimate per unit in their own practice's terms; EC7's characteristic value is one of the views a selection result offers (SPEC §5, "one calculation, many views"), for European work. Which other views M18 offers (a lower percentile, mean minus a multiple of the standard deviation, a lower-bound line) is for its spec.
+
 Open research points:
 - **Type C** needs the scale of fluctuation θ. How will users estimate it? Options: a user input, or typical values from the literature (Phoon & Kulhawy 1999), with a default to Type A or B.
 - Verify the **lognormal** Annex A formulae (A.5–A.7) and the Angus (1988) mean bound against a purchased copy of EN 1997-1:2024.
 - **Depth-trend** characteristic values: the regression prediction interval. Check the n−2 degrees-of-freedom convention.
-- Interaction with censored SPT data (item 8).
+- Censored SPT data: settled. Refusals enter as in `fit()` (SPEC §5, Fitting): right-censored, or interval-censored with the judged upper limit. Under "statistics are designed for lab data" (SPEC §5), Type C on SPT is probably not worth offering; decide in M18's spec.
 
 **References:**
 - JRC (2025), EUR 40260 (see the EC7 summary).
@@ -183,8 +185,12 @@ Each judgment declares what it is keyed by and whether one project-wide value is
 ### 31. Curves in real files · You · input for wave 0's intent (M16)
 Which user-defined groups and headings real files use for triaxial stress–strain curves, rock triaxial, swelling against time and shear box displacement, gathered from the sample dataset being prepared from real projects.
 
-### 32. Published definitions of the model sets · Claude (verify) · SPEC §5 · needed for M18
-Confirm a non-vendor published source that defines each model set's parameters: Mohr–Coulomb; Hardening Soil (Schanz, Vermeer & Bonnier 1999?); HS-small (Benz 2007?); generalized Hoek–Brown (Hoek, Carranza-Torres & Corkum 2002); Soft Soil (Vermeer & Neher 1999?). Where only a software manual defines a model, say so.
+### 32. Published definitions of the model sets · You (copies) + Claude (verify) · SPEC §5 · Mohr–Coulomb for M18, the rest with their waves
+**Mohr–Coulomb set for M18** (decided 2026-11-02): c′ and φ′ from the fits and correlations; ψ as an estimate; E′ and ν′ left blank until wave 5 (M23). Mohr–Coulomb is defined in any soil mechanics text, so a standard citation does.
+- **ψ:** Bolton (1986), ψ = (φ′_peak − φ′_cv) / 0.8, floored at 0, for coarse-grained units, with φ′_cv a judgment per unit (no default); ψ = 0 for fine-grained units. The relation is for plane strain; used with a triaxial φ′ it is an approximation, and the result says so. The practice rule ψ = max(0, φ′ − 30°) is not offered: its only sources are software manuals (GEO5, PLAXIS), and it hides the same φ′_cv assumption (sheet 09, §5.2–5.3).
+- **To verify against the primary:** Bolton, M.D. (1986), The strength and dilatancy of sands, *Géotechnique* 36(1), 65–78 (now [V] only through secondary sources).
+
+**The other sets**, each checked by the wave that builds it: Hardening Soil (Schanz, Vermeer & Bonnier 1999?) and HS-small (Benz 2007?) with wave 5 (M23); Soft Soil (Vermeer & Neher 1999?) with wave 3; generalized Hoek–Brown (Hoek, Carranza-Torres & Corkum 2002) with wave 4 (M22). Confirm a non-vendor published source that defines each set's parameters; where only a software manual defines a model, say so.
 
 ### 34. γw as a judgment · You · SPEC §4
 `ht.settings.water_unit_weight` is one session value. Sites with both seawater and fresh water (or brines) need two, so γw may become a judgment keyed by hole or zone.
