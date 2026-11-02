@@ -95,3 +95,36 @@ The trial in the intent (135 errors) ran with `ignore_missing_imports` for every
 5. **Annotations ship:** the wheel from `uv build` contains `hangtu/py.typed`.
 6. **CI runs it:** `ci.yml` has the `typecheck` job. A type error planted in the working tree (not committed) makes `uv run mypy` exit non-zero; the check is recorded here.
 7. **Docs:** SPEC §12.1 and `CLAUDE.md` Commands name mypy, and the "what CI runs" line in `CLAUDE.md` matches `ci.yml`.
+
+## Plan
+
+Each step is one commit, green on ruff and the full suite. mypy isn't in CI until step 7, so a commit can leave errors in packages a later step fixes; each fix step ends with `uv run mypy` clean for the files it touches. A real bug found along the way (Decision 6) gets its own commit before the step it was found in.
+
+How each error is fixed: a wrong annotation is changed to what the code returns (Decision 2); an `X | None` used unchecked gets a check that raises the error the code would have hit anyway, or an annotation that admits `None`; a library typing gap gets `# type: ignore[<code>]`, or `cast()` where clearer (Decision 3).
+
+### Step 1: `type-check: configure mypy and ship py.typed`
+- `pyproject.toml`: `mypy>=2.4.1` and `types-PyYAML` in `dev`; `[tool.mypy]` and the override from Decision 1. `uv lock`.
+- `src/hangtu/py.typed`, empty.
+- Before this step, record the suite's pass/skip/xfail counts on `c61d9eb` here (AC4).
+- AC5: `uv build`, and the wheel lists `hangtu/py.typed`.
+
+### Step 2: `type-check: fix annotations in ags and the top-level modules`
+- `ags/` (mostly `_units.py`, 31 errors), `_judgments.py`, `project.py`, `registry.py`, `sheet.py`, `units/__init__.py`.
+
+### Step 3: `type-check: fix annotations in analysis`
+- Mostly `_vertical_stress.py` (18), `_mohr_coulomb.py`, `correlations/_framework.py`; `_spt.py:70` (AC3).
+
+### Step 4: `type-check: fix annotations in stats`
+- Mostly `_fit.py` (19), including `:393` and `:535` (AC3), and `_significance.py`.
+
+### Step 5: `type-check: fix annotations in datasets and qc`
+
+### Step 6: `type-check: fix annotations in plot`
+- `_vertical.py:113` and `_values.py:99` (AC3), the `Axes` attributes (Decision 4), `style.py`'s `rcParams` keys (Decision 3).
+- Split in two if it passes ~300 changed lines: the shared helpers (`_legend`, `_notes`, `_overlays`, `_profile`, `style`), then the plot functions.
+
+### Step 7: `type-check: run mypy in CI and close out`
+- `.github/workflows/ci.yml`: the `typecheck` job (Decision 5).
+- SPEC §12.1: the CI line and the dev dependencies.
+- `CLAUDE.md`: `uv run mypy` in Commands and in the "what CI runs" line; a convention that a `# type: ignore` names its code and covers only a library's typing gap.
+- Check AC1–AC4, AC6 and AC7, including the strict docs build, and record AC6 and the final counts here.
