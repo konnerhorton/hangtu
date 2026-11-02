@@ -234,7 +234,9 @@ def mohr_coulomb_fit(
     if pooled:
         notes.append(f"Pooled on purpose: {', '.join(pooled)}.")
 
-    groups, negative, tension = [], [], []
+    groups: list[dict[str, Any]] = []
+    negative: list[str] = []
+    tension: list[Any] = []
     for key, rows in group_keys(df, by):
         candidates = rows & (reasons == "")
         _check_sources(df, key, candidates, checked, pooled)
@@ -316,7 +318,7 @@ def _stresses(
     stress: str,
     units: Mapping[str, str] | None,
     display_units: str | None,
-) -> tuple[list[np.ndarray], str]:
+) -> tuple[list[np.ndarray], str | None]:
     """Return the total pair and the fitted pair, in one unit, and its name."""
     total = list(STRESS_COLUMNS[:2])
     fitted = list(STRESS_COLUMNS[2:] if stress == "effective" else STRESS_COLUMNS[:2])
@@ -331,8 +333,8 @@ def _stresses(
         )
     declared = _units.resolve_units(df, columns, units, analysis=True)
     parsed = {column: _units.parse_unit(declared[column], column) for column in columns}
-    for column, unit in parsed.items():
-        _units.check_dimension(unit, "stress", column)
+    for column, parsed_unit in parsed.items():
+        _units.check_dimension(parsed_unit, "stress", column)
     values = {}
     if display_units is None:
         unit = declared[fitted[0]]
@@ -349,7 +351,7 @@ def _stresses(
 
 
 def _reported(
-    df: pd.DataFrame, units: Mapping[str, str] | None, unit: str
+    df: pd.DataFrame, units: Mapping[str, str] | None, unit: str | None
 ) -> tuple[np.ndarray, np.ndarray]:
     """Return the lab's c′ in the fit's unit and φ′ in degrees, NaN where not given."""
     to = {

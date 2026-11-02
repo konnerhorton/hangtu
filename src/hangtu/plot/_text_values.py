@@ -17,7 +17,7 @@ from matplotlib.transforms import offset_copy
 from hangtu._data import TEXT_FLAGS, rows_text
 from hangtu.errors import warn
 from hangtu.plot import _layers, _values
-from hangtu.plot._notes import Notes, edge_markers
+from hangtu.plot._notes import Notes, edge_markers, figure_of
 
 # ◇ □ △ ▽ ⬠ ⬡, then repeating (P01 §7).
 SHAPES = ("D", "s", "^", "v", "p", "h")
@@ -76,7 +76,7 @@ def draw_text_values(
     if not distinct:
         return [], edge
     transform = offset_copy(
-        ax.get_yaxis_transform(), ax.figure, x=INSET, units="points"
+        ax.get_yaxis_transform(), figure_of(ax), x=INSET, units="points"
     )
     handles = []
     for i, text in enumerate(distinct):

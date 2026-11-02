@@ -147,7 +147,9 @@ def inputs(
         data = numeric_column(df, column)
         if spec["unit"] is not None:
             unit = _units.resolve_units(df, [column], units, analysis=True)[column]
-            quantity = column_info(column)["quantity"]
+            info = column_info(column)
+            assert info is not None  # correlation columns are registered
+            quantity = info["quantity"]
             data = _units.convert(
                 data,
                 _units.parse_unit(unit, column),
@@ -284,9 +286,9 @@ def notes(
     for column, bounds in item["range"].items():
         data = values[column]
         for key, bound in bounds.items():
-            _, outside, reason = _BOUNDS[key]
+            _, beyond_bound, reason = _BOUNDS[key]
             with np.errstate(invalid="ignore"):
-                beyond = outside(data, bound)
+                beyond = beyond_bound(data, bound)
             if key in ("at_least", "at_most"):
                 beyond &= ~np.isclose(data, bound, rtol=BOUND_TOLERANCE, atol=0)
             found[reason] |= beyond
@@ -392,7 +394,9 @@ def estimate(
     upstream = chained(df, item)
     system = _display_units(display_units or settings.display_units)
     noted = np.array([reason is not None for reason in note], dtype=bool)
-    quantity = column_info(target)["quantity"]
+    info = column_info(target)
+    assert info is not None  # correlation columns are registered
+    quantity = info["quantity"]
     unit = item["target"]["unit"]
     columns = {target: (values, unit)}
     if lower is not None or upper is not None:

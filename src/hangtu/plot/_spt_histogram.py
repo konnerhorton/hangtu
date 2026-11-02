@@ -19,7 +19,7 @@ from hangtu.plot import _layers, _values, style
 from hangtu.plot._hints import hint_missing
 from hangtu.plot._legend import add_legend, check_legend
 from hangtu.plot._limits import nice_limits, set_linear_axis
-from hangtu.plot._notes import Notes
+from hangtu.plot._notes import Notes, figure_of
 from hangtu.plot._spt_profile import _check_choice
 from hangtu.registry import column_info
 
@@ -246,7 +246,7 @@ def spt_histogram(
                 layout="constrained",
             )
         else:
-            fig = ax.figure
+            fig = figure_of(ax)
         style.style_axes(ax)
 
         handles = []
@@ -286,7 +286,9 @@ def spt_histogram(
                     label="refusal",
                 )
             )
-        _set_class_axis(ax, slots, f"{column_info(n)['label']} class ({table})")
+        info = column_info(n)
+        assert info is not None  # spt_n and spt_n60 are registered
+        _set_class_axis(ax, slots, f"{info['label']} class ({table})")
         _set_percent_axis(ax, tallest * BAR_LABEL_ROOM if bar_labels else tallest)
         if not drawn:
             ax.text(

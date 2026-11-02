@@ -143,7 +143,7 @@ def undrained_shear_strength_from_tests(
             raw["undrained_shear_strength"] = np.where(
                 own, np.nan, raw["undrained_shear_strength"]
             )
-    given = [c for c in STRESSES if raw[c] is not None and not np.isnan(raw[c]).all()]
+    given = [c for c in STRESSES if (v := raw[c]) is not None and not np.isnan(v).all()]
     declared = _units.resolve_units(df, given, units, analysis=True) if given else {}
     known = {**_units.units_of(df), **(units or {}), **declared}
     # s_u in its own declared unit, else in the first input's (Decision 3).

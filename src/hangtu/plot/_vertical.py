@@ -6,7 +6,7 @@ the same reference and display units as the main data.
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import matplotlib as mpl
 import numpy as np
@@ -22,7 +22,10 @@ from hangtu.plot._labels import axis_label
 from hangtu.plot._limits import nice_step
 from hangtu.units import to_display
 
-VS = ("depth", "elevation")
+if TYPE_CHECKING:
+    from matplotlib.axes._secondary_axes import SecondaryAxis
+
+VS: tuple[Literal["depth", "elevation"], ...] = ("depth", "elevation")
 # Every length column a profile reads. They are converted together, so one
 # with unknown units isn't mixed with converted ones.
 LENGTH_COLUMNS = ("depth", "elevation", "ground_level", "depth_top", "depth_base")
@@ -110,7 +113,7 @@ def choose_vs(df: pd.DataFrame, vs: str | None) -> Literal["depth", "elevation"]
             "'ground_level' to compute it (depth = ground_level - elevation). "
             "Add one of these, or plot with vs='elevation'."
         )
-    return vs
+    return "depth" if vs == "depth" else "elevation"
 
 
 def length_columns(df: pd.DataFrame) -> list[str]:
@@ -294,7 +297,7 @@ def check_secondary_depth(vertical: Vertical) -> None:
         )
 
 
-def add_secondary_depth(ax: Axes, vertical: Vertical) -> Axes:
+def add_secondary_depth(ax: Axes, vertical: Vertical) -> "SecondaryAxis":
     """Add a depth axis on the right of an elevation profile (P01 §6).
 
     Depth is ``ground_level - elevation``, so it needs one ground level for
@@ -303,7 +306,7 @@ def add_secondary_depth(ax: Axes, vertical: Vertical) -> Axes:
     check_secondary_depth(vertical)
     level = vertical.ground_level
 
-    def flip(values: np.ndarray) -> np.ndarray:
+    def flip(values: ArrayLike) -> np.ndarray:
         return level - np.asarray(values)
 
     secondary = ax.secondary_yaxis("right", functions=(flip, flip))

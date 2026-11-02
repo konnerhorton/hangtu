@@ -82,7 +82,8 @@ def diagram(
         )
         for zone in config["zones"]
     )
-    return Diagram(built, tuple(map(float, box)), config["source"])
+    low, high, ic_low, ic_high = map(float, box)
+    return Diagram(built, (low, high, ic_low, ic_high), config["source"])
 
 
 def _check(df: Any) -> None:

@@ -287,7 +287,9 @@ def describe(
 
     keys = _rows.group_keys(frame, read.by)
     _rows.check_sources(frame, keys, included, read, pooled, function)
-    groups, notes_by_reason, small = [], {}, []
+    groups: list[dict[str, Any]] = []
+    notes_by_reason: dict[int | str, dict[str, list[str]]] = {}
+    small: list[str] = []
     for key, rows in keys:
         summary = summarize(
             numbers[rows & included],

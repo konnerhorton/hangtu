@@ -27,7 +27,7 @@ from hangtu.plot import _envelopes, _fraction_band, _layers, _values, style
 from hangtu.plot._hints import hint_missing
 from hangtu.plot._legend import add_legend, check_legend
 from hangtu.plot._limits import clear_of_data, log_limits, set_log_axis
-from hangtu.plot._notes import Notes, edge_markers
+from hangtu.plot._notes import Notes, edge_markers, figure_of
 from hangtu.plot._palette import AUTOMATIC
 from hangtu.plot._plasticity_chart import _check_color_by
 
@@ -458,15 +458,16 @@ def grain_size(
                 layout="constrained",
             )
         else:
-            fig = ax.figure
+            fig = figure_of(ax)
         style.style_axes(ax)
         _set_axes(ax, limits, reverse)
         # The strip first, so it sits between the frame and the band.
-        ax.grain_size_sieves = _fraction_band.add_sieve_strip(ax, sieve_list, limits)
-        ax.grain_size_header = None
+        ax.grain_size_sieves = _fraction_band.add_sieve_strip(ax, sieve_list, limits)  # type: ignore[attr-defined]
+        header = None
         if fractions is not None:
-            ax.grain_size_header = _fraction_band.add_header(ax)
-            _fraction_band.draw_band(ax.grain_size_header, ax, system_fractions, limits)
+            header = _fraction_band.add_header(ax)
+            _fraction_band.draw_band(header, ax, system_fractions, limits)
+        ax.grain_size_header = header  # type: ignore[attr-defined]
         envelope_handles = _envelopes.draw_envelopes(ax, bands, band_colors)
         handles = _draw_curves(
             ax,

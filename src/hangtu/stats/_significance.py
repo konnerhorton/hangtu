@@ -31,15 +31,16 @@ def resolve(
         (frame for frame in frames if "judgments_file" in frame.attrs), pd.DataFrame()
     )
     read = read_judgments(judgments, carrier)
-    in_file = read is not None and NAME in read.judgments
+    judgment = None if read is None else read.judgments.get(NAME)
     if argument is not None:
         alpha = _check(argument)
-        if in_file:
+        if read is not None and judgment is not None:
             warn(f"significance_level= replaces the one in {read.path.name}.")
         return alpha, {NAME: alpha, "source": "argument"}
-    if not in_file:
+    if read is None or judgment is None:
         raise HangtuError(_missing(read, bool(frames), function))
-    entry = read.judgments[NAME].project
+    entry = judgment.project
+    assert entry is not None  # a project-only judgment has its project entry
     alpha = entry.values[NAME]
     return alpha, {
         NAME: alpha,
@@ -54,14 +55,14 @@ def _check(argument: Any) -> float:
         isinstance(argument, bool)
         or not isinstance(argument, Real)
         or not math.isfinite(argument)
-        or not 0 < argument < 1
+        or not 0 < argument < 1  # type: ignore[operator]
     ):
         raise HangtuError(
             "significance_level= must be a number between 0 and 1, e.g. 0.05, "
             f"not {argument!r}."
         )
     low, high, outside = _judgments.PLAUSIBLE[NAME]
-    if not low <= argument <= high:
+    if not low <= argument <= high:  # type: ignore[operator]
         warn(
             f"significance_level= {argument:g} is outside {low:g}-{high:g}. "
             f"Check the value: {outside}."

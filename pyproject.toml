@@ -54,6 +54,8 @@ dev = [
     "ruff>=0.17",
     "hypothesis>=6.100",
     "pytest-xdist>=3.6.1",
+    "mypy>=2.4.1",
+    "types-PyYAML>=6.0.12",
 ]
 # The docs site (docs/work/docs-site.md). Zensical is alpha, so it is pinned exactly.
 docs = ["zensical==0.0.70", "mkdocstrings-python>=2.0.9"]
@@ -83,6 +85,19 @@ convention = "numpy"
 "tests/**" = ["D"]
 # Page examples are a few lines a user copies, not modules.
 "docs/site/examples/**" = ["D"]
+
+# Checks the annotations that exist; not strict (docs/work/type-check.md).
+[tool.mypy]
+files = ["src/hangtu"]
+python_version = "3.12"
+check_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+
+# These ship without type information (pandas-stubs isn't used).
+[[tool.mypy.overrides]]
+module = ["pandas.*", "scipy.*", "python_ags4.*", "mpl_toolkits.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

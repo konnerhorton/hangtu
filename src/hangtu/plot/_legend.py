@@ -8,6 +8,7 @@ from typing import Literal, NamedTuple
 import numpy as np
 from matplotlib.artist import Artist
 from matplotlib.axes import Axes
+from matplotlib.backend_bases import RendererBase
 from matplotlib.collections import LineCollection, PathCollection
 from matplotlib.legend import Legend
 from matplotlib.path import Path
@@ -20,6 +21,7 @@ from hangtu.plot._notes import (
     Notes,
     Placement,
     below_x_label,
+    figure_of,
     renderer,
 )
 
@@ -29,7 +31,8 @@ MAX_ROWS = 12
 MAX_ENTRIES = 30
 BOTTOM_COLUMNS = 4  # legend columns below the axes
 #: Corners tried in order for a legend inside the axes; the first clear one wins.
-CORNERS = ("upper right", "upper left", "lower right", "lower left")
+Corner = Literal["upper right", "upper left", "lower right", "lower left"]
+CORNERS: tuple[Corner, ...] = ("upper right", "upper left", "lower right", "lower left")
 CLEARANCE = 4.0  # points around an inside legend that must be clear of data
 FRAME_ALPHA = 0.85  # an inside legend's white frame, so gridlines don't cross it
 #: Characters per legend line; a longer entry wraps at spaces, never shortened.
@@ -107,7 +110,7 @@ def add_legend(
             else f"{len(handles)} legend entries not shown"
         )
         return Placed(None, None)
-    labels = [_wrap(handle.get_label()) for handle in handles]
+    labels = [_wrap(str(handle.get_label())) for handle in handles]
     if where == "right":
         return Placed(_right(ax, handles, labels, offset), "right")
     if where == "bottom":
@@ -115,7 +118,7 @@ def add_legend(
     # The footnote below the x label shortens the axes, so it takes its room
     # before the layout engine sets the axes' final size.
     footnote = notes.render(ax, where="inside")
-    ax.figure.draw_without_rendering()
+    figure_of(ax).draw_without_rendering()
     legend = _inside(ax, handles, labels)
     counts = _corner_obstacles(ax, legend, exclude={footnote})
     if footnote is not None:
@@ -127,7 +130,8 @@ def add_legend(
     if where == "auto":
         legend.remove()
         return Placed(_bottom(ax, handles, labels), "bottom")
-    legend.set_loc(min(counts, key=counts.__getitem__))
+    fewest = min(counts, key=counts.__getitem__)
+    legend.set_loc(fewest)
     return Placed(legend, "inside")
 
 
@@ -144,7 +148,9 @@ def _right(ax: Axes, handles: list[Artist], labels: list[str], offset: float) ->
         labels=labels,
         loc="upper left",
         bbox_to_anchor=(1.02, 1.0),
-        bbox_transform=offset_copy(ax.transAxes, ax.figure, x=offset, units="points"),
+        bbox_transform=offset_copy(
+            ax.transAxes, figure_of(ax), x=offset, units="points"
+        ),
         borderaxespad=0.0,
         frameon=False,
         fontsize=8,
@@ -159,7 +165,7 @@ def _bottom(ax: Axes, handles: list[Artist], labels: list[str]) -> Legend:
         loc="upper center",
         bbox_to_anchor=(0.5, 0.0),
         bbox_transform=offset_copy(
-            ax.transAxes, ax.figure, y=-below_x_label(ax), units="points"
+            ax.transAxes, figure_of(ax), y=-below_x_label(ax), units="points"
         ),
         borderaxespad=0.0,
         frameon=False,
@@ -184,17 +190,17 @@ def _inside(ax: Axes, handles: list[Artist], labels: list[str]) -> Legend:
 
 def _corner_obstacles(
     ax: Axes, legend: Legend, exclude: Collection[Artist | None] = ()
-) -> dict[str, int]:
+) -> dict[Corner, int]:
     """Count what each corner's legend box would cover, by corner, in order.
 
     The box is padded by ``CLEARANCE``. Obstacles are markers (padded by
     their radius), line segments crossing the box, data patches, and texts;
     artists below ``_layers.LINES`` (bands, regions, envelopes) don't count.
     """
-    draw = renderer(ax.figure)
-    pad = CLEARANCE * ax.figure.dpi / 72
+    draw = renderer(figure_of(ax))
+    pad = CLEARANCE * figure_of(ax).dpi / 72
     points, radii, lines, shapes, boxes = _obstacles(ax, draw, exclude)
-    counts = {}
+    counts: dict[Corner, int] = {}
     for corner in CORNERS:
         legend.set_loc(corner)
         box = legend.get_window_extent(draw).padded(pad)
@@ -214,13 +220,13 @@ def _corner_obstacles(
 
 
 def _obstacles(
-    ax: Axes, draw: object, exclude: Collection[Artist | None]
+    ax: Axes, draw: RendererBase, exclude: Collection[Artist | None]
 ) -> tuple[np.ndarray, np.ndarray, list[Path], list[Path], list[Bbox]]:
     """Return the data a legend mustn't cover, in display coordinates.
 
     Marker centers and radii, polylines, filled shapes, and text boxes.
     """
-    to_pixels = ax.figure.dpi / 72
+    to_pixels = figure_of(ax).dpi / 72
     points, radii, lines, shapes, boxes = [], [], [], [], []
 
     def counted(artist: Artist) -> bool:

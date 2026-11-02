@@ -162,6 +162,7 @@ def vertical_stress(
     _check_frame(stratigraphy, "stratigraphy", ["loca_id", "depth_top", "depth_base"])
     system = _display_units(display_units or settings.display_units)
     depth_unit = _units.resolve_units(df, ["depth"], units, analysis=True)["depth"]
+    assert depth_unit is not None  # resolve_units raises for a length with no unit
     depths = _to_meters(numeric_column(df, "depth"), depth_unit, "depth")
     holes = _hole_ids(df["loca_id"])
     valid = ~np.isnan(depths) & (holes != "")
@@ -335,6 +336,7 @@ def _read_log(stratigraphy: pd.DataFrame, by: str | None) -> tuple[pd.DataFrame,
             f"({found['depth_top']}, {found['depth_base']}). Declare one unit for both."
         )
     unit = found["depth_top"]
+    assert unit is not None  # resolve_units raises for a length with no unit
     keys = (
         [None] * len(stratigraphy)
         if by is None
@@ -454,12 +456,12 @@ def _resolve(
     """One judgment: its argument, else the judgments file, else an error."""
     in_file = None if read is None else read.judgments.get(name)
     if argument is not None:
-        if in_file is not None:
+        if read is not None and in_file is not None:
             warn(f"{name}= replaces the {name} in {read.path.name}.")
         if name == "unit_weight":
             return _unit_weight_argument(argument)
         return _water_level_argument(argument, depth_unit)
-    if in_file is not None:
+    if read is not None and in_file is not None:
         return from_file(in_file, read)
     raise HangtuError(_missing(name, read, "judgments_file" in df.attrs))
 
@@ -526,8 +528,10 @@ def _unit_weight_argument(argument: Any) -> Values:
         return values, texts
 
     if isinstance(argument, str):
-        values, texts = entry(argument, "unit_weight")
-        return Values("unit_weight", "argument", None, {ALL: values}, {ALL: texts})
+        values, value_texts = entry(argument, "unit_weight")
+        return Values(
+            "unit_weight", "argument", None, {ALL: values}, {ALL: value_texts}
+        )
     if not isinstance(argument, Mapping):
         raise HangtuError(
             "unit_weight must be a unit weight with its unit or a dict keyed by "
@@ -563,8 +567,8 @@ def _water_level_argument(argument: Any, depth_unit: str) -> Values:
         for key, value in argument.items():
             entries[str(key)], texts[str(key)] = entry(value, f"water_level[{key!r}]")
         return Values("water_level", "argument", "loca_id", entries, texts)
-    values, texts = entry(argument, "water_level")
-    return Values("water_level", "argument", None, {ALL: values}, {ALL: texts})
+    values, value_texts = entry(argument, "water_level")
+    return Values("water_level", "argument", None, {ALL: values}, {ALL: value_texts})
 
 
 def _water_level_table(table: pd.DataFrame, depth_unit: str) -> Values:

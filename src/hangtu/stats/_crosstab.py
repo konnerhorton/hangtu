@@ -156,6 +156,7 @@ def crosstab(
     blank_columns = np.array([value == BLANK_GROUP for value in column_text], bool)
     compared = ~blank_rows & ~blank_columns
     disagreeing = compared & ~agreeing
+    assert agree is not None  # _agreement returns None only without agree=
     tally = {
         "count_compared": int(compared.sum()),
         "count_agreeing": int((compared & agreeing).sum()),
@@ -371,7 +372,7 @@ def text(value: Any) -> str:
     if isinstance(value, bool | np.bool_):
         return str(bool(value))
     if isinstance(value, numbers.Real) and float(value).is_integer():
-        return str(int(value))
+        return str(int(value))  # type: ignore[call-overload]
     return str(value)
 
 

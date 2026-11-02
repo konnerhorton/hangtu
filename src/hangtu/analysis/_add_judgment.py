@@ -114,7 +114,7 @@ def add_judgment(
 
     if value is not None:
         given = _argument(name, field, value)
-        if in_file is not None:
+        if read is not None and in_file is not None:
             warn(f"value= replaces the {name} in {read.path.name}.")
         if name in df.columns and df[name].notna().any():
             warn(
@@ -129,7 +129,7 @@ def add_judgment(
     )
     blank = np.isnan(column)
     from_rows: dict[str, Any] = {"source": f"the {name!r} column on the rows"}
-    if in_file is None:
+    if read is None or in_file is None:
         if name in df.columns and not blank.any():
             return _recorded(result, df, name, from_rows)
         raise HangtuError(_missing(name, read, df, int(blank.sum())))

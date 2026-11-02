@@ -12,6 +12,7 @@ import pandas as pd
 from matplotlib.artist import Artist
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from matplotlib.layout_engine import ConstrainedLayoutEngine
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib.ticker import NullLocator
@@ -26,7 +27,7 @@ from hangtu.plot._baseline import Baseline, legend_text, read_baseline
 from hangtu.plot._labels import axis_label
 from hangtu.plot._legend import add_legend, check_legend
 from hangtu.plot._limits import set_linear_axis, set_log_axis
-from hangtu.plot._notes import ARROW_LENGTH, Notes, edge_markers
+from hangtu.plot._notes import ARROW_LENGTH, Notes, edge_markers, figure_of
 from hangtu.plot._overlays import ValueScale, draw_note, draw_reference_lines
 from hangtu.plot._palette import data_order, resolve_palette
 from hangtu.plot._presets import Preset
@@ -121,7 +122,7 @@ class _Panel:
     notes: Notes = field(default_factory=Notes)
     counts: list[Artist] = field(default_factory=list)
     baseline: Baseline | None = None
-    flags: list[Artist] = field(default_factory=list)  # qualifier entries
+    flags: list[Line2D] = field(default_factory=list)  # qualifier entries
     title: str = ""  # the value axis text without units, for grid footnotes
 
 
@@ -490,9 +491,9 @@ def _legend_offset(ax: Axes, counts: Sequence[Artist]) -> float:
     """Return the space in points the legend needs to clear the count labels."""
     if not counts:
         return 0.0
-    figure = ax.figure
+    figure = figure_of(ax)
     figure.draw_without_rendering()
-    renderer = figure.canvas.get_renderer()
+    renderer = figure.canvas.get_renderer()  # type: ignore[attr-defined]
     right = ax.get_window_extent(renderer).x1
     reach = max(label.get_window_extent(renderer).x1 for label in counts) - right
     return reach * 72.0 / figure.dpi + LEGEND_GAP
@@ -578,9 +579,11 @@ def _draw_panel(
     if panel.baseline is not None:
         _draw_baseline(ax, panel.baseline, row_of, log)
 
-    draw_summary = {"percentiles": _draw_percentiles, "box": _draw_box}.get(
-        summary.kind
-    )
+    drawers: dict[str | None, Any] = {
+        "percentiles": _draw_percentiles,
+        "box": _draw_box,
+    }
+    draw_summary = drawers.get(summary.kind)
     summarized_any = False
     carets = {q: marker for q, (marker, *_) in _values.QUALIFIERS.items()}
     right_edge = points and xlim is not None and bool((x[drawn] > xlim[1]).any())
@@ -784,7 +787,7 @@ def geology_unit_comparison(
         if ax is None:
             fig, ax = _new_axes(figsize)
         else:
-            fig = ax.figure
+            fig = figure_of(ax)
         panel = _draw_panel(
             ax,
             df,
@@ -865,7 +868,7 @@ def _tables(
 
 def _grid_flags(panels: list[_Panel]) -> list[Artist]:
     """Return qualifier legend entries with counts summed over the panels."""
-    handles = []
+    handles: list[Artist] = []
     for flag in _values.QUALIFIERS.values():
         n = sum(panel.notes.counts.get(flag.reason, 0) for panel in panels)
         if n:
@@ -895,7 +898,9 @@ def _grid_legend(fig: Figure, handles: list[Artist], footnote: list[str]) -> Non
     band = (legend_rows * LEGEND_ROW + len(footnote) * FOOTNOTE_LINE + 2 * BAND_PAD) / (
         72.0 * fig.get_figheight()
     )
-    fig.get_layout_engine().set(rect=(0.0, band, 1.0, 1.0 - band))
+    engine = fig.get_layout_engine()
+    assert isinstance(engine, ConstrainedLayoutEngine)
+    engine.set(rect=(0.0, band, 1.0, 1.0 - band))
     if handles:
         legend = fig.legend(
             handles=handles,
@@ -1014,7 +1019,9 @@ def geology_unit_comparisons(
         _check_columns(tables[value], value, color_by)
     if baseline is not None and not isinstance(baseline, pd.DataFrame):
         baseline = _units.read_csv(baseline)
-    if baseline is not None and len(values) > 1 and "property" not in baseline.columns:
+    if (
+        baseline is not None and len(values) > 1 and "property" not in baseline.columns  # type: ignore[union-attr]
+    ):
         raise ColumnError(
             "The baseline table covers several values here, so it needs a "
             "'property' column naming the value of each row, e.g. water_content."
@@ -1072,7 +1079,7 @@ def geology_unit_comparisons(
             handles[text] = _baseline_handle(text)
         for panel in panels:
             for handle in panel.handles:
-                handles.setdefault(handle.get_label(), handle)
+                handles.setdefault(str(handle.get_label()), handle)
         legend_handles = [*handles.values(), *_grid_flags(panels)]
         footnote = _grid_footnote(panels)
         if footnote and grow:

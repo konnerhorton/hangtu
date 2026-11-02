@@ -5,7 +5,7 @@ counted here and listed in a footnote.
 """
 
 from collections.abc import Mapping
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import numpy as np
 from matplotlib.artist import Artist
@@ -61,12 +61,22 @@ GAP = 4.0  # points between the x label and what goes below it
 Placement = Literal["right", "bottom", "inside"] | None
 
 
+def figure_of(ax: Axes) -> Figure:
+    """Return the Figure that ``ax`` is drawn on.
+
+    matplotlib types ``ax.figure`` as a Figure or a SubFigure. hangtu's plots
+    draw on axes in a Figure: measuring legends and notes calls methods only a
+    Figure has (``draw_without_rendering``).
+    """
+    return cast(Figure, ax.figure)
+
+
 def renderer(figure: Figure) -> Any:
     """Return the figure's renderer, to measure text before the figure is drawn."""
     canvas = figure.canvas
     if hasattr(canvas, "get_renderer"):
         return canvas.get_renderer()
-    return figure._get_renderer()
+    return figure._get_renderer()  # type: ignore[attr-defined]
 
 
 def below_x_label(ax: Axes) -> float:
@@ -76,8 +86,8 @@ def below_x_label(ax: Axes) -> float:
     small gap; at least ``BELOW_X_LABEL``. The depth doesn't change when the
     layout engine resizes the axes.
     """
-    box = ax.xaxis.get_tightbbox(renderer(ax.figure))
-    depth = 0.0 if box is None else (ax.bbox.y0 - box.y0) * 72 / ax.figure.dpi
+    box = ax.xaxis.get_tightbbox(renderer(figure_of(ax)))
+    depth = 0.0 if box is None else (ax.bbox.y0 - box.y0) * 72 / figure_of(ax).dpi
     return max(BELOW_X_LABEL, depth + GAP)
 
 
@@ -157,14 +167,14 @@ class Notes:
         footnote, as for ``add_legend``. Returns the footnote, or None when
         there is nothing to note.
         """
-        ax.ags_notes = dict(self.counts)
+        ax.ags_notes = dict(self.counts)  # type: ignore[attr-defined]
         lines = self.lines()
         if not lines:
             return None
         if where in ("inside", None):
             where, offset, below = "bottom", below_x_label(ax), None
         if where == "bottom":
-            anchor = {"xy": (0.5, 0.0), "xytext": (0.0, -4.0)}
+            anchor: dict[str, Any] = {"xy": (0.5, 0.0), "xytext": (0.0, -4.0)}
             if below is None:
                 anchor["xycoords"] = "axes fraction"
                 anchor["xytext"] = (0.0, -offset)
@@ -251,6 +261,7 @@ def edge_markers(
     x_dir = -x_dir if ax.xaxis_inverted() else x_dir
     y_dir = -y_dir if ax.yaxis_inverted() else y_dir
     # A line marker such as "|" has no face, so it takes the color itself.
+    colors: dict[str, Any]
     if MarkerStyle(marker).is_filled():
         colors = {"facecolors": "none", "edgecolors": color}
     else:

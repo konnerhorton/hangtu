@@ -47,7 +47,7 @@ def _check_energy_ratio(name: str, value: Any) -> float | None:
 
 def _check_hammer_efficiency(
     value: Any, df: pd.DataFrame
-) -> float | dict[str, float] | None:
+) -> float | dict[str, float | None] | None:
     """Check ``hammer_efficiency``: a number, ``{loca_id: ER}`` or None."""
     if not isinstance(value, Mapping):
         return _check_energy_ratio("hammer_efficiency", value)
@@ -57,7 +57,7 @@ def _check_hammer_efficiency(
             "column to match the holes to. Add 'loca_id', or give one number "
             "for every test: hammer_efficiency=80"
         )
-    checked = {}
+    checked: dict[str, float | None] = {}
     for hole, ratio in value.items():
         checked[str(hole)] = _check_energy_ratio(f"hammer_efficiency[{hole!r}]", ratio)
     unknown = [hole for hole in checked if hole not in set(df["loca_id"].astype(str))]
@@ -71,7 +71,7 @@ def _check_hammer_efficiency(
 
 
 def _energy_ratios(
-    df: pd.DataFrame, hammer_efficiency: float | Mapping[str, float] | None
+    df: pd.DataFrame, hammer_efficiency: float | Mapping[str, float | None] | None
 ) -> tuple[np.ndarray, np.ndarray]:
     """Return each row's energy ratio and a mask of the rows it was filled for.
 
@@ -215,7 +215,7 @@ def spt(
             "Column 'spt_n' (N as reported) not found. Available columns: "
             f"{', '.join(map(str, df.columns)) or 'none'}."
         )
-    hammer_efficiency = _check_hammer_efficiency(hammer_efficiency, df)
+    efficiency = _check_hammer_efficiency(hammer_efficiency, df)
     cap = settings.spt_cap if cap is None else _check_cap(cap)
 
     n = numeric_column(df, "spt_n")
@@ -233,7 +233,7 @@ def spt(
         penetration = _penetration_mm(df, blank, units)
         refusal |= blank & (penetration < REFUSAL_PENETRATION - SLACK)
 
-    energy, filled = _energy_ratios(df, hammer_efficiency)
+    energy, filled = _energy_ratios(df, efficiency)
     computed = n60(n, energy)
     used = filled & ~np.isnan(n)
     if "spt_n60" in df.columns:

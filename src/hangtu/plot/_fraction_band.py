@@ -25,8 +25,8 @@ NAME_SIZE = 7
 PART_SIZE = 6.5
 BAND_COLOR = "0.2"  # the band's cell borders
 BAND_WIDTH = 0.6
-FRACTION_DIVIDER = {"color": "0.55", "linewidth": 0.6}
-PART_DIVIDER = {"color": "0.75", "linewidth": 0.4, "linestyle": "--"}
+FRACTION_DIVIDER: dict[str, Any] = {"color": "0.55", "linewidth": 0.6}
+PART_DIVIDER: dict[str, Any] = {"color": "0.75", "linewidth": 0.4, "linestyle": "--"}
 SIEVE_SIZE = 6.5
 SIEVE_TICK = 3.0  # points, up from the frame
 SIEVE_PAD = 0.05  # inches between the frame and the first row of labels
@@ -41,7 +41,7 @@ def _divider(ax: Axes) -> AxesDivider:
     """Return ``ax``'s divider, made once, so the strip and the band stack."""
     divider = getattr(ax, "_grain_size_divider", None)
     if divider is None:
-        divider = ax._grain_size_divider = make_axes_locatable(ax)
+        divider = ax._grain_size_divider = make_axes_locatable(ax)  # type: ignore[attr-defined]
     return divider
 
 
@@ -197,7 +197,7 @@ def sieve_list(sieves: Any, display_units: str) -> list[tuple[float, str]]:
             or len(pair) != 2
             or not isinstance(pair[0], Real)
             or isinstance(pair[0], bool)
-            or not pair[0] > 0
+            or not pair[0] > 0  # type: ignore[operator]
             or not isinstance(pair[1], str)
         ):
             raise _bad_sieves(sieves)

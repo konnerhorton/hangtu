@@ -112,13 +112,20 @@ def from_file(judgment: "_judgments.Judgment", read: "_judgments.Read") -> Value
         project_text=project_text,
         sha256=read.sha256,
     )
-    if not judgment.values and judgment.project is not None and judgment.by is None:
+    if (
+        not judgment.values
+        and project is not None
+        and project_text is not None
+        and judgment.by is None
+    ):
         values.entries, values.texts = {ALL: project}, {ALL: project_text}
         values.project_only = True
     return values
 
 
-def take(values: Values, keys: Iterable[str], noun: str) -> dict[str, dict[str, float]]:
+def take[K: str | None](
+    values: Values, keys: Iterable[K], noun: str
+) -> dict[K, dict[str, float]]:
     """Each key's entry, the project value filling in; record the ones used."""
     keys = list(dict.fromkeys(keys))
     if values.project_only:
@@ -128,7 +135,7 @@ def take(values: Values, keys: Iterable[str], noun: str) -> dict[str, dict[str, 
     if values.by is None:
         values.used[ALL] = values.texts[ALL]
         return dict.fromkeys(keys, values.entries[ALL])
-    found = {}
+    found: dict[K, dict[str, float]] = {}
     missing = []
     for key in keys:
         if key in values.entries:
@@ -155,12 +162,13 @@ def take(values: Values, keys: Iterable[str], noun: str) -> dict[str, dict[str, 
                 else "."
             )
         )
+    assert values.project_text is not None  # set with values.project
     warn_project(values, f"the {plural} {listed} not listed", values.project_text)
     for key in missing:
         found[key] = values.project
     values.used["project"] = {
         **(values.project_text or {}),
-        "used_for": ", ".join(missing),
+        "used_for": ", ".join(map(str, missing)),
     }
     return found
 

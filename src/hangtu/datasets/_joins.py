@@ -71,7 +71,7 @@ def lab_depth(
         specimen_depth.notna(), middle.where(middle.notna(), sample_top)
     )
     basis = pd.Series(
-        np.select(
+        np.select(  # type: ignore[call-overload]
             [specimen_depth.notna(), middle.notna(), sample_top.notna()],
             ["spec_depth", "sample_mid", "sample_top"],
             default=None,

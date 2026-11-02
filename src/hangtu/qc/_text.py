@@ -8,9 +8,9 @@ where its TYPE gives them (``2DP``); everything else has 3 significant figures.
 
 import math
 import re
-from collections.abc import Sequence
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 from hangtu import units
 from hangtu.qc._data import Data
@@ -49,7 +49,7 @@ def _unit(text: str):
 
 
 def values(
-    data: Data, group: str, heading: str, si: Sequence[float], *, computed=False
+    data: Data, group: str, heading: str, si: ArrayLike, *, computed=False
 ) -> str:
     """Write SI values of one heading as ``2.50 to 3.00 m (8.20 to 9.84 ft)``.
 
@@ -90,7 +90,9 @@ def threshold(data: Data, given: Threshold) -> str:
     canonical = units.quantity_kind(kind)["canonical"]
     if canonical is None:
         return given.text
-    source = _unit(units._QUANTITY_TEXT.fullmatch(given.text)[2])
+    match = units._QUANTITY_TEXT.fullmatch(given.text)
+    assert match is not None  # thresholds are checked when they are set
+    source = _unit(match[2])
     target = units.quantity_kind(kind)[data.display_units]
     target_unit = units.ureg.Unit(target["unit"])
     if source is None or units.convert([1.0], source, kind, target_unit)[0] == 1.0:

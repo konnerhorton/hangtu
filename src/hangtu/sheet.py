@@ -6,6 +6,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from matplotlib.layout_engine import ConstrainedLayoutEngine
 
 from hangtu.errors import HangtuError
 
@@ -77,7 +78,9 @@ class Sheet:
             width, height = height, width
         self.rows, self.columns = layout
         self.figure: Figure = plt.figure(figsize=(width, height), layout="constrained")
-        self.figure.get_layout_engine().set(
+        engine = self.figure.get_layout_engine()
+        assert isinstance(engine, ConstrainedLayoutEngine)
+        engine.set(
             rect=(
                 MARGIN / width,
                 MARGIN / height,

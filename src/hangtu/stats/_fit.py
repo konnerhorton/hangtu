@@ -281,7 +281,7 @@ def fit(
                 for name in COUNTS
             },
         }
-        group = {
+        group: dict[str, Any] = {
             "key": key,
             "counts": counts,
             "fits": [],
@@ -334,12 +334,12 @@ def fit(
             "values themselves."
         )
     if not any(group["fits"] for group in groups):
-        reasons = "; ".join(
+        explained = "; ".join(
             f"{', '.join(map(str, group['key'].values())) or 'All'}: {group['reason']}"
             for group in groups
         )
         raise HangtuError(
-            f"fit() could fit no group of {read.column!r}: {reasons}. Check the "
+            f"fit() could fit no group of {read.column!r}: {explained}. Check the "
             "values, or report them themselves."
         )
     if too_few:
@@ -390,7 +390,7 @@ def _check_bounds(bounds: Any, value: str | None) -> tuple[float | None, float |
     if (
         ends is None
         or any(end is not None and not math.isfinite(end) for end in ends)
-        or (None not in ends and ends[0] >= ends[1])
+        or (ends[0] is not None and ends[1] is not None and ends[0] >= ends[1])
     ):
         raise HangtuError(
             f'fit() bounds must be "auto" or (low, high), each a number or None, '
@@ -444,7 +444,7 @@ def _check_inside(
         )
 
 
-def _count(n: int) -> str:
+def _count(n: int | np.integer) -> str:
     return f"{int(n)} value" + ("" if n == 1 else "s")
 
 
@@ -463,10 +463,13 @@ def _fit_group(
             below = _count((everything <= 0).sum())
             left_out[name] = f"{below} at or below 0, outside the distribution's range"
             continue
-        if name == "beta" and ((everything <= low) | (everything >= high)).any():
-            on = _count(((everything <= low) | (everything >= high)).sum())
-            left_out[name] = f"{on} on the bounds, outside the distribution's range"
-            continue
+        if name == "beta":
+            assert low is not None and high is not None  # beta needs both bounds
+            on_bounds = (everything <= low) | (everything >= high)
+            if on_bounds.any():
+                on = _count(on_bounds.sum())
+                left_out[name] = f"{on} on the bounds, outside the distribution's range"
+                continue
         try:
             parameters = estimate(name, values, (low, high))
         except Exception as error:  # SciPy raises several kinds
@@ -532,6 +535,7 @@ def estimate(
             shape, _, scale = _stats.weibull_min.fit(data, floc=0)
             return {"c": float(shape), "scale": float(scale)}
         low, high = bounds
+        assert low is not None and high is not None  # beta needs both bounds
         a, b, _, _ = _stats.beta.fit(data, floc=low, fscale=high - low)
         return {"a": float(a), "b": float(b), "loc": low, "scale": high - low}
 

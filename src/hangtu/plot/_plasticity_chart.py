@@ -20,7 +20,7 @@ from hangtu.errors import ColumnError, HangtuError
 from hangtu.plot import _layers, _regions, _values, style
 from hangtu.plot._hints import hint_missing
 from hangtu.plot._legend import add_legend, check_legend
-from hangtu.plot._notes import Notes, edge_markers
+from hangtu.plot._notes import Notes, edge_markers, figure_of
 from hangtu.plot._spt_profile import _check_choice
 
 SYSTEMS = ("uscs", "bs5930")
@@ -317,7 +317,8 @@ def _draw_zone_labels(ax: Axes, system: str, box: Box) -> None:
                 position = np.array([left - BESIDE_GAP, position[1]])
                 align = "right"
         ax.text(
-            *position,
+            position[0],
+            position[1],
             zone.name,
             ha=align,
             va="center",
@@ -571,7 +572,7 @@ def plasticity_chart(
                 layout="constrained",
             )
         else:
-            fig = ax.figure
+            fig = figure_of(ax)
         style.style_axes(ax)
         _set_axes(ax, box)
         _regions.draw_regions(ax, shapes, shape_colors)

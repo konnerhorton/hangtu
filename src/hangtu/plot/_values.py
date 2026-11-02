@@ -96,7 +96,7 @@ def start_at_zero(value: str, preset: Preset | None) -> bool:
     if preset is not None:
         return preset.start_at_zero
     info = column_info(value)
-    return bool(info) and info.get("scale") == "ratio"
+    return info is not None and info.get("scale") == "ratio"
 
 
 def typical_range(

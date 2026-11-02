@@ -12,6 +12,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import pint
+from numpy.typing import ArrayLike
 
 from hangtu import _config
 from hangtu._settings import _display_units, settings
@@ -55,7 +56,7 @@ def _where(column: str | None) -> str:
     return f" for column {column!r}" if column else ""
 
 
-def parse_unit(text: str, column: str | None = None) -> pint.Unit:
+def parse_unit(text: str | None, column: str | None = None) -> pint.Unit:
     """Read a unit string, in the lookup order of P00 §4.2.
 
     1. The alias table (``units/aliases.yaml`` plus ``ht.add_unit_alias``).
@@ -198,7 +199,7 @@ def convert(values: Any, unit: pint.Unit, quantity: str, to: pint.Unit) -> np.nd
 
 
 def to_display(
-    values: Iterable[float],
+    values: ArrayLike,
     unit: str | None,
     quantity: str | None,
     display_units: str | None = None,
@@ -234,6 +235,7 @@ def to_display(
     if unit is None:
         return magnitudes, None
     target, text = _display_target(quantity, system)
+    assert target is not None  # a quantity with a canonical unit has a display unit
     source, _ = _lookup(unit)
     if source is None:
         source = parse_unit(unit)

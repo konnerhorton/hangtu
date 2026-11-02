@@ -51,8 +51,8 @@ class AgsText:
     headings: dict[str, list[str]]
     units: dict[str, dict[str, str]]
     types: dict[str, dict[str, str]]
-    group_lines: dict[str, int]
-    heading_lines: dict[str, int]
+    group_lines: dict[str, int | None]
+    heading_lines: dict[str, int | None]
     unit_lines: dict[str, int | None]
     findings: list[Finding] = field(default_factory=list)
 
@@ -272,7 +272,8 @@ class _Capture:
         self._stack.close()
 
     def findings(self) -> list[Finding]:
-        found, seen = [], set()
+        found: list[Finding] = []
+        seen: set[str] = set()
         for record in self._records:
             message = record.getMessage()
             # check_file parses the file again, so each message comes twice.

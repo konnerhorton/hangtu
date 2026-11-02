@@ -19,7 +19,8 @@ Python library that derives the ground parameters a geotechnical design needs, f
 - `uv run pytest -n auto --dist loadfile`: the whole suite in parallel, about 1.5 minutes (warnings are errors; assert expected ones with `pytest.warns`)
 - `uv run pytest <files>`: only the tests a change touches; add `--lf` to rerun only the last failures
 - `uv run ruff check . && uv run ruff format .`: lint and format
-- `uv run ruff check . && uv run ruff format --check . && uv run pytest -n auto --dist loadfile`: what CI runs (`.github/workflows/ci.yml`)
+- `uv run mypy`: type-check `src/hangtu` (settings in `pyproject.toml`)
+- `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -n auto --dist loadfile`: what CI runs (`.github/workflows/ci.yml`)
 - `uv sync --group docs && uv run python docs/prepare_site.py && uv run zensical serve`: the docs site locally (`zensical build --clean --strict` is what CI runs)
 - Oldest allowed dependency versions: `UV_RESOLUTION=lowest-direct UV_PROJECT_ENVIRONMENT=<scratch dir> uv run pytest`, then `git checkout uv.lock`, because it rewrites the lock (commit an intended lock change first, or the checkout discards it)
 
@@ -30,6 +31,7 @@ Python library that derives the ground parameters a geotechnical design needs, f
 - **Units:** resolve them in the order explicit argument → `df.attrs["units"]` → registry/settings → error (analysis) or "(units unknown)" (plot). Never guess a unit (SPEC §2.6).
 - **Never drop data silently.** Draw out-of-range values at the edge with a count, and keep flagged values (NP, refusal, `<x`) distinct from blank.
 - **Error messages** say what is wrong, where, and what to do. Don't show raw tracebacks for anticipated data problems.
+- **Annotations are published** in the API reference and checked by mypy. Correct a wrong annotation to what the code does. A `# type: ignore[<code>]` names its code and covers only a library's typing gap (or hangtu's attributes on an `Axes`); narrow a value the code already guarantees with an `assert` and a comment saying why. Read a plot's figure with `figure_of(ax)`.
 - Use American spelling everywhere: prose, docs, comments and identifiers (color, behavior, recognize, analyze, gray, judgment).
 
 ## Naming

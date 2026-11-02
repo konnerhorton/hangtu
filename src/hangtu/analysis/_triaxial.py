@@ -171,7 +171,7 @@ def triaxial_failure_stresses(
     basis = np.where(
         from_back,
         "back_pressure",
-        np.where(np.isnan(pore), None, "pore_pressure_at_failure"),
+        np.where(np.isnan(pore), None, "pore_pressure_at_failure"),  # type: ignore[call-overload]
     ).astype(object)
 
     minor = np.where(extension, np.nan, cell)

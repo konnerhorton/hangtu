@@ -6,6 +6,7 @@ from typing import Any, Literal
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.artist import Artist
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
@@ -344,7 +345,7 @@ def _draw_histogram(
 ) -> list[Any]:
     """Draw the bars, the censored markers and the densities; return the handles."""
     count = record["counts"]["count"]
-    handles = []
+    handles: list[Artist] = []
     tallest = 0.0
     if exact.size:
         source = np.log10(exact) if log else exact
@@ -469,6 +470,7 @@ def _draw_quantiles(
     elif positions is None:
         message = "no plotting positions:\ncensored both ways"
     if message is None:
+        assert qq is not None  # message is set without qq
         values = np.asarray(positions["values"], float)
         group = _key(record["key"]) if result.by else None
         fitted = result.distribution(qq, group).ppf(positions["probabilities"])

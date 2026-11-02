@@ -52,8 +52,10 @@ def draw_regions(ax: Axes, regions: list[Region], colors: Mapping[str, str]) -> 
                 zorder=_layers.REGIONS,
             )
         )
+        x, y = region.centroid()
         ax.text(
-            *region.centroid(),
+            x,
+            y,
             region.label,
             ha="center",
             va="center",
