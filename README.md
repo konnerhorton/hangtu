@@ -4,7 +4,7 @@
 
 **Documentation:** [konnerhorton.github.io/hangtu](https://konnerhorton.github.io/hangtu/)
 
-Plots, data checks and analyses for geotechnical engineers, in US or SI units. hangtu reads **AGS4** data files into a project database, checks them, and turns them into ready-made tables of SPT, Atterberg, grain size and permeability results that go straight into its plots. The plots also work on your own CSV files.
+Plots, data checks, analyses and statistics for geotechnical engineers, in US or SI units. hangtu reads **AGS4** data files into a project database, checks them, and turns them into ready-made tables of test results (SPT, index tests, density, triaxial, undrained strength, shear box) that go straight into its plots and analyses. Everything also works on your own CSV files.
 
 > **Status:** early release. Names and arguments may still change before 1.0.
 
@@ -45,7 +45,7 @@ fig, ax = ht.plot.water_content_profile(p.atterberg())  # w with a PL to LL bar 
 
 <img src="https://raw.githubusercontent.com/konnerhorton/hangtu/main/docs/img/readme-spt.png" alt="SPT N60 against elevation, colored by geology unit, with refusals drawn at the cap and counted" width="440">
 
-`p.spt()`, `p.atterberg()`, `p.grain_size()` and `p.permeability()` give one row per test, with its depth, elevation and geology unit joined on. They take filters such as `holes=`, `geology=` and `depth=`.
+`p.spt()`, `p.atterberg()`, `p.grain_size()`, `p.triaxial()`, `p.undrained_strength()` and the other datasets give one row per test, with its depth, elevation and geology unit joined on. They take filters such as `holes=`, `geology=` and `depth=`.
 
 ## From your own CSV files
 
@@ -66,28 +66,28 @@ fig, ax = ht.plot.spt_histogram(spt[spt["soil_class"] == "coarse"], n="spt_n60")
 ## What it does
 
 - **AGS4 ingest** (versions 4.0.3 to 4.2) into a SQLite project database, with units read from the file and converted on the way in. Values such as `NP`, `<0.1` and refusals are kept as flags, never as blanks.
-- **Data checks** (`p.qc()`): about 40 rules on locations, geology, depths, SPT, Atterberg limits, grading and permeability, plus required fields. Results come as a summary and a CSV report, and `p.diff()` compares two versions of a file.
-- **Datasets** for SPT, Atterberg limits, grain size curves and permeability. Each test gets its depth (SPT at mid-drive), elevation and geology unit, and a geology map gives the units their order and colors.
-- **Plots:** property profile (any property against depth or elevation, linear or log), SPT profile, SPT class histograms, property by geology unit against a report's baseline, plasticity chart (USCS or BS 5930) and grain size curves with the soil fractions. Each is an ordinary matplotlib figure.
-- **SPT analysis:** N60 from the energy ratio, refusals and N classes.
+- **Data checks** (`p.qc()`): about 60 rules on locations, geology, depths, SPT, Atterberg limits, grading, permeability, density, triaxial, undrained strength and shear box results, plus required fields. Results come as a summary and a CSV report, and `p.diff()` compares two versions of a file.
+- **Datasets** for SPT, Atterberg limits, grain size curves, permeability, density, particle density, triaxial stages, undrained strength (UU, unconfined compression, vanes, hand penetrometer, fall cone) and shear box stages. Each test gets its depth (SPT at mid-drive), elevation and geology unit, and a geology map gives the units their order and colors.
+- **Plots:** property profile (any property against depth or elevation, linear or log), SPT profile, water content profile, SPT class histograms, property by geology unit against a report's baseline, plasticity chart (USCS or BS 5930), grain size curves with the soil fractions, clogging diagram, distribution fit, Mohr–Coulomb failure envelope, and triaxial stress–strain curves and stress paths. Each is an ordinary matplotlib figure.
+- **Analyses** as plain functions on a DataFrame (`ht.analysis`): SPT N60, (N1)60 and classes; vertical stress; phase relations and clay activity; USCS, AASHTO and gradation; triaxial stresses at failure and the Mohr–Coulomb fit; s_u from the undrained tests; and published SPT correlations for friction angle, s_u, stress history and stiffness, each with its source and range.
+- **Statistics** (`ht.stats`): summaries, distribution fits that keep "less than" and "more than" values, group comparisons and cross-tabulations.
+- **Judgments have no defaults:** an input that is the engineer's call, such as a hammer's energy ratio or an assumed specific gravity, comes from an argument or the project's judgments file, or hangtu stops and names it.
 - **Units that follow the data:** each column's units are declared once, and every plot converts to US or SI. hangtu never guesses a unit.
 - **Nothing is dropped silently:** values beyond the axis limits, blanks and "less than" values are drawn or counted on the figure.
 - **Printable sheets** (`ht.Sheet`): several plots on one tabloid or letter page, saved as PDF, PNG or SVG.
 
 ## Roadmap
 
-hangtu is heading toward **the ground parameters a design needs**, for soil and rock: from the test data, through direct derivations and published correlations, to selected values and constitutive-model parameter sets (Mohr–Coulomb, Hardening Soil, generalized Hoek–Brown, Soft Soil). The docs will explain each parameter: what it is, why it matters, and how it is determined.
+hangtu is heading toward **the ground parameters a design needs**, for soil and rock: from the test data, through direct derivations and published correlations, to selected values and constitutive-model parameter sets (Mohr–Coulomb, Hardening Soil, generalized Hoek–Brown, Soft Soil). The docs explain each parameter as it is built: what it is, why it matters, and how it is determined.
 
 The work comes in waves, each built around a shared piece of engineering:
 
 | Wave | What it adds |
 |---|---|
-| Built | Plots, SPT N60 and classes, AGS4 ingest and checks, the datasets, plasticity and grading classification |
-| 1 | Vertical stress, phase relations, SPT correlations with (N1)60, the clogging diagram |
-| Statistics | Distribution fitting, group comparisons, Eurocode 7 characteristic values |
-| 2 | Strength envelopes: soil (triaxial, shear box, undrained tests), rock joints, intact Hoek–Brown |
+| Built | Plots, AGS4 ingest and checks, the datasets, classification; wave 1 (vertical stress, phase relations, SPT correlations with (N1)60, the clogging diagram); statistics; and from wave 2 the triaxial, undrained strength and shear box data and the Mohr–Coulomb fit |
+| 2, rest | The shear box fit (soil and rock joints) and the intact Hoek–Brown fit |
 | 0 | Test curves (triaxial, swelling, shear box) carried in the AGS file |
-| Selection | Comparing sources, design lines, model parameter sets |
+| Selection | Comparing sources, Eurocode 7 characteristic values, design lines, model parameter sets |
 | 3–6 | Oedometer and swelling; rock mass (Hoek–Brown, modulus, in situ stress); soil stiffness; field permeability |
 
 Releases follow when a piece is ready to use; they aren't tied to the waves.
