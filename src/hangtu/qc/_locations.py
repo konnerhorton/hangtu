@@ -1,5 +1,7 @@
 """Location rules L001 to L007 (qc.md §4.2)."""
 
+from typing import Any
+
 import numpy as np
 
 from hangtu import vertical_datums
@@ -210,7 +212,7 @@ def vertical_datums_disagree(data: Data, settings: RuleSettings) -> RuleResult:
     found = _file_datum(data)
     if not found.names:
         return RuleResult()
-    where = {"group": "LOCA", "heading": "LOCA_DATM"}
+    where: dict[str, Any] = {"group": "LOCA", "heading": "LOCA_DATM"}
     if len(found.names) > 1:
         listed = "; ".join(
             f"{name} in {len(holes)} hole{'s' if len(holes) > 1 else ''} "

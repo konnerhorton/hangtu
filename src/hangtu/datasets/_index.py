@@ -231,9 +231,10 @@ def _combine(sample: Sample) -> tuple[dict, bool]:
     picked: dict[str, pd.Series | None] = {}
     for group in TESTS:
         found = sample.tests.get(group, [])
-        picked[group] = _nearest(found, reference, own) if found else None
-        if group == "LNMC" and picked[group] is not None:
-            own = picked[group]["_specimen"]
+        pick = _nearest(found, reference, own) if found else None
+        picked[group] = pick
+        if group == "LNMC" and pick is not None:
+            own = pick["_specimen"]
     water, atterberg = picked["LNMC"], picked["LLPL"]
     row = {
         "location_id": first["location_id"],
@@ -248,8 +249,10 @@ def _combine(sample: Sample) -> tuple[dict, bool]:
         row[column] = np.nan if atterberg is None else atterberg[column]
     row["non_plastic"] = False if atterberg is None else bool(atterberg["non_plastic"])
     for group, column in TESTS.items():
-        row[column] = None if picked[group] is None else picked[group]["specimen_id"]
-    row["_grading"] = None if picked["GRAT"] is None else picked["GRAT"]["_specimen"]
+        pick = picked[group]
+        row[column] = None if pick is None else pick["specimen_id"]
+    grading = picked["GRAT"]
+    row["_grading"] = None if grading is None else grading["_specimen"]
     several = any(len(found) > 1 for found in sample.tests.values())
     return row, several
 

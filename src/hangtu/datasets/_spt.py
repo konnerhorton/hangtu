@@ -80,7 +80,7 @@ def spt(
     )
     _, filled = _energy_ratios(frame, hammer_efficiency)
     frame["energy_source"] = pd.Series(
-        np.select(
+        np.select(  # type: ignore[call-overload]
             [
                 file_n60.notna(),
                 frame["spt_n60"].notna() & frame["energy_ratio"].notna(),

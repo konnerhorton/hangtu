@@ -217,6 +217,7 @@ def build(
         if result is None:
             continue
         severity = settings.rule(rule_id).severity
+        assert severity is not None  # only ingest rules keep a stored severity
         for finding in result.findings:
             rows.append(_row(data, finding, severity))
         counts[rule_id] = len(result.findings)

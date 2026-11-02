@@ -327,6 +327,7 @@ class Build:
                     continue
                 canonical = units.ureg.Unit(units.quantity_kind(kind)["canonical"])
                 target, _ = units._display_target(kind, self.system)
+                assert target is not None  # a canonical unit has a display unit
                 frame[column] = units.convert(
                     frame[column].astype(float), canonical, kind, target
                 )
@@ -344,6 +345,7 @@ class Build:
                         found[column] = "%"
                     continue
                 _, text = units._display_target(kind, self.system)
+                assert text is not None  # a canonical unit has a display unit
                 found[column] = _plain(text)
         return found
 

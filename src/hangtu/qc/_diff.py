@@ -5,6 +5,7 @@ from os import PathLike
 
 import numpy as np
 import pandas as pd
+import pint
 
 import hangtu.db as database
 from hangtu import units
@@ -100,7 +101,7 @@ def _headings(group: str, known: list[str], heading) -> list[str]:
     return wanted
 
 
-def _unit(text) -> object:
+def _unit(text) -> pint.Unit | None:
     if not isinstance(text, str) or not text:
         return None
     unit, _ = units._lookup(text)  # no warning: ingest reported any (U002)
