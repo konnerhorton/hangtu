@@ -202,7 +202,7 @@ def _limits_bars(
             beyond[ends[edge]] = True
         if not (shown & bar).any():
             return [], beyond
-        handles = [
+        handles: list[Artist] = [
             Line2D(
                 [],
                 [],

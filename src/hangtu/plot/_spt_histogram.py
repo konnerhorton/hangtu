@@ -286,7 +286,9 @@ def spt_histogram(
                     label="refusal",
                 )
             )
-        _set_class_axis(ax, slots, f"{column_info(n)['label']} class ({table})")
+        info = column_info(n)
+        assert info is not None  # spt_n and spt_n60 are registered
+        _set_class_axis(ax, slots, f"{info['label']} class ({table})")
         _set_percent_axis(ax, tallest * BAR_LABEL_ROOM if bar_labels else tallest)
         if not drawn:
             ax.text(

@@ -317,7 +317,8 @@ def _draw_zone_labels(ax: Axes, system: str, box: Box) -> None:
                 position = np.array([left - BESIDE_GAP, position[1]])
                 align = "right"
         ax.text(
-            *position,
+            position[0],
+            position[1],
             zone.name,
             ha=align,
             va="center",

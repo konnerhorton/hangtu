@@ -162,8 +162,10 @@ def _draw_zones(ax: Axes, figure: Diagram, zone_labels: bool) -> None:
             )
         )
         if zone_labels:
+            x, y = label_position(zone)
             ax.text(
-                *label_position(zone),
+                x,
+                y,
                 zone.name,
                 ha="center",
                 va="center",

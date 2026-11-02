@@ -33,7 +33,11 @@ SECOND_AXES = ("excess_pore_pressure", "volumetric_strain")
 USER_ENVELOPE_COLOR = "0.55"
 CURVE_WIDTH = 1.0
 MARKER_SIZE = 4.5
-STAGE_COLORS = plt.get_cmap("tab10").colors
+STAGE_COLORS = plt.get_cmap("tab10").colors  # type: ignore[attr-defined]
+#: Each stage's legend label, None for a stage with a blank color_by value,
+#: and each label's color.
+Labels = dict[tuple, str | None]
+Colors = dict[str | None, Any]
 
 
 def triaxial_shearing(
@@ -294,9 +298,11 @@ def _stage_label(reduced: Reduced, key: tuple) -> str:
 
 def _stage_colors(
     reduced: Reduced, group_by: str | list[str] | None, color_by: str | None
-) -> tuple[dict[tuple, str], dict[str, Any]]:
+) -> tuple[Labels, Colors]:
     """Return each stage's legend label and ``{label: color}``."""
     df = reduced.readings.df
+    labels: Labels
+    colors: Colors
     first = {key: rows[0] for key, rows in reduced.stages.items()}
     if group_by is not None:
         columns = [group_by] if isinstance(group_by, str) else list(group_by)
@@ -349,9 +355,7 @@ def _failure_handle(criterion: str | None) -> Line2D:
     return _values.legend_marker("o", "0.3", f"Failure: {how}", MARKER_SIZE)
 
 
-def _legend_entries(
-    labels: dict[tuple, str], colors: dict[str, Any], drawn: set[tuple]
-) -> list[Line2D]:
+def _legend_entries(labels: Labels, colors: Colors, drawn: set[tuple]) -> list[Line2D]:
     names = list(dict.fromkeys(labels[key] for key in labels if key in drawn))
     if len(names) < 2 and None in names:
         return []
@@ -365,8 +369,8 @@ def _legend_entries(
 def _draw_curves(
     ax: Axes,
     reduced: Reduced,
-    labels: dict[tuple, str],
-    colors: dict[str, Any],
+    labels: Labels,
+    colors: Colors,
     system: str,
     notes: Notes,
 ) -> list[Line2D]:
@@ -427,8 +431,8 @@ def _draw_second_axis(
     ax: Axes,
     reduced: Reduced,
     column: str,
-    labels: dict[tuple, str],
-    colors: dict[str, Any],
+    labels: Labels,
+    colors: Colors,
     system: str,
     notes: Notes,
 ) -> list[Line2D]:
@@ -493,8 +497,8 @@ def _draw_paths(
     reduced: Reduced,
     space: str,
     stress: str,
-    labels: dict[tuple, str],
-    colors: dict[str, Any],
+    labels: Labels,
+    colors: Colors,
     system: str,
     unit: str | None,
     notes: Notes,

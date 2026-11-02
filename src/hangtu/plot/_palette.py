@@ -15,7 +15,7 @@ from hangtu._settings import settings
 from hangtu.errors import HangtuError, warn
 
 # tab20 comes in dark/light pairs; use the 10 dark shades first.
-_TAB20 = list(mpl.colormaps["tab20"].colors)
+_TAB20 = list(mpl.colormaps["tab20"].colors)  # type: ignore[attr-defined]
 AUTOMATIC = _TAB20[0::2] + _TAB20[1::2]
 
 _assigned: dict[Any, Any] = {}

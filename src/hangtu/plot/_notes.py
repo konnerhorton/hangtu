@@ -167,14 +167,14 @@ class Notes:
         footnote, as for ``add_legend``. Returns the footnote, or None when
         there is nothing to note.
         """
-        ax.ags_notes = dict(self.counts)
+        ax.ags_notes = dict(self.counts)  # type: ignore[attr-defined]
         lines = self.lines()
         if not lines:
             return None
         if where in ("inside", None):
             where, offset, below = "bottom", below_x_label(ax), None
         if where == "bottom":
-            anchor = {"xy": (0.5, 0.0), "xytext": (0.0, -4.0)}
+            anchor: dict[str, Any] = {"xy": (0.5, 0.0), "xytext": (0.0, -4.0)}
             if below is None:
                 anchor["xycoords"] = "axes fraction"
                 anchor["xytext"] = (0.0, -offset)
@@ -261,6 +261,7 @@ def edge_markers(
     x_dir = -x_dir if ax.xaxis_inverted() else x_dir
     y_dir = -y_dir if ax.yaxis_inverted() else y_dir
     # A line marker such as "|" has no face, so it takes the color itself.
+    colors: dict[str, Any]
     if MarkerStyle(marker).is_filled():
         colors = {"facecolors": "none", "edgecolors": color}
     else:

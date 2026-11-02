@@ -462,11 +462,12 @@ def grain_size(
         style.style_axes(ax)
         _set_axes(ax, limits, reverse)
         # The strip first, so it sits between the frame and the band.
-        ax.grain_size_sieves = _fraction_band.add_sieve_strip(ax, sieve_list, limits)
-        ax.grain_size_header = None
+        ax.grain_size_sieves = _fraction_band.add_sieve_strip(ax, sieve_list, limits)  # type: ignore[attr-defined]
+        header = None
         if fractions is not None:
-            ax.grain_size_header = _fraction_band.add_header(ax)
-            _fraction_band.draw_band(ax.grain_size_header, ax, system_fractions, limits)
+            header = _fraction_band.add_header(ax)
+            _fraction_band.draw_band(header, ax, system_fractions, limits)
+        ax.grain_size_header = header  # type: ignore[attr-defined]
         envelope_handles = _envelopes.draw_envelopes(ax, bands, band_colors)
         handles = _draw_curves(
             ax,

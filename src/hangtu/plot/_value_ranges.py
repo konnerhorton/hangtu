@@ -155,7 +155,8 @@ def draw(
     band isn't hidden under a wide one. The data, and a value's marker, stay
     at the row's depth.
     """
-    xlim = tuple(sorted(ax.get_xlim()))
+    x_low, x_high = sorted(ax.get_xlim())
+    xlim = (x_low, x_high)
     lower, upper = bounds
     beyond = np.zeros(len(y), dtype=bool)
     if ylim is not None:

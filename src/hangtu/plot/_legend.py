@@ -8,6 +8,7 @@ from typing import Literal, NamedTuple
 import numpy as np
 from matplotlib.artist import Artist
 from matplotlib.axes import Axes
+from matplotlib.backend_bases import RendererBase
 from matplotlib.collections import LineCollection, PathCollection
 from matplotlib.legend import Legend
 from matplotlib.path import Path
@@ -30,7 +31,8 @@ MAX_ROWS = 12
 MAX_ENTRIES = 30
 BOTTOM_COLUMNS = 4  # legend columns below the axes
 #: Corners tried in order for a legend inside the axes; the first clear one wins.
-CORNERS = ("upper right", "upper left", "lower right", "lower left")
+Corner = Literal["upper right", "upper left", "lower right", "lower left"]
+CORNERS: tuple[Corner, ...] = ("upper right", "upper left", "lower right", "lower left")
 CLEARANCE = 4.0  # points around an inside legend that must be clear of data
 FRAME_ALPHA = 0.85  # an inside legend's white frame, so gridlines don't cross it
 #: Characters per legend line; a longer entry wraps at spaces, never shortened.
@@ -108,7 +110,7 @@ def add_legend(
             else f"{len(handles)} legend entries not shown"
         )
         return Placed(None, None)
-    labels = [_wrap(handle.get_label()) for handle in handles]
+    labels = [_wrap(str(handle.get_label())) for handle in handles]
     if where == "right":
         return Placed(_right(ax, handles, labels, offset), "right")
     if where == "bottom":
@@ -128,7 +130,8 @@ def add_legend(
     if where == "auto":
         legend.remove()
         return Placed(_bottom(ax, handles, labels), "bottom")
-    legend.set_loc(min(counts, key=counts.__getitem__))
+    fewest = min(counts, key=counts.__getitem__)
+    legend.set_loc(fewest)
     return Placed(legend, "inside")
 
 
@@ -187,7 +190,7 @@ def _inside(ax: Axes, handles: list[Artist], labels: list[str]) -> Legend:
 
 def _corner_obstacles(
     ax: Axes, legend: Legend, exclude: Collection[Artist | None] = ()
-) -> dict[str, int]:
+) -> dict[Corner, int]:
     """Count what each corner's legend box would cover, by corner, in order.
 
     The box is padded by ``CLEARANCE``. Obstacles are markers (padded by
@@ -197,7 +200,7 @@ def _corner_obstacles(
     draw = renderer(figure_of(ax))
     pad = CLEARANCE * figure_of(ax).dpi / 72
     points, radii, lines, shapes, boxes = _obstacles(ax, draw, exclude)
-    counts = {}
+    counts: dict[Corner, int] = {}
     for corner in CORNERS:
         legend.set_loc(corner)
         box = legend.get_window_extent(draw).padded(pad)
@@ -217,7 +220,7 @@ def _corner_obstacles(
 
 
 def _obstacles(
-    ax: Axes, draw: object, exclude: Collection[Artist | None]
+    ax: Axes, draw: RendererBase, exclude: Collection[Artist | None]
 ) -> tuple[np.ndarray, np.ndarray, list[Path], list[Path], list[Bbox]]:
     """Return the data a legend mustn't cover, in display coordinates.
 

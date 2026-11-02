@@ -98,8 +98,10 @@ def _room_below_data(ax: Axes, box: Text, lowest: float) -> None:
     """
     figure = figure_of(ax)
     figure.draw_without_rendering()  # runs the layout, so sizes are final
-    renderer = figure.canvas.get_renderer()
-    box_top = box.get_bbox_patch().get_window_extent(renderer).y1
+    renderer = figure.canvas.get_renderer()  # type: ignore[attr-defined]
+    patch = box.get_bbox_patch()
+    assert patch is not None  # the box is drawn with bbox=
+    box_top = patch.get_window_extent(renderer).y1
     needed = ax.transAxes.inverted().transform((0.0, box_top))[1] + ROOM_MARGIN
     bottom, top = ax.get_ylim()  # in screen order, for depth and elevation
     if (lowest - bottom) / (top - bottom) >= needed or not 0 < needed < 1:
@@ -752,6 +754,7 @@ def _draw_profile(
                 # A group drawn only as ranges has no marker to show: a bar.
                 only_ranges = not (rows | ((texts != "") & (groups == group))).any()
                 text = _values.group_text(group)
+                handle: Artist
                 if shapes:
                     handle = Patch(facecolor=color, edgecolor="none", label=text)
                 elif only_ranges:
@@ -762,7 +765,7 @@ def _draw_profile(
         text_handles, text_edge = _text_values.draw_text_values(
             ax, y, texts, groups, colors, ylim, notes
         )
-        companion_handles = []
+        companion_handles: list[Artist] = []
         if companion is not None:
             companion_handles, companion_edge = companion.draw(
                 ax, y, groups, colors, notes
@@ -814,7 +817,7 @@ def _draw_profile(
                 groups[counted],
                 statistics,
                 order=list(colors),
-                interval=bool(info) and info.get("scale") == "interval",
+                interval=info is not None and info.get("scale") == "interval",
                 mixed=_mixed_sources(df, counted, groups, color_by),
             )
             also_text = _text_values.also_line(texts)

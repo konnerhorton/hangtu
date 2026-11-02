@@ -50,7 +50,7 @@ def context(**style_overrides: Any) -> Iterator[None]:
     rc = {_rc_name(name): value for name, value in style_overrides.items()}
     with (
         as_file(files("hangtu").joinpath("plot/hangtu.mplstyle")) as path,
-        mpl.rc_context(fname=str(path), rc=rc),
+        mpl.rc_context(fname=str(path), rc=rc),  # type: ignore[arg-type]
     ):
         yield
 
@@ -78,7 +78,7 @@ def style_axes(ax: Axes) -> None:
             ax.tick_params(
                 axis=axis,
                 which=which,
-                direction=rc[f"{axis}tick.direction"],
-                width=rc[f"{axis}tick.{which}.width"],
-                labelsize=rc[f"{axis}tick.labelsize"],
+                direction=rc[f"{axis}tick.direction"],  # type: ignore[index]
+                width=rc[f"{axis}tick.{which}.width"],  # type: ignore[index]
+                labelsize=rc[f"{axis}tick.labelsize"],  # type: ignore[index]
             )

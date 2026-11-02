@@ -12,6 +12,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import pint
+from numpy.typing import ArrayLike
 
 from hangtu import _config
 from hangtu._settings import _display_units, settings
@@ -198,7 +199,7 @@ def convert(values: Any, unit: pint.Unit, quantity: str, to: pint.Unit) -> np.nd
 
 
 def to_display(
-    values: Iterable[float],
+    values: ArrayLike,
     unit: str | None,
     quantity: str | None,
     display_units: str | None = None,

@@ -18,7 +18,7 @@ from matplotlib.axes import Axes
 from matplotlib.colors import to_rgb
 from matplotlib.patches import Rectangle
 from matplotlib.text import Text
-from matplotlib.transforms import blended_transform_factory, offset_copy
+from matplotlib.transforms import Transform, blended_transform_factory, offset_copy
 
 from hangtu._data import numeric_column, rows_text
 from hangtu.errors import ColumnError, HangtuError, warn
@@ -199,6 +199,7 @@ def draw_strata(
     """
     _require(strata, "strata", ["geology_unit"])
     from_vs = pair_reference(strata, "strata", required=True)
+    assert from_vs is not None  # required=True raises for neither
     units = overlay_units(
         strata, "strata", dict.fromkeys(PAIRS[from_vs], vertical.unit)
     )
@@ -488,6 +489,7 @@ def draw_ranges(
         lo, hi = sorted((lo, hi))
         if scale.log and lo <= 0:
             lo = min(ax.get_xlim())
+        transform: Transform
         if full_height[i]:
             y, height, transform = 0.0, 1.0, axes_height
             label_y = 1.0
