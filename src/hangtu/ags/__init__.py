@@ -91,7 +91,7 @@ def _specimen_rows(
     The depth comes from the first row that names the specimen, so the SI and
     US twins give the same table.
     """
-    depths: dict[int, Any] = {}
+    depths: dict[object, Any] = {}
     for columns in canonical.values():
         ids = columns.get(_keys.SPECIMEN)
         if ids is None:

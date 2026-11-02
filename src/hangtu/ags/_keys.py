@@ -66,13 +66,15 @@ def _index(ags: AgsText, group: str, headings: list[str]) -> dict[tuple, int]:
     return index
 
 
-def _match(rows: list[dict], headings: list[str], index: dict[tuple, int]) -> list:
+def _match(
+    rows: list[dict], headings: list[str], index: dict[tuple, int]
+) -> list[int | None]:
     if rows and not all(h in rows[0] for h in headings):
         return _none(rows)
     return [index.get(tuple(row[h] for h in headings)) for row in rows]
 
 
-def _none(rows: list[dict]) -> list[None]:
+def _none(rows: list[dict]) -> list[int | None]:
     return [None] * len(rows)
 
 

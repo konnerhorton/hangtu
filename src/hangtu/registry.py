@@ -77,7 +77,8 @@ def columns(template: str | None = None) -> pd.DataFrame:
     rows = []
     for name in names:
         entry = _entry(name)
-        kind = kinds.get(entry.get("quantity"), {})
+        quantity = entry.get("quantity")
+        kind = kinds.get(quantity, {}) if quantity else {}
         rows.append(
             {
                 "name": name,

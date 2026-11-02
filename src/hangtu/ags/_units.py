@@ -10,9 +10,11 @@ defines: its numbers are kept as written, unconverted (``U005``).
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 import pint
+from numpy.typing import ArrayLike
 
 from hangtu import _config, units
 from hangtu.ags._dictionary import DICT_SOURCE, FileDictionary, Heading
@@ -96,7 +98,7 @@ class HeadingUnit:
     source: pint.Unit | None = None
     target: pint.Unit | None = None
 
-    def convert(self, values: np.ndarray) -> np.ndarray:
+    def convert(self, values: ArrayLike) -> np.ndarray:
         """Convert magnitudes in the file's unit to the canonical unit."""
         values = np.asarray(values, dtype=float)
         if self.status != CONVERTED or self.source is None:
@@ -178,7 +180,7 @@ def resolve_heading(
     dictionary_unit = entry.unit if entry is not None else ""
     standard_entry = entry is not None and entry.source != DICT_SOURCE
     kind = value_kind(ags_type, bool(file_unit or dictionary_unit))
-    base = {
+    base: dict[str, Any] = {
         "group": group,
         "heading": heading,
         "file_unit": file_unit,

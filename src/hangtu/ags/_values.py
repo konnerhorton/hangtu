@@ -40,7 +40,9 @@ def type_column(
     if heading.status == u.RAW_ONLY:
         return [None] * len(cells), [], []
     parse = _PARSERS[heading.kind]
-    values, flags, findings = [], [], []
+    values: list[Any] = []
+    flags: list[ValueFlag] = []
+    findings: list[Finding] = []
     for i, (cell, line) in enumerate(zip(cells, lines, strict=True)):
         text = (cell or "").strip()
         if not text:

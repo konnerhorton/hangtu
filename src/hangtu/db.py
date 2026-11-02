@@ -260,7 +260,7 @@ def connect_read_only(path: str | os.PathLike[str]) -> sqlite3.Connection:
 
 
 def read_sql(
-    path: str | os.PathLike[str], sql: str, params: Sequence = ()
+    path: str | os.PathLike[str], sql: str, params: Sequence | Mapping = ()
 ) -> pd.DataFrame:
     """Run a query on a read-only connection; a write raises ``sqlite3.Error``."""
     with closing(connect_read_only(path)) as connection:

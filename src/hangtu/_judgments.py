@@ -352,7 +352,7 @@ def _check_file(parsed: Any, name: str) -> dict[str, Judgment]:
 
 def _check_judgment(name: str, body: Any, where: str) -> Judgment:
     kind = KINDS[name]
-    sections = ("by", "units", "project", kind.keyed)
+    sections: tuple[str, ...] = ("by", "units", "project", kind.keyed)
     if kind.by is not None:
         sections = ("units", "project", kind.keyed)
     if kind.unitless:

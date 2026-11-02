@@ -234,6 +234,7 @@ def to_display(
     if unit is None:
         return magnitudes, None
     target, text = _display_target(quantity, system)
+    assert target is not None  # a quantity with a canonical unit has a display unit
     source, _ = _lookup(unit)
     if source is None:
         source = parse_unit(unit)
