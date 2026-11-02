@@ -389,7 +389,7 @@ ht.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
 ### 12.1 Environment and distribution
 - Python ≥ 3.12, developed with `uv`.
 - PyPI + public GitHub, MIT license.
-- **CI:** GitHub Actions on Windows, macOS and Linux × Python 3.12–3.14 (ruff + pytest). Release to PyPI on a `v*` tag (trusted publishing, `release.yml`): the tag must match the version in `pyproject.toml`, and the test suite runs against the built wheel on all three operating systems before upload. A manual run publishes to TestPyPI instead. Before either upload, the scripts in `examples/` run against the built wheel in an empty directory on all three operating systems.
+- **CI:** GitHub Actions on Windows, macOS and Linux × Python 3.12–3.14 (ruff + pytest), and mypy in one job on the locked versions. Release to PyPI on a `v*` tag (trusted publishing, `release.yml`): the tag must match the version in `pyproject.toml`, and the test suite runs against the built wheel on all three operating systems before upload. A manual run publishes to TestPyPI instead. Before either upload, the scripts in `examples/` run against the built wheel in an empty directory on all three operating systems.
 - **0.0.1** is a placeholder release that claims the name on PyPI before v0.1 (decided 2026-10-12). It contains the M2b state: P00, P01 and P07.
 - **0.1.0** (M9) is the first release meant for use: P00–P03 and P07, the SPT analysis, AGS4 ingest, QC and the four datasets, with `examples/` and the example data in `ht.examples`.
 - **Docs:** the README and `examples/` for v0.1 (decided 2026-10-14), and a docs site built with Zensical, ahead of the second release rather than after feedback, so potential users can find what hangtu does and the site grows with each feature (decided 2026-10-16, `docs/work/docs-site.md`).
@@ -400,7 +400,7 @@ ht.stats.characteristic(spt.loc[spt.geology_unit == "Alluvium", "spt_n60"], esti
 - **Phase 1 dependencies:** `pandas>=2.1.1,<3`, `numpy>=1.26`, `matplotlib>=3.8`, `pint>=0.24.4`, `pyyaml>=6.0.1`. Each floor is the oldest release that installs and imports on Python 3.12 with current transitive dependencies, and a lowest-version CI job keeps it honest.
 - **Phase 2 adds** `python-ags4>=1.2.0` (LGPL-3.0, used unmodified, which is compatible with MIT; 1.2.0 is the first release with the 4.2 dictionary). It brings `click`, `rich`, `openpyxl` and `defusedxml` with it; its standard dictionaries (4.0.3–4.2) are what ingest reads units, types and keys from. The project database uses the `sqlite3` module with STRICT tables, which need SQLite ≥ 3.37; a test checks it on every CI platform.
 - **Phase 3 adds** `scipy>=1.16.0`, a dependency since M15 (c) (`ht.stats.fit()`, its first use). 1.11 was the first release whose `fit` takes censored data; the floor rose to 1.16.0 in M15 (d) for `f_oneway(equal_var=False)` (Welch's ANOVA) and `tukey_hsd(equal_var=False)` (Games–Howell), which `ht.stats.compare_groups()` uses (`docs/work/m15d-compare.md`, Decision 1).
-- **Dev dependencies:** `pytest>=8.0`, `ruff>=0.17`, `hypothesis>=6.100`, optionally `pytest-mpl`.
+- **Dev dependencies:** `pytest>=8.0`, `ruff>=0.17`, `hypothesis>=6.100`, `pytest-xdist>=3.6.1`, `mypy>=2.4.1` and `types-PyYAML`, optionally `pytest-mpl`. mypy checks the annotations that exist, not strictly, without pandas-stubs (`docs/work/type-check.md`); the package ships `py.typed`.
 
 ### 12.2 Package layout
 - `src/` layout, package `hangtu`.

@@ -128,3 +128,13 @@ How each error is fixed: a wrong annotation is changed to what the code returns 
 - SPEC §12.1: the CI line and the dev dependencies.
 - `CLAUDE.md`: `uv run mypy` in Commands and in the "what CI runs" line; a convention that a `# type: ignore` names its code and covers only a library's typing gap.
 - Check AC1–AC4, AC6 and AC7, including the strict docs build, and record AC6 and the final counts here.
+- Result:
+  - AC1: `uv run mypy` reports `Success: no issues found in 119 source files`, from 241 errors at the start.
+  - AC2: 23 `# type: ignore[<code>]` (one older than this unit), none bare; no `# mypy:` pragmas; `[tool.mypy]` has the one override from Decision 1. 21 asserts narrow values the code already guarantees, each with a comment saying why.
+  - AC3: `_spt.py` (the per-hole ratio may be None), `_vertical.py` (returns a literal), `stats/_fit.py` (asserts both beta bounds) and `plot/_values.py` (`info is not None`) are fixed in the code, not ignored.
+  - AC4: 3,411 passed, as at the baseline; ruff passes; the docs site builds with `--strict` and no griffe warnings.
+  - AC5: the wheel lists `hangtu/py.typed` (step 1).
+  - AC6: `x: int = "a"` planted in `errors.py` made `uv run mypy` exit 1; reverted.
+  - AC7: SPEC §12.1 and `CLAUDE.md` name mypy, and `CLAUDE.md`'s "what CI runs" matches `ci.yml`.
+  - No real bugs turned up (Decision 6). Two candidates were checked and are guarded upstream: a blank log key reaching `take()`'s `join` (`_check_log` reports it first) and a None severity for a computed QC rule (the settings check rejects it).
+  - An extra commit, `figure_of()`, came before step 6: matplotlib types `ax.figure` as Figure or SubFigure, and the plots call Figure-only methods.
