@@ -58,10 +58,16 @@ def preconsolidation_stress_mayne_kemper_1988(
     for this soil"), or where the symbol is blank ("soil type unknown"). A
     list of groups replaces these.
 
+    **Bounded estimates** (``correlation_qualifier`` ``>`` or ``<``, with
+    ``correlation_note`` saying why and one warning counting them): σ′p
+    rises with N, so a refusal from ``spt_refusal`` gives at least the
+    estimate at its N ("at least: refusal"), N above 200 at least the
+    estimate at 200, and N below 0.5 at most the estimate at 0.5. N is never
+    extrapolated: a bound is the estimate at the range's end.
+
     **No estimate** (NaN, with ``correlation_note`` saying why and one
-    warning counting them): a blank N ("input blank"), a refusal from
-    ``spt_refusal`` ("refusal"), and N below 0.5 or above 200 ("below
-    range", "above range").
+    warning counting them): a blank N ("input blank"), and a refusal with N
+    below 0.5 ("refusal"), which bounds nothing.
 
     **Judgments taken:** none.
 
@@ -85,6 +91,7 @@ def preconsolidation_stress_mayne_kemper_1988(
     pandas.DataFrame
         A copy of ``df`` with ``preconsolidation_stress``,
         ``correlation_name`` ("preconsolidation_stress_mayne_kemper_1988"),
+        ``correlation_qualifier``,
         ``correlation_note`` and ``correlation_input`` (blank unless an input
         was another correlation's estimate). No row is dropped or reordered.
         ``df.attrs["correlations"]`` holds every correlation's entry; see
@@ -108,9 +115,12 @@ def preconsolidation_stress_mayne_kemper_1988(
     name = "preconsolidation_stress_mayne_kemper_1988"
     item = _framework.entry(name)
     values = _framework.inputs(df, item, units)
-    stress = 0.47 * values["spt_n"] * PA
     note = _framework.notes(df, item, values, uscs)
-    return _framework.estimate(df, name, stress, note, display_units, uscs=uscs)
+    values, bounded = _framework.bound(df, item, values, note)
+    stress = 0.47 * values["spt_n"] * PA
+    return _framework.estimate(
+        df, name, stress, note, display_units, uscs=uscs, bounded=bounded
+    )
 
 
 def overconsolidation_ratio_mayne_kemper_1988(
@@ -156,10 +166,17 @@ def overconsolidation_ratio_mayne_kemper_1988(
     for this soil"), or where the symbol is blank ("soil type unknown"). A
     list of groups replaces these.
 
+    **Bounded estimates** (``correlation_qualifier`` ``>`` or ``<``, with
+    ``correlation_note`` saying why and one warning counting them): OCR
+    rises with N pa/σ′v0, so a refusal from ``spt_refusal`` gives at least
+    the estimate at its N pa/σ′v0 ("at least: refusal"), N pa/σ′v0 above
+    100 at least the estimate at 100, and below 1 at most the estimate at 1.
+    It is never extrapolated: a bound is the estimate at the range's end.
+
     **No estimate** (NaN, with ``correlation_note`` saying why and one
-    warning counting them): a blank N or σ′v0 ("input blank"), a refusal
-    from ``spt_refusal`` ("refusal"), σ′v0 of 0 or less or N pa/σ′v0 below 1
-    ("below range"), and N pa/σ′v0 above 100 ("above range").
+    warning counting them): a blank N or σ′v0 ("input blank"), σ′v0 of 0 or
+    less ("below range"), and a refusal with N pa/σ′v0 below 1 ("refusal"),
+    which bounds nothing.
 
     **Judgments taken:** none here; σ′v0 carries those of
     ``vertical_stress()``.
@@ -183,6 +200,7 @@ def overconsolidation_ratio_mayne_kemper_1988(
     pandas.DataFrame
         A copy of ``df`` with ``overconsolidation_ratio``,
         ``correlation_name`` ("overconsolidation_ratio_mayne_kemper_1988"),
+        ``correlation_qualifier``,
         ``correlation_note`` and ``correlation_input`` (blank unless an input
         was another correlation's estimate). No row is dropped or reordered.
         ``df.attrs["correlations"]`` holds every correlation's entry; see
@@ -208,9 +226,12 @@ def overconsolidation_ratio_mayne_kemper_1988(
     item = _framework.entry(name)
     values = _framework.inputs(df, item, units)
     values["normalized_n"] = _normalized_n(values)
-    ratio = 0.58 * values["normalized_n"]
     note = _framework.notes(df, item, values, uscs)
-    return _framework.estimate(df, name, ratio, note, display_units, uscs=uscs)
+    values, bounded = _framework.bound(df, item, values, note)
+    ratio = 0.58 * values["normalized_n"]
+    return _framework.estimate(
+        df, name, ratio, note, display_units, uscs=uscs, bounded=bounded
+    )
 
 
 def at_rest_earth_pressure_coefficient_kulhawy_et_al_1989(
@@ -257,10 +278,17 @@ def at_rest_earth_pressure_coefficient_kulhawy_et_al_1989(
     for this soil"), or where the symbol is blank ("soil type unknown"). A
     list of groups replaces these.
 
+    **Bounded estimates** (``correlation_qualifier`` ``>``, with
+    ``correlation_note`` saying why and one warning counting them): K0 rises
+    with N pa/σ′v0, so a refusal from ``spt_refusal`` gives at least the
+    estimate at its N pa/σ′v0 ("at least: refusal"), and N pa/σ′v0 above 60
+    at least the estimate at 60. It is never extrapolated: a bound is the
+    estimate at the range's end.
+
     **No estimate** (NaN, with ``correlation_note`` saying why and one
-    warning counting them): a blank N or σ′v0 ("input blank"), a refusal
-    from ``spt_refusal`` ("refusal"), σ′v0 or N pa/σ′v0 of 0 or less ("below
-    range"), and N pa/σ′v0 above 60 ("above range").
+    warning counting them): a blank N or σ′v0 ("input blank"), σ′v0 or
+    N pa/σ′v0 of 0 or less ("below range"; a refusal there, "refusal"),
+    which bound nothing: 0 is where the equation stops, not the data.
 
     **Judgments taken:** none here; σ′v0 carries those of
     ``vertical_stress()``.
@@ -285,6 +313,7 @@ def at_rest_earth_pressure_coefficient_kulhawy_et_al_1989(
         A copy of ``df`` with ``at_rest_earth_pressure_coefficient``,
         ``correlation_name``
         ("at_rest_earth_pressure_coefficient_kulhawy_et_al_1989"),
+        ``correlation_qualifier``,
         ``correlation_note`` and ``correlation_input`` (blank unless an input
         was another correlation's estimate). No row is dropped or reordered.
         ``df.attrs["correlations"]`` holds every correlation's entry; see
@@ -316,6 +345,9 @@ def at_rest_earth_pressure_coefficient_kulhawy_et_al_1989(
     item = _framework.entry(name)
     values = _framework.inputs(df, item, units)
     values["normalized_n"] = _normalized_n(values)
-    coefficient = 0.073 * values["normalized_n"]
     note = _framework.notes(df, item, values, uscs)
-    return _framework.estimate(df, name, coefficient, note, display_units, uscs=uscs)
+    values, bounded = _framework.bound(df, item, values, note)
+    coefficient = 0.073 * values["normalized_n"]
+    return _framework.estimate(
+        df, name, coefficient, note, display_units, uscs=uscs, bounded=bounded
+    )

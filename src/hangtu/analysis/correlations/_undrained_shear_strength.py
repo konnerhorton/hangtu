@@ -66,9 +66,15 @@ def undrained_shear_strength_terzaghi_peck_1967(
     for this soil"), or where the symbol is blank ("soil type unknown"). A
     list of groups replaces these.
 
+    **Bounded estimates** (``correlation_qualifier`` ``>``, with
+    ``correlation_note`` saying why and one warning counting them): the bands
+    rise with N, so a refusal from ``spt_refusal`` gives at least the band at
+    its N ("at least: refusal"), both ends alike. N has no upper end to bound
+    at.
+
     **No estimate** (NaN in all three columns, with ``correlation_note``
-    saying why and one warning counting them): a blank N ("input blank"), a
-    refusal from ``spt_refusal`` ("refusal"), and N below 0 ("below range").
+    saying why and one warning counting them): a blank N ("input blank"), and
+    N below 0 ("below range").
 
     **Judgments taken:** none.
 
@@ -95,6 +101,7 @@ def undrained_shear_strength_terzaghi_peck_1967(
         ``undrained_shear_strength_upper`` (blank for N of 30 or more),
         ``correlation_name``
         ("undrained_shear_strength_terzaghi_peck_1967"),
+        ``correlation_qualifier``,
         ``correlation_note`` and ``correlation_input`` (blank unless an
         input was another correlation's estimate). No row is dropped or
         reordered.
@@ -123,6 +130,8 @@ def undrained_shear_strength_terzaghi_peck_1967(
     name = "undrained_shear_strength_terzaghi_peck_1967"
     item = _framework.entry(name)
     values = _framework.inputs(df, item, units)
+    note = _framework.notes(df, item, values, uscs)
+    values, bounded = _framework.bound(df, item, values, note)
     n = values["spt_n"]
     starts = np.array([band["spt_n"] for band in item["bands"]], dtype=float)
     lowers = np.array([band["lower"] for band in item["bands"]], dtype=float)
@@ -133,10 +142,17 @@ def undrained_shear_strength_terzaghi_peck_1967(
     index = np.searchsorted(starts, np.where(known, n, starts[0]), side="right") - 1
     lower = np.where(known, lowers[index] * PA, np.nan)
     upper = np.where(known, uppers[index] * PA, np.nan)
-    note = _framework.notes(df, item, values, uscs)
     central = np.full(len(df), np.nan)
     return _framework.estimate(
-        df, name, central, note, display_units, uscs=uscs, lower=lower, upper=upper
+        df,
+        name,
+        central,
+        note,
+        display_units,
+        uscs=uscs,
+        lower=lower,
+        upper=upper,
+        bounded=bounded,
     )
 
 
@@ -190,9 +206,15 @@ def undrained_shear_strength_stroud_1974(
     for this soil"), or where the symbol is blank ("soil type unknown"). A
     list of groups replaces these.
 
+    **Bounded estimates** (``correlation_qualifier`` ``>``, with
+    ``correlation_note`` saying why and one warning counting them): s_u
+    rises with N60 at a given PI, so a refusal from ``spt_refusal`` gives at
+    least the estimate (or band) at its N60 ("at least: refusal"). N60 has no
+    range to bound at.
+
     **No estimate** (NaN, with ``correlation_note`` saying why and one
-    warning counting them): a blank N60 or PI ("input blank"), a refusal
-    from ``spt_refusal`` ("refusal"), and PI below 15 ("below range").
+    warning counting them): a blank N60 or PI ("input blank"), and PI below
+    15 ("below range"), whatever N60 is.
 
     **Judgments taken:** none here; PI is the judgment, put on the rows by
     ``add_judgment()`` and recorded in ``df.attrs["judgments"]``.
@@ -218,7 +240,8 @@ def undrained_shear_strength_stroud_1974(
         A copy of ``df`` with ``undrained_shear_strength``,
         ``undrained_shear_strength_lower`` and
         ``undrained_shear_strength_upper``, ``correlation_name``
-        ("undrained_shear_strength_stroud_1974"), ``correlation_note`` and
+        ("undrained_shear_strength_stroud_1974"), ``correlation_qualifier``,
+        ``correlation_note`` and
         ``correlation_input`` (blank unless an input was another
         correlation's estimate). No row is dropped or reordered.
         ``df.attrs["correlations"]`` holds every correlation's entry; see
@@ -242,6 +265,8 @@ def undrained_shear_strength_stroud_1974(
     name = "undrained_shear_strength_stroud_1974"
     item = _framework.entry(name)
     values = _framework.inputs(df, item, units)
+    note = _framework.notes(df, item, values, uscs)
+    values, bounded = _framework.bound(df, item, values, note)
     n60 = values["spt_n60"]
     index = values["plasticity_index"]
     (low_range, high_range) = item["bands"]
@@ -251,7 +276,14 @@ def undrained_shear_strength_stroud_1974(
     central = np.where(high, high_range["lower"] * scale, np.nan)
     lower = np.where(middle, low_range["lower"] * scale, np.nan)
     upper = np.where(middle, low_range["upper"] * scale, np.nan)
-    note = _framework.notes(df, item, values, uscs)
     return _framework.estimate(
-        df, name, central, note, display_units, uscs=uscs, lower=lower, upper=upper
+        df,
+        name,
+        central,
+        note,
+        display_units,
+        uscs=uscs,
+        lower=lower,
+        upper=upper,
+        bounded=bounded,
     )

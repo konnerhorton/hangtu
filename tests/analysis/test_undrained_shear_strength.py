@@ -52,21 +52,27 @@ def test_terzaghi_peck_in_us_units():
     assert out.attrs["units"][LOWER] == "psf"
 
 
-def test_terzaghi_peck_no_estimate_for_blank_refusal_and_below_range():
+def test_terzaghi_peck_no_estimate_for_blank_and_below_range_a_bound_at_refusal():
     df = pd.DataFrame(
         {"spt_n": [NAN, 50, -1, 10], "spt_refusal": [None, True, False, False]}
     )
-    with pytest.warns(UserWarning, match=r"no estimate for 3 of 4 rows") as caught:
+    with pytest.warns(UserWarning) as caught:
         out = terzaghi_peck(df, display_units="SI")
-    assert len(caught) == 1
+    assert [str(w.message).split(" (")[0] for w in caught] == [
+        "undrained_shear_strength_terzaghi_peck_1967 gave no estimate for 2 of 4 rows",
+        "undrained_shear_strength_terzaghi_peck_1967 gave a bound, not an estimate, "
+        "for 1 of 4 rows",
+    ]
     assert out["correlation_note"].tolist() == [
         "input blank",
-        "refusal",
+        "at least: refusal",
         "below range",
         None,
     ]
-    assert out[LOWER].isna().tolist() == [True, True, True, False]
-    assert out[UPPER].isna().tolist() == [True, True, True, False]
+    # m18a spec: a refusal at N 50 is at least the band from 2.0 pa, open above.
+    assert out["correlation_qualifier"].tolist() == [None, ">", None, None]
+    assert out[LOWER].tolist() == pytest.approx([NAN, 200.0, NAN, 50.0], nan_ok=True)
+    assert out[UPPER].tolist() == pytest.approx([NAN, NAN, NAN, 100.0], nan_ok=True)
 
 
 def test_existing_band_columns_are_replaced_with_a_warning():
@@ -143,6 +149,18 @@ def test_stroud_golden_values():
     assert out[LOWER].tolist() == pytest.approx([NAN, NAN, 45.0, NAN], nan_ok=True)
     assert out[UPPER].tolist() == pytest.approx([NAN, NAN, 55.0, NAN], nan_ok=True)
     assert out["correlation_note"].tolist() == [None, None, None, "below range"]
+
+
+@pytest.mark.filterwarnings("ignore:.*gave a bound")
+def test_stroud_at_a_refusal_is_at_least_the_estimate_at_its_n60():
+    # m18a spec: s_u >= 4.5 x 66.7 x 100 / 100 = 300.15 kPa.
+    df = pd.DataFrame(
+        {"spt_n60": [66.7], "plasticity_index": [35], "spt_refusal": [True]}
+    )
+    out = stroud(df, display_units="SI")
+    assert out["undrained_shear_strength"].iloc[0] == pytest.approx(300.15, rel=1e-9)
+    assert out["correlation_qualifier"].tolist() == [">"]
+    assert out["correlation_note"].tolist() == ["at least: refusal"]
 
 
 def test_stroud_us_twin():

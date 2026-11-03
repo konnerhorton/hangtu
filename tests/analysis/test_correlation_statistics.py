@@ -162,12 +162,12 @@ def _no_deviation(df):
 def test_an_arithmetic_deviation_is_converted_and_blank_without_an_estimate(
     deviation_entry,
 ):
-    df = pd.DataFrame({"spt_n": [10.0, 0.2]})
-    with pytest.warns(UserWarning, match="1 below range"):
+    df = pd.DataFrame({"spt_n": [10.0, np.nan]})
+    with pytest.warns(UserWarning, match="1 input blank"):
         si = correlations.preconsolidation_stress_mayne_kemper_1988(
             df, display_units="SI"
         )
-    with pytest.warns(UserWarning, match="1 below range"):
+    with pytest.warns(UserWarning, match="1 input blank"):
         us = correlations.preconsolidation_stress_mayne_kemper_1988(
             df, display_units="US"
         )
