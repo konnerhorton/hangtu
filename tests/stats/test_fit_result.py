@@ -32,6 +32,7 @@ COLUMNS = [
     "probability_above_upper_bound",
     "count_at_least",
     "count_at_most",
+    "count_interval_censored",
     "count_non_plastic",
     "count_assumed",
     "count_range",
