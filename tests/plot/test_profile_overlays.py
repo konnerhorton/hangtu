@@ -651,3 +651,45 @@ def test_value_overlays_agree_in_us_and_si(frame):
         drawn["US"][1] * [psf_to_kpa, FT], drawn["SI"][1], rtol=1e-6
     )
     np.testing.assert_allclose(drawn["US"][2] * psf_to_kpa, drawn["SI"][2], rtol=1e-6)
+
+
+# --- representative()'s design lines (docs/work/m18b-representative-values.md, AC 8)
+
+
+@pytest.mark.parametrize("trend", [None, "depth"])
+def test_representative_design_lines_draw_with_no_warning(trend):
+    df = pd.DataFrame(
+        {
+            "loca_id": ["BH1"] * 8,
+            "ground_level": [100.0] * 8,
+            "geology_unit": ["Clay"] * 5 + ["Sand"] * 3,
+            "depth": [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0],
+            "undrained_shear_strength": [20.0, 26.0, 29.0, 37.0, 40.0, 60, 70, 65],
+        }
+    )
+    df = ht.set_units(
+        df, {"ground_level": "m", "depth": "m", "undrained_shear_strength": "kPa"}
+    )
+    found = ht.stats.representative(
+        df,
+        value="undrained_shear_strength",
+        by="geology_unit",
+        method="characteristic",
+        estimate="mean",
+        side="low",
+        distribution="normal",
+        trend=trend,
+    )
+    _, ax = ht.plot.profile(
+        df,
+        "undrained_shear_strength",
+        vs="depth",
+        display_units="SI",
+        design_lines=found.design_lines(mean=True),
+    )
+    lines = design_lines(ax)
+    assert len(lines) == 4
+    points = 2 if trend is None else 50
+    assert [len(line.get_ydata()) for line in lines] == [points] * 4
+    assert min(lines[0].get_ydata()) == 2.0
+    assert max(lines[0].get_ydata()) == 10.0
