@@ -357,7 +357,11 @@ class RepresentativeResult(_Result):
     distribution: str
     #: None (constant per group), ``"depth"`` or ``"elevation"``.
     trend: str | None
-    #: The unit of the trend's depth or elevation, None for a constant.
+    #: The column the values' design lines are drawn against: the trend's,
+    #: or for a constant ``"depth"`` (else ``"elevation"``) when the data has
+    #: it; None without either.
+    vertical: str | None
+    #: That column's unit, None when it is unknown or there is no column.
     vertical_unit: str | None
     #: The characteristic value's estimate: ``"mean"``, ``"fractile"`` or
     #: ``"intermediate"`` (EC7 Types A, B and C), None for another method.
@@ -427,6 +431,75 @@ class RepresentativeResult(_Result):
             units |= {f"{self.trend}_{end}": self.vertical_unit for end in _ENDS}
         frame.attrs["units"] = {n: units[n] for n in columns if n in units}
         return frame
+
+    def design_lines(self, mean: bool = False) -> pd.DataFrame:
+        """Return the lines P01 draws, as ``ht.template("design_lines")`` lists.
+
+        One line per group with a value: a constant is two points, at the
+        group's shallowest and deepest value; a trend is the line at 50
+        depths (elevations) across its values, never beyond them. The label
+        names the group and the view, e.g. ``"Clay: characteristic,
+        fractile, low"``. ``mean=True`` adds each group's mean line (the
+        median for a lognormal distribution), labeled ``"Clay: mean"``.
+        ``attrs["units"]`` gives the depth's (elevation's) unit and the
+        value's. Pass it to ``ht.plot.profile(..., design_lines=)``.
+
+        Raises
+        ------
+        HangtuError
+            When the data had no ``depth`` or ``elevation`` column, so the
+            lines have no depths to be drawn at.
+        """
+        if self.vertical is None:
+            raise HangtuError(
+                "design_lines() needs the depth of each value, and the data given "
+                "to representative() had no 'depth' or 'elevation' column. Give "
+                "the data with one of them."
+            )
+        center = "median" if self.distribution == "lognormal" else "mean"
+        rows: list[tuple[str, float, float]] = []
+        for group in self.groups:
+            ends = group.get("vertical_range")
+            if group["reason"] or ends is None:
+                continue
+            name = _label(group["key"])
+            line = group.get("line")
+            if line is None:
+                vertical = np.array(ends)
+                view = np.full(2, group["value"])
+                statistics = group["statistics"]
+                middle = np.full(
+                    2, statistics.get("mean", statistics.get("geometric_mean"))
+                )
+            else:
+                vertical = np.linspace(ends[0], ends[1], CURVE_POINTS)
+                view = trend_at(line, vertical)
+                middle = trend_at(line, vertical, mean=True)
+            label = f"{name}: {self._line_name()}"
+            rows += [(label, z, x) for z, x in zip(vertical, view, strict=True)]
+            if mean:
+                label = f"{name}: {center}"
+                rows += [(label, z, x) for z, x in zip(vertical, middle, strict=True)]
+        frame = pd.DataFrame(rows, columns=["label", self.vertical, "value"])
+        frame[[self.vertical, "value"]] = frame[[self.vertical, "value"]].astype(float)
+        frame.attrs["units"] = {
+            name: unit
+            for name, unit in (
+                (self.vertical, self.vertical_unit),
+                ("value", self.unit),
+            )
+            if unit is not None
+        }
+        return frame
+
+    def _line_name(self) -> str:
+        """Name the view in a design line's label: ``characteristic, mean, low``."""
+        if self.method == "characteristic":
+            assert self.estimate is not None  # required for the method
+            return f"characteristic, {self.estimate}, {self.side}"
+        if self.method == "percentile":
+            return f"percentile {self.percentile:g}, {self.side}"
+        return f"{self.standard_deviations:g} standard deviations, {self.side}"
 
     def _counts(self) -> list[str]:
         names = list(_FIT_COUNTS)
@@ -511,6 +584,8 @@ def trend_at(line: dict[str, Any], vertical: Any, *, mean: bool = False) -> np.n
 
 
 _TYPES = {"mean": "A", "fractile": "B", "intermediate": "C"}
+#: The depths (elevations) a trend's design line is drawn at (spec decision 10).
+CURVE_POINTS = 50
 #: The ends of a trend's depth (elevation) range, as the frame names them.
 _ENDS = ("top", "base")
 #: The representative result's columns in the value's unit.

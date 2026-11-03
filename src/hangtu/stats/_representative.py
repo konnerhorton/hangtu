@@ -18,7 +18,7 @@ from hangtu import units as _units
 from hangtu.analysis._line_fit import line_fit
 from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.stats import _fit, _refusal_limit, _rows
-from hangtu.stats._result import RepresentativeResult, trend_at
+from hangtu.stats._result import CURVE_POINTS, RepresentativeResult, trend_at
 
 FUNCTION = "representative()"
 METHODS = ("characteristic", "percentile", "standard_deviations")
@@ -55,8 +55,6 @@ EXAMPLES = {
 #: Fewer values in a group gives it no value, or no line (spec decision 11).
 MIN_COUNT = 2
 MIN_TREND_COUNT = 3
-#: The depths (elevations) a trend is checked at for a value at or below 0.
-CURVE_POINTS = 50
 #: The one-sided confidence of EC7's characteristic value (Formula 4.5).
 CONFIDENCE = 0.95
 #: The note on a group with censored values, by method (intent decision 2).
@@ -330,9 +328,10 @@ def representative(
         positive_only=lognormal,
     )
     read = found.read
-    vertical, vertical_unit = (
-        (None, None) if trend is None else _vertical(read, trend, units, display_units)
-    )
+    # A trend's depth (elevation), or for a constant the column its design
+    # lines are drawn against, when the data has one (spec decision 10).
+    column = trend or next((c for c in TRENDS if c in read.frame.columns), None)
+    vertical, vertical_unit = _vertical(read, column, trend, units, display_units)
     sign = -1.0 if side == "low" else 1.0
     groups, notes, at_or_below_zero = [], [], []
     left_out_of_trend = {"count_censored": 0, f"count_blank_{trend}": 0}
@@ -350,8 +349,8 @@ def representative(
         }
         groups.append(record)
         values = group.values
-        if vertical is not None:
-            assert trend is not None  # vertical is read only for a trend
+        if trend is not None:
+            assert vertical is not None  # a trend's column is required
             line, record["counts"], record["reason"] = _trend(
                 group, found.numbers, vertical, trend, method, sign, lognormal, inputs
             )
@@ -362,11 +361,13 @@ def representative(
             if line is None:
                 continue
             record["line"] = line
+            record["vertical_range"] = (line["top"], line["base"])
             record["statistics"] = _trend_statistics(line, trend, method)
             ends = np.linspace(line["top"], line["base"], CURVE_POINTS)
             if not lognormal and trend_at(line, ends).min() <= 0:
                 at_or_below_zero.append(group.label)
             continue
+        record["vertical_range"] = _range(vertical, group.chosen, column)
         if values.count < MIN_COUNT:
             record["reason"] = f"fewer than {MIN_COUNT} values ({values.count})"
             continue
@@ -463,6 +464,7 @@ def representative(
         side=side,
         distribution=distribution,
         trend=trend,
+        vertical=column,
         vertical_unit=vertical_unit,
         estimate=estimate,
         coefficient_of_variation=coefficient_of_variation,
@@ -745,30 +747,60 @@ def _moments(values: _fit.Values, lognormal: bool) -> tuple[float, float] | None
 
 def _vertical(
     read: _rows.Input,
-    trend: str,
+    column: str | None,
+    trend: str | None,
     units: str | Mapping[str, str] | None,
     display_units: str | None,
-) -> tuple[np.ndarray, str | None]:
+) -> tuple[np.ndarray | None, str | None]:
     """Return each row's depth (elevation) and its unit, converted as the values are.
 
-    A blank or text cell is NaN, left out of the line and counted.
+    A trend needs its column and the column's unit; a constant reads them for
+    its design lines when the data has them, and never guesses a unit. A
+    blank or text cell is NaN, left out of the line and counted.
     """
     frame = read.frame
-    if trend not in frame.columns:
+    if trend is not None and trend not in frame.columns:
         raise ColumnError(
             f"{FUNCTION} with trend={trend!r} needs the column {trend!r}, which the "
             f"data doesn't have. Available columns: "
             f"{', '.join(map(str, frame.columns)) or 'none'}. Add it, or use "
             "trend=None for one value per group."
         )
+    if column is None:
+        return None, None
     explicit = (
-        {trend: units[trend]} if isinstance(units, Mapping) and trend in units else {}
+        {column: units[column]}
+        if isinstance(units, Mapping) and column in units
+        else {}
     )
-    unit = _units.resolve_units(frame, [trend], explicit, analysis=True)[trend]
-    vertical = pd.to_numeric(frame[trend], errors="coerce").to_numpy(dtype=float)
-    if display_units is not None:
+    if trend is not None:
+        unit = _units.resolve_units(frame, [column], explicit, analysis=True)[column]
+    else:
+        unit = explicit.get(column, _units.units_of(frame).get(column))
+    vertical = pd.to_numeric(frame[column], errors="coerce").to_numpy(dtype=float)
+    if display_units is not None and unit is not None:
         return _units.to_display(vertical, unit, "length", display_units)
     return vertical, unit
+
+
+def _range(
+    vertical: np.ndarray | None, chosen: np.ndarray, column: str | None
+) -> tuple[float, float] | None:
+    """Return a constant group's shallowest and deepest value, None without depths."""
+    if vertical is None:
+        return None
+    z = vertical[chosen]
+    z = z[np.isfinite(z)]
+    if not z.size:
+        return None
+    return (
+        (float(z.min()), float(z.max()))
+        if column == "depth"
+        else (
+            float(z.max()),
+            float(z.min()),
+        )
+    )
 
 
 def _trend(

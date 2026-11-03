@@ -327,6 +327,11 @@ A refactor, no behavior change.
 - `_result.py`: `.design_lines(mean=False)`: constant as two points at the group's shallowest and deepest
   value, a trend at 50 depths across them; `mean=True` adds the mean (median) line; labels "<group>: <method>,
   <estimate>, <side>"; units in `attrs`.
+  - Built (2026-11-03): a constant draws against `depth`, else `elevation`, when the data has one; its unit is
+    read (`units=`, `attrs`) but not required, since only the lines need it, and without either column
+    `.design_lines()` is an error. The result records the column as `vertical`. Percentile and standard
+    deviations are labeled "<group>: percentile 5, low" and "<group>: 0.5 standard deviations, low"; the mean
+    line is "<group>: mean" ("median" for lognormal).
 - Tests: `tests/stats/test_representative_result.py`: point counts and ranges; `tests/plot/test_profile_overlays.py`:
   the frame draws on P01 with no warning, constant and trend (criterion 8).
 
