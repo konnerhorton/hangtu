@@ -129,7 +129,7 @@ STATISTICS_ROLES = {"at_least", "qualifier", "non_plastic", "assumed", "source"}
 def test_statistics_field_follows_the_rules(name):
     entry = COLUMNS[name]
     field = entry["statistics"]
-    assert set(field) <= {"role", "values", "when"}
+    assert set(field) <= {"role", "values", "when", "replaces"}
     assert field["role"] in STATISTICS_ROLES
     for value in field.get("values", []):
         assert COLUMNS[value]["type"] == "number", value
@@ -141,6 +141,11 @@ def test_statistics_field_follows_the_rules(name):
         # row (m17a Decision 9).
         assert entry["type"] == "text"
         assert "when" not in field
+        if "replaces" in field:
+            # It replaces another qualifier column for its own values only.
+            assert "values" in field
+            assert COLUMNS[field["replaces"]]["statistics"]["role"] == "qualifier"
+            assert field["replaces"] != name
     elif "when" in field:
         assert entry["type"] == "text"
         assert field["when"]

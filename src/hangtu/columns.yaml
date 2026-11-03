@@ -18,6 +18,8 @@
 #                          source      rows with different values here come from different sources
 #                  values  the value columns the flag applies to (all, if omitted)
 #                  when    for a text flag, the values that set it (else True sets it)
+#                  replaces  for a qualifier with values: the generic qualifier column it replaces for
+#                          them (a second value on the row); without it, both are read (SPEC §5)
 # Status of the Batch 1 entries beyond P01: provisional until each plot spec is written.
 #
 # fields: names used only in overlay tables (P01 §8), such as a range's low and
@@ -365,7 +367,7 @@ columns:
     type: text
     ags: ["derived: value flags LT / GT"]
     used_by: []
-    statistics: {role: qualifier, values: [remolded_undrained_shear_strength]}
+    statistics: {role: qualifier, values: [remolded_undrained_shear_strength], replaces: qualifier}
   water_content:
     description: Water (moisture) content
     type: number
