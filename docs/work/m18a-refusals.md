@@ -252,3 +252,81 @@ limit 120: each refusal's limit is 120 × 66.7 / 50 = 160.08. Each fit's paramet
     tests, 21 of them bounded; the figure is looked at.
 11. Docstrings (each correlation's "Bounded estimates"; `fit()`'s argument), the statistics and correlations guides,
     and SPEC §4 and §5 updated; no new public function, so no new reference entry.
+
+## Plan
+Approved 2026-11-03. One green commit per step; each runs the tests it touches, then the CI command with `-n 3`.
+
+### 1. `M18: read a named qualifier alongside the generic one unless it replaces it`
+Spec decision 5, on its own because it changes a rule other features rely on.
+- `src/hangtu/columns.yaml`: `remolded_qualifier` gains `replaces: qualifier`.
+- `src/hangtu/stats/_rows.py` `read_flags()` (`own_qualifier`, ~line 304): only a field with `replaces` that
+  names the generic column suppresses it; others are read alongside.
+- Registry check (`tests/test_registry.py` and the loader that validates `statistics:` keys): `replaces` must name
+  an existing qualifier column.
+- Tests: `tests/stats/test_describe_flags.py`: vane rows unchanged (remolded still replaces); a named qualifier
+  without `replaces` is read with the generic one.
+
+### 2. `M18: bound the N input of the φ′ correlations`
+The framework step and the first two correlations.
+- `src/hangtu/analysis/correlations/_framework.py`: `bound(df, item, values)` after `inputs()`: per row, the
+  N input (from `bound_by`) set to the inclusive range end above/below it (lower end only if > 0), refusals kept
+  at their N; returns the bounded values and each row's `>`/`<`/blank. `notes()` no longer gives "refusal" /
+  "above range" / "below range" to bounded rows (other inputs' reasons first; a refusal below the lower end keeps
+  "refusal"). `estimate()` writes `correlation_qualifier` and the note text ("at least: refusal", "at least:
+  (N1)60 above 39, estimated at 39"), and its warning counts bounded rows by kind.
+- `src/hangtu/config/correlations.yaml`: header comment for `bound_by:` (an input or a term); `bound_by` on the
+  two φ′ entries.
+- `src/hangtu/columns.yaml`: `correlation_qualifier` (text, no statistics role yet); `correlation_note`'s
+  description widened.
+- `_friction_angle.py`: both functions call `bound()`; docstrings split "No estimate" into "Bounded estimates" and
+  "No estimate".
+- Tests: `tests/analysis/test_correlations.py`: the spec's Hatanaka & Uchida and Kulhawy & Mayne golden rows
+  (criteria 6, 7); existing tests that expected NaN for refusals or beyond-range N updated.
+
+### 3. `M18: bound the N input of the other SPT correlations`
+- `bound_by` on the other nine entries; `_undrained_shear_strength.py` (bands at the bounded N, both ends
+  qualified), `_stress_history.py` (OCR and K0 bound the term `normalized_n` after `_normalized_n()`),
+  `_stiffness.py` (`_power_law()` and the two E functions); docstrings as step 2.
+- Tests: the remaining golden rows in `test_undrained_shear_strength.py`, `test_stress_history.py`,
+  `test_stiffness.py`; a hypothesis property test over all eleven (criterion 9): the estimate is non-decreasing
+  in its `bound_by` input, other inputs fixed, over the range; existing NaN expectations updated.
+
+### 4. `M18: read correlation_qualifier in the statistics and P01`
+- `columns.yaml`: `correlation_qualifier` gets `statistics: {role: qualifier, values: [<the SPT targets>]}`, so
+  `describe()`, `fit()`, `compare()` and P07 (`plot/_geology_units.py`, via `read_flags`) read it.
+- `src/hangtu/plot/_values.py` `qualifiers()`: takes the value column and reads `correlation_qualifier` for a
+  correlation target alongside `qualifier`; its callers in `_profile.py` pass the value.
+- Tests: criterion 8 in `tests/stats/test_describe_flags.py` (lab s_u `>` pooled with bounded Stroud rows: both
+  counted) and `tests/stats/test_fit_censored.py`; a P01 test that bounded estimates get carets and the footnote
+  count (`tests/plot/`).
+
+### 5. `M18: add the spt_refusal_upper_limit judgment`
+- `src/hangtu/_judgments.py`: a `Kind` keyed by `values`, `by="geology_unit"`, field `spt_n` (a count, unitless),
+  positive, and `none` allowed as a value (new `Kind` flag); `project:` with a reason allowed. `ht.judgments()`
+  docstring lists it.
+- Tests: `tests/test_judgments.py`: reads, `none`, errors for a non-positive or text value, a units block.
+
+### 6. `M18: fit refusals between their value and the upper limit`
+- `src/hangtu/stats/_refusal_limit.py` (new, modeled on `stats/_significance.py`'s `resolve()`): argument → 
+  `judgments=` → the frame's `judgments_file` → none; per-row limit = limit × value / `spt_n`; the errors of
+  criterion 4.
+- `src/hangtu/stats/_fit.py`: `spt_refusal_upper_limit=` and `judgments=`; `Values` gains interval bounds; the
+  starting fit uses `CensoredData(..., interval=...)`; `_log_likelihood()` adds ln[F(hi) − F(lo)];
+  `count_interval_censored`, and `count_censored` includes it; notes (the tail without a limit, the limit used,
+  `none` set, positions approximate); the judgment recorded on the result. `stats/_result.py` `_FIT_COUNTS`.
+- `src/hangtu/plot/_distribution_fit.py` (P08): intervals placed as right-censored at their lower end.
+- Tests: `tests/stats/test_fit_refusal_limit.py` (new): criteria 1–5 with the spec's golden `fit()` case (SciPy
+  `CensoredData(interval=...)` to 1e-6, ln L by formula).
+
+### 7. `M18: document bounded estimates and the refusal limit; close out (a)`
+- `docs/site/guides/correlations.md`, `statistics.md`, `judgments.md`: bounded estimates, the upper limit (not the
+  cap), `none`. The example's Terrace figure looked at (criterion 10: 33 of 33, 21 bounded).
+- `docs/drafts/analysis.md` §4 if it still says refusals are blank.
+- Close-out: SPEC §12.4 M18 status "(a) done; (b) next", the "Next" sentence in `CLAUDE.md`, and the lesson check
+  (CLAUDE.md conventions, SPEC, memory).
+
+## Verification
+- Each acceptance criterion in the spec mapped to a test above; golden values from the spec, not from the code.
+- Full CI command locally; `uv sync --group docs && uv run python docs/prepare_site.py && uv run zensical build
+  --clean --strict`.
+- Look at P01 of the Terrace's φ′ with bounded estimates and P08 with the limit set.
