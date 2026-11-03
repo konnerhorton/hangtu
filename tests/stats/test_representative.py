@@ -385,3 +385,126 @@ def test_a_group_with_one_value_has_no_value_with_the_reason():
     assert math.isnan(sand["value"])
     assert sand["reason"] == "fewer than 2 values (1)"
     assert "Sand: no value, fewer than 2 values (1)." in result.notes
+
+
+# --- Criterion 1 across methods --------------------------------------------------
+
+
+def test_an_input_of_another_view_names_the_methods_inputs():
+    with pytest.raises(HangtuError, match=r"doesn't take percentile=.*estimate="):
+        characteristic(COHESION, estimate="mean", percentile=5)
+    with pytest.raises(HangtuError, match=r"doesn't take estimate=.*percentile="):
+        ht.stats.representative(
+            COHESION,
+            method="percentile",
+            percentile=5,
+            estimate="mean",
+            side="low",
+            distribution="normal",
+        )
+
+
+@pytest.mark.parametrize(
+    ("method", "name"),
+    [("percentile", "percentile"), ("standard_deviations", "standard_deviations")],
+)
+def test_each_method_needs_its_input(method, name):
+    with pytest.raises(HangtuError, match=rf"needs {name}=.*Example: method="):
+        ht.stats.representative(
+            COHESION, method=method, side="low", distribution="normal"
+        )
+
+
+# --- Criterion 4: the percentile of fit()'s distribution -------------------------
+
+
+def percentile(data, level, **kwargs):
+    kwargs.setdefault("side", "low" if level < 50 else "high")
+    kwargs.setdefault("distribution", "normal")
+    return ht.stats.representative(
+        data, method="percentile", percentile=level, **kwargs
+    )
+
+
+def test_g6_the_percentile_of_the_ml_normal_fit():
+    result = percentile(COHESION, 5)
+    assert value(result) == pytest.approx(0.9558574093527987, rel=REL)
+    with pytest.warns(UserWarning, match="fewer than 10"):
+        fitted = ht.stats.fit(COHESION, distributions=["normal"])
+    assert value(result) == pytest.approx(
+        fitted.distribution("normal").ppf(0.05), rel=REL
+    )
+    assert result.groups[0]["statistics"]["standard_deviation"] == pytest.approx(
+        np.std(COHESION), rel=REL
+    )
+
+
+def test_the_lognormal_percentile_matches_fit_on_both_sides():
+    with pytest.warns(UserWarning, match="fewer than 10"):
+        fitted = ht.stats.fit(COHESION, distributions=["lognormal"])
+    for level in (5, 95):
+        result = percentile(COHESION, level, distribution="lognormal")
+        assert value(result) == pytest.approx(
+            fitted.distribution("lognormal").ppf(level / 100), rel=REL
+        )
+
+
+def test_a_censored_percentile_matches_fit_on_the_same_rows():
+    frame = terrace()
+    with pytest.warns(UserWarning, match="fewer than 10"):
+        fitted = ht.stats.fit(frame, value="spt_n60", distributions=["normal"])
+    with pytest.warns(UserWarning, match="at or below 0"):
+        result = percentile(frame, 5, value="spt_n60")
+    assert value(result) == pytest.approx(
+        fitted.distribution("normal").ppf(0.05), rel=REL
+    )
+    assert any("fitted as censored" in note for note in result.notes)
+
+
+@pytest.mark.parametrize(
+    ("side", "level", "message"),
+    [
+        ("low", 95, "takes a percentile below 50, not 95"),
+        ("high", 5, "takes a percentile above 50, not 5"),
+        ("low", 0, "between 0 and 100, not 0"),
+        ("high", 100, "between 0 and 100, not 100"),
+        ("low", 50, "below 50, not 50"),
+    ],
+)
+def test_a_percentile_on_the_wrong_side_is_an_error(side, level, message):
+    with pytest.raises(HangtuError, match=message):
+        percentile(COHESION, level, side=side)
+
+
+# --- Criterion 5: standard deviations --------------------------------------------
+
+
+def standard_deviations(data, k, **kwargs):
+    kwargs.setdefault("side", "low")
+    kwargs.setdefault("distribution", "normal")
+    return ht.stats.representative(
+        data, method="standard_deviations", standard_deviations=k, **kwargs
+    )
+
+
+def test_g4_one_standard_deviation_below_the_mean():
+    assert value(standard_deviations(COHESION, 1)) == pytest.approx(
+        10.601415418921711, rel=REL
+    )
+
+
+def test_schneiders_half_a_standard_deviation_above_and_lognormal():
+    mean, deviation = np.mean(COHESION), np.std(COHESION, ddof=1)
+    high = standard_deviations(COHESION, 0.5, side="high")
+    assert value(high) == pytest.approx(mean + 0.5 * deviation, rel=REL)
+    logs = np.log(COHESION)
+    low = standard_deviations(COHESION, 1.75, distribution="lognormal")
+    assert value(low) == pytest.approx(
+        math.exp(logs.mean() - 1.75 * logs.std(ddof=1)), rel=REL
+    )
+
+
+@pytest.mark.parametrize("k", [0, -1, "1"])
+def test_the_multiple_is_a_number_above_zero(k):
+    with pytest.raises(HangtuError, match="standard_deviations="):
+        standard_deviations(COHESION, k)

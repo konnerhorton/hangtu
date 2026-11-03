@@ -69,3 +69,21 @@ def test_the_summary_names_the_view():
     )
     assert "k_n" in text
     assert result(estimate="mean")._repr_html_().startswith("<pre>")
+
+
+def test_percentile_and_standard_deviations_are_recorded_and_named():
+    frame = ht.set_units(
+        pd.DataFrame({"effective_cohesion": COHESION}), {"effective_cohesion": "kPa"}
+    )
+    common = {"value": "effective_cohesion", "side": "low", "distribution": "normal"}
+    low = ht.stats.representative(frame, method="percentile", percentile=5, **common)
+    record = low.to_dict()
+    json.dumps(record)
+    assert (record["percentile"], record["standard_deviations"]) == (5, None)
+    assert record["coefficient_of_variation_case"] is None
+    assert "percentile 5 of the fitted distribution, normal, low" in str(low)
+    k = ht.stats.representative(
+        frame, method="standard_deviations", standard_deviations=0.5, **common
+    )
+    assert k.to_dict()["standard_deviations"] == 0.5
+    assert "mean - 0.5 standard deviations, normal, low" in str(k)

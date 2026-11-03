@@ -348,7 +348,8 @@ class RepresentativeResult(_Result):
     include_assumed: bool
     #: The system the values were converted to first, None if not.
     display_units: str | None
-    #: The view: ``"characteristic"``.
+    #: The view: ``"characteristic"``, ``"percentile"`` or
+    #: ``"standard_deviations"``.
     method: str
     #: ``"low"`` or ``"high"``.
     side: str
@@ -366,8 +367,14 @@ class RepresentativeResult(_Result):
     #: θ and L as given, in one length unit, for Type C.
     scale_of_fluctuation: float | None
     failure_length: float | None
-    #: Γ² used: 0 (Type A), 1 (Type B), or θ/L capped at 1 or as given (C).
+    #: Γ² used: 0 (Type A), 1 (Type B), or θ/L capped at 1 or as given (C);
+    #: NaN for another method.
     sensitivity_index: float
+    #: The percentile of the fitted distribution, for ``method="percentile"``.
+    percentile: float | None
+    #: The multiple k of the standard deviation, for
+    #: ``method="standard_deviations"``.
+    standard_deviations: float | None
     #: One record per group: its key, counts, the statistics behind its
     #: value, the value, and the reason it has none.
     groups: tuple[dict[str, Any], ...]
@@ -419,7 +426,7 @@ class RepresentativeResult(_Result):
         return names
 
     def _view(self) -> str:
-        """Name the view: ``characteristic, mean (Type A), V_X computed, low``."""
+        """Name the view, e.g. ``characteristic, mean (Type A), …, normal, low``."""
         parts = [self.method]
         if self.method == "characteristic":
             assert self.estimate is not None  # required for the method
@@ -431,6 +438,11 @@ class RepresentativeResult(_Result):
             )
             if self.estimate == "intermediate":
                 parts.append(f"Γ² = {self.sensitivity_index:.4g}")
+        elif self.method == "percentile":
+            parts = [f"percentile {self.percentile:g} of the fitted distribution"]
+        else:
+            sign = "-" if self.side == "low" else "+"
+            parts = [f"mean {sign} {self.standard_deviations:g} standard deviations"]
         parts += [self.distribution, self.side]
         return ", ".join(parts)
 
@@ -464,7 +476,7 @@ _TYPES = {"mean": "A", "fractile": "B", "intermediate": "C"}
 #: The representative result's columns in the value's unit.
 _REPRESENTATIVE_WITH_UNIT = {"value", "mean", "standard_deviation", "geometric_mean"}
 _REPRESENTATIVE_HEADINGS = {
-    "quantile_factor": "t or N",
+    "quantile_factor": "t or z",
     "statistical_coefficient": "k_n",
     "sensitivity_index": "Γ²",
 }

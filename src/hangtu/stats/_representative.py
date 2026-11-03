@@ -19,7 +19,7 @@ from hangtu.stats import _fit, _refusal_limit, _rows
 from hangtu.stats._result import RepresentativeResult
 
 FUNCTION = "representative()"
-METHODS = ("characteristic",)
+METHODS = ("characteristic", "percentile", "standard_deviations")
 SIDES = ("low", "high")
 DISTRIBUTIONS = ("normal", "lognormal")
 TRENDS = ("depth", "elevation")
@@ -34,22 +34,39 @@ INPUTS = {
         "failure_length",
         "sensitivity_index",
     ),
+    "percentile": ("percentile",),
+    "standard_deviations": ("standard_deviations",),
 }
-REQUIRED = {"characteristic": ("estimate",)}
+REQUIRED = {method: inputs[:1] for method, inputs in INPUTS.items()}
 EXAMPLES = {
     "characteristic": (
         'method="characteristic", estimate="mean", side="low", distribution="normal"'
+    ),
+    "percentile": (
+        'method="percentile", percentile=5, side="low", distribution="normal"'
+    ),
+    "standard_deviations": (
+        'method="standard_deviations", standard_deviations=0.5, side="low", '
+        'distribution="normal"'
     ),
 }
 #: Fewer values in a group gives it no value (spec decision 11).
 MIN_COUNT = 2
 #: The one-sided confidence of EC7's characteristic value (Formula 4.5).
 CONFIDENCE = 0.95
-COMPLETE_DATA = (
-    "the mean and standard deviation are the censored maximum-likelihood fit's "
-    "(the standard deviation with n, not n - 1), and EC7's k_n factors assume "
-    "complete data."
-)
+#: The note on a group with censored values, by method (intent decision 2).
+CENSORED = {
+    "characteristic": (
+        "so the mean and standard deviation are the censored maximum-likelihood "
+        "fit's (the standard deviation with n, not n - 1), and EC7's k_n factors "
+        "assume complete data."
+    ),
+    "percentile": "fitted as censored by maximum likelihood, as by fit().",
+    "standard_deviations": (
+        "so the mean and standard deviation are the censored maximum-likelihood "
+        "fit's (the standard deviation with n, not n - 1)."
+    ),
+}
 
 
 def representative(
@@ -66,6 +83,8 @@ def representative(
     scale_of_fluctuation: float | None = None,
     failure_length: float | None = None,
     sensitivity_index: float | None = None,
+    percentile: float | None = None,
+    standard_deviations: float | None = None,
     pool: str | Sequence[str] | None = None,
     include_assumed: bool = False,
     spt_refusal_upper_limit: float | str | Mapping[str, float | str] | None = None,
@@ -121,18 +140,37 @@ def representative(
     offered. The result gives the geometric mean $e^m$ and geometric
     standard deviation $e^{s_{\ln}}$.
 
+    **Percentile** (``method="percentile"``): the ``percentile``-th
+    percentile of the normal or lognormal distribution :func:`fit` fits to
+    the group by maximum likelihood (the standard deviation with $n$,
+    censored values as censored), so it matches P08:
+    $x_p = \hat{\mu} + z_p \hat{\sigma}$ for a normal fit, with $z_p$ the
+    normal quantile (``quantile_factor``), and $\exp(\hat{m} + z_p
+    \hat{s}_{\ln})$ for a lognormal one. It has no allowance for the
+    uncertainty of a small sample, unlike EC7's fractile. ``side`` must agree
+    with it: a percentile below 50 for ``"low"``, above for ``"high"``. The
+    empirical percentile of the values is :func:`describe`'s.
+
+    **Standard deviations** (``method="standard_deviations"``):
+    $\bar{x} \mp k s$, with $k$ = ``standard_deviations``, above 0, and
+    $\bar{x}$ and $s$ as for the characteristic value (lognormal:
+    $\exp(m \mp k s_{\ln})$). Schneider's $k = 0.5$ (JRC Equation 20,
+    p. 64) and the simplified fractile's $k = 1.75$ (Equation 23, p. 65) are
+    values of $k$, not methods of their own.
+
     **Censored values** (refusals, ``>`` and ``<`` values, a refusal under
     ``spt_refusal_upper_limit``): in a group with any, $\bar{x}$ and $s$ (or
     $m$ and $s_{\ln}$) are the censored maximum-likelihood normal (or
     lognormal) fit's, as :func:`fit` gives it, so they aren't biased low at
     their limits. That $s$ is with $n$, and EC7's $k_n$ factors assume
     complete data; a note says so. $n$ counts every value, censored or not.
+    A percentile is always of that fit.
 
     **Rows are chosen as by** :func:`fit`: non-plastic, assumed, text and
     blank rows, and bands, are left out and counted; sources aren't pooled
     unawares (``pool=``); the counts add up to the group's rows.
 
-    **Warnings:** a characteristic value at or below 0 from a normal
+    **Warnings:** a value at or below 0 from a normal
     distribution (the data may be lognormal, JRC §5.1.3), and
     ``hydraulic_conductivity`` with a normal distribution, for which
     Formula 4.5 should not be used (Table A.1, note 2, p. 57). A group with
@@ -147,8 +185,10 @@ def representative(
         The column, e.g. ``"undrained_shear_strength"``.
     by : str or list of str, optional
         The column(s) to group by, e.g. ``"geology_unit"``.
-    method : {"characteristic"}
-        The view.
+    method : {"characteristic", "percentile", "standard_deviations"}
+        The view: EC7's characteristic value, a percentile of the fitted
+        distribution, or the mean less (or plus) a multiple of the standard
+        deviation.
     side : {"low", "high"}
         The cautious side: ``"low"`` where a lower value is unfavorable (a
         strength), ``"high"`` where a higher one is (a load, a
@@ -168,6 +208,11 @@ def representative(
     sensitivity_index : float
         For ``estimate="intermediate"``: $\Gamma^2$ directly, from 0 to 1,
         instead of $\theta$ and $L$.
+    percentile : float
+        For ``method="percentile"``: between 0 and 100, e.g. ``5``.
+    standard_deviations : float
+        For ``method="standard_deviations"``: the multiple $k$, above 0,
+        e.g. ``0.5``.
     pool : str or list of str, optional
         Source columns to pool across on purpose, as in :func:`describe`.
     include_assumed : bool
@@ -222,11 +267,14 @@ def representative(
         "scale_of_fluctuation": scale_of_fluctuation,
         "failure_length": failure_length,
         "sensitivity_index": sensitivity_index,
+        "percentile": percentile,
+        "standard_deviations": standard_deviations,
     }
     method, side, distribution = _check(method, side, distribution, trend, inputs)
     if trend is not None:
         raise HangtuError(f"{FUNCTION} trend= is not built yet (M18 (b), step 4).")
     gamma2, capped = _sensitivity(inputs)
+    inputs["sensitivity_index"] = gamma2
     lognormal = distribution == "lognormal"
     found = _fit.read_groups(
         data,
@@ -243,7 +291,6 @@ def representative(
     )
     read = found.read
     sign = -1.0 if side == "low" else 1.0
-    assumed = coefficient_of_variation
     groups, notes, at_or_below_zero = [], [], []
     for group in found.groups:
         record: dict[str, Any] = {
@@ -262,57 +309,33 @@ def representative(
         if values.count < MIN_COUNT:
             record["reason"] = f"fewer than {MIN_COUNT} values ({values.count})"
             continue
-        moments = _moments(values, lognormal)
-        if moments is None:
-            record["reason"] = "the censored maximum-likelihood fit failed"
-            continue
-        centre, spread = moments
-        n = values.count
-        if assumed is None:
-            factor = float(_stats.t.ppf(CONFIDENCE, n - 1))
+        if method == "percentile":
+            assert percentile is not None  # required for the method
+            outcome = _percentile(values, distribution, percentile)
         else:
-            factor = float(_stats.norm.ppf(CONFIDENCE))
-        coefficient = factor * math.sqrt(gamma2 + 1 / n)
-        if lognormal:
-            deviation = spread if assumed is None else math.sqrt(math.log1p(assumed**2))
-            result = math.exp(centre + sign * coefficient * deviation)
-            statistics = {
-                "geometric_mean": math.exp(centre),
-                "geometric_standard_deviation": math.exp(deviation),
-                "coefficient_of_variation": (
-                    math.sqrt(math.expm1(spread**2)) if assumed is None else assumed
-                ),
-            }
-        else:
-            result = (
-                centre + sign * coefficient * spread
-                if assumed is None
-                else centre * (1 + sign * coefficient * assumed)
+            moments = _moments(values, lognormal)
+            outcome = (
+                None
+                if moments is None
+                else _characteristic(moments, values.count, sign, lognormal, inputs)
+                if method == "characteristic"
+                else _standard_deviations(moments, sign, lognormal, standard_deviations)
             )
-            statistics = {
-                "mean": centre,
-                "standard_deviation": spread,
-                "coefficient_of_variation": (
-                    assumed
-                    if assumed is not None
-                    else spread / centre
-                    if centre
-                    else math.nan
-                ),
-            }
-            if result <= 0:
-                at_or_below_zero.append(group.label)
-        record["statistics"] = {
-            **statistics,
-            "quantile_factor": factor,
-            "statistical_coefficient": coefficient,
-            "sensitivity_index": gamma2,
-        }
+        if outcome is None or not math.isfinite(outcome[0]):
+            record["reason"] = (
+                "the censored maximum-likelihood fit failed"
+                if values.censored
+                else "the fit failed"
+            )
+            continue
+        result, record["statistics"] = outcome
+        if not lognormal and result <= 0:
+            at_or_below_zero.append(group.label)
         record["value"] = result
         if values.censored:
             notes.append(
-                f"{group.label}: {values.censored} of {n} values censored, so "
-                + COMPLETE_DATA
+                f"{group.label}: {values.censored} of {values.count} values "
+                f"censored, {CENSORED[method]}"
             )
 
     _rows.warn_left_out(found.reasons, read.column, FUNCTION)
@@ -326,7 +349,8 @@ def representative(
         )
     if at_or_below_zero:
         warn(
-            f"{FUNCTION} gives a characteristic value of {read.column!r} at or "
+            f"{FUNCTION} gives a {method.replace('_', ' ')} value of "
+            f"{read.column!r} at or "
             f"below 0 from a normal distribution in: {', '.join(at_or_below_zero)}. "
             'The data may be lognormal (JRC §5.1.3): try distribution="lognormal".'
         )
@@ -364,11 +388,17 @@ def representative(
         estimate=estimate,
         coefficient_of_variation=coefficient_of_variation,
         coefficient_of_variation_case=(
-            None if method != "characteristic" else 2 if assumed is None else 3
+            None
+            if method != "characteristic"
+            else 2
+            if coefficient_of_variation is None
+            else 3
         ),
         scale_of_fluctuation=scale_of_fluctuation,
         failure_length=failure_length,
         sensitivity_index=gamma2,
+        percentile=percentile,
+        standard_deviations=standard_deviations,
         groups=tuple(groups),
     )
 
@@ -421,6 +451,22 @@ def _check(
             )
     if method == "characteristic":
         _check_characteristic(inputs, trend)
+    elif method == "percentile":
+        level = _number("percentile", inputs["percentile"])
+        if not 0 < level < 100:
+            raise HangtuError(
+                f"{FUNCTION} percentile= is between 0 and 100, not {level:g}. "
+                "Example: percentile=5"
+            )
+        if (side == "low") != (level < 50):
+            raise HangtuError(
+                f"{FUNCTION} with side={side!r} takes a percentile "
+                f"{'below' if side == 'low' else 'above'} 50, not {level:g}: a "
+                f'{side} P{level:g} is a slip. Example: side="low", percentile=5, '
+                'or side="high", percentile=95.'
+            )
+    else:
+        _positive("standard_deviations", inputs["standard_deviations"])
     return method, side, distribution
 
 
@@ -492,6 +538,107 @@ def _sensitivity(inputs: dict[str, Any]) -> tuple[float, bool]:
         return float(inputs["sensitivity_index"]), False
     ratio = float(inputs["scale_of_fluctuation"]) / float(inputs["failure_length"])
     return min(ratio, 1.0), ratio > 1
+
+
+def _characteristic(
+    moments: tuple[float, float],
+    n: int,
+    sign: float,
+    lognormal: bool,
+    inputs: dict[str, Any],
+) -> tuple[float, dict[str, float]]:
+    """Return EC7's characteristic value and its statistics (spec decisions 3, 4)."""
+    centre, spread = moments
+    assumed = inputs["coefficient_of_variation"]
+    gamma2 = inputs["sensitivity_index"]
+    if assumed is None:
+        factor = float(_stats.t.ppf(CONFIDENCE, n - 1))
+    else:
+        factor = float(_stats.norm.ppf(CONFIDENCE))
+    coefficient = factor * math.sqrt(gamma2 + 1 / n)
+    if lognormal:
+        deviation = spread if assumed is None else math.sqrt(math.log1p(assumed**2))
+        result = math.exp(centre + sign * coefficient * deviation)
+        statistics = {
+            "geometric_mean": math.exp(centre),
+            "geometric_standard_deviation": math.exp(deviation),
+            "coefficient_of_variation": (
+                math.sqrt(math.expm1(spread**2)) if assumed is None else assumed
+            ),
+        }
+    else:
+        result = (
+            centre + sign * coefficient * spread
+            if assumed is None
+            else centre * (1 + sign * coefficient * assumed)
+        )
+        statistics = {
+            "mean": centre,
+            "standard_deviation": spread,
+            "coefficient_of_variation": _variation(centre, spread, assumed),
+        }
+    return result, {
+        **statistics,
+        "quantile_factor": factor,
+        "statistical_coefficient": coefficient,
+        "sensitivity_index": gamma2,
+    }
+
+
+def _percentile(
+    values: _fit.Values, distribution: str, level: float
+) -> tuple[float, dict[str, float]] | None:
+    """Return the percentile of ``fit()``'s maximum-likelihood fit (spec decision 5)."""
+    try:
+        parameters = _fit.estimate(distribution, values, (None, None))
+    except Exception:  # SciPy raises several kinds
+        return None
+    if not all(math.isfinite(p) for p in parameters.values()):
+        return None
+    with np.errstate(all="ignore"):
+        result = float(_fit.frozen(distribution, parameters).ppf(level / 100))
+    statistics = (
+        {
+            "geometric_mean": parameters["scale"],
+            "geometric_standard_deviation": math.exp(parameters["s"]),
+        }
+        if distribution == "lognormal"
+        else {
+            "mean": parameters["loc"],
+            "standard_deviation": parameters["scale"],
+            "coefficient_of_variation": _variation(
+                parameters["loc"], parameters["scale"], None
+            ),
+        }
+    )
+    return result, {
+        **statistics,
+        "quantile_factor": float(_stats.norm.ppf(level / 100)),
+    }
+
+
+def _standard_deviations(
+    moments: tuple[float, float], sign: float, lognormal: bool, multiple: Any
+) -> tuple[float, dict[str, float]]:
+    """Return the mean less (or plus) k standard deviations (spec decision 6)."""
+    centre, spread = moments
+    if lognormal:
+        return math.exp(centre + sign * multiple * spread), {
+            "geometric_mean": math.exp(centre),
+            "geometric_standard_deviation": math.exp(spread),
+        }
+    return centre + sign * multiple * spread, {
+        "mean": centre,
+        "standard_deviation": spread,
+        "coefficient_of_variation": _variation(centre, spread, None),
+    }
+
+
+def _variation(centre: float, spread: float, assumed: float | None) -> float:
+    """Return V_X: as assumed, else s / x̄ (NaN for a mean of 0)."""
+    if assumed is not None:
+        return assumed
+    return spread / centre if centre else math.nan
 
 
 def _moments(values: _fit.Values, lognormal: bool) -> tuple[float, float] | None:
