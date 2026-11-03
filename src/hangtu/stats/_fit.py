@@ -7,7 +7,7 @@ chooses them.
 import math
 import warnings
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from importlib.metadata import version
 from typing import Any
 
@@ -17,7 +17,7 @@ from scipy import stats as _stats
 
 from hangtu._data import text_values
 from hangtu.errors import HangtuError, warn
-from hangtu.stats import _rows
+from hangtu.stats import _refusal_limit, _rows
 from hangtu.stats._positions import plotting_positions
 from hangtu.stats._result import FitResult
 from hangtu.stats._rows import COUNTS
@@ -63,20 +63,28 @@ BURNHAM_ANDERSON = (
 
 @dataclass(frozen=True)
 class Values:
-    """One group's values: measured, and censored on each side."""
+    """One group's values: measured, censored on each side, and between two."""
 
     exact: np.ndarray
     #: Known only to be at most these (``<x``).
     left: np.ndarray
     #: Known only to be at least these (a refusal, ``>x``).
     right: np.ndarray
+    #: Known only to lie between each row's two: a refusal and its judged
+    #: upper limit (docs/work/m18a-refusals.md, spec item 1).
+    interval: np.ndarray = field(default_factory=lambda: np.empty((0, 2)))
 
     @property
     def count(self) -> int:
-        return self.exact.size + self.left.size + self.right.size
+        return self.exact.size + self.censored
+
+    @property
+    def censored(self) -> int:
+        return self.left.size + self.right.size + len(self.interval)
 
     def all(self) -> np.ndarray:
-        return np.concatenate([self.exact, self.left, self.right])
+        """Every value, a censored one at its recorded limit (an interval's low end)."""
+        return np.concatenate([self.exact, self.left, self.right, self.interval[:, 0]])
 
 
 def fit(
@@ -88,6 +96,8 @@ def fit(
     bounds: str | tuple[float | None, float | None] = "auto",
     pool: str | Sequence[str] | None = None,
     include_assumed: bool = False,
+    spt_refusal_upper_limit: float | str | Mapping[str, float | str] | None = None,
+    judgments: Any = None,
     units: str | Mapping[str, str] | None = None,
     display_units: str | None = None,
 ) -> FitResult:
@@ -163,6 +173,24 @@ def fit(
     ``count_at_least``, ``count_at_most``) and the notes give the share.
     With any censored value in a group there is no Anderson-Darling check:
     its p-value assumes complete data. Judge the fit on P08's Q-Q panel.
+
+    **The refusal upper limit** (``spt_refusal_upper_limit``, a judgment):
+    without it, the probability a fit puts above the refusals is the
+    distribution's, not the data's, and a note says so. With it, a refusal is
+    known to lie between its value and the limit, and enters the likelihood
+    as $F(\text{limit}) - F(c)$, through ``CensoredData(interval=...)``
+    (``count_interval_censored``, within ``count_censored``). The limit is
+    field N, in blows per foot, as the log gives it, the engineer's judgment
+    of the most a refusal could be (from what it hit, or its penetration),
+    never hangtu's. It is not the cap: ``spt_cap`` is where a refusal is
+    recorded, the bottom of its interval; the limit is the top. Each
+    refusal's limit in N60 or (N1)60 is the limit x value / ``spt_n``, its
+    own factors, so one limit serves every N column. It is keyed by
+    ``geology_unit``, whatever ``by=`` groups on; ``none`` keeps a unit's
+    refusals right-censored on purpose. On P08's Q-Q panel an interval is
+    placed as right-censored at its value, exact when every refusal lies
+    above the group's measured values, as at one cap; else a note says the
+    positions approximate.
     A band (``<value>_lower``/``_upper`` with no value) is the spread of a
     correlation's coefficient, not a censored measurement, so it is left
     out and counted (``count_range``).
@@ -196,6 +224,16 @@ def fit(
         in :func:`describe`.
     include_assumed : bool
         Fit assumed values with the rest. They are still counted.
+    spt_refusal_upper_limit : float, "none" or dict, optional
+        For an SPT N column only: the most a refusal could be, in field N
+        (blows per foot), e.g. ``120``, or ``{"Terrace": 120, "Alluvium":
+        "none"}`` by geology unit. None reads it from ``judgments=``, then
+        the Project's file; not found anywhere, refusals are fitted as at
+        least their value. It is optional, unlike other judgments: leaving
+        it out adds nothing beyond the data (SPEC §4).
+    judgments : Judgments or path, optional
+        The judgments file to read ``spt_refusal_upper_limit`` from, e.g.
+        ``p.judgments``. None reads the Project's file the data carries.
     units : str or dict, optional
         The value's unit, e.g. ``"kPa"``, or ``{column: unit}``, as in
         :func:`describe`. A list or array without it is fitted with "(units
@@ -221,6 +259,11 @@ def fit(
         For an unknown distribution, beta without two bounds, a value
         outside the bounds, no group with 4 values, rows from different
         sources in one group, or a ``pool=`` column that isn't a source.
+        For ``spt_refusal_upper_limit``: given for a value that isn't an SPT
+        N column, a key that isn't a geology unit in the rows, a unit with
+        refusals it doesn't list (without a ``project:`` entry), a refusal
+        with no ``spt_n`` to scale by, or a limit not above a refusal's
+        value.
     UnitsError
         For a value column whose unit is unknown.
 
@@ -264,6 +307,11 @@ def fit(
     )
     included = reasons == ""
     _check_inside(numbers[included], low, high, read.column)
+    refusals = included & marks["count_at_least"] & _refusal_limit.refusal_rows(frame)
+    limits = _refusal_limit.resolve(
+        spt_refusal_upper_limit, judgments, frame, read.column, numbers, refusals
+    )
+    bounded = np.isfinite(limits.upper)
 
     keys = _rows.group_keys(frame, read.by)
     _rows.check_sources(frame, keys, included, read, pooled, function)
@@ -271,17 +319,22 @@ def fit(
     for key, rows in keys:
         label = ", ".join(map(str, key.values())) or "All"
         chosen = rows & included
-        # Decision 3: refusals and ">" are right-censored, "<" left-censored.
-        right = chosen & marks["count_at_least"]
-        left = chosen & marks["count_at_most"] & ~right
+        # Decision 3: refusals and ">" are right-censored, "<" left-censored;
+        # a refusal under a judged upper limit lies between the two (m18a).
+        at_least = chosen & marks["count_at_least"]
+        interval = at_least & bounded
+        right = at_least & ~interval
+        left = chosen & marks["count_at_most"] & ~at_least
         values = Values(
-            exact=numbers[chosen & ~left & ~right],
+            exact=numbers[chosen & ~left & ~at_least],
             left=numbers[left],
             right=numbers[right],
+            interval=np.column_stack([numbers[interval], limits.upper[interval]]),
         )
         counts = {
             "count": values.count,
-            "count_censored": values.left.size + values.right.size,
+            "count_censored": values.censored,
+            "count_interval_censored": len(values.interval),
             **{
                 name: int(marks.get(name, reasons == name)[rows].sum())
                 for name in COUNTS
@@ -297,6 +350,7 @@ def fit(
                 "exact": values.exact.tolist(),
                 "left": values.left.tolist(),
                 "right": values.right.tolist(),
+                "interval": values.interval.tolist(),
             },
             "positions": None,
             "text": _rows.spellings(texts[rows]),
@@ -322,7 +376,12 @@ def fit(
         group["fits"], group["left_out"] = _fit_group(values, names, low, high)
         if not group["fits"]:
             group["reason"] = "no distribution could be fitted"
-        positions = plotting_positions(values.exact, values.left, values.right)
+        # An interval is placed as right-censored at its value (m18a spec item 1).
+        positions = plotting_positions(
+            values.exact,
+            values.left,
+            np.concatenate([values.right, values.interval[:, 0]]),
+        )
         if positions is not None:
             group["positions"] = {
                 "values": positions[0].tolist(),
@@ -368,10 +427,18 @@ def fit(
         unit=unit,
         notes=tuple(
             _notes(
-                notes, groups, read, pooled, include_assumed, unit_given=read.unit_given
+                [*notes, *limits.notes],
+                groups,
+                read,
+                pooled,
+                include_assumed,
+                unit_given=read.unit_given,
             )
         ),
-        judgments=dict(frame.attrs.get("judgments", {})),
+        judgments={
+            **frame.attrs.get("judgments", {}),
+            **({} if limits.record is None else {_refusal_limit.NAME: limits.record}),
+        },
         hangtu_version=version("hangtu"),
         by=tuple(read.by),
         pooled=tuple(pooled),
@@ -492,7 +559,7 @@ def _fit_group(
         record = _record(
             name, parameters, distribution, log_likelihood, values, low, high
         )
-        if not values.left.size and not values.right.size:
+        if not values.censored:
             statistic = anderson_darling(name, parameters, values.exact)
             record["anderson_darling_statistic"] = statistic
             record["anderson_darling_p_value"] = _anderson_darling_p_value(
@@ -508,12 +575,17 @@ def estimate(
 ) -> dict[str, float]:
     """Return the maximum-likelihood parameters of ``name``, by SciPy's names."""
     x = values.exact
-    censored = bool(values.left.size or values.right.size)
+    censored = bool(values.censored)
     if name in CLOSED_FORM and not censored:
         return {key: float(value) for key, value in _closed_form(name, x).items()}
     # Decision 3: censored values enter by maximum likelihood, as CensoredData.
     data = (
-        _stats.CensoredData(uncensored=x, left=values.left, right=values.right)
+        _stats.CensoredData(
+            uncensored=x,
+            left=values.left,
+            right=values.right,
+            interval=values.interval if len(values.interval) else None,
+        )
         if censored
         else x
     )
@@ -633,12 +705,18 @@ def frozen(name: str, parameters: Mapping[str, float]) -> Any:
 
 
 def _log_likelihood(distribution: Any, values: Values) -> float:
-    """Return ln L: the values' densities, the censored ones' probabilities."""
+    """Return ln L: the values' densities, the censored ones' probabilities.
+
+    An interval's is F(high) - F(low), taken as sf(low) - sf(high), which
+    keeps its precision in the upper tail, where refusals are.
+    """
+    low, high = values.interval[:, 0], values.interval[:, 1]
     with np.errstate(divide="ignore"):
         return float(
             distribution.logpdf(values.exact).sum()
             + distribution.logcdf(values.left).sum()
             + distribution.logsf(values.right).sum()
+            + np.log(distribution.sf(low) - distribution.sf(high)).sum()
         )
 
 
@@ -697,12 +775,14 @@ def _group_notes(
     group: dict[str, Any], label: str, values: Values, low: float | None
 ) -> list[str]:
     notes = []
-    censored = values.left.size + values.right.size
+    censored = values.censored
+    between = len(values.interval)
     if censored:
         sides = [
             f"{values.right.size} at least (refusal or '>')"
             if values.right.size
             else "",
+            f"{between} between a refusal and its upper limit" if between else "",
             f"{values.left.size} at most ('<')" if values.left.size else "",
         ]
         notes.append(
@@ -714,10 +794,19 @@ def _group_notes(
             f"{label}: no Anderson-Darling check: {_count(censored)} are censored; "
             "judge the fit on the Q-Q plot."
         )
-        if values.left.size and values.right.size:
+        if values.left.size and (values.right.size or between):
             notes.append(
                 f"{label}: no plotting positions: values are censored both ways, "
                 "so the Q-Q plot can't place them. The fits and AICc stand."
+            )
+        elif (
+            between
+            and values.exact.size
+            and values.interval[:, 0].min() < values.exact.max()
+        ):
+            notes.append(
+                f"{label}: the Q-Q plot places each refusal as at least its value, "
+                "and some lie below measured values, so its positions approximate."
             )
     else:
         distinct = np.unique(values.exact).size

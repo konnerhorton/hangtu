@@ -20,7 +20,7 @@ A unit weight or a water level is the engineer's call, not a property of the dat
 2. `judgments=`, a judgments file (`ht.judgments(path)` or the path itself);
 3. the project's judgments file, set with `p.set_judgments(path)` and carried by every dataset in `df.attrs["judgments_file"]`;
 
-and otherwise stops with an error that names the judgment and the ways to give it. An argument replaces that whole judgment, with a warning when the file has it too; the other judgments still come from the file.
+and otherwise stops with an error that names the judgment and the ways to give it. The one exception is the [SPT refusal upper limit](#the-spt-refusal-upper-limit), which only narrows what the data already say. An argument replaces that whole judgment, with a warning when the file has it too; the other judgments still come from the file.
 
 Merging or concatenating DataFrames drops `df.attrs`, and with it the project's file. Pass `judgments=p.judgments` then.
 
@@ -80,6 +80,25 @@ significance_level:
 ```
 
 It must lie strictly between 0 and 1, and warns outside 0.001 to 0.2. `values:` or `by:` under it is an error. `significance_level=` on a call replaces it, with a warning. It sets the note's conclusions and the intervals' level, 1 − α; the p-values don't depend on it. See [comparing groups](statistics.md#comparing-groups).
+
+## The SPT refusal upper limit
+
+`ht.stats.fit()` reads one optional judgment: the most an SPT refusal could be, so its refusals are fitted between their value and that limit rather than as at least their value (see [fitting](statistics.md)). It is the one judgment with no error when it is missing: a refusal right-censored is the test's own result, so leaving the limit out adds nothing beyond the data, and the result's notes say the fitted tail above the refusals is then the distribution's.
+
+```yaml
+spt_refusal_upper_limit:
+  by: geology_unit          # always; it takes no units
+  values:
+    Terrace:  {spt_n: 120, reason: "50 blows for 5 in of the test drive, per foot"}
+    Alluvium: {spt_n: none, reason: "refusals on cobbles in the gravel lens"}
+```
+
+- **It is field N, in blows per foot,** as the log gives it, so you judge it in the terms you read the refusals in. Each refusal's limit in N60 or (N1)60 is the limit × its value / `spt_n`, the row's own energy and overburden factors; fitting `spt_n_capped` takes the limit as it is.
+- **It is keyed by geology unit,** whatever `fit()` groups by. A unit with refusals the entry doesn't list is an error, unless a `project:` entry with its reason fills it in, with a warning.
+- **`none` keeps a unit's refusals right-censored** on purpose, with its reason recorded: refusals on cobbles or rock say nothing about the soil's N.
+- **It is not the cap.** `ht.settings.spt_cap` is where a refusal is recorded, the bottom of its interval; the limit is the top. A limit not above a refusal's value is an error naming the row.
+
+`spt_refusal_upper_limit=` on the call takes a number for every refusal or a mapping by geology unit, `"none"` included, and replaces the file's, with a warning. hangtu doesn't extrapolate blows from a partial penetration to set it: an engineer may, to choose the limit.
 
 ## The log
 

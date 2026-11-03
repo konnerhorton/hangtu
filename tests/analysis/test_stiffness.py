@@ -80,15 +80,51 @@ def test_kulhawy_mayne_in_us_units():
         (correlations.drained_youngs_modulus_kulhawy_mayne_1990, "spt_n60"),
     ],
 )
-def test_e_gives_no_estimate_at_zero_n_or_a_refusal(function, column):
+def test_e_gives_no_estimate_at_zero_n_and_a_bound_at_a_refusal(function, column):
+    # m18a: a strict lower limit of 0 bounds nothing, a refusal at it neither.
     df = pd.DataFrame(
-        {column: [0.0, 15.0, np.nan], "spt_refusal": [False, True, False]}
+        {
+            column: [0.0, 15.0, np.nan, 0.0],
+            "spt_refusal": [False, True, False, True],
+        }
     )
     soil = next(iter(correlations.describe(function.__name__)["rows"]))
-    with pytest.warns(UserWarning, match=r"3 of 3 rows \(1 input blank, 1 refusal, 1"):
+    with pytest.warns(UserWarning) as caught:
         out = function(df, soil=soil)
-    assert out["correlation_note"].tolist() == ["below range", "refusal", "input blank"]
-    assert out["drained_youngs_modulus"].isna().all()
+    assert "3 of 4 rows (1 input blank, 1 refusal, 1 below range" in str(
+        caught[0].message
+    )
+    assert "a bound, not an estimate, for 1 of 4 rows (1 refusal" in str(
+        caught[1].message
+    )
+    assert out["correlation_note"].tolist() == [
+        "below range",
+        "at least: refusal",
+        "input blank",
+        "refusal",
+    ]
+    assert out["correlation_qualifier"].tolist() == [None, ">", None, None]
+    assert out["drained_youngs_modulus"].notna().tolist() == [False, True, False, False]
+
+
+@pytest.mark.filterwarnings("ignore:.*gave a bound")
+def test_kulhawy_mayne_e_at_a_refusal_golden_value():
+    # m18a spec: E ≥ 5 x 66.7 x 100 kPa = 33,350 kPa (33.35 MPa).
+    df = pd.DataFrame({"spt_n60": [66.7], "spt_refusal": [True]})
+    out = correlations.drained_youngs_modulus_kulhawy_mayne_1990(
+        df, soil="sands_with_fines", display_units="SI"
+    )
+    assert out["drained_youngs_modulus"].iloc[0] == pytest.approx(33.35, rel=1e-9)
+    assert out["correlation_qualifier"].tolist() == [">"]
+
+
+@pytest.mark.filterwarnings("ignore:.*gave (a bound|no estimate)")
+def test_aashto_e_at_zero_n_is_no_estimate():
+    out = correlations.drained_youngs_modulus_aashto_2004(
+        pd.DataFrame({"spt_n1_60": [0.0]}), soil="silts"
+    )
+    assert out["correlation_note"].tolist() == ["below range"]
+    assert out["correlation_qualifier"].tolist() == [None]
 
 
 # --- AC 3: the input ------------------------------------------------------------------
@@ -187,19 +223,47 @@ def test_vs_agrees_with_the_source_on_uncorrected_n(name, a, b):
         (
             "shear_wave_velocity_imai_tonouchi_1982",
             [0.0, 0.5, 447.0, 450.0],
-            ["below range", None, None, "above range"],
+            [
+                "below range",
+                None,
+                None,
+                "at least: N60 above 447, estimated at 447",
+            ],
         ),
         (
             "shear_wave_velocity_ohta_goto_1978",
             [2.0, 2.23, 223.0, 224.0],
-            ["below range", None, None, "above range"],
+            [
+                "at most: N60 below 2.23, estimated at 2.23",
+                None,
+                None,
+                "at least: N60 above 223, estimated at 223",
+            ],
         ),
     ],
 )
+@pytest.mark.filterwarnings("ignore:.*gave (a bound|no estimate)")
 def test_vs_range_is_the_sources_n_at_67_percent(name, n60, notes):
-    with pytest.warns(UserWarning, match=r"Its range is .*N60 ≤ "):
-        out = getattr(correlations, name)(pd.DataFrame({"spt_n60": n60}))
+    out = getattr(correlations, name)(pd.DataFrame({"spt_n60": n60}))
     assert out["correlation_note"].tolist() == notes
+
+
+@pytest.mark.filterwarnings("ignore:.*gave a bound")
+@pytest.mark.parametrize(
+    ("name", "n60", "expected", "qualifier"),
+    [
+        # m18a spec: Vs = a N60^b at the range's end.
+        ("shear_wave_velocity_imai_tonouchi_1982", 500.0, 621.34803, ">"),
+        ("shear_wave_velocity_ohta_goto_1978", 300.0, 544.81601, ">"),
+        ("shear_wave_velocity_ohta_goto_1978", 1.5, 108.70508, "<"),
+    ],
+)
+def test_vs_bounds_golden_values(name, n60, expected, qualifier):
+    out = getattr(correlations, name)(
+        pd.DataFrame({"spt_n60": [n60]}), display_units="SI"
+    )
+    assert out["shear_wave_velocity"].iloc[0] == pytest.approx(expected, rel=1e-7)
+    assert out["correlation_qualifier"].tolist() == [qualifier]
 
 
 # --- AC 5: Vs and soil type -----------------------------------------------------------

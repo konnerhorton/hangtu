@@ -19,8 +19,8 @@ GOLDEN = [
     (10, 50.0, 470.0, 11.6, 1.460),
     (20, 50.0, 940.0, 23.2, 2.920),
     (30, 50.0, 1410.0, 34.8, 4.380),  # N pa/σ′v0 = 60, inside K0's range
-    (31, 50.0, 1457.0, 35.96, NAN),  # 62: above K0's range
-    (30, 20.0, 1410.0, NAN, NAN),  # 150: above both
+    (31, 50.0, 1457.0, 35.96, 4.380),  # 62: above K0's range, at least K0 at 60
+    (30, 20.0, 1410.0, 58.0, 4.380),  # 150: above both, at least each at its end
 ]
 
 
@@ -53,30 +53,36 @@ def test_preconsolidation_stress_in_us_units():
 
 
 def test_overconsolidation_ratio_golden_values():
-    with pytest.warns(UserWarning, match=r"1 of 6 rows \(1 above range"):
+    with pytest.warns(UserWarning, match=r"bound, not an estimate, for 1 of 6 rows"):
         out = correlations.overconsolidation_ratio_mayne_kemper_1988(golden_frame())
     assert out["overconsolidation_ratio"].tolist() == pytest.approx(
         column(3), nan_ok=True
     )
-    assert out["correlation_note"].tolist() == [None] * 5 + ["above range"]
+    assert out["correlation_note"].tolist() == [None] * 5 + [
+        "at least: N pa/σ′v0 above 100, estimated at 100"
+    ]
+    assert out["correlation_qualifier"].tolist() == [None] * 5 + [">"]
     assert "overconsolidation_ratio" not in out.attrs["units"]
 
 
 def test_k0_golden_values():
-    with pytest.warns(UserWarning, match=r"2 of 6 rows \(2 above range"):
+    with pytest.warns(UserWarning, match=r"bound, not an estimate, for 2 of 6 rows"):
         out = correlations.at_rest_earth_pressure_coefficient_kulhawy_et_al_1989(
             golden_frame()
         )
     assert out["at_rest_earth_pressure_coefficient"].tolist() == pytest.approx(
         column(4), nan_ok=True
     )
+    assert out["correlation_qualifier"].tolist() == [None] * 4 + [">", ">"]
 
 
 def test_k0_warning_names_the_range_in_the_users_terms():
+    df = ht.set_units(
+        pd.DataFrame({"spt_n": [0.0], "effective_vertical_stress": [50.0]}),
+        {"effective_vertical_stress": "kPa"},
+    )
     with pytest.warns(UserWarning) as caught:
-        correlations.at_rest_earth_pressure_coefficient_kulhawy_et_al_1989(
-            golden_frame()
-        )
+        correlations.at_rest_earth_pressure_coefficient_kulhawy_et_al_1989(df)
     assert str(caught[0].message).endswith(
         "Its range is σ′v0 > 0 kPa; 0 < N pa/σ′v0 ≤ 60; outside it the estimate "
         "is blank, never extrapolated."
@@ -104,14 +110,43 @@ def test_stress_in_psf_gives_the_same_values(name, target):
 
 def test_preconsolidation_stress_range_is_the_charts_n_axis():
     df = pd.DataFrame({"spt_n": [0.4, 0.5, 200, 201]})
-    with pytest.warns(UserWarning, match=r"2 of 4 rows \(1 below range, 1 above"):
+    with pytest.warns(UserWarning, match=r"2 of 4 rows \(1 above range, 1 below"):
         out = correlations.preconsolidation_stress_mayne_kemper_1988(df)
     assert out["correlation_note"].tolist() == [
-        "below range",
+        "at most: N below 0.5, estimated at 0.5",
         None,
         None,
-        "above range",
+        "at least: N above 200, estimated at 200",
     ]
+    assert out["correlation_qualifier"].tolist() == ["<", None, None, ">"]
+
+
+@pytest.mark.filterwarnings("ignore:.*gave a bound")
+def test_stress_history_bounds_golden_values():
+    # m18a spec, golden values (pa = 100 kPa).
+    stress = correlations.preconsolidation_stress_mayne_kemper_1988(
+        pd.DataFrame({"spt_n": [250.0, 0.3]}), display_units="SI"
+    )
+    assert stress["preconsolidation_stress"].tolist() == pytest.approx(
+        [9400.0, 23.5], rel=1e-9
+    )
+    assert stress["correlation_qualifier"].tolist() == [">", "<"]
+    df = ht.set_units(
+        pd.DataFrame(
+            {"spt_n": [40.0, 1.0], "effective_vertical_stress": [20.0, 200.0]}
+        ),
+        {"effective_vertical_stress": "kPa"},
+    )
+    ratio = correlations.overconsolidation_ratio_mayne_kemper_1988(df)
+    assert ratio["overconsolidation_ratio"].tolist() == pytest.approx(
+        [58.0, 0.58], rel=1e-9
+    )
+    assert ratio["correlation_qualifier"].tolist() == [">", "<"]
+    k0 = correlations.at_rest_earth_pressure_coefficient_kulhawy_et_al_1989(df.iloc[:1])
+    assert k0["at_rest_earth_pressure_coefficient"].iloc[0] == pytest.approx(
+        4.38, rel=1e-9
+    )
+    assert k0["correlation_qualifier"].tolist() == [">"]
 
 
 def test_zero_stress_is_below_range_not_infinite():
@@ -124,14 +159,26 @@ def test_zero_stress_is_below_range_not_infinite():
     assert out["overconsolidation_ratio"].isna().all()
 
 
-def test_ocr_below_one_normalized_is_below_range():
+def test_ocr_below_one_normalized_is_at_most_the_estimate_at_one():
     df = ht.set_units(
-        pd.DataFrame({"spt_n": [1], "effective_vertical_stress": [200.0]}),
+        pd.DataFrame(
+            {
+                "spt_n": [1, 1],
+                "effective_vertical_stress": [200.0, 200.0],
+                "spt_refusal": [False, True],
+            }
+        ),
         {"effective_vertical_stress": "kPa"},
     )
-    with pytest.warns(UserWarning, match=r"below range"):
+    with pytest.warns(UserWarning) as caught:
         out = correlations.overconsolidation_ratio_mayne_kemper_1988(df)
-    assert out["correlation_note"].tolist() == ["below range"]
+    assert ["1 refusal;" in str(w.message) for w in caught] == [True, False]
+    assert "1 below range;" in str(caught[1].message)
+    # A refusal below the range bounds nothing.
+    assert out["correlation_note"].tolist() == [
+        "at most: N pa/σ′v0 below 1, estimated at 1",
+        "refusal",
+    ]
 
 
 # --- AC 3: field N -------------------------------------------------------------------

@@ -283,3 +283,22 @@ def test_the_legend_stays_inside_the_histogram(tmp_path, monkeypatch):
     )
     legend = axs[0].get_legend()
     assert legend._loc in (1, 2, 3, 4)  # a corner, not "upper center" below
+
+
+def test_refusals_under_an_upper_limit_are_drawn_at_their_value():
+    # m18a: an interval is drawn, and placed on the Q-Q panel, as at least its value.
+    df = pd.DataFrame(
+        {
+            "spt_n": [*N60, 50, 50],
+            "spt_n60": [*N60, 66.7, 66.7],
+            "spt_refusal": [False] * 5 + [True] * 2,
+        }
+    )
+    with pytest.warns(UserWarning, match="fewer than 10"):
+        result = ht.stats.fit(df, value="spt_n60", spt_refusal_upper_limit=120)
+    _, axs = result.plot()
+    triangles = [line for line in axs[0].lines if line.get_marker() == ">"]
+    assert triangles[0].get_xdata().tolist() == [66.7, 66.7]
+    points = next(line for line in axs[1].lines if line.get_marker() == "o")
+    assert len(points.get_xdata()) == 5
+    assert "No AD check: 2 censored" in _footnote(axs[0])

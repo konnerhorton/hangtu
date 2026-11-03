@@ -54,10 +54,17 @@ def effective_friction_angle_hatanaka_uchida_1996(
     for this soil"), or where the symbol is blank ("soil type unknown"). A
     list of groups replaces these.
 
+    **Bounded estimates** (``correlation_qualifier`` ``>`` or ``<``, with
+    ``correlation_note`` saying why and one warning counting them): φ′ rises
+    with (N1)60, so a refusal from ``spt_refusal`` gives at least the
+    estimate at its (N1)60 ("at least: refusal"), (N1)60 above 39 at least
+    the estimate at 39 (44.5°), and (N1)60 below 4.55 at most the estimate at
+    4.55 (28.4°). The input is never extrapolated: a bound is the estimate at
+    the range's end.
+
     **No estimate** (NaN, with ``correlation_note`` saying why and one warning
-    counting them): a blank (N1)60 ("input blank"), a refusal from
-    ``spt_refusal`` ("refusal"), and (N1)60 below 4.55 or above 39 ("below
-    range", "above range"). Values are never clipped or extrapolated.
+    counting them): a blank (N1)60 ("input blank"), and a refusal with
+    (N1)60 below 4.55 ("refusal"), which bounds nothing.
 
     **Judgments taken:** none.
 
@@ -81,8 +88,9 @@ def effective_friction_angle_hatanaka_uchida_1996(
         A copy of ``df`` with ``effective_friction_angle`` (degrees),
         ``correlation_name``
         ("effective_friction_angle_hatanaka_uchida_1996"),
-        ``correlation_note`` and ``correlation_input`` (blank unless an
-        input was another correlation's estimate). No row is dropped or
+        ``correlation_qualifier``, ``correlation_note`` and
+        ``correlation_input`` (blank unless an input was another
+        correlation's estimate). No row is dropped or
         reordered. ``df.attrs["correlations"]`` holds every correlation's
         entry from ``config/correlations.yaml``; see
         ``ht.analysis.correlations.describe()``.
@@ -107,11 +115,13 @@ def effective_friction_angle_hatanaka_uchida_1996(
     name = "effective_friction_angle_hatanaka_uchida_1996"
     item = _framework.entry(name)
     values = _framework.inputs(df, item, units)
-    n1_60 = values["spt_n1_60"]
-    with np.errstate(invalid="ignore"):
-        angle = np.sqrt(15.4 * n1_60) + 20.0
     note = _framework.notes(df, item, values, uscs)
-    return _framework.estimate(df, name, angle, note, display_units, uscs=uscs)
+    values, bounded = _framework.bound(df, item, values, note)
+    with np.errstate(invalid="ignore"):
+        angle = np.sqrt(15.4 * values["spt_n1_60"]) + 20.0
+    return _framework.estimate(
+        df, name, angle, note, display_units, uscs=uscs, bounded=bounded
+    )
 
 
 def effective_friction_angle_kulhawy_mayne_1990(
@@ -157,11 +167,17 @@ def effective_friction_angle_kulhawy_mayne_1990(
     for this soil"), or where the symbol is blank ("soil type unknown"). A
     list of groups replaces these.
 
+    **Bounded estimates** (``correlation_qualifier`` ``>``, with
+    ``correlation_note`` saying why and one warning counting them): φ′ rises
+    with N60 at a given σ′v, so a refusal from ``spt_refusal`` gives at least
+    the estimate at its N60 ("at least: refusal"), and N60 above 60 at least
+    the estimate at 60. N60 is never extrapolated: a bound is the estimate at
+    the range's end.
+
     **No estimate** (NaN, with ``correlation_note`` saying why and one warning
-    counting them): a blank N60 or σ′v ("input blank"), a refusal from
-    ``spt_refusal`` ("refusal"), σ′v of 0 or less ("below range"), and N60
-    above 60 or σ′v above 300 kPa ("above range"). Values are never clipped
-    or extrapolated.
+    counting them): a blank N60 or σ′v ("input blank"), σ′v of 0 or less
+    ("below range"), and σ′v above 300 kPa ("above range"), whatever N60 is
+    and whether or not it is a refusal. σ′v is never clipped or extrapolated.
 
     **Judgments taken:** none here; σ′v carries the unit weights and water
     levels of ``vertical_stress()``.
@@ -185,8 +201,9 @@ def effective_friction_angle_kulhawy_mayne_1990(
     pandas.DataFrame
         A copy of ``df`` with ``effective_friction_angle`` (degrees),
         ``correlation_name`` ("effective_friction_angle_kulhawy_mayne_1990"),
-        ``correlation_note`` and ``correlation_input`` (blank unless an
-        input was another correlation's estimate). No row is dropped or
+        ``correlation_qualifier``, ``correlation_note`` and
+        ``correlation_input`` (blank unless an input was another
+        correlation's estimate). No row is dropped or
         reordered. ``df.attrs["correlations"]`` holds every correlation's
         entry from ``config/correlations.yaml``; see
         ``ht.analysis.correlations.describe()``.
@@ -215,10 +232,13 @@ def effective_friction_angle_kulhawy_mayne_1990(
     name = "effective_friction_angle_kulhawy_mayne_1990"
     item = _framework.entry(name)
     values = _framework.inputs(df, item, units)
+    note = _framework.notes(df, item, values, uscs)
+    values, bounded = _framework.bound(df, item, values, note)
     n60 = values["spt_n60"]
     stress = values["effective_vertical_stress"]
     with np.errstate(invalid="ignore", divide="ignore"):
         ratio = n60 / (12.2 + 20.3 * stress / PA)
         angle = np.degrees(np.arctan(ratio**0.34))
-    note = _framework.notes(df, item, values, uscs)
-    return _framework.estimate(df, name, angle, note, display_units, uscs=uscs)
+    return _framework.estimate(
+        df, name, angle, note, display_units, uscs=uscs, bounded=bounded
+    )

@@ -246,3 +246,32 @@ def test_equal_values_have_no_spread_to_fit():
     )
     with pytest.raises(HangtuError, match=r"could fit no group .* all 4 values"):
         ht.stats.fit(df[df["geology_unit"] == "B"], value="spt_n60")
+
+
+def test_a_bounded_correlation_estimate_is_censored():
+    # m18a criterion 8: a refusal's Stroud estimate is "at least", as a refusal.
+    df = pd.DataFrame(
+        {
+            "spt_n60": [*N60, 66.7],
+            "plasticity_index": [35.0] * 6,
+            "spt_refusal": [False] * 5 + [True],
+        }
+    )
+    with pytest.warns(UserWarning, match="gave a bound"):
+        estimates = correlations.undrained_shear_strength_stroud_1974(
+            df, display_units="SI"
+        )
+    with pytest.warns(UserWarning, match="fewer than 10"):
+        result = ht.stats.fit(estimates, value="undrained_shear_strength")
+    counts = result.groups[0]["counts"]
+    assert (counts["count"], counts["count_at_least"], counts["count_censored"]) == (
+        6,
+        1,
+        1,
+    )
+    uncensored = [4.5 * n for n in N60]
+    data = stats.CensoredData(uncensored=uncensored, right=[4.5 * 66.7])
+    location, scale = stats.norm.fit(data)
+    normal = _fits(result)["normal"]
+    assert normal["parameters"]["loc"] == pytest.approx(location, rel=1e-6)
+    assert normal["parameters"]["scale"] == pytest.approx(scale, rel=1e-6)

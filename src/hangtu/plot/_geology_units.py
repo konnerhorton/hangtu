@@ -533,7 +533,7 @@ def _draw_panel(
     x, x_unit_text = _units.to_display(
         numeric_column(df, value), resolved[value], quantity, system
     )
-    qualifiers = _values.qualifiers(df)
+    qualifiers = _values.qualifiers(df, value)
     non_plastic = _non_plastic(df, value)
     panel.notes.count(non_plastic, "non_plastic")
     # Blank values are tests not done, so they are skipped, not counted (P07 §14).

@@ -1,6 +1,7 @@
 """The judgments file (docs/work/m13a-judgments.md, Spec Decisions 1 and 3)."""
 
 import hashlib
+import math
 import textwrap
 
 import pytest
@@ -343,4 +344,74 @@ def test_significance_level_errors(tmp_path, text, message):
 def test_significance_level_outside_the_plausible_range_warns(tmp_path):
     text = "significance_level:\n  project: {significance_level: 0.3, reason: x}\n"
     with pytest.warns(UserWarning, match=r"significance_level: 0.3 is outside"):
+        ht.judgments(write(tmp_path, text))
+
+
+# --- spt_refusal_upper_limit (docs/work/m18a-refusals.md, spec item 1) -------------
+
+REFUSAL_LIMIT = """\
+spt_refusal_upper_limit:
+  by: geology_unit
+  project: {spt_n: 100, reason: "the hardest refusals logged, per foot"}
+  values:
+    Terrace: {spt_n: 120, reason: "50 blows for 5 in at refusal, per foot"}
+    Alluvium: {spt_n: none, reason: "refusals on cobbles in the gravel lens"}
+"""
+
+
+def test_refusal_upper_limit_reads_with_none(tmp_path):
+    judgment = (
+        ht.judgments(write(tmp_path, REFUSAL_LIMIT))
+        .read()
+        .judgments["spt_refusal_upper_limit"]
+    )
+    assert judgment.by == "geology_unit"
+    assert judgment.units == {"spt_n": ""}
+    assert judgment.values["Terrace"].values == {"spt_n": 120.0}
+    assert judgment.values["Alluvium"].values == {"spt_n": math.inf}
+    assert judgment.project.values == {"spt_n": 100.0}
+
+
+def test_refusal_upper_limit_reads_without_by(tmp_path):
+    text = "spt_refusal_upper_limit:\n  values:\n    Terrace: {spt_n: 120}\n"
+    judgment = (
+        ht.judgments(write(tmp_path, text)).read().judgments["spt_refusal_upper_limit"]
+    )
+    assert judgment.by == "geology_unit"
+
+
+def test_repr_shows_none_for_the_refusal_upper_limit(tmp_path):
+    text = repr(ht.judgments(write(tmp_path, REFUSAL_LIMIT)))
+    assert "spt_refusal_upper_limit, by geology_unit:" in text
+    assert "Terrace: spt_n 120 (50 blows for 5 in at refusal, per foot)" in text
+    assert "Alluvium: spt_n none (refusals on cobbles in the gravel lens)" in text
+
+
+@pytest.mark.parametrize(
+    ("body", "message"),
+    [
+        (
+            "  values:\n    Terrace: {spt_n: 0}\n",
+            r"Terrace, spt_n: must be a positive number, or none for no limit on "
+            r"purpose, not 0",
+        ),
+        (
+            "  values:\n    Terrace: {spt_n: lots}\n",
+            r"Terrace, spt_n: must be a positive number, or none .*not 'lots'",
+        ),
+        ("  units: {spt_n: bpf}\n", "takes no units"),
+        (
+            "  by: uscs_symbol\n  values:\n    SP: {spt_n: 120}\n",
+            r"by: spt_refusal_upper_limit is keyed by geology_unit, not "
+            r"'uscs_symbol'",
+        ),
+        (
+            "  project: {spt_n: 120}\n",
+            r"project: 'reason' is missing",
+        ),
+    ],
+)
+def test_refusal_upper_limit_errors(tmp_path, body, message):
+    text = "spt_refusal_upper_limit:\n" + body
+    with pytest.raises(ht.HangtuError, match=message):
         ht.judgments(write(tmp_path, text))

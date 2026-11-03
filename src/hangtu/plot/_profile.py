@@ -620,7 +620,7 @@ def _draw_profile(
         if secondary == "depth":
             check_secondary_depth(vertical)
         if flags is None:
-            flags = _values.qualifiers(df)
+            flags = _values.qualifiers(df, value)
         qualified_text = (texts != "") & (flags != "")
         if qualified_text.any():
             found = ", ".join(map(repr, dict.fromkeys(texts[qualified_text])))

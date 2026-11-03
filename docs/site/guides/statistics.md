@@ -28,14 +28,16 @@ The registry says which columns flag a value (`ht.columns()`), and `describe()` 
 
 | Value | Treatment | Count |
 |---|---|---|
-| A refusal (`spt_refusal`), or `>` in `qualifier` | Summarized at the value the column holds; the notes say the mean is then an underestimate | `count_at_least` |
-| `<` in `qualifier` | Summarized at its value; the mean is an overestimate | `count_at_most` |
+| A refusal (`spt_refusal`), or `>` in `qualifier` or `correlation_qualifier` | Summarized at the value the column holds; the notes say the mean is then an underestimate | `count_at_least` |
+| `<` in `qualifier` or `correlation_qualifier` | Summarized at its value; the mean is an overestimate | `count_at_most` |
 | Non-plastic (`non_plastic`, or `NP` in the cell) | Left out; never a blank or a zero | `count_non_plastic` |
 | Assumed (`particle_density_assumed`; a Gs from a judgment) | Left out with a warning, unless `include_assumed=True` | `count_assumed` |
 | A correlation's band with no value (`_lower`, `_upper`) | Left out: a band is an interval, not two values | `count_range` |
 | Other text, or a blank cell | Left out | `count_text`, `count_blank` |
 
 `count` and the counts of rows left out add up to the group's rows. A refusal is summarized at whatever the column holds, so pick the column on purpose: `spt_n_capped` gives the refusal at the cap, `spt_n` the blows reported.
+
+`correlation_qualifier` is a correlation's bound on its own estimate (see [Bounded estimates](correlations.md#bounded-estimates)). It is read beside `qualifier`, so a frame pooling lab and SPT values counts each row's own flag.
 
 ## Sources aren't pooled unawares
 
@@ -68,6 +70,8 @@ The unit comes from `units=`, then from the dataset's declared units, and counts
 **The Anderson-Darling p-value checks each fit.** It is computed by parametric bootstrap: 999 samples drawn from the fit, each refitted, so the check accounts for the parameters having been estimated from the same data. A small p-value (below 0.05, say) is evidence against the distribution. A large one isn't evidence for it, least of all with few values. SPT N60 is a whole number of blows times a factor, so many values tie, and a check made for continuous values reads the ties as misfit: expect small p-values for every candidate, and compare N60 fits by AICc and the Q-Q plot. A group with fewer distinct values than half its count gets a note saying so.
 
 **Refusals are fitted as censored.** A refusal (`spt_refusal`) or a `>` value is known only to be at least the value the column holds, and a `<` value at most. `fit()` uses each as the probability beyond its limit, not as a measurement at it, so the refusals in the Terrace pull its fits up without pretending N60 is 66.7. A group with censored values has no Anderson-Darling check: judge its fit on the [Q-Q plot](../plots/distribution-fit.md).
+
+**The refusals' upper limit is a judgment.** Fitted as at least their value, the refusals leave the tail above them to the distribution: the Terrace's fits put about a quarter of their probability above N60 66.7, with nothing in the data to say how far. If you know what the refusals hit, give `spt_refusal_upper_limit`: the most a refusal could be, in field N (blows per foot), as the log shows it, by geology unit. Each refusal is then fitted as lying between its value and the limit, which hangtu scales to N60 or (N1)60 by the row's own factors (value / `spt_n`), so one limit serves every N column. It is not the cap: `spt_cap` is where a refusal is recorded, the bottom of its interval, and the limit its top. In the example the limit, N60 160, lies above most of the fitted tail, so the fits change little; a limit closer to the refusals changes them more. Without it, a note says the tail is the distribution's; `none` for a unit keeps its refusals right-censored on purpose, with the reason recorded. The limit comes from the call, then `judgments=`, then the project's [judgments file](judgments.md), and is recorded on the result. hangtu never extrapolates blows from a partial penetration to set it: that is your judgment to make.
 
 **Bounds.** Most properties can't be negative, so for a column the registry marks as a ratio scale the lower bound is 0, and each fit reports `probability_below_lower_bound`: 0 for the lognormal, gamma and Weibull, and the share a normal fit puts below 0 (0.27 % here). For a percentage, pass `bounds=(0, 100)`: a beta distribution between the bounds joins the candidates. A value outside the bounds is an error. Lognormal, gamma and Weibull can't fit a value of 0 or less; a group with one fits the normal alone, and the notes say why.
 

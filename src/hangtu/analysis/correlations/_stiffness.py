@@ -31,6 +31,7 @@ def _by_soil_row(
         [item["rows"][row]["coefficient"] for row in rows], dtype=float
     )
     note = _framework.notes(df, item, values, uscs, rows)
+    values, bounded = _framework.bound(df, item, values, note)
     return _framework.estimate(
         df,
         name,
@@ -39,6 +40,7 @@ def _by_soil_row(
         display_units,
         uscs=uscs,
         rows=rows,
+        bounded=bounded,
     )
 
 
@@ -102,9 +104,15 @@ def drained_youngs_modulus_aashto_2004(
     GP-GM, GW-GM for gravels. A blank symbol gives "soil type unknown". A
     list of groups replaces these for every row.
 
+    **Bounded estimates** (``correlation_qualifier`` ``>``, with
+    ``correlation_note`` saying why and one warning counting them): E rises
+    with (N1)60, so a refusal from ``spt_refusal`` gives at least the estimate
+    at its (N1)60 ("at least: refusal"). (N1)60 has no upper end to bound at.
+
     **No estimate** (NaN, with ``correlation_note`` saying why and one
-    warning counting them): a blank (N1)60 ("input blank"), a refusal from
-    ``spt_refusal`` ("refusal"), and (N1)60 of 0 or less ("below range").
+    warning counting them): a blank (N1)60 ("input blank"), and (N1)60 of 0 or
+    less ("below range"; a refusal there, "refusal"), which bounds nothing:
+    0 is where the equation stops, not the data.
 
     **Judgments taken:** the soil row, by argument; it has no default.
 
@@ -133,7 +141,8 @@ def drained_youngs_modulus_aashto_2004(
     pandas.DataFrame
         A copy of ``df`` with ``drained_youngs_modulus``,
         ``correlation_name`` ("drained_youngs_modulus_aashto_2004"),
-        ``correlation_soil`` (each row's soil row), ``correlation_note`` and
+        ``correlation_soil`` (each row's soil row), ``correlation_qualifier``,
+        ``correlation_note`` and
         ``correlation_input`` (blank unless an input was another
         correlation's estimate). No row is dropped or reordered.
         ``df.attrs["correlations"]`` holds every correlation's entry; see
@@ -223,9 +232,15 @@ def drained_youngs_modulus_kulhawy_mayne_1990(
     blank symbol gives "soil type unknown". A list of groups replaces these
     for every row.
 
+    **Bounded estimates** (``correlation_qualifier`` ``>``, with
+    ``correlation_note`` saying why and one warning counting them): E rises
+    with N60, so a refusal from ``spt_refusal`` gives at least the estimate
+    at its N60 ("at least: refusal"). N60 has no upper end to bound at.
+
     **No estimate** (NaN, with ``correlation_note`` saying why and one
-    warning counting them): a blank N60 ("input blank"), a refusal from
-    ``spt_refusal`` ("refusal"), and N60 of 0 or less ("below range").
+    warning counting them): a blank N60 ("input blank"), and N60 of 0 or
+    less ("below range"; a refusal there, "refusal"), which bounds nothing:
+    0 is where the equation stops, not the data.
 
     **Judgments taken:** the soil row, by argument; it has no default.
 
@@ -255,7 +270,8 @@ def drained_youngs_modulus_kulhawy_mayne_1990(
     pandas.DataFrame
         A copy of ``df`` with ``drained_youngs_modulus``,
         ``correlation_name`` ("drained_youngs_modulus_kulhawy_mayne_1990"),
-        ``correlation_soil`` (each row's soil row), ``correlation_note`` and
+        ``correlation_soil`` (each row's soil row), ``correlation_qualifier``,
+        ``correlation_note`` and
         ``correlation_input`` (blank unless an input was another
         correlation's estimate). No row is dropped or reordered.
         ``df.attrs["correlations"]`` holds every correlation's entry; see
@@ -299,10 +315,13 @@ def _power_law(
     """Return a N60^b, the form of every Vs correlation in Wair et al. (2012)."""
     item = _framework.entry(name)
     values = _framework.inputs(df, item, units)
+    note = _framework.notes(df, item, values, uscs)
+    values, bounded = _framework.bound(df, item, values, note)
     with np.errstate(invalid="ignore"):
         velocity = a * values["spt_n60"] ** b
-    note = _framework.notes(df, item, values, uscs)
-    return _framework.estimate(df, name, velocity, note, display_units, uscs=uscs)
+    return _framework.estimate(
+        df, name, velocity, note, display_units, uscs=uscs, bounded=bounded
+    )
 
 
 def shear_wave_velocity_imai_tonouchi_1982(
@@ -349,10 +368,17 @@ def shear_wave_velocity_imai_tonouchi_1982(
     ``uscs_symbol`` and gives no estimate outside them ("not for this
     soil"), or where the symbol is blank ("soil type unknown").
 
+    **Bounded estimates** (``correlation_qualifier`` ``>``, with
+    ``correlation_note`` saying why and one warning counting them): Vs rises
+    with N60, so a refusal from ``spt_refusal`` gives at least the estimate
+    at its N60 ("at least: refusal"), and N60 above 447 at least the
+    estimate at 447. N60 is never extrapolated: a bound is the estimate at
+    the range's end.
+
     **No estimate** (NaN, with ``correlation_note`` saying why and one
-    warning counting them): a blank N60 ("input blank"), a refusal from
-    ``spt_refusal`` ("refusal"), and N60 of 0 or less or above 447 ("below
-    range", "above range").
+    warning counting them): a blank N60 ("input blank"), and N60 of 0 or
+    less ("below range"; a refusal there, "refusal"), which bounds nothing:
+    0 is where the equation stops, not the data.
 
     **Judgments taken:** none.
 
@@ -374,7 +400,8 @@ def shear_wave_velocity_imai_tonouchi_1982(
     -------
     pandas.DataFrame
         A copy of ``df`` with ``shear_wave_velocity``, ``correlation_name``
-        ("shear_wave_velocity_imai_tonouchi_1982"), ``correlation_note`` and
+        ("shear_wave_velocity_imai_tonouchi_1982"), ``correlation_qualifier``,
+        ``correlation_note`` and
         ``correlation_input`` (blank unless an input was another
         correlation's estimate). No row is dropped or reordered.
         ``df.attrs["correlations"]`` holds every correlation's entry; see
@@ -454,10 +481,16 @@ def shear_wave_velocity_ohta_goto_1978(
     ``uscs_symbol`` and gives no estimate outside them ("not for this
     soil"), or where the symbol is blank ("soil type unknown").
 
+    **Bounded estimates** (``correlation_qualifier`` ``>`` or ``<``, with
+    ``correlation_note`` saying why and one warning counting them): Vs rises
+    with N60, so a refusal from ``spt_refusal`` gives at least the estimate
+    at its N60 ("at least: refusal"), N60 above 223 at least the estimate at
+    223, and N60 below 2.23 at most the estimate at 2.23. N60 is never
+    extrapolated: a bound is the estimate at the range's end.
+
     **No estimate** (NaN, with ``correlation_note`` saying why and one
-    warning counting them): a blank N60 ("input blank"), a refusal from
-    ``spt_refusal`` ("refusal"), and N60 below 2.23 or above 223 ("below
-    range", "above range").
+    warning counting them): a blank N60 ("input blank"), and a refusal with
+    N60 below 2.23 ("refusal"), which bounds nothing.
 
     **Judgments taken:** none.
 
@@ -479,7 +512,8 @@ def shear_wave_velocity_ohta_goto_1978(
     -------
     pandas.DataFrame
         A copy of ``df`` with ``shear_wave_velocity``, ``correlation_name``
-        ("shear_wave_velocity_ohta_goto_1978"), ``correlation_note`` and
+        ("shear_wave_velocity_ohta_goto_1978"), ``correlation_qualifier``,
+        ``correlation_note`` and
         ``correlation_input`` (blank unless an input was another
         correlation's estimate). No row is dropped or reordered.
         ``df.attrs["correlations"]`` holds every correlation's entry; see

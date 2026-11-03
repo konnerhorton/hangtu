@@ -218,3 +218,57 @@ def test_a_second_qualifier_flags_only_its_own_value():
     assert remolded.loc[0, "count_at_least"] == 0
     assert remolded.loc[0, "count_at_most"] == 1
     assert remolded.loc[0, "count"] == 4
+
+
+def test_a_qualifier_that_doesnt_replace_is_read_alongside(monkeypatch):
+    # m18a Decision 5: a qualifier naming its values without "replaces" adds to
+    # the generic one, so a pooled frame counts each row's own.
+    from hangtu.stats import _rows
+
+    roles = {
+        **_rows.statistics_roles(),
+        "test_qualifier": {"role": "qualifier", "values": ["undrained_shear_strength"]},
+    }
+    monkeypatch.setattr(_rows, "statistics_roles", lambda: roles)
+    df = pd.DataFrame(
+        {
+            "undrained_shear_strength": [42.0, 120.0, 55.0, 60.0],
+            "qualifier": [None, ">", None, None],
+            "test_qualifier": [None, None, ">", "<"],
+        }
+    )
+    df = ht.set_units(df, {"undrained_shear_strength": "kPa"})
+    row = ht.stats.describe(df, value="undrained_shear_strength").to_frame().loc[0]
+    assert row["count_at_least"] == 2
+    assert row["count_at_most"] == 1
+
+
+@pytest.mark.filterwarnings("ignore:.*gave a bound")
+def test_lab_and_bounded_correlation_qualifiers_both_count():
+    # m18a criterion 8: a lab s_u ">" pooled with a refusal's Stroud estimate.
+    lab = ht.set_units(
+        pd.DataFrame(
+            {
+                "undrained_shear_strength": [40.0, 150.0, 60.0],
+                "qualifier": [None, ">", None],
+            }
+        ),
+        {"undrained_shear_strength": "kPa"},
+    )
+    spt = correlations.undrained_shear_strength_stroud_1974(
+        pd.DataFrame(
+            {
+                "spt_n60": [10.0, 66.7],
+                "plasticity_index": [35.0, 35.0],
+                "spt_refusal": [False, True],
+            }
+        ),
+        display_units="SI",
+    )
+    pooled = pd.concat([lab, spt], ignore_index=True)
+    pooled.attrs["units"] = {"undrained_shear_strength": "kPa"}
+    row = ht.stats.describe(
+        pooled, value="undrained_shear_strength", pool=["correlation_name"]
+    ).to_frame()
+    assert row.loc[0, "count_at_least"] == 2
+    assert row.loc[0, "count"] == 5

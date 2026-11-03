@@ -298,20 +298,25 @@ def read_flags(frame: pd.DataFrame, value: str, function: str = "describe()") ->
     masks = {role: np.zeros(len(frame), bool) for role in _ROLE_MASKS}
     at_most = np.zeros(len(frame), bool)
     roles = statistics_roles()
-    # A qualifier column that names its values is the only qualifier read for
-    # them, so a row with two values has one for each (a vane's peak and
-    # remolded s_u; SPEC §5, docs/work/m17a-strength-data.md Decision 9).
-    own_qualifier = any(
-        field["role"] == "qualifier" and value in field.get("values", ())
+    # A qualifier column that names its values and says it replaces the
+    # generic one is the only qualifier read for them, so a row with two values
+    # has one for each (a vane's peak and remolded s_u; SPEC §5,
+    # docs/work/m17a-strength-data.md Decision 9). Any other is read alongside
+    # it (docs/work/m18a-refusals.md, Decision 5).
+    replaced = {
+        field["replaces"]
         for field in roles.values()
-    )
+        if field["role"] == "qualifier"
+        and "replaces" in field
+        and value in field.get("values", ())
+    }
     for column, field in roles.items():
         role = field["role"]
         if role == "source" or column not in frame.columns:
             continue
         if value not in field.get("values", [value]):
             continue
-        if role == "qualifier" and own_qualifier and "values" not in field:
+        if role == "qualifier" and column in replaced:
             continue
         if role == "qualifier":
             text = frame[column].astype("string").str.strip()

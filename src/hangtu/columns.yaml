@@ -18,6 +18,8 @@
 #                          source      rows with different values here come from different sources
 #                  values  the value columns the flag applies to (all, if omitted)
 #                  when    for a text flag, the values that set it (else True sets it)
+#                  replaces  for a qualifier with values: the generic qualifier column it replaces for
+#                          them (a second value on the row); without it, both are read (SPEC §5)
 # Status of the Batch 1 entries beyond P01: provisional until each plot spec is written.
 #
 # fields: names used only in overlay tables (P01 §8), such as a range's low and
@@ -365,7 +367,7 @@ columns:
     type: text
     ags: ["derived: value flags LT / GT"]
     used_by: []
-    statistics: {role: qualifier, values: [remolded_undrained_shear_strength]}
+    statistics: {role: qualifier, values: [remolded_undrained_shear_strength], replaces: qualifier}
   water_content:
     description: Water (moisture) content
     type: number
@@ -613,8 +615,25 @@ columns:
     type: text
     ags: ["derived: docs/work/m13b2-spt-strength-history.md"]
     used_by: [P01]
+  correlation_qualifier:
+    description: "Whether a correlation's estimate is a bound: > at least (a refusal, or N above the range), < at most (N below the range), blank otherwise"
+    type: text
+    ags: ["derived: docs/work/m18a-refusals.md"]
+    used_by: [P01, P07]
+    # Read alongside the generic qualifier, so a frame pooling lab and SPT
+    # values counts each row's own (m18a spec decision 5).
+    statistics:
+      role: qualifier
+      values:
+        - effective_friction_angle
+        - undrained_shear_strength
+        - preconsolidation_stress
+        - overconsolidation_ratio
+        - at_rest_earth_pressure_coefficient
+        - drained_youngs_modulus
+        - shear_wave_velocity
   correlation_note:
-    description: "Why a correlation gave no estimate: not for this soil, soil type unknown, input blank, refusal, below range or above range"
+    description: "Why a correlation gave no estimate (not for this soil, soil type unknown, input blank, refusal, below range or above range), or a bound (at least: refusal; at least or at most: N beyond the range)"
     type: text
     ags: ["derived: docs/work/m13b1-spt-framework.md"]
     used_by: [P01]

@@ -49,7 +49,7 @@ An `spt_n60` already filled in is kept. N60 is computed for refusals too; the pl
 
 **Capped N** (`spt_n_capped`) = min(N, cap), and = cap for every refusal, including a refusal with a blank N. `cap` is `cap=`, else `ht.settings.spt_cap` (100). Only N is capped. N60 isn't: a non-refusal N60 above 100 is a real value.
 
-**Refusals in plots and statistics** are included by default at the cap, with a note (SPEC §4). For fitting and characteristic values they are censored (🔬 TODO #8, Phase 3).
+**Refusals in plots and statistics** are included by default at the cap, with a note (SPEC §4). `fit()` treats them as censored, between their value and an optional judged upper limit (M18 (a), `docs/work/m18a-refusals.md`); characteristic values are M18 (b).
 
 ### 1.4 `ht.analysis.spt_class()`
 ```python
@@ -388,7 +388,7 @@ The principles are decided in SPEC §4. The framework, C_N and (N1)60 are specif
 - **Module:** `ht.analysis.correlations`, one function per published correlation, named after the source (`sowers_1979`, `hatanaka_uchida_1996`). The docstring follows the same headings for every correlation: equation, source, applies to, doesn't apply to, input N, range, derived from, notes.
 - **Metadata:** the same facts as a YAML entry in the config (proposed `config/correlations.yaml`), so the docstring, the result's `df.attrs` and a plot footnote all come from one place. Constants are kept in the source's units and converted with pint.
 - **Input N is explicit.** Each correlation declares which N it was derived with. If the column the user passes doesn't match (field N into an N60 correlation), the function raises an error that names the expected column, rather than guessing a correction.
-- **Out of range:** NaN plus a count, by reason (outside the N range, wrong soil type, refusal, missing input). Refusals give no estimate.
+- **Out of range:** NaN plus a count, by reason (outside another input's range, wrong soil type, a refusal below the N range, missing input). A refusal, or N beyond an inclusive end of the N range, gives a bound instead: the estimate at its N or at the range's end, marked `>` or `<` in `correlation_qualifier` (M18 (a), `docs/work/m18a-refusals.md`).
 - **Output:** long format, one row per test and correlation, with the estimate in the target property's registry column and a column naming the correlation, so `profile(est, "friction_angle", color_by=<that column>)` compares several correlations against depth. Correlations that give a range (Sowers) return lower and upper values. Column names are to be checked against the registry (`method` is already the test method).
 - **Comparison:** P01 and P07 draw the results. Overlaying measured values (lab s_u, φ′ from P11) on the estimates is the main use, so it should be one call.
 

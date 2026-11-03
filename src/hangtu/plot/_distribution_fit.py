@@ -245,7 +245,12 @@ def draw(
     qq = qq or (fitted[0] if fitted else None)
     exact = np.asarray(record["values"]["exact"], float)
     left = np.asarray(record["values"]["left"], float)
-    right = np.asarray(record["values"]["right"], float)
+    # A refusal under an upper limit is drawn at its value, as P08's Q-Q
+    # panel places it (docs/work/m18a-refusals.md, spec item 1).
+    interval = np.asarray(record["values"].get("interval", []), float).reshape(-1, 2)
+    right = np.concatenate(
+        [np.asarray(record["values"]["right"], float), interval[:, 0]]
+    )
     notes = Notes()
     if log:
         notes.count(exact <= 0, "log_nonpositive")

@@ -352,6 +352,7 @@ _FIT_COLUMNS = (
 _FIT_COUNTS = (
     "count_at_least",
     "count_at_most",
+    "count_interval_censored",
     "count_non_plastic",
     "count_assumed",
     "count_range",
@@ -416,6 +417,7 @@ _HEADINGS = {
     "count_text": "text",
     "count_not_positive": "≤ 0",
     "count_censored": "censored",
+    "count_interval_censored": "between a refusal and its limit",
 }
 
 

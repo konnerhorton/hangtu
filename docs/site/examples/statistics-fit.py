@@ -21,3 +21,14 @@ print(result.to_frame()[columns].round(2).to_string(index=False))
 lognormal = result.distribution("lognormal")
 print()
 print(f"10th percentile of the lognormal fit: {lognormal.ppf(0.10):.1f}")
+
+# The refusals' upper limit, a judgment in field N: these refusals are 50
+# blows for 5 in of the test drive, 120 blows per foot, N60 160.
+bounded = ht.stats.fit(
+    terrace, value="spt_n60", spt_refusal_upper_limit={"Terrace": 120}
+)
+with_limit = bounded.distribution("lognormal").ppf(0.99)
+print(
+    f"99th percentile of the lognormal fit: {lognormal.ppf(0.99):.0f} without "
+    f"the limit, {with_limit:.0f} with it"
+)
