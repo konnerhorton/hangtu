@@ -202,7 +202,11 @@ assume complete data. For `distribution="lognormal"` everything below is applied
     - `.to_dict()` and the printed summary, as the other results.
     - Column names are checked against the registry in the build.
 11. **Warnings** (each names the group):
-    - a characteristic value at or below 0 from a normal distribution: "the data may be lognormal" (JRC 5.1.3);
+    - a value at or below 0 from a normal distribution, in any view: "the data may be lognormal" (JRC 5.1.3).
+      The JRC gives it for the characteristic value; a percentile or x̄ − k s below 0 is the same sign (build,
+      2026-11-03);
+    - with `distribution="lognormal"`, values at or below 0 left out: a warning with the count
+      (`count_not_positive`), as `describe(log=True)` gives, so no value is dropped silently (build, 2026-11-03);
     - `value="hydraulic_conductivity"` with `distribution="normal"`: Table A.1 note 2, Formula 4.5 "should not be
       used" (p. 57);
     - a group with fewer than 2 values (constant) or 3 (trend) gets no value, with the reason in the frame.
