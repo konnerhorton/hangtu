@@ -90,31 +90,69 @@ def test_hatanaka_uchida_range_ends_are_inside():
     assert out["effective_friction_angle"].notna().all()
 
 
-def test_no_estimate_gives_nan_with_the_reason_and_one_warning():
+def test_bounds_and_blanks_each_get_a_note_and_one_warning():
+    # m18a criteria 6-7: beyond the inclusive range ends and at a refusal, a bound;
+    # a blank input, refusal or not, no estimate.
     df = frame(
         spt_n1_60=[4.0, 40.0, np.nan, 20.0, 20.0, np.nan],
         spt_refusal=[False, False, False, True, False, True],
     )
     with pytest.warns(UserWarning) as caught:
         out = correlations.effective_friction_angle_hatanaka_uchida_1996(df)
-    # A blank input comes before a refusal.
     assert out["correlation_note"].tolist() == [
-        "below range",
-        "above range",
+        "at most: (N1)60 below 4.55, estimated at 4.55",
+        "at least: (N1)60 above 39, estimated at 39",
         "input blank",
-        "refusal",
+        "at least: refusal",
         None,
         "input blank",
     ]
+    assert out["correlation_qualifier"].tolist() == ["<", ">", None, ">", None, None]
     assert out["effective_friction_angle"].isna().tolist() == [
-        True, True, True, True, False, True,
+        False, False, True, False, False, True,
     ]  # fmt: skip
     assert [str(w.message) for w in caught] == [
-        "effective_friction_angle_hatanaka_uchida_1996 gave no estimate for 5 of 6 "
-        "rows (2 input blank, 1 refusal, 1 below range, 1 above range; see "
-        "'correlation_note'). Its range is 4.55 ≤ (N1)60 ≤ 39; outside it the "
-        "estimate is blank, never extrapolated."
+        "effective_friction_angle_hatanaka_uchida_1996 gave no estimate for 2 of 6 "
+        "rows (2 input blank; see 'correlation_note').",
+        "effective_friction_angle_hatanaka_uchida_1996 gave a bound, not an "
+        "estimate, for 3 of 6 rows (1 refusal, 1 above range, 1 below range; see "
+        "'correlation_qualifier' and 'correlation_note'). The estimate rises with "
+        "N, so at a refusal it is at least the estimate at the refusal's N, and "
+        "beyond the range it is the estimate at the range's end: at least above "
+        "it, at most below it.",
     ]
+
+
+@pytest.mark.filterwarnings("ignore:.*gave (a bound|no estimate)")
+def test_hatanaka_uchida_bounds_golden_values():
+    # m18a spec, golden values: φ′ = √(15.4 (N1)60) + 20 at the bounded (N1)60.
+    df = frame(
+        spt_n1_60=[45.0, 3.0, 30.0, 3.0, 45.0],
+        spt_refusal=[False, False, True, True, True],
+    )
+    out = correlations.effective_friction_angle_hatanaka_uchida_1996(df)
+    angle = out["effective_friction_angle"]
+    assert angle[0] == pytest.approx(44.507142, rel=1e-7)
+    assert angle[1] == pytest.approx(28.370783, rel=1e-7)
+    assert angle[2] == pytest.approx(41.494185, rel=1e-7)
+    assert np.isnan(angle[3])
+    assert angle[4] == pytest.approx(44.507142, rel=1e-7)
+    assert out["correlation_qualifier"].tolist() == [">", "<", ">", None, ">"]
+    assert out["correlation_note"].tolist() == [
+        "at least: (N1)60 above 39, estimated at 39",
+        "at most: (N1)60 below 4.55, estimated at 4.55",
+        "at least: refusal",
+        "refusal",
+        "at least: refusal, (N1)60 above 39, estimated at 39",
+    ]
+
+
+def test_a_row_on_a_range_end_is_not_a_bound():
+    out = correlations.effective_friction_angle_hatanaka_uchida_1996(
+        frame(spt_n1_60=[4.55, 39.0])
+    )
+    assert out["correlation_qualifier"].isna().all()
+    assert out["correlation_note"].isna().all()
 
 
 def test_no_row_is_dropped_or_reordered_and_the_input_is_unchanged():
@@ -161,26 +199,51 @@ def test_kulhawy_mayne_in_psf_gives_the_same_angle():
 
 def test_kulhawy_mayne_out_of_range():
     df = stresses(
-        [60, 61, 20, 20, 20, np.nan, 20],
-        [300.0, 100.0, 301.0, 0.0, np.nan, 100.0, 100.0],
-        spt_refusal=[False] * 6 + [True],
+        [60, 61, 20, 20, 20, np.nan, 20, 70],
+        [300.0, 100.0, 301.0, 0.0, np.nan, 100.0, 100.0, 400.0],
+        spt_refusal=[False] * 6 + [True, True],
     )
     with pytest.warns(UserWarning) as caught:
         out = correlations.effective_friction_angle_kulhawy_mayne_1990(df)
+    # σ′v's range is never a bound, whatever N60 is (m18a criterion 7).
     assert out["correlation_note"].tolist() == [
         None,
-        "above range",
+        "at least: N60 above 60, estimated at 60",
         "above range",
         "below range",
         "input blank",
         "input blank",
-        "refusal",
+        "at least: refusal",
+        "above range",
     ]
-    assert out["effective_friction_angle"].notna().tolist() == [True] + [False] * 6
+    assert out["correlation_qualifier"].tolist() == [None, ">"] + [None] * 4 + [
+        ">",
+        None,
+    ]
+    assert out["effective_friction_angle"].notna().tolist() == [
+        True, True, False, False, False, False, True, False,
+    ]  # fmt: skip
     assert str(caught[0].message).endswith(
         "Its range is N60 ≤ 60; 0 < σ′v ≤ 300 kPa; outside it the estimate is "
         "blank, never extrapolated."
     )
+
+
+@pytest.mark.filterwarnings("ignore:.*gave (a bound|no estimate)")
+def test_kulhawy_mayne_bounds_golden_values():
+    # m18a spec: N60 70 at σ′v 100 kPa is at least arctan[(60 / 32.5)^0.34];
+    # at σ′v 400 kPa, beyond σ′v's range, no estimate.
+    out = correlations.effective_friction_angle_kulhawy_mayne_1990(
+        stresses([70.0, 70.0], [100.0, 400.0])
+    )
+    angle = out["effective_friction_angle"]
+    assert angle[0] == pytest.approx(50.929025, rel=1e-7)
+    assert np.isnan(angle[1])
+    assert out["correlation_qualifier"].tolist() == [">", None]
+    assert out["correlation_note"].tolist() == [
+        "at least: N60 above 60, estimated at 60",
+        "above range",
+    ]
 
 
 def test_kulhawy_mayne_needs_the_stress_units():
@@ -218,7 +281,7 @@ def test_both_concatenate_and_draw_on_a_profile():
     # (N1)60 = 17.0, 25.8, 31.6 and 63.9: the last above H&U's 39; N60 70 above
     # K&M's 60. The test at 6 m is a refusal.
     df = ht.analysis.spt_n1_60(df, method="liao_whitman_1986")
-    with pytest.warns(UserWarning, match="gave no estimate") as caught:
+    with pytest.warns(UserWarning, match="gave a bound") as caught:
         est = pd.concat(
             [
                 correlations.effective_friction_angle_hatanaka_uchida_1996(df),
@@ -227,6 +290,7 @@ def test_both_concatenate_and_draw_on_a_profile():
             ignore_index=True,
         )
     assert ["1 refusal, 1 above range" in str(w.message) for w in caught] == [True] * 2
+    assert est["correlation_qualifier"].tolist() == [None, None, ">", ">"] * 2
     assert est.attrs["units"]["depth"] == "m"
     _, ax = ht.plot.profile(
         est, value="effective_friction_angle", vs="depth", color_by="correlation_name"
@@ -240,11 +304,11 @@ def test_both_concatenate_and_draw_on_a_profile():
     ]
     colors = [to_rgba(h.get_color()) for h in ax.get_legend().legend_handles]
     assert colors == [to_rgba(h.get_facecolor()) for h in ht.plot.legend_handles(names)]
-    # The refusal and the out-of-range row of each, counted by correlation_note.
-    assert ax.ags_notes == {"correlation_refusal": 2, "correlation_above_range": 2}
+    # The refusal and the out-of-range row of each are bounds, drawn (m18a).
+    assert "correlation_refusal" not in ax.ags_notes
     footnote = [text.get_text() for text in ax.texts if "estimate" in text.get_text()]
-    assert footnote == ["2 refusals, no estimate\n2 above range, no estimate"]
-    assert len(ax.collections[0].get_offsets()) == 2
+    assert footnote == []
+    assert len(ax.collections[0].get_offsets()) == 4
 
 
 def test_the_footnote_counts_other_blanks_as_blank():

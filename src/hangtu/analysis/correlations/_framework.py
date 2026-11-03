@@ -9,12 +9,16 @@ band also gives ``<target>_lower`` and ``<target>_upper``
 source's statistics and advice, and a target with a
 ``<target>_correlation_standard_deviation`` in the registry gets the source's
 standard deviation (docs/work/m15b-correlation-statistics.md, Decisions 2-3).
+An SPT correlation's N input (its entry's ``bound_by``) is never a reason by
+itself beyond an inclusive end of its range, or at a refusal: ``bound()`` sets
+it to the range's end and marks the estimate "at least" or "at most" in
+``correlation_qualifier`` (docs/work/m18a-refusals.md, intent decision 1).
 """
 
 import copy
 from collections.abc import Mapping
 from functools import cache
-from typing import Any
+from typing import Any, NamedTuple
 
 import numpy as np
 import pandas as pd
@@ -37,6 +41,7 @@ STATISTICS_COLUMNS = (
 )
 OUTPUT_COLUMNS = (
     "correlation_name",
+    "correlation_qualifier",
     "correlation_note",
     "correlation_input",
     "correlation_soil",
@@ -76,6 +81,19 @@ _BOUNDS = {
 #: A value this close to an inclusive bound (relative) is on it, so a value on a
 #: bound stays inside after a unit round trip (60 in kPa through psf).
 BOUND_TOLERANCE = 1e-9
+#: correlation_qualifier's values: the estimate is at least, or at most, its value.
+AT_LEAST = ">"
+AT_MOST = "<"
+#: The kinds of bounded row the warning counts, in its order.
+BOUND_KINDS = (REFUSAL, ABOVE_RANGE, BELOW_RANGE)
+
+
+class Bounded(NamedTuple):
+    """Each row's bound from ``bound()``: qualifier, note text and kind, or None."""
+
+    qualifier: np.ndarray
+    note: np.ndarray
+    kind: np.ndarray
 
 
 @cache
@@ -278,24 +296,107 @@ def notes(
             found[NOT_FOR_SOIL], found[SOIL_UNKNOWN] = soil(df, groups)
     for data in values.values():
         found[INPUT_BLANK] |= np.isnan(data)
-    if "spt_refusal" in df.columns:
-        flags = flag_column(
-            df, "spt_refusal", "Leave the cell blank when you don't know."
-        )
-        found[REFUSAL] = np.array([flag is True for flag in flags], dtype=bool)
+    bound_by = item.get("bound_by")
+    found[REFUSAL] = refusals(df)
+    if bound_by is not None:
+        # A refusal is bounded unless its N is below the range (intent decision 1).
+        found[REFUSAL] &= _beyond(item, values, bound_by, ("at_least", "greater_than"))
     for column, bounds in item["range"].items():
-        data = values[column]
         for key, bound in bounds.items():
-            _, beyond_bound, reason = _BOUNDS[key]
-            with np.errstate(invalid="ignore"):
-                beyond = beyond_bound(data, bound)
-            if key in ("at_least", "at_most"):
-                beyond &= ~np.isclose(data, bound, rtol=BOUND_TOLERANCE, atol=0)
-            found[reason] |= beyond
+            if column == bound_by and _bounds_at(key, bound):
+                continue
+            found[_BOUNDS[key][2]] |= _beyond(item, values, column, (key,))
     result = np.full(len(df), None, dtype=object)
     for reason in reversed(REASONS):
         result[found[reason]] = reason
     return result
+
+
+def refusals(df: pd.DataFrame) -> np.ndarray:
+    """Return the rows ``spt_refusal`` marks True (none without the column)."""
+    if "spt_refusal" not in df.columns:
+        return np.zeros(len(df), dtype=bool)
+    flags = flag_column(df, "spt_refusal", "Leave the cell blank when you don't know.")
+    return np.array([flag is True for flag in flags], dtype=bool)
+
+
+def _bounds_at(key: str, bound: float) -> bool:
+    """Whether a range end bounds the N input: inclusive, and a lower one above 0.
+
+    A strict limit, or a lower end of 0, says where the equation means
+    nothing, not where the source's data ended (m18a spec decision 4).
+    """
+    return key == "at_most" or (key == "at_least" and bound > 0)
+
+
+def _beyond(
+    item: Mapping[str, Any],
+    values: Mapping[str, np.ndarray],
+    column: str,
+    keys: tuple[str, ...],
+) -> np.ndarray:
+    """Return the rows beyond any of ``keys`` in ``column``'s range (off a bound)."""
+    data = values[column]
+    beyond = np.zeros(len(data), dtype=bool)
+    for key, bound in item["range"].get(column, {}).items():
+        if key not in keys:
+            continue
+        with np.errstate(invalid="ignore"):
+            outside = _BOUNDS[key][1](data, bound)
+        if key in ("at_least", "at_most"):
+            outside &= ~np.isclose(data, bound, rtol=BOUND_TOLERANCE, atol=0)
+        beyond |= outside
+    return beyond
+
+
+def bound(
+    df: pd.DataFrame,
+    item: Mapping[str, Any],
+    values: Mapping[str, np.ndarray],
+    note: np.ndarray,
+) -> tuple[dict[str, np.ndarray], Bounded]:
+    """Bound the N input (the entry's ``bound_by``) on rows with no reason.
+
+    Returns a copy of ``values`` with N set to the range's upper end above
+    it, or to its lower end below it (inclusive ends only, a lower end above
+    0), and each row's ``Bounded``: ``">"`` above the range or at a refusal,
+    ``"<"`` below it, None otherwise. Every SPT correlation rises with N, so
+    the estimate at the bounded N is a bound of the estimate at the row's
+    (docs/work/m18a-refusals.md, spec item 2). ``note`` is ``notes()``'s: a
+    row with a reason is never bounded.
+    """
+    column = item["bound_by"]
+    data = np.array(values[column], dtype=float)
+    free = np.array([reason is None for reason in note], dtype=bool)
+    label = (item.get("labels") or {}).get(column, column)
+    limits = item["range"].get(column, {})
+    refusal = free & refusals(df)
+    above = free & _beyond(item, values, column, ("at_most",))
+    below = np.zeros(len(df), dtype=bool)
+    lower = limits.get("at_least")
+    if lower is not None and _bounds_at("at_least", lower):
+        below = free & ~refusal & _beyond(item, values, column, ("at_least",))
+    qualifier = np.full(len(df), None, dtype=object)
+    text = np.full(len(df), None, dtype=object)
+    kind = np.full(len(df), None, dtype=object)
+    qualifier[refusal] = AT_LEAST
+    text[refusal] = "at least: refusal"
+    kind[refusal] = REFUSAL
+    if above.any():
+        upper = limits["at_most"]
+        data[above] = upper
+        qualifier[above] = AT_LEAST
+        beyond = f"{label} above {upper:g}, estimated at {upper:g}"
+        text[above & ~refusal] = f"at least: {beyond}"
+        text[above & refusal] = f"at least: refusal, {beyond}"
+        kind[above & ~refusal] = ABOVE_RANGE
+    if below.any():
+        assert lower is not None  # below is set only under a lower end
+        data[below] = lower
+        qualifier[below] = AT_MOST
+        text[below] = f"at most: {label} below {lower:g}, estimated at {lower:g}"
+        kind[below] = BELOW_RANGE
+    return {**values, column: data}, Bounded(qualifier, text, kind)
 
 
 def chained(df: pd.DataFrame, item: Mapping[str, Any]) -> np.ndarray:
@@ -375,11 +476,14 @@ def estimate(
     upper: np.ndarray | None = None,
     uscs: Any = None,
     rows: np.ndarray | None = None,
+    bounded: Bounded | None = None,
 ) -> pd.DataFrame:
     """Return a copy of ``df`` with the estimate and the correlation's columns.
 
     ``values`` are in the entry's target unit; rows with a note get NaN. One
-    warning counts the rows without an estimate by reason. ``lower`` and
+    warning counts the rows without an estimate by reason. ``bounded``, from
+    ``bound()``, gives ``correlation_qualifier`` and, on its rows, the
+    ``correlation_note`` text; one more warning counts them by kind. ``lower`` and
     ``upper``, for a band, are written as ``<target>_lower`` and
     ``<target>_upper`` in the same unit; NaN in ``upper`` is an open band.
     ``uscs`` is recorded as given in ``attrs["correlation_uscs"]``, so results
@@ -430,6 +534,22 @@ def estimate(
                 else ""
             )
         )
+    if bounded is None:
+        empty = np.full(len(df), None, dtype=object)
+        bounded = Bounded(empty, empty, empty)
+    kinds = pd.Series(bounded.kind).dropna().value_counts()
+    if len(kinds):
+        found = ", ".join(
+            f"{kinds[kind]} {kind}" for kind in BOUND_KINDS if kind in kinds
+        )
+        warn(
+            f"{name} gave a bound, not an estimate, for {int(kinds.sum())} of "
+            f"{len(df)} rows ({found}; see 'correlation_qualifier' and "
+            "'correlation_note'). The estimate rises with N, so at a refusal it "
+            "is at least the estimate at the refusal's N, and beyond the range "
+            "it is the estimate at the range's end: at least above it, at most "
+            "below it."
+        )
     replaced = [column for column in (*shown, *OUTPUT_COLUMNS) if column in df.columns]
     if replaced:
         warn(f"Replaced the existing columns {', '.join(map(repr, replaced))}.")
@@ -438,7 +558,12 @@ def estimate(
     for column, data in shown.items():
         result[column] = data
     result["correlation_name"] = name
-    result["correlation_note"] = pd.Series(note, index=df.index, dtype=object)
+    result["correlation_qualifier"] = pd.Series(
+        bounded.qualifier, index=df.index, dtype=object
+    )
+    result["correlation_note"] = pd.Series(
+        np.where(noted, note, bounded.note), index=df.index, dtype=object
+    )
     result["correlation_input"] = pd.Series(upstream, index=df.index, dtype=object)
     result["correlation_soil"] = pd.Series(
         np.full(len(df), None, dtype=object) if rows is None else rows,

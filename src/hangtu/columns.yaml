@@ -615,8 +615,13 @@ columns:
     type: text
     ags: ["derived: docs/work/m13b2-spt-strength-history.md"]
     used_by: [P01]
+  correlation_qualifier:
+    description: "Whether a correlation's estimate is a bound: > at least (a refusal, or N above the range), < at most (N below the range), blank otherwise"
+    type: text
+    ags: ["derived: docs/work/m18a-refusals.md"]
+    used_by: []
   correlation_note:
-    description: "Why a correlation gave no estimate: not for this soil, soil type unknown, input blank, refusal, below range or above range"
+    description: "Why a correlation gave no estimate (not for this soil, soil type unknown, input blank, refusal, below range or above range), or a bound (at least: refusal; at least or at most: N beyond the range)"
     type: text
     ags: ["derived: docs/work/m13b1-spt-framework.md"]
     used_by: [P01]

@@ -13,7 +13,14 @@
 #   terms       optional {name: {equation, unit}}: a quantity the function computes
 #               from its inputs, such as N pa / σ′v0, whose range the source gives
 #   range       {input or term: {at_least | greater_than, at_most | less_than}}, in
-#               the inputs' units; outside it the estimate is NaN, never extrapolated
+#               the inputs' units; outside it the estimate is NaN, never extrapolated,
+#               except for bound_by's inclusive ends
+#   bound_by    an SPT correlation's N input, or the term made from it (normalized_n):
+#               an input or a term, as range mixes them. Beyond its at_most, or its
+#               at_least above 0, the estimate is at that end, marked at least (above)
+#               or at most (below) in correlation_qualifier; at a refusal, at least
+#               the estimate at its N. Only for an estimate that rises with N
+#               (docs/work/m18a-refusals.md, spec item 2)
 #   labels      {input or term in range: how the docstring writes it}, for the
 #               warning, so it names the range in the user's terms (TODO #41)
 #   bands       optional, for a correlation published as classes: each class's lower
@@ -52,6 +59,7 @@ effective_friction_angle_hatanaka_uchida_1996:
     spt_n1_60: {variant: "(N1)60, N60 corrected for overburden", unit: null}
   range:
     spt_n1_60: {at_least: 4.55, at_most: 39.0}
+  bound_by: spt_n1_60
   labels: {spt_n1_60: "(N1)60"}
   applies_to: relatively clean fine to medium sands
   not_for: micaceous sands; gravelly soils
@@ -88,6 +96,7 @@ effective_friction_angle_kulhawy_mayne_1990:
   range:
     spt_n60: {at_most: 60}
     effective_vertical_stress: {greater_than: 0, at_most: 300}
+  bound_by: spt_n60
   labels: {spt_n60: "N60", effective_vertical_stress: "σ′v"}
   applies_to: relatively clean sands
   not_for: null
