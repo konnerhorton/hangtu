@@ -6,7 +6,7 @@ chooses them.
 
 import math
 import warnings
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from importlib.metadata import version
 from typing import Any
@@ -85,6 +85,119 @@ class Values:
     def all(self) -> np.ndarray:
         """Every value, a censored one at its recorded limit (an interval's low end)."""
         return np.concatenate([self.exact, self.left, self.right, self.interval[:, 0]])
+
+
+@dataclass(frozen=True)
+class Group:
+    """One group's rows, as ``read_groups()`` chooses them."""
+
+    key: dict[str, Any]
+    #: The group's rows in the frame, kept or not.
+    rows: np.ndarray
+    #: The group's rows that are summarized: ``rows`` and not left out.
+    chosen: np.ndarray
+    values: Values
+    #: ``count``, ``count_censored``, ``count_interval_censored`` and each of
+    #: ``COUNTS`` (with ``count_not_positive`` when ``positive_only``).
+    counts: dict[str, int]
+
+    @property
+    def label(self) -> str:
+        return ", ".join(map(str, self.key.values())) or "All"
+
+
+@dataclass(frozen=True)
+class Groups:
+    """The rows a fitting function reads, by group, with what it reports on them."""
+
+    read: _rows.Input
+    pooled: list[str]
+    unit: str | None
+    #: Each row's value in ``unit``, its text, and its reason for being left
+    #: out ("" if kept), over the whole frame.
+    numbers: np.ndarray
+    texts: np.ndarray
+    reasons: np.ndarray
+    limits: _refusal_limit.Limits
+    groups: list[Group]
+
+
+def read_groups(
+    data: Any,
+    value: str | None,
+    by: Any,
+    pool: Any,
+    include_assumed: bool,
+    spt_refusal_upper_limit: Any,
+    judgments: Any,
+    units: str | Mapping[str, str] | None,
+    display_units: str | None,
+    function: str,
+    positive_only: bool,
+    check: Callable[[_rows.Input, np.ndarray], None] | None = None,
+) -> Groups:
+    """Read ``data`` into each group's values and counts, as ``fit()`` fits them.
+
+    Rows are chosen by ``_rows``, as ``describe()`` chooses them; refusals,
+    ``>`` and ``<`` values are censored, and a refusal under a judged upper
+    limit is interval-censored (m18a). ``check`` is called with the input and
+    the kept values (in ``unit``) before the refusal limit is resolved, for
+    the caller's own checks of its arguments against them.
+    """
+    read = _rows.read_input(data, value, by, pool, units, function)
+    frame = read.frame
+    pooled = _rows.check_pool(pool, read, function)
+    numbers, texts = text_values(frame, read.column)
+    numbers, unit = _rows.convert(numbers, read, display_units, function)
+    flags = (
+        _rows.read_flags(frame, read.column, function)
+        if read.value is not None
+        else _rows.Flags.none(frame)
+    )
+    reasons, marks = _rows.choose_rows(
+        numbers,
+        texts,
+        flags,
+        include_assumed=include_assumed,
+        positive_only=positive_only,
+    )
+    included = reasons == ""
+    if check is not None:
+        check(read, numbers[included])
+    refusals = included & marks["count_at_least"] & _refusal_limit.refusal_rows(frame)
+    limits = _refusal_limit.resolve(
+        spt_refusal_upper_limit, judgments, frame, read.column, numbers, refusals
+    )
+    bounded = np.isfinite(limits.upper)
+    keys = _rows.group_keys(frame, read.by)
+    _rows.check_sources(frame, keys, included, read, pooled, function)
+    names = (*COUNTS, "count_not_positive") if positive_only else COUNTS
+    groups = []
+    for key, rows in keys:
+        chosen = rows & included
+        # Decision 3: refusals and ">" are right-censored, "<" left-censored;
+        # a refusal under a judged upper limit lies between the two (m18a).
+        at_least = chosen & marks["count_at_least"]
+        interval = at_least & bounded
+        right = at_least & ~interval
+        left = chosen & marks["count_at_most"] & ~at_least
+        values = Values(
+            exact=numbers[chosen & ~left & ~at_least],
+            left=numbers[left],
+            right=numbers[right],
+            interval=np.column_stack([numbers[interval], limits.upper[interval]]),
+        )
+        counts = {
+            "count": values.count,
+            "count_censored": values.censored,
+            "count_interval_censored": len(values.interval),
+            **{
+                name: int(marks.get(name, reasons == name)[rows].sum())
+                for name in names
+            },
+        }
+        groups.append(Group(key, rows, chosen, values, counts))
+    return Groups(read, pooled, unit, numbers, texts, reasons, limits, groups)
 
 
 def fit(
@@ -289,60 +402,40 @@ def fit(
     ...                       by="geology_unit")
     >>> result.to_frame()
     """
-    function = "fit()"
-    read = _rows.read_input(data, value, by, pool, units, function)
-    frame, value = read.frame, read.value
-    pooled = _rows.check_pool(pool, read, function)
-    numbers, texts = text_values(frame, read.column)
-    numbers, unit = _rows.convert(numbers, read, display_units, function)
-    low, high = _check_bounds(bounds, value)
-    names = _check_distributions(distributions, low, high)
-    flags = (
-        _rows.read_flags(frame, read.column, function)
-        if value is not None
-        else _rows.Flags.none(frame)
-    )
-    reasons, marks = _rows.choose_rows(
-        numbers, texts, flags, include_assumed=include_assumed, positive_only=False
-    )
-    included = reasons == ""
-    _check_inside(numbers[included], low, high, read.column)
-    refusals = included & marks["count_at_least"] & _refusal_limit.refusal_rows(frame)
-    limits = _refusal_limit.resolve(
-        spt_refusal_upper_limit, judgments, frame, read.column, numbers, refusals
-    )
-    bounded = np.isfinite(limits.upper)
+    checked: dict[str, Any] = {}
 
-    keys = _rows.group_keys(frame, read.by)
-    _rows.check_sources(frame, keys, included, read, pooled, function)
+    def check(read: _rows.Input, kept: np.ndarray) -> None:
+        low, high = _check_bounds(bounds, read.value)
+        checked["names"] = _check_distributions(distributions, low, high)
+        _check_inside(kept, low, high, read.column)
+        checked["bounds"] = low, high
+
+    function = "fit()"
+    found = read_groups(
+        data,
+        value,
+        by,
+        pool,
+        include_assumed,
+        spt_refusal_upper_limit,
+        judgments,
+        units,
+        display_units,
+        function,
+        positive_only=False,
+        check=check,
+    )
+    read, pooled, unit, texts = found.read, found.pooled, found.unit, found.texts
+    frame, value = read.frame, read.value
+    low, high = checked["bounds"]
+    names = checked["names"]
+    limits = found.limits
     groups, notes, too_few, few = [], [], [], []
-    for key, rows in keys:
-        label = ", ".join(map(str, key.values())) or "All"
-        chosen = rows & included
-        # Decision 3: refusals and ">" are right-censored, "<" left-censored;
-        # a refusal under a judged upper limit lies between the two (m18a).
-        at_least = chosen & marks["count_at_least"]
-        interval = at_least & bounded
-        right = at_least & ~interval
-        left = chosen & marks["count_at_most"] & ~at_least
-        values = Values(
-            exact=numbers[chosen & ~left & ~at_least],
-            left=numbers[left],
-            right=numbers[right],
-            interval=np.column_stack([numbers[interval], limits.upper[interval]]),
-        )
-        counts = {
-            "count": values.count,
-            "count_censored": values.censored,
-            "count_interval_censored": len(values.interval),
-            **{
-                name: int(marks.get(name, reasons == name)[rows].sum())
-                for name in COUNTS
-            },
-        }
+    for one in found.groups:
+        label, rows, chosen, values = one.label, one.rows, one.chosen, one.values
         group: dict[str, Any] = {
-            "key": key,
-            "counts": counts,
+            "key": one.key,
+            "counts": one.counts,
             "fits": [],
             "left_out": {},
             "reason": None,
@@ -389,7 +482,7 @@ def fit(
             }
         notes.extend(_group_notes(group, label, values, low))
 
-    _rows.warn_left_out(reasons, read.column, function)
+    _rows.warn_left_out(found.reasons, read.column, function)
     _rows.warn_text(texts, read.column, function)
     if len(too_few) == len(groups):
         raise HangtuError(
