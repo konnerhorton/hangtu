@@ -241,3 +241,34 @@ def test_a_qualifier_that_doesnt_replace_is_read_alongside(monkeypatch):
     row = ht.stats.describe(df, value="undrained_shear_strength").to_frame().loc[0]
     assert row["count_at_least"] == 2
     assert row["count_at_most"] == 1
+
+
+@pytest.mark.filterwarnings("ignore:.*gave a bound")
+def test_lab_and_bounded_correlation_qualifiers_both_count():
+    # m18a criterion 8: a lab s_u ">" pooled with a refusal's Stroud estimate.
+    lab = ht.set_units(
+        pd.DataFrame(
+            {
+                "undrained_shear_strength": [40.0, 150.0, 60.0],
+                "qualifier": [None, ">", None],
+            }
+        ),
+        {"undrained_shear_strength": "kPa"},
+    )
+    spt = correlations.undrained_shear_strength_stroud_1974(
+        pd.DataFrame(
+            {
+                "spt_n60": [10.0, 66.7],
+                "plasticity_index": [35.0, 35.0],
+                "spt_refusal": [False, True],
+            }
+        ),
+        display_units="SI",
+    )
+    pooled = pd.concat([lab, spt], ignore_index=True)
+    pooled.attrs["units"] = {"undrained_shear_strength": "kPa"}
+    row = ht.stats.describe(
+        pooled, value="undrained_shear_strength", pool=["correlation_name"]
+    ).to_frame()
+    assert row.loc[0, "count_at_least"] == 2
+    assert row.loc[0, "count"] == 5

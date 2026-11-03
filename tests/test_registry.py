@@ -159,6 +159,7 @@ def test_statistics_roles_lists_the_flag_and_source_columns():
         "spt_refusal": "at_least",
         "qualifier": "qualifier",
         "remolded_qualifier": "qualifier",
+        "correlation_qualifier": "qualifier",
         "non_plastic": "non_plastic",
         "particle_density_assumed": "assumed",
         "specific_gravity_source": "assumed",

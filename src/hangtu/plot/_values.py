@@ -202,18 +202,39 @@ def label_colors(
     return {label: colors.get(label, default) for label in labels}
 
 
-def qualifiers(df: pd.DataFrame) -> np.ndarray:
-    """Return each row's qualifier: ``"<"``, ``">"`` or ``""``."""
-    if "qualifier" not in df.columns:
+#: A correlation's bound on its estimate, read with ``qualifier`` for the values
+#: the registry lists (docs/work/m18a-refusals.md, spec item 3).
+CORRELATION_QUALIFIER = "correlation_qualifier"
+
+
+def qualifiers(df: pd.DataFrame, value: str | None = None) -> np.ndarray:
+    """Return each row's qualifier: ``"<"``, ``">"`` or ``""``.
+
+    With ``value`` a correlation's target, a row with no ``qualifier`` takes
+    its ``correlation_qualifier``, so a bounded estimate is drawn as a lab's
+    ``>x`` is.
+    """
+    result = _qualifier_column(df, "qualifier")
+    info = column_info(CORRELATION_QUALIFIER)
+    assert info is not None  # registered
+    if value is not None and value in info["statistics"]["values"]:
+        bounded = _qualifier_column(df, CORRELATION_QUALIFIER)
+        result = np.where(result == "", bounded, result)
+    return result
+
+
+def _qualifier_column(df: pd.DataFrame, column: str) -> np.ndarray:
+    """Return one qualifier column as ``"<"``, ``">"`` or ``""`` per row."""
+    if column not in df.columns:
         return np.full(len(df), "", dtype=object)
-    qualifiers = df["qualifier"].fillna("").astype(str).str.strip()
+    qualifiers = df[column].fillna("").astype(str).str.strip()
     bad = ~qualifiers.isin(["", *QUALIFIERS])
     if bad.any():
         found = ", ".join(repr(text) for text in dict.fromkeys(qualifiers[bad]))
         raise ColumnError(
-            f'Column \'qualifier\' must hold "<", ">" or nothing, but rows '
+            f'Column {column!r} must hold "<", ">" or nothing, but rows '
             f"{rows_text(df.index[bad])} hold {found}. Put the qualifier only in "
-            "'qualifier' and the number in the value column."
+            f"{column!r} and the number in the value column."
         )
     return qualifiers.to_numpy(dtype=object)
 

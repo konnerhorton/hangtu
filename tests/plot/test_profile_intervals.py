@@ -204,3 +204,32 @@ def test_qualifier_column_of_blanks_draws_plain_markers(frame):
     _, ax = ht.plot.profile(df, "undrained_shear_strength")
     assert ax.ags_notes == {}
     assert all(not c.get_label().startswith("_") for c in ax.collections)
+
+
+@pytest.mark.filterwarnings("ignore:.*gave a bound")
+def test_bounded_correlation_estimates_are_carets_and_counted():
+    # m18a criterion 8: correlation_qualifier is drawn and counted as qualifier is.
+    from hangtu.analysis import correlations
+
+    df = ht.set_units(
+        pd.DataFrame(
+            {
+                "loca_id": ["B-1"] * 4,
+                "geology_unit": ["Terrace"] * 4,
+                "ground_level": [50.0] * 4,
+                "depth": [2.0, 4.0, 6.0, 8.0],
+                "spt_n1_60": [3.0, 20.0, 30.0, 45.0],
+                "spt_refusal": [False, False, True, False],
+            }
+        ),
+        {"depth": "m", "ground_level": "m"},
+    )
+    est = correlations.effective_friction_angle_hatanaka_uchida_1996(df)
+    _, ax = ht.plot.profile(est, "effective_friction_angle", vs="depth")
+    assert ax.ags_notes == {"less_than": 1, "greater_than": 2}
+    less = [c for c in ax.collections if c.get_label().endswith("<")]
+    more = [c for c in ax.collections if c.get_label().endswith(">")]
+    assert len(less) == 1 and len(more) == 1
+    assert caret_tip(less[0]).max() < 0
+    assert caret_tip(more[0]).min() > 0
+    assert len(more[0].get_offsets()) == 2

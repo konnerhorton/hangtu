@@ -296,19 +296,25 @@ def test_both_concatenate_and_draw_on_a_profile():
         est, value="effective_friction_angle", vs="depth", color_by="correlation_name"
     )
     legend = [text.get_text() for text in ax.get_legend().get_texts()]
-    assert legend == ["Hatanaka & Uchida (1996)", "Kulhawy & Mayne (1990)"]
+    # The four bounds are carets, counted (m18a criterion 8).
+    assert legend == [
+        "Hatanaka & Uchida (1996)",
+        "Kulhawy & Mayne (1990)",
+        "greater than (4)",
+    ]
     # Only the text changes: the colors are the session's for the correlation names.
     names = [
         "effective_friction_angle_hatanaka_uchida_1996",
         "effective_friction_angle_kulhawy_mayne_1990",
     ]
-    colors = [to_rgba(h.get_color()) for h in ax.get_legend().legend_handles]
+    colors = [to_rgba(h.get_color()) for h in ax.get_legend().legend_handles[:2]]
     assert colors == [to_rgba(h.get_facecolor()) for h in ht.plot.legend_handles(names)]
     # The refusal and the out-of-range row of each are bounds, drawn (m18a).
     assert "correlation_refusal" not in ax.ags_notes
     footnote = [text.get_text() for text in ax.texts if "estimate" in text.get_text()]
     assert footnote == []
-    assert len(ax.collections[0].get_offsets()) == 4
+    # Two plain markers per correlation; its bounds are carets.
+    assert len(ax.collections[0].get_offsets()) == 2
 
 
 def test_the_footnote_counts_other_blanks_as_blank():
