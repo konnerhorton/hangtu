@@ -247,3 +247,93 @@ implementation). Tolerance: 1e-6 relative against the hand values; the JRC's pri
   Vanmarcke's, unverified; §7's API points to this spec.
 - `docs/TODO.md` #13 at close-out: the decided points move to SPEC §5; what stays open is the Angus mean bound
   for a lognormal trend and the variance function.
+
+## Plan
+Approved 2026-11-03. One green commit per step; each runs the tests it touches, then the CI command with `-n 3`.
+All steps on Opus: each implements a calculation or touches citations, except step 5, too small to justify a
+session boundary of its own. Suggested new session after step 3.
+
+**Spec amendment (plan review, 2026-11-03):** `representative()` also takes `spt_refusal_upper_limit=` and
+`judgments=`, resolved as in `fit()` (argument → `judgments=` → the project's file → none), so a constant
+view's ML fit takes refusals as interval-censored under the limit (intent decision 2). A trend still leaves
+refusals out. Step 2 adds both to the spec's signature in the same commit.
+
+### 1. `M18: share fit()'s row reading with the statistics to come` (Opus)
+A refactor, no behavior change.
+- `src/hangtu/stats/_fit.py`: move the body from `read_input()` to each group's `Values` and counts into a
+  `read_groups(data, value, by, pool, include_assumed, spt_refusal_upper_limit, judgments, units,
+  display_units, function, positive_only)` returning the `Input`, the unit, the refusal-limit record and notes,
+  and per group its key, row mask, `Values` and counts; `fit()` calls it. Its group dict building, notes and
+  errors stay in `fit()`.
+- Tests: the existing `tests/stats/test_fit*.py` and `test_fit_refusal_limit.py` pass unchanged.
+
+### 2. `M18: add representative()'s characteristic value` (Opus)
+- `src/hangtu/stats/_representative.py` (new): the signature of spec decision 1, plus the amendment.
+  - `_check()`: `method`, `side`, `distribution` required; each method's inputs required and others an error
+    naming the method's inputs, with an example (criterion 1); `sensitivity_index` between 0 and 1 and not with
+    θ or L; θ, L, V_X > 0; trend with V_X or Type C an error (raised now, trend built in step 4).
+  - Per group (`read_groups(..., positive_only=distribution == "lognormal")`): x̄ and s as the sample's (n − 1)
+    without censoring, else `estimate("normal"|"lognormal", ...)` with a note that k_n assumes complete data;
+    lognormal on ln x. k_n = c √(Γ² + 1/n), c = `scipy.stats.t.ppf(0.95, n − 1)` (Case 2) or
+    `norm.ppf(0.95)` (Case 3); Γ² from `estimate`, or min(θ/L, 1) (spec decisions 3, 4). Fewer than 2 values:
+    no value, with the reason.
+  - Warnings (decision 11): X_k ≤ 0 from a normal; `hydraulic_conductivity` with normal.
+  - Docstring: every formula with the JRC page, Formula 4.5, Table 13, Equations 17–18; Annex IV for
+    lognormal; inputs with units; Cases 1–3; references.
+- `src/hangtu/stats/_result.py`: `RepresentativeResult(_Result)`, kind `"parameter"`: every input and, per
+  group, n, the left-out counts, x̄, s, V_X, k_n, the factor, the value, the reason; `.to_frame()`, `.to_dict()`,
+  `__str__`, `_repr_html_`, as `FitResult`.
+- `stats/__init__.py` exports; `docs/site/reference/stats.md` entries for both.
+- Frame column names checked against `columns.yaml` (an Explore subagent sweep; reuse `mean`,
+  `standard_deviation`, `coefficient_of_variation` as `describe()` names them).
+- The spec's signature in `docs/work/m18b-representative-values.md` gains the two arguments.
+- Tests: `tests/stats/test_representative.py` (new): criterion 1; G1, G2 (the hand value 0.51311, not the
+  JRC's 26.86°), G3 (clay with and without test 21, peat; normal on them warns) for criterion 2; G4's Type B
+  and C values, θ/L above 1 capped, both sides (criterion 3); a refusal in a group uses the ML fit and notes it,
+  with and without `spt_refusal_upper_limit` (criterion 6, constant); counts add up.
+  `tests/stats/test_representative_result.py` (new): `.to_dict()` is JSON and records every input (criterion 9).
+
+### 3. `M18: add the percentile and standard-deviations views` (Opus)
+- `_representative.py`: percentile = `frozen(distribution, estimate(...)).ppf(p/100)` (always the ML fit,
+  spec decision 5); `side` against 50 checked; standard deviations x̄ ∓ k s (decision 6). Docstring names
+  Schneider's k = 0.5 (Eq. 20) and the simplified fractile's 1.75 (Eq. 23) as values of k.
+- Tests: G6 against `fit()`'s normal for the same rows, a "low" P95 an error (criterion 4); G4's k = 1 →
+  10.601 (criterion 5).
+
+### 4. `M18: add depth and elevation trends to representative()` (Opus)
+- `_representative.py`: `trend=` reads `depth` or `elevation` (a `ColumnError` without it); censored rows left
+  out and counted with the direction note (spec decision 8); 🟡 a row with a value but no depth (elevation)
+  left out and counted as `count_blank_depth` (`count_blank_elevation`), named against the registry in this
+  step. Least squares a₀, a₁, sₑ (n − 2), R², z̄, Σ(z − z̄)², the depth range; the confidence (mean), prediction
+  (fractile), z_p sₑ (percentile) and k sₑ (standard deviations) lines; lognormal on ln x with the median note.
+  Fewer than 3 values or fewer than 2 distinct depths: no line, with the reason. Assumptions stated in the note
+  (decision 9).
+- Result: a trend group keeps the line's statistics and residuals; `.to_frame()` gives the coefficients and the
+  values at the top and base.
+- Tests: G5 at depths 2/6/10 for mean, fractile and k = 1 (criterion 7); elevation gives the same line mirrored;
+  V_X or Type C with a trend an error; 2 values gives a reason; refusals left out, counted and noted
+  (criterion 6, trend).
+
+### 5. `M18: give representative()'s design_lines frame` (Opus)
+- `_result.py`: `.design_lines(mean=False)`: constant as two points at the group's shallowest and deepest
+  value, a trend at 50 depths across them; `mean=True` adds the mean (median) line; labels "<group>: <method>,
+  <estimate>, <side>"; units in `attrs`.
+- Tests: `tests/stats/test_representative_result.py`: point counts and ranges; `tests/plot/test_profile_overlays.py`:
+  the frame draws on P01 with no warning, constant and trend (criterion 8).
+
+### 6. `M18: document representative values; close out (b)` (Opus)
+- `docs/site/guides/representative-values.md` (new) with `docs/site/examples/representative-values.py`, in the
+  `nav` of `zensical.toml`: the views, which judgments each needs, Cases 1–3, Type C and θ (SPT can't resolve
+  θ_v), the lognormal routes, trends and their assumptions, censored values. The figure looked at.
+- `docs/site/guides/statistics.md`: a pointer. `docs/reference/eurocode7-summary.md` §3.2 and §7 (Γ² = θ/L in
+  the JRC, the variance function Vanmarcke's and unverified, §7 → the spec). `docs/drafts/phase3-stats.md`:
+  the `characteristic` row points to `representative`.
+- Close-out: `docs/TODO.md` #13 narrowed to the Angus mean bound and the variance function (decided points are
+  in SPEC §5 already); SPEC §12.4 M18 "(b) done; (c) next"; the "Next" sentence in `CLAUDE.md`; the lesson
+  check (CLAUDE.md conventions, SPEC, memory).
+
+## Verification
+- Each acceptance criterion mapped to a test above; golden values from the spec, 1e-6 relative.
+- Full CI command locally with `-n 3`; `uv sync --group docs && uv run python docs/prepare_site.py && uv run
+  zensical build --clean --strict`.
+- Look at P01 with a constant and a trend design line from the guide's example.
