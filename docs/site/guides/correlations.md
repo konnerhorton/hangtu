@@ -42,19 +42,34 @@ Each one:
 
 - **reads the one N it was derived with,** by its column name, and has no argument to read another. A correlation on (N1)60 given only N60 stops with an error that says to run `spt_n1_60()` first, so field N never goes into an (N1)60 equation unnoticed.
 - **reads the soil type only when asked** (see [Soil type](#soil-type)). By default, pass the rows a correlation applies to, as for `spt_class()`. These are for relatively clean sands; the example's Terrace is a sand with gravel, at the edge of what they cover. On a project, check the gradation first.
-- **returns every row,** with the estimate in the property's column (`effective_friction_angle`), `correlation_name`, `correlation_note` and `correlation_input`. `correlation_note` says why there's no estimate: `input blank`, `refusal`, `below range`, `above range`, `not for this soil` or `soil type unknown`. Outside its range a correlation gives a blank, never a clipped or extrapolated value. `correlation_input` names the correlation an input came from, where one did (see [Chaining](#chaining)).
+- **returns every row,** with the estimate in the property's column (`effective_friction_angle`), `correlation_name`, `correlation_qualifier`, `correlation_note` and `correlation_input`. `correlation_qualifier` marks an estimate that is a bound (see [Bounded estimates](#bounded-estimates)). `correlation_note` says why: `at least: refusal` and the like for a bound, and for no estimate `input blank`, `refusal`, `below range`, `above range`, `not for this soil` or `soil type unknown`. `correlation_input` names the correlation an input came from, where one did (see [Chaining](#chaining)).
 - **records what it is** in `df.attrs["correlations"]`: the equation, inputs, range and sources of every correlation. `ht.analysis.correlations.describe(name)` returns the same entry when the attrs are lost.
 
-Passing the whole Terrace instead of its upper part shows how much of a dense sand falls outside these ranges:
+## Bounded estimates
+
+The example passes the medium dense upper part of the Terrace. Much of a dense sand lies beyond these ranges, and its refusals have no N to read. Every SPT correlation rises with N, so a correlation still says something about those tests: a refusal's estimate is at least the estimate at the N it reached, and a test beyond the range's upper end at least the estimate at that end. Passing the whole Terrace shows how much that keeps:
 
 ``` { .text .no-copy }
-UserWarning: effective_friction_angle_hatanaka_uchida_1996 gave no estimate for 21 of 33 rows (9 refusal, 12 above range; see 'correlation_note'). Its range is 4.55 ≤ (N1)60 ≤ 39; outside it the estimate is blank, never extrapolated.
-UserWarning: effective_friction_angle_kulhawy_mayne_1990 gave no estimate for 12 of 33 rows (9 refusal, 3 above range; see 'correlation_note'). Its range is N60 ≤ 60; 0 < σ′v ≤ 300 kPa; outside it the estimate is blank, never extrapolated.
+UserWarning: effective_friction_angle_hatanaka_uchida_1996 gave a bound, not an estimate, for 21 of 33 rows (9 refusal, 12 above range; see 'correlation_qualifier' and 'correlation_note'). [...]
+UserWarning: effective_friction_angle_kulhawy_mayne_1990 gave a bound, not an estimate, for 12 of 33 rows (9 refusal, 3 above range; see 'correlation_qualifier' and 'correlation_note'). [...]
 ```
+
+Hatanaka & Uchida give 33 of 33 tests a value: 12 estimates and 21 bounds. Without the bounds, the 21 densest tests would be blank, and a parameter set derived from them would be biased low by construction.
+
+| Row | Estimate | `correlation_qualifier` | `correlation_note` |
+|---|---|---|---|
+| A refusal within the range | at its N | `>` | `at least: refusal` |
+| N above the range's upper end | at the upper end | `>` | `at least: (N1)60 above 39, estimated at 39` |
+| N below the range's lower end, above 0 | at the lower end | `<` | `at most: (N1)60 below 4.55, estimated at 4.55` |
+| A refusal below the lower end | none | | `refusal` |
+
+N is never extrapolated: a bound is the estimate at a point inside the range the source supports. Only the N input bounds: a row beyond the range of another input (σ′v, PI), outside the soil groups, or with an input blank has no estimate, whatever its N, since a correlation needn't rise with those. A strict limit (N60 > 0) or a lower end of 0 doesn't bound either: below it, N isn't a test result. Each correlation's reference entry lists its bounds under "Bounded estimates".
+
+`describe()`, `fit()` and `compare()` read `correlation_qualifier` as they read a lab's `qualifier`: a bound is counted as at least (or at most) its value, and fitted as censored (see [Statistics](statistics.md)). The two are read together, so a frame pooling lab s_u and SPT s_u counts each row's own.
 
 ## Comparing estimates
 
-Results from the same input concatenate with `pd.concat`, one row per test and correlation, and keep their units. `ht.plot.profile(..., color_by="correlation_name")` draws them together, and its footnote counts the blank estimates by their `correlation_note`: "9 refusals, no estimate", "12 above range, no estimate". The two correlations above differ by about 3° here; which to use, or how to combine them with measured values, is the engineer's call (stage D). [Drained shear strength of soil](../parameters/04-drained-shear-strength-soil.md) compares the methods.
+Results from the same input concatenate with `pd.concat`, one row per test and correlation, and keep their units. `ht.plot.profile(..., color_by="correlation_name")` draws them together, a bound as a caret ▷ at its value, and its footnote counts the bounds, and any blank estimates by their `correlation_note` ("2 refusals, no estimate"). The two correlations above differ by about 3° where both give an estimate; which to use, or how to combine them with measured values, is the engineer's call (stage D). [Drained shear strength of soil](../parameters/04-drained-shear-strength-soil.md) compares the methods.
 
 ## Scatter and advice
 
