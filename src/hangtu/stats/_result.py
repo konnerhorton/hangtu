@@ -357,6 +357,8 @@ class RepresentativeResult(_Result):
     distribution: str
     #: None (constant per group), ``"depth"`` or ``"elevation"``.
     trend: str | None
+    #: The unit of the trend's depth or elevation, None for a constant.
+    vertical_unit: str | None
     #: The characteristic value's estimate: ``"mean"``, ``"fractile"`` or
     #: ``"intermediate"`` (EC7 Types A, B and C), None for another method.
     estimate: str | None
@@ -376,22 +378,29 @@ class RepresentativeResult(_Result):
     #: ``method="standard_deviations"``.
     standard_deviations: float | None
     #: One record per group: its key, counts, the statistics behind its
-    #: value, the value, and the reason it has none.
+    #: value, the value, and the reason it has none; for a trend, ``value``
+    #: is NaN and ``line`` holds the line (see ``trend_at``).
     groups: tuple[dict[str, Any], ...]
 
     def to_frame(self) -> pd.DataFrame:
-        """Return one row per group, with ``value`` and the statistics behind it.
+        """Return one row per group, with the value and the statistics behind it.
 
-        A group with no value has ``value`` blank and its ``reason``.
-        ``attrs["units"]`` gives the unit of each column that has one.
+        A constant has ``value``; a trend has the line's coefficients
+        (``line_intercept`` and ``line_slope``, of ln x for a lognormal
+        distribution, the slope per unit of depth or elevation), the depth
+        (elevation) of the group's shallowest and deepest values on the line,
+        and ``value_top`` and ``value_base`` there. A group with no value has
+        them blank and its ``reason``. ``attrs["units"]`` gives the unit of
+        each column that has a single one.
         """
         statistics: list[str] = []
         for group in self.groups:
             statistics += [n for n in group["statistics"] if n not in statistics]
+        values = [] if self.trend else ["value"]
         rows = [
             {
                 **group["key"],
-                "value": group["value"],
+                **({} if self.trend else {"value": group["value"]}),
                 "count": group["counts"]["count"],
                 "count_censored": group["counts"]["count_censored"],
                 **group["statistics"],
@@ -402,7 +411,7 @@ class RepresentativeResult(_Result):
         ]
         columns = [
             *self.by,
-            "value",
+            *values,
             "count",
             "count_censored",
             *statistics,
@@ -410,19 +419,21 @@ class RepresentativeResult(_Result):
             *self._counts(),
         ]
         frame = pd.DataFrame(rows, columns=columns)
-        frame.attrs["units"] = (
-            {}
-            if self.unit is None
-            else {
-                name: self.unit for name in columns if name in _REPRESENTATIVE_WITH_UNIT
-            }
-        )
+        with_unit = set(_REPRESENTATIVE_WITH_UNIT)
+        if self.trend and self.distribution == "normal":
+            with_unit |= {"line_intercept", "residual_standard_deviation"}
+        units = {} if self.unit is None else {n: self.unit for n in with_unit}
+        if self.trend and self.vertical_unit is not None:
+            units |= {f"{self.trend}_{end}": self.vertical_unit for end in _ENDS}
+        frame.attrs["units"] = {n: units[n] for n in columns if n in units}
         return frame
 
     def _counts(self) -> list[str]:
         names = list(_FIT_COUNTS)
         if self.distribution == "lognormal":
             names.append("count_not_positive")
+        if self.trend:
+            names.append(f"count_blank_{self.trend}")
         return names
 
     def _view(self) -> str:
@@ -444,6 +455,8 @@ class RepresentativeResult(_Result):
             sign = "-" if self.side == "low" else "+"
             parts = [f"mean {sign} {self.standard_deviations:g} standard deviations"]
         parts += [self.distribution, self.side]
+        if self.trend:
+            parts.append(f"a line with {self.trend}")
         return ", ".join(parts)
 
     def __str__(self) -> str:
@@ -472,9 +485,43 @@ class RepresentativeResult(_Result):
         return f"<pre>{html.escape(str(self))}</pre>"
 
 
+def trend_at(line: dict[str, Any], vertical: Any, *, mean: bool = False) -> np.ndarray:
+    """Return a trend's representative value at each depth (or elevation).
+
+    ``line`` is a group's ``"line"`` record: x̂(z) = a₀ + a₁ z, then
+    ``multiple`` sₑ √(1/n + (z - z̄)² / Σ(zᵢ - z̄)²) added for the confidence
+    band, √(1 + 1/n + …) for the prediction band, or ``multiple`` sₑ for no
+    band (JRC Equations 39-43, pp. 83-85); ``mean=True`` gives x̂(z) alone.
+    A lognormal line is through ln x and is transformed back.
+    """
+    z = np.asarray(vertical, dtype=float)
+    y = line["intercept"] + line["slope"] * z
+    if not mean:
+        spread = line["multiple"] * line["residual_standard_deviation"]
+        band = line["band"]
+        if band is not None:
+            width = (
+                1 / line["count"]
+                + (z - line["mean_vertical"]) ** 2 / line["sum_of_squares"]
+            )
+            y = y + spread * np.sqrt(width + (band == "prediction"))
+        else:
+            y = y + spread
+    return np.exp(y) if line["lognormal"] else y
+
+
 _TYPES = {"mean": "A", "fractile": "B", "intermediate": "C"}
+#: The ends of a trend's depth (elevation) range, as the frame names them.
+_ENDS = ("top", "base")
 #: The representative result's columns in the value's unit.
-_REPRESENTATIVE_WITH_UNIT = {"value", "mean", "standard_deviation", "geometric_mean"}
+_REPRESENTATIVE_WITH_UNIT = {
+    "value",
+    "mean",
+    "standard_deviation",
+    "geometric_mean",
+    "value_top",
+    "value_base",
+}
 _REPRESENTATIVE_HEADINGS = {
     "quantile_factor": "t or z",
     "statistical_coefficient": "k_n",

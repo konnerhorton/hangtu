@@ -96,6 +96,8 @@ class Group:
     rows: np.ndarray
     #: The group's rows that are summarized: ``rows`` and not left out.
     chosen: np.ndarray
+    #: The chosen rows whose value is measured, not censored: ``values.exact``.
+    exact: np.ndarray
     values: Values
     #: ``count``, ``count_censored``, ``count_interval_censored`` and each of
     #: ``COUNTS`` (with ``count_not_positive`` when ``positive_only``).
@@ -181,8 +183,9 @@ def read_groups(
         interval = at_least & bounded
         right = at_least & ~interval
         left = chosen & marks["count_at_most"] & ~at_least
+        exact = chosen & ~left & ~at_least
         values = Values(
-            exact=numbers[chosen & ~left & ~at_least],
+            exact=numbers[exact],
             left=numbers[left],
             right=numbers[right],
             interval=np.column_stack([numbers[interval], limits.upper[interval]]),
@@ -196,7 +199,7 @@ def read_groups(
                 for name in names
             },
         }
-        groups.append(Group(key, rows, chosen, values, counts))
+        groups.append(Group(key, rows, chosen, exact, values, counts))
     return Groups(read, pooled, unit, numbers, texts, reasons, limits, groups)
 
 

@@ -14,9 +14,11 @@ import numpy as np
 import pandas as pd
 from scipy import stats as _stats
 
-from hangtu.errors import HangtuError, warn
+from hangtu import units as _units
+from hangtu.analysis._line_fit import line_fit
+from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.stats import _fit, _refusal_limit, _rows
-from hangtu.stats._result import RepresentativeResult
+from hangtu.stats._result import RepresentativeResult, trend_at
 
 FUNCTION = "representative()"
 METHODS = ("characteristic", "percentile", "standard_deviations")
@@ -50,8 +52,11 @@ EXAMPLES = {
         'distribution="normal"'
     ),
 }
-#: Fewer values in a group gives it no value (spec decision 11).
+#: Fewer values in a group gives it no value, or no line (spec decision 11).
 MIN_COUNT = 2
+MIN_TREND_COUNT = 3
+#: The depths (elevations) a trend is checked at for a value at or below 0.
+CURVE_POINTS = 50
 #: The one-sided confidence of EC7's characteristic value (Formula 4.5).
 CONFIDENCE = 0.95
 #: The note on a group with censored values, by method (intent decision 2).
@@ -158,6 +163,33 @@ def representative(
     p. 64) and the simplified fractile's $k = 1.75$ (Equation 23, p. 65) are
     values of $k$, not methods of their own.
 
+    **Trends** (``trend="depth"`` or ``"elevation"``): a least-squares line
+    $\hat{x}(z) = a_0 + a_1 z$ per group, with the residual standard
+    deviation $s_e$ (with $n - 2$), as Bond & Harris (2008) give it in the
+    JRC report (Equations 39-43, pp. 83-85):
+
+    - characteristic, ``estimate="mean"``: the confidence band,
+      $\hat{x}(z) \mp t_{0.95,\,n-2}\, s_e \sqrt{1/n + (z - \bar{z})^2 /
+      \sum (z_i - \bar{z})^2}$;
+    - characteristic, ``estimate="fractile"``: the prediction band, the same
+      with $\sqrt{1 + 1/n + \dots}$;
+    - percentile: $\hat{x}(z) + z_p s_e$; standard deviations:
+      $\hat{x}(z) \mp k s_e$.
+
+    The bands curve away from the data's centre, so a line is given over its
+    group's depths (elevations) only, never beyond. It needs at least 3
+    values at 2 or more depths; ``coefficient_of_variation=`` and Type C
+    are errors with a trend, since the report gives neither (p. 82).
+    Lognormal: the line is through $\ln x$ and transformed back (§5.2.4,
+    p. 86), so its mean is the median of $x$. Censored values and values
+    with no depth (elevation) are left out of the line and counted
+    (``count_censored``, ``count_blank_depth`` or
+    ``count_blank_elevation``), with a warning and a note on which way the
+    censored ones move it; ``count`` is then the values on the line. The
+    line assumes a scatter that is the same at every depth, random and
+    normal (p. 86): that isn't tested, and the result keeps the residuals
+    (``groups[i]["line"]``) to look at.
+
     **Censored values** (refusals, ``>`` and ``<`` values, a refusal under
     ``spt_refusal_upper_limit``): in a group with any, $\bar{x}$ and $s$ (or
     $m$ and $s_{\ln}$) are the censored maximum-likelihood normal (or
@@ -195,8 +227,11 @@ def representative(
         compressibility).
     distribution : {"normal", "lognormal"}
         The distribution the values are taken to follow.
-    trend : None
-        None: one value per group, constant with depth.
+    trend : {None, "depth", "elevation"}
+        None: one value per group, constant with depth. ``"depth"`` or
+        ``"elevation"``: a line with that column, which needs its unit like
+        the value (``units=`` or ``attrs["units"]``); ``display_units=``
+        converts it too.
     estimate : {"mean", "fractile", "intermediate"}
         For ``method="characteristic"``: Type A, B or C.
     coefficient_of_variation : float, optional
@@ -231,7 +266,9 @@ def representative(
     Returns
     -------
     RepresentativeResult
-        ``.to_frame()`` has one row per group, with ``value``.
+        ``.to_frame()`` has one row per group, with ``value``, or for a
+        trend the line's coefficients and its value at the top and base of
+        the group's values.
         ``print(result)`` shows it with the inputs and the notes.
 
     Raises
@@ -242,12 +279,17 @@ def representative(
         of range; ``trend=`` with ``coefficient_of_variation=`` or Type C;
         and the input errors of :func:`fit`.
     ColumnError
-        For a missing column, or one that holds no numbers.
+        For a missing column (the value's, or the trend's depth or
+        elevation), or one that holds no numbers.
     UnitsError
-        For a value column whose unit is unknown.
+        For a value column, or a trend's depth or elevation, whose unit is
+        unknown.
 
     References
     ----------
+    Bond, A. & Harris, A. (2008). *Decoding Eurocode 7*. Taylor & Francis,
+    as the JRC report gives it (Equations 39-43).
+
     Orr, T., Sorgatz, J., Estaire, J. et al. (2025). *Determination of
     characteristic values of ground properties in the second generation of
     Eurocode 7*. JRC, EUR 40260 (CC BY 4.0), which quotes EN 1997-1:2024.
@@ -271,8 +313,6 @@ def representative(
         "standard_deviations": standard_deviations,
     }
     method, side, distribution = _check(method, side, distribution, trend, inputs)
-    if trend is not None:
-        raise HangtuError(f"{FUNCTION} trend= is not built yet (M18 (b), step 4).")
     gamma2, capped = _sensitivity(inputs)
     inputs["sensitivity_index"] = gamma2
     lognormal = distribution == "lognormal"
@@ -290,8 +330,12 @@ def representative(
         positive_only=lognormal,
     )
     read = found.read
+    vertical, vertical_unit = (
+        (None, None) if trend is None else _vertical(read, trend, units, display_units)
+    )
     sign = -1.0 if side == "low" else 1.0
     groups, notes, at_or_below_zero = [], [], []
+    left_out_of_trend = {"count_censored": 0, f"count_blank_{trend}": 0}
     for group in found.groups:
         record: dict[str, Any] = {
             "key": group.key,
@@ -306,6 +350,23 @@ def representative(
         }
         groups.append(record)
         values = group.values
+        if vertical is not None:
+            assert trend is not None  # vertical is read only for a trend
+            line, record["counts"], record["reason"] = _trend(
+                group, found.numbers, vertical, trend, method, sign, lognormal, inputs
+            )
+            for name in left_out_of_trend:
+                left_out_of_trend[name] += record["counts"][name]
+            if values.censored:
+                notes.append(_censored_from_trend(group))
+            if line is None:
+                continue
+            record["line"] = line
+            record["statistics"] = _trend_statistics(line, trend, method)
+            ends = np.linspace(line["top"], line["base"], CURVE_POINTS)
+            if not lognormal and trend_at(line, ends).min() <= 0:
+                at_or_below_zero.append(group.label)
+            continue
         if values.count < MIN_COUNT:
             record["reason"] = f"fewer than {MIN_COUNT} values ({values.count})"
             continue
@@ -339,6 +400,21 @@ def representative(
             )
 
     _rows.warn_left_out(found.reasons, read.column, FUNCTION)
+    censored, blank = left_out_of_trend.values()
+    if censored or blank:
+        listed = " and ".join(
+            text
+            for count, text in (
+                (censored, f"{censored} censored values (count_censored)"),
+                (blank, f"{blank} values with no {trend} (count_blank_{trend})"),
+            )
+            if count
+        )
+        warn(
+            f"{FUNCTION} left {listed} of {read.column!r} out of the trend: a "
+            f"line is fitted to measured values at a known {trend} only. The "
+            "notes say which way censored values move it."
+        )
     _rows.warn_text(found.texts, read.column, FUNCTION)
     not_positive = int((found.reasons == "count_not_positive").sum())
     if not_positive:
@@ -366,7 +442,9 @@ def representative(
         value=read.value,
         unit=found.unit,
         notes=tuple(
-            _notes(notes, groups, found, include_assumed, lognormal, inputs, capped)
+            _notes(
+                notes, groups, found, include_assumed, lognormal, inputs, capped, trend
+            )
         ),
         judgments={
             **read.frame.attrs.get("judgments", {}),
@@ -385,6 +463,7 @@ def representative(
         side=side,
         distribution=distribution,
         trend=trend,
+        vertical_unit=vertical_unit,
         estimate=estimate,
         coefficient_of_variation=coefficient_of_variation,
         coefficient_of_variation_case=(
@@ -664,6 +743,157 @@ def _moments(values: _fit.Values, lognormal: bool) -> tuple[float, float] | None
     return centre, spread
 
 
+def _vertical(
+    read: _rows.Input,
+    trend: str,
+    units: str | Mapping[str, str] | None,
+    display_units: str | None,
+) -> tuple[np.ndarray, str | None]:
+    """Return each row's depth (elevation) and its unit, converted as the values are.
+
+    A blank or text cell is NaN, left out of the line and counted.
+    """
+    frame = read.frame
+    if trend not in frame.columns:
+        raise ColumnError(
+            f"{FUNCTION} with trend={trend!r} needs the column {trend!r}, which the "
+            f"data doesn't have. Available columns: "
+            f"{', '.join(map(str, frame.columns)) or 'none'}. Add it, or use "
+            "trend=None for one value per group."
+        )
+    explicit = (
+        {trend: units[trend]} if isinstance(units, Mapping) and trend in units else {}
+    )
+    unit = _units.resolve_units(frame, [trend], explicit, analysis=True)[trend]
+    vertical = pd.to_numeric(frame[trend], errors="coerce").to_numpy(dtype=float)
+    if display_units is not None:
+        return _units.to_display(vertical, unit, "length", display_units)
+    return vertical, unit
+
+
+def _trend(
+    group: _fit.Group,
+    numbers: np.ndarray,
+    vertical: np.ndarray,
+    trend: str,
+    method: str,
+    sign: float,
+    lognormal: bool,
+    inputs: dict[str, Any],
+) -> tuple[dict[str, Any] | None, dict[str, int], str | None]:
+    """Fit a group's line with depth (elevation): the line, the counts, the reason.
+
+    Bond & Harris (2008) as the JRC gives it (Equations 39-43, pp. 83-85;
+    spec decisions 7-9). Censored values and values with no depth are left
+    out, so ``count`` is the values on the line.
+    """
+    on_line = group.exact & np.isfinite(vertical)
+    counts = {
+        **group.counts,
+        "count": int(on_line.sum()),
+        f"count_blank_{trend}": int((group.exact & ~on_line).sum()),
+    }
+    z = vertical[on_line]
+    y = np.log(numbers[on_line]) if lognormal else numbers[on_line]
+    n = len(z)
+    if n < MIN_TREND_COUNT:
+        return (
+            None,
+            counts,
+            f"fewer than {MIN_TREND_COUNT} values with a {trend} ({n}) for a line",
+        )
+    line = line_fit(z, y, x_name=trend)
+    if line.no_fit_reason is not None:
+        return None, counts, f"no line: {line.no_fit_reason}"
+    residuals = np.array(line.residuals)
+    deviation = math.sqrt(float(np.sum(residuals**2)) / (n - 2))
+    if method == "characteristic":
+        factor = float(_stats.t.ppf(CONFIDENCE, n - 2))
+        band = "confidence" if inputs["estimate"] == "mean" else "prediction"
+        multiple = sign * factor
+    elif method == "percentile":
+        factor = float(_stats.norm.ppf(inputs["percentile"] / 100))
+        band, multiple = None, factor
+    else:
+        factor, band = math.nan, None
+        multiple = sign * float(inputs["standard_deviations"])
+    shallow, deep = (z.min(), z.max()) if trend == "depth" else (z.max(), z.min())
+    return (
+        {
+            "intercept": line.intercept,
+            "slope": line.slope,
+            "count": n,
+            "mean_vertical": float(z.mean()),
+            "sum_of_squares": float(np.sum((z - z.mean()) ** 2)),
+            "residual_standard_deviation": deviation,
+            "r_squared": line.r_squared,
+            "band": band,
+            "quantile_factor": factor,
+            "multiple": multiple,
+            "lognormal": lognormal,
+            "top": float(shallow),
+            "base": float(deep),
+            "vertical": [float(v) for v in z],
+            "residuals": [float(r) for r in residuals],
+        },
+        counts,
+        None,
+    )
+
+
+def _trend_statistics(
+    line: dict[str, Any], trend: str, method: str
+) -> dict[str, float]:
+    """Return a trend group's columns of ``to_frame()``."""
+    top, base = trend_at(line, [line["top"], line["base"]])
+    return {
+        "line_intercept": line["intercept"],
+        "line_slope": line["slope"],
+        "residual_standard_deviation": line["residual_standard_deviation"],
+        "r_squared": line["r_squared"],
+        **(
+            {}
+            if method == "standard_deviations"
+            else {"quantile_factor": line["quantile_factor"]}
+        ),
+        f"{trend}_top": line["top"],
+        f"{trend}_base": line["base"],
+        "value_top": float(top),
+        "value_base": float(base),
+    }
+
+
+def _censored_from_trend(group: _fit.Group) -> str:
+    """Say which way leaving out a group's censored values moves its line.
+
+    Spec decision 8.
+    """
+    values = group.values
+    at_least = values.right.size + len(values.interval)
+    at_most = values.left.size
+    lower = (
+        "lower than the data, so a low-side line is more cautious and a high-side "
+        "line less"
+    )
+    higher = (
+        "higher than the data, so a low-side line is less cautious and a high-side "
+        "line more"
+    )
+    if at_least and at_most:
+        effect = (
+            f"the {at_least} at least their value pull the line {lower}; the "
+            f"{at_most} at most their value pull it {higher}"
+        )
+    elif at_least:
+        effect = f"they are at least their value, so the line is {lower}"
+    else:
+        effect = f"they are at most their value, so the line is {higher}"
+    return (
+        f"{group.label}: {values.censored} censored values left out of the "
+        f"trend; {effect}."
+    )
+
+
 def _number(name: str, given: Any) -> float:
     if isinstance(given, bool) or not isinstance(given, int | float):
         raise HangtuError(f"{FUNCTION} {name}= is a number, not {given!r}.")
@@ -689,6 +919,7 @@ def _notes(
     lognormal: bool,
     inputs: dict[str, Any],
     capped: bool,
+    trend: str | None,
 ) -> list[str]:
     """Return the result's lines under the table."""
     read = found.read
@@ -705,10 +936,21 @@ def _notes(
             f"θ/L = {ratio:g} is above 1, so Γ² = 1, the most it can be "
             "(JRC Equation 17, p. 57): the estimate is the fractile's."
         )
+    if trend is not None:
+        notes.append(
+            f"Trend: a least-squares line on {trend} (Bond & Harris 2008, JRC "
+            "Equations 39-43, pp. 83-85), given over each group's values only. "
+            "It assumes the scatter about the line is the same at every "
+            f"{trend}, random and normal (JRC p. 86); that isn't tested, so "
+            "look at the residuals."
+        )
     if lognormal:
         notes.append(
             "Lognormal: the formulae are applied to ln x and transformed back "
             "(JRC Annex IV)."
+            if trend is None
+            else "Lognormal: the line is fitted to ln x and transformed back "
+            "(JRC §5.2.4, p. 86), so its mean is the median of x."
         )
     assumed = sum(group["counts"]["count_assumed"] for group in groups)
     if include_assumed and assumed:

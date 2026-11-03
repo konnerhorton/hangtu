@@ -308,9 +308,12 @@ A refactor, no behavior change.
 
 ### 4. `M18: add depth and elevation trends to representative()` (Opus)
 - `_representative.py`: `trend=` reads `depth` or `elevation` (a `ColumnError` without it); censored rows left
-  out and counted with the direction note (spec decision 8); 🟡 a row with a value but no depth (elevation)
-  left out and counted as `count_blank_depth` (`count_blank_elevation`), named against the registry in this
-  step. Least squares a₀, a₁, sₑ (n − 2), R², z̄, Σ(z − z̄)², the depth range; the confidence (mean), prediction
+  out and counted with the direction note (spec decision 8); a row with a value but no depth (elevation)
+  left out and counted as `count_blank_depth` (`count_blank_elevation`; no `count_*` name is in the registry,
+  and the frame's range columns reuse the registry's `depth_top`/`depth_base` and
+  `elevation_top`/`elevation_base`). For a trend, `count` is the values on the line. The depth needs its unit
+  like the value, and `display_units=` converts it too. One function, `_result.trend_at()`, evaluates a line,
+  for `.to_frame()` now and `.design_lines()` in step 5. Least squares a₀, a₁, sₑ (n − 2), R², z̄, Σ(z − z̄)², the depth range; the confidence (mean), prediction
   (fractile), z_p sₑ (percentile) and k sₑ (standard deviations) lines; lognormal on ln x with the median note.
   Fewer than 3 values or fewer than 2 distinct depths: no line, with the reason. Assumptions stated in the note
   (decision 9).
