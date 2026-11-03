@@ -119,7 +119,9 @@ ht.stats.representative(
     sensitivity_index=None,       # intermediate: Γ² given directly, instead of θ and L
     percentile=None,              # percentile: e.g. 5
     standard_deviations=None,     # standard_deviations: the multiple k
-    pool=None, include_assumed=False, units=None, display_units=None,
+    pool=None, include_assumed=False,
+    spt_refusal_upper_limit=None, judgments=None,  # as in fit() (plan amendment)
+    units=None, display_units=None,
 ) -> RepresentativeResult
 ```
 1. **One view per call, every judgment on the call** (spec decision, 2026-11-03). `method`, `side` and

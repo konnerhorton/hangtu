@@ -331,6 +331,145 @@ class FitResult(_Result):
         return f"<pre>{html.escape(str(self))}</pre>"
 
 
+@dataclass(frozen=True, repr=False)
+class RepresentativeResult(_Result):
+    """The representative values ``ht.stats.representative()`` returns.
+
+    Use ``.to_frame()`` for a table with one row per group, ``.to_dict()``
+    for a report, or ``print(result)`` to read it with its inputs and notes.
+    Every judgment the view used is recorded here, with the statistics
+    behind each value.
+    """
+
+    #: The columns grouped by, in order.
+    by: tuple[str, ...]
+    #: The source columns pooled on purpose (``pool=``).
+    pooled: tuple[str, ...]
+    include_assumed: bool
+    #: The system the values were converted to first, None if not.
+    display_units: str | None
+    #: The view: ``"characteristic"``.
+    method: str
+    #: ``"low"`` or ``"high"``.
+    side: str
+    #: ``"normal"`` or ``"lognormal"``.
+    distribution: str
+    #: None (constant per group), ``"depth"`` or ``"elevation"``.
+    trend: str | None
+    #: The characteristic value's estimate: ``"mean"``, ``"fractile"`` or
+    #: ``"intermediate"`` (EC7 Types A, B and C), None for another method.
+    estimate: str | None
+    #: V_X as given (Case 3), None when computed from the data (Case 2).
+    coefficient_of_variation: float | None
+    #: 2 (V_X computed) or 3 (V_X assumed) for a characteristic value.
+    coefficient_of_variation_case: int | None
+    #: θ and L as given, in one length unit, for Type C.
+    scale_of_fluctuation: float | None
+    failure_length: float | None
+    #: Γ² used: 0 (Type A), 1 (Type B), or θ/L capped at 1 or as given (C).
+    sensitivity_index: float
+    #: One record per group: its key, counts, the statistics behind its
+    #: value, the value, and the reason it has none.
+    groups: tuple[dict[str, Any], ...]
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return one row per group, with ``value`` and the statistics behind it.
+
+        A group with no value has ``value`` blank and its ``reason``.
+        ``attrs["units"]`` gives the unit of each column that has one.
+        """
+        statistics: list[str] = []
+        for group in self.groups:
+            statistics += [n for n in group["statistics"] if n not in statistics]
+        rows = [
+            {
+                **group["key"],
+                "value": group["value"],
+                "count": group["counts"]["count"],
+                "count_censored": group["counts"]["count_censored"],
+                **group["statistics"],
+                "reason": group["reason"],
+                **{name: group["counts"].get(name, 0) for name in self._counts()},
+            }
+            for group in self.groups
+        ]
+        columns = [
+            *self.by,
+            "value",
+            "count",
+            "count_censored",
+            *statistics,
+            "reason",
+            *self._counts(),
+        ]
+        frame = pd.DataFrame(rows, columns=columns)
+        frame.attrs["units"] = (
+            {}
+            if self.unit is None
+            else {
+                name: self.unit for name in columns if name in _REPRESENTATIVE_WITH_UNIT
+            }
+        )
+        return frame
+
+    def _counts(self) -> list[str]:
+        names = list(_FIT_COUNTS)
+        if self.distribution == "lognormal":
+            names.append("count_not_positive")
+        return names
+
+    def _view(self) -> str:
+        """Name the view: ``characteristic, mean (Type A), V_X computed, low``."""
+        parts = [self.method]
+        if self.method == "characteristic":
+            assert self.estimate is not None  # required for the method
+            parts.append(f"{self.estimate} (Type {_TYPES[self.estimate]})")
+            parts.append(
+                "V_X computed (Case 2)"
+                if self.coefficient_of_variation is None
+                else f"V_X assumed {self.coefficient_of_variation:g} (Case 3)"
+            )
+            if self.estimate == "intermediate":
+                parts.append(f"Γ² = {self.sensitivity_index:.4g}")
+        parts += [self.distribution, self.side]
+        return ", ".join(parts)
+
+    def __str__(self) -> str:
+        frame = self.to_frame()
+        shown = [
+            name
+            for name in frame.columns
+            if name not in (*self.by, "reason", *self._counts())
+            and frame[name].notna().any()
+        ]
+        title = self.value or "Values"
+        lines = [title + (f" ({self.unit})" if self.unit else ""), self._view()]
+        rows = [["", *(_REPRESENTATIVE_HEADINGS.get(n, _heading(n)) for n in shown)]]
+        for group, (_, row) in zip(self.groups, frame.iterrows(), strict=True):
+            rows.append([_label(group["key"]), *(_cell(row[name]) for name in shown)])
+        lines += _table(rows, indent="  ")
+        for group in self.groups:
+            if group["reason"]:
+                lines.append(f"  {_label(group['key'])}: no value, {group['reason']}")
+        return "\n".join([*lines, *self.notes])
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    def _repr_html_(self) -> str:
+        return f"<pre>{html.escape(str(self))}</pre>"
+
+
+_TYPES = {"mean": "A", "fractile": "B", "intermediate": "C"}
+#: The representative result's columns in the value's unit.
+_REPRESENTATIVE_WITH_UNIT = {"value", "mean", "standard_deviation", "geometric_mean"}
+_REPRESENTATIVE_HEADINGS = {
+    "quantile_factor": "t or N",
+    "statistical_coefficient": "k_n",
+    "sensitivity_index": "Γ²",
+}
+
+
 #: The fitted distribution's statistics, in the value's unit.
 _FIT_STATISTICS = (
     "mean",
