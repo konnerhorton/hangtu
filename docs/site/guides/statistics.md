@@ -79,6 +79,8 @@ The unit comes from `units=`, then from the dataset's declared units, and counts
 
 `fit()` doesn't choose a distribution for you. It shows how the candidates compare, so the choice you make, and record, rests on the data.
 
+**From a distribution to a design value.** `ht.stats.representative()` turns the values into the cautious estimate a report states, per unit or as a line with depth: Eurocode 7's characteristic value, a percentile of the fit, or the mean less k standard deviations. See [Representative values](representative-values.md).
+
 ## Comparing groups
 
 `ht.stats.compare()` tests whether a property differs between two groups: two geology units (one parameter set or two?), two areas of a site, or two sources before you pool them (`by="correlation_name"`, `by="source"`). `ht.stats.compare_groups()` does the same for three or more, overall and for every pair. Both read the rows as `describe()` does: the same flags, counts, sources, `pool=` and units.
@@ -138,5 +140,6 @@ The usual recipe, test for normality and then choose a t-test or a rank test, ch
 - [`ht.stats.describe`](../reference/stats.md#hangtu.stats.describe), [`ht.stats.DescribeResult`](../reference/stats.md#hangtu.stats.DescribeResult)
 - [`ht.stats.fit`](../reference/stats.md#hangtu.stats.fit), [`ht.stats.FitResult`](../reference/stats.md#hangtu.stats.FitResult), and the [distribution fit plot](../plots/distribution-fit.md)
 - [`ht.stats.compare`](../reference/stats.md#hangtu.stats.compare), [`ht.stats.compare_groups`](../reference/stats.md#hangtu.stats.compare_groups), [`ht.stats.CompareResult`](../reference/stats.md#hangtu.stats.CompareResult), [`ht.stats.CompareGroupsResult`](../reference/stats.md#hangtu.stats.CompareGroupsResult)
+- [Representative values](representative-values.md): [`ht.stats.representative`](../reference/stats.md#hangtu.stats.representative), [`ht.stats.RepresentativeResult`](../reference/stats.md#hangtu.stats.RepresentativeResult)
 - [`ht.stats.crosstab`](../reference/stats.md#hangtu.stats.crosstab), [`ht.stats.CrosstabResult`](../reference/stats.md#hangtu.stats.CrosstabResult)
 - [Judgments](judgments.md): a summary informs a judgment, such as each unit's PI, but never sets one.

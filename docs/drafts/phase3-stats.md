@@ -17,4 +17,4 @@
 | `compare` ✅ | Decided and built in M15 (d): `docs/work/m15d-compare.md` and SPEC §5 |
 | `compare_groups` ✅ | Decided and built in M15 (d): `docs/work/m15d-compare.md` and SPEC §5 |
 | `crosstab` ✅ | Decided and built in M15 (e): `docs/work/m15e-crosstab.md` and SPEC §5 |
-| `characteristic` 🔬 | Moved to M18 (selection). EC7 characteristic value (see `docs/reference/eurocode7-summary.md` §7; TODO #13). Plot: P09 |
+| `characteristic` | Built as `representative()` in M18 (b) (`docs/work/m18b-representative-values.md`): EC7's characteristic value is one of its views. Plot: P09 |

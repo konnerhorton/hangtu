@@ -87,6 +87,8 @@ Together these give σ²(Γ² + 1/n), hence k_n = t·√(Γ² + 1/n) in section 
 - θ_h is usually much larger than θ_v, often 10–40 times, because soil is deposited in horizontal layers. Typical ranges are θ_v ≈ 0.5–3 m and θ_h ≈ 10–80 m or more. ⚠️ (Phoon & Kulhawy 1999, from memory; check before use)
 - L and θ must be in the **same direction**: use θ_v for a pile shaft and θ_h for a long, mostly horizontal slip surface.
 
+**Γ² in the JRC report** (checked 2026-11-03, M18 (b)): Γ² = θ/L (Equation 17, p. 57), with "a maximum value of 1 is adopted". This is what `ht.stats.representative()` uses. The variance function below isn't in the report; it is Vanmarcke's, from memory, and unverified ⚠️.
+
 **Variance function.** For the exponential correlation model:
 
 ```
@@ -246,29 +248,9 @@ The themes that recur in both generations, translated into hangtu QC requirement
 
 ---
 
-## 7. Proposed hangtu API (feeds into SPEC.md §7)
+## 7. hangtu API
 
-```python
-res = ht.stats.characteristic(
-    values,                    # array/Series of derived values in one geotechnical unit
-    estimate="mean",           # "mean" (Type A) | "fractile" (Type B) | "intermediate" (Type C, needs gamma2)
-    side="low",                # "low" (inferior, default) | "high" (superior)
-    vx=None,                   # None → Case 2 (computed); float → Case 1/3 (known/assumed)
-    vx_source="assumed",       # "known" | "assumed" (labels the case in output)
-    distribution="normal",     # "normal" | "lognormal"
-    gamma2=None,               # sensitivity index θ/L for Type C
-    method="ec7",              # "ec7" | "schneider" | "simplified_fractile"
-)
-res.value      # X_k
-res.summary()  # n, mean, s, V_X, k_n, case/type combination (e.g. "B2"), warnings (small n, negative X_k, high V_X)
-```
-
-**Open points from section 3.2:**
-- The `estimate="mean"` default is the least conservative option and hides the main judgment call. Consider making `estimate` required.
-- Consider taking `scale_of_fluctuation` and `failure_length` (with units and direction) and computing Γ² with the variance function, keeping `gamma2=` as an override. Accepting a range of θ and reporting X_k at both ends would show the sensitivity.
-- Warn when the sample spacing is less than θ, because the effective n is then below the count.
-
-**Golden tests:** the JRC report's worked examples (Annexes I–III: Coca slope, Göta älv c_u, Perniö clay) give published inputs and outputs we can use for regression tests.
+Superseded by `ht.stats.representative()` (M18 (b)): the spec, its decisions and golden values from the JRC worked examples are in [`docs/work/m18b-representative-values.md`](../work/m18b-representative-values.md), the behavior in SPEC §5 ("Representative values") and the function's docstring. Every judgment (the method, side, distribution, type of estimate, V_X, θ and L) is a required argument, with no default. Still open (TODO #13): the Angus (1988) bound on the mean for a lognormal trend, and whether to compute Γ² from a variance function.
 
 ---
 

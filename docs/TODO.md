@@ -80,23 +80,14 @@ The rest of this item is built (M15 (c), SPEC §5): refusals and `<x`/`>x` are f
 - Johnson, N.L., Kotz, S. & Balakrishnan, N. (1994). *Continuous Univariate Distributions*, Vol. 1, 2nd ed. Wiley. Truncated normal and lognormal.
 - SciPy docs: `scipy.stats.truncnorm`.
 
-### 13. `characteristic()` (Eurocode 7) · You · docs/drafts/phase3-stats.md, docs/reference/eurocode7-summary.md · M18
-**Deferred** (2026-10-29) to M18 (selection), with P09, which needs it. Its judgments (the type of estimate, θ, L, an assumed V_X), the lognormal formulae and the framing for US users are settled there.
-
-**One view among several** (decided 2026-11-02): M18's selection is not built around `characteristic()`. Most users will want a design line with depth or a cautious estimate per unit in their own practice's terms; EC7's characteristic value is one of the views a selection result offers (SPEC §5, "one calculation, many views"), for European work. Which other views M18 offers (a lower percentile, mean minus a multiple of the standard deviation, a lower-bound line) is for its spec.
-
-Open research points:
-- **Type C** needs the scale of fluctuation θ. How will users estimate it? Options: a user input, or typical values from the literature (Phoon & Kulhawy 1999), with a default to Type A or B.
-- Verify the **lognormal** Annex A formulae (A.5–A.7) and the Angus (1988) mean bound against a purchased copy of EN 1997-1:2024.
-- **Depth-trend** characteristic values: the regression prediction interval. Check the n−2 degrees-of-freedom convention.
-- Censored SPT data: settled. Refusals enter as in `fit()` (SPEC §5, Fitting): right-censored, or interval-censored with the judged upper limit. Under "statistics are designed for lab data" (SPEC §5), Type C on SPT is probably not worth offering; decide in M18's spec.
+### 13. Representative values: what stays open · You · `docs/reference/eurocode7-summary.md` §3.2, §3.5 · when a project needs it
+`ht.stats.representative()` was built in M18 (b) (`docs/work/m18b-representative-values.md`); its decisions are in SPEC §5 ("Representative values"). Two points stay open:
+- **The Angus (1988) bound on the mean of a lognormal trend.** A lognormal line through ln x gives the median; the JRC report mentions Angus's approximation for a proper confidence bound on the mean. Not offered: verify it against the source before building it.
+- **Γ² from a variance function.** The JRC report gives Γ² = θ/L, capped at 1, which hangtu uses. Vanmarcke's variance function for the exponential correlation model (in the EC7 summary §3.2, unverified) gives a smooth Γ² that needs no cap. Build only once it is checked against Vanmarcke (1983) and a user needs it; estimating θ from a CPT is a separate helper.
 
 **References:**
-- JRC (2025), EUR 40260 (see the EC7 summary).
-- Schneider, H.R. (1997). Definition and determination of characteristic soil properties. *Proc. 14th ICSMFE*, Hamburg.
-- Vanmarcke, E.H. (1977). Probabilistic modeling of soil profiles. *J. Geotech. Eng. Div. ASCE* 103(11), 1227–1246.
-- Vanmarcke, E.H. (1983). *Random Fields: Analysis and Synthesis*. MIT Press.
 - Angus, J.E. (1988). Inferences on the lognormal mean for complete samples. *Communications in Statistics – Simulation and Computation* 17(4).
+- Vanmarcke, E.H. (1983). *Random Fields: Analysis and Synthesis*. MIT Press.
 
 ---
 

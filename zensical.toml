@@ -28,6 +28,7 @@ nav = [
     "guides/judgments.md",
     "guides/correlations.md",
     "guides/statistics.md",
+    "guides/representative-values.md",
   ] },
   { "Plots" = [
     "plots/index.md",

@@ -174,7 +174,7 @@ def representative(
     - percentile: $\hat{x}(z) + z_p s_e$; standard deviations:
       $\hat{x}(z) \mp k s_e$.
 
-    The bands curve away from the data's centre, so a line is given over its
+    The bands curve away from the data's center, so a line is given over its
     group's depths (elevations) only, never beyond. It needs at least 3
     values at 2 or more depths; ``coefficient_of_variation=`` and Type C
     are errors with a trend, since the report gives neither (p. 82).
@@ -289,8 +289,9 @@ def representative(
     as the JRC report gives it (Equations 39-43).
 
     Orr, T., Sorgatz, J., Estaire, J. et al. (2025). *Determination of
-    characteristic values of ground properties in the second generation of
-    Eurocode 7*. JRC, EUR 40260 (CC BY 4.0), which quotes EN 1997-1:2024.
+    representative values from derived values for verification with limit
+    states with EN 1997*. JRC, EUR 40260, doi:10.2760/0980105 (CC BY 4.0),
+    which quotes EN 1997-1:2024.
 
     Examples
     --------
@@ -629,7 +630,7 @@ def _characteristic(
     inputs: dict[str, Any],
 ) -> tuple[float, dict[str, float]]:
     """Return EC7's characteristic value and its statistics (spec decisions 3, 4)."""
-    centre, spread = moments
+    center, spread = moments
     assumed = inputs["coefficient_of_variation"]
     gamma2 = inputs["sensitivity_index"]
     if assumed is None:
@@ -639,9 +640,9 @@ def _characteristic(
     coefficient = factor * math.sqrt(gamma2 + 1 / n)
     if lognormal:
         deviation = spread if assumed is None else math.sqrt(math.log1p(assumed**2))
-        result = math.exp(centre + sign * coefficient * deviation)
+        result = math.exp(center + sign * coefficient * deviation)
         statistics = {
-            "geometric_mean": math.exp(centre),
+            "geometric_mean": math.exp(center),
             "geometric_standard_deviation": math.exp(deviation),
             "coefficient_of_variation": (
                 math.sqrt(math.expm1(spread**2)) if assumed is None else assumed
@@ -649,14 +650,14 @@ def _characteristic(
         }
     else:
         result = (
-            centre + sign * coefficient * spread
+            center + sign * coefficient * spread
             if assumed is None
-            else centre * (1 + sign * coefficient * assumed)
+            else center * (1 + sign * coefficient * assumed)
         )
         statistics = {
-            "mean": centre,
+            "mean": center,
             "standard_deviation": spread,
-            "coefficient_of_variation": _variation(centre, spread, assumed),
+            "coefficient_of_variation": _variation(center, spread, assumed),
         }
     return result, {
         **statistics,
@@ -702,28 +703,28 @@ def _standard_deviations(
     moments: tuple[float, float], sign: float, lognormal: bool, multiple: Any
 ) -> tuple[float, dict[str, float]]:
     """Return the mean less (or plus) k standard deviations (spec decision 6)."""
-    centre, spread = moments
+    center, spread = moments
     if lognormal:
-        return math.exp(centre + sign * multiple * spread), {
-            "geometric_mean": math.exp(centre),
+        return math.exp(center + sign * multiple * spread), {
+            "geometric_mean": math.exp(center),
             "geometric_standard_deviation": math.exp(spread),
         }
-    return centre + sign * multiple * spread, {
-        "mean": centre,
+    return center + sign * multiple * spread, {
+        "mean": center,
         "standard_deviation": spread,
-        "coefficient_of_variation": _variation(centre, spread, None),
+        "coefficient_of_variation": _variation(center, spread, None),
     }
 
 
-def _variation(centre: float, spread: float, assumed: float | None) -> float:
+def _variation(center: float, spread: float, assumed: float | None) -> float:
     """Return V_X: as assumed, else s / x̄ (NaN for a mean of 0)."""
     if assumed is not None:
         return assumed
-    return spread / centre if centre else math.nan
+    return spread / center if center else math.nan
 
 
 def _moments(values: _fit.Values, lognormal: bool) -> tuple[float, float] | None:
-    """Return the centre and spread: of x, or of ln x when ``lognormal``.
+    """Return the center and spread: of x, or of ln x when ``lognormal``.
 
     The sample's (spread with n - 1) without censoring; with it, the censored
     maximum-likelihood fit's (intent decision 2), None if that fails.
@@ -737,12 +738,12 @@ def _moments(values: _fit.Values, lognormal: bool) -> tuple[float, float] | None
     except Exception:  # SciPy raises several kinds
         return None
     if lognormal:
-        centre, spread = math.log(parameters["scale"]), parameters["s"]
+        center, spread = math.log(parameters["scale"]), parameters["s"]
     else:
-        centre, spread = parameters["loc"], parameters["scale"]
-    if not (math.isfinite(centre) and math.isfinite(spread)):
+        center, spread = parameters["loc"], parameters["scale"]
+    if not (math.isfinite(center) and math.isfinite(spread)):
         return None
-    return centre, spread
+    return center, spread
 
 
 def _vertical(
