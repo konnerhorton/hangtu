@@ -2,7 +2,9 @@
 
 A judgment has no default. Analyses take it from an argument, then from
 ``judgments=``, then from the Project's file, else raise. The file format and
-its checks are in ``docs/work/m13a-judgments.md``, Spec Decision 1.
+its checks are in ``docs/work/m13a-judgments.md``, Spec Decision 1. The one
+optional judgment, the SPT refusal upper limit, leaves refusals right-censored
+when unset (docs/work/m18a-refusals.md, Decision 1).
 """
 
 import hashlib
@@ -30,6 +32,7 @@ class Kind:
     by: str | None  # the column keys match, when fixed
     unitless: bool = False  # a pure number: no units block (m14b, Decision 4)
     project_only: bool = False  # one value for the project, no keys (m15d, Decision 8)
+    none_allowed: bool = False  # a value may be none, on purpose (m18a, Decision 3)
 
 
 KINDS = {
@@ -77,10 +80,21 @@ KINDS = {
         unitless=True,
         project_only=True,
     ),
+    # docs/work/m18a-refusals.md, spec item 1 and Decisions 1-3: field N, so
+    # one limit serves every N column; none keeps a unit right-censored.
+    "spt_refusal_upper_limit": Kind(
+        keyed="values",
+        fields={"spt_n": "dimensionless"},
+        required=("spt_n",),
+        one_of=(),
+        by="geology_unit",
+        unitless=True,
+        none_allowed=True,
+    ),
 }
 
 #: Fields that must be positive (a water level may be above ground).
-POSITIVE = {"bulk_unit_weight", "saturated_unit_weight", "specific_gravity"}
+POSITIVE = {"bulk_unit_weight", "saturated_unit_weight", "specific_gravity", "spt_n"}
 #: Fields that may be zero but not negative.
 NON_NEGATIVE = {"plasticity_index"}
 #: Fields strictly between 0 and 1: a probability.
@@ -101,6 +115,8 @@ PLAUSIBLE = {
     ),
 }
 
+#: A field written ``none`` (m18a, Decision 3), held as no limit at all.
+NONE = "none"
 #: Units shown in examples, as they are written in the file.
 EXAMPLE_UNITS = {"unit_weight": "kN/m3", "length": "m", "dimensionless": '"%"'}
 
@@ -142,7 +158,12 @@ class Read:
 
 
 def quantity_text(value: float, unit: str) -> str:
-    """``18.5 kN/m3``: a value with its unit, as recorded on results."""
+    """``18.5 kN/m3``: a value with its unit, as recorded on results.
+
+    An infinite value is a field written ``none``, and is shown so.
+    """
+    if math.isinf(value):
+        return NONE
     return f"{value:g} {unit}" if unit else f"{value:g}"
 
 
@@ -243,6 +264,11 @@ def judgments(path: str | PathLike[str]) -> Judgments:
             Alluvium: {specific_gravity: 2.68, reason: "median of 6 LPDN, measured"}
         significance_level:         # one value for the project, no keys
           project: {significance_level: 0.05, reason: "the usual convention"}
+        spt_refusal_upper_limit:
+          by: geology_unit          # always; no units: field N, blows per foot
+          values:
+            Terrace:  {spt_n: 120, reason: "50 blows for 5 in at refusal, per foot"}
+            Alluvium: {spt_n: none, reason: "refusals on cobbles, not the clay"}
         ```
 
         - `unit_weight` entries take `bulk_unit_weight` (required) and
@@ -262,8 +288,17 @@ def judgments(path: str | PathLike[str]) -> Judgments:
           and 1, which warns outside 0.001-0.2. `ht.stats.compare()` and
           `ht.stats.compare_groups()` test at it and give intervals at
           1 - α.
+        - `spt_refusal_upper_limit` entries take `spt_n`, field N in blows
+          per foot, a positive number or `none`, keyed by `geology_unit`.
+          `ht.stats.fit()` fits a refusal as lying between its value and this
+          limit, scaled to the column fitted by the row's own factors (value
+          / `spt_n`). It is the top of a refusal's interval, not the cap
+          (`spt_cap`), its bottom. `none` keeps a unit's refusals
+          right-censored on purpose. Unlike other judgments it is optional:
+          without it, refusals are right-censored.
         - `units:` gives a unit for every field used, except for
-          `specific_gravity` and `significance_level`, which have none.
+          `specific_gravity`, `significance_level` and
+          `spt_refusal_upper_limit`, which have none.
         - `project:` needs a `reason`. It is optional except for
           `significance_level`, and used, with a warning, for every unit or
           hole the keyed entries don't list.
@@ -281,9 +316,10 @@ def judgments(path: str | PathLike[str]) -> Judgments:
     HangtuError
         Naming the file, the judgment and the entry for an unknown key or
         field, a missing `units`, `by` or `reason`, a wrong unit, a value that
-        isn't a number (or isn't positive, for unit weights and Gs, or isn't
-        between 0 and 1, for α), a `units` block for Gs or α, keys for α, or
-        invalid YAML.
+        isn't a number (or isn't positive, for unit weights, Gs and the
+        refusal limit, or isn't between 0 and 1, for α), a `units` block for
+        Gs, α or the refusal limit, keys for α, a `by:` other than
+        `geology_unit` for the refusal limit, or invalid YAML.
     FileNotFoundError
         If there is no file at `path`.
 
@@ -355,6 +391,9 @@ def _check_judgment(name: str, body: Any, where: str) -> Judgment:
     sections: tuple[str, ...] = ("by", "units", "project", kind.keyed)
     if kind.by is not None:
         sections = ("units", "project", kind.keyed)
+        if kind.keyed == "values":
+            # Keyed values come with by: elsewhere, so it may be written here.
+            sections = ("by", *sections)
     if kind.unitless:
         sections = tuple(section for section in sections if section != "units")
     if kind.project_only:
@@ -388,6 +427,11 @@ def _check_judgment(name: str, body: Any, where: str) -> Judgment:
     )
     keyed = body.get(kind.keyed)
     by = kind.by
+    if kind.by is not None and body.get("by") not in (None, kind.by):
+        raise HangtuError(
+            f"{where}, by: {name} is keyed by {kind.by}, not {body.get('by')!r}. "
+            f"Write by: {kind.by}, or leave the line out."
+        )
     if kind.by is None:
         by = body.get("by")
         if keyed is not None and by is None:
@@ -496,6 +540,9 @@ def _check_entry(
         if field not in entry:
             continue
         value = entry[field]
+        if kind.none_allowed and isinstance(value, str) and value.strip() == NONE:
+            values[field] = math.inf
+            continue
         if (
             isinstance(value, bool)
             or not isinstance(value, int | float)
@@ -513,6 +560,8 @@ def _check_entry(
                 if field in NON_NEGATIVE
                 else "a number"
             )
+            if kind.none_allowed:
+                sign += f", or {NONE} for no limit on purpose"
             raise HangtuError(f"{where}, {field}: must be {sign}, not {value!r}.")
         if field not in units_by_field:
             raise HangtuError(
