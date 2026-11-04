@@ -5,6 +5,7 @@ Python library that derives the ground parameters a geotechnical design needs, f
 ## Where things are
 - `SPEC.md`: product spec and cross-cutting decisions. Read the relevant section before designing anything.
 - `docs/data/`: data-layer specs that outlive a unit of work (`ingest.md`, M5; `qc.md`, M6; `datasets.md`, M7).
+- `docs/analysis/`: analysis specs that outlive a unit of work (`correlations.md`, the contract every correlation follows; `statistics.md`, what each `ht.stats` function does). Update them when the behavior changes.
 - `docs/plots/PXX-*.md`: one spec per figure, with acceptance criteria. `docs/plots/README.md` has the shared plot conventions.
 - `docs/drafts/parameters/`: one draft reference sheet per ground parameter (tests, methods, sources with [V]/[U] tags), the page template with the docstring checklist, and the index (`README.md`) that tracks each parameter's stages A–D. Sheets are not decisions until a wave promotes them to `docs/site/parameters/`.
 - `docs/plots/drafts/`: draft notes for plots not yet specified, in the TEMPLATE format, including proposed IDs P24–P30. They are not decisions. When a plot's unit of work starts, promote its draft to `docs/plots/PXX-*.md` in the spec step.
