@@ -13,6 +13,7 @@ from hangtu.plot._palette import legend_handles, palette_cmap, reset_palette
 from hangtu.plot._plasticity_chart import plasticity_chart
 from hangtu.plot._profile import profile
 from hangtu.plot._representative_profile import representative_profile
+from hangtu.plot._shear_box_envelope import shear_box_envelope
 from hangtu.plot._spt_histogram import spt_histogram
 from hangtu.plot._spt_profile import spt_profile
 from hangtu.plot._triaxial_shearing import triaxial_shearing
@@ -32,6 +33,7 @@ __all__ = [
     "profile",
     "representative_profile",
     "reset_palette",
+    "shear_box_envelope",
     "spt_histogram",
     "spt_profile",
     "style",
