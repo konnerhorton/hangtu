@@ -680,10 +680,11 @@ def format_number(value: float) -> str:
     """
     if value == 0 or not np.isfinite(value):
         return f"{value:g}"
-    exponent = math.floor(math.log10(abs(value)))
+    # The exponent of the rounded value: 0.0999999 rounds to 0.100, not 0.1000.
+    rounded = float(f"{value:.3g}")
+    exponent = math.floor(math.log10(abs(rounded)))
     if not -2 <= exponent < 6:
         return f"{value:.2e}"
-    rounded = float(f"{value:.3g}")
     return f"{rounded:,.{max(0, 2 - exponent)}f}"
 
 
