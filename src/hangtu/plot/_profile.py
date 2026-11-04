@@ -2,6 +2,7 @@
 
 import math
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass, field
 from typing import Any, Literal, NamedTuple
 
 import matplotlib.pyplot as plt
@@ -10,8 +11,9 @@ import pandas as pd
 from matplotlib.artist import Artist
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from matplotlib.legend import Legend
 from matplotlib.patches import Patch
-from matplotlib.text import Text
+from matplotlib.text import Annotation, Text
 
 from hangtu import units as _units
 from hangtu._data import rows_text, text_values
@@ -21,7 +23,7 @@ from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.plot import _layers, _presets, _text_values, _value_ranges, _values, style
 from hangtu.plot._hints import hint_missing
 from hangtu.plot._labels import axis_label
-from hangtu.plot._legend import add_legend, check_legend
+from hangtu.plot._legend import Where, add_legend, check_legend
 from hangtu.plot._limits import (
     apply_vertical_axis,
     nice_limits,
@@ -89,24 +91,65 @@ class Companion(NamedTuple):
     ]
 
 
+@dataclass
+class ProfileLegend:
+    """A profile's legend and footnote, kept so a later call can redraw them.
+
+    - ``sections``: the legend entries by section, as ``add_legend`` takes.
+    - ``notes``: the footnote's counts and text.
+    - ``offset``, ``where``: as passed to ``add_legend``.
+    - ``legend``, ``footnote``: the artists drawn, None when there are none.
+    """
+
+    sections: list[list[Artist]]
+    notes: Notes
+    offset: float
+    where: Where | None
+    legend: Legend | None = None
+    footnote: Annotation | None = None
+    #: The footnote lines the legend added (too many entries), replaced on a redraw.
+    legend_texts: list[str] = field(default_factory=list)
+
+    def draw(self, ax: Axes) -> None:
+        """Draw the legend and footnote, replacing any drawn before."""
+        for artist in (self.legend, self.footnote):
+            if artist is not None:
+                artist.remove()
+        for text in self.legend_texts:
+            self.notes.texts.remove(text)
+        before = len(self.notes.texts)
+        placed = add_legend(ax, self.sections, self.notes, self.offset, self.where)
+        self.legend_texts = self.notes.texts[before:]
+        self.legend = placed.legend
+        self.footnote = self.notes.render(ax, self.offset, placed.where, placed.legend)
+
+
 class ProfileAxes(NamedTuple):
     """How a profile drew its axes, kept as ``ax.ags_profile``.
 
     A plot built on the profile reads it to draw into the same axes again
     in the same coordinates (P09 ``values=False``).
 
+    - ``value``: the column drawn.
     - ``vertical``: the vertical reference, as ``Vertical``.
     - ``scale``: how values are drawn, as ``ValueScale``.
     - ``colors``: ``{color group: color}`` in legend order.
     - ``lowest``: the data's vertical value nearest the bottom of the axes
       (the deepest depth, the lowest elevation), for the room rule of a box
       at the lower left; None without data.
+    - ``room``: whether such a box may deepen the vertical axis (no
+      ``ylim=``).
+    - ``legend``: the legend and footnote, as ``ProfileLegend``; a later
+      call adds its entries and footnote lines and redraws them once.
     """
 
+    value: str
     vertical: Vertical
     scale: ValueScale
     colors: Mapping[Any, Any]
     lowest: float | None
+    room: bool
+    legend: ProfileLegend
 
 
 #: Draws over a profile's values, before its legend and footnote (P09):
@@ -847,7 +890,11 @@ def _draw_profile(
         lowest = None
         if heights.size:
             lowest = float(heights.max() if vs == "depth" else heights.min())
-        ax.ags_profile = ProfileAxes(vertical, scale, colors, lowest)  # type: ignore[attr-defined]
+        offset = SECONDARY_SPACE if secondary else 0.0
+        kept = ProfileLegend([], notes, offset, where)
+        ax.ags_profile = ProfileAxes(  # type: ignore[attr-defined]
+            value, vertical, scale, colors, lowest, ylim is None, kept
+        )
         overlay_handles = (
             [] if overlay is None else overlay(ax, vertical, scale, colors, notes)
         )
@@ -885,20 +932,16 @@ def _draw_profile(
                 room_below_data(ax, box, lowest)
         if secondary == "depth":
             add_secondary_depth(ax, vertical)
-        offset = SECONDARY_SPACE if secondary else 0.0
-        placed = add_legend(
-            ax,
-            [
+        kept.sections = [
+            list[Artist](section)
+            for section in (
                 unit_handles,
                 companion_handles,
                 overlay_handles,
                 shape_handles,
                 flagged,
                 text_handles,
-            ],
-            notes,
-            offset,
-            where,
-        )
-        notes.render(ax, offset, placed.where, placed.legend)
+            )
+        ]
+        kept.draw(ax)
     return fig, ax

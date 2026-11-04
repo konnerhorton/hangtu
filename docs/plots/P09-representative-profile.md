@@ -121,13 +121,23 @@ pairs a line with its values, and the table names the view.
 
 **Values drawn or not** (🟡, intent "Out of scope"): `values=False` draws only the lines, band and table, into
 a given `ax=` (an error without one). That is how a second view goes on the same figure: the values once, the
-views by call. A comparison of views as a feature waits for M18 (d).
+views by call. A comparison of views as a feature waits for M18 (d). Settled in the build (M18 (c) step 4):
+- `ax=` must hold a profile drawn by P09 or `profile()` (it keeps `ax.ags_profile`), of the same parameter;
+  the view is drawn in its coordinates and limits. P01's drawing arguments (`preset=`, `xlim=`, `strata=`,
+  `legend=`, …) are an error with `values=False`: they belong to the call that drew the values.
+- A second view's representative line is dash-dot, a third's dotted, so the legend tells them apart; the mean
+  and band keep their style. Its legend entries join the legend, an entry already there ("mean") once.
+- Its table rows join the table already there, after a blank line, rather than a second box over it.
+- Its footnote lines join the footnote, a line already there once; the legend and footnote are redrawn once,
+  not drawn twice. A line beyond the profile's limits is clipped and counted, as with `xlim=`.
 
 ## 9. Units behavior
 - `display_units=` goes to both `representative()` and P01, so the values, the lines and the table are in the
   same units; US and SI differ only by the conversion.
-- `RepresentativeResult.plot()` draws in the units the result was computed in (`result.display_units`, else the
-  data's); a different `display_units=` is an error naming both, rather than converting the table.
+- `RepresentativeResult.plot()` draws in the units the result was computed in (`result.display_units`); a
+  different `display_units=` is an error naming both, rather than converting the table. A result computed
+  without `display_units=` is drawn in `ht.settings.display_units`, its lines and table converted with the
+  values, as P01 has no "the data's units" (settled in the build).
 - N and dimensionless values have no unit.
 
 ## 10. API
@@ -194,7 +204,10 @@ def representative_profile(
 - **`RepresentativeResult.plot(df, **kwargs)`** draws the same figure from an existing result, with the drawing
   arguments above. The result keeps statistics, not rows, and P01 draws every row, so 🟡 it takes the data
   again and checks that they are the rows the result was computed from: the same groups with the same counts
-  (`count` and each `count_*`), else an error saying which group differs. Returns `(fig, ax)`.
+  (`count` and each `count_*`), else an error saying which group differs. Returns `(fig, ax)`. The check reruns
+  `representative()` with the view the result records; `count_interval_censored` isn't compared, because the
+  refusal limit isn't given again (the refusals are still in `count_at_least`), and `units=` is passed again
+  when the result's call took it.
 - **Sources mixed in a group:** `representative()` raises (sources aren't pooled unawares, SPEC §5), and that
   governs, as in P08. P01's "mixes sources" is a stats-box line, not used here.
 

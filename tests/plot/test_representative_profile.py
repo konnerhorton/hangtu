@@ -495,3 +495,241 @@ def test_include_assumed_puts_them_in_the_lines():
     (line,) = lines_at(ax, _layers.REPRESENTATIVE)
     np.testing.assert_allclose(line.get_xdata(), alone.groups[0]["value"], rtol=1e-12)
     assert "Not in the lines" not in footnote(ax)
+
+
+# --- criterion 7: values=False, a second view -------------------------------------
+
+PERCENTILE = {"method": "percentile", "percentile": 10, "estimate": None}
+
+
+def points(ax):
+    return np.concatenate(
+        [c.get_offsets() for c in ax.collections if isinstance(c, PathCollection)]
+    )
+
+
+def footnotes(ax):
+    from matplotlib.text import Annotation
+
+    return [
+        text
+        for text in ax.texts
+        if isinstance(text, Annotation) and text.get_bbox_patch() is None
+    ]
+
+
+def test_values_false_adds_only_a_views_lines_band_and_table():
+    df = strength().drop(index=[7, 8, 9])  # Lower keeps one value: no line
+    _, ax, first = draw(df)
+    before = points(ax)
+    fig, again, second = draw(df, ax=ax, values=False, **PERCENTILE)
+    assert again is ax and fig is ax.figure
+    np.testing.assert_array_equal(points(ax), before)  # values not redrawn
+    representative = lines_at(ax, _layers.REPRESENTATIVE)
+    assert [line.get_linestyle() for line in representative] == ["-", "-."]
+    x, y = expected(second, "Upper: percentile 10, low")
+    np.testing.assert_allclose(representative[1].get_xdata(), x, rtol=1e-12)
+    np.testing.assert_allclose(representative[1].get_ydata(), y, rtol=1e-12)
+    assert len(bands(ax)) == 2
+    # One table: the first view's rows, then the second's.
+    text = " ".join(table_lines(ax))
+    assert first._view() in text and second._view() in text
+    assert text.index(first._view()) < text.index(second._view())
+    # One legend, the mean entry once; one footnote, its shared line once.
+    assert legend_texts(ax) == [
+        "Lower",
+        "Upper",
+        "characteristic",
+        "mean",
+        "mean to characteristic",
+        "percentile 10",
+        "mean to percentile 10",
+    ]
+    assert len(footnotes(ax)) == 1
+    assert footnote(ax).count("No line: Lower") == 1
+
+
+def test_a_third_view_is_dotted():
+    _, ax, _ = draw()
+    draw(ax=ax, values=False, **PERCENTILE)
+    draw(
+        ax=ax,
+        values=False,
+        method="standard_deviations",
+        standard_deviations=1.5,
+        estimate=None,
+    )
+    styles = [line.get_linestyle() for line in lines_at(ax, _layers.REPRESENTATIVE)]
+    assert styles == ["-", "-", "-.", "-.", ":", ":"]
+    entry = ax.get_legend().legend_handles[legend_texts(ax).index("mean - 1.5 std")]
+    assert entry.get_linestyle() == ":"
+
+
+def test_values_false_draws_into_a_profile_drawn_by_profile():
+    _, ax = ht.plot.profile(strength(), "undrained_shear_strength", display_units="SI")
+    _, _, result = draw(ax=ax, values=False)
+    assert len(lines_at(ax, _layers.REPRESENTATIVE)) == 2
+    assert " ".join(table_lines(ax)).startswith(result._view()[:20])
+    assert "characteristic" in legend_texts(ax)
+
+
+def test_values_false_counts_a_line_beyond_the_profiles_limits():
+    _, ax, _ = draw(xlim=(30, 200))
+    draw(ax=ax, values=False, **PERCENTILE)  # Upper's P10 is below 30 kPa
+    assert ax.ags_notes["line_beyond_limit"] >= 1
+
+
+def test_values_false_without_ax_raises():
+    with pytest.raises(HangtuError, match="needs ax="):
+        draw(values=False)
+
+
+def test_values_false_into_axes_not_drawn_by_a_profile_raises():
+    import matplotlib.pyplot as plt
+
+    _, ax = plt.subplots()
+    with pytest.raises(HangtuError, match="wasn't drawn by"):
+        draw(ax=ax, values=False)
+
+
+def test_values_false_into_another_parameters_profile_raises():
+    df = strength(water_content=[20.0] * 10)
+    df.attrs["units"]["water_content"] = "%"
+    _, ax = ht.plot.profile(df, "water_content", display_units="SI")
+    with pytest.raises(HangtuError, match="draws 'water_content'"):
+        draw(ax=ax, values=False)
+
+
+def test_values_false_with_profiles_drawing_arguments_raises():
+    _, ax, _ = draw()
+    with pytest.raises(HangtuError, match=r"takes none of profile.*log=, note="):
+        draw(ax=ax, values=False, log=True, note="again")
+
+
+def test_values_false_trend_into_a_profile_against_the_other_column_raises():
+    _, ax, _ = draw(vs="elevation")
+    with pytest.raises(HangtuError, match="against elevation"):
+        draw(ax=ax, values=False, trend="depth")
+
+
+# --- criterion 8: the same figure from the result ---------------------------------
+
+
+def artists_data(ax):
+    lines = [
+        (line.get_zorder(), line.get_linestyle(), *line.get_xydata().ravel())
+        for line in ax.lines
+    ]
+    polygons = [band.get_paths()[0].vertices.tolist() for band in bands(ax)]
+    return {
+        "lines": lines,
+        "bands": polygons,
+        "points": points(ax).tolist(),
+        "table": table_lines(ax),
+        "legend": legend_texts(ax),
+        "footnote": footnote(ax),
+        "limits": (ax.get_xlim(), ax.get_ylim()),
+        "notes": ax.ags_notes,
+    }
+
+
+@pytest.mark.parametrize("trend", [None, "depth"])
+def test_result_plot_draws_the_same_figure(trend):
+    df = strength(qualifier=[""] * 4 + [">", ">"] + [""] * 4)
+    df.loc[2, "depth"] = np.nan
+    with warnings_for(trend):
+        _, direct, result = draw(df, trend=trend)
+    fig, from_result = result.plot(df)
+    assert fig is from_result.figure
+    assert artists_data(from_result) == artists_data(direct)
+
+
+def warnings_for(trend):
+    import contextlib
+
+    if trend is None:
+        return contextlib.nullcontext()
+    return pytest.warns(UserWarning, match="out of the trend")
+
+
+def test_result_plot_takes_values_false():
+    _, ax, _ = draw()
+    result = ht.stats.representative(
+        strength(),
+        value="undrained_shear_strength",
+        by="geology_unit",
+        distribution="normal",
+        display_units="SI",
+        method="percentile",
+        percentile=10,
+        side="low",
+    )
+    _, again = result.plot(strength(), ax=ax, values=False)
+    assert again is ax
+    assert "percentile 10" in legend_texts(ax)
+
+
+def test_result_plot_with_a_row_removed_raises_naming_its_group():
+    _, _, result = draw()
+    with pytest.raises(HangtuError, match=r"rows for Upper.*count is 5, not 6"):
+        result.plot(strength().drop(index=0))
+
+
+def test_result_plot_without_a_groups_rows_raises():
+    _, _, result = draw()
+    with pytest.raises(HangtuError, match="no rows for Lower"):
+        result.plot(strength().drop(index=[6, 7, 8, 9]))
+
+
+def test_result_plot_with_another_group_raises():
+    _, _, result = draw()
+    df = strength()
+    df.loc[0, "geology_unit"] = "Fill"
+    with pytest.raises(HangtuError, match="rows for Upper"):
+        result.plot(df)
+
+
+def test_result_plot_checks_spt_rows_with_a_refusal_limit():
+    df = pd.DataFrame(
+        {
+            "loca_id": ["A"] * 7,
+            "depth": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
+            "ground_level": [100.0] * 7,
+            "geology_unit": ["Terrace"] * 7,
+            "spt_n": [9.0, 13.5, 18.75, 23.25, 30.0, 50.0, 50.0],
+            "spt_n60": [12.0, 18.0, 25.0, 31.0, 40.0, 66.7, 66.7],
+            "spt_refusal": [False] * 5 + [True] * 2,
+        }
+    )
+    df = ht.set_units(df, {"depth": "m", "ground_level": "m"})
+    _, direct, result = ht.plot.representative_profile(
+        df,
+        value="spt_n60",
+        by="geology_unit",
+        distribution="normal",
+        display_units="SI",
+        spt_refusal_upper_limit=120,
+        **VIEW,
+    )
+    assert result.groups[0]["counts"]["count_interval_censored"] == 2
+    _, from_result = result.plot(df)
+    assert artists_data(from_result)["lines"] == artists_data(direct)["lines"]
+    with pytest.raises(HangtuError, match="rows for Terrace"):
+        result.plot(df.drop(index=6))
+
+
+# --- criterion 10: result.plot() units --------------------------------------------
+
+
+def test_result_plot_in_other_units_raises():
+    _, _, result = draw(display_units="SI")
+    with pytest.raises(HangtuError, match='computed in display_units="SI"'):
+        result.plot(strength(), display_units="US")
+    _, ax = result.plot(strength(), display_units="SI")
+    assert "kPa" in ax.get_xlabel()
+
+
+def test_result_plot_from_a_list_raises():
+    result = ht.stats.representative([20.0, 30.0, 40.0], distribution="normal", **VIEW)
+    with pytest.raises(HangtuError, match="list of values"):
+        result.plot(strength())

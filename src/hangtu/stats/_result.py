@@ -492,6 +492,23 @@ class RepresentativeResult(_Result):
         }
         return frame
 
+    def plot(self, df: pd.DataFrame, **kwargs: Any) -> Any:
+        """Draw P09 from this result, without computing it again.
+
+        The result keeps statistics, not rows, and the profile draws every
+        row, so ``df`` is the rows the result was computed from: they are
+        grouped and counted again, and a group with other counts is an
+        error. The keyword arguments are
+        ``ht.plot.representative_profile()``'s drawing ones (``mean``,
+        ``band``, ``table``, ``values``, ``vs``, ``profile()``'s, ``ax``
+        and style overrides), and ``units`` when the result's call took
+        it. The figure is in the units the result was computed in; another
+        ``display_units=`` is an error. Returns ``(fig, ax)``.
+        """
+        from hangtu.plot._representative_profile import draw  # plot imports stats
+
+        return draw(self, df, **kwargs)
+
     def _line_name(self) -> str:
         """Name the view in a design line's label: ``characteristic, mean, low``."""
         if self.method == "characteristic":
