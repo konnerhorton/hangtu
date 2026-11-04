@@ -1,7 +1,7 @@
 """The shear box fit of peak and residual stages (docs/work/m17b-shear-box-fit.md)."""
 
 import math
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from importlib.metadata import version
 from typing import Any
@@ -12,7 +12,14 @@ import pandas as pd
 from hangtu import units as _units
 from hangtu._data import numeric_column, rows_text
 from hangtu.analysis._derived import _DerivedResult
-from hangtu.analysis._fit_groups import _cell, _label, _pairs, _reported
+from hangtu.analysis._fit_groups import (
+    _cell,
+    _check_sources,
+    _label,
+    _names,
+    _pairs,
+    _reported,
+)
 from hangtu.analysis._line_fit import line_fit
 from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.stats._rows import group_keys
@@ -24,6 +31,8 @@ _SHEAR = {"peak": "peak_shear_stress", "residual": "residual_shear_stress"}
 _AT = {"peak": "normal_stress_at_peak", "residual": "normal_stress_at_residual"}
 _APPLIED = "applied_normal_stress"
 _NORMAL_STRESS = ("at_peak_or_residual", "applied")
+#: The columns a line's rows must share one value of, unless pooled.
+_CHECKED = ["test_type", "failure_criterion"]
 #: The columns that identify a fitted point, kept with its stresses.
 _IDENTIFIERS = (
     "loca_id",
@@ -43,8 +52,10 @@ def _left_out(strength: str) -> tuple[str, str]:
 def shear_box_fit(
     df: pd.DataFrame,
     *,
+    group_by: str | Sequence[str] | None = None,
     cohesion: float | None = None,
     normal_stress: str = "at_peak_or_residual",
+    pool: str | Sequence[str] | None = None,
     units: Mapping[str, str] | None = None,
     display_units: str | None = None,
 ) -> "ShearBoxFit":
@@ -108,6 +119,13 @@ def shear_box_fit(
     Nothing labels a test as soil or rock joint, multistage, or effective or
     total stress: separate them with ``group_by=`` or a filter.
 
+    **Not pooled unawares.** A strength's fitted rows in a group with more
+    than one ``test_type`` (shear box and ring shear residuals differ) or
+    ``failure_criterion`` (a blank is a value of its own) are an error naming
+    each; peak and residual are checked apart. ``pool=`` pools those columns
+    on purpose, and the result records it. ``multistage_test`` isn't read:
+    group by it, or filter, to fit a multistage test apart.
+
     **Names:** the values are ``peak_friction_angle`` and the like, not
     ``effective_friction_angle``: a direct shear φ′ isn't a triaxial φ′ until
     selection converts it (SPEC §5). The lab's own pairs
@@ -128,11 +146,18 @@ def shear_box_fit(
         ``normal_stress_at_peak`` and ``normal_stress_at_residual``, any of
         them blank. Where present, ``test_type``, ``failure_criterion`` and
         the lab's reported pairs are read, and the stage's identifiers kept.
+    group_by : str or list of str, optional
+        One set of lines per group, such as ``"specimen_id"`` (one test),
+        ``"geology_unit"`` or ``"test_type"``, in sorted order with a blank
+        group last. None fits every row together.
     cohesion : None or 0
         None makes the free line the main one, 0 the line through the origin;
         both are fitted either way.
     normal_stress : {"at_peak_or_residual", "applied"}
         Which normal stress each point is fitted against (above).
+    pool : str or list of str, optional
+        ``"test_type"`` and ``"failure_criterion"``, to fit rows with
+        different values together on purpose.
     units : dict, optional
         ``{column: unit}`` for ``df``, overriding ``df.attrs["units"]``.
     display_units : {"SI", "US"}, optional
@@ -150,15 +175,18 @@ def shear_box_fit(
     ------
     HangtuError
         For a frame without a shear stress or a normal stress column, a
-        negative stress on a row the fit uses, a stress column without units
-        or in a unit that isn't a stress, or an argument out of its range.
+        negative stress on a row the fit uses, sources mixed without
+        ``pool=``, a ``group_by`` column the frame doesn't have, a stress
+        column without units or in a unit that isn't a stress, or an argument
+        out of its range.
 
     Examples
     --------
-    The peak and residual lines of every shear box stage in the example:
+    The peak and residual lines of each geology unit's shear box tests:
 
     >>> p = ht.Project.from_ags(ht.examples.path("site.ags"), db="site.sqlite")
-    >>> fit = ht.analysis.shear_box_fit(p.shear_box())
+    >>> p.set_geology_map(ht.examples.path("strata.csv"))
+    >>> fit = ht.analysis.shear_box_fit(p.shear_box(), group_by="geology_unit")
     >>> print(fit)
     >>> fit.to_frame()[["line_kind", "peak_cohesion", "peak_friction_angle"]]
     """
@@ -179,6 +207,20 @@ def shear_box_fit(
         raise HangtuError(
             f'{_FUNCTION} display_units must be "SI", "US" or None, not '
             f"{display_units!r}."
+        )
+    by = _names(group_by)
+    missing = [column for column in by if column not in df.columns]
+    if missing:
+        raise ColumnError(
+            f"{_FUNCTION} can't group by {', '.join(map(repr, missing))}: df has no "
+            f"such column. Available columns: {', '.join(map(str, df.columns))}."
+        )
+    pooled = _names(pool)
+    wrong = [column for column in pooled if column not in _CHECKED]
+    if wrong:
+        raise HangtuError(
+            f"{_FUNCTION} can't pool {', '.join(map(repr, wrong))}: pool= takes "
+            f"{' and '.join(map(repr, _CHECKED))}, the columns it checks."
         )
     stresses, unit = _stresses(df, normal_stress, units, display_units)
     applied = stresses[_APPLIED]
@@ -229,12 +271,22 @@ def shear_box_fit(
             "and the residual is a magnitude. Check the sign of those rows' stresses."
         )
 
-    notes = []
+    notes = [
+        f"{column} not given: the fit couldn't check that a line's rows share one."
+        for column in _CHECKED
+        if column not in df.columns
+    ]
+    if pooled:
+        notes.append(f"Pooled on purpose: {', '.join(pooled)}.")
     groups: list[dict[str, Any]] = []
     negative_intercepts: list[str] = []
-    for key, rows in group_keys(df, []):
+    for key, rows in group_keys(df, by):
         strengths = {}
         for strength in _STRENGTHS:
+            fitted = rows & (points[strength]["reasons"] == "")
+            _check_sources(
+                _FUNCTION, df, key, fitted, _CHECKED, pooled, what=f" {strength}"
+            )
             record = _strength(df, rows, strength, points[strength], cohesion)
             strengths[strength] = record
             free = next(line for line in record["lines"] if line["line_kind"] == "free")
@@ -262,8 +314,8 @@ def shear_box_fit(
         notes=tuple(notes),
         judgments=dict(df.attrs.get("judgments", {})),
         hangtu_version=version("hangtu"),
-        by=(),
-        pooled=(),
+        by=tuple(by),
+        pooled=tuple(pooled),
         cohesion=cohesion,
         normal_stress=normal_stress,
         display_units=display_units,

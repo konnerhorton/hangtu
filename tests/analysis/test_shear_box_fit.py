@@ -489,3 +489,137 @@ def test_joint_stored_in_mpa(joins):
     assert origin["line_slope"] == pytest.approx(0.84, rel=REL)
     assert origin["friction_angle"] == pytest.approx(40.030259, rel=REL)
     _counts_add_up(result)
+
+
+# group_by=.
+
+
+def test_group_by_gives_one_set_of_lines_per_group():
+    df = _frame(
+        [(100, 60), (200, 120), (100, 50), (200, 90), (100, 70)],
+        group=["B", "B", "A", "A", None],
+    )
+    result = _fit(df, group_by="group")
+    keys = [group["key"]["group"] for group in result.groups]
+    assert keys[:2] == ["A", "B"]
+    assert len(keys) == 3
+    assert result.by == ("group",)
+    assert _line(result, group=0)["line_slope"] == pytest.approx(0.4, rel=REL)
+    assert _line(result, group=1)["line_slope"] == pytest.approx(0.6, rel=REL)
+    assert _line(result, group=2)["count"] == 1
+    frame = result.to_frame()
+    assert frame.columns[:2].tolist() == ["group", "line_kind"]
+    assert len(frame) == 6
+    assert "A: 2 rows" in str(result)
+    _counts_add_up(result)
+
+
+def test_group_by_a_missing_column_raises():
+    with pytest.raises(HangtuError, match=r"can't group by 'geology_unit'.*Available"):
+        ht.analysis.shear_box_fit(
+            _frame([(100, 60), (200, 120)]), group_by="geology_unit"
+        )
+
+
+# AC 7: ring shear and a rock joint, joins.ags.
+
+
+def test_ring_shear_residual_only(joins):
+    ring = joins[joins["sample_reference"] == "J1-D2"]
+    result = _fit(ring)
+    assert _line(result, "residual")["no_fit_reason"] == (
+        "1 point: a line needs at least 2"
+    )
+    origin = _line(result, "residual", "through_origin")
+    assert origin["line_slope"] == pytest.approx(0.21, rel=REL)
+    assert origin["friction_angle"] == pytest.approx(11.859779, rel=REL)
+    assert math.isnan(origin["r_squared"])
+    assert _line(result)["no_fit_reason"] == "0 points: a line needs at least 2"
+    assert _line(result, kind="through_origin")["no_fit_reason"] == "no points"
+    assert _strength(result)["count_no_peak_shear_stress"] == 1
+
+
+def test_joins_in_one_group_pool_nothing(joins):
+    result = _fit(joins)
+    assert _line(result, kind="through_origin")["friction_angle"] == pytest.approx(
+        40.030259, rel=REL
+    )
+    assert _line(result, "residual", "through_origin")["friction_angle"] == (
+        pytest.approx(11.859779, rel=REL)
+    )
+    assert result.groups[0]["count_rows"] == 2
+    _counts_add_up(result)
+
+
+# AC 9: pooling.
+
+
+@pytest.fixture
+def with_ring_shear(site_si):
+    ring = pd.DataFrame(
+        {
+            "test_type": ["SMALL RSHEAR"],
+            "failure_criterion": ["Maximum shear stress"],
+            "applied_normal_stress": [150.0],
+            "residual_shear_stress": [80.0],
+        },
+        index=[3],
+    )
+    df = pd.concat([site_si, ring])
+    df.attrs = site_si.attrs
+    return df
+
+
+def test_mixed_test_types_raise(with_ring_shear):
+    with pytest.raises(HangtuError) as error:
+        ht.analysis.shear_box_fit(with_ring_shear)
+    message = str(error.value)
+    assert "can't fit residual rows from different sources" in message
+    assert "test_type: 'SMALL SBOX' (3 rows)," in message
+    assert "'SMALL RSHEAR' (1 rows)" in message
+    assert "pool=['test_type']" in message
+
+
+def test_mixed_failure_criteria_raise(site_si):
+    df = site_si.copy()
+    df.loc[2, "failure_criterion"] = None
+    with pytest.raises(HangtuError, match=r"(?s)peak rows.*'\(blank\)' \(1 rows\)"):
+        ht.analysis.shear_box_fit(df)
+
+
+def test_pool_fits_them_on_purpose(with_ring_shear):
+    df = with_ring_shear.copy()
+    df.loc[2, "failure_criterion"] = None
+    result = _fit(df, pool=["test_type", "failure_criterion"])
+    assert result.pooled == ("test_type", "failure_criterion")
+    assert _line(result, "residual")["count"] == 4
+    assert _line(result)["count"] == 3
+    assert "Pooled on purpose: test_type, failure_criterion." in str(result)
+    _counts_add_up(result)
+
+
+def test_pool_takes_only_the_checked_columns():
+    with pytest.raises(HangtuError, match="pool= takes 'test_type' and 'failure_"):
+        ht.analysis.shear_box_fit(_frame([(100, 60), (200, 120)]), pool="geology_unit")
+
+
+def test_without_the_checked_columns_notes_say_so():
+    result = _fit(_frame([(100, 60), (200, 120)]))
+    assert result.notes[:2] == (
+        "test_type not given: the fit couldn't check that a line's rows share one.",
+        "failure_criterion not given: the fit couldn't check that a line's rows "
+        "share one.",
+    )
+
+
+def test_site_si_has_no_pooling_notes(site_si):
+    assert not any("not given" in note for note in _fit(site_si).notes)
+
+
+# AC 13: multistage_test isn't read.
+
+
+def test_multistage_test_changes_nothing(site_si):
+    df = site_si.copy()
+    df["multistage_test"] = [True, True, False]
+    assert _fit(df).to_frame().equals(_fit(site_si).to_frame())
