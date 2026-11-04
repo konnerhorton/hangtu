@@ -33,6 +33,9 @@ REASONS = {
     "d_value_unreached": "{n} D-value{s} not reached{where}",
     "log_nonpositive": "{n} value{s} ≤ 0 not shown on log axis",
     "beyond_limit": "{n} value{s} beyond axis limit, shown at the edge",
+    # P09's lines, counted per line (P09 §11).
+    "line_log_nonpositive": "{n} line{s} ≤ 0 in part, cut on log axis",
+    "line_beyond_limit": "{n} line{s} beyond axis limit, clipped",
     "less_than": "{n} value{s} reported as less than (<)",
     "greater_than": "{n} value{s} reported as greater than (>)",
     "refusal": "{n} refusal{s}{where}",

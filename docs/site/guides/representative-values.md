@@ -106,6 +106,8 @@ Statistics in hangtu are designed for lab data. The example uses SPT N60 because
 
 Frames from several calls join with `pd.concat`, as in the example, to show a line in one unit and constants in the others.
 
+The [representative value profile](../plots/representative-profile.md) draws one call's lines in each unit's color, with the mean, the band between them and a table naming the view: `ht.plot.representative_profile()` with the same arguments, or `result.plot(df)` for a result you have.
+
 ## What the result records
 
 `print(result)` shows the values with the view, its inputs and the notes. `result.to_frame()` gives one row per group: the value (or, for a line, its coefficients and its value at the top and base), $n$, the counts of rows left out by reason, the mean, standard deviation, $V_X$, the t or normal factor, $k_n$ and $\Gamma^2$. `result.to_dict()` gives all of it, every input included, ready for a report, so a reviewer can redo the number.
@@ -115,6 +117,7 @@ hangtu stops here. Partial factors, the conversion factor $\eta$ and design valu
 ## See also
 
 - [`ht.stats.representative`](../reference/stats.md#hangtu.stats.representative), [`ht.stats.RepresentativeResult`](../reference/stats.md#hangtu.stats.RepresentativeResult)
+- [Representative value profile](../plots/representative-profile.md): the values on a profile with each unit's lines and the view
 - [Statistics](statistics.md): summaries, fitted distributions and comparisons of the same rows
 - [Judgments](judgments.md): the refusals' upper limit
 

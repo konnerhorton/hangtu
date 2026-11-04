@@ -41,6 +41,7 @@ nav = [
     "plots/spt-histogram.md",
     "plots/geology-unit-comparison.md",
     "plots/distribution-fit.md",
+    "plots/representative-profile.md",
     "plots/failure-envelope.md",
     "plots/triaxial-shearing.md",
   ] },

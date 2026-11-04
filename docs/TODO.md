@@ -157,6 +157,9 @@ You are also looking. Candidates found so far:
 ### 21. Thewes & Burger (2004) diagram · You (from the paper) · P17 §14 · needed for M12's spec
 Axes, zones and limits are settled (P17 §4, §6). Still needed from the paper: the figure number and any stated validity (soil or machine type).
 
+### 54. Scatter in the committed figures' data · Claude + You · `docs/plots/img/`, `docs/site/examples/`, P09 §12 (AC 11)
+Some synthetic data behind the visual checks and site examples sits closer to its fitted lines and means than a site's data would, so the figures look cleaner than what a user will see. P09 asks for site-like scatter (CoV about 0.3, skew, uneven depths, an outlier or two). Check each image in `docs/plots/img/` and the examples that make them, and regenerate the ones whose data look too clean, with the scatter set on purpose. One commit per plot, each regenerating its image.
+
 ---
 
 ## Parameters (SPEC §1.3, `docs/work/parameter-roadmap.md`)
