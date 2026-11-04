@@ -20,6 +20,7 @@ Items to think through or research. Each item notes who owns it and the SPEC.md 
   - Do you need `intermediate`, e.g. silty sand with PI < 7?
   - How should fill be handled (by its dominant behavior)?
   - Is rock (weathered, IGM) worth separating?
+  - Should the column be renamed (`material_class` or `ground_class`) now the example site has a rock unit (Sandstone, `rock`, M17 b) and the draft list has `fill`, neither a soil class? 0.1.0 is on PyPI, so the old header would be read through a deprecation period. Decide with the categories, as a unit of its own.
 
 ### 5. Plasticity and gradation systems · Claude (verify) · docs/drafts/analysis.md §2–3 · needed for P04–P05 (Phase 1)
 Verify against the source standards during M8:
@@ -225,7 +226,7 @@ M15 (d) cites Helsel et al. (2020), Delacre et al. (2019), Dinno (2015) and Karc
 Titles, volumes and pages are to be taken from each paper, not from memory.
 
 ### 53. Triaxial test standards · You (copies) + Claude (verify) · `docs/data/qc.md` §4.12, `docs/work/m11a-triaxial-data.md` (Sources)
-QC X001's `lowest_pore_pressure_parameter_b: 0.95` is the B-value commonly quoted as the requirement before shearing, not yet checked against a standard. Check it, and what each allows for stiff soils (a lower B where B stops rising with back pressure), in ASTM D4767 (CU), ASTM D7181 (CD) and ISO 17892-9, with the clause. Then cite it in `qc/rules.yaml`, X001's message and qc.md. M11 (b) reads `failure_criterion` as written and only refuses to pool different ones (`docs/work/m11b-envelope-fit.md`, decision 4), and M11 (c) defines maximum deviator stress and maximum principal stress ratio from readings without a default (`docs/work/m11c-triaxial-shearing.md`, decision 4), so nothing built depends on which a standard requires. Check what D4767, D7181 and D2850 (UU) say of each, and of a limiting strain, before a fit, a QC rule or a docs page recommends one.
+QC X001's `lowest_pore_pressure_parameter_b: 0.95` is the B-value commonly quoted as the requirement before shearing, not yet checked against a standard. Check it, and what each allows for stiff soils (a lower B where B stops rising with back pressure), in ASTM D4767 (CU), ASTM D7181 (CD) and ISO 17892-9, with the clause. Then cite it in `qc/rules.yaml`, X001's message and qc.md. M11 (b) and M17 (b) read `failure_criterion` as written and only refuse to pool different ones (`docs/work/m11b-envelope-fit.md`, decision 4; `docs/work/m17b-shear-box-fit.md`, decision 6; for the shear box, ASTM D3080 and D6467), and M11 (c) defines maximum deviator stress and maximum principal stress ratio from readings without a default (`docs/work/m11c-triaxial-shearing.md`, decision 4), so nothing built depends on which a standard requires. Check what D4767, D7181 and D2850 (UU) say of each, and of a limiting strain, before a fit, a QC rule or a docs page recommends one.
 
 ### 41. Gravelly sands under `not_for` · You + Claude · page 04, `docs/work/m13b1-spt-framework.md`
 Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads only the group symbol. The example site's Terrace is "SAND with gravel (SP)": SP passes, so its rows get estimates with no note. USCS group names (ASTM D2487) add "with gravel" at ≥ 15 % gravel, which the symbol does not carry.

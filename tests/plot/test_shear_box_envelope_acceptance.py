@@ -75,6 +75,8 @@ def test_soil_sets_by_geology_unit(example):
     assert box.count("Lab:") == 6  # two pairs per strength for the Alluvium
     assert "Lab: c = 145 psf, φ = 27.4° (3 stages)" in box
     assert "Lab: c = 195 psf, φ = 25.6° (3 stages)" in box
+    # The lab's values as it wrote them, not padded to 3 significant figures.
+    assert "Lab: c = 5 psf, φ = 21.7° (3 stages)" in box
     assert [group["key"] for group in fit.groups] == [
         {"geology_unit": "Alluvium"},
         {"geology_unit": "Terrace"},
@@ -127,4 +129,4 @@ def test_sandstone_joints_in_mpa(example):
     c, slope = _intercept_and_slope(solid)
     assert c == pytest.approx(0.1, rel=1e-7)
     assert math.degrees(math.atan(slope)) == pytest.approx(38.106583, rel=1e-7)
-    assert "Lab: c = 0.0950 MPa, φ = 38.7° (3 stages)" in _box(ax)
+    assert "Lab: c = 0.095 MPa, φ = 38.7° (3 stages)" in _box(ax)

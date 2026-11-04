@@ -54,6 +54,7 @@ Each figure is a separate feature with its own spec file in this folder, written
   - `stats_box`: `True` shows the plot's default statistics (set in its spec); a list chooses them, e.g. `["count", "mean", "cov"]`;
   - representative values: a result of `ht.stats.representative()`, through P01's `design_lines=` or P09;
   - `note`: free text.
+- **Numbers in a box:** hangtu's own results to 3 significant figures (`format_number()`); a lab's reported value as the lab wrote it (`f"{value:g}"`, a dash when blank), never padded to digits it didn't report (P11, P31).
 - Overlays come from data and are never hard-coded: published zones (A-line, classification bands, etc.) live in `config/defaults.yaml` or in the plot module, with their source cited.
 
 ### Output
@@ -96,7 +97,7 @@ Data for all of these already exists in the MVP scope. P00 is the foundation the
 | P14 | Consolidation: c_v and m_v against log σ′v | `consolidation_coefficients` | | idea |
 | P15 | Consolidation: settlement against √t and log t per load increment (Taylor / Casagrande fitting) | `time_settlement` | | idea |
 | P16 | Compaction curve: dry density against moisture content, zero-air-voids lines | `compaction_curve` | Common in US practice; AGS CMPG/CMPT | idea |
-| P31 | Shear box: **envelope** τ against σn, peak and residual points, free and through-origin fits | `shear_box_envelope` | plot + analysis; **equal aspect**; `shear_box_fit()`, M17 (b) | [draft](P31-shear-box-envelope.md) |
+| P31 | Shear box: **envelope** τ against σn, peak and residual points, free and through-origin fits | `shear_box_envelope` | plot + analysis; **equal aspect**; `shear_box_fit()`, M17 (b) | [built](P31-shear-box-envelope.md) |
 
 ### Batch 3: roadmap plots
 | ID | Plot | Notes |

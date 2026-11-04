@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **ID / function** | P31 · `ht.plot.shear_box_envelope()` (+ `ht.analysis.shear_box_fit()`) |
-| **Status** | draft |
+| **Status** | built |
 | **Type** | plot + analysis |
 | **Milestone** | M17 (b) (SPEC §12.4), [`docs/work/m17b-shear-box-fit.md`](../work/m17b-shear-box-fit.md) |
 | **Depends on** | P00; `p.shear_box()` (M17 a); `shear_box_fit()` (M17 (b) Spec) |
@@ -191,6 +191,10 @@ stated.
    draws (a hand-built frame per case).
 10. **Visual check:** `docs/plots/img/P31-us.png` (the example project's soil sets by geology unit, psf) and
     `P31-si.png` (the example's Sandstone joints, MPa), at 100 dpi, looked at and committed in the close-out.
+
+![P31, the example project's soil sets by geology unit (US)](img/P31-us.png)
+
+![P31, the example project's Sandstone joints in MPa (SI)](img/P31-si.png)
 
 ## 13. References
 - Hoek, E. (2023). *Practical Rock Engineering*, ch. 4, eqs. 1–2: the linear peak and residual criterion, and the

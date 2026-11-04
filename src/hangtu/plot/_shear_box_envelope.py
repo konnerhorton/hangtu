@@ -446,8 +446,8 @@ def _draw_box(ax: Axes, result: ShearBoxFit, drawn: list[str]) -> None:
             for pair in pairs:
                 stages = f" ({pair['count']} stages)" if len(pairs) > 1 else ""
                 lines.append(
-                    f"{indent}  Lab: c = {format_number(pair['cohesion'])}{unit}, "
-                    f"φ = {pair['friction_angle']:.1f}°{stages}"
+                    f"{indent}  Lab: c = {_lab_text(pair['cohesion'], 'g')}{unit}, "
+                    f"φ = {_lab_text(pair['friction_angle'], '.1f')}°{stages}"
                 )
     if not lines:
         return
@@ -468,6 +468,11 @@ def _draw_box(ax: Axes, result: ShearBoxFit, drawn: list[str]) -> None:
         },
         zorder=_layers.ANNOTATIONS,
     )
+
+
+def _lab_text(value: float, spec: str) -> str:
+    """Write the lab's value as given, as P11's box does; a dash if blank."""
+    return "—" if math.isnan(value) else format(value, spec)
 
 
 def _values_text(line: dict[str, Any], unit: str) -> str:

@@ -31,7 +31,7 @@ Each stage cell gives the wave (W0–W6) or milestone that builds it, and **buil
 | 01 | [Unit weight and vertical stress](01-unit-weight-and-vertical-stress.md) | γ, γsat, σv0, u0, σ′v0 | **built** (`p.density()`, lab and field: M14 a) | **built** (σv0, u0, σ′v0: M13; γd and γsat from phase relations: M14 b) | — | M18 |
 | 02 | [Index properties](02-index-properties.md) | w, LL, PL, PI, LI, Ic, activity, fines | **built** (M7, M8) | **built** (PI, LI, Ic, classes, with LI and Ic as analyses: M8; activity: M14 b) | — | M18 |
 | 03 | [Specific gravity and void ratio](03-specific-gravity-and-void-ratio.md) | Gs, e0, n | **part built** (ρs: `p.particle_density()`, M14 a); W2, W3 (specimen e0), W4 (rock n) | **built** (Gs, e0, n, S: `ht.analysis.phase_relations()`, M14 b) | — | M18 |
-| 04 | [Drained shear strength of soil](04-drained-shear-strength-soil.md) | φ′, c′ | **part built** (triaxial: `p.triaxial()`, M11 a; shear box: `p.shear_box()`, M17 a) | **part built** (triaxial: `mohr_coulomb_fit()`, M11 b); M17 b (shear box) | **part built** (SPT φ′: M13 b1); W1 (others) | M18 |
+| 04 | [Drained shear strength of soil](04-drained-shear-strength-soil.md) | φ′, c′ | **part built** (triaxial: `p.triaxial()`, M11 a; shear box: `p.shear_box()`, M17 a) | **built** (triaxial: `mohr_coulomb_fit()`, M11 b; shear box: `shear_box_fit()`, M17 b) | **part built** (SPT φ′: M13 b1); W1 (others) | M18 |
 | 05 | [Undrained shear strength](05-undrained-shear-strength.md) | su, su,r, St | **built** (`p.undrained_strength()`: UU, UCS, vanes, hand penetrometer, fall cone, M17 a) | **part built** (s_u = q / 2, S_t: M17 a); W3 (SHANSEP) | **part built** (SPT: M13 b2); later (CPT) | M18 |
 | 06 | [Preconsolidation and compressibility](06-preconsolidation-and-compressibility.md) | σ′p, OCR, Cc, Cs/Cr | W3 | W3 | **part built** (SPT: M13 b2); later (CPT) | W3 |
 | 07 | [At-rest earth pressure (soil)](07-at-rest-earth-pressure.md) | K0 | — | W3 | **part built** (SPT: M13 b2); later (CPT, DMT) | W3 |
@@ -49,7 +49,7 @@ Each stage cell gives the wave (W0–W6) or milestone that builds it, and **buil
 | 19 | [Post-peak (residual) rock mass](19-post-peak-rock-mass.md) | GSIr, mr, sr, ar | — | W4 | — | W4 |
 | 20 | [In situ stress in rock](20-in-situ-stress-rock.md) | σH, σh, kH, kh | — | W4 | — | W4 |
 | 21 | [Swelling of rock](21-swelling-rock.md) | free swell, swell pressure, Grob kq, σ0 | W3 | W3 | — | W3 |
-| 22 | [Discontinuity shear strength](22-discontinuity-shear-strength.md) | φj, cj | **built** (`p.shear_box()`, M17 a) | M17 b | — | M18 |
+| 22 | [Discontinuity shear strength](22-discontinuity-shear-strength.md) | φj, cj | **built** (`p.shear_box()`, M17 a) | **built** (`shear_box_fit()`, peak and residual, free and through the origin: M17 b) | — | M18 |
 | 23 | [Slake durability](23-slake-durability.md) | Id1, Id2 | W4 | W4 | — | W4 |
 
 Curves (triaxial stress–strain, rock triaxial, swelling against time, shear box displacement) come from the AGS
