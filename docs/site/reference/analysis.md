@@ -35,3 +35,7 @@ Each analysis is a plain function on a DataFrame. It returns a new DataFrame or 
 ::: hangtu.analysis.mohr_coulomb_fit
 
 ::: hangtu.analysis.MohrCoulombFit
+
+::: hangtu.analysis.shear_box_fit
+
+::: hangtu.analysis.ShearBoxFit

@@ -451,7 +451,7 @@ One row per `SHBT` stage, in file order, with its `SHBG` test's values on each: 
 | `test_remarks`, `remarks` | `SHBG_REM`, `SHBT_REM` |
 
 - **All three normal stresses are kept** and none is chosen: `SHBT_NORM` is the stress applied, `SHBT_PVST` and `SHBT_RVST` the stress at peak and at residual, which differ where the lab corrects for the contact area. The fit (M17 b) chooses, and records its choice.
-- **Stages, not multistage tests.** `SHBT_TESN` is a "stage/specimen reference": a soil test's specimens are often entered as stages of one `SPEC_REF`, so the file doesn't say whether a set of rows is one specimen sheared several times. There is no `multistage_test` column; a user who knows can add one, and the fit reads it.
+- **Stages, not multistage tests.** `SHBT_TESN` is a "stage/specimen reference": a soil test's specimens are often entered as stages of one `SPEC_REF`, so the file doesn't say whether a set of rows is one specimen sheared several times. There is no `multistage_test` column; a user who knows can add one and fit with `group_by="multistage_test"` or `where=`; the fit doesn't read it (M17 (b), decision 12).
 - **No soil or rock joint label.** No heading says which a test is; `encapsulation` and the diameters suggest a rock joint but aren't markers. Tell them apart with `where=`, `geology=` or a pandas filter.
 - **No effective or total label.** A shear box measures no pore pressure; its stresses are effective only if it drained, which the rates suggest but don't prove. The names say what was measured.
 - **The lab's fit is repeated on each stage**, as §6.10's: summarize it on one row per specimen.

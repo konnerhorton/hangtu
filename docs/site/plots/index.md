@@ -36,6 +36,7 @@ Every plot takes a DataFrame and returns an ordinary matplotlib figure and axes.
 | [Representative value profile](representative-profile.md) | Each unit's representative value against depth, constant or a line, beside its mean |
 | [Failure envelope](failure-envelope.md) | Triaxial stages at failure as Mohr circles, s′–t or p′–q, with the fitted c′ and φ′ |
 | [Triaxial shearing](triaxial-shearing.md) | Readings during shearing: stress–strain curves, or measured stress paths with the fitted envelope |
+| [Shear box envelope](shear-box-envelope.md) | Shear box stages in τ–σn, peak and residual, with the fitted c and φ, free and through the origin |
 
 ## See also
 

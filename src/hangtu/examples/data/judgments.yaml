@@ -12,6 +12,11 @@ unit_weight:
       bulk_unit_weight: 125
       saturated_unit_weight: 130
       reason: "medium dense to very dense sand with gravel, typical"
+    Sandstone:
+      bulk_unit_weight: 150
+      reason: >-
+        fine-grained sandstone, typical; no saturated weight is given, so
+        vertical_stress() uses this one below B-3's water level too
 water_level:
   units: {depth: ft}
   by_hole:

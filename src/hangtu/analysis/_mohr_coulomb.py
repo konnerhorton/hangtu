@@ -12,10 +12,18 @@ import pandas as pd
 from hangtu import units as _units
 from hangtu._data import flag_column, numeric_column, rows_text
 from hangtu.analysis._derived import _DerivedResult
+from hangtu.analysis._fit_groups import (
+    _cell,
+    _check_sources,
+    _label,
+    _names,
+    _pairs,
+    _reported,
+)
 from hangtu.analysis._line_fit import line_fit
 from hangtu.analysis._triaxial import STRESS_COLUMNS
 from hangtu.errors import ColumnError, HangtuError, warn
-from hangtu.stats._rows import breakdown, group_keys
+from hangtu.stats._rows import group_keys
 
 _FUNCTION = "mohr_coulomb_fit()"
 #: The columns that identify a fitted point, kept with its stresses.
@@ -221,7 +229,17 @@ def mohr_coulomb_fit(
         dtype=object,
     )
     multistaged = staged == True  # noqa: E712 (None is blank)
-    reported = _reported(df, units, unit) if stress == "effective" else None
+    reported = (
+        _reported(
+            df,
+            units,
+            unit,
+            "reported_effective_cohesion",
+            "reported_effective_friction_angle",
+        )
+        if stress == "effective"
+        else None
+    )
 
     notes = []
     for column in checked:
@@ -239,7 +257,7 @@ def mohr_coulomb_fit(
     tension: list[Any] = []
     for key, rows in group_keys(df, by):
         candidates = rows & (reasons == "")
-        _check_sources(df, key, candidates, checked, pooled)
+        _check_sources(_FUNCTION, df, key, candidates, checked, pooled)
         left_out = {name: int((rows & (reasons == name)).sum()) for name in _LEFT_OUT}
         fits = {"all": _fit(df, candidates, minor, major, cohesion, reported)}
         fits["all"].update(left_out)
@@ -305,14 +323,6 @@ def mohr_coulomb_fit(
     )
 
 
-def _names(value: str | Sequence[str] | None) -> list[str]:
-    if value is None:
-        return []
-    if isinstance(value, str):
-        return [value]
-    return list(value)
-
-
 def _stresses(
     df: pd.DataFrame,
     stress: str,
@@ -348,68 +358,6 @@ def _stresses(
                 numeric_column(df, column), declared[column], "stress", display_units
             )
     return [values[column] for column in [*total, *fitted]], unit
-
-
-def _reported(
-    df: pd.DataFrame, units: Mapping[str, str] | None, unit: str | None
-) -> tuple[np.ndarray, np.ndarray]:
-    """Return the lab's c′ in the fit's unit and φ′ in degrees, NaN where not given."""
-    to = {
-        "reported_effective_cohesion": unit,
-        "reported_effective_friction_angle": "deg",
-    }
-    quantity = {
-        "reported_effective_cohesion": "stress",
-        "reported_effective_friction_angle": "angle",
-    }
-    result = []
-    for column, target in to.items():
-        if column not in df.columns or df[column].isna().all():
-            result.append(np.full(len(df), np.nan))
-            continue
-        declared = _units.resolve_units(df, [column], units, analysis=True)[column]
-        source = _units.parse_unit(declared, column)
-        _units.check_dimension(source, quantity[column], column)
-        result.append(
-            _units.convert(
-                numeric_column(df, column),
-                source,
-                quantity[column],
-                _units.parse_unit(target),
-            )
-        )
-    return result[0], result[1]
-
-
-def _check_sources(
-    df: pd.DataFrame,
-    key: dict[str, Any],
-    rows: np.ndarray,
-    checked: list[str],
-    pooled: list[str],
-) -> None:
-    """Raise if a group's fitted rows mix failure criteria or test types (D4)."""
-    lines, mixed = [], []
-    for column in checked:
-        if column in pooled or column not in df.columns:
-            continue
-        counts = breakdown(df.loc[rows, column])
-        if len(counts) < 2:
-            continue
-        mixed.append(column)
-        listed = [f"{value!r} ({count} rows)" for value, count in counts.items()]
-        indent = " " * (len(column) + 4)
-        lines.append(f"  {column}: " + f",\n{indent}".join(listed))
-    if not mixed:
-        return
-    label = _label(key) if key else ""
-    where = f" in group {label!r}" if label else ""
-    raise HangtuError(
-        f"{_FUNCTION} can't fit rows from different sources together{where}:\n"
-        + "\n".join(lines)
-        + f"\nFit each with group_by={[*key, mixed[0]]!r}, filter the rows, "
-        f"or pool them on purpose with pool={mixed!r}."
-    )
 
 
 def _fit(
@@ -476,40 +424,6 @@ def _fit(
         "notes": notes,
         "points": points,
     }
-
-
-def _pairs(
-    reported: tuple[np.ndarray, np.ndarray] | None, fitted: np.ndarray
-) -> list[dict[str, Any]] | None:
-    """Return the distinct (c′, φ′) the lab reported for the fitted stages."""
-    if reported is None:
-        return None
-    counts: dict[tuple[float, float], int] = {}
-    for cohesion, angle in zip(reported[0][fitted], reported[1][fitted], strict=True):
-        if np.isnan(cohesion) and np.isnan(angle):
-            continue
-        pair = (float(cohesion), float(angle))
-        match = next((known for known in counts if _same(known, pair)), pair)
-        counts[match] = counts.get(match, 0) + 1
-    return [
-        {"cohesion": cohesion, "friction_angle": angle, "count": count}
-        for (cohesion, angle), count in counts.items()
-    ]
-
-
-def _same(first: tuple[float, float], second: tuple[float, float]) -> bool:
-    return all(
-        (np.isnan(a) and np.isnan(b)) or a == b
-        for a, b in zip(first, second, strict=True)
-    )
-
-
-def _cell(value: Any) -> Any:
-    return None if pd.isna(value) else value
-
-
-def _label(key: dict[str, Any]) -> str:
-    return ", ".join(map(str, key.values())) or "All"
 
 
 @dataclass(frozen=True, repr=False)
