@@ -92,7 +92,8 @@ The feature spec is the plot spec, [`docs/plots/P09-representative-profile.md`](
    another.
 8. **No new fields on the result**: the lines, view and counts are already kept.
 9. **Visual check data:** lab data, a seeded synthetic s_u set made in the image script, a constant (US) and a
-   depth trend (SI); the example project's s_u is too thin for a trend (decided in review, 2026-11-04).
+   depth trend (SI), with realistic scatter (CoV about 0.3, skewed, uneven depths, an outlier or two), not points
+   close to a line; the example project's s_u is too thin for a trend (decided in review, 2026-11-04).
 
 Also changed in this step: `docs/plots/README.md` (the P09 row and the overlays entry for representative values)
 and `docs/plots/P01-property-profile.md` (P09's new name in "Related" and the design lines row).

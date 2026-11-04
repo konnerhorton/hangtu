@@ -243,7 +243,11 @@ fig, ax, result = ht.plot.representative_profile(
 10. **Units:** US and SI calls differ only in labels and values scaled by the conversion; `result.plot()` with a
     `display_units=` other than the result's raises.
 11. **Visual check:** lab data, a seeded synthetic undrained shear strength set made in the image script
-    (two or three clay units, one rising with depth, a few `<x`/`>x` values and an assumed value), because the
+    (two or three clay units, one rising with depth, a few `<x`/`>x` values and an assumed value). The scatter
+    is what a site gives, not a clean line: a coefficient of variation of about 0.3 around each unit's mean or
+    trend, a skew to the high side, uneven depths with gaps and clusters, and one or two outliers, so the
+    lines don't sit neatly through the points. That is also what shows the band between mean and representative
+    at a useful width. The data are made this way because the
     example project's s_u is too thin (10 values in one unit, from four test types, which `representative()`
     won't pool unasked). `docs/plots/img/P09-us.png`, a constant view per unit; `docs/plots/img/P09-si.png`, a
     depth trend. 100 dpi, looked at and committed in the close-out.
