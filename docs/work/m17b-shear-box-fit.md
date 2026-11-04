@@ -364,3 +364,130 @@ fractions) and rounded to 9 significant figures; tolerance 1e-7 relative unless 
 14. **The plot:** P31's §12 criteria.
 15. **Reference:** `shear_box_fit`, `ShearBoxFit` and `shear_box_envelope` in the API reference (the test that
     fails without an entry), with the docstring checklist of the sheets' `TEMPLATE.md`.
+
+## Plan
+Draft, 2026-11-04. Seven commits, each green: the tests it touches, then the CI command with `-n 3`. Steps 1–3
+on Opus (the calculation, its validity limits and docstring), 4–6 on Sonnet (data, plot drawing and docs site, with
+the spec's values and P31's criteria deciding correctness), 7 on Opus (the figure judged against P31, close-out):
+two session boundaries, after 3 and after 6. A step past about 300 changed lines without test data splits as noted.
+Reused, not rebuilt:
+- **Fit:** `line_fit()` (`analysis/_line_fit.py`), free and with `intercept=0`, and its `no_fit_reason`s;
+  `_DerivedResult` (`analysis/_derived.py`); `group_keys()`, `breakdown()` (`stats/_rows.py`); `_plain()`
+  (`stats/_result.py`); `format_number()` (`plot/_overlays.py`).
+- **Units:** `resolve_units`, `parse_unit`, `check_dimension`, `convert`, `to_display` (`hangtu.units`), as
+  `_mohr_coulomb.py`'s `_stresses()` and `_reported()` use them; `numeric_column`, `rows_text` (`_data`);
+  `ColumnError`, `HangtuError`, `warn` (`errors`).
+- **Data:** `STAGE_NUMBERS` and the column list of `datasets/_shear_box.py`, for the columns read and the template.
+- **Plotting:** `plot/_envelope_drawing.py` (P11's solid-in-range, dashed-beyond line and the result box) where it
+  fits, and `style.context`/`style_axes`, `figure_size`, `axis_label`, `add_legend`, `Notes`, `hint_missing`,
+  `nice_limits`, `resolve_palette`, as `plot/_failure_envelope.py` uses them.
+
+### 1. `M17: move the fit helpers mohr_coulomb_fit() shares to a module` (Opus)
+Refactor only (spec decision 14), no change in behavior.
+- `src/hangtu/analysis/_fit_groups.py` (new): `_names`, `_label`, `_cell`, the pooling check (`_check_sources`,
+  taking the function's name for its message instead of the module's `_FUNCTION`) and the lab-pair collection
+  (`_pairs`, `_same`). `_reported()` gains the two column names as arguments so the shear box fit can read its
+  `reported_peak_…`/`reported_residual_…` pairs through it, and moves too.
+- `src/hangtu/analysis/_mohr_coulomb.py`: imports them; nothing else changes.
+- Tests: `tests/analysis/test_mohr_coulomb_fit.py` and `tests/plot/test_failure_envelope*.py` unchanged and green.
+
+### 2. `M17: add shear_box_fit() for one group` (Opus)
+- `columns.yaml`: `peak_cohesion`, `residual_cohesion` (stress), `peak_friction_angle`,
+  `residual_friction_angle` (angle), ratio scale, labels "Peak cohesion, c_p", "Peak friction angle, φ_p",
+  "Residual cohesion, c_r", "Residual friction angle, φ_r", `ags: ["derived: docs/work/m17b-shear-box-fit.md"]`,
+  `used_by: [P31]` (decision 2). `tests/test_registry.py` stays green.
+- `src/hangtu/analysis/_shear_box_fit.py` (new), exported with `ShearBoxFit` in `analysis/__init__.py`:
+  - arguments as decision 1; `cohesion=` other than None or 0 and `normal_stress=` other than its two values are
+    errors (decisions 4, 5);
+  - units (decision 17): the shear and normal stress columns with a value the fit uses resolved and checked as
+    stresses, a column blank throughout skipped, converted to the fit's unit before fitting; the missing-columns
+    error naming `ht.template("shear_box")`;
+  - per strength: each point's σn and `normal_stress_basis` (decision 5), the mixed-basis note; rows left out and
+    counted under the first reason (decision 7); the negative-stress error (decision 8);
+  - four lines through `line_fit()`, c = a, φ = arctan b (Derivation), and decision 8's validity: the core's
+    reasons, the slope reason, the negative-intercept warning (one per call), the two-point note, the σn range;
+  - the secant angle per point (decision 9);
+  - `ShearBoxFit(_DerivedResult)`: `.groups`, `.to_frame()` with decision 15's columns in order and
+    `attrs["units"]`, `__str__` as decision 16, `.to_dict()`;
+  - docstring per the sheets' `TEMPLATE.md` checklist: τ = c + σn tan φ (Hoek 2023, ch. 4, eqs. 1–2), the two
+    least-squares slopes, inputs and outputs with units, validity, the basis rule, the derived-not-cited note
+    pointing to this spec, the naming rule (decision 2), an example on `p.shear_box()`.
+- `docs/site/reference/analysis.md`: `shear_box_fit` and `ShearBoxFit` (AC 15).
+- Tests: `tests/analysis/test_shear_box_fit.py` (new), with `site_si.ags` and `site_us.ags` loaded through
+  `Project.from_ags` as `tests/plot/test_failure_envelope_acceptance.py` does: AC 1–4, 8, 10, 12 (units, columns,
+  MPa input on a hand-built frame and `joins.ags`'s J1-U3), and AC 11 for those.
+- If past about 300 lines: (2a) the lines and validity on hand-built frames and BH2-D1 (AC 1–3, 8), then (2b)
+  bases, units and errors (AC 4, 12).
+
+### 3. `M17: fit shear box groups, check pooling, list the lab's pairs` (Opus)
+- `_shear_box_fit.py`: `group_by=` (decision 10), the pooling check per strength with `pool=` and its notes
+  (decision 6), the lab's pairs per strength through `_fit_groups` converted to the fit's unit (decision 11),
+  `cohesion=` choosing the main line's order (decision 4); `multistage_test` not read (decision 12).
+- Tests, same file: AC 7 (`joins.ags`'s ring shear and joint tests, one group without a pooling error), 9, 10
+  (`cohesion=0`), 11 for those, 13.
+
+### 4. `M17: add sandstone and shear box tests to the example project` (Sonnet)
+- `tests/data/_make_examples.py` (decision 13 and "Example data"):
+  - `ROCK = {"B-3": (71.5, "SST")}`: B-3's soil base stays `HOLES`' 61.5 ft, so `ispt()`, `samples()` and every
+    seeded value keep their sequence; `loca()` writes the rock's base as `LOCA_FDEP`, `geol()` adds the `SST` layer
+    from 61.5 to 71.5 ft; `DESCRIPTIONS` gains `SST` ("Sandstone", a gray fine-grained sandstone description).
+  - `CORE_SAMPLES = [("B-3", 64.0, 65.0, "C", "5")]`, apart from `samples()` as `TRIAXIAL_SAMPLES` is, written to
+    `SAMP`; `ABBR` gains `SAMP_TYPE` `C` (core) and the `SHBG_TYPE` code the soil tests use (`SMALL SBOX`).
+  - `shbg()` and `shbt()`: B-3-U3 and B-6-U2 (Alluvium, undisturbed), B-3-D4 (Terrace, recompacted), B-3-C5
+    specimens 1 and 2 (Sandstone, `SHBG_ENCA` resin, `SHBG_TYPE` blank), the stage values and the lab's pairs of
+    "Example data", stresses in psf (the joint set's at 10 significant figures from MPa × 1e6 / 47.880259), each
+    set's hand fit in a comment beside it. `site_groups()` appends them after the undrained groups, so no existing
+    line moves.
+- `src/hangtu/examples/data/strata.csv` (through `STRATA` in the generator): `SST,Sandstone,rock,4,<color>`;
+  `judgments.yaml`: Sandstone `bulk_unit_weight: 150`, with its reason (B-3's water level is above it, and
+  `vertical_stress()` uses the bulk weight where no saturated one is given).
+- Regenerate `src/hangtu/examples/data/site.ags`. A one-off script (not committed) compares every group but `LOCA`,
+  `GEOL`, `SAMP`, `UNIT`, `TYPE`, `ABBR` and the new two with `HEAD`'s file, and checks those six differ only by the
+  rows above. `tests/test_examples.py`'s python-ags4 check, its QC findings and the generator check stay green; a
+  new QC finding is a data mistake to fix, not an expected finding to add.
+- Tests, in `tests/analysis/test_shear_box_fit.py`: AC 5 (the Sandstone set, with and without the MPa override,
+  per specimen) and 6 (the soil sets by geology unit, and in SI), and AC 11 for them. Other tests on `site.ags`
+  (`tests/test_project.py`, the plot acceptance tests, `tests/stats/conftest.py`) are checked for group and unit
+  counts and stay green.
+
+### 5. `M17: add ht.plot.shear_box_envelope() (P31)` (Sonnet)
+- `src/hangtu/plot/_shear_box_envelope.py` (new), exported in `plot/__init__.py`, as P31 §10: calls
+  `shear_box_fit()` with the shared arguments and draws its result: filled peak and open residual points at their
+  basis's σn, the main line solid over the fitted range and dashed beyond, the other kind lighter, `strengths=`,
+  the user envelopes, the result box (c, φ, n, R², the lab's pair or count), the footnote, equal aspect and P31 §6's
+  limits; `color_by=` as P31 §10; returns `(fig, ax, fit)`, `fit=False` returns None.
+- `docs/site/reference/plot.md`: `shear_box_envelope`.
+- Tests: `tests/plot/test_shear_box_envelope.py` (new), P31 AC 1–4, 6, 7 and 9 read from the drawn artists (line
+  intercepts, slopes and solid/dashed extents, marker fill, `ax.get_aspect()`);
+  `tests/plot/test_shear_box_envelope_acceptance.py` (new), AC 5 and 8 on the example project and the twin files.
+- If past about 300 lines: (5a) points, lines, limits and returns (AC 1–4, 7), then (5b) groups, strengths, units,
+  the box and edge cases (AC 5, 6, 8, 9).
+
+### 6. `M17: draw the shear box tests on the docs site` (Sonnet)
+- `docs/site/examples/shear-box-envelope.py` (new): the example project's soil sets by geology unit, US units.
+  `docs/site/plots/shear-box-envelope.md` (new): what it shows, the two line kinds, the fitted range, the basis of
+  σn, the lab's values, common options; linked in `zensical.toml`'s `nav` and `docs/site/plots/index.md`.
+- `docs/site/parameters/22-discontinuity-shear-strength.md`: the two "M17 (b)" method rows link `shear_box_fit()`;
+  its example fits and draws the Sandstone joints inside the MPa override (decision 13).
+  `docs/site/parameters/04-drained-shear-strength-soil.md`: the row "Least-squares fit of shear box results"
+  linking it, beside the Kulhawy & Mayne row, which stays M18's.
+- `docs/site/guides/datasets.md`: `p.shear_box()`'s row points to P31.
+- Run `docs/prepare_site.py` and `zensical build --clean --strict`.
+
+### 7. `M17: close out (b)` (Opus)
+- **Visual check:** `docs/plots/img/P31-us.png` (the example's soil sets by geology unit, psf) and `P31-si.png`
+  (the Sandstone joints, MPa), 100 dpi, looked at against P31, committed. Every site example grouped by geology
+  unit rerun and its figure looked at for the fourth unit (decision 13).
+- **Close-out:**
+  - `docs/plots/P31-shear-box-envelope.md` status `built` with its images; `docs/plots/README.md` P31 `built`;
+  - SPEC §4: the envelope fits bullet gains the shear box fit; §12.4 M17 "(a), (b) done; (c) next";
+  - the parameter index: 04 B built (the shear box half), 22 B built;
+  - the `CLAUDE.md` "Next" sentence (M17 (c));
+  - TODO #53's text checked against what was built (it stays open);
+  - TODO #3 gains a question: whether `soil_class` is renamed (`material_class` or `ground_class`) now the example
+    site has a rock unit and the draft list already has `fill`, with the old header read through a deprecation
+    period (0.1.0 is on PyPI). Decided with the categories, as a unit of its own; M17 (b) writes `rock` under the
+    current name;
+  - what a future session would get wrong without being told, written where it will be read.
+- **Verification:** every AC of the Spec and of P31 §12 reported as met or not, with its test; the whole suite with
+  `-n 3`; ruff; mypy; the lowest-versions run (then `git checkout uv.lock`); the strict docs build.
