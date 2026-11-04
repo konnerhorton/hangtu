@@ -88,7 +88,7 @@ Data for all of these already exists in the MVP scope. P00 is the foundation the
 | ID | Plot | Function | Notes | Status |
 |---|---|---|---|---|
 | P08 | **Distribution fit**: histogram + fitted PDFs + Q-Q plot (2 panels) | `distribution_fit` (also `FitResult.plot()`) | plot + analysis (statistics) | P00; `ht.stats.fit()` (M15 (c)) | [built](P08-distribution-fit.md) |
-| P09 | **Representative value profile**: data, mean and representative lines (constant or depth trend) against depth, with the view and n per unit | `representative_profile` (also `RepresentativeResult.plot()`) | plot + analysis (statistics) | P01; `ht.stats.representative()` (M18 (b)) | [draft](P09-representative-profile.md) |
+| P09 | **Representative value profile**: data, mean and representative lines (constant or depth trend) against depth, with the view and n per unit | `representative_profile` (also `RepresentativeResult.plot()`) | plot + analysis (statistics) | P01; `ht.stats.representative()` (M18 (b)) | [built](P09-representative-profile.md) |
 | P10 | *Merged into P12* (stress–strain curves draw the same readings as measured stress paths) | — | ID not reused | — |
 | P11 | Triaxial: **failure envelope** with Mohr-Coulomb fit, drawn as Mohr circles, s′–t or p′–q (`space=`); optional idealized drained paths | `failure_envelope` | **Equal aspect required** in all spaces; total vs effective; M11 (b) | [built](P11-failure-envelope.md) |
 | P12 | Triaxial shearing: stress–strain curves and measured stress paths (s′–t, p′–q) with P11's envelope (`space=`) | `triaxial_shearing` | plot + light analysis; readings from a user CSV (`ht.template("triaxial_readings")`), which AGS doesn't carry | [built](P12-triaxial-shearing.md) |

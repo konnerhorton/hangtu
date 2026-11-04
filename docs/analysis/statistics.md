@@ -34,7 +34,7 @@ Decided 2026-11-03, M18 (b), [`docs/work/m18b-representative-values.md`](../work
 - Type C's Γ² is θ/L, capped at 1, as the JRC gives it.
 - A lognormal view works on ln x.
 - A constant takes censored values through the censored maximum-likelihood fit; a trend (Bond & Harris 2008's confidence and prediction intervals) leaves them out and counts them.
-- The result gives P01's `design_lines` frame.
+- The result gives P01's `design_lines` frame, and P09 (`ht.plot.representative_profile()`, `RepresentativeResult.plot()`) draws it with the mean and the view ([`P09`](../plots/P09-representative-profile.md), M18 (c)).
 
 ## 3. `compare()` and `compare_groups()`
 Decided 2026-10-30, M15 (d), [`docs/work/m15d-compare.md`](../work/m15d-compare.md).

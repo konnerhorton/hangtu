@@ -31,7 +31,8 @@ REPRESENTATIVE_WIDTH = 1.5  # points (P09 §7)
 MEAN_WIDTH = 0.8  # points
 BAND_ALPHA = 0.15
 STYLE_COLOR = "0.4"  # the gray legend entries naming each mark
-TABLE_WRAP = 40  # characters per line of the view in the table
+TABLE_WRAP = 40  # characters per line of the view, and of a unit's reason, in the table
+FOOTNOTE_WRAP = 64  # characters per footnote line, so a long one fits under the axes
 #: A view's representative line, by the order it was drawn on the axes (values=False).
 VIEW_STYLES: tuple[LineStyleType, ...] = ("-", "-.", ":")
 #: The section of the profile's legend that holds the lines' entries.
@@ -671,8 +672,10 @@ def _overlay(
             if room and lowest is not None:
                 room_below_data(ax, views.table, lowest)
         for line in _footnote(result, colors):
-            if line not in notes.texts:  # a second view's may be the first's
-                notes.add_text(line)
+            pieces = textwrap.wrap(line, FOOTNOTE_WRAP)
+            if pieces[0] not in notes.texts:  # a second view's may be the first's
+                for piece in pieces:
+                    notes.add_text(piece)
         return handles
 
     return draw
@@ -858,10 +861,15 @@ def _table_rows(
     names = max((len(name) for name, _, _ in cells), default=0)
     counts_width = max((len(n) for _, n, _ in cells), default=0)
     lines = textwrap.wrap(result._view(), TABLE_WRAP)
-    lines += [
-        f"{name.ljust(names)}  {n.ljust(counts_width)}  {shown}"
-        for name, n, shown in cells
-    ]
+    # A reason runs on under its own text, so the table stays narrow.
+    column = names + counts_width + 4
+    for name, n, shown in cells:
+        indent = " " * (column + 2 if shown.startswith("— ") else column)
+        lines += textwrap.wrap(
+            f"{name.ljust(names)}  {n.ljust(counts_width)}  {shown}",
+            len(indent) + TABLE_WRAP,
+            subsequent_indent=indent,
+        )
     return [[line] for line in lines]
 
 

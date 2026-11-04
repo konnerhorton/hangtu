@@ -3,14 +3,18 @@
 | | |
 |---|---|
 | **ID / function** | P09 · `ht.plot.representative_profile()` (+ `ht.stats.representative()`; also `RepresentativeResult.plot()`) |
-| **Status** | draft (M18 (c), 2026-11-04) |
+| **Status** | built (M18 (c), 2026-11-04) |
 | **Type** | plot + analysis (statistics) |
 | **Milestone** | M18 (c) (SPEC §12.4), [`docs/work/m18c-representative-profile.md`](../work/m18c-representative-profile.md) |
 | **Depends on** | P01; `ht.stats.representative()` (M18 (b), [`m18b-representative-values.md`](../work/m18b-representative-values.md) Spec) |
 | **Related** | P08 (the precedent: a plot that runs a statistic and draws its result); SPEC §4, §5; [`statistics.md`](../analysis/statistics.md) §2 |
 
 Formerly "characteristic value profile", `characteristic_profile`: renamed with `representative()` (M18 (b) intent
-decision 1). 🟡 marks a choice proposed in this spec, for review.
+decision 1). The choices proposed in the spec step are decided (2026-11-04).
+
+| Constant per unit (US) | Line with depth (SI) |
+|---|---|
+| ![P09, constant per unit, US](img/P09-us.png) | ![P09, line with depth, SI](img/P09-si.png) |
 
 ---
 
@@ -53,7 +57,7 @@ value the lines didn't use is still on the figure or counted under it.
 |---|---|---|---|
 | `value=` | the parameter, any registry column | ✔ | units as SPEC §2.6 |
 | `depth` or `elevation` | where each value is | ✔ | the trend's column for a trend; for a constant, the one `result.vertical` names |
-| `by=` column | the groups, one column or none (🟡) | | also P01's `color_by`, so a line and its values share a color |
+| `by=` column | the groups, one column or none | | also P01's `color_by`, so a line and its values share a color |
 | flag and source columns | `spt_refusal`, `qualifier`, `non_plastic`, assumed flags, `source`, … | | read by `representative()` and P01 |
 
 **Value flags handled:** P01 draws every row as it always does (refusals and text at the edge, `<x`/`>x` as
@@ -80,7 +84,7 @@ calculation, many views"):
 - **Table and footnote:** read from `result.groups` (value or `value_top`/`value_base`, counts, reason) and
   `result._view()`.
 
-🟡 Nothing new is needed on `RepresentativeResult` for this: the lines, the view's name and every count are
+Nothing new is needed on `RepresentativeResult` for this: the lines, the view's name and every count are
 already kept. If the build finds a gap, it is added to the result with a test (intent, "Out of scope").
 
 ## 5. Figure layout
@@ -100,12 +104,12 @@ on the vertical axis:
 | Series | Mark | Color | Legend |
 |---|---|---|---|
 | Values | P01's | by unit | P01's unit entries |
-| Representative line | solid, 1.5 pt | the unit's color | one gray style entry naming the view briefly: "characteristic", "percentile 10", "mean − 1.5 std" (🟡) |
+| Representative line | solid, 1.5 pt | the unit's color | one gray style entry naming the view briefly: "characteristic", "percentile 10", "mean − 1.5 std" |
 | Mean (median) line | dashed, 0.8 pt | the unit's color | gray entry "mean" or "median" |
 | Band | fill between the two, alpha 0.15 | the unit's color | gray entry "mean to characteristic" (or "… to percentile 10") |
 
 **Draw order:** P01's strata and ranges → band → P01's values → mean line → representative line → table and
-footnote. 🟡 The band goes under the values so no value is hidden.
+footnote. The band goes under the values so no value is hidden.
 
 P01's own design-line style (gray, labeled at the deepest point) isn't used: with several units, color is what
 pairs a line with its values, and the table names the view.
@@ -115,11 +119,11 @@ pairs a line with its values, and the table names the view.
 |---|---|---|---|
 | Mean (median) line | `mean=` | on | §7 |
 | Band | `band=` | on | §7; independent of `mean=` |
-| Table | `table=` | on | 🟡 Text box at P01's stats-box place (lower left, with its room rule): the view in full, `result._view()`, wrapped, then one row per unit in legend order: unit, n (with "k censored" for a constant), the value (constant) or "top → base" (trend), 3 significant figures in the display unit; a unit with no line shows "—" and its reason. Replaces P01's `stats_box`, which isn't offered (the two would overlap and say different things) |
-| Footnote | — | when non-zero | below P01's lines: "Left out of the lines: Clay 2 censored, 1 with no depth"; "Not in the lines: 2 assumed"; "No line: Fill (fewer than 2 values (1))" |
+| Table | `table=` | on | Text box at P01's stats-box place (lower left, with its room rule): the view in full, `result._view()`, wrapped, then one row per unit in legend order: unit, n (with "k censored" for a constant), the value (constant) or "top → base" (trend), 3 significant figures in the display unit; a unit with no line shows "—" and its reason, wrapped at 40 characters under its own text so the table stays narrow (settled in the build). Replaces P01's `stats_box`, which isn't offered (the two would overlap and say different things) |
+| Footnote | — | when non-zero | below P01's lines: "Left out of the lines: Clay 2 censored, 1 with no depth"; "Not in the lines: 2 assumed"; "No line: Fill (fewer than 2 values (1))". Each wrapped at 64 characters, so a line listing several units fits under the axes (settled in the build) |
 | P01's overlays | `strata=`, `water_level=`, `ranges=`, `reference_lines=`, `note=` | off | passed to P01 |
 
-**Values drawn or not** (🟡, intent "Out of scope"): `values=False` draws only the lines, band and table, into
+**Values drawn or not** (intent "Out of scope"): `values=False` draws only the lines, band and table, into
 a given `ax=` (an error without one). That is how a second view goes on the same figure: the values once, the
 views by call. A comparison of views as a feature waits for M18 (d). Settled in the build (M18 (c) step 4):
 - `ax=` must hold a profile drawn by P09 or `profile()` (it keeps `ax.ags_profile`), of the same parameter;
@@ -196,13 +200,13 @@ def representative_profile(
 ```
 - Calls `representative()` with its arguments, then draws P01 with `color_by=by` and the result's lines.
   Every judgment error is `representative()`'s, unchanged.
-- **`by=`** is one column or None (🟡): a line's color is its unit's, so a group must be one P01 color. Several
+- **`by=`** is one column or None: a line's color is its unit's, so a group must be one P01 color. Several
   columns are an error that says to filter the rows or make one column. None is one group, "All", in P01's
   single color.
 - **Not offered:** `color_by` (it is `by`), `design_lines` (P09 draws its own), `stats_box` (the table takes its
   place).
 - **`RepresentativeResult.plot(df, **kwargs)`** draws the same figure from an existing result, with the drawing
-  arguments above. The result keeps statistics, not rows, and P01 draws every row, so 🟡 it takes the data
+  arguments above. The result keeps statistics, not rows, and P01 draws every row, so it takes the data
   again and checks that they are the rows the result was computed from: the same groups with the same counts
   (`count` and each `count_*`), else an error saying which group differs. Returns `(fig, ax)`. The check reruns
   `representative()` with the view the result records; `count_interval_censored` isn't compared, because the
@@ -256,7 +260,8 @@ fig, ax, result = ht.plot.representative_profile(
 10. **Units:** US and SI calls differ only in labels and values scaled by the conversion; `result.plot()` with a
     `display_units=` other than the result's raises.
 11. **Visual check:** lab data, a seeded synthetic undrained shear strength set made in the image script
-    (two or three clay units, one rising with depth, a few `<x`/`>x` values and an assumed value). The scatter
+    (two or three clay units, one rising with depth, a few `<x`/`>x` values). s_u has no assumed flag in the
+    registry, so the assumed case is tested (criterion 5, on particle density) but not drawn here. The scatter
     is what a site gives, not a clean line: a coefficient of variation of about 0.3 around each unit's mean or
     trend, a skew to the high side, uneven depths with gaps and clusters, and one or two outliers, so the
     lines don't sit neatly through the points. That is also what shows the band between mean and representative
@@ -270,7 +275,8 @@ As the M18 (b) Spec (Orr et al. 2025, JRC EUR 40260, quoting EN 1997-1:2024; Bon
 there). The plot adds no method.
 
 ## 14. Open questions
-- The 🟡 choices above, for review.
+- None. The figure's data are made in the site example (`docs/site/examples/representative-profile.py`), so the
+  images can be redrawn from it.
 
 ## 15. Future enhancements
 - Several views compared as a feature, and sources compared by depth (M18 (d)).

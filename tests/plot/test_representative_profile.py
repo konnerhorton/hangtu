@@ -357,8 +357,11 @@ def table_lines(ax):
 
 
 def footnote(ax):
-    return "\n".join(
-        text.get_text() for text in ax.texts if text.get_bbox_patch() is None
+    """The footnote as one text: its long lines are wrapped, so lines join by spaces."""
+    return " ".join(
+        text.get_text().replace("\n", " ")
+        for text in ax.texts
+        if text.get_bbox_patch() is None
     )
 
 
@@ -401,10 +404,25 @@ def test_table_gives_a_trends_top_and_base():
 
 def test_table_gives_a_unit_with_no_line_its_reason():
     df = strength().drop(index=[7, 8, 9])  # Lower keeps one value
-    _, ax, result = draw(df)
+    _, ax, result = draw(df, trend="depth")
     reason = result.to_frame().set_index("geology_unit").loc["Lower", "reason"]
-    lower = [line for line in table_lines(ax) if line.startswith("Lower")]
-    assert lower == [f"Lower  n = 1  — {reason}"]
+    lines = table_lines(ax)
+    start = next(i for i, line in enumerate(lines) if line.startswith("Lower"))
+    row = lines[start]
+    rest = []
+    for line in lines[start + 1 :]:
+        if not line.startswith(" "):
+            break
+        rest.append(line)
+    assert rest  # the reason is long enough to wrap
+    assert row.startswith("Lower  n = 1  — ")
+    # a long reason runs on under the value column, so the table stays narrow
+    indent = row.index("—") + 2
+    assert all(line.startswith(" " * indent) for line in rest)
+    assert all(len(line) <= indent + 40 for line in [row, *rest])
+    assert " ".join([row[row.index("—") :], *(line.strip() for line in rest)]) == (
+        f"— {reason}"
+    )
     assert f"No line: Lower ({reason})." in footnote(ax)
 
 
