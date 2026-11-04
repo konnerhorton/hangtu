@@ -720,7 +720,7 @@ def test_overlay_is_called_once_with_the_profiles_scales_and_joins_the_legend(fr
     assert isinstance(vertical, Vertical) and vertical.vs == "depth"
     assert isinstance(scale, ValueScale) and scale.unit == "psf"
     assert list(colors) == ["Clay", "Fill"]
-    assert ax.ags_profile == ProfileAxes(vertical, scale, calls[0][2])
+    assert ax.ags_profile == ProfileAxes(vertical, scale, calls[0][2], 20.0)
     labels = [text.get_text() for text in ax.get_legend().get_texts()]
     assert labels == ["Clay", "Fill", "overlay entry"]
     assert any("Overlay note" in text.get_text() for text in ax.figure.texts + ax.texts)

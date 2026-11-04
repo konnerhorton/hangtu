@@ -1,5 +1,6 @@
 """P09 representative value profile (docs/plots/P09-representative-profile.md)."""
 
+import textwrap
 from collections.abc import Mapping
 from typing import Any, Literal
 
@@ -15,8 +16,8 @@ from hangtu._settings import settings
 from hangtu.errors import HangtuError
 from hangtu.plot import _layers, _values
 from hangtu.plot._notes import Notes
-from hangtu.plot._overlays import ValueScale
-from hangtu.plot._profile import Overlay, _draw_profile
+from hangtu.plot._overlays import ValueScale, draw_stats_box, format_number
+from hangtu.plot._profile import Overlay, _draw_profile, room_below_data
 from hangtu.plot._vertical import Vertical
 from hangtu.registry import column_info
 from hangtu.stats._representative import representative
@@ -26,6 +27,7 @@ REPRESENTATIVE_WIDTH = 1.5  # points (P09 §7)
 MEAN_WIDTH = 0.8  # points
 BAND_ALPHA = 0.15
 STYLE_COLOR = "0.4"  # the gray legend entries naming each mark
+TABLE_WRAP = 40  # characters per line of the view in the table
 
 
 def representative_profile(
@@ -50,6 +52,7 @@ def representative_profile(
     judgments: Any = None,
     mean: bool = True,
     band: bool = True,
+    table: bool = True,
     vs: Literal["elevation", "depth"] | None = None,
     preset: str | None = None,
     log: bool | None = None,
@@ -85,6 +88,13 @@ def representative_profile(
     unit's values. The plot computes nothing of its own: the lines are
     ``result.design_lines(mean=True)``.
 
+    A table at the lower left names the view and its judgments, then gives
+    each unit's n and value (or the line's value at the top and base of its
+    values), or the reason it has none. The footnote counts the values the
+    lines left out: censored values and values with no depth, which a trend
+    can't use, and assumed values and ranges, which are drawn but not in
+    the lines.
+
     Every judgment is passed to ``representative()`` unchanged and none has
     a default (SPEC §4), so its errors are this function's.
 
@@ -119,6 +129,10 @@ def representative_profile(
     band : bool
         Shade between the mean (median) and the representative line, under
         the values.
+    table : bool
+        Draw the table of the view and each unit's value. It sits below the
+        lowest data, deepening the vertical axis if needed, unless ``ylim=``
+        is given.
     vs : {"depth", "elevation"}, optional
         The vertical axis. A trend is drawn against its own column, the
         default; the other is an error. A constant defaults to the column
@@ -227,7 +241,16 @@ def representative_profile(
         figsize=figsize,
         ax=ax,
         value_ranges=True,
-        overlay=_overlay(result, lines, mean=mean, band=band, xlim=xlim, ylim=ylim),
+        overlay=_overlay(
+            result,
+            lines,
+            mean=mean,
+            band=band,
+            table=table,
+            note=note,
+            xlim=xlim,
+            ylim=ylim,
+        ),
         cover_x=lines["value"].to_numpy(dtype=float),
         **style_overrides,
     )
@@ -267,10 +290,12 @@ def _overlay(
     *,
     mean: bool,
     band: bool,
+    table: bool,
+    note: str | None,
     xlim: tuple[float, float] | None,
     ylim: tuple[float, float] | None,
 ) -> Overlay:
-    """Return the overlay that draws each unit's lines and band."""
+    """Return the overlay that draws the lines, band, table and footnote lines."""
 
     def draw(
         ax: Axes,
@@ -279,9 +304,17 @@ def _overlay(
         colors: Mapping[Any, Any],
         notes: Notes,
     ) -> list[Artist]:
-        return _draw_lines(
+        handles = _draw_lines(
             ax, result, lines, vertical, scale, colors, notes, mean, band, xlim, ylim
         )
+        if table:
+            box = draw_stats_box(ax, _table_rows(result, scale, colors), note)
+            lowest = ax.ags_profile.lowest  # type: ignore[attr-defined]
+            if ylim is None and lowest is not None:
+                room_below_data(ax, box, lowest)
+        for line in _footnote(result, colors):
+            notes.add_text(line)
+        return handles
 
     return draw
 
@@ -414,3 +447,97 @@ def _cut(
     if beyond:
         notes.add("line_beyond_limit", 1)
     return x
+
+
+def _groups_in_order(
+    result: RepresentativeResult, colors: Mapping[Any, Any]
+) -> list[dict[str, Any]]:
+    """Return the result's groups in the legend's order, then any others."""
+    if not result.by:
+        return list(result.groups)
+    by = result.by[0]
+    found = {group["key"][by]: group for group in result.groups}
+    order = [found.pop(key) for key in colors if key in found]
+    return order + list(found.values())
+
+
+def _table_rows(
+    result: RepresentativeResult, scale: ValueScale, colors: Mapping[Any, Any]
+) -> list[list[str]]:
+    """Return the table: the view, wrapped, then a line per unit (P09 §8).
+
+    Each line is one cell, aligned here, so ``draw_stats_box`` writes the
+    view's lines and the units' columns as given.
+    """
+    unit = f" {result.unit}" if result.unit else ""
+    cells: list[tuple[str, str, str]] = []
+    for group in _groups_in_order(result, colors):
+        counts = group["counts"]
+        n = f"n = {counts['count']}"
+        if group["reason"]:
+            shown = f"— {group['reason']}"
+        elif result.trend is None:
+            if counts["count_censored"]:
+                n += f" ({counts['count_censored']} censored)"
+            shown = format_number(_display(group["value"], scale, result)) + unit
+        else:
+            top, base = (
+                format_number(_display(group["statistics"][end], scale, result))
+                for end in ("value_top", "value_base")
+            )
+            shown = f"{top} → {base}{unit}"
+        cells.append((_label(group["key"]), n, shown))
+    names = max((len(name) for name, _, _ in cells), default=0)
+    counts_width = max((len(n) for _, n, _ in cells), default=0)
+    lines = textwrap.wrap(result._view(), TABLE_WRAP)
+    lines += [
+        f"{name.ljust(names)}  {n.ljust(counts_width)}  {shown}"
+        for name, n, shown in cells
+    ]
+    return [[line] for line in lines]
+
+
+def _display(value: float, scale: ValueScale, result: RepresentativeResult) -> float:
+    """Return a value of the result in the plot's display units."""
+    return float(scale.to_display([value], result.unit)[0])
+
+
+def _footnote(result: RepresentativeResult, colors: Mapping[Any, Any]) -> list[str]:
+    """Return the footnote lines on what the lines left out (P09 §8)."""
+    groups = _groups_in_order(result, colors)
+    lines = []
+    if result.trend is not None:
+        left_out = []
+        for group in groups:
+            counts = group["counts"]
+            parts = []
+            if counts["count_censored"]:
+                parts.append(f"{counts['count_censored']} censored")
+            blank = counts.get(f"count_blank_{result.trend}", 0)
+            if blank:
+                parts.append(f"{blank} with no {result.trend}")
+            if parts:
+                left_out.append(f"{_label(group['key'])} {', '.join(parts)}")
+        if left_out:
+            lines.append(f"Left out of the lines: {'; '.join(left_out)}.")
+    assumed = 0 if result.include_assumed else _total(groups, "count_assumed")
+    ranged = _total(groups, "count_range")
+    kinds = [
+        f"{count} {kind}"
+        for count, kind in ((assumed, "assumed"), (ranged, "range"))
+        if count
+    ]
+    if kinds:
+        lines.append(f"Not in the lines: {', '.join(kinds)}.")
+    no_line = [
+        f"{_label(group['key'])} ({group['reason'] or f'no {result.vertical}'})"
+        for group in groups
+        if group["reason"] or group.get("vertical_range") is None
+    ]
+    if no_line:
+        lines.append(f"No line: {'; '.join(no_line)}.")
+    return lines
+
+
+def _total(groups: list[dict[str, Any]], name: str) -> int:
+    return sum(int(group["counts"].get(name, 0)) for group in groups)

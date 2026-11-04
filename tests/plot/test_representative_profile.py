@@ -3,12 +3,13 @@
 import numpy as np
 import pandas as pd
 import pytest
-from matplotlib.collections import PolyCollection
+from matplotlib.collections import PathCollection, PolyCollection
 from matplotlib.colors import to_rgb
 
 import hangtu as ht
 from hangtu.errors import HangtuError
 from hangtu.plot import _layers
+from hangtu.plot._overlays import format_number
 
 from .conftest import assert_no_global_state
 
@@ -341,3 +342,156 @@ def test_no_unit_with_a_line_draws_values_without_line_entries():
     assert lines_at(ax, _layers.REPRESENTATIVE) == []
     assert bands(ax) == []
     assert legend_texts(ax) == ["Lower", "Upper"]
+
+
+# --- criterion 3: table -----------------------------------------------------------
+
+
+def table_lines(ax):
+    """The table's lines, trailing spaces removed; [] when there is none."""
+    boxes = [text for text in ax.texts if text.get_bbox_patch() is not None]
+    if not boxes:
+        return []
+    (box,) = boxes
+    return [line.rstrip() for line in box.get_text().split("\n")]
+
+
+def footnote(ax):
+    return "\n".join(
+        text.get_text() for text in ax.texts if text.get_bbox_patch() is None
+    )
+
+
+def test_table_names_the_view_and_gives_each_units_value():
+    _, ax, result = draw()
+    lines = table_lines(ax)
+    view = " ".join(lines[:-2])
+    assert view == result._view()
+    values = result.to_frame().set_index("geology_unit")["value"]
+    counts = result.to_frame().set_index("geology_unit")["count"]
+    # Legend order: Lower, then Upper.
+    for line, unit in zip(lines[-2:], ["Lower", "Upper"], strict=True):
+        assert line.split() == [
+            unit,
+            "n",
+            "=",
+            str(counts[unit]),
+            format_number(values[unit]),
+            "kPa",
+        ]
+
+
+def test_table_gives_a_trends_top_and_base():
+    _, ax, result = draw(trend="depth")
+    frame = result.to_frame().set_index("geology_unit")
+    for line, unit in zip(table_lines(ax)[-2:], ["Lower", "Upper"], strict=True):
+        top = format_number(frame.loc[unit, "value_top"])
+        base = format_number(frame.loc[unit, "value_base"])
+        assert line.split() == [
+            unit,
+            "n",
+            "=",
+            str(frame.loc[unit, "count"]),
+            top,
+            "→",
+            base,
+            "kPa",
+        ]
+
+
+def test_table_gives_a_unit_with_no_line_its_reason():
+    df = strength().drop(index=[7, 8, 9])  # Lower keeps one value
+    _, ax, result = draw(df)
+    reason = result.to_frame().set_index("geology_unit").loc["Lower", "reason"]
+    lower = [line for line in table_lines(ax) if line.startswith("Lower")]
+    assert lower == [f"Lower  n = 1  — {reason}"]
+    assert f"No line: Lower ({reason})." in footnote(ax)
+
+
+def test_table_counts_a_constants_censored_values():
+    df = strength(qualifier=[""] * 4 + [">", ">"] + [""] * 4)
+    _, ax, _ = draw(df)
+    (upper,) = [line for line in table_lines(ax) if line.startswith("Upper")]
+    assert "n = 6 (2 censored)" in upper
+
+
+def test_table_false_draws_no_table():
+    _, ax, _ = draw(table=False)
+    assert table_lines(ax) == []
+    assert len(lines_at(ax, _layers.REPRESENTATIVE)) == 2
+
+
+def test_table_sits_below_the_lowest_data():
+    _, ax, _ = draw(trend="depth")
+    bottom, _ = ax.get_ylim()
+    assert bottom > 12.0  # deepened past the deepest value, 12 m
+
+
+# --- criterion 4: a trend's censored values ---------------------------------------
+
+
+def test_trend_footnote_counts_censored_values_and_values_with_no_depth():
+    df = strength(qualifier=[""] * 4 + [">", ">"] + [""] * 4)
+    df.loc[2, "depth"] = np.nan
+    with pytest.warns(UserWarning, match="out of the trend"):
+        _, ax, result = draw(df, trend="depth")
+    counts = result.to_frame().set_index("geology_unit").loc["Upper"]
+    assert counts["count_censored"] == 2
+    assert counts["count_blank_depth"] == 1
+    assert "Left out of the lines: Upper 2 censored, 1 with no depth." in footnote(ax)
+    # P01 draws the two at their limits and counts the one it can't place.
+    assert ax.ags_notes == {"greater_than": 2, "nan": 1}
+
+
+def test_constant_has_no_left_out_line():
+    df = strength(qualifier=[""] * 4 + [">", ">"] + [""] * 4)
+    _, ax, _ = draw(df)
+    assert "Left out of the lines" not in footnote(ax)
+
+
+# --- criterion 5: values left out by both -----------------------------------------
+
+
+def density_frame():
+    """Particle density with two assumed values."""
+    df = pd.DataFrame(
+        {
+            "loca_id": ["A"] * 6,
+            "depth": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+            "ground_level": [100.0] * 6,
+            "geology_unit": ["Clay"] * 6,
+            "particle_density": [2.65, 2.70, 2.68, 2.72, 2.66, 2.71],
+            "particle_density_assumed": [False, True, False, False, True, False],
+        }
+    )
+    units = {"depth": "m", "ground_level": "m", "particle_density": "Mg/m3"}
+    return ht.set_units(df, units)
+
+
+DENSITY = {
+    "value": "particle_density",
+    "by": "geology_unit",
+    "distribution": "normal",
+    "display_units": "SI",
+    **VIEW,
+}
+
+
+def test_assumed_values_are_drawn_and_counted_not_in_the_lines():
+    with pytest.warns(UserWarning, match="assumed"):
+        _, ax, result = ht.plot.representative_profile(density_frame(), **DENSITY)
+    points = [c for c in ax.collections if isinstance(c, PathCollection)]
+    assert sum(len(c.get_offsets()) for c in points) == 6
+    assert result.groups[0]["counts"]["count"] == 4
+    assert "Not in the lines: 2 assumed." in footnote(ax)
+
+
+def test_include_assumed_puts_them_in_the_lines():
+    _, ax, result = ht.plot.representative_profile(
+        density_frame(), include_assumed=True, **DENSITY
+    )
+    alone = ht.stats.representative(density_frame(), include_assumed=True, **DENSITY)
+    assert result.groups[0]["counts"]["count"] == 6
+    (line,) = lines_at(ax, _layers.REPRESENTATIVE)
+    np.testing.assert_allclose(line.get_xdata(), alone.groups[0]["value"], rtol=1e-12)
+    assert "Not in the lines" not in footnote(ax)

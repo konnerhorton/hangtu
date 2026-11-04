@@ -98,11 +98,15 @@ class ProfileAxes(NamedTuple):
     - ``vertical``: the vertical reference, as ``Vertical``.
     - ``scale``: how values are drawn, as ``ValueScale``.
     - ``colors``: ``{color group: color}`` in legend order.
+    - ``lowest``: the data's vertical value nearest the bottom of the axes
+      (the deepest depth, the lowest elevation), for the room rule of a box
+      at the lower left; None without data.
     """
 
     vertical: Vertical
     scale: ValueScale
     colors: Mapping[Any, Any]
+    lowest: float | None
 
 
 #: Draws over a profile's values, before its legend and footnote (P09):
@@ -110,7 +114,7 @@ class ProfileAxes(NamedTuple):
 Overlay = Callable[[Axes, Vertical, ValueScale, Mapping[Any, Any], Notes], list[Artist]]
 
 
-def _room_below_data(ax: Axes, box: Text, lowest: float) -> None:
+def room_below_data(ax: Axes, box: Text, lowest: float) -> None:
     """Deepen the vertical axis so ``box`` sits below the lowest data.
 
     ``lowest`` is the data value nearest the bottom of the axes on screen
@@ -819,10 +823,6 @@ def _draw_profile(
             if (drawn & (marker_groups == group)).any()
         ]
         flagged = _values.flag_handles(np.where(drawn, flags, ""), flag_kinds, notes)
-        ax.ags_profile = ProfileAxes(vertical, scale, colors)  # type: ignore[attr-defined]
-        overlay_handles = (
-            [] if overlay is None else overlay(ax, vertical, scale, colors, notes)
-        )
 
         if not (drawn | (texts != "") | extra).any():
             ax.text(
@@ -844,6 +844,13 @@ def _draw_profile(
             )
         )
         ax.set_ylabel(vertical.label())
+        lowest = None
+        if heights.size:
+            lowest = float(heights.max() if vs == "depth" else heights.min())
+        ax.ags_profile = ProfileAxes(vertical, scale, colors, lowest)  # type: ignore[attr-defined]
+        overlay_handles = (
+            [] if overlay is None else overlay(ax, vertical, scale, colors, notes)
+        )
         if statistics is not None:
             info = column_info(value)
             # Assumed values are drawn but not summarized (m15a, Decision 7).
@@ -874,9 +881,8 @@ def _draw_profile(
                 None if note is None else str(note),
                 "\n".join(line for line in also if line) or None,
             )
-            if stats_box_room and ylim is None and heights.size:
-                lowest = heights.max() if vs == "depth" else heights.min()
-                _room_below_data(ax, box, float(lowest))
+            if stats_box_room and ylim is None and lowest is not None:
+                room_below_data(ax, box, lowest)
         if secondary == "depth":
             add_secondary_depth(ax, vertical)
         offset = SECONDARY_SPACE if secondary else 0.0
