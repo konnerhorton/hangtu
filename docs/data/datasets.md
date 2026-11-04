@@ -487,6 +487,19 @@ New columns, each checked against the whole registry (CLAUDE.md, "Naming"): `loc
 - M11 a (`docs/work/m11a-triaxial-data.md`): `test_stage`, `multistage_test`, `failure_criterion`, `effective_consolidation_stress`, `back_pressure`, `pore_pressure_parameter_b`, `cell_pressure`, `deviator_stress_at_failure`, `pore_pressure_at_failure`, `axial_strain_at_failure`, `volumetric_strain_at_failure`, the four principal stresses at failure, `effective_stress_basis`, `reported_effective_friction_angle`, `reported_effective_cohesion`, `test_remarks`; new AGS sources for `test_type`, `sample_condition`, `water_content`, `bulk_unit_weight`, `dry_unit_weight`, `void_ratio` and `remarks`; the `triaxial` template.
 - M17 a (`docs/work/m17a-strength-data.md`, Changes): the undrained strength and shear box columns; `undrained_shear_strength`'s sources (`TRIT_CU` moves to `reported_undrained_shear_strength`); `axial_strain_at_failure` gains `LUCT_STRA`; the quantity kind `displacement_rate`; the `strength` template reshaped and `shear_box` new.
 
+### 11.1 CSV templates
+Each template (`ht.template(<name>)`) is its dataset's columns in the same order, without those only hangtu produces, so CSV and AGS data reach the plots in the same shape (decided 2026-10-14, `docs/work/m9-release.md`; SPEC §2.6). What each leaves out:
+
+| Template | Dataset | Left out |
+|---|---|---|
+| `spt`, `atterberg`, `grain_size`, `permeability` | `p.spt()`, `p.atterberg()`, `p.grain_size()`, `p.permeability()` | `source_line`, `energy_source`, `spt_n_capped`, `liquidity_index`, `consistency_index` |
+| `stratigraphy` (M13) | `p.stratigraphy()` | `source_line` |
+| `density`, `particle_density` (M14, `docs/work/m14a-density-data.md`) | `p.density()`, `p.particle_density()` | `source_line`, `particle_density_specimen_id` |
+| `triaxial` (M11 a, `docs/work/m11a-triaxial-data.md`) | `p.triaxial()` | `source_line`, the four principal stresses at failure and `effective_stress_basis`, which `ht.analysis.triaxial_failure_stresses()` adds |
+| `triaxial_readings` (M11 c, `docs/work/m11c-triaxial-shearing.md`) | none | One row per reading during shearing, for `ht.analysis.triaxial_failure_from_readings()` and P12 |
+| `strength` (M17 a, `docs/work/m17a-strength-data.md`) | `p.undrained_strength()` | `source_line`, `undrained_shear_strength_basis` and `strength_sensitivity`, which `ht.analysis.undrained_shear_strength_from_tests()` adds |
+| `shear_box` (M17 a) | `p.shear_box()` | `source_line` |
+
 ## 12. Test files
 The good files (`site_si.ags`, `site_us.ags`, `site_v404.ags`) get, through the generator script and in all three so the twin tests still hold:
 - SPT increments on some tests: a complete drive, and a refusal in the test drive;
