@@ -75,3 +75,24 @@ judgment, and the Mohr–Coulomb set.
 - `docs/plots/P01-property-profile.md`: the "Related" row and the design lines row name P09 by its new name.
 - `docs/analysis/statistics.md`: `representative()` points to its plot.
 - `CLAUDE.md`: the "Next" sentence at close-out.
+
+## Spec
+The feature spec is the plot spec, [`docs/plots/P09-representative-profile.md`](../plots/P09-representative-profile.md)
+(draft, 2026-11-04). Its 🟡 items are this step's proposals:
+1. **`by=` is one column or none**, and is P01's `color_by`, so a line and its values share a color.
+2. **The table** replaces P01's stats box: the view in full (`result._view()`), then n and the value (or top →
+   base) per unit, or "—" and the reason. `stats_box`, `design_lines` and `color_by` aren't offered.
+3. **Band under the values**, in the unit's color, so no value is hidden; `mean=` and `band=` are independent.
+4. **`values=False`** draws a second view into an existing `ax=` without redrawing the values (intent, "Out of
+   scope").
+5. **`RepresentativeResult.plot(df, ...)` takes the data again**, because the result keeps statistics, not rows,
+   and P01 draws every row; it checks the rows give the result's groups and counts, else raises.
+6. **Mixed sources:** `representative()` raises, and that governs, as in P08.
+7. **Units:** `display_units=` goes to both calls; `result.plot()` draws in the result's units and raises for
+   another.
+8. **No new fields on the result**: the lines, view and counts are already kept.
+9. **Visual check data:** lab data, a seeded synthetic s_u set made in the image script, a constant (US) and a
+   depth trend (SI); the example project's s_u is too thin for a trend (decided in review, 2026-11-04).
+
+Also changed in this step: `docs/plots/README.md` (the P09 row and the overlays entry for representative values)
+and `docs/plots/P01-property-profile.md` (P09's new name in "Related" and the design lines row).
