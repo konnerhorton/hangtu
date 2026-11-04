@@ -1,6 +1,8 @@
 """P31 shear box envelope (docs/plots/P31-shear-box-envelope.md)."""
 
+import math
 import warnings
+from collections.abc import Sequence
 from typing import Any, Literal
 
 import matplotlib.pyplot as plt
@@ -14,20 +16,24 @@ from hangtu.analysis._shear_box_fit import ShearBoxFit, shear_box_fit
 from hangtu.errors import HangtuError
 from hangtu.plot import _envelope_drawing as envelope
 from hangtu.plot import _layers, _values, style
+from hangtu.plot._hints import hint_missing
 from hangtu.plot._labels import axis_label
 from hangtu.plot._legend import add_legend
 from hangtu.plot._limits import nice_limits
 from hangtu.plot._notes import Notes, figure_of
+from hangtu.plot._overlays import format_number
 from hangtu.plot._palette import resolve_palette
 
 STRENGTHS = ("peak", "residual")
 #: The columns the fit checks a line's rows share (its decision 6).
 CHECKED = ["test_type", "failure_criterion"]
 LEGEND_COLOR = "black"
+USER_ENVELOPE_COLOR = "0.55"
 MARKER_SIZE = 5.0
 OTHER_WIDTH = 0.8
 OTHER_ALPHA = 0.6
 KIND_TEXT = {"free": "Free fit", "through_origin": "Through the origin"}
+BASIS_TEXT = {"at_peak": "at peak", "at_residual": "at residual", "applied": "applied"}
 
 
 def shear_box_envelope(
@@ -38,7 +44,10 @@ def shear_box_envelope(
     cohesion: float | None = None,
     normal_stress: Literal["at_peak_or_residual", "applied"] = "at_peak_or_residual",
     pool: str | list[str] | None = None,
+    strengths: Sequence[Literal["peak", "residual"]] = ("peak", "residual"),
     fit: bool = True,
+    result_box: bool = True,
+    envelopes: Sequence[tuple[float, float, str]] | None = None,
     note: str | None = None,
     units: dict[str, str] | None = None,
     display_units: Literal["US", "SI"] | None = None,
@@ -77,8 +86,14 @@ def shear_box_envelope(
         Colors the points when there is no ``group_by``. Defaults to
         ``geology_unit`` when the rows have it. An error with ``group_by``:
         each set of lines has one color.
+    strengths : sequence of {"peak", "residual"}
+        The strengths drawn. The fit returned has both.
     fit : bool
         False draws the points only, and returns None for the fit.
+    result_box : bool
+        Write the fit's numbers in the upper left.
+    envelopes : list of (cohesion, friction_angle, label), optional
+        Your own lines, cohesion in the display units and the angle in degrees.
     note : str, optional
         Free text, added to the footnote.
     display_units : {"US", "SI"}, optional
@@ -107,7 +122,7 @@ def shear_box_envelope(
     ...         p.shear_box(geology=["Sandstone"]), display_units="SI"
     ...     )
     """
-    drawn = list(STRENGTHS)
+    drawn = _check_strengths(strengths)
     if not isinstance(df, pd.DataFrame):
         raise HangtuError(f"df must be a pandas DataFrame, not {type(df).__name__}.")
     if group_by is not None and color_by is not None:
@@ -115,6 +130,7 @@ def shear_box_envelope(
             "color_by= can't be used with group_by=: each set of lines is drawn in "
             "its group's color. Use one or the other."
         )
+    user_envelopes = envelope.check_envelopes(envelopes)
     system = _display_units(display_units or settings.display_units)
     if color_by is None and group_by is None and "geology_unit" in df.columns:
         color_by = "geology_unit"
@@ -125,6 +141,19 @@ def shear_box_envelope(
         )
 
     with style.context(**style_overrides):
+        hint_missing(
+            df,
+            {
+                "failure_criterion": "the fit can't check that a line's stages "
+                "share one",
+                "test_type": "the fit can't check that a line's stages share one",
+                **(
+                    {"geology_unit": "the stages are drawn in one color"}
+                    if group_by is None
+                    else {}
+                ),
+            },
+        )
         with warnings.catch_warnings():
             if not fit:  # no line is drawn, so its warnings would mislead
                 warnings.simplefilter("ignore")
@@ -154,8 +183,22 @@ def shear_box_envelope(
         xlim = ax.get_xlim()
         color_handles = _draw_points(ax, df, result, drawn, color_by, colors)
         handles = []
+        for cohesion_value, angle, label in user_envelopes:
+            slope = math.tan(math.radians(angle))
+            handles += ax.plot(
+                xlim,
+                [cohesion_value + slope * x for x in xlim],
+                color=USER_ENVELOPE_COLOR,
+                linewidth=envelope.LINE_WIDTH,
+                label=label,
+                gid="user_envelope",
+                zorder=_layers.LINES,
+            )
         if fit:
-            handles = _draw_lines(ax, result, drawn, colors, xlim)
+            handles = _draw_lines(ax, result, drawn, colors, xlim) + handles
+            if result_box:
+                _draw_box(ax, result, drawn)
+        _footnote(result, drawn, notes)
         if note is not None:
             notes.add_text(str(note))
         marks = [
@@ -182,6 +225,16 @@ def shear_box_envelope(
         placed = add_legend(ax, [color_handles, marks, handles], notes)
         notes.render(ax, where=placed.where, below=placed.legend)
     return fig, ax, result if fit else None
+
+
+def _check_strengths(strengths: Any) -> list[str]:
+    values = [strengths] if isinstance(strengths, str) else list(strengths or [])
+    if not values or any(value not in STRENGTHS for value in values):
+        raise HangtuError(
+            f"strengths={strengths!r} isn't one the plot draws: give one or both "
+            'of "peak" and "residual", such as strengths=("peak",).'
+        )
+    return [s for s in STRENGTHS if s in values]
 
 
 def _group_label(result: ShearBoxFit, group: dict[str, Any]) -> str | None:
@@ -355,3 +408,100 @@ def _draw_lines(
             label=KIND_TEXT[kinds[1]],
         ),
     ]
+
+
+def _draw_box(ax: Axes, result: ShearBoxFit, drawn: list[str]) -> None:
+    """Write each group's lines and the lab's values (P31 §8)."""
+    unit = f" {result.unit}" if result.unit else ""
+    lines = []
+    for group in result.groups:
+        indent = ""
+        if result.by:
+            lines.append(f"{_group_label(result, group)}")
+            indent = "  "
+        for s in drawn:
+            record = group["strengths"][s]
+            main, other = record["lines"]
+            head = f"{indent}{s.capitalize()}"
+            if main["line_kind"] != "free":
+                head += ", through the origin"
+            if main["no_fit_reason"] is not None:
+                lines.append(f"{head}: no fit: {main['no_fit_reason']}")
+            else:
+                lines.append(f"{head}: {_values_text(main, unit)}")
+                r_squared = (
+                    "—" if math.isnan(main["r_squared"]) else f"{main['r_squared']:.3f}"
+                )
+                lines.append(
+                    f"{indent}  n = {main['count']}, R² = {r_squared}, σn "
+                    f"{format_number(main['lowest_normal_stress'])} to "
+                    f"{format_number(main['highest_normal_stress'])}{unit}"
+                )
+            other_head = f"{indent}  {KIND_TEXT[other['line_kind']].lower()}"
+            if other["no_fit_reason"] is not None:
+                lines.append(f"{other_head}: no fit: {other['no_fit_reason']}")
+            else:
+                lines.append(f"{other_head}: {_values_text(other, unit)}")
+            pairs = record["reported_pairs"] or []
+            for pair in pairs:
+                stages = f" ({pair['count']} stages)" if len(pairs) > 1 else ""
+                lines.append(
+                    f"{indent}  Lab: c = {format_number(pair['cohesion'])}{unit}, "
+                    f"φ = {pair['friction_angle']:.1f}°{stages}"
+                )
+    if not lines:
+        return
+    ax.annotate(
+        "\n".join(lines),
+        xy=(0.02, 0.98),
+        xycoords="axes fraction",
+        ha="left",
+        va="top",
+        fontsize=envelope.TEXT_SIZE,
+        color="0.15",
+        gid="result_box",
+        bbox={
+            "boxstyle": "round,pad=0.3",
+            "facecolor": "white",
+            "edgecolor": "0.7",
+            "linewidth": 0.5,
+        },
+        zorder=_layers.ANNOTATIONS,
+    )
+
+
+def _values_text(line: dict[str, Any], unit: str) -> str:
+    angle = f"φ = {line['friction_angle']:.1f}°"
+    if line["line_kind"] != "free":
+        return angle
+    sign = " (c < 0)" if line["cohesion"] < 0 else ""
+    return f"c = {format_number(line['cohesion'])}{unit}{sign}, {angle}"
+
+
+def _footnote(result: ShearBoxFit, drawn: list[str], notes: Notes) -> None:
+    """Count the rows left out, and the bases of a mixed strength (P31 §8)."""
+    for s in drawn:
+        records = [group["strengths"][s] for group in result.groups]
+        parts = [
+            f"{total} without a {what}"
+            for what, name in (
+                ("shear stress", f"count_no_{s}_shear_stress"),
+                ("normal stress", f"count_no_{s}_normal_stress"),
+            )
+            if (total := sum(record[name] for record in records))
+        ]
+        if parts:
+            notes.add_text(f"Left out of {s}: " + ", ".join(parts))
+    for s in drawn:
+        records = [group["strengths"][s] for group in result.groups]
+        if not any(record["normal_stress_basis"] == "mixed" for record in records):
+            continue
+        counts: dict[str, int] = {}
+        for record in records:
+            for point in record["points"]:
+                basis = point["normal_stress_basis"]
+                counts[basis] = counts.get(basis, 0) + 1
+        listed = ", ".join(
+            f"{count} {BASIS_TEXT.get(basis, basis)}" for basis, count in counts.items()
+        )
+        notes.add_text(f"{s.capitalize()} σn: {listed}")

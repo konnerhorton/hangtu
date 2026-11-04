@@ -1,9 +1,10 @@
-"""P31 shear box envelope (docs/plots/P31-shear-box-envelope.md, AC 1-4 and 7).
+"""P31 shear box envelope (docs/plots/P31-shear-box-envelope.md, AC 1-4, 6, 7, 9).
 
 Golden values are the M17 (b) spec's (docs/work/m17b-shear-box-fit.md, AC 1-8),
 hand-calculated there. Positions are read from the drawn artists.
 """
 
+import math
 import warnings
 from pathlib import Path
 
@@ -13,7 +14,7 @@ import pandas as pd
 import pytest
 
 import hangtu as ht
-from hangtu.errors import HangtuError
+from hangtu.errors import HangtuError, UnitsError
 
 AGS = Path(__file__).parents[1] / "data" / "ags"
 REL = 1e-9
@@ -37,6 +38,11 @@ def _project(name, tmp_path_factory):
 @pytest.fixture(scope="module")
 def site_si(tmp_path_factory):
     return _project("site_si", tmp_path_factory)
+
+
+@pytest.fixture(scope="module")
+def joins(tmp_path_factory):
+    return _project("joins", tmp_path_factory)
 
 
 def _frame(peak, residual=None, **columns):
@@ -74,6 +80,14 @@ def _points(ax, gid):
         (float(line.get_xdata()[0]), float(line.get_ydata()[0]))
         for line in _lines(ax, gid)
     )
+
+
+def _box(ax):
+    return next(text for text in ax.texts if text.get_gid() == "result_box").get_text()
+
+
+def _footnote(ax):
+    return "\n".join(text.get_text() for text in ax.texts)
 
 
 # --- AC 1-2: lines and points -------------------------------------------------------
@@ -117,7 +131,7 @@ def test_bh2_d1_points(site_si):
     assert residual.get_markerfacecolor() != residual.get_markeredgecolor()
 
 
-def test_points_at_their_basis():
+def test_points_at_their_basis_with_a_footnote():
     df = _frame(
         [(50, 38), (100, 68), (200, 128)],
         normal_stress_at_peak=[52, np.nan, 205],
@@ -125,6 +139,7 @@ def test_points_at_their_basis():
     df.attrs["units"]["normal_stress_at_peak"] = "kPa"
     _, ax, _ = _draw(df)
     assert [x for x, _ in _points(ax, "peak_point")] == pytest.approx([52, 100, 205])
+    assert "Peak σn: 2 at peak, 1 applied" in _footnote(ax)
 
 
 # --- AC 3: cohesion=0 ---------------------------------------------------------------
@@ -139,6 +154,10 @@ def test_cohesion_zero_swaps_the_styles(site_si):
     (dotted,) = _lines(ax, "peak_free")
     assert dotted.get_linestyle() == ":"
     assert _intercept_and_slope(dotted) == pytest.approx((8, 0.6), rel=REL)
+    box = _box(ax)
+    assert box.index("Peak, through the origin: φ = 33.2°") < box.index(
+        "free fit: c = 8.00 kPa, φ = 31.0°"
+    )
     free = next(
         line
         for line in fit.groups[0]["strengths"]["peak"]["lines"]
@@ -165,6 +184,38 @@ def test_negative_intercept_goes_below_zero():
     assert ax.get_ylim()[0] < -40
     (solid,) = _lines(ax, "peak_free")
     assert _intercept_and_slope(solid) == pytest.approx((-40, 0.6), rel=REL)
+    assert "(c < 0)" in _box(ax)
+
+
+# --- AC 6: strengths ----------------------------------------------------------------
+
+
+def test_residual_only_ring_shear(joins):
+    ring = joins[joins["test_type"] == "SMALL RSHEAR"]
+    with ht.settings.override(display_overrides={"stress": "MPa"}):
+        _, ax, _ = _draw(ring, strengths=("residual",))
+    assert _lines(ax, "peak_point") == []
+    assert len(_lines(ax, "residual_point")) == 1
+    assert _lines(ax, "residual_free") == []
+    (origin,) = _lines(ax, "residual_through_origin")
+    slope = _intercept_and_slope(origin)[1]
+    assert math.degrees(math.atan(slope)) == pytest.approx(11.859779, rel=1e-7)
+    assert "no fit: 1 point: a line needs at least 2" in _box(ax)
+    assert "Peak" not in _box(ax)
+
+
+@pytest.mark.parametrize("strengths", [(), ("peak", "ultimate"), "both"])
+def test_strengths_out_of_range_raise(strengths):
+    with pytest.raises(HangtuError, match='"peak" and "residual"'):
+        _draw(_frame([(50, 38), (100, 68)]), strengths=strengths)
+
+
+def test_strengths_peak_only_draws_no_residual(site_si):
+    _, ax, fit = _draw(site_si, strengths=("peak",))
+    assert _lines(ax, "residual_point") == []
+    assert _lines(ax, "residual_free") == []
+    assert "Residual" not in _box(ax)
+    assert fit.groups[0]["strengths"]["residual"]["lines"][0]["count"] == 3
 
 
 # --- AC 7: returns ------------------------------------------------------------------
@@ -183,6 +234,7 @@ def test_fit_false_draws_no_line(site_si):
     assert not [line for line in ax.lines if "free" in str(line.get_gid())]
     assert not [line for line in ax.lines if "origin" in str(line.get_gid())]
     assert len(_lines(ax, "peak_point")) == 3
+    assert not any(text.get_gid() == "result_box" for text in ax.texts)
 
 
 def test_fit_false_draws_mixed_types_and_a_negative_intercept():
@@ -212,7 +264,84 @@ def test_axis_labels(site_si):
     assert ax.get_ylabel() == "Shear stress, τ (kPa)"
 
 
-# --- Arguments ---------------------------------------------------------------------
+# --- AC 9: edge cases ---------------------------------------------------------------
+
+
+def test_no_shear_stress_column_raises():
+    df = _frame([(50, 38), (100, 68)]).drop(columns=STRESSES[1:])
+    with pytest.raises(HangtuError, match=r'ht.template\("shear_box"\)'):
+        _draw(df)
+
+
+def test_one_point_draws_the_line_through_the_origin():
+    _, ax, _ = _draw(_frame([(100, 60)]))
+    assert len(_lines(ax, "peak_point")) == 1
+    assert _lines(ax, "peak_free") == []
+    assert len(_lines(ax, "peak_through_origin")) == 1
+    assert "Peak: no fit: 1 point: a line needs at least 2" in _box(ax)
+
+
+def test_a_line_without_a_fit_keeps_its_points_and_the_others():
+    _, ax, _ = _draw(_frame([(100, 80), (200, 60)], residual=[50, 90]))
+    assert len(_lines(ax, "peak_point")) == 2
+    assert _lines(ax, "peak_free") == []
+    assert "below 0: no friction angle" in _box(ax)
+    assert len(_lines(ax, "residual_free")) == 1
+
+
+def test_negative_stress_raises():
+    with pytest.raises(HangtuError, match="negative shear or normal stress"):
+        _draw(_frame([(50, -38), (100, 68)]))
+
+
+def test_mixed_test_types_raise_and_pool_draws_them():
+    df = _frame(
+        [(50, 38), (100, 68), (200, 128)],
+        test_type=["SMALL SBOX", "SMALL SBOX", "SMALL RSHEAR"],
+    )
+    with pytest.raises(HangtuError, match="SMALL RSHEAR"):
+        _draw(df)
+    _, ax, fit = _draw(df, pool="test_type")
+    assert fit.pooled == ("test_type",)
+    assert len(_lines(ax, "peak_free")) == 1
+
+
+def test_residual_only_counts_the_stages_without_a_peak():
+    df = _frame([(50, np.nan), (100, np.nan)], residual=[30, 58])
+    _, ax, _ = _draw(df)
+    assert "Left out of peak: 2 without a shear stress" in _footnote(ax)
+    assert len(_lines(ax, "residual_point")) == 2
+
+
+def test_color_by_with_group_by_raises(site_si):
+    with pytest.raises(HangtuError, match="color_by= can't be used with group_by="):
+        _draw(site_si, group_by="specimen_id", color_by="geology_unit")
+
+
+def test_missing_units_raise():
+    df = _frame([(50, 38), (100, 68)])
+    df.attrs = {}
+    with pytest.raises(UnitsError, match=r"applied_normal_stress|peak_shear_stress"):
+        _draw(df)
+
+
+def test_missing_optional_columns_give_one_hint():
+    ht.settings.hints = True
+    with pytest.warns(UserWarning) as caught:
+        _draw(_frame([(50, 38), (100, 68), (200, 128)]))
+    texts = [str(w.message) for w in caught]
+    assert len(texts) == 1
+    for column in ("failure_criterion", "test_type", "geology_unit"):
+        assert column in texts[0]
+
+
+def test_user_envelopes(site_si):
+    _, ax, _ = _draw(site_si, envelopes=[(0, 30, "Design")])
+    (line,) = _lines(ax, "user_envelope")
+    assert _intercept_and_slope(line) == pytest.approx(
+        (0, math.tan(math.radians(30))), abs=1e-12
+    )
+    assert line.get_label() == "Design"
 
 
 def test_not_a_frame_raises():
