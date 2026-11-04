@@ -89,6 +89,27 @@ class Companion(NamedTuple):
     ]
 
 
+class ProfileAxes(NamedTuple):
+    """How a profile drew its axes, kept as ``ax.ags_profile``.
+
+    A plot built on the profile reads it to draw into the same axes again
+    in the same coordinates (P09 ``values=False``).
+
+    - ``vertical``: the vertical reference, as ``Vertical``.
+    - ``scale``: how values are drawn, as ``ValueScale``.
+    - ``colors``: ``{color group: color}`` in legend order.
+    """
+
+    vertical: Vertical
+    scale: ValueScale
+    colors: Mapping[Any, Any]
+
+
+#: Draws over a profile's values, before its legend and footnote (P09):
+#: ``overlay(ax, vertical, scale, colors, notes)`` returns legend entries.
+Overlay = Callable[[Axes, Vertical, ValueScale, Mapping[Any, Any], Notes], list[Artist]]
+
+
 def _room_below_data(ax: Axes, box: Text, lowest: float) -> None:
     """Deepen the vertical axis so ``box`` sits below the lowest data.
 
@@ -546,6 +567,7 @@ def _draw_profile(
     notes: Notes | None = None,
     companion: Companion | None = None,
     value_ranges: bool = False,
+    overlay: Overlay | None = None,
     **style_overrides: Any,
 ) -> tuple[Figure, Axes]:
     """Draw a profile: ``profile()`` and the plots built on it (P02).
@@ -564,6 +586,11 @@ def _draw_profile(
       e.g. rows it left out (P02 excluded refusals). None starts empty.
     - ``companion``: marks the caller draws per row (P06), as ``Companion``.
     - ``value_ranges``: draw ``<value>_lower`` and ``<value>_upper`` (P01 only).
+    - ``overlay``: draws over the values once they are drawn, as ``Overlay``
+      (P09's lines). Its legend entries follow the color groups' and the
+      companion's; its footnote counts and text join the profile's.
+
+    Also sets ``ax.ags_profile`` to a ``ProfileAxes``.
     """
     if value not in df.columns:
         raise ColumnError(
@@ -786,6 +813,10 @@ def _draw_profile(
             if (drawn & (marker_groups == group)).any()
         ]
         flagged = _values.flag_handles(np.where(drawn, flags, ""), flag_kinds, notes)
+        ax.ags_profile = ProfileAxes(vertical, scale, colors)  # type: ignore[attr-defined]
+        overlay_handles = (
+            [] if overlay is None else overlay(ax, vertical, scale, colors, notes)
+        )
 
         if not (drawn | (texts != "") | extra).any():
             ax.text(
@@ -845,7 +876,14 @@ def _draw_profile(
         offset = SECONDARY_SPACE if secondary else 0.0
         placed = add_legend(
             ax,
-            [unit_handles, companion_handles, shape_handles, flagged, text_handles],
+            [
+                unit_handles,
+                companion_handles,
+                overlay_handles,
+                shape_handles,
+                flagged,
+                text_handles,
+            ],
             notes,
             offset,
             where,

@@ -693,3 +693,34 @@ def test_representative_design_lines_draw_with_no_warning(trend):
     assert [len(line.get_ydata()) for line in lines] == [points] * 4
     assert min(lines[0].get_ydata()) == 2.0
     assert max(lines[0].get_ydata()) == 10.0
+
+
+# --- overlay (for plots built on the profile, P09) ---------------------------------
+
+
+def test_overlay_is_called_once_with_the_profiles_scales_and_joins_the_legend(frame):
+    from matplotlib.lines import Line2D
+
+    from hangtu.plot._overlays import ValueScale
+    from hangtu.plot._profile import ProfileAxes, _draw_profile
+    from hangtu.plot._vertical import Vertical
+
+    calls = []
+
+    def overlay(ax, vertical, scale, colors, notes):
+        calls.append((vertical, scale, dict(colors)))
+        notes.add_text("Overlay note")
+        return [Line2D([], [], color="0.4", label="overlay entry")]
+
+    _, ax = _draw_profile(
+        frame(), "undrained_shear_strength", vs="depth", overlay=overlay
+    )
+    assert len(calls) == 1
+    vertical, scale, colors = calls[0]
+    assert isinstance(vertical, Vertical) and vertical.vs == "depth"
+    assert isinstance(scale, ValueScale) and scale.unit == "psf"
+    assert list(colors) == ["Clay", "Fill"]
+    assert ax.ags_profile == ProfileAxes(vertical, scale, calls[0][2])
+    labels = [text.get_text() for text in ax.get_legend().get_texts()]
+    assert labels == ["Clay", "Fill", "overlay entry"]
+    assert any("Overlay note" in text.get_text() for text in ax.figure.texts + ax.texts)
