@@ -407,6 +407,8 @@ Refactor only (spec decision 14), no change in behavior.
   - four lines through `line_fit()`, c = a, φ = arctan b (Derivation), and decision 8's validity: the core's
     reasons, the slope reason, the negative-intercept warning (one per call), the two-point note, the σn range;
   - the secant angle per point (decision 9);
+  - the lab's pairs per strength through `_fit_groups`, converted to the fit's unit (decision 11), and `cohesion=`
+    choosing the main line's order (decision 4), moved here from step 3 in the build: AC 1 and 10 need them;
   - `ShearBoxFit(_DerivedResult)`: `.groups`, `.to_frame()` with decision 15's columns in order and
     `attrs["units"]`, `__str__` as decision 16, `.to_dict()`;
   - docstring per the sheets' `TEMPLATE.md` checklist: τ = c + σn tan φ (Hoek 2023, ch. 4, eqs. 1–2), the two
@@ -421,10 +423,9 @@ Refactor only (spec decision 14), no change in behavior.
 
 ### 3. `M17: fit shear box groups, check pooling, list the lab's pairs` (Opus)
 - `_shear_box_fit.py`: `group_by=` (decision 10), the pooling check per strength with `pool=` and its notes
-  (decision 6), the lab's pairs per strength through `_fit_groups` converted to the fit's unit (decision 11),
-  `cohesion=` choosing the main line's order (decision 4); `multistage_test` not read (decision 12).
-- Tests, same file: AC 7 (`joins.ags`'s ring shear and joint tests, one group without a pooling error), 9, 10
-  (`cohesion=0`), 11 for those, 13.
+  (decision 6); `multistage_test` not read (decision 12).
+- Tests, same file: AC 7 (`joins.ags`'s ring shear and joint tests, one group without a pooling error), 9, 11 for
+  those, 13.
 
 ### 4. `M17: add sandstone and shear box tests to the example project` (Sonnet)
 - `tests/data/_make_examples.py` (decision 13 and "Example data"):

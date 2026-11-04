@@ -539,6 +539,38 @@ columns:
     label: Total stress friction angle, φ
     ags: ["derived: docs/work/m11b-envelope-fit.md"]
     used_by: []
+  peak_cohesion:
+    description: Cohesion intercept of a line fitted to shear box peak stages, τ against σn
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Peak cohesion, c_p
+    ags: ["derived: docs/work/m17b-shear-box-fit.md"]
+    used_by: [P31]
+  peak_friction_angle:
+    description: Friction angle of a line fitted to shear box peak stages, τ against σn
+    type: number
+    quantity: angle
+    scale: ratio
+    label: Peak friction angle, φ_p
+    ags: ["derived: docs/work/m17b-shear-box-fit.md"]
+    used_by: [P31]
+  residual_cohesion:
+    description: Cohesion intercept of a line fitted to shear box residual stages, τ against σn
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Residual cohesion, c_r
+    ags: ["derived: docs/work/m17b-shear-box-fit.md"]
+    used_by: [P31]
+  residual_friction_angle:
+    description: Friction angle of a line fitted to shear box residual stages, τ against σn
+    type: number
+    quantity: angle
+    scale: ratio
+    label: Residual friction angle, φ_r
+    ags: ["derived: docs/work/m17b-shear-box-fit.md"]
+    used_by: [P31]
   undrained_shear_strength_lower:
     description: Lower bound of an undrained shear strength given as a band, such as a correlation's
     type: number
