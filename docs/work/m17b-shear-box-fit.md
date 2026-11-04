@@ -10,7 +10,7 @@ Mohr–Coulomb set needs.
 - `ht.analysis.shear_box_fit(p.shear_box(), group_by=...)` (or a CSV in `ht.template("shear_box")`'s shape): per
   group, a peak and a residual line τ = c + σn tan φ, each free and through the origin, with n, R², the σn range
   fitted, the points fitted and those left out with their reasons, and the lab's own pairs listed beside them.
-- A figure of the points and lines, τ against σn (🟡 proposal 9), and the shear box groups in the example project,
+- A figure of the points and lines, τ against σn (decision 9), and the shear box groups in the example project,
   drawn on pages 04 and 22 (M17 (a) left them to this unit, as M11 (a) left the triaxial groups to M11 (b)).
 
 **Why:**
@@ -43,9 +43,9 @@ Mohr–Coulomb set needs.
 **Scope:**
 - **`shear_box_fit()`** and its result (`ShearBoxFit`, a `_DerivedResult`), with reference entries: `group_by=`,
   `pool=`, `units=`, `display_units=`, as `mohr_coulomb_fit()`; peak and residual, each free and through the origin.
-- **Registry:** the fitted names (proposal 2) and any result columns M11 (b)'s don't cover.
-- **The figure** (proposal 9): spec promoted to `docs/plots/`, built, PNG in `docs/plots/img/`, site page, reference.
-- **Example file:** `site.ags` gains `SHBG`/`SHBT`: a soil set (peak and residual) and, 🟡, a rock joint set in MPa.
+- **Registry:** the fitted names (decision 2) and any result columns M11 (b)'s don't cover.
+- **The figure** (decision 9): spec promoted to `docs/plots/`, built, PNG in `docs/plots/img/`, site page, reference.
+- **Example file:** `site.ags` gains `SHBG`/`SHBT`: a soil set (peak and residual) and a rock joint set in MPa (decision 10).
 - **Docs site:** pages 04 and 22's method rows link the function; the parameter index's 04 B and 22 B.
 
 **Constraints:**
@@ -58,7 +58,9 @@ Mohr–Coulomb set needs.
 - The fit is derived, not cited (as M11 (b) decision 2): least squares on the criterion's own line. Hoek 2023 eqs.
   1–2 is the criterion's citation.
 
-### 🟡 Proposed, for review
+### Decisions (intent review, 2026-11-04)
+Accepted as proposed, with decision 10 added from the review.
+
 1. **One function for soil and rock joints.** Same line, same columns; the engineer separates them with `group_by=`
    or `where=` (M17 (a) decision 9). Names in the result say "peak" and "residual", not "joint" or "effective".
 2. **Names keep shear box values apart from triaxial ones.** SPEC §5 says a fitted value takes the parameter's name,
@@ -66,14 +68,16 @@ Mohr–Coulomb set needs.
    against, and the stresses aren't labeled effective (M17 (a) decision 10). Proposed: `peak_cohesion`,
    `peak_friction_angle`, `residual_cohesion`, `residual_friction_angle`, matching the `reported_peak_…` columns,
    and a line in SPEC §5 saying a test's fit takes the test's name where the parameter's would pool unlike tests.
-   Alternative: the parameter's name with `test_type` kept on the result to keep them apart.
+   The parameter's name with `test_type` kept on the result was rejected: it would leave only `test_type` to stop
+   the pooling, and M18's conversion (Kulhawy & Mayne 1990, Eq. 4-10) is what turns one into the other.
 3. **Both fits, always.** Each group gets four lines: peak and residual, each `"free"` and `"through_origin"`, as
    page 22 advises reporting them together. `cohesion=None` or `0` picks which is the main one in `.to_frame()`'s
    order and the summary (as `multistage=` does for `mohr_coulomb_fit()`); both are on the result.
 4. **The normal stress a point is plotted against** is `normal_stress_at_peak` (or `_at_residual`) where the row has
    it, else `applied_normal_stress`, recorded per point as `normal_stress_basis`, with a note when a group mixes
-   bases. `normal_stress="applied"` uses `applied_normal_stress` throughout. The alternative, a required argument
-   with no default, is safer but fails on every file with only `SHBT_NORM`.
+   bases. `normal_stress="applied"` uses `applied_normal_stress` throughout. A required argument with no default
+   was rejected: it fails on every file with only `SHBT_NORM`, and the rule hides nothing, since each point records
+   its basis. Always `applied_normal_stress` was rejected: it ignores a lab's contact-area correction.
 5. **Not pooled unawares:** more than one `test_type` (shear box and ring shear residuals differ) or
    `failure_criterion` in a group's fitted rows is an error naming each and its count; `pool=` pools on purpose.
 6. **Rows left out and counted**, once each, per line: `count_no_shear_stress` (peak or residual blank for that
@@ -88,11 +92,13 @@ Mohr–Coulomb set needs.
    display_units=None)`: τ against σn, peak and residual points (filled and open), the free fit solid over the
    fitted range and dashed beyond, the through-origin fit lighter, the result box with c, φ, n, R² and the lab's
    pair. P11's Mohr view is also τ against σ, but draws circles from principal stresses and takes a
-   `MohrCoulombFit`; adding a second input type to it would complicate a built plot. If the review wants the unit
-   smaller, the figure splits off as M17 (b2).
+   `MohrCoulombFit`; adding a second input type to it would complicate a built plot. It is built in this unit, as
+   M11 (b) built P11, so the fit's page has its figure; M17 (b2) was rejected.
+10. **The example file has a soil set and a rock joint set in MPa**, so page 22 shows the same function and figure
+    on joints and the example exercises the MPa units; `joins.ags` keeps the edge cases.
 
 ### Open (for the spec step)
-- **Names** checked against the whole registry (proposal 2, `normal_stress_basis`, the line kinds `"free"` and
+- **Names** checked against the whole registry (decision 2, `normal_stress_basis`, the line kinds `"free"` and
   `"through_origin"`), and P31's ID against the drafts (P24–P30 are proposed IDs).
 - **Golden values:** BH2-D1's peak and residual, free and through the origin, by hand; a rock joint set in MPa
   whose φ matches in kPa and psf; a ring shear set with residuals only.
@@ -111,7 +117,7 @@ Mohr–Coulomb set needs.
 - **Later:** curved (power-law) envelopes; fully softened strength (D7608).
 
 **SPEC and TODO touched:**
-- SPEC §5, derived results (proposal 2's naming line, if accepted, in the spec commit); §4, the fit's line at
+- SPEC §5, derived results (decision 2's naming line, in the spec commit); §4, the fit's line at
   close-out; §12.4, M17 status; `CLAUDE.md`'s "Next" sentence at close-out.
 - Other docs: `docs/plots/P31-*.md` (new) and the plots README, `columns.yaml`, pages 04 and 22, the parameter
   index (04 B, 22 B), `docs/site/reference/analysis.md` and `plot.md`.
