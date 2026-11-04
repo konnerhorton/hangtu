@@ -623,3 +623,169 @@ def test_multistage_test_changes_nothing(site_si):
     df = site_si.copy()
     df["multistage_test"] = [True, True, False]
     assert _fit(df).to_frame().equals(_fit(site_si).to_frame())
+
+
+# AC 5-6: the example project's shear box tests (site.ags, stored in psf).
+
+
+@pytest.fixture(scope="module")
+def example(tmp_path_factory):
+    p = ht.Project.from_ags(
+        ht.examples.path("site.ags"),
+        db=tmp_path_factory.mktemp("example") / "site.sqlite",
+        display_units="US",
+    )
+    p.set_geology_map(ht.examples.path("strata.csv"))
+    return p.shear_box()
+
+
+def _unit(result, name):
+    return next(g for g in result.groups if g["key"] == {"geology_unit": name})
+
+
+def _unit_line(result, name, strength="peak", kind="free"):
+    record = _unit(result, name)["strengths"][strength]
+    return next(line for line in record["lines"] if line["line_kind"] == kind)
+
+
+def _sandstone(example):
+    return example[example["geology_unit"] == "Sandstone"]
+
+
+def _check_sandstone(result, scale):
+    """AC 5's lines, with c in MPa × ``scale``; φ to 1e-9 in every unit."""
+    expected = {
+        ("peak", "free"): (0.1, 549 / 700, 38.106583, 0.993557064),
+        ("peak", "through_origin"): (0, 1787 / 2100, 40.396201, 0.98432697),
+        ("residual", "free"): (0.025, 0.57, 29.683140, 0.994099135),
+        ("residual", "through_origin"): (0, 44 / 75, 30.398728, 0.993006382),
+    }
+    for (strength, kind), (c, b, phi, r2) in expected.items():
+        line = _line(result, strength, kind)
+        assert line["cohesion"] == pytest.approx(c * scale, rel=REL, abs=1e-12)
+        assert line["line_slope"] == pytest.approx(b, rel=1e-9)
+        assert line["friction_angle"] == pytest.approx(phi, rel=REL)
+        assert math.tan(math.radians(line["friction_angle"])) == pytest.approx(
+            b, rel=1e-9
+        )
+        assert line["r_squared"] == pytest.approx(r2, rel=REL)
+        assert line["count"] == 6
+    _counts_add_up(result)
+
+
+def test_sandstone_joints_in_mpa(example):
+    with ht.settings.override(display_overrides={"stress": "MPa"}):
+        result = _fit(_sandstone(example), display_units="SI")
+    assert result.unit == "MPa"
+    _check_sandstone(result, 1)
+    free = _line(result)
+    assert free["lowest_normal_stress"] == pytest.approx(0.5, rel=1e-9)
+    assert free["highest_normal_stress"] == pytest.approx(2, rel=1e-9)
+    pairs = _strength(result)["reported_pairs"]
+    assert [pair["cohesion"] for pair in pairs] == pytest.approx(
+        [0.095, 0.105], rel=1e-9
+    )
+    assert [pair["friction_angle"] for pair in pairs] == [38.7, 37.5]
+
+
+@pytest.mark.parametrize(("system", "scale"), [("SI", 1000), ("US", 1e6 / PSF / 1e3)])
+def test_sandstone_joints_in_kpa_and_psf(example, system, scale):
+    result = _fit(_sandstone(example), display_units=system)
+    _check_sandstone(result, scale)
+
+
+def test_sandstone_joints_in_psf_values(example):
+    result = _fit(_sandstone(example))
+    assert result.unit == "psf"
+    assert _line(result)["cohesion"] == pytest.approx(2088.54342, rel=REL)
+    assert _line(result, "residual")["cohesion"] == pytest.approx(522.135856, rel=REL)
+
+
+def test_sandstone_per_specimen(example):
+    with ht.settings.override(display_overrides={"stress": "MPa"}):
+        result = _fit(
+            _sandstone(example), group_by="specimen_reference", display_units="SI"
+        )
+    assert [group["key"] for group in result.groups] == [
+        {"specimen_reference": "1"},
+        {"specimen_reference": "2"},
+    ]
+    first = _line(result)
+    assert first["line_slope"] == pytest.approx(561 / 700, rel=1e-9)
+    assert first["cohesion"] == pytest.approx(0.095, rel=REL)
+    assert first["friction_angle"] == pytest.approx(38.709683, rel=REL)
+    assert first["count"] == 3
+    _counts_add_up(result)
+
+
+def test_example_by_geology_unit(example):
+    result = _fit(example, group_by="geology_unit")
+    assert result.unit == "psf"
+    assert [group["key"] for group in result.groups] == [
+        {"geology_unit": "Alluvium"},
+        {"geology_unit": "Terrace"},
+        {"geology_unit": "Sandstone"},
+    ]
+    expected = {
+        "Alluvium": {
+            ("peak", "free"): (170, 699 / 1400, 26.532301, 0.989167965),
+            ("peak", "through_origin"): (0, 467 / 840, 29.071975, 0.97278579),
+            ("residual", "free"): (27.5, 0.3825, 20.931853, 0.992243133),
+            ("residual", "through_origin"): (0, 47 / 120, 21.388623, 0.991510439),
+        },
+        "Terrace": {
+            ("peak", "free"): (71.0169492, 3933 / 5900, 33.687826, 0.998350334),
+            ("peak", "through_origin"): (0, 973 / 1425, 34.325536, 0.997555186),
+            ("residual", "free"): (3.05084746, 3539 / 5900, 30.956615, 0.999722222),
+            ("residual", "through_origin"): (
+                0,
+                1141 / 1900,
+                30.985925,
+                0.999720407,
+            ),
+        },
+    }
+    for name, lines in expected.items():
+        for (strength, kind), (c, b, phi, r2) in lines.items():
+            line = _unit_line(result, name, strength, kind)
+            assert line["cohesion"] == pytest.approx(c, rel=REL)
+            assert line["line_slope"] == pytest.approx(b, rel=REL)
+            assert line["friction_angle"] == pytest.approx(phi, rel=REL)
+            assert line["r_squared"] == pytest.approx(r2, rel=REL)
+    assert _unit_line(result, "Alluvium")["count"] == 6
+    assert _unit_line(result, "Terrace")["count"] == 4
+    assert _unit_line(result, "Sandstone")["count"] == 6
+    _counts_add_up(result)
+
+
+def test_example_alluvium_has_two_lab_pairs(example):
+    result = _fit(example, group_by="geology_unit")
+    for strength, pairs in {
+        "peak": [(145, 27.4), (195, 25.6)],
+        "residual": [(5, 21.7), (50, 20.2)],
+    }.items():
+        record = _unit(result, "Alluvium")["strengths"][strength]
+        reported = record["reported_pairs"]
+        assert [pair["cohesion"] for pair in reported] == pytest.approx(
+            [c for c, _ in pairs], rel=1e-9
+        )
+        assert [pair["friction_angle"] for pair in reported] == [
+            phi for _, phi in pairs
+        ]
+        assert [pair["count"] for pair in reported] == [3, 3]
+    row = result.to_frame().iloc[0]
+    assert row["geology_unit"] == "Alluvium"
+    assert row["count_reported_peak_pairs"] == 2
+    assert math.isnan(row["reported_peak_cohesion"])
+    assert math.isnan(row["reported_peak_friction_angle"])
+
+
+def test_example_alluvium_in_si(example):
+    result = _fit(example, group_by="geology_unit", display_units="SI")
+    assert result.unit == "kPa"
+    assert _unit_line(result, "Alluvium")["cohesion"] == pytest.approx(
+        8.13964403, rel=REL
+    )
+    assert _unit_line(result, "Alluvium", "residual")["cohesion"] == pytest.approx(
+        1.31670712, rel=REL
+    )

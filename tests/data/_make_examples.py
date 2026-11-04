@@ -5,9 +5,10 @@ Run from the repository root after changing the data below:
     uv run python tests/data/_make_examples.py
 
 The site is synthetic: a river valley with fill over soft alluvial clay over
-terrace sand, in US units as a US consultant's file would have them. Values
-come from fixed rules plus a seeded ``random.Random``, whose sequence Python
-keeps the same across versions, so the files are reproduced exactly.
+terrace sand, with sandstone cored below the sand in B-3, in US units as a
+US consultant's file would have them. Values come from fixed rules plus a
+seeded ``random.Random``, whose sequence Python keeps the same across
+versions, so the files are reproduced exactly.
 The seeded tests loop over ``samples()``, so a sample added there changes
 every value after it: list a new test's samples apart, as
 ``TRIAXIAL_SAMPLES`` does, or give the new values their own sequence.
@@ -59,10 +60,13 @@ ABBR = [
     ("GEOL_LEG", "SP", "Poorly graded sand"),
     ("GEOL_GEOL", "FILL", "Fill"),
     ("GEOL_GEOL", "ALV", "Alluvium"),
+    ("GEOL_LEG", "SST", "Sandstone"),
     ("GEOL_GEOL", "TRC", "Terrace deposits"),
+    ("GEOL_GEOL", "SST", "Sandstone"),
     ("SAMP_TYPE", "U", "Undisturbed sample - open drive"),
     ("SAMP_TYPE", "D", "Small disturbed sample"),
     ("SAMP_TYPE", "B", "Bulk disturbed sample"),
+    ("SAMP_TYPE", "C", "Core sample"),
     ("ISPT_TYPE", "S", "Split spoon"),
     ("PTST_TYPE", "FW", "Flexible wall permeameter"),
     ("PTST_COND", "UND", "Undisturbed"),
@@ -76,6 +80,9 @@ ABBR = [
     ("TRIG_TYPE", "UU", "Unconsolidated quick undrained (single stage)"),
     ("TRIG_COND", "UNDISTURBED", "Undisturbed"),
     ("LVAN_TYPE", "LV", "Laboratory vane"),
+    ("SHBG_TYPE", "SMALL SBOX", "Small Shearbox"),
+    ("SHBG_COND", "UNDISTURBED", "Undisturbed"),
+    ("SHBG_COND", "RECOMPACTED", "Recompacted"),
     ("IVAN_TYPE", "BOREHOLE", "Borehole vane"),
 ]
 
@@ -90,11 +97,21 @@ HOLES = [
     ("B-6", 6201700.0, 2101640.0, 33.6, 61.5, 5.0, 29.0),
 ]
 GAP = ("B-4", 9.0, 10.0)  # planted G002, between two SPTs
+# Rock cored below the soil (M17 b): hole, final depth (ft) and unit. The soil
+# base stays HOLES' final depth, where the SPTs end, so the seeded values of
+# every other test keep their sequence.
+ROCK = {"B-3": (71.5, "SST")}
 
 DESCRIPTIONS = {
     "FILL": ("FILL", "Fill", "Brown sandy lean CLAY with gravel (FILL)"),
     "ALV": ("CL", "Alluvium", "Soft to medium stiff gray lean CLAY (CL)"),
     "TRC": ("SP", "Terrace", "Medium dense to very dense brown SAND with gravel (SP)"),
+    "SST": (
+        "SST",
+        "Sandstone",
+        "Moderately strong gray fine-grained SANDSTONE, slightly weathered,"
+        " thinly bedded",
+    ),
 }
 SIEVES = [75.0, 37.5, 19.0, 9.5, 4.75, 2.0, 0.85, 0.425, 0.25, 0.15, 0.075]  # mm
 # Hydrometer particle sizes (mm), as a lab's readings at set times give them.
@@ -105,6 +122,7 @@ code,geology_unit,soil_class,order,color
 FILL,Fill,fill,1,#9e9e9e
 ALV,Alluvium,fine,2,#5b8db8
 TRC,Terrace,coarse,3,#e0b040
+SST,Sandstone,rock,4,#8c6d5a
 """
 
 # The site's judgments (SPEC §4), in the file's US units.
@@ -123,6 +141,11 @@ unit_weight:
       bulk_unit_weight: 125
       saturated_unit_weight: 130
       reason: "medium dense to very dense sand with gravel, typical"
+    Sandstone:
+      bulk_unit_weight: 150
+      reason: >-
+        fine-grained sandstone, typical; no saturated weight is given, so
+        vertical_stress() uses this one below B-3's water level too
 water_level:
   units: {depth: ft}
   by_hole:
@@ -152,8 +175,9 @@ def unit_at(hole, depth):
 
 def loca():
     rows = [
-        [name, "HSA", east, north, "SPCS", gl, fdep, f"2026-08-{10 + i:02d}"]
+        [name, "HSA", east, north, "SPCS", gl, final, f"2026-08-{10 + i:02d}"]
         for i, (name, east, north, gl, fdep, _, _) in enumerate(HOLES)
+        for final in [ROCK.get(name, (fdep,))[0]]
     ]
     headings = [
         ("LOCA_ID", "ID", ""),
@@ -173,6 +197,8 @@ def geol():
     for hole in HOLES:
         name, _, _, _, fdep, fill, alluvium = hole
         layers = [(0.0, fill, "FILL"), (fill, alluvium, "ALV"), (alluvium, fdep, "TRC")]
+        if name in ROCK:
+            layers.append((fdep, *ROCK[name]))
         for top, base, code in layers:
             pieces = [(top, base)]
             if name == GAP[0] and top < GAP[1] < base:
@@ -290,12 +316,18 @@ def samples():
 #: Samples taken for triaxial tests only, apart from samples() so that the
 #: seeded values of the other tests stay as they were.
 TRIAXIAL_SAMPLES = [("B-5", 35.0, 37.0, "U", "4")]
+#: Rock core taken for the joint shear box tests (M17 b), apart likewise.
+CORE_SAMPLES = [("B-3", 64.0, 65.0, "C", "5")]
 
 
 def samp():
     rows = [
         [name, top, ref, kind, f"{name}-{kind}{ref}", base]
-        for name, top, base, kind, ref in [*samples(), *TRIAXIAL_SAMPLES]
+        for name, top, base, kind, ref in [
+            *samples(),
+            *TRIAXIAL_SAMPLES,
+            *CORE_SAMPLES,
+        ]
     ]
     return group("SAMP", [*SAMPLE_HEADINGS, ("SAMP_BASE", "1DP", "ft")], rows)
 
@@ -686,6 +718,110 @@ def ivan():
     return group("IVAN", headings, rows)
 
 
+# Shear box (M17 b, docs/work/m17b-shear-box-fit.md, "Example data"): small
+# shear box tests on two Alluvium tubes (undisturbed) and a Terrace spoon
+# (recompacted), and bedding plane joints in B-3's sandstone core, two
+# specimens set in resin. Every stress is in psf and written to 10 significant
+# figures, as the joints are MPa values converted (MPa × 1e6 / 47.880259 psf),
+# so they come back to 1e-9. SHBG_TYPE is blank on the joints: AGS has no
+# rock joint code (M17 a, decision 9). SHBT_NORM only: no SHBT_PVST/RVST.
+# The hand fits, τ = c + σn tan φ by least squares (free; through the origin):
+#   B-3-U3 peak c 145 psf, b 727/1400, φ 27.44°; residual c 5, φ 21.70°
+#   B-6-U2 peak c 195 psf, b 671/1400, φ 25.61°; residual c 50, φ 20.16°
+#   Alluvium (both) peak c 170 psf, b 699/1400, φ 26.53° (origin 29.07°);
+#     residual c 27.5, b 0.3825, φ 20.93° (origin 21.39°)
+#   B-3-D4 peak c 71.0 psf, b 3933/5900, φ 33.69° (origin 34.33°);
+#     residual c 3.05, b 3539/5900, φ 30.96° (origin 30.99°)
+#   B-3-C5 specimen 1 peak c 0.095 MPa, φ 38.71°; residual c 0.015, φ 30.42°
+#   B-3-C5 specimen 2 peak c 0.105 MPa, φ 37.49°; residual c 0.035, φ 28.94°
+#   Sandstone (both) peak c 0.1 MPa, b 549/700, φ 38.11° (origin 40.40°);
+#     residual c 0.025, b 0.57, φ 29.68° (origin 30.40°)
+# The lab's pairs are each test's own fit, rounded.
+PSF = 0.45359237 * 9.80665 / 0.3048**2  # Pa, exact by definition
+SOIL_STRESSES = [1000, 2000, 4000]  # σn, psf
+JOINT_STRESSES = [0.5, 1.0, 2.0]  # σn, MPa
+SHEAR_BOX_TESTS = [
+    # Specimen, type, condition, encapsulation, lab's peak (c, φ) and
+    # residual (c, φ), then the stages' σn, τ_peak and τ_residual.
+    (
+        ["B-3", 17.5, "3", "U", "B-3-U3", "S1", 18.0],
+        ("SMALL SBOX", "UNDISTURBED", None, 145, 27.4, 5, 21.7),
+        (SOIL_STRESSES, [700, 1130, 2240], [430, 760, 1610]),
+    ),
+    (
+        ["B-6", 17.5, "2", "U", "B-6-U2", "S1", 18.0],
+        ("SMALL SBOX", "UNDISTURBED", None, 195, 25.6, 50, 20.2),
+        (SOIL_STRESSES, [610, 1250, 2080], [380, 840, 1500]),
+    ),
+    (
+        ["B-3", 30.0, "4", "D", "B-3-D4", "S1", 30.5],
+        ("SMALL SBOX", "RECOMPACTED", None, 71, 33.7, 3, 31.0),
+        ([1000, 2000, 4000, 6000], [760, 1420, 2650, 4120], [610, 1180, 2430, 3590]),
+    ),
+]
+JOINT_TESTS = [
+    # The same, in MPa.
+    (
+        ["B-3", 64.0, "5", "C", "B-3-C5", "1", 64.2],
+        (None, "UNDISTURBED", "Resin", 0.095, 38.7, 0.015, 30.4),
+        (JOINT_STRESSES, [0.52, 0.86, 1.71], [0.33, 0.57, 1.20]),
+    ),
+    (
+        ["B-3", 64.0, "5", "C", "B-3-C5", "2", 64.6],
+        (None, "UNDISTURBED", "Resin", 0.105, 37.5, 0.035, 28.9),
+        (JOINT_STRESSES, [0.45, 0.93, 1.62], [0.29, 0.62, 1.13]),
+    ),
+]
+
+
+def in_psf(mpa):
+    return [value * 1e6 / PSF for value in mpa]
+
+
+def shear_box_tests():
+    """Every test, its stresses in psf."""
+    tests = list(SHEAR_BOX_TESTS)
+    for specimen_row, (kind, cond, enca, pc, pphi, rc, rphi), stages in JOINT_TESTS:
+        test = (kind, cond, enca, *in_psf([pc]), pphi, *in_psf([rc]), rphi)
+        tests.append((specimen_row, test, tuple(in_psf(v) for v in stages)))
+    return tests
+
+
+def shbg():
+    headings = [
+        *SPECIMEN_HEADINGS,
+        ("SHBG_TYPE", "PA", ""),
+        ("SHBG_COND", "PA", ""),
+        ("SHBG_PCOH", "10SF", "psf"),
+        ("SHBG_PHI", "1DP", "deg"),
+        ("SHBG_RCOH", "10SF", "psf"),
+        ("SHBG_RPHI", "1DP", "deg"),
+        ("SHBG_ENCA", "X", ""),  # after RPHI, in the dictionary's order (Rule 7)
+    ]
+    rows = [
+        [*specimen_row, kind, cond, *lab, enca]
+        for specimen_row, (kind, cond, enca, *lab), _ in shear_box_tests()
+    ]
+    return group("SHBG", headings, rows)
+
+
+def shbt():
+    headings = [
+        *SPECIMEN_HEADINGS,
+        ("SHBT_TESN", "X", ""),
+        ("SHBT_NORM", "10SF", "psf"),
+        ("SHBT_PEAK", "10SF", "psf"),
+        ("SHBT_RES", "10SF", "psf"),
+        ("SHBT_CRIT", "X", ""),
+    ]
+    rows = [
+        [*specimen_row, str(stage), norm, peak, res, "Maximum shear stress"]
+        for specimen_row, _, stages in shear_box_tests()
+        for stage, (norm, peak, res) in enumerate(zip(*stages, strict=True), 1)
+    ]
+    return group("SHBT", headings, rows)
+
+
 # --- Writing --------------------------------------------------------------------------
 
 
@@ -694,7 +830,8 @@ def site_groups():
     grag, grat = grading()
     groups = [loca(), geol(), samp(), ispt(), llpl, lnmc, grag, grat, ptst(), fghg()]
     undrained = [trig(), trit(), lvan(), lpen(), ivan()]
-    return [*groups, lden(lnmc), lpdn(), treg(), tret(), *undrained]
+    shear_box = [shbg(), shbt()]
+    return [*groups, lden(lnmc), lpdn(), treg(), tret(), *undrained, *shear_box]
 
 
 def write_site(path):
