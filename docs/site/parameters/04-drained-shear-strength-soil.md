@@ -68,7 +68,8 @@ The SPT classes place a sand roughly; they aren't a design value.
 | Kulhawy & Mayne (1990), after Schmertmann (1975) | N60, σ′v0 | relatively clean sands; σ′v0 ≤ 300 kPa, N60 ≤ 60 | [`ht.analysis.correlations.effective_friction_angle_kulhawy_mayne_1990()`](../reference/correlations.md#hangtu.analysis.correlations.effective_friction_angle_kulhawy_mayne_1990) |
 | Wolff (1989), a fit to Peck, Hanson & Thornburn (1974) | (N1)60 | sands | not built: its equation isn't yet verified against the source |
 | s′–t fit of triaxial results | σ′1f, σ′3f of each stage in a unit | saturated specimens, one failure criterion | [`ht.analysis.mohr_coulomb_fit()`](../reference/analysis.md#hangtu.analysis.mohr_coulomb_fit), drawn by [`ht.plot.failure_envelope()`](../plots/failure-envelope.md) |
-| Direct shear envelope (Kulhawy & Mayne 1990, Eq. 4-10, Table 4-5, p. 4-25) | τ and σ′n of each stage | drained shear on a forced plane | W2 |
+| Least-squares fit of shear box results | τ and σn of each stage in a unit | one test type and failure criterion; peak and residual | [`ht.analysis.shear_box_fit()`](../reference/analysis.md#hangtu.analysis.shear_box_fit), drawn by [`ht.plot.shear_box_envelope()`](../plots/shear-box-envelope.md) |
+| Direct shear envelope (Kulhawy & Mayne 1990, Eq. 4-10, Table 4-5, p. 4-25) | τ and σ′n of each stage | drained shear on a forced plane | M18 |
 | φ′cv from PI (Kulhawy & Mayne 1990, Fig. 4-20) | PI | normally consolidated clays | later |
 | Peak from φ′cv and dilatancy (Bolton 1986; Kulhawy & Mayne 1990, Eqs. 4-5 to 4-7) | φ′cv, relative density, p′ | sands | later |
 

@@ -74,11 +74,24 @@ tests alike, and doesn't label which a test is (`docs/data/datasets.md` §6.12).
 
 | Method | Uses | Applies to | Function |
 |---|---|---|---|
-| Linear fit of peak and residual results (Hoek 2023, ch. 4, eqs. 1–2) | τ and σn per stage | any discontinuity, over the tested σn range | M17 (b) |
-| Fit through the origin (cj = 0) | as above | open or clay-coated planes; report it beside the free fit | M17 (b) |
+| Linear fit of peak and residual results (Hoek 2023, ch. 4, eqs. 1–2) | τ and σn per stage | any discontinuity, over the tested σn range | [`ht.analysis.shear_box_fit()`](../reference/analysis.md#hangtu.analysis.shear_box_fit), drawn by [`ht.plot.shear_box_envelope()`](../plots/shear-box-envelope.md) |
+| Fit through the origin (cj = 0) | as above | open or clay-coated planes; report it beside the free fit | [`ht.analysis.shear_box_fit()`](../reference/analysis.md#hangtu.analysis.shear_box_fit), which always gives both lines |
 | Patton (1966), τ = σn tan(φb + i), as given by Hoek (2023, ch. 4, eq. 3) | φb, i | low σn, where sliding rides over the asperities | wave 4 |
 | Barton (1973), Barton & Choubey (1977), as given by Hoek (2023, ch. 4, eqs. 4–6) | JRC, JCS, φr | natural joints in variably weathered rock; not as σn → 0 | wave 4 |
 | Scale corrections, Barton & Bandis (1982), as given by Hoek (2023, ch. 4, eqs. 7–8) | JRC, JCS, block size | rough joints, from laboratory to field scale | wave 4 |
+
+The fit gives each group's peak and residual lines, free and through the origin, with n, R², the range of σn
+fitted and the lab's own `SHBG_PCOH`/`SHBG_PHI` beside them. It names its values `peak_friction_angle` and
+`residual_friction_angle`, and each point's secant angle arctan(τ/σn) is on the result: a secant angle that falls
+as σn rises shows the curved envelope one straight line hides. Separate joint tests from soil tests with
+`group_by=` or `p.shear_box(geology=...)`. The example project's sandstone has two specimens of a bedding plane,
+stored in psf and shown here in MPa:
+
+```python
+--8<-- "discontinuity-shear-strength.py"
+```
+
+![Peak and residual shear box results on bedding plane joints in the example project's sandstone, in MPa, with the free and through-origin lines](../img/generated/discontinuity-shear-strength.png){ width="560" }
 
 ## How the methods compare
 
