@@ -96,6 +96,7 @@ Data for all of these already exists in the MVP scope. P00 is the foundation the
 | P14 | Consolidation: c_v and m_v against log σ′v | `consolidation_coefficients` | | idea |
 | P15 | Consolidation: settlement against √t and log t per load increment (Taylor / Casagrande fitting) | `time_settlement` | | idea |
 | P16 | Compaction curve: dry density against moisture content, zero-air-voids lines | `compaction_curve` | Common in US practice; AGS CMPG/CMPT | idea |
+| P31 | Shear box: **envelope** τ against σn, peak and residual points, free and through-origin fits | `shear_box_envelope` | plot + analysis; **equal aspect**; `shear_box_fit()`, M17 (b) | [draft](P31-shear-box-envelope.md) |
 
 ### Batch 3: roadmap plots
 | ID | Plot | Notes |

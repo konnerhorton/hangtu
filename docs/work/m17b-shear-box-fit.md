@@ -122,3 +122,245 @@ Accepted as proposed, with decision 10 added from the review.
 - Other docs: `docs/plots/P31-*.md` (new) and the plots README, `columns.yaml`, pages 04 and 22, the parameter
   index (04 B, 22 B), `docs/site/reference/analysis.md` and `plot.md`.
 - TODO: none closed. #53 (failure criteria) stays open; the fit reads `failure_criterion` as written.
+
+## Spec
+The plot's rules live in `docs/plots/P31-shear-box-envelope.md` (new; there was no draft). The fit's rules are
+here: `shear_box_fit()` has no topic doc of its own, and its docstring becomes the reference once built. This
+section lists what changes where, the decisions (the intent's, settled, with what was added or changed marked),
+the derivation and the acceptance criteria. 🟡 marks what the intent left open and this draft proposes.
+
+### Changes
+- **`ht.analysis.shear_box_fit()`** and **`ht.analysis.ShearBoxFit`** (new), with reference entries.
+- **`ht.plot.shear_box_envelope()`** (new, P31), with its spec, reference entry, site page and example.
+  `docs/plots/README.md`: P31 in batch 2, `draft`.
+- **Registry:** `peak_cohesion`, `peak_friction_angle`, `residual_cohesion`, `residual_friction_angle` (new,
+  decision 2), `ags: ["derived: docs/work/m17b-shear-box-fit.md"]`, `used_by: [P31]`. None collides: checked
+  against `columns.yaml`, the plot specs, the sheets and the code, 2026-11-04 (the only other mentions are this
+  file's). Result columns aren't registered, as M11 (b)'s `line_intercept` isn't.
+- **SPEC §5, derived results:** one sentence (decision 2), in this commit. **§4** gains the fit's line at
+  close-out (the envelope fits bullet); **§12.4** M17 (b) done at close-out.
+- **`docs/data/datasets.md` §6.12:** "a user who knows can add one, and the fit reads it" becomes "a user who knows
+  can add one and fit with `group_by="multistage_test"` or `where=`" (decision 12), in this commit.
+- **The shared code** (decision 14): a refactor commit moves `mohr_coulomb_fit()`'s group, pooling and lab-pair
+  helpers into a module both fits import, with no change in behavior.
+- **Example file** (decision 13, *changed*): `site.ags` gains a sandstone unit (`SST`) cored below the Terrace in
+  B-3, with its row in `strata.csv` and its unit weight in `judgments.yaml`, and `SHBG`/`SHBT`: the soil sets and a
+  rock joint set, all stored in psf.
+- **Docs site:** page 22's two "M17 (b)" method rows link `shear_box_fit()`, and its example draws the joint set;
+  page 04 gains a row "Least-squares fit of shear box results" linking it (the existing "Direct shear envelope
+  (Kulhawy & Mayne 1990, Eq. 4-10)" row is the conversion and stays M18's, decision 2); the parameter index's
+  04 B (the shear box half) and 22 B built.
+
+### Decisions
+1. **`shear_box_fit(df, *, group_by=None, cohesion=None, normal_stress="at_peak_or_residual", pool=None,
+   units=None, display_units=None) -> ShearBoxFit`.** It reads `p.shear_box()`'s columns (or a CSV in
+   `ht.template("shear_box")`'s shape, which has the same ones) and fits each group's peak and residual. One
+   function for soil and rock joints (intent decision 1): the engineer separates them with `group_by=` or `where=`.
+2. **Names** (intent decision 2, as proposed): the fitted values are `peak_cohesion`, `peak_friction_angle`,
+   `residual_cohesion` and `residual_friction_angle`, beside the lab's `reported_peak_…` and `reported_residual_…`.
+   SPEC §5 gains: "A test's fit takes the test's name instead where the parameter's would pool unlike tests: the
+   shear box fit gives `peak_friction_angle`, not `effective_friction_angle`, because a direct shear φ′ isn't a
+   triaxial φ′ until selection converts it (M18), and its stresses aren't labeled effective (M17 a)." Page 04's
+   Kulhawy & Mayne row is that conversion, so the fit doesn't link to it.
+3. **The fit is the core's line, untransformed** (SPEC §4): x = σn, y = τ, `_line_fit(x, y)` free and
+   `_line_fit(x, y, intercept=0)` through the origin; c = a, φ = arctan b (Derivation). No coefficient is used, so
+   the fit is derived, not cited (as M11 (b) decision 2); Hoek (2023, ch. 4, eqs. 1–2) is the criterion's citation.
+4. **Four lines per group, always** (intent decision 3): peak and residual, each `"free"` and `"through_origin"`.
+   `cohesion=None` makes `"free"` the main line, `cohesion=0` `"through_origin"`; the main one comes first in
+   `.to_frame()` and the summary, and both are on the result. Another `cohesion=` value is an error saying the
+   fit is free or through the origin. *Changed from `mohr_coulomb_fit()`*: there, `cohesion=0` replaces the free
+   fit; here both are always made, as page 22 advises reporting them together.
+5. **The normal stress of each point** (intent decision 4): with `normal_stress="at_peak_or_residual"` 🟡 (the
+   value's name), a peak point takes `normal_stress_at_peak` where the row has it, else `applied_normal_stress`;
+   a residual point `normal_stress_at_residual`, else `applied_normal_stress`. `normal_stress="applied"` takes
+   `applied_normal_stress` throughout. Each point records `normal_stress_basis` (`"at_peak"`, `"at_residual"` or
+   `"applied"`), and a line whose points have more than one basis gets a note naming each and its count. Any
+   other value of `normal_stress=` is an error listing the two.
+6. **Not pooled unawares** (intent decision 5): within a group, each strength's fitted rows (after those left
+   out, decision 7) with more than one `test_type` or `failure_criterion` are an error naming each value and its
+   count, as `mohr_coulomb_fit()`'s (a blank is a value of its own). Peak and residual are checked apart: a ring
+   shear test with only a residual and a shear box test with only a peak share no line. `pool=` takes
+   `"test_type"` and `"failure_criterion"` and the result records it; a column the rows don't have isn't checked,
+   and the notes say so.
+7. **Rows left out and counted** (intent decision 6), per strength, each once under the first reason that applies:
+   `count_no_{peak,residual}_shear_stress` (the shear stress blank), then `count_no_{peak,residual}_normal_stress`
+   (no normal stress by decision 5's rule). A stage with a peak and no residual is in the peak lines only. The
+   strength's `count` plus these is the group's rows. Both lines of a strength fit the same rows.
+8. **Validity is behavior** (intent decision 7):
+   - free with fewer than 2 points, or all at one σn: no line, with the core's reason ("1 point: a line needs at
+     least 2", "all points at the same normal stress"); through the origin with no point, or every σn = 0: no
+     line ("no points", "all points at normal stress = 0");
+   - slope b < 0: no line, "slope tan φ = −0.2 is below 0: no friction angle". Every b ≥ 0 has an angle below 90°,
+     so there is no upper limit;
+   - a free intercept a < 0: kept as fitted, one warning per call naming the groups and strengths and pointing to
+     the through-origin line on the result; never forced;
+   - 🟡 *added*: a negative shear or normal stress on a row the fit would use is an error naming the rows and
+     saying to check the sign (a shear box shears under compression, and the residual is a magnitude). Zero is
+     kept;
+   - residual above peak is QC's H001 and isn't repeated;
+   - every line has the σn range of its points (`lowest_normal_stress`, `highest_normal_stress`), and the summary
+     says c is an intercept at σn = 0, outside it;
+   - a free line of 2 points notes that it passes through both (R² = 1 by construction); a through-origin line of
+     1 point has R² NaN (the core's).
+9. **The secant angle per point** (intent decision 8), φsec = arctan(τ/σn) in degrees, on the result's points as
+   `secant_friction_angle`; NaN where σn = 0. Nothing is fitted to it.
+10. **`group_by=`**, as `mohr_coulomb_fit()`: one set of lines per group, in `group_keys()` order (sorted, a
+    categorical's own order, blank last); a missing column is an error naming it. No `group_by=`: one group of
+    every row. Common choices: `"specimen_id"` (one test), `"geology_unit"`, `"test_type"`.
+11. **The lab's pairs are a view** (as M11 (b) decision 9): per strength, the distinct (`reported_…_cohesion`,
+    `reported_…_friction_angle`) pairs of the rows fitted, each with its count of stages, converted to the fit's
+    unit. `.to_frame()` gives the pair when there is one, else blanks and the count. Nothing compares them.
+12. **`multistage_test` isn't read** 🟡 (*added*: M17 (a)'s §6.12 said "the fit reads it", and the intent didn't
+    say how). The file can't tell a multistage shear box from specimens entered as stages (M17 (a) decision 8), and
+    a user who adds the column fits with `group_by="multistage_test"` or `where=`, which gives the same lines
+    without a second set of rows. `docs/data/datasets.md` §6.12 changes in this commit.
+13. **The example data** (intent decision 10, *changed* in the spec review, 2026-11-04): AGS gives each heading
+    one unit per group, so `site.ags` (psf) can't store a joint set in MPa. The joint set is stored in psf and
+    shown in MPa when the page runs: page 22's example fits it inside
+    `ht.settings.override(display_overrides={"stress": "MPa"})` with `display_units="SI"`, which the fit's
+    conversion (`units.to_display`) and `p.shear_box()` already read. MPa input stays tested on `joins.ags` and a
+    hand-built frame (AC 12). A joint needs rock to sit in, so the site gains bedrock:
+    - **B-3 is cored into sandstone** below its soil: Terrace to 61.5 ft as now, then `SST` (Sandstone) from 61.5
+      to 71.5 ft, so `LOCA_FDEP` becomes 71.5. The generator takes the rock top as the end of the SPTs, so B-3's
+      SPTs, and every other seeded value in the file, stay as they are (the plan checks the file's other groups are
+      unchanged).
+    - **`strata.csv`** gains `SST,Sandstone,rock,4,<color>`; 🟡 `soil_class` `rock` (its categories are TODO #3).
+      **`judgments.yaml`** gains Sandstone's bulk unit weight, 🟡 150 pcf, so `vertical_stress()` integrates
+      through B-3's log.
+    - Every figure grouped by geology unit can show a fourth unit where B-3's rock is drawn; the close-out reruns
+      the site's examples and looks at each.
+    Rejected: a CSV of its own in MPa (a second example, and the site with no rock its joints come from); the whole
+    `SHBT` group in kPa (unlike a US lab's file). Values and hand fits are under "Example data".
+14. **Shared code** (the intent's open item): `_names`, `_label`, `_cell`, the pooling check and the lab-pair
+    collection move from `_mohr_coulomb.py` to one module (`hangtu.analysis._fit_groups`), in a refactor commit
+    before the fit. `.to_frame()` and `__str__` stay per class: `MohrCoulombFit` has one row per fit of stages,
+    `ShearBoxFit` one row per line kind with peak and residual side by side (decision 15), so a shared version
+    would be a switch on the class.
+15. **`ShearBoxFit.to_frame()`** 🟡 (the shape): one row per group and line kind, the main one first. Columns:
+    the `group_by` columns; `line_kind` (`"free"`, `"through_origin"`); then for peak and for residual, in that
+    order: `{s}_cohesion`, `{s}_friction_angle`, `{s}_r_squared`, `{s}_count`, `{s}_lowest_normal_stress`,
+    `{s}_highest_normal_stress`, `{s}_normal_stress_basis` (the basis, or `"mixed"`), `reported_{s}_cohesion`,
+    `reported_{s}_friction_angle`, `count_reported_{s}_pairs`, `count_no_{s}_shear_stress`,
+    `count_no_{s}_normal_stress`, `{s}_no_fit_reason`. Counts of rows left out start with `count_`, as everywhere
+    else (SPEC §5); the rest start with the strength. Through the origin, `{s}_cohesion` is 0. Wide, not long, so
+    `peak_friction_angle` is one column M18 (d) reads, never a value column whose meaning a `strength` column
+    changes. `attrs["units"]` gives the stress columns' unit; angles are degrees. `.groups` holds each group's
+    key, its row count and per strength its lines and points (row, identifiers, `normal_stress`, `shear_stress`,
+    `normal_stress_basis`, `secant_friction_angle`).
+16. **The summary**, per group: per strength, the main line ("peak, free: c = 8 kPa, φ = 31.0°, R² = 1.000, 3
+    points, σn 50 to 200 kPa"), the other line ("through the origin: φ = 33.2°, R² = 0.990"), the rows left out,
+    the lab's pairs and the line's notes; then the call's notes, including c as an intercept outside the range.
+17. **Units** resolve as SPEC §2.6 (`units=`, then `df.attrs["units"]`, else an error naming the column). The
+    columns read are the two shear stresses and the three normal stresses; a column with a value the fit uses
+    needs a unit that is a stress, and 🟡 a column that is blank throughout needs none (a template's CSV has every
+    column). The fit is made in `peak_shear_stress`'s unit (else `residual_shear_stress`'s), or in
+    `display_units=`'s (kPa, psf), converted before fitting; c scales with the unit and φ doesn't change. A frame
+    with neither shear stress column, or no normal stress column `normal_stress=` can use, is an error naming them
+    and pointing to `ht.template("shear_box")`.
+18. **P31, `ht.plot.shear_box_envelope()`** (intent decision 9): its rules are in its spec. It calls
+    `shear_box_fit()` with the shared arguments and draws its result, computing nothing of its own; it returns
+    `(fig, ax, fit)` like P11.
+
+### Derivation
+The criterion (Hoek 2023, ch. 4, eqs. 1–2): τp = c + σn tan φp, and τr = c + σn tan φr (eq. 2 writes the residual
+through the origin; the free residual line is fitted too, decision 4). It is a line in τ–σn with intercept a = c
+and slope b = tan φ, so the core fits it as given: x = σn, y = τ. Back: **c = a, φ = arctan b**, defined for every
+b ≥ 0 (0 ≤ φ < 90°). Least squares minimizes Σ(τ − a − b σn)²: free, b = Sxy / Sxx and a = ȳ − b x̄ (M11 (b),
+Derivation 6); through the origin, minimizing Σ(τ − b σn)² over b gives b = Σσnτ / Σσn² (sheet 22 §5.2). The secant
+angle of a point is the slope of the line from the origin through it: φsec = arctan(τ / σn).
+
+### Example data
+🟡 Proposed values, with site-like scatter about a line (memory: not points on the line); the generator's comments
+carry each set's hand fit.
+- **`site.ags`, Alluvium (lean clay), small shear box, undisturbed**, two tests on 17.5 ft tubes, σn (`SHBT_NORM`)
+  1000, 2000 and 4000 psf:
+  - B-3-U3: τp 700, 1130, 2240; τr 430, 760, 1610. The lab's own fits: c 145 psf, φ 27.4°; c 5 psf, φ 21.7°.
+  - B-6-U2: τp 610, 1250, 2080; τr 380, 840, 1500. The lab's: c 195 psf, φ 25.6°; c 50 psf, φ 20.2°.
+- **`site.ags`, Terrace (sand), small shear box, recompacted**, B-3-D4 (30 ft), σn 1000, 2000, 4000 and 6000 psf:
+  τp 760, 1420, 2650, 4120; τr 610, 1180, 2430, 3590. The lab's: c 71 psf, φ 33.7°; c 3 psf, φ 31.0°.
+- **`site.ags`, Sandstone, bedding plane joints, encapsulated in resin** (`SHBG_ENCA`), one core sample B-3-C5
+  (64.0 ft), two specimens (`SPEC_REF` 1 and 2), `SHBG_TYPE` blank (AGS has no rock joint code, M17 (a)
+  decision 9), σn 0.5, 1.0 and 2.0 MPa, written in psf at 10 significant figures (as `site_us.ags`) so the MPa
+  values come back to 1e-9:
+  - Specimen 1: τp 0.52, 0.86, 1.71; τr 0.33, 0.57, 1.20. The lab's: c 0.095 MPa, φ 38.7°; c 0.015 MPa, φ 30.4°.
+  - Specimen 2: τp 0.45, 0.93, 1.62; τr 0.29, 0.62, 1.13 (MPa). The lab's: c 0.105 MPa, φ 37.5°; c 0.035 MPa,
+    φ 28.9°.
+  - In the file (psf): σn 10442.7171, 20885.4342, 41770.8684; specimen 1's τp 10860.4258, 17961.4734, 35714.0925.
+
+### Sources
+- **Hoek (2023):** *Practical Rock Engineering*, ch. 4, eqs. 1–2, the linear peak and residual criterion, and the
+  advice to report the free and through-origin fits together. [V] on page 22 (M17 (a)'s wave step).
+- **The fit:** least squares on the criterion's line, derived above; no coefficient or table value is used.
+- **1 psf** = 0.45359237 × 9.80665 / 0.3048² Pa = 47.880259 Pa, exact by definition (P00 §4).
+- 🔬 **The failure criteria** of ASTM D3080 and D6467: TODO #53, as M11 (b). The fit reads `failure_criterion` as
+  written and only checks that a line's rows share one.
+
+### Acceptance criteria
+Golden values hand-calculated from the Derivation, the sums written out, with the arithmetic done exactly (in
+fractions) and rounded to 9 significant figures; tolerance 1e-7 relative unless stated. Points are (σn, τ).
+1. **BH2-D1 peak (`site_si.ags`, 3 stages, kPa):** (50, 38), (100, 68), (200, 128); x̄ = 116.666667, ȳ = 78,
+   Sxx = 11666.6667, Sxy = 7000. Free: b = 0.6, a = 8, so `peak_cohesion` 8 kPa, `peak_friction_angle`
+   30.963757°, R² = 1, the lab's pair (8 kPa, 31.0°) × 3. Through the origin: Σσnτ = 34300, Σσn² = 52500,
+   b = 49/75 = 0.653333333, φ = 33.157924°, R² = 1 − 42.6666667/4200 = 0.98984127. Range 50 to 200 kPa. Secant
+   angles 37.234834°, 34.215702°, 32.619243°. Basis `"at_peak"` on every point (the file has `SHBT_PVST`).
+2. **BH2-D1 residual:** (50, 30), (100, 58), (200, 112); Sxy = 6366.66667, b = 191/350 = 0.545714286, a = 3:
+   `residual_cohesion` 3 kPa, `residual_friction_angle` 28.621928°, R² = 0.999917772; the lab's (2 kPa, 28.5°).
+   Through the origin: Σσnτ = 29700, b = 99/175 = 0.565714286, φ = 29.497461°, R² = 0.998190988. Basis
+   `"at_residual"`.
+3. **US twin (`site_us.ags`):** the same φ for all four lines (1e-9 relative), `peak_cohesion` 167.083474 psf and
+   `residual_cohesion` 62.6563027 psf (8 and 3 kPa / 0.047880259), from the file's own psf; with
+   `display_units="SI"`, 8 and 3 kPa.
+4. **`normal_stress="applied"`** on BH2-D1: the same lines (`SHBT_NORM` = `SHBT_PVST` there), basis `"applied"`.
+   A hand-built frame whose rows have `normal_stress_at_peak` 52 and 205 on two and blank on the third uses 52,
+   100 and 205, with bases `"at_peak"` × 2 and `"applied"` × 1 and the mixed-basis note; `"applied"` uses 50,
+   100, 200.
+5. **Rock joint set (`site.ags`'s Sandstone, both specimens, shown in MPa with the override of decision 13):** peak (0.5, 0.52), (1, 0.86), (2, 1.71),
+   (0.5, 0.45), (1, 0.93), (2, 1.62); x̄ = 1.16666667, ȳ = 1.015, Sxx = 2.33333333, Sxy = 1.83: b = 549/700 =
+   0.784285714, a = 0.1 MPa, φ = 38.106583°, R² = 0.993557064; through the origin, Σσnτ = 8.935, Σσn² = 10.5,
+   b = 1787/2100 = 0.850952381, φ = 40.396201°, R² = 0.98432697. Residual: Sxy = 1.33, b = 0.57, a = 0.025 MPa,
+   φ = 29.683140°, R² = 0.994099135; through the origin Σσnτ = 6.16, b = 44/75, φ = 30.398728°, R² = 0.993006382.
+   Without the override, `display_units="SI"` gives c = 100 and 25 kPa and `"US"` 2088.54342 and 522.135856 psf;
+   φ the same (1e-9 relative) in all three. With `group_by="specimen_reference"`, specimen 1's peak b = 561/700,
+   a = 0.095 MPa, φ = 38.709683°. `group_by="geology_unit"` gives the Sandstone group beside AC 6's two.
+6. **`site.ags` soil sets, `group_by="geology_unit"`:**
+   - Alluvium, 6 points: peak Sxx = 9333333.33, Sxy = 4660000, b = 699/1400 = 0.499285714, a = 170 psf,
+     φ = 26.532301°, R² = 0.989167965; through the origin b = 467/840 = 0.555952381, φ = 29.071975°,
+     R² = 0.97278579. Residual Sxy = 3570000, b = 0.3825, a = 27.5 psf, φ = 20.931853°, R² = 0.992243133;
+     through the origin b = 47/120, φ = 21.388623°, R² = 0.991510439. Two lab pairs per strength,
+     `count_reported_peak_pairs` 2 and the pair columns blank.
+   - Terrace, 4 points: peak Sxx = 14750000, Sxy = 9832500, b = 3933/5900 = 0.666610169, a = 71.0169492 psf,
+     φ = 33.687826°, R² = 0.998350334; through the origin b = 973/1425, φ = 34.325536°, R² = 0.997555186.
+     Residual b = 3539/5900 = 0.599830508, a = 3.05084746 psf, φ = 30.956615°, R² = 0.999722222; through the
+     origin b = 1141/1900, φ = 30.985925°, R² = 0.999720407.
+   - `display_units="SI"` gives the Alluvium's c 8.13964403 and 1.31670712 kPa.
+7. **Ring shear, residual only (`joins.ags`, J1-D2):** one point (0.10, 0.021) MPa. Residual free: no line,
+   "1 point: a line needs at least 2"; through the origin b = 0.21, φ = 11.859779°, R² NaN. Peak: both lines
+   "no points" / the core's reason, `count_no_peak_shear_stress` 1. The joint test J1-U3 (one peak point
+   (0.50, 0.42), no residual): through the origin φ = 40.030259°. The whole of `joins.ags`'s `p.shear_box()` in
+   one group fits without a pooling error (J1-U3's blank `test_type` is in the peak lines only, J1-D2's
+   `SMALL RSHEAR` in the residual only), and each strength's counts add up to 2.
+8. **Validity (hand-built, kPa):** (100, 80), (200, 60) gives free b = −0.2 and no line with the slope reason,
+   the through-origin line b = 0.4 with R² = −9 (centered, kept); (100, 20), (200, 80), (300, 140) gives
+   a = −40, b = 0.6 and the negative-intercept warning naming the group and "peak", with the through-origin
+   b = 3/7, φ = 23.198591°, R² = 0.904761905; two points at σn = 100 give no free line, "same normal stress";
+   a point at σn = 0 has `secant_friction_angle` NaN and is fitted; a negative τ or σn raises naming the row; a
+   2-point free line has the two-point note.
+9. **Pooling:** BH2-D1's rows with a `SMALL RSHEAR` row added to the residuals raise, naming `SMALL SBOX` × 3 and
+   `SMALL RSHEAR` × 1 under `test_type`; a blank `failure_criterion` beside "Maximum shear stress" raises;
+   `pool=["test_type", "failure_criterion"]` fits them and `.pooled` records it; `pool="geology_unit"` is an
+   error listing what `pool=` takes. A frame without `failure_criterion` fits, with the note.
+10. **Lines and order:** `cohesion=0` puts `"through_origin"` first in `.to_frame()` and the summary with the same
+    values as AC 1–2; `cohesion=5` raises. `.to_frame()` has decision 15's columns in order and `attrs["units"]`;
+    `.to_dict()` passes `json.dumps`; `kind` is `"derived"`; `print()` gives decision 16's lines.
+11. **Counts add up:** for every group and strength in AC 1–9, `{s}_count` plus the two `count_no_{s}_…` is the
+    group's rows.
+12. **Units and columns:** a frame without units raises naming the column; a shear stress in a length unit
+    raises; a template CSV with blank `normal_stress_at_peak` and no unit for it fits on `applied_normal_stress`;
+    a frame with neither shear stress raises, naming `ht.template("shear_box")`; `normal_stress="peak"` and a
+    missing `group_by` column raise saying what to do. **MPa input:** a hand-built frame with `attrs["units"]` in
+    MPa (AC 5's points) fits in MPa with `display_units=None` (`unit` `"MPa"`, c = 0.1) and in kPa with
+    `"SI"`; `joins.ags`'s J1-U3, stored in MPa, gives AC 7's φ.
+13. **Not used:** `multistage_test`, when present, changes nothing (decision 12).
+14. **The plot:** P31's §12 criteria.
+15. **Reference:** `shear_box_fit`, `ShearBoxFit` and `shear_box_envelope` in the API reference (the test that
+    fails without an entry), with the docstring checklist of the sheets' `TEMPLATE.md`.
