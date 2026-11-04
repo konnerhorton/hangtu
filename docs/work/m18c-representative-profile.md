@@ -125,6 +125,8 @@ A refactor, no behavior change.
     `result.vertical`, the other converted by P01's design-line rule (one ground level).
   - Edge cases (§11): a line ≤ 0 on a log axis cut and counted, a line beyond `xlim=` clipped and counted; two new
     `REASONS` in `_notes.py` (names checked against the existing ones).
+  - Added in the build: `_draw_profile()` takes `cover_x=`, values its automatic x limits also cover, so a line
+    beyond the values (a characteristic value below the lowest) isn't clipped unless `xlim=` is given.
   - `plot/__init__.py` exports it; `docs/site/reference/plot.md` entry (the site test requires one), and the page's
     opening sentence names it among the plots that return a result.
 - Tests: `tests/plot/test_representative_profile.py` (new): criterion 1 (constant and trend, normal and

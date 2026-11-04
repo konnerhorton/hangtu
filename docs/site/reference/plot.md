@@ -1,6 +1,6 @@
 # Plots
 
-Every plot takes a DataFrame and returns `(fig, ax)`, an ordinary matplotlib figure and axes. Pass `ax=` to draw on an axes you already have, such as a panel of an `ht.Sheet`. A plot that runs an analysis returns its result too: `distribution_fit` returns `(fig, axs, result)` and `failure_envelope` and `triaxial_shearing` return `(fig, ax, fit)`.
+Every plot takes a DataFrame and returns `(fig, ax)`, an ordinary matplotlib figure and axes. Pass `ax=` to draw on an axes you already have, such as a panel of an `ht.Sheet`. A plot that runs an analysis returns its result too: `distribution_fit` returns `(fig, axs, result)`, `representative_profile` returns `(fig, ax, result)`, and `failure_envelope` and `triaxial_shearing` return `(fig, ax, fit)`.
 
 ::: hangtu.plot.profile
 
@@ -21,6 +21,8 @@ Every plot takes a DataFrame and returns `(fig, ax)`, an ordinary matplotlib fig
 ::: hangtu.plot.water_content_profile
 
 ::: hangtu.plot.distribution_fit
+
+::: hangtu.plot.representative_profile
 
 ::: hangtu.plot.failure_envelope
 

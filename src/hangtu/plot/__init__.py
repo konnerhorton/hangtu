@@ -12,6 +12,7 @@ from hangtu.plot._grain_size import grain_size
 from hangtu.plot._palette import legend_handles, palette_cmap, reset_palette
 from hangtu.plot._plasticity_chart import plasticity_chart
 from hangtu.plot._profile import profile
+from hangtu.plot._representative_profile import representative_profile
 from hangtu.plot._spt_histogram import spt_histogram
 from hangtu.plot._spt_profile import spt_profile
 from hangtu.plot._triaxial_shearing import triaxial_shearing
@@ -29,6 +30,7 @@ __all__ = [
     "palette_cmap",
     "plasticity_chart",
     "profile",
+    "representative_profile",
     "reset_palette",
     "spt_histogram",
     "spt_profile",

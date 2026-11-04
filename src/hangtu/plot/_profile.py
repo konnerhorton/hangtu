@@ -568,6 +568,7 @@ def _draw_profile(
     companion: Companion | None = None,
     value_ranges: bool = False,
     overlay: Overlay | None = None,
+    cover_x: np.ndarray | None = None,
     **style_overrides: Any,
 ) -> tuple[Figure, Axes]:
     """Draw a profile: ``profile()`` and the plots built on it (P02).
@@ -589,6 +590,8 @@ def _draw_profile(
     - ``overlay``: draws over the values once they are drawn, as ``Overlay``
       (P09's lines). Its legend entries follow the color groups' and the
       companion's; its footnote counts and text join the profile's.
+    - ``cover_x``: values in display units the automatic x limits also cover
+      (P09's lines), as the companion's ``x``.
 
     Also sets ``ax.ags_profile`` to a ``ProfileAxes``.
     """
@@ -695,6 +698,9 @@ def _draw_profile(
         style.style_axes(ax)
 
         covered = x[drawn] if companion is None else np.append(x[drawn], companion.x)
+        if cover_x is not None:
+            extent = cover_x[np.isfinite(cover_x) & ((cover_x > 0) | (not log))]
+            covered = np.append(covered, extent)
         if ranges_read is not None:
             covered = np.append(covered, ranges_read.x(log))
         limits = _values.value_limits(

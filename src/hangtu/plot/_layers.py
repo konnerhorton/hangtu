@@ -7,6 +7,7 @@ ENVELOPES = 0.4  # P05 envelopes, under the gridlines
 STRATA = 1.0
 REGIONS = 1.05  # P04 user regions
 RANGES = 1.1
+REPRESENTATIVE_BAND = 1.12  # P09 mean to representative band, under the values
 ZONES = 1.15  # P04 CL-ML hatch
 LINES = 1.2  # reference and design lines
 CHART_LINES = 1.2  # P04 A-line, U-line, dividers and PI = LL
@@ -19,6 +20,8 @@ CONNECT = 2.1
 LIMITS_BARS = 2.3  # P06 PL to LL bars, under the markers
 MARKERS = 2.5
 QUALIFIERS = 2.6
+REPRESENTATIVE_MEAN = 2.65  # P09 mean (median) lines, over the values
+REPRESENTATIVE = 2.68  # P09 representative lines
 SUMMARY = 2.7  # P07 summary bars and boxes, over the points
 CENTRAL = 2.8  # P07 central markers
 D_VALUES = 2.9  # P05 D-value leaders and ticks
