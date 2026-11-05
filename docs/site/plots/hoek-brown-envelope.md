@@ -74,5 +74,6 @@ fit.to_frame()
 ## See also
 
 - [`ht.plot.hoek_brown_envelope`](../reference/plot.md#hangtu.plot.hoek_brown_envelope), [`ht.analysis.hoek_brown_fit`](../reference/analysis.md#hangtu.analysis.hoek_brown_fit)
+- [Hoek–Brown constant mi](../parameters/15-hoek-brown-constant.md): the tests, typical values and pitfalls
 - [Failure envelope](failure-envelope.md), for soil triaxial stages as Mohr circles
 - [Templates](../guides/templates.md): the `triaxial` template
