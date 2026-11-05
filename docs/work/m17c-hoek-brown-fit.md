@@ -444,3 +444,154 @@ fractions) and rounded to 9 significant figures; tolerance 1e-7 relative unless 
 12. **The plot:** P32's §12 criteria.
 13. **Reference:** `hoek_brown_fit`, `HoekBrownFit` and `hoek_brown_envelope` in the API reference (the test that
     fails without an entry), with the docstring checklist of the sheets' `TEMPLATE.md`; page 15 links them.
+
+## Plan
+Draft, 2026-11-05. Nine commits, each green: first the tests it touches, then the CI command with `-n 3`. Steps 1–4
+run on Opus (the template, the judgment, the calculation with its validity limits and docstring). Steps 5–7 run on
+Sonnet (the example data, the plot and its site page; the spec's values and P32's criteria decide correctness).
+Steps 8–9 run on Opus (page 15's citations, the figure judged against P32, close-out). That makes two session
+boundaries, after 4 and after 7. A step past about 300 changed lines, not counting test data, splits as noted.
+Reused, not rebuilt:
+- **Fit:** `line_fit()` (`analysis/_line_fit.py`), free and with `intercept=σci²`, and its `no_fit_reason`s;
+  `_DerivedResult` (`analysis/_derived.py`); `_names`, `_cell`, `_label`, `_check_sources`, `_reported`, `_pairs`
+  (`analysis/_fit_groups.py`); `group_keys()`, `breakdown()` (`stats/_rows.py`); `_plain()` (`stats/_result.py`);
+  `format_number()` (`plot/_overlays.py`). `_shear_box_fit.py` is the model for the shape of the module and the
+  result.
+- **Judgments:** `read_judgments`, `from_file`, `take`, `warn_project`, `warn_unused` (`analysis/_judgment_values.py`),
+  as `_phase_relations.py` uses them for `specific_gravity`.
+- **Units:** `resolve_units`, `parse_unit`, `check_dimension`, `convert`, `to_display` (`hangtu.units`);
+  `numeric_column`, `rows_text` (`_data`); `ColumnError`, `HangtuError`, `warn` (`errors`).
+- **Data:** `triaxial_failure_stresses()`, `STRESS_COLUMNS` and `is_multistage` (`analysis/_triaxial.py`), unchanged.
+- **Plotting:** `check_envelopes`, `limits`/`set_axes` where they fit, the result-box and footnote patterns of
+  `plot/_envelope_drawing.py` and `plot/_shear_box_envelope.py`; `style.context`/`style_axes`, `figure_size`,
+  `axis_label`, `add_legend`, `Notes`, `hint_missing`, `nice_limits`, `resolve_palette`.
+
+### 1. `M17: add failure_mode and the lab's σci and mi to the triaxial template` (Opus)
+- `columns.yaml`: `failure_mode` (text, "Mode of failure", `ags: [TRET.TRET_MODE, TRIT.TRIT_MODE]`), with a
+  description saying that a lab reporting σ1 enters σ1 − σ3 in `deviator_stress_at_failure` (decision 2);
+  `reported_intact_compressive_strength` (stress) and `reported_intact_hoek_brown_constant` (dimensionless),
+  `ags: ["none: a user CSV, M17 (c)"]`; `intact_compressive_strength` and `intact_hoek_brown_constant` with
+  decision 3's labels, `ags: ["derived: docs/work/m17c-hoek-brown-fit.md"]`, `used_by: [P32]`. `tests/test_registry.py`
+  checks the names against the registry.
+- `src/hangtu/datasets/_triaxial.py`: `failure_mode` after `failure_criterion` and the reported pair after
+  `reported_effective_cohesion` in `TRIAXIAL_COLUMNS`; `failure_mode` in `TEXT_COLUMNS`; `GROUPS` reads `TRET_MODE`
+  and `TRIT_MODE` as written; the reported pair is blank (no AGS heading). The template follows through the
+  registry.
+- `docs/data/datasets.md` §6.10 and §11.1: the three columns.
+- Tests: `tests/datasets/` triaxial tests (AC 10): the template's and `p.triaxial()`'s columns in decision 2's
+  places; `TRET_MODE`/`TRIT_MODE` read from a small AGS text in the test that has them, and blank from
+  `site_us.ags`; `tests/analysis/test_mohr_coulomb_fit.py` and the P11 acceptance tests unchanged and green (the
+  soil stages give the same fit).
+
+### 2. `M17: add the fixed_intact_compressive_strength judgment` (Opus)
+- `src/hangtu/_judgments.py`: a `Kind` for `fixed_intact_compressive_strength`: keyed values, the field
+  `intact_compressive_strength` (stress, positive, in `POSITIVE`), `by:` any column, a `project:` value allowed,
+  a reason required, and absence not an error (as `spt_refusal_upper_limit`); `ht.judgments()`'s docstring gains
+  its entry and an example. `EXAMPLE_UNITS` if the template's example needs a stress unit.
+- Tests: `tests/test_judgments.py` (AC 11): a missing `units:` block, a value of 0 and a missing reason raise,
+  naming the file and entry; a valid entry reads, and its `str()` line.
+
+### 3. `M17: add hoek_brown_fit() for one group` (Opus)
+- `src/hangtu/analysis/_hoek_brown_fit.py` (new), exported with `HoekBrownFit` in `analysis/__init__.py`:
+  - arguments as decision 1; `stress=` other than its two values is an error (decision 13); `pool=` other than
+    `"failure_criterion"` is an error (decision 7);
+  - units (decision 14): the principal stress pair resolved and checked as stresses, converted with the fixed and
+    reported σci to σ3's unit or `display_units=`'s; the missing-columns error pointing to
+    `triaxial_failure_stresses()` and `ht.template("triaxial")`; a bare number for the fixed σci raises;
+  - failure modes (decision 5): the required-argument error with modes and counts, the unknown-name error, `None`
+    for blank, the no-mode note, and the error for `failure_modes=` on a blank column;
+  - rows left out under the first reason, with counts per mode (decision 9); the negative-σ3 and σ1 < σ3 errors
+    naming the rows (decision 10);
+  - the free and fixed fits through `line_fit()`: σci = √a, mi = b / σci (Derivation), and decision 10's validity:
+    the core's reasons, the fixed fit's "no points" and "all points at minor principal stress = 0", the intercept
+    and slope reasons, the fewer-than-5 and beyond-0.5 σci warnings (one per call, naming groups and counts), the
+    R² note, the σ3 range;
+  - the stage sets `"all"`/`"single_stage"` and `multistage=` (decision 11); `uniaxial_count`/`uniaxial_mean`
+    (decision 6); the back-calculated mi per point (decision 12);
+  - for this step the fixed σci comes only from the argument as one string. The mapping and the judgments file
+    come in step 4;
+  - `HoekBrownFit(_DerivedResult)`: `.groups`, `.to_frame()` with decision 15's columns in order and
+    `attrs["units"]`, `__str__` as decision 15, `.to_dict()`;
+  - docstring per the sheets' `TEMPLATE.md` checklist: the criterion (Hoek 2007, ch. 11, eq. 5, p. 2), the line
+    and its two least-squares slopes (eqs. 6–8, p. 4), r² (eq. 9), inputs and outputs with units, validity
+    (0 < σ3 < 0.5 σci, five points, shear failures only: Hoek 2023, ch. 3, p. 6), the total-stress assumption, the
+    ill-conditioning note with sheet 15 §5.4's example, the derived-not-cited note pointing to this spec, an
+    example on a hand-built frame.
+- `docs/site/reference/analysis.md`: `hoek_brown_fit` and `HoekBrownFit` (AC 13).
+- Tests: `tests/analysis/test_hoek_brown_fit.py` (new), on hand-built frames: AC 1, 2 (Table 1, free and fixed,
+  with back-calculated mi and the warning), 4 (psi twin, `display_units`, converted fixed value, bare number, no
+  units), 5 (modes, on a hand-built frame with the example's modes), 7, 8's stress part, 9, and AC 9's count rule
+  for each.
+- If past about 300 lines: (3a) the fits, validity and views on Table 1 and AC 7's sets, then (3b) units, failure
+  modes, multistage and errors (AC 4, 5, 8's stresses).
+
+### 4. `M17: fit Hoek–Brown groups, fixed σci from a mapping or the file` (Opus)
+- `_hoek_brown_fit.py`: `group_by=` (decision 1); the pooling check on `failure_criterion` with `pool=` and
+  `.pooled`, the no-column note, `test_type` not checked (decision 7); the fixed σci as a mapping keyed by group
+  (a value, or a tuple for several columns), the unmatched-key warning and the unlisted-group reason; the
+  judgments file from `judgments=` or `df.attrs` through `_judgment_values`, `by:` checked against `group_by`, the
+  `project:` fallback with its warning, the argument-beside-file warning, and the no-σci reason (decision 8); each
+  value's source on the result; the lab's pairs per fit through `_fit_groups` (decision 15).
+- Tests, same file: AC 6, 8's pooling part, and AC 9's count rule for them, with a judgments file written to
+  `tmp_path`.
+
+### 5. `M17: add a sandstone triaxial set to the example data` (Sonnet)
+- `tests/data/_make_examples.py`: `ROCK_TRIAXIAL`, the "Example data" rows (B-3, Sandstone, depths within
+  61.5–71.5 ft, specimen ids from `CORE_SAMPLES`' sample and new core samples, `soil_class` rock, the lab's pair
+  64 MPa and 12.4). `write_csvs()` writes `rock_triaxial.csv` in `ht.template("triaxial")`'s column order, stresses
+  in MPa, depth in ft. The hand sums of AC 3 go in a comment beside the rows. `JUDGMENTS` gains
+  `fixed_intact_compressive_strength` for Sandstone, 61 MPa, with decision 17's reason.
+- Regenerate `src/hangtu/examples/data/`: only `rock_triaxial.csv` (new) and `judgments.yaml` change, and
+  `site.ags` stays byte for byte the same. `src/hangtu/examples/__init__.py`'s docstring names the file.
+- Tests: `tests/test_examples.py` (the generator check covers the new file); in
+  `tests/analysis/test_hoek_brown_fit.py`, AC 3 on the example through `ht.read_csv(..., units=...)` and
+  `triaxial_failure_stresses()`, plus AC 5's first three cases on the example.
+
+### 6. `M17: add ht.plot.hoek_brown_envelope() (P32)` (Sonnet)
+- `src/hangtu/plot/_hoek_brown_envelope.py` (new), exported in `plot/__init__.py`, following P32 §10. It calls
+  `hoek_brown_fit()` with the shared arguments and draws its result:
+  - fitted points (circles single stage, squares multistage), points left out drawn open with one legend entry
+    per mode;
+  - the free curve σ3 + √(a + b σ3) solid over the fitted range and dashed to the right edge, the fixed curve
+    dotted and lighter;
+  - the user envelopes, the result box and footnote (§8), and §6's labels and limits, not equal aspect;
+  - `color_by=` (§10), the hint for missing optional columns;
+  - it returns `(fig, ax, fit)`, and `fit=False` returns None.
+- `docs/site/reference/plot.md`: `hoek_brown_envelope`.
+- Tests: `tests/plot/test_hoek_brown_envelope.py` (new): P32 AC 1, 4–8 read from the drawn artists (curve values
+  at σ3 = 0 and 10, solid and dashed extents, marker shape and fill, limits, `ax.get_aspect()`);
+  `tests/plot/test_hoek_brown_envelope_acceptance.py` (new): AC 2 and 3 on the example.
+- If past about 300 lines: (6a) points, curves, limits and returns (AC 1, 4, 6), then (6b) groups, units, the
+  box, footnote and edge cases (AC 5, 7, 8).
+
+### 7. `M17: draw the Hoek–Brown envelope on the docs site` (Sonnet)
+- `docs/site/examples/hoek-brown-envelope.py` (new): the example sandstone in MPa, from `rock_triaxial.csv`
+  with the example judgments. `docs/site/plots/hoek-brown-envelope.md` (new) covers what the figure shows, UCS
+  rows on the axis, the free and fixed curves, the fitted range and 0.5 σci, points left out, the lab's values,
+  and common options. It goes in `zensical.toml`'s `nav` and `docs/site/plots/index.md`.
+- `docs/site/guides/datasets.md` (or the templates page): the triaxial template's new columns and rock rows.
+- Run `docs/prepare_site.py` and `zensical build --clean --strict`.
+
+### 8. `M17: promote parameter page 15, the Hoek–Brown constant mi` (Opus)
+- `docs/site/parameters/15-hoek-brown-constant.md` (new, from `docs/drafts/parameters/15-hoek-brown-mi.md`): the
+  wave rule (`docs/reference/process.md`): only [V] citations stay as citations; the multistage bias is a
+  judgment for review, uncited (Sources, 🔬); values and citations only, no copied tables or charts. Method rows
+  link `hoek_brown_fit()` and `hoek_brown_envelope()` (AC 13); "15 C" (mi from σci/σt, tables) is marked wave 4.
+  How to enter rock triaxial and UCS rows in the template, σ1 against the deviator (decision 2). Its example,
+  `docs/site/examples/hoek-brown-constant.py` (new), fits the sandstone and prints the summary. It goes in the
+  `nav`.
+- Run `docs/prepare_site.py` and the strict build.
+
+### 9. `M17: close out (c)` (Opus)
+- **Visual check:** `docs/plots/img/P32-si.png` (the example sandstone, MPa) and `P32-us.png` (the same in psi,
+  through the settings override), 100 dpi, looked at against P32, committed (P32 AC 9).
+- **Close-out:**
+  - `docs/plots/P32-hoek-brown-envelope.md` status `built` with its images; `docs/plots/README.md` P32 `built`;
+  - SPEC §4: the envelope fits bullet gains the Hoek–Brown fit; §2.6: the `triaxial` template for rock as well as
+    soil; §12.4: M17 done;
+  - the parameter index: 15 A "part built" (the CSV through the template; AGS in wave 0), 15 B built;
+  - the `CLAUDE.md` "Next" sentence moves to M18 (d);
+  - TODO #31 still open for rock triaxial in AGS files (text checked);
+  - what a future session would get wrong without being told, written where it will be read.
+- **Verification:** every AC of the Spec and of P32 §12 reported as met or not, with its test; the whole suite
+  with `-n 3`; ruff; mypy; the lowest-versions run (then `git checkout uv.lock`); the strict docs build.
