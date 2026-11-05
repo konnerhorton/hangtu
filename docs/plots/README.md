@@ -98,7 +98,7 @@ Data for all of these already exists in the MVP scope. P00 is the foundation the
 | P15 | Consolidation: settlement against √t and log t per load increment (Taylor / Casagrande fitting) | `time_settlement` | | idea |
 | P16 | Compaction curve: dry density against moisture content, zero-air-voids lines | `compaction_curve` | Common in US practice; AGS CMPG/CMPT | idea |
 | P31 | Shear box: **envelope** τ against σn, peak and residual points, free and through-origin fits | `shear_box_envelope` | plot + analysis; **equal aspect**; `shear_box_fit()`, M17 (b) | [built](P31-shear-box-envelope.md) |
-| P32 | Intact rock: **Hoek–Brown envelope** σ1 against σ3, UCS and triaxial points, free and fixed-σci fits, points left out by failure mode | `hoek_brown_envelope` | plot + analysis; `hoek_brown_fit()`, M17 (c) | [draft](P32-hoek-brown-envelope.md) |
+| P32 | Intact rock: **Hoek–Brown envelope** σ1 against σ3, UCS and triaxial points, free and fixed-σci fits, points left out by failure mode | `hoek_brown_envelope` | plot + analysis; `hoek_brown_fit()`, M17 (c) | [built](P32-hoek-brown-envelope.md) |
 
 ### Batch 3: roadmap plots
 | ID | Plot | Notes |

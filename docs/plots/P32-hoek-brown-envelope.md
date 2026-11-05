@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **ID / function** | P32 · `ht.plot.hoek_brown_envelope()` (+ `ht.analysis.hoek_brown_fit()`) |
-| **Status** | draft |
+| **Status** | built |
 | **Type** | plot + analysis |
 | **Milestone** | M17 (c) (SPEC §12.4), [`docs/work/m17c-hoek-brown-fit.md`](../work/m17c-hoek-brown-fit.md) |
 | **Depends on** | P00; `ht.analysis.triaxial_failure_stresses()` (M11 a); `hoek_brown_fit()` (M17 (c) Spec) |
@@ -202,6 +202,10 @@ stated.
    draws (a hand-built frame per case).
 9. **Visual check:** `docs/plots/img/P32-si.png` (the example sandstone in MPa) and `P32-us.png` (the same in psi),
    at 100 dpi, looked at and committed in the close-out.
+
+![P32, the example sandstone in MPa (SI)](img/P32-si.png)
+
+![P32, the example sandstone in psi (US)](img/P32-us.png)
 
 ## 13. References
 - Hoek, E. (2007). *Practical Rock Engineering*, ch. 11, eq. 5, p. 2: the intact Hoek–Brown criterion, and the σ3

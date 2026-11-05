@@ -42,7 +42,7 @@ Each stage cell gives the wave (W0–W6) or milestone that builds it, and **buil
 | 12 | [Hydraulic conductivity](12-hydraulic-conductivity.md) | k (soil, rock mass) | **part built** (`p.permeability()`); W6 | W3 (cv·mv); W6 | W6 | W6 |
 | 13 | [Intact rock strength](13-intact-rock-strength.md) | σci, σt, Is50 | W4 | W4 | — | W4 |
 | 14 | [Intact rock deformability](14-intact-rock-deformability.md) | Ei, νi | W4 | W4 | — | W4 |
-| 15 | [Hoek–Brown constant mi](15-hoek-brown-mi.md) | mi | W2 | W2 (fit) | W4 | W4 |
+| 15 | [Hoek–Brown constant mi](15-hoek-brown-mi.md) | mi | **part built** (a CSV in the `triaxial` template, M17 c); W0 (`TRIT` and user-defined AGS groups) | **built** (`hoek_brown_fit()`, σci and mi free and with σci fixed: M17 c) | W4 | M18 |
 | 16 | [GSI and disturbance](16-gsi-and-disturbance.md) | GSI, D, RQD, JCond89 | W4 (RQD) | W4 | — | W4 |
 | 17 | [Rock mass strength](17-rock-mass-strength.md) | mb, s, a, σcm, σt,mass, equivalent c′, φ′ | — | W4 | — | W4 |
 | 18 | [Rock mass modulus](18-rock-mass-modulus.md) | Em | — | W4 | — | W4 |
