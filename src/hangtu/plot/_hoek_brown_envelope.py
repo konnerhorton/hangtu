@@ -16,19 +16,23 @@ from hangtu._settings import settings
 from hangtu.analysis._hoek_brown_fit import HoekBrownFit, hoek_brown_fit
 from hangtu.errors import HangtuError
 from hangtu.plot import _layers, _values, style
+from hangtu.plot._hints import hint_missing
 from hangtu.plot._labels import axis_label
 from hangtu.plot._legend import add_legend
 from hangtu.plot._limits import nice_limits
 from hangtu.plot._notes import Notes, figure_of
+from hangtu.plot._overlays import format_number
 from hangtu.plot._palette import resolve_palette
 
 #: The column the fit checks its rows share (its decision 7).
 CHECKED = "failure_criterion"
 LEGEND_COLOR = "black"
+USER_ENVELOPE_COLOR = "0.55"
 MARKER_SIZE = 5.0
 LINE_WIDTH = 1.2
 OTHER_WIDTH = 0.8
 OTHER_ALPHA = 0.6
+TEXT_SIZE = 7.5
 #: Points along each curve: σ1 is curved in σ3, unlike P31's straight lines.
 CURVE_POINTS = 200
 AXES = {
@@ -41,6 +45,7 @@ AXES = {
         "Effective major principal stress at failure, σ′1f",
     ),
 }
+STAGES_TEXT = {"all": "All stages", "single_stage": "Single stage"}
 
 
 def hoek_brown_envelope(
@@ -55,6 +60,9 @@ def hoek_brown_envelope(
     stress: Literal["total", "effective"] = "total",
     pool: str | list[str] | None = None,
     fit: bool = True,
+    result_box: bool = True,
+    envelopes: Sequence[tuple[float, float, str]] | None = None,
+    note: str | None = None,
     units: dict[str, str] | None = None,
     display_units: Literal["US", "SI"] | None = None,
     figsize: tuple[float, float] | None = None,
@@ -77,7 +85,9 @@ def hoek_brown_envelope(
     fixed is thin and dotted, so the two compare. Points the fit left out
     for their failure mode (or, with ``multistage=False``, multistage
     stages) are drawn open, with their reason in the legend. Single-stage
-    points are circles and multistage stages squares.
+    points are circles and multistage stages squares. A box gives each
+    group's σci, mi, n, R², the σ3 range, the fixed fit, the UCS tests'
+    mean and the lab's own values where the rows have them.
 
     Parameters
     ----------
@@ -94,6 +104,13 @@ multistage, stress, pool, units
         each set of curves has one color.
     fit : bool
         False draws the points only, and returns None for the fit.
+    result_box : bool
+        Write the fit's numbers in the upper left.
+    envelopes : list of (intact_compressive_strength, intact_hoek_brown_constant, \
+label), optional
+        Your own curves, σci in the plot's units and mi dimensionless.
+    note : str, optional
+        Free text, added to the footnote.
     display_units : {"US", "SI"}, optional
         Stresses in psf (US) or kPa (SI), or the unit
         ``ht.settings.display_overrides["stress"]`` names (psi, MPa); the fit
@@ -130,6 +147,7 @@ multistage, stress, pool, units
             "color_by= can't be used with group_by=: each set of curves is drawn in "
             "its group's color. Use one or the other."
         )
+    user_envelopes = _check_envelopes(envelopes)
     if color_by is None and group_by is None and "geology_unit" in df.columns:
         color_by = "geology_unit"
     if color_by is not None and color_by not in df.columns:
@@ -139,6 +157,20 @@ multistage, stress, pool, units
         )
 
     with style.context(**style_overrides):
+        hint_missing(
+            df,
+            {
+                "failure_mode": "splitting and defect failures can't be told "
+                "from shear ones",
+                "multistage_test": "multistage stages aren't told apart",
+                "failure_criterion": "the fit can't check that the rows share one",
+                **(
+                    {"geology_unit": "the points are drawn in one color"}
+                    if group_by is None
+                    else {}
+                ),
+            },
+        )
         with warnings.catch_warnings():
             if not fit:  # no curve is drawn, so its warnings would mislead
                 warnings.simplefilter("ignore")
@@ -164,7 +196,7 @@ multistage, stress, pool, units
         style.style_axes(ax)
         notes = Notes()
         colors = _colors(df, result, color_by)
-        xlim, ylim = _limits(result, fit)
+        xlim, ylim = _limits(result, fit, user_envelopes)
         x_text, y_text = AXES[result.stress]
         ax.set_xlabel(axis_label(x_text, result.unit))
         ax.set_ylabel(axis_label(y_text, result.unit))
@@ -173,8 +205,24 @@ multistage, stress, pool, units
         ax.grid(True, which="major")
         color_handles, marks = _draw_points(ax, df, result, color_by, colors)
         handles: list[Line2D] = []
+        for strength, constant, label in user_envelopes:
+            x = _curve_x(0.0, xlim[1])
+            handles += ax.plot(
+                x,
+                _major(x, strength**2, constant * strength),
+                color=USER_ENVELOPE_COLOR,
+                linewidth=LINE_WIDTH,
+                label=label,
+                gid="user_envelope",
+                zorder=_layers.LINES,
+            )
         if fit:
             handles = _draw_curves(ax, result, colors, xlim) + handles
+            if result_box:
+                _draw_box(ax, result)
+        _footnote(result, fit, notes)
+        if note is not None:
+            notes.add_text(str(note))
         if not marks:
             ax.text(
                 0.5,
@@ -189,6 +237,29 @@ multistage, stress, pool, units
         placed = add_legend(ax, [color_handles, marks, handles], notes)
         notes.render(ax, where=placed.where, below=placed.legend)
     return fig, ax, result if fit else None
+
+
+def _check_envelopes(envelopes: Any) -> list[tuple[float, float, str]]:
+    if envelopes is None:
+        return []
+    checked = []
+    for envelope in envelopes:
+        try:
+            strength, constant, label = envelope
+            strength, constant = float(strength), float(constant)
+        except (TypeError, ValueError):
+            raise HangtuError(
+                "envelopes= takes a list of (intact_compressive_strength, "
+                "intact_hoek_brown_constant, label), such as "
+                f'[(60, 17, "Sandstone, typical")], not {envelope!r}.'
+            ) from None
+        if not (strength > 0 and constant > 0):
+            raise HangtuError(
+                f"envelopes= has σci = {strength:g} and mi = {constant:g} in "
+                f"{label!r}; both must be above 0."
+            )
+        checked.append((strength, constant, str(label)))
+    return checked
 
 
 def _major(x: np.ndarray, intercept: float, slope: float) -> np.ndarray:
@@ -296,7 +367,7 @@ def _fitted_curves(result: HoekBrownFit) -> list[dict[str, Any]]:
 
 
 def _limits(
-    result: HoekBrownFit, fit: bool
+    result: HoekBrownFit, fit: bool, user_envelopes: list[tuple[float, float, str]]
 ) -> tuple[tuple[float, float], tuple[float, float]]:
     """Return the axes' limits: from 0 past the largest σ3 and σ1 (P32 §6)."""
     points = [point for group in result.groups for point, _ in _drawn_points(group)]
@@ -317,6 +388,8 @@ def _limits(
                 ),
             ]
         )
+    for strength, constant, _ in user_envelopes:
+        y_high = max(y_high, float(_major(edge, strength**2, constant * strength)[0]))
     ylim = nice_limits(0.0, y_high, start_at_zero=True)
     return xlim, ylim
 
@@ -457,3 +530,145 @@ def _draw_curves(
             )
         )
     return handles
+
+
+def _r_squared(fit: dict[str, Any]) -> str:
+    return "—" if math.isnan(fit["r_squared"]) else f"{fit['r_squared']:.3f}"
+
+
+def _draw_box(ax: Axes, result: HoekBrownFit) -> None:
+    """Write each group's fits, UCS mean and the lab's values (P32 §8)."""
+    unit = f" {result.unit}" if result.unit else ""
+    prime = "′" if result.stress == "effective" else ""
+    lines = []
+    for group in result.groups:
+        indent = ""
+        if result.by:
+            lines.append(f"{_group_label(result, group)}")
+            indent = "  "
+        free, fixed = _main(group), _main(group, "fixed_strength")
+        staged = len({fit["stages"] for fit in group["fits"]}) > 1
+        head = f"{indent}Free"
+        if staged:
+            head += f" ({STAGES_TEXT[free['stages']].lower()})"
+        if free["no_fit_reason"] is not None:
+            lines.append(f"{head}: no fit: {free['no_fit_reason']}")
+        else:
+            lines.append(
+                f"{head}: σci = {format_number(free['intact_compressive_strength'])}"
+                f"{unit}, mi = {format_number(free['intact_hoek_brown_constant'])}"
+            )
+            lines.append(
+                f"{indent}  n = {free['count']}, R² = {_r_squared(free)}, "
+                f"σ{prime}3 {format_number(free['lowest_minor_principal_stress'])} to "
+                f"{format_number(free['highest_minor_principal_stress'])}{unit}"
+            )
+        strength = fixed["fixed_strength"]
+        if strength is None:
+            lines.append(f"{indent}σci fixed: no fit: {fixed['no_fit_reason']}")
+        else:
+            fixed_head = (
+                f"{indent}σci fixed at "
+                f"{format_number(fixed['intact_compressive_strength'])}{unit} "
+                f"({strength['source_text']})"
+            )
+            if fixed["no_fit_reason"] is not None:
+                lines.append(f"{fixed_head}: no fit: {fixed['no_fit_reason']}")
+            else:
+                lines.append(
+                    f"{fixed_head}: "
+                    f"mi = {format_number(fixed['intact_hoek_brown_constant'])}"
+                )
+        if staged:
+            other = next(
+                fit
+                for fit in group["fits"]
+                if fit["stages"] != free["stages"] and fit["line_kind"] == "free"
+            )
+            other_head = f"{indent}{STAGES_TEXT[other['stages']]}"
+            if other["no_fit_reason"] is not None:
+                lines.append(f"{other_head}: no fit: {other['no_fit_reason']}")
+            else:
+                lines.append(
+                    f"{other_head}: σci = "
+                    f"{format_number(other['intact_compressive_strength'])}{unit}, "
+                    f"mi = {format_number(other['intact_hoek_brown_constant'])}"
+                )
+        if free["uniaxial_count"]:
+            n = free["uniaxial_count"]
+            lines.append(
+                f"{indent}UCS: {n} test{'s' if n != 1 else ''}, mean "
+                f"{format_number(free['uniaxial_mean'])}{unit}"
+            )
+        pairs = free["reported_pairs"] or []
+        for pair in pairs:
+            rows = f" ({pair['count']} rows)" if len(pairs) > 1 else ""
+            lines.append(
+                f"{indent}Lab: σci = "
+                f"{_lab_text(pair['intact_compressive_strength'])}{unit}, "
+                f"mi = {_lab_text(pair['intact_hoek_brown_constant'])}{rows}"
+            )
+    if not lines:
+        return
+    ax.annotate(
+        "\n".join(lines),
+        xy=(0.02, 0.98),
+        xycoords="axes fraction",
+        ha="left",
+        va="top",
+        fontsize=TEXT_SIZE,
+        color="0.15",
+        gid="result_box",
+        bbox={
+            "boxstyle": "round,pad=0.3",
+            "facecolor": "white",
+            "edgecolor": "0.7",
+            "linewidth": 0.5,
+        },
+        zorder=_layers.ANNOTATIONS,
+    )
+
+
+def _lab_text(value: float) -> str:
+    """Write the lab's value as given; a dash if blank."""
+    return "—" if math.isnan(value) else f"{value:g}"
+
+
+def _footnote(result: HoekBrownFit, fit: bool, notes: Notes) -> None:
+    """Count the rows left out and the fits' cautions (P32 §8)."""
+    modes: dict[str, int] = {}
+    totals = {"principal": 0, "effective": 0, "multistage": 0}
+    for group in result.groups:
+        for mode, count in group["count_by_failure_mode"].items():
+            modes[mode] = modes.get(mode, 0) + count
+        main = _main(group)
+        totals["principal"] += main["count_no_principal_stresses"]
+        totals["effective"] += main["count_no_effective_stresses"]
+        totals["multistage"] += main["count_multistage_left_out"]
+    parts = [f"{count} {mode}" for mode, count in modes.items()]
+    parts += [
+        text.format(n=totals[name])
+        for name, text in (
+            ("principal", "{n} without principal stresses"),
+            ("effective", "{n} without effective stresses"),
+            ("multistage", "{n} multistage stages from the main fit"),
+        )
+        if totals[name]
+    ]
+    if parts:
+        notes.add_text("Left out: " + ", ".join(parts))
+    if not fit:
+        return
+    curves = _fitted_curves(result)
+    for kind, text in (("free", "free fit"), ("fixed_strength", "σci fixed")):
+        beyond = sum(
+            c["count_beyond_confining_range"] for c in curves if c["line_kind"] == kind
+        )
+        if beyond:
+            notes.add_text(
+                f"{beyond} point{'s' if beyond != 1 else ''} at σ3 ≥ 0.5 σci ({text})"
+            )
+    if any(c["count"] < 5 for c in curves):
+        notes.add_text("Fewer than 5 points in a fit")
+    if any(c["r_squared"] < 0.9 for c in curves):
+        notes.add_text("R² below 0.9")
