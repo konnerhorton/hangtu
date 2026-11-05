@@ -298,6 +298,10 @@ def test_5_rows_of_other_modes_are_left_out_and_counted():
         "Axial splitting",
         "Along bedding",
     ]
+    assert [
+        (row["minor_principal_stress"], row["major_principal_stress"])
+        for row in group["left_out"]
+    ] == [(0, 38.6), (10, 88.0)]
     assert result.failure_modes == ("Shear",)
     assert "left out: 2 other failure mode (Axial splitting 1, Along bedding 1)" in (
         str(result)

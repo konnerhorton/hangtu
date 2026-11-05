@@ -421,7 +421,7 @@ def hoek_brown_fit(
                 "count_rows": int(rows.sum()),
                 "fits": fits,
                 "count_by_failure_mode": _mode_counts(df, rows & other_mode, reasons),
-                "left_out": _left_out_rows(df, excluded, reasons),
+                "left_out": _left_out_rows(df, excluded, reasons, minor, major),
             }
         )
 
@@ -573,14 +573,24 @@ def _mode_counts(
 
 
 def _left_out_rows(
-    df: pd.DataFrame, rows: np.ndarray, reasons: np.ndarray
+    df: pd.DataFrame,
+    rows: np.ndarray,
+    reasons: np.ndarray,
+    minor: np.ndarray,
+    major: np.ndarray,
 ) -> list[dict[str, Any]]:
+    """Each row left out, with its stresses in the fit's unit (NaN if blank)."""
     identifiers = [column for column in _IDENTIFIERS if column in df.columns]
     return [
         {
             "row": row,
             **{column: _cell(df.at[row, column]) for column in identifiers},
+            "minor_principal_stress": float(minor[i]),
+            "major_principal_stress": float(major[i]),
             _MODE: _cell(df.at[row, _MODE]) if _MODE in df.columns else None,
+            "multistage_test": _cell(df.at[row, "multistage_test"])
+            if "multistage_test" in df.columns
+            else None,
             "reason": str(reasons[i]),
         }
         for i, row in zip(np.flatnonzero(rows), df.index[rows], strict=True)
@@ -944,7 +954,7 @@ class HoekBrownFit(_DerivedResult):
     #: ``line_intercept`` σci² and ``line_slope`` mi σci, ``fixed_strength``,
     #: ``reported_pairs``, ``notes`` and ``points``), ``count_by_failure_mode``
     #: of the rows left out for their mode, and ``left_out``, each row left
-    #: out with its reason.
+    #: out with its reason and its σ3 and σ1 (NaN where blank).
     groups: tuple[dict[str, Any], ...]
 
     def _columns(self) -> list[str]:
