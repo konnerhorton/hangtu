@@ -73,7 +73,7 @@ def test_2_points(sandstone):
     assert [marker for marker, *_ in filled].count("s") == 3
     assert ("s", 20.0, 153.4) in filled
     assert ("o", 0.0, 54.2) in filled
-    assert _marks(ax, "left_out_point") == [("o", 0.0, 38.6), ("o", 10.0, 88.0)]
+    assert _marks(ax, "left_out_point") == [("D", 0.0, 38.6), ("^", 10.0, 88.0)]
     for line in _lines(ax, "left_out_point"):
         assert line.get_markerfacecolor() == "white"
     legend = _legend(ax)
@@ -105,8 +105,8 @@ def test_2_curves_and_box(sandstone):
 def test_3_multistage_false(sandstone):
     _, ax, _ = _draw(sandstone, multistage=False)
     assert _marks(ax, "left_out_point") == [
-        ("o", 0.0, 38.6),
-        ("o", 10.0, 88.0),
+        ("D", 0.0, 38.6),
+        ("^", 10.0, 88.0),
         ("s", 5.0, 93.0),
         ("s", 10.0, 115.8),
         ("s", 20.0, 153.4),

@@ -322,13 +322,31 @@ def test_8_left_out_modes_drawn_open_with_their_count():
     with pytest.warns(UserWarning, match=BEYOND):
         _, ax, _ = ht.plot.hoek_brown_envelope(df, failure_modes=["Shear"])
     assert _points(ax, "left_out_point") == [(0, 38.6), (10, 88.0)]
+    # One marker per mode, in the modes' sorted order (P32 §7).
+    assert [line.get_marker() for line in _lines(ax, "left_out_point")] == ["D", "^"]
     for line in _lines(ax, "left_out_point"):
-        assert line.get_marker() == "o"
         assert line.get_markerfacecolor() == "white"
     legend = _legend(ax)
     assert "Left out: Axial splitting (1)" in legend
     assert "Left out: Along bedding (1)" in legend
+    handles = {
+        handle.get_label().replace("\n", " "): handle.get_marker()
+        for handle in ax.get_legend().legend_handles
+    }
+    assert handles["Left out: Along bedding (1)"] == "^"
+    assert handles["Left out: Axial splitting (1)"] == "D"
     assert "Left out: 1 Axial splitting, 1 Along bedding" in _footnote(ax)
+
+
+def test_8_a_blank_mode_takes_the_last_marker():
+    df = _frame(
+        [*TABLE_1, (0, 38.6), (10, 88.0)],
+        failure_mode=["Shear"] * 5 + [None, "Along bedding"],
+    )
+    with pytest.warns(UserWarning, match=BEYOND):
+        _, ax, _ = ht.plot.hoek_brown_envelope(df, failure_modes=["Shear"])
+    # "Along bedding" sorts first; the blank mode comes last whatever its text.
+    assert [line.get_marker() for line in _lines(ax, "left_out_point")] == ["D", "^"]
 
 
 def test_8_negative_or_reversed_stresses_raise():

@@ -25,7 +25,7 @@ The box gives each group's free σci, mi, number of points, R² and σ3 range; t
 
 ## Points left out
 
-The criterion holds for shear failures only. Tests that split axially or failed along a defect are left out first (Hoek 2023, ch. 3, p. 6). `failure_mode` is the lab's own words, so hangtu doesn't guess which ones mean shear: when the column has values, name the shear ones with `failure_modes=`, as written. Rows with other modes stay on the figure, open, with their mode and count in the legend and the footnote.
+The criterion holds for shear failures only. Tests that split axially or failed along a defect are left out first (Hoek 2023, ch. 3, p. 6). `failure_mode` is the lab's own words, so hangtu doesn't guess which ones mean shear: when the column has values, name the shear ones with `failure_modes=`, as written. Rows with other modes stay on the figure, open, each mode with a marker of its own (a triangle, a diamond, ...) and its count in the legend and the footnote.
 
 ## Multistage tests
 

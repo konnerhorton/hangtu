@@ -36,7 +36,7 @@ A figure of its own, not a space of P11 (M17 (c) intent, decision 8): P11 draws 
       │ ○ axial splitting
     0 ┼──────┴──────┴──────┴──────┴──────┴──────
       0      5     10     15     20     25   σ3 (MPa)
-  ● single stage  ■ multistage  ○ × left out  ── free fit (dashed beyond the points)  ··· σci fixed
+  ● single stage  ■ multistage  △ ◇ left out, one marker per mode  ── free fit (dashed beyond the points)  ··· σci fixed
 ```
 **A good version:** UCS points on the σ1 axis, where the eye checks them against the curve's intercept σci; the free
 curve solid over the σ3 its points cover and dashed beyond, so σ1 past the last test reads as extrapolation; the
@@ -99,7 +99,7 @@ not a range). The other stage set's curves (single stage, or all) are not drawn;
 |---|---|---|---|
 | Fitted single-stage points (UCS included) | filled circle | by group, else `color_by` | "Single stage" (black when there are colors) |
 | Fitted multistage stages | filled square, same size | as above | "Multistage" |
-| Left out by failure mode | open circle (open square for a multistage stage) | as above | "Left out: <mode> (n)", one entry per mode |
+| Left out by failure mode | open, one marker per mode: triangle, diamond, triangle down, pentagon, hexagon, then the rest of `MODE_MARKERS`, given to the modes in sorted order with a blank mode last, so two modes can be told apart (changed in the close-out review, 2026-11-05) | as above | "Left out: <mode> (n)", one entry per mode |
 | Multistage stages left out (`multistage=False`) | open square | as above | "Left out: multistage (n)" |
 | Free curve | solid over the fitted range, dashed beyond | black with one group; the group's color with several | "Free fit" |
 | Fixed curve | thin dotted, 60 % opacity | as the free curve | "σci fixed" |
@@ -188,8 +188,8 @@ stated.
    With `fixed_intact_compressive_strength="38.3 MPa"`, the fixed curve passes through σ1 = 38.3 at σ3 = 0 with
    mi = 15.0132572.
 2. **Points:** the example sandstone draws 13 filled marks (10 circles, 3 squares) at their (σ3, σ1), the axial
-   splitting UCS as an open circle at (0, 38.6) and the bedding failure as an open circle at (10, 88.0), each mode
-   in the legend with its count.
+   splitting UCS as an open diamond at (0, 38.6) and the bedding failure as an open triangle at (10, 88.0) (the modes
+   sorted: "Along bedding" first), each mode in the legend with its own marker and count.
 3. **`multistage=False`** draws the 3 multistage stages as open squares, the single-stage curve (σci 62.7985047,
    mi 13.7700751) as the main one, and the box gives the all-stages fit second.
 4. **Axes:** §6's labels and limits; not equal aspect.

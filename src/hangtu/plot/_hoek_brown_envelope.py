@@ -2,7 +2,7 @@
 
 import math
 import warnings
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from typing import Any, Literal
 
 import matplotlib.pyplot as plt
@@ -35,6 +35,9 @@ OTHER_ALPHA = 0.6
 TEXT_SIZE = 7.5
 #: Points along each curve: σ1 is curved in σ3, unlike P31's straight lines.
 CURVE_POINTS = 200
+#: The reason a multistage stage is drawn open when the single-stage fit is
+#: the main one.
+MULTISTAGE_REASON = "multistage"
 AXES = {
     "total": (
         "Minor principal stress at failure, σ3f",
@@ -82,10 +85,11 @@ def hoek_brown_envelope(
 
     The free curve is solid over the σ3 its points cover and dashed beyond,
     so σ1 past the last test reads as extrapolation. The curve with σci
-    fixed is thin and dotted, so the two compare. Points the fit left out
-    for their failure mode (or, with ``multistage=False``, multistage
-    stages) are drawn open, with their reason in the legend. Single-stage
-    points are circles and multistage stages squares. A box gives each
+    fixed is thin and dotted, so the two compare. Single-stage points are
+    circles and multistage stages squares. Points the fit left out are drawn
+    open, with their reason and count in the legend: each failure mode left
+    out has a marker of its own (triangle, diamond, ...), and with
+    ``multistage=False`` the multistage stages are open squares. A box gives each
     group's σci, mi, n, R², the σ3 range, the fixed fit, the UCS tests'
     mean and the lab's own values where the rows have them.
 
@@ -328,6 +332,27 @@ def _all_stages(group: dict[str, Any]) -> dict[str, Any]:
     )
 
 
+#: Open markers for the failure modes left out, in turn; circles and squares
+#: are the fitted single-stage and multistage points (P32 §7).
+MODE_MARKERS = ("^", "D", "v", "p", "h", "<", ">", "*")
+
+
+def _mode_markers(reasons: Iterable[str | None]) -> dict[str, str]:
+    """Give each failure mode left out its own marker, in the modes' order.
+
+    Modes are sorted, a blank mode last, so a mode keeps its marker
+    whichever row comes first. Past the eighth mode the markers repeat.
+    """
+    modes = {reason for reason in reasons if reason not in (None, MULTISTAGE_REASON)}
+    ordered = sorted(modes - {_values.BLANK_GROUP}) + sorted(
+        modes & {_values.BLANK_GROUP}
+    )
+    return {
+        mode: MODE_MARKERS[index % len(MODE_MARKERS)]
+        for index, mode in enumerate(ordered)
+    }
+
+
 def _drawn_points(group: dict[str, Any]) -> list[tuple[dict[str, Any], str | None]]:
     """Each point drawn, with the reason it was left out (None if fitted).
 
@@ -339,7 +364,7 @@ def _drawn_points(group: dict[str, Any]) -> list[tuple[dict[str, Any], str | Non
     drawn: list[tuple[dict[str, Any], str | None]] = [
         (
             point,
-            "multistage"
+            MULTISTAGE_REASON
             if main["stages"] == "single_stage" and point["multistage_test"]
             else None,
         )
@@ -403,17 +428,25 @@ def _draw_points(
 ) -> tuple[list[Line2D], list[Line2D]]:
     """Draw each point: circles single stage, squares multistage, open if left out.
 
+    A point left out for its failure mode takes that mode's own open marker
+    (P32 §7), so two modes can be told apart on the figure.
+
     Returns the color handles and the mark handles for the legend.
     """
     seen: dict[Any, Line2D] = {}
     shapes = {"o": False, "s": False}
     left_out: dict[str, tuple[int, str]] = {}
-    for group in result.groups:
-        for point, reason in _drawn_points(group):
+    drawn = [(group, _drawn_points(group)) for group in result.groups]
+    mode_markers = _mode_markers(reason for _, points in drawn for _, reason in points)
+    for group, points in drawn:
+        for point, reason in points:
             label, color = _point_color(
                 df, result, group, point["row"], color_by, colors
             )
-            marker = "s" if point.get("multistage_test") is True else "o"
+            if reason in mode_markers:
+                marker = mode_markers[reason]
+            else:
+                marker = "s" if point.get("multistage_test") is True else "o"
             filled = reason is None
             ax.plot(
                 [point["minor_principal_stress"]],
