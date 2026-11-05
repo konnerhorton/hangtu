@@ -251,6 +251,14 @@ Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads o
   - How would the set be published? For example, as a `DICT` block users copy into their files.
   - How does this fit with wave 0 (M16, user-defined groups)?
 
+### 55. The sandstone triaxial set in site.ags · Claude · `tests/data/_make_examples.py`, `src/hangtu/examples/__init__.py`
+- **Rule:** example data goes into `site.ags` first, and the example CSVs are written from that project (decided 2026-11-05, M18 (d) spec review, `docs/work/m18d-sources-compared.md`, decision 20).
+- **Problem:** `rock_triaxial.csv` (M17 c) is made on its own, in MPa, and isn't in `site.ags`.
+- **Wanted:** B-3's sandstone UCS and triaxial tests in `site.ags` (TREG/TRET, and the UCS group), with `rock_triaxial.csv` written from `p.triaxial()`, so the Hoek–Brown examples and P32 read the same tests as the file.
+- **Questions:**
+  - Does the AGS file carry `failure_mode`, which `hoek_brown_fit()` needs, or is it added after ingest?
+  - The file is in US units while the CSV is in MPa: convert on writing, or keep the CSV in the file's units?
+
 ---
 
 ## Later / far future (also on the Roadmap)
