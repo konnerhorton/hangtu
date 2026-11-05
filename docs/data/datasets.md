@@ -345,6 +345,7 @@ One row per triaxial stage at failure: each `TRET` row (effective stress, parent
 | `multistage_test` | True when the type is multistage (`CDM`, `CUM`, `CIUCM`) or the specimen has more than one stage | As `TRET`, with `UUM` |
 | `sample_condition` | `TREG_COND` | `TRIG_COND` |
 | `failure_criterion` | `TREG_FCR`, as written | blank (no heading) |
+| `failure_mode` (M17 c) | `TRET_MODE`, as written | `TRIT_MODE`, as written |
 | `water_content` | `TRET_IMC` (initial) | `TRIT_IMC` (initial) |
 | `bulk_unit_weight`, `dry_unit_weight` | `TRET_BDEN`, `TRET_DDEN` × g (initial) | `TRIT_BDEN`, `TRIT_DDEN` × g (initial) |
 | `void_ratio` | `TRET_IVR` (initial) | blank |
@@ -360,6 +361,7 @@ One row per triaxial stage at failure: each `TRET` row (effective stress, parent
 | `effective_minor_principal_stress_at_failure`, `effective_major_principal_stress_at_failure` | σ′3 = σ3 − u_f, σ′1 = σ′3 + q_f, below | blank |
 | `effective_stress_basis` | Where u_f came from: `pore_pressure_at_failure` or `back_pressure`, below; blank where σ′ is blank | blank |
 | `reported_effective_friction_angle`, `reported_effective_cohesion` | `TREG_PHI`, `TREG_COH`: the lab's own fit, repeated on each stage of the specimen | blank |
+| `reported_intact_compressive_strength`, `reported_intact_hoek_brown_constant` (M17 c) | blank: the lab's Hoek–Brown σci and mi have no AGS heading, so they come from a CSV | blank |
 | `test_remarks`, `remarks` | `TREG_REM`, `TRET_REM` | `TRIG_REM`, `TRIT_REM` |
 
 - **The pore pressure at failure** is `TRET_PWPF`. Where it is blank, and the test type is drained (`CD`, `CDM`, `CIDC`, `CADC`), u_f is the back pressure `TRET_BACK`: a drained test keeps the pore pressure at the back pressure. `effective_stress_basis` says which was used, and one warning per call counts the stages that used the back pressure. Otherwise, including an undrained test without a pore pressure and a type the dictionary doesn't list, σ′3 and σ′1 are blank and nothing is guessed. QC X002 lists the undrained ones.
@@ -486,6 +488,7 @@ New columns, each checked against the whole registry (CLAUDE.md, "Naming"): `loc
 - M14 (`docs/work/m14a-density-data.md`): `dry_unit_weight`, `particle_density`, `particle_density_assumed`, `particle_density_specimen_id`, `sample_condition`, `stabilizer_content`; new AGS sources for `bulk_unit_weight` (`LDEN_BDEN`, `IDEN_IDEN` × g, replacing `RDEN_BDEN` until M21 reads RDEN), `water_content` (`LDEN_MC`, `IDEN_MC`) and `test_type`; `depth_basis` gains `test_depth`; the `density` and `particle_density` templates.
 - M11 a (`docs/work/m11a-triaxial-data.md`): `test_stage`, `multistage_test`, `failure_criterion`, `effective_consolidation_stress`, `back_pressure`, `pore_pressure_parameter_b`, `cell_pressure`, `deviator_stress_at_failure`, `pore_pressure_at_failure`, `axial_strain_at_failure`, `volumetric_strain_at_failure`, the four principal stresses at failure, `effective_stress_basis`, `reported_effective_friction_angle`, `reported_effective_cohesion`, `test_remarks`; new AGS sources for `test_type`, `sample_condition`, `water_content`, `bulk_unit_weight`, `dry_unit_weight`, `void_ratio` and `remarks`; the `triaxial` template.
 - M17 a (`docs/work/m17a-strength-data.md`, Changes): the undrained strength and shear box columns; `undrained_shear_strength`'s sources (`TRIT_CU` moves to `reported_undrained_shear_strength`); `axial_strain_at_failure` gains `LUCT_STRA`; the quantity kind `displacement_rate`; the `strength` template reshaped and `shear_box` new.
+- M17 c (`docs/work/m17c-hoek-brown-fit.md`, Changes): `failure_mode` (`TRET_MODE`, `TRIT_MODE`), `reported_intact_compressive_strength` and `reported_intact_hoek_brown_constant` in the `triaxial` template and `p.triaxial()`; the fitted `intact_compressive_strength` and `intact_hoek_brown_constant`.
 
 ### 11.1 CSV templates
 Each template (`ht.template(<name>)`) is its dataset's columns in the same order, without those only hangtu produces, so CSV and AGS data reach the plots in the same shape (decided 2026-10-14, `docs/work/m9-release.md`; SPEC §2.6). What each leaves out:
@@ -495,7 +498,7 @@ Each template (`ht.template(<name>)`) is its dataset's columns in the same order
 | `spt`, `atterberg`, `grain_size`, `permeability` | `p.spt()`, `p.atterberg()`, `p.grain_size()`, `p.permeability()` | `source_line`, `energy_source`, `spt_n_capped`, `liquidity_index`, `consistency_index` |
 | `stratigraphy` (M13) | `p.stratigraphy()` | `source_line` |
 | `density`, `particle_density` (M14, `docs/work/m14a-density-data.md`) | `p.density()`, `p.particle_density()` | `source_line`, `particle_density_specimen_id` |
-| `triaxial` (M11 a, `docs/work/m11a-triaxial-data.md`) | `p.triaxial()` | `source_line`, the four principal stresses at failure and `effective_stress_basis`, which `ht.analysis.triaxial_failure_stresses()` adds |
+| `triaxial` (M11 a, `docs/work/m11a-triaxial-data.md`; rock rows M17 c) | `p.triaxial()` | `source_line`, the four principal stresses at failure and `effective_stress_basis`, which `ht.analysis.triaxial_failure_stresses()` adds |
 | `triaxial_readings` (M11 c, `docs/work/m11c-triaxial-shearing.md`) | none | One row per reading during shearing, for `ht.analysis.triaxial_failure_from_readings()` and P12 |
 | `strength` (M17 a, `docs/work/m17a-strength-data.md`) | `p.undrained_strength()` | `source_line`, `undrained_shear_strength_basis` and `strength_sensitivity`, which `ht.analysis.undrained_shear_strength_from_tests()` adds |
 | `shear_box` (M17 a) | `p.shear_box()` | `source_line` |

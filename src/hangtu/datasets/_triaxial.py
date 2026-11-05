@@ -27,6 +27,7 @@ TRIAXIAL_COLUMNS = [
     "multistage_test",
     "sample_condition",
     "failure_criterion",
+    "failure_mode",
     "water_content",
     "bulk_unit_weight",
     "dry_unit_weight",
@@ -43,6 +44,8 @@ TRIAXIAL_COLUMNS = [
     "effective_stress_basis",
     "reported_effective_friction_angle",
     "reported_effective_cohesion",
+    "reported_intact_compressive_strength",
+    "reported_intact_hoek_brown_constant",
     "test_remarks",
     "remarks",
 ]
@@ -53,6 +56,7 @@ TEXT_COLUMNS = [
     "test_stage",
     "sample_condition",
     "failure_criterion",
+    "failure_mode",
     "test_remarks",
     "remarks",
 ]
@@ -145,6 +149,11 @@ def _stages(build: Build, stage: str) -> pd.DataFrame:
     frame["bulk_unit_weight"] = build.numbers(rows, f"{stage}_BDEN") * G
     frame["dry_unit_weight"] = build.numbers(rows, f"{stage}_DDEN") * G
     frame["remarks"] = build.texts(rows, f"{stage}_REM")
+    # As written: which modes are shear failures is the engineer's call (M17 c).
+    frame["failure_mode"] = build.texts(rows, f"{stage}_MODE")
+    # The lab's Hoek-Brown pair has no AGS heading: a CSV column only.
+    frame["reported_intact_compressive_strength"] = np.nan
+    frame["reported_intact_hoek_brown_constant"] = np.nan
     specimen = rows["specimen_id"]
     # A stage with no test row (a broken parent link) keeps blank test columns.
     tests = (

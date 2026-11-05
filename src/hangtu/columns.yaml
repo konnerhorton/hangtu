@@ -44,7 +44,8 @@ templates:
   density:        [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, bulk_unit_weight, dry_unit_weight, water_content, particle_density, particle_density_assumed, sample_condition, stabilizer_content, source, test_type, geology_unit, soil_class, geology_description]
   particle_density: [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, particle_density, particle_density_assumed, test_type, geology_unit, soil_class, geology_description]
   # One row per stage at failure; p.triaxial() adds the principal stresses and their basis (M11 a).
-  triaxial:       [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, test_type, test_stage, multistage_test, sample_condition, failure_criterion, water_content, bulk_unit_weight, dry_unit_weight, void_ratio, effective_consolidation_stress, back_pressure, pore_pressure_parameter_b, cell_pressure, deviator_stress_at_failure, pore_pressure_at_failure, axial_strain_at_failure, volumetric_strain_at_failure, reported_effective_friction_angle, reported_effective_cohesion, test_remarks, remarks, geology_unit, soil_class, geology_description]
+  # Rock specimens too, a UCS test as a row with cell_pressure 0 (M17 c).
+  triaxial:       [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, test_type, test_stage, multistage_test, sample_condition, failure_criterion, failure_mode, water_content, bulk_unit_weight, dry_unit_weight, void_ratio, effective_consolidation_stress, back_pressure, pore_pressure_parameter_b, cell_pressure, deviator_stress_at_failure, pore_pressure_at_failure, axial_strain_at_failure, volumetric_strain_at_failure, reported_effective_friction_angle, reported_effective_cohesion, reported_intact_compressive_strength, reported_intact_hoek_brown_constant, test_remarks, remarks, geology_unit, soil_class, geology_description]
   # One row per reading during shearing (M11 c, P12 §3); stage values repeat on each row.
   triaxial_readings: [loca_id, specimen_id, sample_reference, specimen_reference, depth, test_type, test_stage, failure_criterion, effective_consolidation_stress, back_pressure, cell_pressure, axial_strain, deviator_stress, excess_pore_pressure, volumetric_strain, reported_failure_reading, geology_unit]
   # A log per hole (ht.analysis.vertical_stress); p.stratigraphy() adds source_line.
@@ -539,6 +540,22 @@ columns:
     label: Total stress friction angle, φ
     ags: ["derived: docs/work/m11b-envelope-fit.md"]
     used_by: []
+  intact_compressive_strength:
+    description: Intact compressive strength σci of a Hoek–Brown criterion fitted to rock triaxial and UCS failures
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Intact compressive strength, σci
+    ags: ["derived: docs/work/m17c-hoek-brown-fit.md"]
+    used_by: [P32]
+  intact_hoek_brown_constant:
+    description: Hoek–Brown constant mi of intact rock, fitted with σci to rock triaxial and UCS failures
+    type: number
+    quantity: dimensionless
+    scale: ratio
+    label: Hoek–Brown constant of intact rock, mi
+    ags: ["derived: docs/work/m17c-hoek-brown-fit.md"]
+    used_by: [P32]
   peak_cohesion:
     description: Cohesion intercept of a line fitted to shear box peak stages, τ against σn
     type: number
@@ -1046,7 +1063,7 @@ columns:
     ags: [TRET.TRET_BACK]
     used_by: []
   deviator_stress_at_failure:
-    description: Deviator stress at failure of a triaxial stage, as the lab corrected it
+    description: Deviator stress at failure σ1 − σ3 of a triaxial stage, as the lab corrected it (for a lab that reports σ1, enter σ1 − σ3)
     type: number
     quantity: stress
     scale: ratio
@@ -1113,6 +1130,11 @@ columns:
     type: text
     ags: [TREG.TREG_FCR, SHBT.SHBT_CRIT]
     used_by: []
+  failure_mode:
+    description: The lab's mode of failure, as written (e.g. shear, axial splitting, along bedding)
+    type: text
+    ags: [TRET.TRET_MODE, TRIT.TRIT_MODE]
+    used_by: [P32]
   effective_consolidation_stress:
     description: Effective stress at the end of consolidation, the start of shearing
     type: number
@@ -1161,6 +1183,22 @@ columns:
     label: Reported effective cohesion, c′
     ags: [TREG.TREG_COH]
     used_by: []
+  reported_intact_compressive_strength:
+    description: The lab's intact compressive strength σci for the test set, its own Hoek–Brown fit
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Reported intact compressive strength, σci
+    ags: ["none: a user CSV, M17 (c)"]
+    used_by: [P32]
+  reported_intact_hoek_brown_constant:
+    description: The lab's Hoek–Brown constant mi for the test set, with its reported σci
+    type: number
+    quantity: dimensionless
+    scale: ratio
+    label: Reported Hoek–Brown constant of intact rock, mi
+    ags: ["none: a user CSV, M17 (c)"]
+    used_by: [P32]
   # --- Shear box (M17 a, docs/work/m17a-strength-data.md) ---
   encapsulation:
     description: How the specimen was set in the shear box, as written (resin, plaster), for rock joints

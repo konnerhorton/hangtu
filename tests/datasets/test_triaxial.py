@@ -269,3 +269,50 @@ def test_10_template_frame_gives_the_dataset_stresses(site):
         result = ht.analysis.triaxial_failure_stresses(typed)
     columns = [*PRINCIPAL, "effective_stress_basis"]
     pd.testing.assert_frame_equal(result[columns], dataset[columns])
+
+
+# --- M17 (c): failure_mode and the lab's Hoek-Brown pair (AC 10) ---------------------
+
+
+def test_m17c_template_and_dataset_have_the_rock_columns(site):
+    for columns in [list(ht.template("triaxial").columns), list(_site(site).columns)]:
+        at = columns.index
+        assert at("failure_mode") == at("failure_criterion") + 1
+        assert at("reported_intact_compressive_strength") == (
+            at("reported_effective_cohesion") + 1
+        )
+        assert at("reported_intact_hoek_brown_constant") == (
+            at("reported_intact_compressive_strength") + 1
+        )
+
+
+def test_m17c_failure_mode_is_blank_without_the_heading(fresh):
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)  # the back pressure count
+        df = fresh("site_us").triaxial()
+    assert df["failure_mode"].isna().all()
+    assert df["reported_intact_compressive_strength"].isna().all()
+    assert df["reported_intact_hoek_brown_constant"].isna().all()
+
+
+def _with_mode(group, heading, modes):
+    """``group``'s first rows with a ``heading`` column of ``modes``."""
+    rows = [[*row, mode] for row, mode in zip(group["rows"], modes, strict=False)]
+    headings = [*group["headings"], (heading, "PA", "")]
+    return {**group, "headings": headings, "rows": rows}
+
+
+def test_m17c_failure_mode_is_read_as_written(tmp_path):
+    # TRET_MODE and TRIT_MODE "Mode of failure" (AGS 4.1.1 and 4.2), written as
+    # the lab wrote them: "Brittle" is the dictionaries' example.
+    tret = _with_mode(make_files.TRET, "TRET_MODE", ["Brittle", "Shear"])
+    treg = {**make_files.TREG, "rows": make_files.TREG["rows"][:2]}
+    trit = _with_mode(make_files.TRIT, "TRIT_MODE", ["Axial splitting", None])
+    trig = {**make_files.TRIG, "rows": make_files.TRIG["rows"][:2]}
+    path = tmp_path / "modes.ags"
+    groups = [make_files.LOCA, make_files.SAMP, treg, tret, trig, trit]
+    make_files.write_file(path, "4.2", groups)
+    project = ht.Project.from_ags(path, db=tmp_path / "modes.sqlite")
+    df = _quiet(project.triaxial, display_units="SI")
+    assert df["failure_mode"].tolist() == ["Brittle", "Shear", "Axial splitting", None]
+    assert df["reported_intact_compressive_strength"].isna().all()
