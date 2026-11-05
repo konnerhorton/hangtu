@@ -415,3 +415,69 @@ def test_refusal_upper_limit_errors(tmp_path, body, message):
     text = "spt_refusal_upper_limit:\n" + body
     with pytest.raises(ht.HangtuError, match=message):
         ht.judgments(write(tmp_path, text))
+
+
+# --- fixed_intact_compressive_strength (docs/work/m17c-hoek-brown-fit.md, AC 11) ---
+
+FIXED_STRENGTH = """\
+fixed_intact_compressive_strength:
+  by: geology_unit
+  units: {intact_compressive_strength: MPa}
+  project: {intact_compressive_strength: 50, reason: "mean of every UCS"}
+  values:
+    Sandstone: {intact_compressive_strength: 61, reason: "mean of 3 UCS, shear"}
+"""
+
+
+def test_fixed_intact_compressive_strength_reads(tmp_path):
+    judgment = (
+        ht.judgments(write(tmp_path, FIXED_STRENGTH))
+        .read()
+        .judgments["fixed_intact_compressive_strength"]
+    )
+    assert judgment.by == "geology_unit"
+    assert judgment.units == {"intact_compressive_strength": "MPa"}
+    assert judgment.values["Sandstone"].values == {"intact_compressive_strength": 61}
+    assert judgment.values["Sandstone"].reason == "mean of 3 UCS, shear"
+    assert judgment.project.values == {"intact_compressive_strength": 50}
+
+
+def test_repr_shows_the_fixed_intact_compressive_strength(tmp_path):
+    text = repr(ht.judgments(write(tmp_path, FIXED_STRENGTH)))
+    assert "fixed_intact_compressive_strength, by geology_unit:" in text
+    assert (
+        "Sandstone: intact_compressive_strength 61 MPa (mean of 3 UCS, shear)" in text
+    )
+
+
+@pytest.mark.parametrize(
+    ("body", "message"),
+    [
+        (
+            "  by: geology_unit\n  values:\n"
+            "    Sandstone: {intact_compressive_strength: 61, reason: x}\n",
+            r"judgments.yaml, fixed_intact_compressive_strength: 'units' is missing"
+            r".*intact_compressive_strength: MPa",
+        ),
+        (
+            "  by: geology_unit\n  units: {intact_compressive_strength: MPa}\n"
+            "  values:\n    Sandstone: {intact_compressive_strength: 0, reason: x}\n",
+            r"values.Sandstone, intact_compressive_strength: must be a positive "
+            r"number, not 0",
+        ),
+        (
+            "  by: geology_unit\n  units: {intact_compressive_strength: MPa}\n"
+            "  values:\n    Sandstone: {intact_compressive_strength: 61}\n",
+            r"judgments.yaml, fixed_intact_compressive_strength, values.Sandstone: "
+            r"'reason' is missing",
+        ),
+        (
+            "  by: geology_unit\n  units: {intact_compressive_strength: kN/m3}\n",
+            r"units.intact_compressive_strength:",
+        ),
+    ],
+)
+def test_fixed_intact_compressive_strength_errors(tmp_path, body, message):
+    text = "fixed_intact_compressive_strength:\n" + body
+    with pytest.raises(ht.HangtuError, match=message):
+        ht.judgments(write(tmp_path, text))
