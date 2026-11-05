@@ -3,11 +3,11 @@
 | | |
 |---|---|
 | **ID / function** | P07 · `ht.plot.geology_unit_comparison()`, `ht.plot.geology_unit_comparisons()` |
-| **Status** | built |
+| **Status** | built; `split_by=` specified, M18 (d) |
 | **Type** | plot (percentiles only, no analysis module) |
 | **Milestone** | M2b (0.1.0) |
 | **Depends on** | P00 (framework); reuses the P01 presets and overlay helpers (`plot/_overlays.py`) |
-| **Related** | SPEC §2.6 (units), §3 (plot contract), §5 (P07 summarizes through `describe()`'s calculation, M15 (a)). TODO #23 (text in value columns), TODO #16 (other summaries). Intent: `docs/work/p07-geology-unit-comparison.md` |
+| **Related** | SPEC §2.6 (units), §3 (plot contract), §5 (P07 summarizes through `describe()`'s calculation, M15 (a)). TODO #23 (text in value columns), TODO #16 (other summaries). Intent: `docs/work/p07-geology-unit-comparison.md`; `split_by=` (sub-rows per source): `docs/work/m18d-sources-compared.md`, decision 19 |
 
 ---
 
@@ -74,6 +74,7 @@ The built figure, from the test data: [`P07-si.png`](img/P07-si.png) (SI) and [`
 - **Which values are summarized:** the values drawn, in display units, as for the P01 stats box. Blanks, NP rows and values ≤ 0 on a log axis are left out. Values drawn at the edge of a fixed axis count at their true value, and qualified values at their reported value. On a log axis the percentiles are of the values (percentiles don't change under a log transform, apart from the interpolation between two values).
 - **Small samples:** the summary is drawn only when n ≥ `summary_min_count` (default 5, `ht.settings.summary_min_count`, a drawing threshold, not a statistic) and each percentile is above its floor. Otherwise the points are drawn and the count label says why: "(no summary)" or "(no summary: p10 needs 10 values)".
 - **Assumed values and sources** (M15 (a)): assumed values (`particle_density_assumed`, `specific_gravity_source`) are drawn but not summarized, counted in the footnote ("1 assumed value shown, not in the summaries"). A unit whose summarized values come from different sources (`correlation_name`, `source`, `test_type`) draws its points and no summary, and its count says "(mixes sources)". The figure never raises for a mix.
+- **Sub-rows** (`split_by=`, M18 (d)): each unit is split into one sub-row per value of the `split_by` column, and each sub-row is summarized and counted on its own, as a unit is without it. Split by a source column (`parameter_source` from `ht.stats.compare_sources()`, `correlation_name`, `test_type`), a sub-row holds one source, so it never "mixes sources". A blank `split_by` value is a sub-row "(blank)", last in its unit.
 - **Count:** n is the number of values summarized, i.e. drawn as points or carets.
 - **Unit conversion** of the data and the baseline to the display units, using the resolution order in SPEC §2.6 (§9).
 
@@ -125,6 +126,8 @@ Each unit's row is one unit of height, centered on its tick. Offsets are fractio
 | Qualified values | caret ◁ / ▷ at the value, jittered as the points | unit color | center ± 0.15 | 5 pt | ✔ "less than (n)" / "greater than (n)" | As P01 §7 |
 | Out-of-range values (fixed limits) | open marker at the axis edge + small arrow outward | unit color | jittered as the points | 3 pt | footnote | P00 §9. A bar or box running past a fixed limit is cut at the edge without its cap, so it reads as continuing. When a value lies beyond the lower limit, the unit names move 14 pt left so the arrows don't cover them |
 | Count label | text "n = 288" | black (gray 0.4 for "n = 0") | center line, just outside the right spine | 7 pt | — | "n = 2 (no summary)" below `summary_min_count`, "n = 6 (no summary: p10 needs 10 values)" below a percentile's floor, "n = 12 (mixes sources)" for a unit mixing sources. With `legend="right"`, the legend and footnote move right to clear the widest label. When a value lies beyond the upper limit, the labels move a further 14 pt right to clear its edge arrow |
+
+**Sub-rows** (`split_by=`): a unit's sub-rows are consecutive, in order of first appearance in the data, each one unit of height as a unit's row is, with the tick label "Terrace · Mohr–Coulomb fit (CD)". A thin gray rule (0.5 pt, `0.8`) separates units, the one exception to "no horizontal gridlines", because without it the units' sub-rows run together. The baseline bar and diamond are drawn once per unit, on its first sub-row. `color_by` may be the `split_by` column: each sub-row then takes its value's palette color, and the legend adds one entry per value (the colors are no longer named by the tick labels).
 
 **Legend:** the marks are explained once, by gray stand-ins for the data bar and points (the unit colors are already named by the tick labels, so there is no per-unit color legend, a deviation from the plots README). Order: baseline, data summary, data points, then qualifiers and edge markers with counts. A single panel places the legend as P00 §11 (`legend="auto"`, inside a clear corner, else below); with `legend="right"` it is moved right to clear the count labels (`add_legend(..., offset=)`), with the footnote below it. The grid puts one legend centered below all panels, with one footnote below it.
 
@@ -193,7 +196,8 @@ def geology_unit_comparison(
     label: str | None = None,
     xlim: tuple[float, float] | None = None,
     order: list[str] | None = None,                     # stratigraphic order of geology units, top first
-    color_by: Literal["geology_unit"] | None = "geology_unit",
+    split_by: str | None = None,                        # a column: one sub-row per value within each unit (M18 (d))
+    color_by: str | None = "geology_unit",              # "geology_unit", the split_by column, or None
     reference_lines: list[tuple[float, str]] | None = None,
     note: str | None = None,
     palette: dict[str, str] | None = None,
@@ -270,6 +274,9 @@ fig, axs = ht.plot.geology_unit_comparisons(
 | More than ~15 units in one panel | Drawn; rows get tight. No legend problem, since units are tick labels |
 | More than 20 units | Colors repeat, with the palette's warning (P00 §10) |
 | `summary_min_count` < 1 | Error |
+| `split_by` column missing | Error naming the column and the columns available |
+| `color_by` neither `geology_unit`, the `split_by` column nor None | Error naming the allowed values |
+| A unit with a baseline but no rows, with `split_by` | One sub-row with the baseline and "n = 0" |
 
 ## 12. Acceptance criteria and tests
 - **Golden values** (hand-calculated, Hyndman & Fan definition 7):
@@ -293,7 +300,8 @@ fig, axs = ht.plot.geology_unit_comparisons(
   - jitter is the same on two calls;
   - `ax=` draws into a Sheet panel; the grid lays out 1, 2, 5 and 6 panels;
   - **US vs SI:** the same bar positions after conversion and the same counts;
-  - no change to global `rcParams`.
+  - no change to global `rcParams`;
+  - **`split_by=`** (M18 (d)): sub-rows in order of first appearance under each unit, tick labels "unit · value", each sub-row's percentiles equal to `describe()` on its rows, a unit split by a source column never labeled "(mixes sources)", the baseline drawn once per unit, the color legend with `color_by` the split column, the grid passing it to each panel; with `split_by=None` every test above is unchanged.
 - **Test data** (synthetic CSVs in `tests/data/`):
   - `comparison_index.csv`: 6 units; water content and bulk unit weight (a unit with n = 2, a unit with none); plasticity and consistency indices in two units, with 3 NP specimens and 4 consistency indices below −0.6; US units;
   - `comparison_vane.csv`: s_u in two units, one `<` value, SI units;
@@ -315,5 +323,5 @@ None open. Decided in review:
 - Other summaries (min–max, mean ± k·σ, log-space statistics, user-computed values): TODO #16.
 - A stats box per unit, once `ht.stats.describe` exists (Phase 3).
 - Marking where the data bar falls outside the baseline (e.g. a shaded overlap, or a flag on the count label). Pass/fail tests belong to `ht.stats.compare` (Phase 3).
-- Rows split by depth or elevation within a unit, and grouping by something other than geology unit (`group_by=`).
+- Rows split by depth or elevation within a unit. (Splitting by another column is `split_by=`, M18 (d).)
 - Vertical orientation.
