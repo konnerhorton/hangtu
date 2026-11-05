@@ -20,7 +20,7 @@ A unit weight or a water level is the engineer's call, not a property of the dat
 2. `judgments=`, a judgments file (`ht.judgments(path)` or the path itself);
 3. the project's judgments file, set with `p.set_judgments(path)` and carried by every dataset in `df.attrs["judgments_file"]`;
 
-and otherwise stops with an error that names the judgment and the ways to give it. The one exception is the [SPT refusal upper limit](#the-spt-refusal-upper-limit), which only narrows what the data already say. An argument replaces that whole judgment, with a warning when the file has it too; the other judgments still come from the file.
+and otherwise stops with an error that names the judgment and the ways to give it. There are two exceptions: the [SPT refusal upper limit](#the-spt-refusal-upper-limit), which only narrows what the data already say, and the [fixed intact compressive strength](#the-fixed-intact-compressive-strength), an extra fit beside the free one. An argument replaces that whole judgment, with a warning when the file has it too; the other judgments still come from the file.
 
 Merging or concatenating DataFrames drops `df.attrs`, and with it the project's file. Pass `judgments=p.judgments` then.
 
@@ -99,6 +99,24 @@ spt_refusal_upper_limit:
 - **It is not the cap.** `ht.settings.spt_cap` is where a refusal is recorded, the bottom of its interval; the limit is the top. A limit not above a refusal's value is an error naming the row.
 
 `spt_refusal_upper_limit=` on the call takes a number for every refusal or a mapping by geology unit, `"none"` included, and replaces the file's, with a warning. hangtu doesn't extrapolate blows from a partial penetration to set it: an engineer may, to choose the limit.
+
+## The fixed intact compressive strength
+
+[`ht.analysis.hoek_brown_fit()`](../reference/analysis.md#hangtu.analysis.hoek_brown_fit) always fits σci and mi of intact rock together, and fits mi a second time with σci fixed when you give σci. Which σci to fix, such as the mean of the UCS tests that failed in shear, and whether those tests represent the unit, is your call, so hangtu never picks one from the data.
+
+```yaml
+fixed_intact_compressive_strength:
+  by: geology_unit          # a column the fit groups by
+  units: {intact_compressive_strength: MPa}
+  values:
+    Sandstone: {intact_compressive_strength: 61, reason: "mean of the three UCS tests that failed in shear"}
+```
+
+- **Every entry needs a `reason`**, and the value must be positive.
+- **`by:` must be one of the fit's `group_by` columns.** Otherwise each group's fixed fit is missing, with a reason naming the column to group by. A `project:` entry fills in, with a warning, for a group the entries don't list.
+- **It is optional.** Without it the fixed fit is missing, with a reason, and the free fit is the result.
+
+`fixed_intact_compressive_strength=` on the call takes a value with its unit for every group (`"61 MPa"`) or a mapping by group, and replaces the file's, with a warning.
 
 ## The log
 

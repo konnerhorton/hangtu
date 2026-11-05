@@ -6,6 +6,7 @@ free b = Sxy / Sxx and a = ȳ - b x̄, σci fixed b = Σx(y - σci²) / Σx², t
 σci = √a and mi = b / σci. Points are (σ3, σ1) in MPa.
 """
 
+import hashlib
 import json
 import math
 import warnings
@@ -645,3 +646,262 @@ def test_9_views_without_a_fit():
         str(result)
     )
     assert "σci fixed: not fitted: no σci given" in str(result)
+
+
+# --- AC 6: the fixed σci's sources ---------------------------------------------------
+
+#: Two units of Table 1's points: Sandstone as given, Shale with σ1 halved.
+UNITS = ["Sandstone"] * 5 + ["Shale"] * 5
+TWO_UNITS = [*TABLE_1, *[(x, x + (y - x) / 2) for x, y in TABLE_1]]
+FILE = """\
+fixed_intact_compressive_strength:
+  by: geology_unit
+  units: {intact_compressive_strength: MPa}
+  values:
+    Sandstone: {intact_compressive_strength: 38.3, reason: "the UCS test"}
+"""
+
+
+def _two_units(**columns):
+    return _frame(TWO_UNITS, geology_unit=UNITS, **columns)
+
+
+def _judgments(tmp_path, text=FILE):
+    path = tmp_path / "judgments.yaml"
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+def _messages(call, *args, **kwargs):
+    with pytest.warns(UserWarning) as caught:
+        result = call(*args, **kwargs)
+    return result, [str(w.message) for w in caught]
+
+
+def test_6_from_the_judgments_file(tmp_path):
+    path = _judgments(tmp_path)
+    df = _two_units()
+    df.attrs["judgments_file"] = str(path)
+    result, _ = _messages(ht.analysis.hoek_brown_fit, df, group_by="geology_unit")
+    fixed = _get(result, "fixed_strength")
+    assert fixed["intact_compressive_strength"] == 38.3
+    assert fixed["intact_hoek_brown_constant"] == pytest.approx(15.0132572, rel=REL)
+    assert fixed["intact_compressive_strength_source"] == "judgments file"
+    assert fixed["fixed_strength"]["sha256"] == (
+        hashlib.sha256(path.read_bytes()).hexdigest()
+    )
+    assert fixed["fixed_strength"]["reason"] == "the UCS test"
+    assert "σci fixed at 38.3 MPa (judgments.yaml): mi = 15.0" in str(result)
+    record = result.judgments["fixed_intact_compressive_strength"]
+    assert record["source"] == str(path)
+    assert record["values"] == {"Sandstone": "38.3 MPa"}
+    shale = _get(result, "fixed_strength", group=1)
+    assert shale["no_fit_reason"] == (
+        "the judgments file's fixed_intact_compressive_strength has no value for "
+        "geology_unit 'Shale': add it, or a project: entry with its reason"
+    )
+    _counts_add_up(result)
+
+
+def test_6_judgments_argument_reads_the_file(tmp_path):
+    result, _ = _messages(
+        ht.analysis.hoek_brown_fit,
+        _two_units(),
+        group_by="geology_unit",
+        judgments=_judgments(tmp_path),
+    )
+    assert _get(result, "fixed_strength")["intact_compressive_strength"] == 38.3
+
+
+def test_6_the_argument_beside_the_file_warns_and_wins(tmp_path):
+    result, messages = _messages(
+        ht.analysis.hoek_brown_fit,
+        _two_units(),
+        group_by="geology_unit",
+        judgments=_judgments(tmp_path),
+        fixed_intact_compressive_strength="40 MPa",
+    )
+    assert (
+        "fixed_intact_compressive_strength= replaces the "
+        "fixed_intact_compressive_strength in judgments.yaml." in messages
+    )
+    assert _get(result, "fixed_strength")["intact_compressive_strength"] == 40
+    assert _get(result, "fixed_strength", group=1)["intact_compressive_strength"] == 40
+    assert result.judgments["fixed_intact_compressive_strength"]["source"] == (
+        "argument"
+    )
+
+
+def test_6_a_mapping_by_group():
+    result, messages = _messages(
+        ht.analysis.hoek_brown_fit,
+        _frame(TABLE_1, geology_unit=["Sandstone"] * 5),
+        group_by="geology_unit",
+        fixed_intact_compressive_strength={"Sandstone": "38.3 MPa", "Shale": "20 MPa"},
+    )
+    assert _get(result, "fixed_strength")["intact_hoek_brown_constant"] == (
+        pytest.approx(15.0132572, rel=REL)
+    )
+    unused = [m for m in messages if "match no group" in m]
+    assert unused == [
+        "hoek_brown_fit() fixed_intact_compressive_strength= has values for "
+        "'Shale', which match no group (group_by=['geology_unit']: 'Sandstone'). "
+        "Check the spelling: keys match exactly, by case too."
+    ]
+
+
+def test_6_a_group_the_mapping_doesnt_list_has_a_reason():
+    result, _ = _messages(
+        ht.analysis.hoek_brown_fit,
+        _two_units(),
+        group_by="geology_unit",
+        fixed_intact_compressive_strength={"Sandstone": "38.3 MPa"},
+    )
+    assert _get(result, "fixed_strength", group=1)["no_fit_reason"] == (
+        "no σci for this group in fixed_intact_compressive_strength=: add 'Shale' "
+        "to the mapping"
+    )
+
+
+def test_6_a_mapping_by_two_columns_takes_tuples():
+    result, _ = _messages(
+        ht.analysis.hoek_brown_fit,
+        _two_units(loca_id=["B-3"] * 10),
+        group_by=["geology_unit", "loca_id"],
+        fixed_intact_compressive_strength={("Sandstone", "B-3"): "38.3 MPa"},
+    )
+    assert _get(result, "fixed_strength")["intact_compressive_strength"] == 38.3
+
+
+def test_6_a_bare_number_in_a_mapping_asks_for_the_unit():
+    with pytest.raises(HangtuError, match=r"\{'Sandstone': \.\.\.\} needs its unit"):
+        ht.analysis.hoek_brown_fit(
+            _two_units(),
+            group_by="geology_unit",
+            fixed_intact_compressive_strength={"Sandstone": 38.3},
+        )
+
+
+def test_6_no_argument_and_no_file_entry(tmp_path):
+    text = "specific_gravity:\n  by: geology_unit\n  values:\n"
+    text += '    Sandstone: {specific_gravity: 2.65, reason: "x"}\n'
+    result, _ = _messages(
+        ht.analysis.hoek_brown_fit,
+        _two_units(),
+        group_by="geology_unit",
+        judgments=_judgments(tmp_path, text),
+    )
+    assert _get(result, "fixed_strength")["no_fit_reason"].startswith("no σci given")
+    assert "fixed_intact_compressive_strength" not in result.judgments
+
+
+def test_6_a_file_keyed_by_another_column(tmp_path):
+    text = FILE.replace("by: geology_unit", "by: specimen_id")
+    result, _ = _messages(
+        ht.analysis.hoek_brown_fit,
+        _two_units(),
+        group_by="geology_unit",
+        judgments=_judgments(tmp_path, text),
+    )
+    for group in (0, 1):
+        assert _get(result, "fixed_strength", group=group)["no_fit_reason"] == (
+            "the judgments file's fixed_intact_compressive_strength is keyed by "
+            "'specimen_id': group by it (group_by='specimen_id') to use it"
+        )
+
+
+def test_6_the_project_value_fills_an_unlisted_group_with_a_warning(tmp_path):
+    text = FILE.replace(
+        "  values:",
+        '  project: {intact_compressive_strength: 19, reason: "half of it"}\n  values:',
+    )
+    result, messages = _messages(
+        ht.analysis.hoek_brown_fit,
+        _two_units(),
+        group_by="geology_unit",
+        judgments=_judgments(tmp_path, text),
+    )
+    assert (
+        "fixed_intact_compressive_strength: the project value 19 MPa is used for "
+        "Shale (half of it)." in messages
+    )
+    shale = _get(result, "fixed_strength", group=1)
+    assert shale["intact_compressive_strength"] == 19
+    assert shale["no_fit_reason"] is None
+    record = result.judgments["fixed_intact_compressive_strength"]
+    assert record["values"]["project"] == {"value": "19 MPa", "used_for": "Shale"}
+
+
+def test_6_a_file_value_in_another_unit_converts(tmp_path):
+    text = FILE.replace("MPa}", "psi}").replace("38.3,", f"{38.3 * PSI},")
+    result, _ = _messages(
+        ht.analysis.hoek_brown_fit,
+        _two_units(),
+        group_by="geology_unit",
+        judgments=_judgments(tmp_path, text),
+    )
+    fixed = _get(result, "fixed_strength")
+    assert fixed["intact_compressive_strength"] == pytest.approx(38.3, rel=1e-9)
+
+
+# --- AC 8: pooling -------------------------------------------------------------------
+
+
+def test_8_two_failure_criteria_raise():
+    df = _frame(TABLE_1, failure_criterion=["Peak"] * 3 + ["Maximum stress"] * 2)
+    with pytest.raises(
+        HangtuError,
+        match=r"failure_criterion: 'Peak' \(3 rows\),\s+'Maximum stress' \(2 rows\)",
+    ):
+        ht.analysis.hoek_brown_fit(df)
+
+
+def test_8_pool_fits_them_on_purpose():
+    df = _frame(TABLE_1, failure_criterion=["Peak"] * 3 + ["Maximum stress"] * 2)
+    with pytest.warns(UserWarning, match=BEYOND):
+        result = ht.analysis.hoek_brown_fit(df, pool="failure_criterion")
+    assert result.pooled == ("failure_criterion",)
+    assert "Pooled on purpose: failure_criterion." in result.notes
+
+
+def test_8_pool_takes_only_failure_criterion():
+    with pytest.raises(HangtuError, match=r"can't pool 'test_type'.*'failure_crit"):
+        ht.analysis.hoek_brown_fit(_frame(TABLE_1), pool="test_type")
+
+
+def test_8_ucs_and_triaxial_types_fit_together():
+    df = _frame(
+        TABLE_1,
+        test_type=["UCS", *["Triaxial"] * 4],
+        failure_criterion=["Peak"] * 5,
+    )
+    with pytest.warns(UserWarning, match=BEYOND):
+        result = ht.analysis.hoek_brown_fit(df)
+    assert _get(result)["count"] == 5
+    assert not any("failure_criterion not given" in note for note in result.notes)
+
+
+def test_8_without_failure_criterion_a_note_says_so():
+    assert (
+        "failure_criterion not given: the fit couldn't check that the rows share one."
+        in _table_1().notes
+    )
+
+
+def test_group_by_gives_one_set_of_fits_per_group():
+    result, _ = _messages(
+        ht.analysis.hoek_brown_fit, _two_units(), group_by="geology_unit"
+    )
+    frame = result.to_frame()
+    assert frame["geology_unit"].tolist() == ["Sandstone"] * 2 + ["Shale"] * 2
+    assert list(frame.columns[:3]) == ["geology_unit", "stages", "line_kind"]
+    # Shale's deviator stresses are half Sandstone's, so y = (σ1 - σ3)² is a
+    # quarter: a and b are a quarter, σci = √a halves and mi = b / σci halves.
+    sandstone, shale = frame["intact_compressive_strength"].iloc[[0, 2]]
+    assert shale == pytest.approx(sandstone / 2, rel=1e-12)
+    mi = frame["intact_hoek_brown_constant"].iloc[[0, 2]].tolist()
+    assert mi[0] == pytest.approx(15.5004012, rel=REL)
+    assert mi[1] == pytest.approx(15.5004012 / 2, rel=REL)
+    text = str(result)
+    assert "Sandstone: 5 rows" in text and "Shale: 5 rows" in text
+    _counts_add_up(result)

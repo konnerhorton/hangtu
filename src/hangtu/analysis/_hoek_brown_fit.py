@@ -13,10 +13,12 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from hangtu import _judgments
 from hangtu import units as _units
 from hangtu._data import flag_column, numeric_column, rows_text
 from hangtu.analysis._derived import _DerivedResult
-from hangtu.analysis._fit_groups import _cell, _label, _names, _pairs
+from hangtu.analysis._fit_groups import _cell, _check_sources, _label, _names, _pairs
+from hangtu.analysis._judgment_values import read_judgments
 from hangtu.analysis._line_fit import line_fit
 from hangtu.analysis._triaxial import STRESS_COLUMNS
 from hangtu.errors import ColumnError, HangtuError, warn
@@ -28,6 +30,8 @@ _KINDS = ("free", "fixed_strength")
 _STAGES = ("all", "single_stage")
 _STRESS = ("total", "effective")
 _MODE = "failure_mode"
+#: The columns a fit's rows must share one value of, unless pooled (decision 7).
+_CHECKED = ["failure_criterion"]
 #: The columns that identify a fitted point, kept with its stresses.
 _IDENTIFIERS = (
     "loca_id",
@@ -61,9 +65,11 @@ def hoek_brown_fit(
     *,
     group_by: str | Sequence[str] | None = None,
     failure_modes: str | Sequence[str | None] | None = None,
-    fixed_intact_compressive_strength: str | None = None,
+    fixed_intact_compressive_strength: str | Mapping[Any, str] | None = None,
+    judgments: Any = None,
     multistage: bool = True,
     stress: str = "total",
+    pool: str | Sequence[str] | None = None,
     units: Mapping[str, str] | None = None,
     display_units: str | None = None,
 ) -> "HoekBrownFit":
@@ -107,9 +113,19 @@ def hoek_brown_fit(
     at $\sigma_3 = 0$ also give ``uniaxial_count`` and ``uniaxial_mean``,
     printed beside the free σci as a check; they never fix it.
 
-    **σci fixed** comes from ``fixed_intact_compressive_strength=``. It is a
-    judgment (SPEC §4), so nothing picks it from the data: without it the
-    fixed fit is missing, with a reason, and the free fit is the result.
+    **σci fixed** is a judgment (SPEC §4), so nothing picks it from the data.
+    It comes from ``fixed_intact_compressive_strength=``, else the judgments
+    file's ``fixed_intact_compressive_strength`` (keyed by one of the
+    ``group_by`` columns, with a ``project:`` value used, with a warning, for
+    a group not listed). An argument replaces the file's, with a warning.
+    Without either, the fixed fit is missing, with a reason, and the free fit
+    is the result. Each value fixed is recorded with its source.
+
+    **Not pooled unawares.** A group's fitted rows with more than one
+    ``failure_criterion`` (a blank is a value of its own) are an error naming
+    each; ``pool="failure_criterion"`` fits them together on purpose, and
+    the result records it. ``test_type`` isn't checked: UCS and triaxial
+    tests are one method's points by design.
 
     **Failure modes are as written; you name the ones to fit.** The criterion
     holds only for shear failures: "remove the results of tests exhibiting
@@ -194,14 +210,25 @@ def hoek_brown_fit(
     failure_modes : str or list of str, optional
         The ``failure_mode`` values to fit, as written; ``None`` in the list
         fits rows with a blank mode. Required when the column has any value.
-    fixed_intact_compressive_strength : str, optional
-        σci for the fixed fit, with its unit, such as ``"61 MPa"``.
+    fixed_intact_compressive_strength : str or dict, optional
+        σci for the fixed fit, with its unit: ``"61 MPa"`` for every group,
+        or a mapping from a group's key (its value, or a tuple of values with
+        several ``group_by`` columns) to one, such as
+        ``{"Sandstone": "61 MPa"}``. A key that matches no group warns; a
+        group the mapping doesn't list has no fixed fit, with that reason.
+    judgments : Judgments or path, optional
+        ``ht.judgments(path)``, ``p.judgments`` or a path to a judgments file,
+        for the fixed σci when the argument doesn't give it. By default the
+        project's, from ``df.attrs["judgments_file"]``.
     multistage : bool
         True makes the fit with multistage stages the main one; False the fit
         of single-stage rows only. Both are made when a group has multistage
         stages.
     stress : {"total", "effective"}
         Which principal stresses are fitted (above).
+    pool : str, optional
+        ``"failure_criterion"``, to fit rows with different criteria together
+        on purpose.
     units : dict, optional
         ``{column: unit}`` for ``df``, overriding ``df.attrs["units"]``.
     display_units : {"SI", "US"}, optional
@@ -221,7 +248,8 @@ def hoek_brown_fit(
         For a frame without the principal stresses, a negative σ3 or
         σ1 < σ3, a ``failure_mode`` column with values and no
         ``failure_modes=``, a mode named that no row has, a fixed σci without
-        a unit or not positive, a ``group_by`` column the frame doesn't have,
+        a unit or not positive, rows with different failure criteria without
+        ``pool=``, a ``group_by`` column the frame doesn't have,
         a stress column without units or in a unit that isn't a stress, or an
         argument out of its range.
 
@@ -244,6 +272,13 @@ def hoek_brown_fit(
     >>> print(fit)
     >>> fit.to_frame()[["line_kind", "intact_compressive_strength",
     ...                 "intact_hoek_brown_constant", "r_squared"]]
+
+    Each geology unit of a project, σci fixed from its judgments file:
+
+    >>> fit = ht.analysis.hoek_brown_fit(
+    ...     rock, group_by="geology_unit", failure_modes=["Shear"],
+    ...     judgments=p.judgments,
+    ... )
     """
     if not isinstance(df, pd.DataFrame):
         raise HangtuError(f"df must be a pandas DataFrame, not {type(df).__name__}.")
@@ -269,6 +304,14 @@ def hoek_brown_fit(
             f"such column. Available columns: {', '.join(map(str, df.columns))}."
         )
 
+    pooled = _names(pool)
+    wrong = [column for column in pooled if column not in _CHECKED]
+    if wrong:
+        raise HangtuError(
+            f"{_FUNCTION} can't pool {', '.join(map(repr, wrong))}: pool= takes "
+            f"{' and '.join(map(repr, _CHECKED))}, the column it checks. UCS and "
+            "triaxial test types pool without asking."
+        )
     total_minor, total_major, minor, major, unit = _stresses(
         df, stress, units, display_units
     )
@@ -298,12 +341,22 @@ def hoek_brown_fit(
         dtype=object,
     )
     multistaged = staged == True  # noqa: E712 (None is blank)
-    strength = _fixed_strength(fixed_intact_compressive_strength, unit)
+    keyed = group_keys(df, by)
+    strengths, record = _strengths(
+        fixed_intact_compressive_strength, judgments, df, by, keyed, unit
+    )
     reported = _reported(df, units, unit)
 
     notes = []
     if mode_note:
         notes.append(mode_note)
+    notes.extend(
+        f"{column} not given: the fit couldn't check that the rows share one."
+        for column in _CHECKED
+        if column not in df.columns
+    )
+    if pooled:
+        notes.append(f"Pooled on purpose: {', '.join(pooled)}.")
     if not has_multistage:
         notes.append("multistage_test not given: multistage stages weren't told apart.")
     if stress == "total":
@@ -315,8 +368,9 @@ def hoek_brown_fit(
     groups: list[dict[str, Any]] = []
     few: list[str] = []
     beyond: list[str] = []
-    for key, rows in group_keys(df, by):
+    for (key, rows), strength in zip(keyed, strengths, strict=True):
         candidates = rows & (reasons == "")
+        _check_sources(_FUNCTION, df, key, candidates, _CHECKED, pooled)
         left_out = {
             name: int((rows & (reasons == name)).sum()) for name in _LEFT_OUT[:3]
         }
@@ -388,11 +442,14 @@ def hoek_brown_fit(
         function="hoek_brown_fit",
         unit=unit,
         notes=tuple(notes),
-        judgments=dict(df.attrs.get("judgments", {})),
+        judgments={
+            **df.attrs.get("judgments", {}),
+            **({_ARGUMENT: record} if record else {}),
+        },
         hangtu_version=version("hangtu"),
         stress=stress,
         by=tuple(by),
-        pooled=(),
+        pooled=tuple(pooled),
         failure_modes=modes,
         multistage=multistage,
         display_units=display_units,
@@ -530,27 +587,50 @@ def _left_out_rows(
     ]
 
 
-def _fixed_strength(given: Any, unit: str) -> dict[str, Any] | None:
-    """Return the fixed σci from the argument, in the fit's unit, or None."""
-    if given is None:
-        return None
+def _strengths(
+    argument: Any,
+    judgments: Any,
+    df: pd.DataFrame,
+    by: list[str],
+    keyed: list[tuple[dict[str, Any], np.ndarray]],
+    unit: str,
+) -> tuple[list[dict[str, Any] | str], dict[str, Any] | None]:
+    """Return each group's fixed σci, or why it has none, and the record (decision 8).
+
+    A group's σci is a dict with its value in the fit's unit and its source;
+    a string is the reason the group has no fixed fit.
+    """
+    keys = [key for key, _ in keyed]
+    if argument is not None:
+        read = read_judgments(judgments, df)
+        if read is not None and _ARGUMENT in read.judgments:
+            warn(f"{_ARGUMENT}= replaces the {_ARGUMENT} in {read.path.name}.")
+        return _from_argument(argument, by, keys, unit)
+    read = read_judgments(judgments, df)
+    if read is None or _ARGUMENT not in read.judgments:
+        return [_NO_STRENGTH] * len(keys), None
+    return _from_file(read.judgments[_ARGUMENT], read, keys, unit)
+
+
+def _quantity(given: Any, unit: str, where: str) -> dict[str, Any]:
+    """Read one σci written with its unit, in the fit's unit."""
     if isinstance(given, int | float):  # bool too
         raise HangtuError(
-            f"{_FUNCTION} {_ARGUMENT}= needs its unit: write it as text, e.g. "
+            f"{_FUNCTION} {where} needs its unit: write it as text, e.g. "
             f'"{given:g} MPa", not {given!r}. A unit is never guessed (SPEC §2.6).'
         )
     if not isinstance(given, str):
         raise HangtuError(
-            f'{_FUNCTION} {_ARGUMENT}= takes σci with its unit, e.g. "61 MPa", not '
+            f'{_FUNCTION} {where} takes σci with its unit, e.g. "61 MPa", not '
             f"{type(given).__name__}."
         )
     try:
         value, written = _units.parse_quantity(given.strip(), "stress")
     except HangtuError as error:
-        raise HangtuError(f"{_FUNCTION} {_ARGUMENT}=: {error}") from None
+        raise HangtuError(f"{_FUNCTION} {where}: {error}") from None
     if not value > 0:
         raise HangtuError(
-            f"{_FUNCTION} {_ARGUMENT}= must be positive, not {given!r}: σci is a "
+            f"{_FUNCTION} {where} must be positive, not {given!r}: σci is a "
             "compressive strength."
         )
     converted = _units.convert(
@@ -562,6 +642,142 @@ def _fixed_strength(given: Any, unit: str) -> dict[str, Any] | None:
         "source": "argument",
         "source_text": "argument",
     }
+
+
+def _from_argument(
+    argument: Any, by: list[str], keys: list[dict[str, Any]], unit: str
+) -> tuple[list[dict[str, Any] | str], dict[str, Any]]:
+    """Each group's σci from the argument: one value, or a mapping by group."""
+    if not isinstance(argument, Mapping):
+        one = _quantity(argument, unit, f"{_ARGUMENT}=")
+        return [one] * len(keys), {
+            "source": "argument",
+            "by": None,
+            "values": {"all": one["text"]},
+        }
+    given = {
+        key: _quantity(text, unit, f"{_ARGUMENT}={{{key!r}: ...}}")
+        for key, text in argument.items()
+    }
+    strengths: list[dict[str, Any] | str] = []
+    matched = set()
+    used = {}
+    for key in keys:
+        found = next((k for k in given if _matches(k, key)), _UNMATCHED)
+        if found is _UNMATCHED:
+            strengths.append(
+                f"no σci for this group in {_ARGUMENT}=: add {_key_text(key)} to "
+                "the mapping"
+            )
+            continue
+        matched.add(found)
+        strengths.append(given[found])
+        used[_label(key)] = given[found]["text"]
+    unmatched = [key for key in given if key not in matched]
+    if unmatched:
+        groups = ", ".join(_key_text(key) for key in keys) or "one group of every row"
+        warn(
+            f"{_FUNCTION} {_ARGUMENT}= has values for "
+            f"{', '.join(map(repr, unmatched))}, which match no group "
+            f"(group_by={by!r}: {groups}). Check the spelling: keys match exactly, "
+            "by case too."
+        )
+    return strengths, {"source": "argument", "by": by, "values": used}
+
+
+_UNMATCHED = object()
+
+
+def _matches(given: Any, key: dict[str, Any]) -> bool:
+    """Whether a mapping key names a group: its value, or a tuple of values."""
+    values = list(key.values())
+    if not values:
+        return False
+    wanted = list(given) if isinstance(given, tuple) else [given]
+    return len(wanted) == len(values) and all(
+        w == v or str(w) == str(v) for w, v in zip(wanted, values, strict=True)
+    )
+
+
+def _key_text(key: dict[str, Any]) -> str:
+    values = tuple(key.values())
+    return repr(values[0]) if len(values) == 1 else repr(values)
+
+
+def _from_file(
+    judgment: "_judgments.Judgment",
+    read: "_judgments.Read",
+    keys: list[dict[str, Any]],
+    unit: str,
+) -> tuple[list[dict[str, Any] | str], dict[str, Any]]:
+    """Each group's σci from the judgments file, by its ``by:`` column."""
+    field = "intact_compressive_strength"
+    written = judgment.units[field]
+
+    def entry(value: "_judgments.Entry") -> dict[str, Any]:
+        number = value.values[field]
+        converted = _units.convert(
+            [number], _units.parse_unit(written), "stress", _units.parse_unit(unit)
+        )[0]
+        return {
+            "value": float(converted),
+            "text": _judgments.quantity_text(number, written),
+            "reason": value.reason,
+            "source": "judgments file",
+            "source_text": read.path.name,
+            "path": str(read.path),
+            "sha256": read.sha256,
+        }
+
+    record: dict[str, Any] = {
+        "source": str(read.path),
+        "sha256": read.sha256,
+        "by": judgment.by,
+        "values": {},
+    }
+    project = None if judgment.project is None else entry(judgment.project)
+    strengths: list[dict[str, Any] | str] = []
+    filled = []
+    for key in keys:
+        if judgment.by is None or not judgment.values:
+            if project is None:
+                strengths.append(_NO_STRENGTH)
+                continue
+            strengths.append(project)
+            filled.append(_label(key))
+            continue
+        if judgment.by not in key:
+            strengths.append(
+                f"the judgments file's {_ARGUMENT} is keyed by {judgment.by!r}: "
+                f"group by it (group_by={judgment.by!r}) to use it"
+            )
+            continue
+        value = key[judgment.by]
+        name = None if pd.isna(value) else str(value)
+        if name is not None and name in judgment.values:
+            found = entry(judgment.values[name])
+            strengths.append(found)
+            record["values"][name] = found["text"]
+        elif project is not None:
+            strengths.append(project)
+            filled.append(_label(key))
+        else:
+            strengths.append(
+                f"the judgments file's {_ARGUMENT} has no value for "
+                f"{judgment.by} {value!r}: add it, or a project: entry with its reason"
+            )
+    if filled:
+        assert project is not None  # filled only from the project value
+        reason = f" ({project['reason']})" if project["reason"] else ""
+        warn(
+            f"{_ARGUMENT}: the project value {project['text']} is used for "
+            f"{', '.join(filled)}{reason}."
+        )
+        record["values"]["project"] = {
+            "value": project["text"],
+            "used_for": ", ".join(filled),
+        }
+    return strengths, record
 
 
 def _reported(
@@ -598,7 +814,7 @@ def _fit(
     minor: np.ndarray,
     major: np.ndarray,
     kind: str,
-    strength: dict[str, Any] | None,
+    strength: dict[str, Any] | str,
     multistaged: np.ndarray,
 ) -> dict[str, Any]:
     """Fit one line, free or σci fixed, and back-transform it (Derivation)."""
@@ -612,9 +828,9 @@ def _fit(
         reason = line.no_fit_reason
         if reason is None and line.intercept <= 0:
             reason = f"intercept σci² = {line.intercept:.4g} is 0 or below: no σci"
-    elif strength is None:
+    elif isinstance(strength, str):
         line = None
-        reason = _NO_STRENGTH
+        reason = strength
         source = None
     else:
         fixed = strength["value"]
@@ -691,7 +907,7 @@ def _fit(
         "uniaxial_count": int(at_zero.sum()),
         "uniaxial_mean": float(np.mean(s1[at_zero])) if at_zero.any() else np.nan,
         "intact_compressive_strength_source": source,
-        "fixed_strength": None if kind == "free" else strength,
+        "fixed_strength": strength if isinstance(strength, dict) else None,
         "line_intercept": intercept,
         "line_slope": slope,
         "no_fit_reason": reason,
