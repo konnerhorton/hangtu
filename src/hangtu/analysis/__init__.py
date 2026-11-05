@@ -6,6 +6,7 @@ from hangtu.analysis._classification import aashto, uscs
 from hangtu.analysis._clay_activity import clay_activity
 from hangtu.analysis._clogging import clogging_potential
 from hangtu.analysis._gradation import gradation
+from hangtu.analysis._hoek_brown_fit import HoekBrownFit, hoek_brown_fit
 from hangtu.analysis._mohr_coulomb import MohrCoulombFit, mohr_coulomb_fit
 from hangtu.analysis._overburden import spt_n1_60
 from hangtu.analysis._phase_relations import phase_relations
@@ -18,6 +19,7 @@ from hangtu.analysis._undrained import undrained_shear_strength_from_tests
 from hangtu.analysis._vertical_stress import vertical_stress
 
 __all__ = [
+    "HoekBrownFit",
     "MohrCoulombFit",
     "ShearBoxFit",
     "aashto",
@@ -26,6 +28,7 @@ __all__ = [
     "clogging_potential",
     "correlations",
     "gradation",
+    "hoek_brown_fit",
     "mohr_coulomb_fit",
     "phase_relations",
     "plasticity",

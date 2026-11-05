@@ -1,8 +1,9 @@
 """What the envelope fits share: groups, the pooling check and the lab's pairs.
 
-``mohr_coulomb_fit()`` and ``shear_box_fit()`` group rows the same way, refuse
-to pool unlike sources the same way and list the lab's reported pairs beside
-the fit the same way (docs/work/m17b-shear-box-fit.md, Decision 14).
+``mohr_coulomb_fit()``, ``shear_box_fit()`` and ``hoek_brown_fit()`` group rows
+the same way, refuse to pool unlike sources the same way and list the lab's
+reported pairs beside the fit the same way (docs/work/m17b-shear-box-fit.md,
+Decision 14).
 """
 
 from collections.abc import Mapping, Sequence
@@ -100,21 +101,26 @@ def _check_sources(
 
 
 def _pairs(
-    reported: tuple[np.ndarray, np.ndarray] | None, fitted: np.ndarray
+    reported: tuple[np.ndarray, np.ndarray] | None,
+    fitted: np.ndarray,
+    names: tuple[str, str] = ("cohesion", "friction_angle"),
 ) -> list[dict[str, Any]] | None:
-    """Return the distinct (c, φ) the lab reported for the fitted rows."""
+    """Return the distinct pairs the lab reported for the fitted rows.
+
+    ``names`` names the pair's values: (c, φ), or (σci, mi) for Hoek-Brown.
+    """
     if reported is None:
         return None
     counts: dict[tuple[float, float], int] = {}
-    for cohesion, angle in zip(reported[0][fitted], reported[1][fitted], strict=True):
-        if np.isnan(cohesion) and np.isnan(angle):
+    for first, second in zip(reported[0][fitted], reported[1][fitted], strict=True):
+        if np.isnan(first) and np.isnan(second):
             continue
-        pair = (float(cohesion), float(angle))
+        pair = (float(first), float(second))
         match = next((known for known in counts if _same(known, pair)), pair)
         counts[match] = counts.get(match, 0) + 1
     return [
-        {"cohesion": cohesion, "friction_angle": angle, "count": count}
-        for (cohesion, angle), count in counts.items()
+        {names[0]: first, names[1]: second, "count": count}
+        for (first, second), count in counts.items()
     ]
 
 
