@@ -53,7 +53,7 @@ def _reported(
         source = _units.parse_unit(declared, column)
         _units.check_dimension(source, quantity[column], column)
         result.append(
-            _units.convert(
+            _convert_reported(
                 numeric_column(df, column),
                 source,
                 quantity[column],
@@ -61,6 +61,43 @@ def _reported(
             )
         )
     return result[0], result[1]
+
+
+def _convert_reported(
+    values: np.ndarray, source: Any, quantity: str, target: Any
+) -> np.ndarray:
+    """Convert the lab's values, each to as many significant figures as it had.
+
+    64 MPa is 9282.42 psi, which claims digits the lab didn't report; it
+    converts to 9300 psi. Figures are counted from the value as read, so
+    trailing zeros before the decimal point don't count (1200 has 2): a
+    float can't say whether the lab meant them.
+    """
+    values = np.asarray(values, dtype=float)
+    converted = np.asarray(_units.convert(values, source, quantity, target), float)
+    return np.array(
+        [
+            _round_like(value, original)
+            for value, original in zip(converted, values, strict=True)
+        ],
+        dtype=float,
+    )
+
+
+def _round_like(value: float, original: float) -> float:
+    """Round ``value`` to the significant figures of ``original``."""
+    if not np.isfinite(value) or not np.isfinite(original) or original == 0:
+        return float(value)
+    return float(f"{value:.{_significant_figures(original)}g}")
+
+
+def _significant_figures(value: float) -> int:
+    """Count a value's significant figures from its shortest decimal form."""
+    text = np.format_float_positional(abs(value), trim="-")
+    digits = text.replace(".", "").lstrip("0")
+    if "." not in text:
+        digits = digits.rstrip("0")
+    return max(len(digits), 1)
 
 
 def _check_sources(

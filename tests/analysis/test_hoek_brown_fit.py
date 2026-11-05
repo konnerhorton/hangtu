@@ -586,6 +586,25 @@ def test_the_lab_pair_is_listed_not_compared():
     assert "lab: σci = 37400 kPa, mi = 15.5 (5 rows)" in str(result)
 
 
+def test_the_lab_pair_keeps_its_significant_figures_when_converted():
+    """64 MPa is 9282.42 psi; the lab gave 2 figures, so it shows 9300 psi."""
+    df = _frame(
+        TABLE_1,
+        reported_intact_compressive_strength=[64.0] * 5,
+        reported_intact_hoek_brown_constant=[12.4] * 5,
+    )
+    df.attrs["units"]["reported_intact_compressive_strength"] = "MPa"
+    with (
+        ht.settings.override(display_overrides={"stress": "psi"}),
+        pytest.warns(UserWarning, match=BEYOND),
+    ):
+        result = ht.analysis.hoek_brown_fit(df, display_units="US")
+    pair = _get(result)["reported_pairs"][0]
+    assert pair["intact_compressive_strength"] == 9300.0
+    assert pair["intact_hoek_brown_constant"] == 12.4
+    assert "lab: σci = 9300 psi, mi = 12.4 (5 rows)" in str(result)
+
+
 # --- AC 9: views ---------------------------------------------------------------------
 
 COLUMNS = [

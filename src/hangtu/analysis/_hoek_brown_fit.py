@@ -17,7 +17,14 @@ from hangtu import _judgments
 from hangtu import units as _units
 from hangtu._data import flag_column, numeric_column, rows_text
 from hangtu.analysis._derived import _DerivedResult
-from hangtu.analysis._fit_groups import _cell, _check_sources, _label, _names, _pairs
+from hangtu.analysis._fit_groups import (
+    _cell,
+    _check_sources,
+    _convert_reported,
+    _label,
+    _names,
+    _pairs,
+)
 from hangtu.analysis._judgment_values import read_judgments
 from hangtu.analysis._line_fit import line_fit
 from hangtu.analysis._triaxial import STRESS_COLUMNS
@@ -804,7 +811,7 @@ def _reported(
         declared = _units.resolve_units(df, [strength_column], units, analysis=True)
         source = _units.parse_unit(declared[strength_column], strength_column)
         _units.check_dimension(source, "stress", strength_column)
-        strength = _units.convert(
+        strength = _convert_reported(
             numeric_column(df, strength_column),
             source,
             "stress",
