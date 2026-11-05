@@ -20,12 +20,19 @@ FILES = [
     "atterberg.csv",
     "judgments.yaml",
     "permeability.csv",
+    "rock_triaxial.csv",
     "site.ags",
     "spt.csv",
     "strata.csv",
     "triaxial_readings.csv",
 ]
-CSVS = ["atterberg.csv", "permeability.csv", "spt.csv", "triaxial_readings.csv"]
+CSVS = [
+    "atterberg.csv",
+    "permeability.csv",
+    "rock_triaxial.csv",
+    "spt.csv",
+    "triaxial_readings.csv",
+]
 NOT_FINDINGS = {"Metadata", "Summary of data"}
 
 
@@ -90,7 +97,8 @@ def test_unknown_name_lists_the_files():
         ht.examples.path("site.csv")
     assert str(caught.value) == (
         "No example file 'site.csv'. Files: atterberg.csv, judgments.yaml, "
-        "permeability.csv, site.ags, spt.csv, strata.csv, triaxial_readings.csv."
+        "permeability.csv, rock_triaxial.csv, site.ags, spt.csv, strata.csv, "
+        "triaxial_readings.csv."
     )
 
 

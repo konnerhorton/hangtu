@@ -905,3 +905,138 @@ def test_group_by_gives_one_set_of_fits_per_group():
     text = str(result)
     assert "Sandstone: 5 rows" in text and "Shale: 5 rows" in text
     _counts_add_up(result)
+
+
+# --- AC 3, 5: the example sandstone --------------------------------------------------
+
+#: rock_triaxial.csv's stress columns are in MPa and its depths in ft. The
+#: pore and back pressures are blank, but they are stress columns of the
+#: template, so triaxial_failure_stresses() asks for their unit too.
+ROCK_UNITS = {
+    "depth": "ft",
+    "cell_pressure": "MPa",
+    "deviator_stress_at_failure": "MPa",
+    "back_pressure": "MPa",
+    "pore_pressure_at_failure": "MPa",
+    "reported_intact_compressive_strength": "MPa",
+}
+
+
+def _sandstone():
+    df = ht.read_csv(ht.examples.path("rock_triaxial.csv"), units=ROCK_UNITS)
+    return ht.analysis.triaxial_failure_stresses(df)
+
+
+def _sandstone_fit(**kwargs):
+    return _fit(
+        _sandstone(),
+        group_by="geology_unit",
+        judgments=ht.examples.path("judgments.yaml"),
+        **{"failure_modes": ["Shear"], **kwargs},
+    )
+
+
+def test_3_the_example_sandstone_all_stages():
+    result = _sandstone_fit()
+    assert [group["key"] for group in result.groups] == [{"geology_unit": "Sandstone"}]
+    free = _get(result)
+    # b = 127517611/160750, a = 262399233/64300.
+    assert free["line_slope"] == pytest.approx(127517611 / 160750, rel=1e-12)
+    assert free["line_intercept"] == pytest.approx(262399233 / 64300, rel=1e-12)
+    assert free["intact_compressive_strength"] == pytest.approx(63.8816013, rel=REL)
+    assert free["intact_hoek_brown_constant"] == pytest.approx(12.4177637, rel=REL)
+    assert free["r_squared"] == pytest.approx(0.950690094, rel=REL)
+    assert free["count"] == 13
+    fixed = _get(result, "fixed_strength")
+    assert fixed["intact_compressive_strength"] == 61
+    assert fixed["intact_compressive_strength_source"] == "judgments file"
+    assert fixed["intact_hoek_brown_constant"] == pytest.approx(13.4295478, rel=REL)
+    assert fixed["r_squared"] == pytest.approx(0.948857038, rel=REL)
+    # The ill-conditioning of decision 12, at σ3 = 2.5.
+    back = {
+        p["specimen_id"]: p["back_calculated_hoek_brown_constant"]
+        for p in free["points"]
+    }
+    assert back["B-3-C6-2"] == pytest.approx(6.54774451, rel=REL)
+    assert back["B-3-C7-2"] == pytest.approx(15.9363633, rel=REL)
+    _counts_add_up(result)
+
+
+def test_3_the_example_sandstone_single_stage():
+    result = _sandstone_fit()
+    free = _get(result, stages="single_stage")
+    assert free["line_slope"] == pytest.approx(6917921 / 8000, rel=1e-12)
+    assert free["line_intercept"] == pytest.approx(12619687 / 3200, rel=1e-12)
+    assert free["intact_compressive_strength"] == pytest.approx(62.7985047, rel=REL)
+    assert free["intact_hoek_brown_constant"] == pytest.approx(13.7700751, rel=REL)
+    assert free["r_squared"] == pytest.approx(0.966311262, rel=REL)
+    assert free["count"] == 10
+    fixed = _get(result, "fixed_strength", stages="single_stage")
+    assert fixed["intact_hoek_brown_constant"] == pytest.approx(14.4511428, rel=REL)
+    assert fixed["r_squared"] == pytest.approx(0.965568515, rel=REL)
+
+
+def test_3_the_example_sandstone_counts_and_lab_pair():
+    result = _sandstone_fit()
+    group = result.groups[0]
+    assert group["count_rows"] == 15
+    assert group["count_by_failure_mode"] == {"Axial splitting": 1, "Along bedding": 1}
+    for fit in group["fits"]:
+        assert (fit["uniaxial_count"], fit["count_other_failure_mode"]) == (3, 2)
+        assert fit["uniaxial_mean"] == pytest.approx(365 / 6, rel=1e-12)
+        assert fit["count_beyond_confining_range"] == 0
+        assert fit["count_multistage_left_out"] == (
+            3 if fit["stages"] == "single_stage" else 0
+        )
+        assert fit["reported_pairs"] == [
+            {
+                "intact_compressive_strength": 64,
+                "intact_hoek_brown_constant": 12.4,
+                "count": fit["count"],
+            }
+        ]
+    assert _get(result)["reported_pairs"][0]["count"] == 13
+    text = str(result)
+    assert "single stage, free:" in text
+    assert "σci fixed at 61.0 MPa (judgments.yaml): mi = 13.4" in text
+    assert "UCS (σ3 = 0): 3 tests, mean 60.8 MPa" in text
+    assert "lab: σci = 64 MPa, mi = 12.4 (13 rows)" in text
+    _counts_add_up(result)
+
+
+def test_3_multistage_false_puts_the_single_stage_fits_first():
+    frame = _sandstone_fit(multistage=False).to_frame()
+    assert frame["stages"].tolist() == ["single_stage"] * 2 + ["all"] * 2
+    assert frame["intact_hoek_brown_constant"].tolist() == pytest.approx(
+        [13.7700751, 14.4511428, 12.4177637, 13.4295478], rel=REL
+    )
+
+
+def test_5_the_example_without_modes_named_lists_them():
+    with pytest.raises(HangtuError) as caught:
+        ht.analysis.hoek_brown_fit(_sandstone(), group_by="geology_unit")
+    message = str(caught.value)
+    for listed in (
+        "'Shear' (13 rows)",
+        "'Axial splitting' (1 row)",
+        "'Along bedding' (1 row)",
+    ):
+        assert listed in message, message
+
+
+def test_5_the_example_with_a_mode_no_row_has_lists_those_present():
+    with pytest.raises(HangtuError) as caught:
+        ht.analysis.hoek_brown_fit(
+            _sandstone(), group_by="geology_unit", failure_modes=["shear"]
+        )
+    message = str(caught.value)
+    assert "'shear'" in message
+    for present in ("'Shear'", "'Axial splitting'", "'Along bedding'"):
+        assert present in message, message
+
+
+def test_5_the_example_with_two_modes_fits_fourteen_rows():
+    result = _sandstone_fit(failure_modes=["Shear", "Along bedding"])
+    assert _get(result)["count"] == 14
+    assert _get(result)["count_other_failure_mode"] == 1
+    _counts_add_up(result)

@@ -18,7 +18,11 @@ grading curves continue into the fines; the terrace sands are sieved only.
 
 ``judgments.yaml`` holds the site's unit weights and specific gravities by
 geology unit and a water level for each hole, as an engineer would set them
-(SPEC §4). The Gs values are the medians of the measured LPDN tests.
+(SPEC §4). The Gs values are the medians of the measured LPDN tests, and the
+sandstone's fixed σci the mean of its UCS tests that failed in shear.
+
+``rock_triaxial.csv`` holds B-3's sandstone UCS and triaxial tests in MPa
+(M17 c), in the ``triaxial`` template's columns; they aren't in ``site.ags``.
 
 Two QC findings are planted, so the QC example has something to report:
 - G002, a gap in the geology log of B-4 from 9.0 to 10.0 ft;
@@ -127,7 +131,8 @@ SST,Sandstone,rock,4,#8c6d5a
 
 # The site's judgments (SPEC §4), in the file's US units.
 JUDGMENTS = """\
-# judgments.yaml: the example site's unit weights, water levels, Gs and α (SPEC §4).
+# judgments.yaml: the example site's unit weights, water levels, Gs, α and the
+# sandstone's fixed σci (SPEC §4).
 unit_weight:
   by: geology_unit
   units: {bulk_unit_weight: pcf, saturated_unit_weight: pcf}
@@ -162,6 +167,13 @@ specific_gravity:
     Terrace: {specific_gravity: 2.67, reason: "median of 6 LPDN, measured (166.4 pcf)"}
 significance_level:
   project: {significance_level: 0.05, reason: "the usual convention"}
+fixed_intact_compressive_strength:
+  by: geology_unit
+  units: {intact_compressive_strength: MPa}
+  values:
+    Sandstone:
+      intact_compressive_strength: 61
+      reason: "mean of the three UCS tests that failed in shear, 60.8 MPa"
 """
 
 
@@ -822,6 +834,82 @@ def shbt():
     return group("SHBT", headings, rows)
 
 
+# --- Rock triaxial and UCS tests (M17 c) ----------------------------------------------
+
+# B-3's sandstone cores, for hoek_brown_fit() (docs/work/m17c-hoek-brown-fit.md,
+# "Example data"): made about σci = 60 MPa and mi = 15 (sandstone, 17 ± 4) with
+# site-like scatter, a multistage specimen low at its later stages, and two
+# failures that aren't shear. Stresses in MPa, depths in ft. They go only in
+# rock_triaxial.csv, not in site.ags, which would store them in psf. The core
+# samples after B-3-C5 are this CSV's own, so site.ags is unchanged.
+#
+# Hand fits, x = σ3, y = (σ1 - σ3)², the 13 Shear rows:
+#   all stages: n 13, Σx 100, Σy 132377.83, Σxy 1508743.35, Σx² 1387.5;
+#     b = 127517611/160750 = 793.266631, a = 262399233/64300 = 4080.85899,
+#     σci = √a = 63.8816013, mi = b/σci = 12.4177637, R² 0.950690094;
+#     σci fixed at 61: Σx(y - 3721) = 1136643.35, b = 819.202414,
+#     mi = 13.4295478, R² 0.948857038.
+#   single stage (10 rows): Σx 65, Σy 95644.63, Σxy 1002175.75, Σx² 862.5;
+#     b = 6917921/8000 = 864.740125, a = 12619687/3200 = 3943.65219,
+#     σci = 62.7985047, mi = 13.7700751, R² 0.966311262;
+#     σci fixed at 61: mi = 14.4511428, R² 0.965568515.
+#   UCS (Shear): 3, mean 365/6 = 60.8333 MPa, the judgments file's 61.
+# The lab's own fit of the 13 Shear rows, rounded: σci 64 MPa, mi 12.4.
+ROCK_TRIAXIAL = [
+    # Sample, specimen, depth (ft), test type, stage, multistage, σ3, σ1 (MPa),
+    # failure mode.
+    ("C5", "3", 64.8, "UCS", 1, False, 0, 54.2, "Shear"),
+    ("C6", "1", 66.0, "UCS", 1, False, 0, 66.8, "Shear"),
+    ("C6", "2", 66.4, "Triaxial", 1, False, 2.5, 74.1, "Shear"),
+    ("C6", "3", 66.8, "Triaxial", 1, False, 5, 98.7, "Shear"),
+    ("C6", "4", 67.2, "Triaxial", 1, False, 10, 117.4, "Shear"),
+    ("C7", "1", 68.0, "UCS", 1, False, 0, 61.5, "Shear"),
+    ("C7", "2", 68.4, "Triaxial", 1, False, 2.5, 83.9, "Shear"),
+    ("C7", "3", 68.8, "Triaxial", 1, False, 10, 129.0, "Shear"),
+    ("C7", "4", 69.2, "Triaxial", 1, False, 10, 88.0, "Along bedding"),
+    ("C8", "1", 70.0, "UCS", 1, False, 0, 38.6, "Axial splitting"),
+    ("C8", "2", 70.4, "Triaxial", 1, False, 15, 151.2, "Shear"),
+    ("C8", "3", 70.8, "Triaxial", 1, False, 20, 160.3, "Shear"),
+    ("C8", "4", 71.2, "Triaxial multistage", 1, True, 5, 93.0, "Shear"),
+    ("C8", "4", 71.2, "Triaxial multistage", 2, True, 10, 115.8, "Shear"),
+    ("C8", "4", 71.2, "Triaxial multistage", 3, True, 20, 153.4, "Shear"),
+]
+ROCK_REPORTED = (64, 12.4)  # the lab's σci (MPa) and mi
+
+
+def write_rock_triaxial(out):
+    """Write ``rock_triaxial.csv`` in ``ht.template("triaxial")``'s columns."""
+    rows = []
+    for sample, ref, depth, kind, stage, multi, minor, major, mode in ROCK_TRIAXIAL:
+        sample_id = f"B-3-{sample}"
+        rows.append(
+            {
+                "loca_id": "B-3",
+                "specimen_id": f"{sample_id}-{ref}",
+                "sample_reference": sample_id,
+                "specimen_reference": ref,
+                "depth": depth,
+                "test_type": kind,
+                "test_stage": stage,
+                "multistage_test": multi,
+                "failure_criterion": "Peak axial stress",
+                "failure_mode": mode,
+                "cell_pressure": minor,
+                "deviator_stress_at_failure": round(major - minor, 1),
+                "reported_intact_compressive_strength": ROCK_REPORTED[0],
+                "reported_intact_hoek_brown_constant": ROCK_REPORTED[1],
+                "geology_unit": "Sandstone",
+                "soil_class": "rock",
+            }
+        )
+    pd.DataFrame(rows, columns=list(ht.template("triaxial").columns)).to_csv(
+        out / "rock_triaxial.csv",
+        index=False,
+        float_format="%.6g",
+        lineterminator="\n",
+    )
+
+
 # --- Writing --------------------------------------------------------------------------
 
 
@@ -899,6 +987,7 @@ def write_csvs(out):
             )
         # The readings are treg()/tret()'s; the UU stages (M17 a) have none.
         write_readings(out, p.triaxial(where={"test_type": ["CU", "CDM"]}))
+    write_rock_triaxial(out)
 
 
 # Readings during shearing (M11 c, docs/work/m11c-triaxial-shearing.md, spec
