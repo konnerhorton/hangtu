@@ -22,7 +22,7 @@ A dataset is a table with one row per test, with its depth, elevation and geolog
 | `p.particle_density()` | Particle density test, with assumed values (`#2.65`) flagged | [Property by geology unit](../plots/geology-unit-comparison.md) |
 | `p.undrained_strength()` | Undrained strength result, test by test: UU, unconfined compression, laboratory and field vane, hand penetrometer and fall cone, with s_u, the remolded s_u and sensitivity where the test gives them | [Property profile](../plots/profile.md), [property by geology unit](../plots/geology-unit-comparison.md) |
 | `p.shear_box()` | Shear box or ring shear stage: the normal stresses, peak and residual shear stress, displacements and the lab's own fit | [Shear box envelope](../plots/shear-box-envelope.md), [property profile](../plots/profile.md) |
-| `p.triaxial()` | Triaxial stage at failure, effective stress (CU, CD) or total stress (UU): cell pressure, deviator stress and pore pressure, the principal stresses from them, and the lab's own c′ and φ′ | [Failure envelope](../plots/failure-envelope.md), [property profile](../plots/profile.md), [property by geology unit](../plots/geology-unit-comparison.md) |
+| `p.triaxial()` | Triaxial stage at failure, effective stress (CU, CD) or total stress (UU): cell pressure, deviator stress and pore pressure, the principal stresses from them, the mode of failure, and the lab's own c′ and φ′ | [Failure envelope](../plots/failure-envelope.md), [Hoek–Brown envelope](../plots/hoek-brown-envelope.md), [property profile](../plots/profile.md), [property by geology unit](../plots/geology-unit-comparison.md) |
 
 Each comes in the project's display units, or in `display_units="SI"` or `"US"` if you ask.
 

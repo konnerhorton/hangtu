@@ -1,8 +1,9 @@
 """What the envelope fits share: groups, the pooling check and the lab's pairs.
 
-``mohr_coulomb_fit()`` and ``shear_box_fit()`` group rows the same way, refuse
-to pool unlike sources the same way and list the lab's reported pairs beside
-the fit the same way (docs/work/m17b-shear-box-fit.md, Decision 14).
+``mohr_coulomb_fit()``, ``shear_box_fit()`` and ``hoek_brown_fit()`` group rows
+the same way, refuse to pool unlike sources the same way and list the lab's
+reported pairs beside the fit the same way (docs/work/m17b-shear-box-fit.md,
+Decision 14).
 """
 
 from collections.abc import Mapping, Sequence
@@ -52,7 +53,7 @@ def _reported(
         source = _units.parse_unit(declared, column)
         _units.check_dimension(source, quantity[column], column)
         result.append(
-            _units.convert(
+            _convert_reported(
                 numeric_column(df, column),
                 source,
                 quantity[column],
@@ -60,6 +61,43 @@ def _reported(
             )
         )
     return result[0], result[1]
+
+
+def _convert_reported(
+    values: np.ndarray, source: Any, quantity: str, target: Any
+) -> np.ndarray:
+    """Convert the lab's values, each to as many significant figures as it had.
+
+    64 MPa is 9282.42 psi, which claims digits the lab didn't report; it
+    converts to 9300 psi. Figures are counted from the value as read, so
+    trailing zeros before the decimal point don't count (1200 has 2): a
+    float can't say whether the lab meant them.
+    """
+    values = np.asarray(values, dtype=float)
+    converted = np.asarray(_units.convert(values, source, quantity, target), float)
+    return np.array(
+        [
+            _round_like(value, original)
+            for value, original in zip(converted, values, strict=True)
+        ],
+        dtype=float,
+    )
+
+
+def _round_like(value: float, original: float) -> float:
+    """Round ``value`` to the significant figures of ``original``."""
+    if not np.isfinite(value) or not np.isfinite(original) or original == 0:
+        return float(value)
+    return float(f"{value:.{_significant_figures(original)}g}")
+
+
+def _significant_figures(value: float) -> int:
+    """Count a value's significant figures from its shortest decimal form."""
+    text = np.format_float_positional(abs(value), trim="-")
+    digits = text.replace(".", "").lstrip("0")
+    if "." not in text:
+        digits = digits.rstrip("0")
+    return max(len(digits), 1)
 
 
 def _check_sources(
@@ -100,21 +138,26 @@ def _check_sources(
 
 
 def _pairs(
-    reported: tuple[np.ndarray, np.ndarray] | None, fitted: np.ndarray
+    reported: tuple[np.ndarray, np.ndarray] | None,
+    fitted: np.ndarray,
+    names: tuple[str, str] = ("cohesion", "friction_angle"),
 ) -> list[dict[str, Any]] | None:
-    """Return the distinct (c, φ) the lab reported for the fitted rows."""
+    """Return the distinct pairs the lab reported for the fitted rows.
+
+    ``names`` names the pair's values: (c, φ), or (σci, mi) for Hoek-Brown.
+    """
     if reported is None:
         return None
     counts: dict[tuple[float, float], int] = {}
-    for cohesion, angle in zip(reported[0][fitted], reported[1][fitted], strict=True):
-        if np.isnan(cohesion) and np.isnan(angle):
+    for first, second in zip(reported[0][fitted], reported[1][fitted], strict=True):
+        if np.isnan(first) and np.isnan(second):
             continue
-        pair = (float(cohesion), float(angle))
+        pair = (float(first), float(second))
         match = next((known for known in counts if _same(known, pair)), pair)
         counts[match] = counts.get(match, 0) + 1
     return [
-        {"cohesion": cohesion, "friction_angle": angle, "count": count}
-        for (cohesion, angle), count in counts.items()
+        {names[0]: first, names[1]: second, "count": count}
+        for (first, second), count in counts.items()
     ]
 
 

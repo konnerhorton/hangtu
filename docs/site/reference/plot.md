@@ -1,6 +1,6 @@
 # Plots
 
-Every plot takes a DataFrame and returns `(fig, ax)`, an ordinary matplotlib figure and axes. Pass `ax=` to draw on an axes you already have, such as a panel of an `ht.Sheet`. A plot that runs an analysis returns its result too: `distribution_fit` returns `(fig, axs, result)`, `representative_profile` returns `(fig, ax, result)`, and `failure_envelope`, `triaxial_shearing` and `shear_box_envelope` return `(fig, ax, fit)`.
+Every plot takes a DataFrame and returns `(fig, ax)`, an ordinary matplotlib figure and axes. Pass `ax=` to draw on an axes you already have, such as a panel of an `ht.Sheet`. A plot that runs an analysis returns its result too: `distribution_fit` returns `(fig, axs, result)`, `representative_profile` returns `(fig, ax, result)`, and `failure_envelope`, `triaxial_shearing`, `shear_box_envelope` and `hoek_brown_envelope` return `(fig, ax, fit)`.
 
 ::: hangtu.plot.profile
 
@@ -29,6 +29,8 @@ Every plot takes a DataFrame and returns `(fig, ax)`, an ordinary matplotlib fig
 ::: hangtu.plot.triaxial_shearing
 
 ::: hangtu.plot.shear_box_envelope
+
+::: hangtu.plot.hoek_brown_envelope
 
 ## Colors
 

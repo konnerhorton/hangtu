@@ -39,3 +39,7 @@ Each analysis is a plain function on a DataFrame. It returns a new DataFrame or 
 ::: hangtu.analysis.shear_box_fit
 
 ::: hangtu.analysis.ShearBoxFit
+
+::: hangtu.analysis.hoek_brown_fit
+
+::: hangtu.analysis.HoekBrownFit

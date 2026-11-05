@@ -1,10 +1,12 @@
-"""The judgments file: a project's unit weights, water levels, PI, Gs and α (SPEC §4).
+"""The judgments file: unit weights, water levels, PI, Gs, α and σci (SPEC §4).
 
 A judgment has no default. Analyses take it from an argument, then from
 ``judgments=``, then from the Project's file, else raise. The file format and
-its checks are in ``docs/work/m13a-judgments.md``, Spec Decision 1. The one
-optional judgment, the SPT refusal upper limit, leaves refusals right-censored
-when unset (docs/work/m18a-refusals.md, Decision 1).
+its checks are in ``docs/work/m13a-judgments.md``, Spec Decision 1. Two
+judgments are optional: the SPT refusal upper limit leaves refusals
+right-censored when unset (docs/work/m18a-refusals.md, Decision 1), and the
+fixed σci leaves ``hoek_brown_fit()`` with its free fit only
+(docs/work/m17c-hoek-brown-fit.md, decision 8).
 """
 
 import hashlib
@@ -33,6 +35,7 @@ class Kind:
     unitless: bool = False  # a pure number: no units block (m14b, Decision 4)
     project_only: bool = False  # one value for the project, no keys (m15d, Decision 8)
     none_allowed: bool = False  # a value may be none, on purpose (m18a, Decision 3)
+    reason_required: bool = False  # every entry says why (m17c, decision 8)
 
 
 KINDS = {
@@ -91,10 +94,26 @@ KINDS = {
         unitless=True,
         none_allowed=True,
     ),
+    # docs/work/m17c-hoek-brown-fit.md, decision 8: σci for the fit with σci
+    # fixed, keyed by any column the fit groups by.
+    "fixed_intact_compressive_strength": Kind(
+        keyed="values",
+        fields={"intact_compressive_strength": "stress"},
+        required=("intact_compressive_strength",),
+        one_of=(),
+        by=None,
+        reason_required=True,
+    ),
 }
 
 #: Fields that must be positive (a water level may be above ground).
-POSITIVE = {"bulk_unit_weight", "saturated_unit_weight", "specific_gravity", "spt_n"}
+POSITIVE = {
+    "bulk_unit_weight",
+    "saturated_unit_weight",
+    "specific_gravity",
+    "spt_n",
+    "intact_compressive_strength",
+}
 #: Fields that may be zero but not negative.
 NON_NEGATIVE = {"plasticity_index"}
 #: Fields strictly between 0 and 1: a probability.
@@ -118,7 +137,12 @@ PLAUSIBLE = {
 #: A field written ``none`` (m18a, Decision 3), held as no limit at all.
 NONE = "none"
 #: Units shown in examples, as they are written in the file.
-EXAMPLE_UNITS = {"unit_weight": "kN/m3", "length": "m", "dimensionless": '"%"'}
+EXAMPLE_UNITS = {
+    "unit_weight": "kN/m3",
+    "length": "m",
+    "dimensionless": '"%"',
+    "stress": "MPa",
+}
 
 
 @dataclass(frozen=True)
@@ -168,7 +192,7 @@ def quantity_text(value: float, unit: str) -> str:
 
 
 class Judgments:
-    """A project's judgments file: unit weights, water levels, PI, Gs and α.
+    """A project's judgments file: unit weights, water levels, PI, Gs, α and σci.
 
     Made by ``ht.judgments(path)`` or ``p.judgments``. It holds the path, not
     the values: each analysis re-reads the file, so an edit shows up in the next
@@ -228,7 +252,7 @@ class Judgments:
 
 
 def judgments(path: str | PathLike[str]) -> Judgments:
-    """Open a judgments file: a project's unit weights, water levels, PI, Gs and α.
+    """Open a judgments file: unit weights, water levels, PI, Gs, α and σci.
 
     Judgments have no defaults in hangtu (SPEC §4). They live in one YAML file
     with their units and reasons, and every analysis that needs one reads it
@@ -269,6 +293,11 @@ def judgments(path: str | PathLike[str]) -> Judgments:
           values:
             Terrace:  {spt_n: 120, reason: "50 blows for 5 in at refusal, per foot"}
             Alluvium: {spt_n: none, reason: "refusals on cobbles, not the clay"}
+        fixed_intact_compressive_strength:
+          by: geology_unit          # a column hoek_brown_fit() groups by
+          units: {intact_compressive_strength: MPa}
+          values:
+            Sandstone: {intact_compressive_strength: 61, reason: "mean of 3 UCS"}
         ```
 
         - `unit_weight` entries take `bulk_unit_weight` (required) and
@@ -296,6 +325,12 @@ def judgments(path: str | PathLike[str]) -> Judgments:
           (`spt_cap`), its bottom. `none` keeps a unit's refusals
           right-censored on purpose. Unlike other judgments it is optional:
           without it, refusals are right-censored.
+        - `fixed_intact_compressive_strength` entries take
+          `intact_compressive_strength`, σci, a positive stress, and a
+          `reason`, which every entry needs. `by:` names a column
+          `ht.analysis.hoek_brown_fit()` groups by. It fixes σci for the
+          fit's second line; it is optional: without it, the fit with σci
+          fixed is missing, with a reason, and the free fit is made.
         - `units:` gives a unit for every field used, except for
           `specific_gravity`, `significance_level` and
           `spt_refusal_upper_limit`, which have none.
@@ -316,7 +351,7 @@ def judgments(path: str | PathLike[str]) -> Judgments:
     HangtuError
         Naming the file, the judgment and the entry for an unknown key or
         field, a missing `units`, `by` or `reason`, a wrong unit, a value that
-        isn't a number (or isn't positive, for unit weights, Gs and the
+        isn't a number (or isn't positive, for unit weights, Gs, σci and the
         refusal limit, or isn't between 0 and 1, for α), a `units` block for
         Gs, α or the refusal limit, keys for α, a `by:` other than
         `geology_unit` for the refusal limit, or invalid YAML.
@@ -579,4 +614,9 @@ def _check_entry(
     reason = entry.get("reason")
     if reason is not None:
         reason = str(reason).strip() or None
+    if reason is None and kind.reason_required:
+        raise HangtuError(
+            f"{where}: 'reason' is missing. Say why the value was chosen, e.g. "
+            'reason: "mean of the three UCS tests that failed in shear"'
+        )
     return Entry(values=values, reason=reason)

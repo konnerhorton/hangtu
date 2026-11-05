@@ -16,6 +16,8 @@ A template is an empty table with the columns hangtu expects. Save it as a CSV f
 
 The `spt`, `atterberg`, `grain_size` and `permeability` templates have the same columns as the datasets an AGS project gives, so a filled-in template and an AGS file reach the plots in the same shape. Columns hangtu calculates, such as `spt_n60` and `elevation`, can be left blank. Every template and its columns are listed on the [column reference](../reference/columns.md#templates).
 
+The `triaxial` template takes rock tests as well as soil: one row per UCS or triaxial test, the cell pressure as `cell_pressure` (0 for a UCS test) and σ1 − σ3 as `deviator_stress_at_failure`, with the soil-only columns left blank. `failure_mode` is the lab's mode of failure as written, and `reported_intact_compressive_strength` and `reported_intact_hoek_brown_constant` the lab's own σci and mi, for a [Hoek–Brown envelope](../plots/hoek-brown-envelope.md). A lab that reports σ1 rather than the deviator stress: subtract the cell pressure first.
+
 `triaxial_readings` is the one template with no AGS counterpart: one row per reading during shearing, from the lab's export, for [triaxial shearing](../plots/triaxial-shearing.md) plots. `ht.analysis.triaxial_failure_from_readings()` turns it into the `triaxial` template's shape.
 
 ## The column registry

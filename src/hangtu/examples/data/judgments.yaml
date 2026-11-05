@@ -1,4 +1,5 @@
-# judgments.yaml: the example site's unit weights, water levels, Gs and α (SPEC §4).
+# judgments.yaml: the example site's unit weights, water levels, Gs, α and the
+# sandstone's fixed σci (SPEC §4).
 unit_weight:
   by: geology_unit
   units: {bulk_unit_weight: pcf, saturated_unit_weight: pcf}
@@ -33,3 +34,10 @@ specific_gravity:
     Terrace: {specific_gravity: 2.67, reason: "median of 6 LPDN, measured (166.4 pcf)"}
 significance_level:
   project: {significance_level: 0.05, reason: "the usual convention"}
+fixed_intact_compressive_strength:
+  by: geology_unit
+  units: {intact_compressive_strength: MPa}
+  values:
+    Sandstone:
+      intact_compressive_strength: 61
+      reason: "mean of the three UCS tests that failed in shear, 60.8 MPa"

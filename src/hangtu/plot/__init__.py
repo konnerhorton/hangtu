@@ -9,6 +9,7 @@ from hangtu.plot._geology_units import (
     geology_unit_comparisons,
 )
 from hangtu.plot._grain_size import grain_size
+from hangtu.plot._hoek_brown_envelope import hoek_brown_envelope
 from hangtu.plot._palette import legend_handles, palette_cmap, reset_palette
 from hangtu.plot._plasticity_chart import plasticity_chart
 from hangtu.plot._profile import profile
@@ -27,6 +28,7 @@ __all__ = [
     "geology_unit_comparison",
     "geology_unit_comparisons",
     "grain_size",
+    "hoek_brown_envelope",
     "legend_handles",
     "palette_cmap",
     "plasticity_chart",

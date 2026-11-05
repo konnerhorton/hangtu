@@ -175,7 +175,7 @@ Each judgment declares what it is keyed by and whether one project-wide value is
 - settled in M14 (b) (`docs/work/m14b-phase-relations.md`): specific gravity by a log column (usually `geology_unit`), with the same optional project-wide value; used only where a row has no particle density.
 
 ### 31. Curves in real files · You · input for wave 0's intent (M16)
-Which user-defined groups and headings real files use for triaxial stress–strain curves, rock triaxial, swelling against time and shear box displacement, gathered from the sample dataset being prepared from real projects.
+Which user-defined groups and headings real files use for triaxial stress–strain curves, rock triaxial, swelling against time and shear box displacement, gathered from the sample dataset being prepared from real projects. Rock triaxial and UCS rows are read into `ht.template("triaxial")`'s shape, with `failure_mode` (SPEC §2.6, M17 c).
 
 ### 32. Published definitions of the model sets · You (copies) + Claude (verify) · SPEC §5 · Mohr–Coulomb for M18, the rest with their waves
 **Mohr–Coulomb set for M18** (decided 2026-11-02): c′ and φ′ from the fits and correlations; ψ as an estimate; E′ and ν′ left blank until wave 5 (M23). Mohr–Coulomb is defined in any soil mechanics text, so a standard citation does.

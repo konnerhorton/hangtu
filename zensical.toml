@@ -45,6 +45,7 @@ nav = [
     "plots/failure-envelope.md",
     "plots/triaxial-shearing.md",
     "plots/shear-box-envelope.md",
+    "plots/hoek-brown-envelope.md",
   ] },
   { "Parameters" = [
     "parameters/01-unit-weight-and-vertical-stress.md",
@@ -56,6 +57,7 @@ nav = [
     "parameters/07-at-rest-earth-pressure.md",
     "parameters/08-elastic-stiffness-soil.md",
     "parameters/10-small-strain-stiffness.md",
+    "parameters/15-hoek-brown-constant.md",
     "parameters/22-discontinuity-shear-strength.md",
   ] },
   { "Reference" = [
