@@ -375,8 +375,11 @@ committing. Steps 1–3 run on Opus in one session, 4–5 on Sonnet in a new ses
 - `src/hangtu/stats/_select.py`: complete `SelectionResult` (decision 15): `.to_frame()` columns and order,
   `.to_dict()` with the comparison's and each `representative()` result's, the printed summary and HTML repr,
   `.design_lines()`, `.profile()`, a note for each unit (decision 16).
-- `src/hangtu/columns.yaml`: `selection_method`, `selection_reason` and (if it collides with nothing)
-  `difference`, checked against the whole registry by an Explore agent.
+- `src/hangtu/columns.yaml`: no change, decided in the build. `selection_method`, `selection_reason`,
+  `selected_source`, `selected_value`, `fit_value` and `difference` collide with nothing in the registry, but
+  they are result columns, and the registry holds data columns only: `RepresentativeResult`'s
+  `line_intercept` and `no_value_reason`, and `compare()`'s own `difference` (the same meaning, one value
+  minus another) aren't in it either, and `difference` has no single quantity kind.
 - Tests: `tests/stats/test_select_views.py`: the views agree, `.profile()` draws the selected line, and a
   Project's categorical `geology_unit` raises no warning (AC 13); a trend's `.design_lines()` equals
   `representative()`'s (AC 11, second half).

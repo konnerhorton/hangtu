@@ -181,6 +181,7 @@ def select(
         if place is not None:
             placed += _positions(context, row, place)
     _warn_no_value(rows, value)
+    _value_depths(rows, comparison, geologies)
     merged = dict(comparison.judgments)
     for result in results.values():
         merged |= result.judgments
@@ -190,7 +191,7 @@ def select(
         function="select",
         value=value,
         unit=comparison.unit,
-        notes=tuple(_notes(rows, comparison.unit)),
+        notes=(*_notes(rows, comparison.unit), *_line_notes(rows, results)),
         judgments=merged,
         hangtu_version=version("hangtu"),
         by=(GEOLOGY,),
@@ -739,6 +740,58 @@ def _from_result(
     return _row(geology, entry, **found)
 
 
+def _value_depths(
+    rows: list[dict[str, Any]], comparison: SourceComparison, geologies: list[Any]
+) -> None:
+    """Give each ``value`` unit the depths of every source's rows in it.
+
+    A given value is drawn as a constant over them (decision 15); a unit no
+    source has, or whose rows have no depth, has none.
+    """
+    values = comparison.values()
+    ends = [name for name in ("depth", "depth_top", "depth_base") if name in values]
+    if not ends:
+        return
+    cells = values[GEOLOGY].astype(object)
+    for row in rows:
+        place = _place(row["key"][GEOLOGY], geologies)
+        if row["selection_method"] != "value" or place is None:
+            continue
+        in_unit = (
+            cells.isna()
+            if place[0] == BLANK_GROUP
+            else (cells == place[0]) & cells.notna()
+        )
+        depths = values.loc[in_unit, ends].to_numpy(dtype=float).ravel()
+        row["depths"] = _compare_sources._range(depths)
+
+
+def _line_notes(
+    rows: list[dict[str, Any]], results: Mapping[str, RepresentativeResult]
+) -> list[str]:
+    """Name each unit with a value that ``.design_lines()`` can't draw."""
+    notes = []
+    for row in rows:
+        geology = row["key"][GEOLOGY]
+        if not _has_value(row):
+            continue
+        if geology in results:
+            drawable = results[geology].vertical is not None
+        else:
+            drawable = bool(np.isfinite(row["depths"]).all())
+        if not drawable:
+            notes.append(
+                f"{geology}: no source has rows with a depth in this unit, so "
+                ".design_lines() has no line for its selected value."
+            )
+    return notes
+
+
+def _has_value(row: Mapping[str, Any]) -> bool:
+    """Whether a unit's row has a selected value or line."""
+    return row["vertical"] is not None or bool(np.isfinite(row["value"]))
+
+
 def _warn_no_value(rows: list[dict[str, Any]], value: str) -> None:
     """Warn about units whose method gave no value (decision 13)."""
     listed = [
@@ -783,6 +836,27 @@ def _text(value: Any) -> str:
     if isinstance(value, str):
         return value
     return _cell(None if pd.isna(value) else value)
+
+
+def _placed_text(placed: Mapping[str, Any]) -> str:
+    """One line of the summary's positions: the selected value against a source."""
+    other = placed["parameter_source"]
+    if placed["no_position_reason"] is not None:
+        return f"{other}: no position ({placed['no_position_reason']})"
+    if placed["position"] is None:
+        difference = placed["difference"]
+        side = "above" if difference > 0 else "below" if difference < 0 else ""
+        by = f" {_cell(abs(difference))} {side}" if side else " equal to"
+        return (
+            f"{_cell(placed['selected_value'])} is{by} {other} "
+            f"({_cell(placed['fit_value'])})"
+        )
+    rank = placed["percentile_rank"]
+    at = "" if np.isnan(rank) else f", at P{rank:.0f}"
+    return (
+        f"{_cell(placed['selected_value'])} is {placed['position']} {other} "
+        f"({_cell(placed['minimum'])} to {_cell(placed['maximum'])}{at})"
+    )
 
 
 @dataclass(frozen=True, repr=False)
@@ -868,6 +942,96 @@ class SelectionResult(_Result):
         frame.attrs["units"] = dict.fromkeys(with_unit, self.unit) if self.unit else {}
         return frame
 
+    def design_lines(self) -> pd.DataFrame:
+        """Return the selected lines P01 draws, as ``ht.template("design_lines")``.
+
+        One line per geology unit with a value, labeled
+        ``"<unit>: selected, <method>"``. A ``representative()`` method gives
+        that result's line (``RepresentativeResult.design_lines()``); a
+        ``fitted`` value is a constant over its points' depths; a ``value`` a
+        constant over the depths of every source's rows in the unit. A unit
+        with no depths to draw at has no line, and a note says so.
+        ``attrs["units"]`` gives the depth's (elevation's) unit and the
+        value's. Pass it to ``ht.plot.profile(..., design_lines=)``, or draw
+        ``.profile()``.
+
+        Raises
+        ------
+        HangtuError
+            When one unit's line is by depth and another's by elevation, so
+            the lines can't share a table.
+        """
+        return self._lines(self.rows)
+
+    def _lines(self, rows: Sequence[Mapping[str, Any]]) -> pd.DataFrame:
+        frames: list[pd.DataFrame] = []
+        units: dict[str, str] = {}
+        for row in rows:
+            geology = row["key"][GEOLOGY]
+            if not _has_value(row):
+                continue
+            label = f"{geology}: selected, {row['selection_method']}"
+            result = self.representatives.get(geology)
+            if result is not None:
+                if result.vertical is None:
+                    continue
+                lines = result.design_lines()
+                units |= lines.attrs["units"]
+                frames.append(lines.assign(label=label))
+                continue
+            top, base = row["depths"]
+            if not (np.isfinite(top) and np.isfinite(base)):
+                continue
+            if self.comparison.depth_unit is not None:
+                units["depth"] = self.comparison.depth_unit
+            frames.append(
+                pd.DataFrame(
+                    {"label": label, "depth": [top, base], "value": row["value"]}
+                )
+            )
+        verticals = {
+            name for frame in frames for name in frame.columns if name != "label"
+        } - {"value"}
+        if len(verticals) > 1:
+            raise HangtuError(
+                "SelectionResult.design_lines(): some units' lines are by depth and "
+                "others by elevation, so they can't share one table. Select every "
+                "unit's trend with depth, or draw each unit with .profile()."
+            )
+        vertical = verticals.pop() if verticals else "depth"
+        if frames:
+            frame = pd.concat(frames, ignore_index=True)[["label", vertical, "value"]]
+        else:
+            frame = pd.DataFrame(columns=["label", vertical, "value"])
+        frame[[vertical, "value"]] = frame[[vertical, "value"]].astype(float)
+        if self.unit is not None:
+            units["value"] = self.unit
+        frame.attrs["units"] = {
+            name: units[name] for name in (vertical, "value") if name in units
+        }
+        return frame
+
+    def profile(self, geology_unit: str | None = None, **kwargs: Any) -> Any:
+        """Draw one unit's sources with the line selected from them (P01).
+
+        The comparison's ``.profile()`` of that unit, with
+        ``design_lines=`` its selected line, so the figure shows the sources
+        and the value chosen from them. ``geology_unit`` is required when the
+        comparison has more than one unit. Other keyword arguments go to
+        ``SourceComparison.profile()`` and ``ht.plot.profile()``, a
+        ``design_lines=`` of your own replacing the selected line. Returns
+        ``(fig, ax)``.
+        """
+        if geology_unit is None:
+            rows: Sequence[Mapping[str, Any]] = self.rows
+            chosen: dict[str, Any] = {}
+        else:
+            rows = [r for r in self.rows if r["key"][GEOLOGY] == str(geology_unit)]
+            chosen = {GEOLOGY: geology_unit}
+        lines = self._lines(rows)
+        options = {**({"design_lines": lines} if len(lines) else {}), **kwargs}
+        return self.comparison.profile(**chosen, **options)
+
     def _vertical_columns(self) -> list[str]:
         verticals = list(
             dict.fromkeys(r["vertical"] for r in self.rows if r["vertical"])
@@ -946,6 +1110,7 @@ class SelectionResult(_Result):
                 "include_assumed": self.include_assumed,
                 "display_units": self.display_units,
                 "rows": rows,
+                "positions": self.placed,
                 "comparison": self.comparison.to_dict(),
                 "representatives": {
                     name: result.to_dict()
@@ -968,6 +1133,10 @@ class SelectionResult(_Result):
         for _, row in frame.iterrows():
             table.append([str(row[GEOLOGY]), *(_text(row[name]) for name in shown)])
         lines += _table(table, indent="  ")
+        if self.placed:
+            lines.append("Against the other sources")
+        for placed in self.placed:
+            lines.append(f"  {placed['key'][GEOLOGY]}: {_placed_text(placed)}")
         return "\n".join([*lines, *self.notes])
 
     def __repr__(self) -> str:
