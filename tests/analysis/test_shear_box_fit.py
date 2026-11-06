@@ -626,6 +626,9 @@ def test_multistage_test_changes_nothing(site_si):
 
 
 # AC 5-6: the example project's shear box tests (site.ags, stored in psf).
+#: Terrace samples added for M18 (d) (docs/work/m18d-sources-compared.md,
+#: decision 20), left out so the hand fits below stay this unit's.
+SOURCES_COMPARED = ["B-2-D5", "B-5-D5", "B-6-D5"]
 
 
 @pytest.fixture(scope="module")
@@ -636,7 +639,8 @@ def example(tmp_path_factory):
         display_units="US",
     )
     p.set_geology_map(ht.examples.path("strata.csv"))
-    return p.shear_box()
+    df = p.shear_box()
+    return df[~df["sample_reference"].isin(SOURCES_COMPARED)]
 
 
 def _unit(result, name):
@@ -789,3 +793,50 @@ def test_example_alluvium_in_si(example):
     assert _unit_line(result, "Alluvium", "residual")["cohesion"] == pytest.approx(
         1.31670712, rel=REL
     )
+
+
+# --- M18 (d), AC 12: depths and the judgments file kept on the fit -------------------
+
+
+def test_points_keep_their_depth_elevation_and_ground_level():
+    df = _frame(
+        [(50, 30), (100, 58), (200, 115)],
+        depth=[4.0, 4.0, 4.0],
+        elevation=[96.0, 96.0, 96.0],
+        ground_level=[100.0, 100.0, 100.0],
+    )
+    df.attrs["units"] |= {"depth": "ft", "elevation": "ft", "ground_level": "ft"}
+    result = _fit(df)
+    points = _strength(result)["points"]
+    assert [p["depth"] for p in points] == [4.0] * 3
+    assert [p["elevation"] for p in points] == [96.0] * 3
+    assert [p["ground_level"] for p in points] == [100.0] * 3
+    assert result.depth_units == {
+        "depth": "ft",
+        "elevation": "ft",
+        "ground_level": "ft",
+    }
+    assert result.judgments_file is None
+    record = json.loads(json.dumps(result.to_dict()))
+    assert record["groups"][0]["strengths"]["peak"]["points"][0]["depth"] == 4.0
+    plain = _fit(_frame([(50, 30), (100, 58), (200, 115)]))
+    assert _line(result)["friction_angle"] == _line(plain)["friction_angle"]
+    assert "depth" not in _strength(plain)["points"][0]
+    assert plain.depth_units == {}
+
+
+def test_judgments_file_from_a_projects_frame(tmp_path):
+    project = ht.Project.from_ags(
+        DATA / "site_si.ags",
+        db=tmp_path / "site.sqlite",
+        overwrite=True,
+        display_units="SI",
+    )
+    path = ht.examples.path("judgments.yaml")
+    project.set_judgments(path)
+    result = ht.analysis.shear_box_fit(project.shear_box())
+    assert result.judgments_file == str(path)
+    points = _strength(result)["points"]
+    assert all(p["depth"] is not None for p in points)
+    assert result.depth_units["depth"] == "m"
+    json.dumps(result.to_dict())

@@ -79,6 +79,21 @@ def test_ground_level_can_come_from_elevation_and_depth(frame):
     assert (1500.0, 110.0, 100.0) in bars(ax)
 
 
+def test_a_row_without_ground_level_uses_its_elevation_and_depth(frame):
+    # P01 §7, row by row: a fit's row in SourceComparison.values() has no one
+    # ground level (its points are from several holes), but has both. Row 3:
+    # 105.0 + 15.0 = 120.0 ft, so 10.0 to 20.0 ft deep is 110.0 to 100.0 ft.
+    df = interval_frame(
+        frame,
+        ground_level=[120.0, 120.0, np.nan, 100.0],
+        elevation=[115.0, 110.0, 105.0, 85.0],
+    )
+    df = ht.set_units(df, {"elevation": "ft"})
+    _, ax = ht.plot.profile(df, "undrained_shear_strength")
+    assert (1500.0, 110.0, 100.0) in bars(ax)
+    assert len(bars(ax)) == 4
+
+
 def test_intervals_count_toward_the_vertical_limits(frame):
     _, ax = ht.plot.profile(
         interval_frame(frame), "undrained_shear_strength", vs="depth"

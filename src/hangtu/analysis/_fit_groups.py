@@ -17,6 +17,24 @@ from hangtu._data import numeric_column
 from hangtu.errors import HangtuError
 from hangtu.stats._rows import breakdown
 
+#: The columns that place a fitted point in the ground, kept with it when given
+#: (docs/work/m18d-sources-compared.md, Decision 17).
+PLACE = ("depth", "elevation", "ground_level")
+
+
+def _place_units(df: pd.DataFrame, units: Mapping[str, str] | None) -> dict[str, str]:
+    """Return the unit of each ``PLACE`` column df has, where one is declared.
+
+    A point's depth is kept as given, so its unit is recorded with the fit; a
+    column with no declared unit is left out of the record, never guessed.
+    """
+    declared = {**_units.units_of(df), **(units or {})}
+    return {
+        column: declared[column]
+        for column in PLACE
+        if column in df.columns and column in declared
+    }
+
 
 def _names(value: str | Sequence[str] | None) -> list[str]:
     if value is None:

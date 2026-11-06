@@ -69,7 +69,7 @@ The SPT classes place a sand roughly; they aren't a design value.
 | Wolff (1989), a fit to Peck, Hanson & Thornburn (1974) | (N1)60 | sands | not built: its equation isn't yet verified against the source |
 | s′–t fit of triaxial results | σ′1f, σ′3f of each stage in a unit | saturated specimens, one failure criterion | [`ht.analysis.mohr_coulomb_fit()`](../reference/analysis.md#hangtu.analysis.mohr_coulomb_fit), drawn by [`ht.plot.failure_envelope()`](../plots/failure-envelope.md) |
 | Least-squares fit of shear box results | τ and σn of each stage in a unit | one test type and failure criterion; peak and residual | [`ht.analysis.shear_box_fit()`](../reference/analysis.md#hangtu.analysis.shear_box_fit), drawn by [`ht.plot.shear_box_envelope()`](../plots/shear-box-envelope.md) |
-| Direct shear envelope (Kulhawy & Mayne 1990, Eq. 4-10, Table 4-5, p. 4-25) | τ and σ′n of each stage | drained shear on a forced plane | M18 |
+| Shear box φ′ to triaxial φ′ (Kulhawy & Mayne 1990, Eq. 4-10, p. 4-12; Tables 4-2, p. 4-14, and 4-5, p. 4-25) | a shear box fit's peak φ′, φ′cv (a judgment) | cohesionless and normally consolidated cohesive soils; drained tests | [`ht.analysis.friction_angle_from_shear_box()`](../reference/analysis.md#hangtu.analysis.friction_angle_from_shear_box) |
 | φ′cv from PI (Kulhawy & Mayne 1990, Fig. 4-20) | PI | normally consolidated clays | later |
 | Peak from φ′cv and dilatancy (Bolton 1986; Kulhawy & Mayne 1990, Eqs. 4-5 to 4-7) | φ′cv, relative density, p′ | sands | later |
 
@@ -90,9 +90,50 @@ Triaxial and direct shear results on the unit's own soil are the basis, and over
 correlations are for sands only and give the peak angle in triaxial compression. For the same test they differ by
 a few degrees: at N60 = 20 and σ′v0 = 50 kPa, Hatanaka & Uchida gives 40.9° (with Liao & Whitman's C_N) and Kulhawy
 & Mayne 43.9°; at N60 = 10 and 100 kPa, 32.4° and 33.8°. Comparing them on one profile, colored by
-`correlation_name`, shows where they agree. Choosing a design value from them is stage D (M18).
+`correlation_name`, shows where they agree.
 
-A direct shear φ′ is not a triaxial φ′: convert before combining them (Kulhawy & Mayne 1990, Eq. 4-10).
+A direct shear φ′ is not a triaxial φ′. The shear box shears plane strain on a forced plane, and Kulhawy & Mayne
+(1990) relate it to plane strain compression, tan φ′ds = tan φ′psc cos φ′cv (Eq. 4-10, p. 4-12), and plane strain
+to triaxial compression by φ′psc = 1.12 φ′tc for cohesionless soils (Table 4-2, p. 4-14) and 1.10 φ′tc for normally
+consolidated cohesive soils (Table 4-5, p. 4-25). For typical φ′cv, they say, φ′psc is "some 2 to 7 degrees higher
+than the direct shear values" (p. 4-12). `ht.analysis.friction_angle_from_shear_box()` applies both steps to a
+shear box fit's peak angle:
+
+- `soil=` is required and never read from a soil class: the two tables are all it covers. An overconsolidated
+  clay's shear box φ′ stays `peak_friction_angle`, a direct shear angle, and isn't compared with a triaxial φ′.
+- φ′cv is a judgment keyed by geology unit, `critical_state_friction_angle` in the judgments file, with its reason
+  (a ring shear test, a correlation from PI, the literature). See [judgments](../guides/judgments.md#the-critical-state-friction-angle).
+- The converted value is `effective_friction_angle` with `conversion_name`, so it sits beside a triaxial φ′ as a
+  source of its own and is never pooled with one unawares.
+- Residual angles aren't converted: φ′r is independent of test type (p. 4-10). Neither is c′, for which the source
+  gives no conversion.
+- Converting assumes the test was drained and its stresses effective (ASTM D3080), and the result says so. For
+  cohesive soils the source marks the relation "Speculative, based on results from sand" (Table 4-5, footnote 2).
+- A φ′ds below tan⁻¹(sin φ′cv) gives a peak below critical state, which the equation doesn't describe: it is
+  converted, flagged in `below_critical_state` and warned about.
+
+## Comparing the sources
+
+Before choosing φ′ for a unit (stage D), put its sources side by side. `ht.stats.compare_sources()` takes the
+frames and fits you already have, summarizes each source on its own in each geology unit, and never pools them:
+the SPT correlations as rows, the triaxial fit and the converted shear box as one value each, with their points'
+count, r² and stress range. A fit's value is placed among each row source's values (below, within or above, and its
+percentile rank when within), never tested against them. The figure is P01 of one unit, each fit drawn as an
+interval bar over its specimens' depths.
+
+```python
+--8<-- "sources-compared-friction-angle.py"
+```
+
+``` { .text .no-copy }
+--8<-- "sources-compared-friction-angle.txt"
+```
+
+![φ′ of the example project's Terrace from two SPT correlations, the triaxial fit and the converted shear box, against elevation](../img/generated/sources-compared-friction-angle.png){ width="480" }
+
+On the example site, both SPT correlations put the Terrace about 7° to 10° above the triaxial and converted shear
+box fits, which agree within about 1.5°. The laboratory tests on the unit's own soil are the basis; the SPT
+estimates of this gravelly sand overstate φ′ (see Pitfalls). Recording the choice is M18 (e).
 
 ## Variability
 

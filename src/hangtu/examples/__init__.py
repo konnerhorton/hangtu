@@ -2,14 +2,21 @@
 
 A synthetic site in US units: ``site.ags`` with its geology map
 ``strata.csv`` and its judgments file ``judgments.yaml`` (unit weights,
-water levels, specific gravities and the sandstone's fixed σci), and the
-same tests as CSV files (``spt.csv``, ``atterberg.csv``,
-``permeability.csv``) laid out like ``ht.template()``.
+water levels, specific gravities, the sandstone's fixed σci and the
+Terrace's critical state friction angle), and the same tests as CSV files
+(``spt.csv``, ``atterberg.csv``, ``permeability.csv``) laid out like
+``ht.template()``.
 
 ``triaxial_readings.csv`` has readings during shearing for the site's six
-triaxial stages, in psf, laid out like ``ht.template("triaxial_readings")``.
+CU and CDM triaxial stages, in psf, laid out like ``ht.template("triaxial_readings")``.
 They are synthetic, made to end at each stage's failure values in
 ``site.ags``, for ``ht.plot.triaxial_shearing()``.
+
+``triaxial.csv``, ``shear_box.csv`` and ``strength.csv`` are the site's
+triaxial, shear box and undrained strength tests from ``site.ags``, laid out
+like ``ht.template()`` (stresses in psf), for comparing a parameter's sources:
+the Terrace's φ′ from CD triaxial and shear box tests, and the Alluvium's s_u
+from UU, laboratory vane, hand penetrometer and borehole vane tests.
 
 ``rock_triaxial.csv`` has UCS and triaxial tests on the sandstone cored in
 B-3, in MPa (depths in ft), laid out like ``ht.template("triaxial")`` with

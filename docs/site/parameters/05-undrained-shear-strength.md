@@ -101,7 +101,29 @@ Before combining tests, refer each s_u to one mode and rate. Kulhawy & Mayne (19
 the ratio to isotropically consolidated triaxial compression (CIUC) as 1.13 − 0.0094 φ′tc for K0-consolidated
 compression, 0.77 − 0.0064 φ′tc for direct simple shear and 0.56 − 0.0046 φ′tc for K0-consolidated extension
 (Table 4-9, p. 4-50), and the rate effect as s_u / s_u(1 %/h) = 1.0 + 0.1 log ε̇ (%/h) (Eq. 4-54, p. 4-48).
-Choosing a design value is stage D (M18).
+
+## Comparing the sources
+
+Before choosing s_u for a unit (stage D), put its sources side by side. `ht.stats.compare_sources()` summarizes
+each test type, and each correlation you pass with them, on its own in each geology unit, by the same rules as
+`ht.stats.describe()`, and never pools them. It tests nothing: `ht.stats.compare()` is the check for two of them,
+here UU against the field vane. P07 draws one sub-row per source in each unit, with the table's percentiles.
+
+```python
+--8<-- "sources-compared-undrained.py"
+```
+
+``` { .text .no-copy }
+--8<-- "sources-compared-undrained.txt"
+```
+
+![Undrained shear strength of the example project's Alluvium, one row per test type](../img/generated/sources-compared-undrained.png){ width="560" }
+
+The field vane is shown as measured: Bjerrum's correction is a judgment for selection, M18 (e). The SPT
+correlations aren't in this comparison: at the Alluvium's PI of about 23, Stroud's f1 is a band (15 ≤ PI < 30),
+and so is each of Terzaghi & Peck's classes. A band has no single value to summarize, so `compare_sources()` would
+count Stroud's rows in `count_range` and leave every one out. Draw the bands beside the tests on a profile instead.
+Recording the choice is M18 (e).
 
 ## Variability
 

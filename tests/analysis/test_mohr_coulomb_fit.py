@@ -451,3 +451,58 @@ def test_input_is_unchanged():
     before = df.copy()
     _fit(df)
     pd.testing.assert_frame_equal(df, before)
+
+
+# --- M18 (d), AC 12: depths and the judgments file kept on the fit -------------------
+
+
+def test_points_keep_their_depth_elevation_and_ground_level():
+    df = _points(
+        [(100, 300), (200, 500), (300, 700)],
+        depth=[4.0, 6.5, 9.0],
+        elevation=[96.0, 93.5, 91.0],
+        ground_level=[100.0, 100.0, 100.0],
+    )
+    df.attrs["units"] |= {"depth": "m", "elevation": "m", "ground_level": "m"}
+    result = _fit(df)
+    points = _main(result)["points"]
+    assert [p["depth"] for p in points] == [4.0, 6.5, 9.0]
+    assert [p["elevation"] for p in points] == [96.0, 93.5, 91.0]
+    assert [p["ground_level"] for p in points] == [100.0] * 3
+    assert result.depth_units == {"depth": "m", "elevation": "m", "ground_level": "m"}
+    assert result.judgments_file is None
+    record = json.loads(json.dumps(result.to_dict()))
+    assert record["groups"][0]["fits"][0]["points"][1]["depth"] == 6.5
+    assert record["depth_units"]["depth"] == "m"
+    assert record["judgments_file"] is None
+    assert _main(result)["friction_angle"] == pytest.approx(
+        _main(_fit(_points([(100, 300), (200, 500), (300, 700)])))["friction_angle"],
+        rel=REL,
+    )
+
+
+def test_points_without_depths_have_none():
+    result = _fit(_points([(100, 300), (200, 500)], depth=[4.0, np.nan]))
+    points = _main(result)["points"]
+    assert points[1]["depth"] is None
+    assert "elevation" not in points[0]
+    assert result.depth_units == {}  # depth given without a unit: not guessed
+
+
+def test_judgments_file_from_a_projects_frame(tmp_path):
+    project = ht.Project.from_ags(
+        DATA / "site_si.ags",
+        db=tmp_path / "site.sqlite",
+        overwrite=True,
+        display_units="SI",
+    )
+    path = ht.examples.path("judgments.yaml")
+    project.set_judgments(path)
+    with pytest.warns(UserWarning, match=BACK_PRESSURE):
+        df = project.triaxial()
+    result = ht.analysis.mohr_coulomb_fit(df, group_by="test_type")
+    assert result.judgments_file == str(path)
+    points = [p for g in result.groups for f in g["fits"] for p in f["points"]]
+    assert all(p["depth"] is not None for p in points)
+    assert result.depth_units["depth"] == "m"
+    json.dumps(result.to_dict())

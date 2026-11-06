@@ -177,9 +177,9 @@ Each judgment declares what it is keyed by and whether one project-wide value is
 ### 31. Curves in real files · You · input for wave 0's intent (M16)
 Which user-defined groups and headings real files use for triaxial stress–strain curves, rock triaxial, swelling against time and shear box displacement, gathered from the sample dataset being prepared from real projects. Rock triaxial and UCS rows are read into `ht.template("triaxial")`'s shape, with `failure_mode` (SPEC §2.6, M17 c).
 
-### 32. Published definitions of the model sets · You (copies) + Claude (verify) · SPEC §5 · Mohr–Coulomb for M18, the rest with their waves
-**Mohr–Coulomb set for M18** (decided 2026-11-02): c′ and φ′ from the fits and correlations; ψ as an estimate; E′ and ν′ left blank until wave 5 (M23). Mohr–Coulomb is defined in any soil mechanics text, so a standard citation does.
-- **ψ:** Bolton (1986), ψ = (φ′_peak − φ′_cv) / 0.8, floored at 0, for coarse-grained units, with φ′_cv a judgment per unit (no default); ψ = 0 for fine-grained units. The relation is for plane strain; used with a triaxial φ′ it is an approximation, and the result says so. The practice rule ψ = max(0, φ′ − 30°) is not offered: its only sources are software manuals (GEO5, PLAXIS), and it hides the same φ′_cv assumption (sheet 09, §5.2–5.3).
+### 32. Published definitions of the model sets · You (copies) + Claude (verify) · SPEC §5 · Mohr–Coulomb for M18 (e), the rest with their waves
+**Mohr–Coulomb set for M18 (e)** (decided 2026-11-02): c′ and φ′ from the fits and correlations; ψ as an estimate; E′ and ν′ left blank until wave 5 (M23). Mohr–Coulomb is defined in any soil mechanics text, so a standard citation does.
+- **ψ:** Bolton (1986), ψ = (φ′_peak − φ′_cv) / 0.8, floored at 0, for coarse-grained units, with φ′_cv the `critical_state_friction_angle` judgment per geology unit (no default), which M18 (d) added for the shear box conversion and (e) reuses; ψ = 0 for fine-grained units. The relation is for plane strain; used with a triaxial φ′ it is an approximation, and the result says so. The practice rule ψ = max(0, φ′ − 30°) is not offered: its only sources are software manuals (GEO5, PLAXIS), and it hides the same φ′_cv assumption (sheet 09, §5.2–5.3).
 - **To verify against the primary:** Bolton, M.D. (1986), The strength and dilatancy of sands, *Géotechnique* 36(1), 65–78 (now [V] only through secondary sources).
 
 **The other sets**, each checked by the wave that builds it: Hardening Soil (Schanz, Vermeer & Bonnier 1999?) and HS-small (Benz 2007?) with wave 5 (M23); Soft Soil (Vermeer & Neher 1999?) with wave 3; generalized Hoek–Brown (Hoek, Carranza-Torres & Corkum 2002) with wave 4 (M22). Confirm a non-vendor published source that defines each set's parameters; where only a software manual defines a model, say so.
@@ -250,6 +250,14 @@ Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads o
   - A value carried in the AGS file: is it data, or a judgment? SPEC §4 keeps judgments in `judgments.yaml`, where they can be reviewed, so a judgment in the file would have to say where it came from.
   - How would the set be published? For example, as a `DICT` block users copy into their files.
   - How does this fit with wave 0 (M16, user-defined groups)?
+
+### 55. The sandstone triaxial set in site.ags · Claude · `tests/data/_make_examples.py`, `src/hangtu/examples/__init__.py`
+- **Rule:** example data goes into `site.ags` first, and the example CSVs are written from that project (decided 2026-11-05, M18 (d) spec review, `docs/work/m18d-sources-compared.md`, decision 20).
+- **Problem:** `rock_triaxial.csv` (M17 c) is made on its own, in MPa, and isn't in `site.ags`.
+- **Wanted:** B-3's sandstone UCS and triaxial tests in `site.ags` (TREG/TRET, and the UCS group), with `rock_triaxial.csv` written from `p.triaxial()`, so the Hoek–Brown examples and P32 read the same tests as the file.
+- **Questions:**
+  - Does the AGS file carry `failure_mode`, which `hoek_brown_fit()` needs, or is it added after ingest?
+  - The file is in US units while the CSV is in MPa: convert on writing, or keep the CSV in the file's units?
 
 ---
 

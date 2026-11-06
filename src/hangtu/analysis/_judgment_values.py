@@ -25,12 +25,13 @@ ALL = "all"
 WORKING_UNITS = {
     "unit_weight": _units.ureg.Unit("kilonewton / meter**3"),
     "length": _units.ureg.meter,
+    "angle": _units.ureg.degree,
 }
 
 
 @dataclass
 class Values:
-    """One judgment as this call uses it, in m and kN/m³, with its record."""
+    """One judgment as this call uses it, in m, kN/m³ and degrees, with its record."""
 
     name: str
     source: str  # "argument", or the judgments file's path
@@ -58,8 +59,19 @@ class Values:
 
 def read_judgments(judgments: Any, df: pd.DataFrame) -> "_judgments.Read | None":
     """Read the judgments file for this call: ``judgments=``, else df's project's."""
+    return read_judgments_file(judgments, df.attrs.get("judgments_file"), "df")
+
+
+def read_judgments_file(
+    judgments: Any, attached: str | None, carrier: str
+) -> "_judgments.Read | None":
+    """Read ``judgments=``, else the project's file ``attached`` names.
+
+    ``carrier`` names what carried the project's file, such as "df" or "the
+    fit" (a derived result records it: docs/work/m18d-sources-compared.md,
+    Decision 17).
+    """
     given = _judgments.as_judgments(judgments)
-    attached = df.attrs.get("judgments_file")
     if given is None:
         if attached is None:
             return None
@@ -67,7 +79,7 @@ def read_judgments(judgments: Any, df: pd.DataFrame) -> "_judgments.Read | None"
     elif attached is not None and given.path.resolve() != Path(attached).resolve():
         warn(
             f"judgments= is {str(given.path)!r}, not the project's judgments file "
-            f"{attached!r} that df carries; judgments= is used."
+            f"{attached!r} that {carrier} carries; judgments= is used."
         )
     return given.read()
 

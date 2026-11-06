@@ -91,7 +91,8 @@ def add_legend(
         ``"auto"`` (the default): the first clear corner in ``CORNERS``, else
         below the x label. ``"inside"``: the first clear corner, else the one
         with the fewest obstacles. ``"right"``: outside on the right.
-        ``"bottom"``: centered under the x label in up to four columns.
+        ``"bottom"``: centered under the x label in up to four columns,
+        fewer when long entries would run past the figure's edges.
         None: no legend.
 
     Returns
@@ -159,19 +160,31 @@ def _right(ax: Axes, handles: list[Artist], labels: list[str], offset: float) ->
 
 
 def _bottom(ax: Axes, handles: list[Artist], labels: list[str]) -> Legend:
-    return ax.legend(
-        handles=handles,
-        labels=labels,
-        loc="upper center",
-        bbox_to_anchor=(0.5, 0.0),
-        bbox_transform=offset_copy(
-            ax.transAxes, figure_of(ax), y=-below_x_label(ax), units="points"
-        ),
-        borderaxespad=0.0,
-        frameon=False,
-        fontsize=8,
-        ncols=min(len(handles), BOTTOM_COLUMNS),
-    )
+    """Place the legend below the x label, in as many columns as fit the figure.
+
+    Up to ``BOTTOM_COLUMNS``; fewer when long entries would run past the
+    figure's edges, so no entry is cut off.
+    """
+    figure = figure_of(ax)
+    width = figure.bbox.width
+    columns = min(len(handles), BOTTOM_COLUMNS)
+    while True:
+        legend = ax.legend(
+            handles=handles,
+            labels=labels,
+            loc="upper center",
+            bbox_to_anchor=(0.5, 0.0),
+            bbox_transform=offset_copy(
+                ax.transAxes, figure, y=-below_x_label(ax), units="points"
+            ),
+            borderaxespad=0.0,
+            frameon=False,
+            fontsize=8,
+            ncols=columns,
+        )
+        if columns == 1 or legend.get_window_extent(renderer(figure)).width <= width:
+            return legend
+        columns -= 1
 
 
 def _inside(ax: Axes, handles: list[Artist], labels: list[str]) -> Legend:

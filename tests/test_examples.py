@@ -6,6 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 from python_ags4 import AGS4
@@ -21,16 +22,22 @@ FILES = [
     "judgments.yaml",
     "permeability.csv",
     "rock_triaxial.csv",
+    "shear_box.csv",
     "site.ags",
     "spt.csv",
     "strata.csv",
+    "strength.csv",
+    "triaxial.csv",
     "triaxial_readings.csv",
 ]
 CSVS = [
     "atterberg.csv",
     "permeability.csv",
     "rock_triaxial.csv",
+    "shear_box.csv",
     "spt.csv",
+    "strength.csv",
+    "triaxial.csv",
     "triaxial_readings.csv",
 ]
 NOT_FINDINGS = {"Metadata", "Summary of data"}
@@ -97,8 +104,8 @@ def test_unknown_name_lists_the_files():
         ht.examples.path("site.csv")
     assert str(caught.value) == (
         "No example file 'site.csv'. Files: atterberg.csv, judgments.yaml, "
-        "permeability.csv, rock_triaxial.csv, site.ags, spt.csv, strata.csv, "
-        "triaxial_readings.csv."
+        "permeability.csv, rock_triaxial.csv, shear_box.csv, site.ags, spt.csv, "
+        "strata.csv, strength.csv, triaxial.csv, triaxial_readings.csv."
     )
 
 
@@ -112,6 +119,53 @@ def test_csv_and_ags_hold_the_same_tests(site, name, value):
     pd.testing.assert_frame_equal(
         from_csv[key], from_ags[key].reset_index(drop=True), check_dtype=False
     )
+
+
+@pytest.mark.parametrize(
+    ("name", "dataset", "value"),
+    [
+        ("triaxial", "triaxial", "deviator_stress_at_failure"),
+        ("shear_box", "shear_box", "peak_shear_stress"),
+        ("strength", "undrained_strength", "undrained_shear_strength"),
+    ],
+)
+def test_test_csvs_hold_the_projects_tests(site, name, dataset, value):
+    # M18 (d), decision 20: the tests compared, written from site.ags.
+    from_ags = getattr(site, dataset)()
+    from_csv = ht.read_csv(
+        ht.examples.path(f"{name}.csv"), dtype={"specimen_reference": str}
+    )
+    key = ["loca_id", "sample_reference", "specimen_reference", "depth", value]
+    ags = from_ags[key].reset_index(drop=True)
+    ags = ags.mask(ags.isna(), np.nan)  # a field test's blank sample is None
+    # site.ags stores psf through a conversion; the CSV has 6 figures.
+    pd.testing.assert_frame_equal(
+        from_csv[key], ags, check_dtype=False, check_exact=False
+    )
+    # A lab specimen is named by its sample and reference; a field test has none.
+    lab = from_csv["sample_reference"].notna()
+    named = from_csv["sample_reference"] + "-" + from_csv["specimen_reference"]
+    assert (from_csv.loc[lab, "specimen_id"] == named[lab]).all()
+    assert from_csv.loc[~lab, "specimen_id"].isna().all()
+
+
+def test_the_sources_compared_are_in_the_example_site(site):
+    # M18 (d), decision 20: Terrace φ′ from CD triaxial and shear box tests,
+    # Alluvium s_u from four kinds of test.
+    triaxial = site.triaxial(where={"test_type": "CD"})
+    assert set(triaxial["geology_unit"]) == {"Terrace"}
+    assert triaxial["loca_id"].nunique() == 4 and len(triaxial) == 12
+    shear_box = site.shear_box(where={"geology_unit": "Terrace"})
+    assert shear_box["sample_reference"].nunique() == 4
+    strength = site.undrained_strength()
+    assert set(strength["geology_unit"]) == {"Alluvium"}
+    counts = strength.groupby(["source", "test_type"]).size().to_dict()
+    assert counts == {
+        ("field", "BOREHOLE"): 11,
+        ("lab", "LV"): 6,
+        ("lab", "UU"): 11,
+        ("lab", "hand penetrometer"): 6,
+    }
 
 
 # --- The example scripts (spec §3, §4) ----------------------------------------------

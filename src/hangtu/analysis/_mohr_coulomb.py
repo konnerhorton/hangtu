@@ -11,13 +11,15 @@ import pandas as pd
 
 from hangtu import units as _units
 from hangtu._data import flag_column, numeric_column, rows_text
-from hangtu.analysis._derived import _DerivedResult
+from hangtu.analysis._derived import _DerivedResult, judgments_file
 from hangtu.analysis._fit_groups import (
+    PLACE,
     _cell,
     _check_sources,
     _label,
     _names,
     _pairs,
+    _place_units,
     _reported,
 )
 from hangtu.analysis._line_fit import line_fit
@@ -34,6 +36,7 @@ _IDENTIFIERS = (
     "specimen_reference",
     "test_type",
     "test_stage",
+    *PLACE,
 )
 #: The counts of rows left out, in the order a row is counted (Decision 6).
 _LEFT_OUT = (
@@ -313,12 +316,14 @@ def mohr_coulomb_fit(
         notes=tuple(notes),
         judgments=dict(df.attrs.get("judgments", {})),
         hangtu_version=version("hangtu"),
+        judgments_file=judgments_file(df),
         stress=stress,
         by=tuple(by),
         pooled=tuple(pooled),
         cohesion=cohesion,
         multistage=multistage,
         display_units=display_units,
+        depth_units=_place_units(df, units),
         groups=tuple(groups),
     )
 
@@ -448,6 +453,10 @@ class MohrCoulombFit(_DerivedResult):
     multistage: bool
     #: The system the stresses were converted to before fitting, None if not.
     display_units: str | None
+    #: ``{column: unit}`` of the points' ``depth``, ``elevation`` and
+    #: ``ground_level``, kept as given; a column with no declared unit is
+    #: missing here.
+    depth_units: dict[str, str]
     #: One record per group: its key, its number of rows and its fits, the
     #: main one first. Each fit has ``stages`` (``"all"`` or
     #: ``"single_stage"``), the values of ``.to_frame()``, ``reported_pairs``

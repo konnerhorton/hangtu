@@ -144,3 +144,23 @@ def test_the_corner_search_leaves_rcparams_unchanged(ax):
     place(ax)
     place(ax, where="inside")
     assert dict(mpl.rcParams) == before
+
+
+def test_a_bottom_legend_drops_columns_until_it_fits_the_figure(ax):
+    # P00 §11: "up to four columns"; long entries take fewer, never cut off.
+    long = [
+        Line2D([], [], marker="o", label=f"a long source name, number {i}")
+        for i in range(4)
+    ]
+    legend, where = add_legend(ax, [long], Notes(), where="bottom")
+    assert where == "bottom"
+    figure = ax.figure
+    figure.draw_without_rendering()
+    extent = legend.get_window_extent(figure.canvas.get_renderer())
+    assert extent.x0 >= 0 and extent.x1 <= figure.bbox.width
+    assert legend._ncols < 4
+
+
+def test_short_bottom_entries_keep_four_columns(ax):
+    legend, _ = add_legend(ax, [entries(5)], Notes(), where="bottom")
+    assert legend._ncols == 4

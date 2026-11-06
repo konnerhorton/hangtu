@@ -72,8 +72,12 @@ def test_example_fits_match_the_lab_marks_and_p11(tmp_path):
     p.set_geology_map(ht.examples.path("strata.csv"))
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
+        # The readings are the CU and CDM stages'; the UU and CD have none.
         _, _, from_ags = ht.plot.failure_envelope(
-            p.triaxial(), space="s_t", group_by="geology_unit", display_units="US"
+            p.triaxial(where={"test_type": ["CU", "CDM"]}),
+            space="s_t",
+            group_by="geology_unit",
+            display_units="US",
         )
     columns = ["effective_cohesion", "effective_friction_angle"]
     np.testing.assert_allclose(

@@ -1,6 +1,6 @@
 # hangtu
 
-Python library that derives the ground parameters a geotechnical design needs, from AGS4 or CSV test data through to model parameter sets, for soil and rock, with plots, analyses, AGS4 ingest/QC and statistics along the way (SPEC §1). Work is organized as stages A–D per parameter and waves 0–6 (SPEC §1.3). Done through M15, M11, M17 and M18 (a)–(c); 0.1.0 is on PyPI. Next: selection's M18 (d), sources compared and the model sets, designed against every wave 2 fit (`mohr_coulomb_fit()`, `shear_box_fit()`, `hoek_brown_fit()`); then wave 0 (M16, waiting on TODO #31) and waves 3–6. Status: SPEC §12.4 for milestones, `docs/drafts/parameters/README.md` for parameters.
+Python library that derives the ground parameters a geotechnical design needs, from AGS4 or CSV test data through to model parameter sets, for soil and rock, with plots, analyses, AGS4 ingest/QC and statistics along the way (SPEC §1). Work is organized as stages A–D per parameter and waves 0–6 (SPEC §1.3). Done through M15, M11, M17 and M18 (a)–(d); 0.1.0 is on PyPI. Next: selection's M18 (e), the selection as a judgment, the model sets and the Mohr–Coulomb set (ψ from the `critical_state_friction_angle` judgment, TODO #32), designed against every wave 2 fit (`mohr_coulomb_fit()`, `shear_box_fit()`, `hoek_brown_fit()`) and `compare_sources()`; then wave 0 (M16, waiting on TODO #31) and waves 3–6. Status: SPEC §12.4 for milestones, `docs/drafts/parameters/README.md` for parameters.
 
 ## Where things are
 - `SPEC.md`: product spec and cross-cutting decisions. Read the relevant section before designing anything.
@@ -30,6 +30,7 @@ Python library that derives the ground parameters a geotechnical design needs, f
 - **Plot contract:** `ht.plot.<name>(df, *, ..., ax=None, display_units=None) -> (fig, ax)`. Apply styling in a context manager and never change global matplotlib state.
 - **Column names come from the registry** (`columns.yaml`, SPEC §10.3). Don't invent column names in a function.
 - **Units:** resolve them in the order explicit argument → `df.attrs["units"]` → registry/settings → error (analysis) or "(units unknown)" (plot). Never guess a unit (SPEC §2.6).
+- **A Project's datasets give `geology_unit` as a categorical** (the geology map's order, with units that have no rows here). Group by it with `observed=` given, and test new grouping code on a categorical column too: hand-built fixtures use strings and miss pandas' FutureWarning, which fails a docs example.
 - **Never drop data silently.** Draw out-of-range values at the edge with a count, and keep flagged values (NP, refusal, `<x`) distinct from blank.
 - **Error messages** say what is wrong, where, and what to do. Don't show raw tracebacks for anticipated data problems.
 - **Annotations are published** in the API reference and checked by mypy. Correct a wrong annotation to what the code does. A `# type: ignore[<code>]` names its code and covers only a library's typing gap (or hangtu's attributes on an `Axes`); narrow a value the code already guarantees with an `assert` and a comment saying why. Read a plot's figure with `figure_of(ax)`.

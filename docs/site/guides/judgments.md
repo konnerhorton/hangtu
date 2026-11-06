@@ -118,6 +118,26 @@ fixed_intact_compressive_strength:
 
 `fixed_intact_compressive_strength=` on the call takes a value with its unit for every group (`"61 MPa"`) or a mapping by group, and replaces the file's, with a warning.
 
+## The critical state friction angle
+
+[`ht.analysis.friction_angle_from_shear_box()`](../reference/analysis.md#hangtu.analysis.friction_angle_from_shear_box) converts a shear box φ′ to a triaxial φ′ by Kulhawy & Mayne (1990, Eq. 4-10), which needs the critical state friction angle φ′cv. Mineralogy and grading set it, so it is given per geology unit, never for the whole project, and where it came from is your call: a ring shear test, a correlation from PI, or the literature.
+
+```yaml
+critical_state_friction_angle:
+  by: geology_unit
+  units: {critical_state_friction_angle: deg}
+  values:
+    Terrace:
+      critical_state_friction_angle: 32
+      reason: "assumed for subangular quartz sand with gravel; no ring shear test yet"
+```
+
+- **Every entry needs a `reason`**, and the angle must lie strictly between 0° and 90°. hangtu gives no plausibility warning: no range has been verified for one.
+- **Keyed by `geology_unit` only.** A `project:` value is an error. To take φ′cv from the file, group the shear box fit by `geology_unit`; a unit the file doesn't list is an error naming it.
+- The conversion finds the file through the fit, from the Project the shear box data came from, or from `judgments=`.
+
+`critical_state_friction_angle=` on the call takes a number for a fit with one group, or a mapping by geology unit, and replaces the file's, with a warning.
+
 ## The log
 
 Vertical stress is integrated through each hole's log, `p.stratigraphy()` or a table in the shape of `ht.template("stratigraphy")`. It is always passed explicitly, because it's data you may have edited, such as layers reclassified by USCS.

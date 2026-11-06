@@ -10,7 +10,7 @@ Shear box stages in τ–σn, peak and residual, with the lines fitted to them, 
 
 ## What it shows
 
-One point per stage: filled for the peak shear stress, open for the residual. The lines are those `ht.analysis.shear_box_fit()` fits to them, τ = c + σn tan φ by least squares. Here each geology unit has its own: two undisturbed tests in the Alluvium and a recompacted one in the Terrace.
+One point per stage: filled for the peak shear stress, open for the residual. The lines are those `ht.analysis.shear_box_fit()` fits to them, τ = c + σn tan φ by least squares. Here each geology unit has its own: two undisturbed tests in the Alluvium and four recompacted ones in the Terrace.
 
 Each strength gets two lines. The free fit is solid over the normal stresses tested and dashed beyond: c is where the dashed line meets σn = 0, outside the stresses tested, so read it as an intercept, not a measured strength. The fit through the origin is drawn dotted beside it. Report the two together: a large intercept from few stages is usually roughness, not cohesion (Hoek 2023, ch. 4). The box gives each line's c, φ, the number of points, R², the range of σn, and the lab's own c and φ where the file reports them. hangtu doesn't judge the difference.
 

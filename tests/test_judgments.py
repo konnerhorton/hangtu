@@ -481,3 +481,84 @@ def test_fixed_intact_compressive_strength_errors(tmp_path, body, message):
     text = "fixed_intact_compressive_strength:\n" + body
     with pytest.raises(ht.HangtuError, match=message):
         ht.judgments(write(tmp_path, text))
+
+
+# --- critical_state_friction_angle (docs/work/m18d-sources-compared.md, AC 3) -------
+
+CRITICAL_STATE = """\
+critical_state_friction_angle:
+  by: geology_unit
+  units: {critical_state_friction_angle: deg}
+  values:
+    Terrace: {critical_state_friction_angle: 32, reason: "ring shear, BH02 4.0 m"}
+    Alluvium: {critical_state_friction_angle: 30.5, reason: "Mesri & Shahien, PI 25"}
+"""
+
+
+def test_critical_state_friction_angle_reads(tmp_path):
+    judgments = ht.judgments(write(tmp_path, CRITICAL_STATE))
+    judgment = judgments.read().judgments["critical_state_friction_angle"]
+    assert judgment.by == "geology_unit"
+    assert judgment.units == {"critical_state_friction_angle": "deg"}
+    assert judgment.project is None
+    assert judgment.values["Terrace"].values == {"critical_state_friction_angle": 32}
+    assert judgment.values["Terrace"].reason == "ring shear, BH02 4.0 m"
+    text = repr(judgments)
+    assert "critical_state_friction_angle, by geology_unit:" in text
+    assert (
+        "Terrace: critical_state_friction_angle 32 deg (ring shear, BH02 4.0 m)" in text
+    )
+
+
+@pytest.mark.parametrize(
+    ("body", "message"),
+    [
+        (
+            "  by: geology_unit\n  units: {critical_state_friction_angle: deg}\n"
+            "  values:\n    Terrace: {critical_state_friction_angle: 32}\n",
+            r"judgments.yaml, critical_state_friction_angle, values.Terrace: "
+            r"'reason' is missing.*ring shear",
+        ),
+        (
+            "  by: geology_unit\n  units: {critical_state_friction_angle: deg}\n"
+            "  project: {critical_state_friction_angle: 32, reason: x}\n",
+            r"judgments.yaml, critical_state_friction_angle: "
+            r"critical_state_friction_angle takes no project: value.*geology_unit",
+        ),
+        (
+            "  by: geology_unit\n  units: {critical_state_friction_angle: deg}\n"
+            "  values:\n    Terrace: {critical_state_friction_angle: 0, reason: x}\n",
+            r"values.Terrace, critical_state_friction_angle: must be between 0° and "
+            r"90°, not 0 deg",
+        ),
+        (
+            "  by: geology_unit\n  units: {critical_state_friction_angle: deg}\n"
+            "  values:\n    Terrace: {critical_state_friction_angle: 90, reason: x}\n",
+            r"values.Terrace, critical_state_friction_angle: must be between 0° and "
+            r"90°, not 90 deg",
+        ),
+        (
+            "  by: geology_unit\n  units: {critical_state_friction_angle: deg}\n"
+            "  values:\n    Terrace: {critical_state_friction_angle: -5, reason: x}\n",
+            r"must be between 0° and 90°, not -5 deg",
+        ),
+        (
+            "  by: uscs_symbol\n  units: {critical_state_friction_angle: deg}\n",
+            r"critical_state_friction_angle is keyed by geology_unit, not "
+            r"'uscs_symbol'",
+        ),
+        (
+            "  by: geology_unit\n  values:\n"
+            "    Terrace: {critical_state_friction_angle: 32, reason: x}\n",
+            r"'units' is missing.*critical_state_friction_angle: deg",
+        ),
+        (
+            "  by: geology_unit\n  units: {critical_state_friction_angle: kPa}\n",
+            r"units.critical_state_friction_angle:",
+        ),
+    ],
+)
+def test_critical_state_friction_angle_errors(tmp_path, body, message):
+    text = "critical_state_friction_angle:\n" + body
+    with pytest.raises(ht.HangtuError, match=message):
+        ht.judgments(write(tmp_path, text))

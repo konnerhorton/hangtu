@@ -38,7 +38,10 @@ def example(tmp_path_factory):
         display_units="US",
     )
     p.set_geology_map(ht.examples.path("strata.csv"))
-    return p.shear_box()
+    df = p.shear_box()
+    # The Terrace samples added for M18 (d) are left out, so the hand fits of
+    # M17 (b) stay the goldens.
+    return df[~df["sample_reference"].isin(["B-2-D5", "B-5-D5", "B-6-D5"])]
 
 
 def _lines(ax, gid):

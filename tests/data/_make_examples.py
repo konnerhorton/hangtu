@@ -24,6 +24,14 @@ sandstone's fixed σci the mean of its UCS tests that failed in shear.
 ``rock_triaxial.csv`` holds B-3's sandstone UCS and triaxial tests in MPa
 (M17 c), in the ``triaxial`` template's columns; they aren't in ``site.ags``.
 
+For comparing a parameter's sources (M18 d), ``site.ags`` also has single-stage
+CD triaxial tests on four Terrace tubes and small shear box tests on three
+Terrace spoons, more UU, laboratory vane, hand penetrometer and borehole vane
+tests in the Alluvium, and ``judgments.yaml`` a φ′cv for the Terrace. Each set
+has its own seeded sequence and its rows follow every other row of their
+groups, so nothing written before changed. ``triaxial.csv``, ``shear_box.csv``
+and ``strength.csv`` are the project's datasets in their templates' columns.
+
 Two QC findings are planted, so the QC example has something to report:
 - G002, a gap in the geology log of B-4 from 9.0 to 10.0 ft;
 - A002, a plasticity index in B-3 that doesn't match LL - PL (an arithmetic slip).
@@ -80,6 +88,7 @@ ABBR = [
     ("LPDN_TYPE", "SMALL PYK", "Small pyknometer"),
     ("TREG_TYPE", "CU", "Consolidated undrained with pwp measurement (single stage)"),
     ("TREG_TYPE", "CDM", "Consolidated drained (multi-stage)"),
+    ("TREG_TYPE", "CD", "Consolidated drained (single stage)"),
     ("TREG_COND", "UNDISTURBED", "Undisturbed"),
     ("TRIG_TYPE", "UU", "Unconsolidated quick undrained (single stage)"),
     ("TRIG_COND", "UNDISTURBED", "Undisturbed"),
@@ -131,8 +140,8 @@ SST,Sandstone,rock,4,#8c6d5a
 
 # The site's judgments (SPEC §4), in the file's US units.
 JUDGMENTS = """\
-# judgments.yaml: the example site's unit weights, water levels, Gs, α and the
-# sandstone's fixed σci (SPEC §4).
+# judgments.yaml: the example site's unit weights, water levels, Gs, α, the
+# sandstone's fixed σci and the Terrace's φ′cv (SPEC §4).
 unit_weight:
   by: geology_unit
   units: {bulk_unit_weight: pcf, saturated_unit_weight: pcf}
@@ -174,6 +183,15 @@ fixed_intact_compressive_strength:
     Sandstone:
       intact_compressive_strength: 61
       reason: "mean of the three UCS tests that failed in shear, 60.8 MPa"
+critical_state_friction_angle:
+  by: geology_unit
+  units: {critical_state_friction_angle: deg}
+  values:
+    Terrace:
+      critical_state_friction_angle: 32
+      reason: >-
+        assumed for subangular quartz sand with gravel; no ring shear or
+        angle of repose test yet
 """
 
 
@@ -339,6 +357,8 @@ def samp():
             *samples(),
             *TRIAXIAL_SAMPLES,
             *CORE_SAMPLES,
+            *TERRACE_TRIAXIAL_SAMPLES,
+            *TERRACE_SHEAR_BOX_SAMPLES,
         ]
     ]
     return group("SAMP", [*SAMPLE_HEADINGS, ("SAMP_BASE", "1DP", "ft")], rows)
@@ -604,6 +624,10 @@ def treg():
     rows.append(
         [*CDM_SAMPLE, "1", 35.5, "CDM", "UNDISTURBED", 0, 35.0, criterion, None]
     )
+    reported = terrace_triaxial_reported()
+    for sample, ref, depth, *_ in terrace_triaxial():
+        lab = reported[sample[4]]
+        rows.append([*sample, ref, depth, "CD", "UNDISTURBED", *lab, criterion, None])
     return group("TREG", headings, rows)
 
 
@@ -649,6 +673,16 @@ def tret():
             initial_state = [water, bulk, dry]
             stage = [*test, stv, BACK_PRESSURE, bval, void_ratio]
             rows.append([*sample, ref, depth, tesn, *initial_state, *stage])
+    # The CD specimens (M18 d): drained, so u_f is the back pressure.
+    for sample, ref, depth, minor, deviator, t in terrace_triaxial():
+        cell = minor + BACK_PRESSURE
+        rows.append(
+            [
+                *[*sample, ref, depth, "1", t["water"], t["bulk"], t["dry"]],
+                *[minor, cell, t["strain"], deviator, BACK_PRESSURE],
+                *[t["volumetric"], BACK_PRESSURE, t["b_value"], t["void_ratio"]],
+            ]
+        )
     return group("TRET", headings, rows)
 
 
@@ -669,6 +703,10 @@ def trig():
         [*UU_SAMPLE, ref, depth, "UU", "UNDISTURBED"]
         for ref, depth in [("3", 17.8), ("4", 18.2), ("5", 18.6)]
     ]
+    rows += [
+        [*sample, ref, depth, "UU", "UNDISTURBED"]
+        for sample, ref, depth, *_ in alluvium_undrained()["uu"]
+    ]
     return group("TRIG", headings, rows)
 
 
@@ -687,6 +725,12 @@ def trit():
         [*UU_SAMPLE, "4", 18.2, "1", "30", 2000, 1160, 12.5, 580],  # 580
         [*UU_SAMPLE, "5", 18.6, "1", "32", 3000, 1080, 13.0, 540],  # 540
     ]
+    rows += [
+        [*sample, ref, depth, "1", water, cell, deviator, strain, su]
+        for sample, ref, depth, cell, deviator, strain, water, su in (
+            alluvium_undrained()["uu"]
+        )
+    ]
     return group("TRIT", headings, rows)
 
 
@@ -701,6 +745,10 @@ def lvan():
         ["B-3", 12.5, "2", "U", "B-3-U2", "2", 13.0, 520, 180, "LV"],  # S_t 2.89
         ["B-4", 12.5, "1", "U", "B-4-U1", "2", 13.0, 610, 230, "LV"],  # 2.65
     ]
+    rows += [
+        [*sample, "2", depth, peak, remolded, "LV"]
+        for sample, depth, peak, remolded in alluvium_undrained()["vane"]
+    ]
     return group("LVAN", headings, rows)
 
 
@@ -709,6 +757,10 @@ def lpen():
     rows = [
         ["B-2", 12.5, "1", "U", "B-2-U1", "2", 13.0, 600],
         ["B-5", 12.5, "1", "U", "B-5-U1", "2", 13.0, 700],
+    ]
+    rows += [
+        [*sample, "6", depth, reading]
+        for sample, depth, reading in alluvium_undrained()["penetrometer"]
     ]
     return group("LPEN", headings, rows)
 
@@ -727,6 +779,10 @@ def ivan():
         ["B-6", 15.0, "2", "BOREHOLE", 560, 200],  # 2.80
         ["B-6", 20.0, "3", "BOREHOLE", 640, 210],  # 3.05
     ]
+    numbers = {}
+    for hole, depth, peak, remolded in alluvium_undrained()["field"]:
+        numbers[hole] = numbers.get(hole, 0) + 1
+        rows.append([hole, depth, str(numbers[hole]), "BOREHOLE", peak, remolded])
     return group("IVAN", headings, rows)
 
 
@@ -796,7 +852,7 @@ def shear_box_tests():
     for specimen_row, (kind, cond, enca, pc, pphi, rc, rphi), stages in JOINT_TESTS:
         test = (kind, cond, enca, *in_psf([pc]), pphi, *in_psf([rc]), rphi)
         tests.append((specimen_row, test, tuple(in_psf(v) for v in stages)))
-    return tests
+    return [*tests, *terrace_shear_box()]
 
 
 def shbg():
@@ -832,6 +888,232 @@ def shbt():
         for stage, (norm, peak, res) in enumerate(zip(*stages, strict=True), 1)
     ]
     return group("SHBT", headings, rows)
+
+
+# --- Sources compared (M18 d) ---------------------------------------------------------
+
+# docs/work/m18d-sources-compared.md, decision 20: enough Terrace φ′ tests and
+# Alluvium s_u tests to compare their sources. Each set draws from its own
+# random.Random, made afresh on each call, and its rows go after every other
+# row of their groups, so no value written before changes. φ′ scatters with a
+# CoV about 0.1 and s_u about 0.3, both skewed high, each with one outlier.
+
+#: Terrace tubes for single-stage CD triaxial tests, three specimens each.
+TERRACE_TRIAXIAL_SAMPLES = [
+    ("B-1", 30.0, 32.0, "U", "5"),
+    ("B-2", 40.0, 42.0, "U", "4"),
+    ("B-4", 45.0, 47.0, "U", "4"),
+    ("B-6", 35.0, 37.0, "U", "4"),
+]
+#: Terrace spoons for small shear box tests, recompacted.
+TERRACE_SHEAR_BOX_SAMPLES = [
+    ("B-2", 30.0, 31.5, "D", "5"),
+    ("B-5", 45.0, 46.5, "D", "5"),
+    ("B-6", 45.0, 46.5, "D", "5"),
+]
+CD_STRESSES = [1000, 2000, 4000]  # σ′3, psf
+WATER_UNIT_WEIGHT = 62.428  # pcf
+TERRACE_GS = 2.67  # judgments.yaml's Terrace specific gravity
+
+
+def sample_row(sample):
+    name, top, _, kind, ref = sample
+    return [name, top, ref, kind, f"{name}-{kind}{ref}"]
+
+
+def lab_fit(normal, shear):
+    """The lab's least-squares line τ = c + σ tan φ: (c, φ in degrees).
+
+    A negative c is reported as 0, with the line through the origin.
+    """
+    n = len(normal)
+    mx, my = sum(normal) / n, sum(shear) / n
+    sxx = sum((x - mx) ** 2 for x in normal)
+    slope = sum((x - mx) * (y - my) for x, y in zip(normal, shear, strict=True)) / sxx
+    if my - slope * mx < 0:
+        pairs = zip(normal, shear, strict=True)
+        slope = sum(x * y for x, y in pairs) / sum(x * x for x in normal)
+        return 0.0, math.degrees(math.atan(slope))
+    return my - slope * mx, math.degrees(math.atan(slope))
+
+
+def terrace_triaxial():
+    """Each CD specimen: (sample row, ref, depth, σ′3, q_f, test values), psf.
+
+    Each sample has its own φ′, 25° plus a lognormal (median 10°, so about
+    35° and skewed high), and each specimen scatters about it by 0.7°; c′ is
+    an apparent 200 psf. B-4-U4's second specimen is 6° low, a loose layer: the
+    outlier. σ′1 = σ′3 Kp + 2 c′ √Kp, so q_f = σ′1 - σ′3.
+    """
+    draw = random.Random(2029)
+    found = []
+    for sample in TERRACE_TRIAXIAL_SAMPLES:
+        phi = 25 + draw.lognormvariate(math.log(10), 0.3)
+        for i, minor in enumerate(CD_STRESSES):
+            angle = (
+                phi + draw.gauss(0, 0.7) - (6 if sample[0] == "B-4" and i == 1 else 0)
+            )
+            kp = (1 + math.sin(math.radians(angle))) / (
+                1 - math.sin(math.radians(angle))
+            )
+            major = minor * kp + 2 * 200 * math.sqrt(kp)
+            water = draw.uniform(14, 20)
+            bulk = round(draw.uniform(124, 131), 1)
+            dry = round(bulk / (1 + water / 100), 1)
+            test = {
+                "water": str(round(water)),
+                "bulk": bulk,
+                "dry": dry,
+                "void_ratio": round(TERRACE_GS * WATER_UNIT_WEIGHT / dry - 1, 3),
+                "strain": round(draw.uniform(3.0, 7.0), 1),
+                "volumetric": round(draw.uniform(0.2, 1.2), 2),
+                "b_value": round(draw.uniform(0.95, 0.99), 2),
+            }
+            depth = round(sample[1] + 0.3 + 0.4 * i, 1)
+            found.append(
+                (
+                    sample_row(sample),
+                    str(i + 1),
+                    depth,
+                    minor,
+                    round(major - minor),
+                    test,
+                )
+            )
+    return found
+
+
+def terrace_triaxial_reported():
+    """{sample id: the lab's (c′, φ′)}: each sample's s′-t line, rounded."""
+    by_sample = {}
+    for sample, _, _, minor, deviator, _ in terrace_triaxial():
+        by_sample.setdefault(sample[4], []).append((minor + deviator / 2, deviator / 2))
+    reported = {}
+    for name, points in by_sample.items():
+        a, alpha = lab_fit(*zip(*points, strict=True))
+        phi = math.asin(math.tan(math.radians(alpha)))
+        reported[name] = (round(a / math.cos(phi)), round(math.degrees(phi), 1))
+    return reported
+
+
+def terrace_shear_box():
+    """Each shear box test, as SHEAR_BOX_TESTS lists them.
+
+    Peak φ 25° plus a lognormal (median 8°, about 33°), c 50 to 150 psf, each
+    τ scattered by 25 psf; residual φ about 30.5° (σ 1°), near critical state
+    whatever the peak, c 20 to 60 psf.
+    """
+    draw = random.Random(2030)
+    tests = []
+    for sample in TERRACE_SHEAR_BOX_SAMPLES:
+        phi = 25 + draw.lognormvariate(math.log(8), 0.3)
+        cohesion = draw.uniform(50, 150)
+        residual_phi = draw.gauss(30.5, 1.0)
+        residual_c = draw.uniform(20, 60)
+        peaks, residuals = [], []
+        for normal in SOIL_STRESSES:
+            peak = cohesion + normal * math.tan(math.radians(phi))
+            residual = residual_c + normal * math.tan(math.radians(residual_phi))
+            peaks.append(round(peak + draw.gauss(0, 25)))
+            residuals.append(round(residual + draw.gauss(0, 25)))
+        pc, pphi = lab_fit(SOIL_STRESSES, peaks)
+        rc, rphi = lab_fit(SOIL_STRESSES, residuals)
+        lab = (round(pc), round(pphi, 1), round(rc), round(rphi, 1))
+        row = [*sample_row(sample), "S1", sample[1] + 0.5]
+        tests.append(
+            (
+                row,
+                ("SMALL SBOX", "RECOMPACTED", None, *lab),
+                (SOIL_STRESSES, peaks, residuals),
+            )
+        )
+    return tests
+
+
+#: Alluvium tubes for more UU tests: (sample, specimens' depths).
+ALLUVIUM_UU = [
+    (("B-4", 17.5, 19.5, "U", "2"), [17.8, 18.2, 18.6]),
+    (("B-5", 17.5, 19.5, "U", "2"), [17.8, 18.2, 18.6]),
+    (("B-6", 12.5, 14.5, "U", "1"), [12.8, 13.2]),
+]
+#: Alluvium tubes for more laboratory vanes (specimen 2) and hand penetrometer
+#: readings (specimen 6).
+ALLUVIUM_VANE = [
+    ("B-1", 12.5, 14.5, "U", "2"),
+    ("B-6", 12.5, 14.5, "U", "1"),
+    ("B-4", 17.5, 19.5, "U", "2"),
+    ("B-5", 17.5, 19.5, "U", "2"),
+]
+ALLUVIUM_PENETROMETER = [
+    ("B-1", 12.5, 14.5, "U", "2"),
+    ("B-3", 12.5, 14.5, "U", "2"),
+    ("B-4", 17.5, 19.5, "U", "2"),
+    ("B-6", 12.5, 14.5, "U", "1"),
+]
+#: More borehole vanes: (hole, depth).
+ALLUVIUM_FIELD_VANE = [
+    ("B-1", 10.0),
+    ("B-1", 15.0),
+    ("B-1", 20.0),
+    ("B-2", 10.0),
+    ("B-2", 15.0),
+    ("B-2", 20.0),
+    ("B-4", 12.0),
+    ("B-4", 17.0),
+]
+
+
+def alluvium_undrained():
+    """{test: values} in psf: s_u lognormal, median 560 psf, σ_ln 0.3.
+
+    UU: (cell, q_f, strain, water); B-5-U2's third specimen is 2.2 times the
+    rest, a sandy seam: the outlier. Vanes: (peak, remolded), sensitivity
+    2.4 to 3.3. Hand penetrometer readings to 50 psf.
+    """
+    draw = random.Random(2031)
+
+    def strength():
+        return draw.lognormvariate(math.log(560), 0.3)
+
+    uu = []
+    for sample, depths in ALLUVIUM_UU:
+        for i, depth in enumerate(depths):
+            su = strength() * (2.2 if sample[0] == "B-5" and i == 2 else 1)
+            su = round(su, -1)
+            water = str(round(draw.uniform(27, 34)))
+            strain = round(draw.uniform(8, 15), 1)
+            uu.append(
+                (
+                    sample_row(sample),
+                    str(i + 3),
+                    depth,
+                    1000 * (i + 1),
+                    2 * su,
+                    strain,
+                    water,
+                    su,
+                )
+            )
+    vanes = []
+    for sample in ALLUVIUM_VANE:
+        peak = round(strength(), -1)
+        vanes.append(
+            (
+                sample_row(sample),
+                sample[1] + 0.5,
+                peak,
+                round(peak / draw.uniform(2.4, 3.3), -1),
+            )
+        )
+    penetrometer = [
+        (sample_row(sample), sample[1] + 0.5, 50 * round(strength() / 50))
+        for sample in ALLUVIUM_PENETROMETER
+    ]
+    field = []
+    for hole, depth in ALLUVIUM_FIELD_VANE:
+        peak = round(strength(), -1)
+        field.append((hole, depth, peak, round(peak / draw.uniform(2.4, 3.3), -1)))
+    return {"uu": uu, "vane": vanes, "penetrometer": penetrometer, "field": field}
 
 
 # --- Rock triaxial and UCS tests (M17 c) ----------------------------------------------
@@ -985,7 +1267,24 @@ def write_csvs(out):
                 float_format="%.6g",
                 lineterminator="\n",
             )
-        # The readings are treg()/tret()'s; the UU stages (M17 a) have none.
+        # The tests compared in M18 (d), in their templates' columns. A
+        # specimen is named by its sample and reference, as rock_triaxial.csv
+        # names them, not by the database's number; a field test has none.
+        for name, dataset in (
+            ("triaxial", p.triaxial()),
+            ("shear_box", p.shear_box()),
+            ("strength", p.undrained_strength()),
+        ):
+            sample = dataset["sample_reference"]
+            named = sample + "-" + dataset["specimen_reference"].astype(str)
+            dataset = dataset.assign(specimen_id=named.where(sample.notna()))
+            dataset[list(ht.template(name).columns)].to_csv(
+                out / f"{name}.csv",
+                index=False,
+                float_format="%.6g",
+                lineterminator="\n",
+            )
+        # The readings are treg()/tret()'s; the UU and CD stages have none.
         write_readings(out, p.triaxial(where={"test_type": ["CU", "CDM"]}))
     write_rock_triaxial(out)
 

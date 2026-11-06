@@ -14,6 +14,12 @@ import pandas as pd
 from hangtu.stats._result import _plain
 
 
+def judgments_file(df: pd.DataFrame) -> str | None:
+    """Return the Project's judgments file that ``df`` carries, or None."""
+    path = df.attrs.get("judgments_file")
+    return None if path is None else str(path)
+
+
 @dataclass(frozen=True, repr=False)
 class _DerivedResult:
     """What every derived result records: what was fitted, and from what.
@@ -31,6 +37,10 @@ class _DerivedResult:
     #: ``attrs["judgments"]`` of the input, when it carries them.
     judgments: dict[str, Any]
     hangtu_version: str
+    #: ``attrs["judgments_file"]`` of the input: the Project's judgments file,
+    #: or None. A later step that needs a judgment reads it from here
+    #: (docs/work/m18d-sources-compared.md, Decision 17).
+    judgments_file: str | None
     #: Always ``"derived"``: a value derived from test results (SPEC §5).
     kind: str = field(default="derived", init=False)
 
