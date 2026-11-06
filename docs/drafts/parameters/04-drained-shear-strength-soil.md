@@ -66,8 +66,10 @@ $$\sin\varphi' = \tan\alpha,\qquad c' = a/\cos\varphi'$$
 ### 5.2 Direct shear envelope
 $$\tau_f = c' + \sigma'_n\tan\varphi'\quad(\text{least squares on SHBT\_PEAK vs SHBT\_NORM})$$
 - **Valid for:** drained (rate per D3080); gives plane-strain-like strength on a forced plane.
-- **Conversion:** tan φ′ds = tan φ′ps cos φ′cv; φ′ps ≈ 1.10 φ′tc (NC cohesive soils).
-- **Source:** [1] Eq. 4-10 and Table 4-5, p. 4-25 [V].
+- **Conversion:** tan φ′ds = tan φ′ps cos φ′cv; φ′ps ≈ 1.12 φ′tc (cohesionless soils), 1.10 φ′tc (NC cohesive
+  soils, DS row "Speculative, based on results from sand"). Built in M18 (d) as
+  `ht.analysis.friction_angle_from_shear_box()`.
+- **Source:** [1] Eq. 4-10, p. 4-12; Table 4-2, p. 4-14; Table 4-5, p. 4-25 [V].
 
 ### 5.3 SPT — Wolff (1989), fit to Peck, Hanson & Thornburn (1974)
 $$\varphi' = 27.1 + 0.3\,N_{1,60} - 0.00054\,N_{1,60}^2$$

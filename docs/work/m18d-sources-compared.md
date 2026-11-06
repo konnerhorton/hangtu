@@ -596,6 +596,17 @@ Reused, not rebuilt:
   (`critical_state_friction_angle`); `docs/analysis/statistics.md` §5.
 - `docs/plots/img/P01-sources-us.png`, `P01-sources-si.png`, `P07-sources-us.png`, `P07-sources-si.png` at 100
   dpi from the example site, looked at against decisions 18 and 19 and P07 §7 (AC 13).
+- **Decided in the build (2026-11-06):**
+  - The s_u example leaves Stroud out: at the Alluvium's PI (23.5, the median of its tests) both SPT correlations
+    give only bands, so `compare_sources()` would count all 26 rows as ranges and warn. Page 05 says so. Raising
+    the PI to get values would misrepresent the site. G3's tests still cover Stroud against UU and the vane.
+  - The field vane's `test_type` is the AGS `IVAN_TYPE`, `BOREHOLE`, so its source reads "field, BOREHOLE".
+  - The visual check found three defects, fixed in their own commits before this one: P01 dropped the interval bar
+    of a row with a blank `ground_level` against elevation, silently, though P01 §7 says each row falls back to
+    `elevation + depth` (a fit's row has no one ground level); P00's bottom legend took four columns whatever
+    their width, so long source names ran off the figure (P00 §11 now says it takes fewer); and
+    `.geology_unit_comparison()` raised pandas' FutureWarning on a Project's categorical `geology_unit`.
+  - The `.profile()` example passes `preset="effective_friction_angle"` for the axis, as the correlations guide does.
 - Tests: `tests/docs/test_site.py`; `zensical build --clean --strict`.
 
 ### 11. `M18: close out (d), sources compared` (Opus)

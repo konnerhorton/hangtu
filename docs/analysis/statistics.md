@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Living spec. `describe` (M15 a), `fit` (M15 c), `compare` and `compare_groups` (M15 d), `crosstab` (M15 e), `representative` (M18 b) built |
+| **Status** | Living spec. `describe` (M15 a), `fit` (M15 c), `compare` and `compare_groups` (M15 d), `crosstab` (M15 e), `representative` (M18 b), `compare_sources` (M18 d) built |
 | **Parent** | SPEC §5: the result object, "one calculation, many views", the input rules every function follows, and why statistics are designed for lab data |
-| **Related** | [`m15a-describe.md`](../work/m15a-describe.md), [`m15c-fit.md`](../work/m15c-fit.md), [`m15d-compare.md`](../work/m15d-compare.md), [`m15e-crosstab.md`](../work/m15e-crosstab.md), [`m18a-refusals.md`](../work/m18a-refusals.md), [`m18b-representative-values.md`](../work/m18b-representative-values.md). Draft notes: [`../drafts/phase3-stats.md`](../drafts/phase3-stats.md). Background: [`../reference/eurocode7-summary.md`](../reference/eurocode7-summary.md) |
+| **Related** | [`m15a-describe.md`](../work/m15a-describe.md), [`m15c-fit.md`](../work/m15c-fit.md), [`m15d-compare.md`](../work/m15d-compare.md), [`m15e-crosstab.md`](../work/m15e-crosstab.md), [`m18a-refusals.md`](../work/m18a-refusals.md), [`m18b-representative-values.md`](../work/m18b-representative-values.md), [`m18d-sources-compared.md`](../work/m18d-sources-compared.md). Draft notes: [`../drafts/phase3-stats.md`](../drafts/phase3-stats.md). Background: [`../reference/eurocode7-summary.md`](../reference/eurocode7-summary.md) |
 
 Update this file in the same commit as any change to a function's behavior, and SPEC §5 if the change alters a rule there.
 
@@ -51,3 +51,13 @@ Decided 2026-10-30, M15 (e), [`docs/work/m15e-crosstab.md`](../work/m15e-crossta
 - Agreement is counted only when the user says what agrees (`agree="same"`, or a mapping that names every class it is asked about), never inferred.
 - A row blank on either side is counted on its own, never as a mismatch.
 - No test or chance-corrected agreement (TODO #52).
+
+## 5. `compare_sources()`
+Decided 2026-11-05, M18 (d), [`docs/work/m18d-sources-compared.md`](../work/m18d-sources-compared.md) (decisions 8–16).
+- Puts every source of one parameter side by side, per geology unit (`by=`), for stage D: DataFrames of rows, a `MohrCoulombFit`'s main fit, and a `ShearBoxConversion` from `ht.analysis.friction_angle_from_shear_box()`. A `ShearBoxFit` is refused: a direct shear φ′ isn't a triaxial φ′ until converted (SPEC §5).
+- **Never pooled, no `pool=`:** grouping by source is the point. A row's source is its non-blank registry source columns (`source`, `test_type`, `correlation_name`, `conversion_name`), joined, in `parameter_source`; a repeated label across arguments takes " (source n)".
+- Row sources follow `describe()`'s input rules and statistics exactly (flags, bands and non-plastic values left out and counted, assumed values only with `include_assumed=True`, censored values at their value and counted, H&F 7 with each percentile's floor).
+- A fit in a unit is one value with `count_points`, `r_squared`, its normal stress range and its points' depths, and no standard error. Fits per sample in a unit are summarized like rows.
+- **Descriptive, no tests:** a fit's value is placed among each row source's values in the unit (`position` below, within or above the range; within it and from 4 values, `percentile_rank`, the inverse of H&F 7, ties at the middle of their run). `compare()` is the check for two row sources (SPEC §5: "tests are a check").
+- Nothing is dropped: every unit of every source is listed, an empty pair with `count` 0 and a `no_value_reason`.
+- Views: `.to_frame()`, `.positions()`, `.values()` (the long frame the figures draw, every row kept, a fit at the middle of its points' depths with `depth_top`/`depth_base`), `.profile()` (P01 of one unit, so its stats box equals that unit's table) and `.geology_unit_comparison()` (P07 with `split_by="parameter_source"` and `summary_min_count=1`, so the percentile floors alone decide where a bar is drawn).
