@@ -49,7 +49,12 @@ def _spt_phi():
             "correlation_qualifier": [""] * 4 + [">"] + [""] * 14,
         }
     )
-    df.attrs["units"] = {PHI: "deg", f"{PHI}_lower": "deg", f"{PHI}_upper": "deg"}
+    df.attrs["units"] = {
+        PHI: "deg",
+        f"{PHI}_lower": "deg",
+        f"{PHI}_upper": "deg",
+        "depth": "m",
+    }
     return df
 
 

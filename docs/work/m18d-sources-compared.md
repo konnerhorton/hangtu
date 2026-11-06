@@ -266,9 +266,11 @@ ht.stats.compare_sources(
       table does. A fit value is one row at the middle of its points' depths, with `depth_top` and `depth_base`
       at the shallowest and deepest, so P01 draws its depth range as an interval bar (P01 §7). A fit whose points
       have no depth has a blank depth, and P01 counts it.
-    - `.profile(**kwargs)` returns `ht.plot.profile(values, value, color_by="parameter_source",
-      stats_box=True, **kwargs)`. P01's stats box already gives one line per source when `color_by` is a source
-      column (P01 §8), so the figure and `.to_frame()` agree.
+    - `.profile(**kwargs)` draws one unit, named by its `by` column (`.profile(geology_unit="Terrace")`, required
+      when the comparison has more than one unit): `ht.plot.profile()` of that unit's `.values()` rows, with
+      `color_by="parameter_source"` and `stats_box=True`. P01's stats box gives one line per source when
+      `color_by` is a source column (P01 §8), but it summarizes each source over every row drawn, so only per
+      unit do the figure and `.to_frame()` agree.
     - `.geology_unit_comparison(**kwargs)` returns P07 with `split_by="parameter_source"` and
       `color_by="parameter_source"` (decision 19).
     - `.to_dict()` (JSON) and the printed summary work as on the other results.
@@ -376,9 +378,10 @@ implementation. Tolerance: 1e-6 relative for the statistics and the conversion. 
 8. **Nothing dropped:** every unit and source pair is listed, and the empty ones give their reasons (G2,
    Alluvium).
 9. **Units:** G3 in kPa and US. A DataFrame without a unit for `value` is an error naming its position.
-10. **Figures:** `.profile()` draws with no warning. It has one stats box line per source, and those numbers
-    equal `.to_frame()`'s. Each fit is drawn as an interval bar from `depth_top` to `depth_base`, and a fit with
-    no depth is counted in the footnote. `.geology_unit_comparison()` draws one sub-row per source, and its
+10. **Figures:** `.profile()` draws one unit with no warning, and needs the unit named when there are several.
+    It has one stats box line per source, and those numbers equal that unit's rows of `.to_frame()`. Each fit
+    is drawn as an interval bar from `depth_top` to `depth_base`, and a fit with no depth is counted in the
+    footnote. `.geology_unit_comparison()` draws one sub-row per source, and its
     percentiles equal `.to_frame()`'s.
 11. **P07 `split_by=`:** sub-rows, their order and tick labels, the counts, the baseline once per unit, and a
     color legend when `color_by` is the split column. The grid takes it. With `split_by=None` the existing P07
@@ -527,6 +530,13 @@ Reused, not rebuilt:
   color_by="parameter_source", stats_box=True, intervals="auto", **kwargs)`.
 - If P01 warns on rows with no interval beside rows with one, or counts the fits differently from the table,
   stop: that is a change to P01's spec, not a build detail.
+- **Decided in the build (2026-11-06):** P01's stats box summarizes a source over every row it draws, so
+  across several units it pools them and can't equal the per-unit table. `.profile()` therefore draws one
+  unit, named by its `by` column (`.profile(geology_unit="Terrace")`), required when the comparison has more
+  than one unit (an error lists the units). P01 unchanged. Defaults `figsize=(7, 7)` and `legend="bottom"`:
+  at P01's default size the long source names collapse the axes (matplotlib's constrained_layout warning).
+  Decision 16 and AC 10 say "per unit" (this step's commit). Plot tests need
+  `ht.settings.override(hints=False)` for P01's ground-level hint.
 - Tests: `tests/stats/test_compare_sources_views.py` (new), AC 10's depth part: `.values()` row counts and G2's
   fit row (6.5, 4.0, 9.0); `.profile()` draws with no warning, one stats box line per source whose numbers
   equal `.to_frame()`'s, an interval bar per fit, a fit without depth counted in the footnote.

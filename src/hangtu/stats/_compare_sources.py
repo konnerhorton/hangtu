@@ -8,7 +8,7 @@ is never pooled with another; the comparison is descriptive and tests nothing
 
 import html
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field, fields
 from importlib.metadata import version
 from typing import Any
 
@@ -18,6 +18,7 @@ import pandas as pd
 from hangtu import units as _units
 from hangtu._data import text_values
 from hangtu.errors import ColumnError, HangtuError, UnitsError
+from hangtu.registry import statistics_roles
 from hangtu.stats import _rows
 from hangtu.stats._describe import (
     DEFAULT_PERCENTILES,
@@ -28,7 +29,7 @@ from hangtu.stats._describe import (
     percentile_floor,
     summarize,
 )
-from hangtu.stats._result import _cell, _heading, _Result, _table
+from hangtu.stats._result import _cell, _heading, _plain, _Result, _table
 from hangtu.stats._rows import BLANK_GROUP, COUNTS
 
 _FUNCTION = "compare_sources()"
@@ -36,6 +37,8 @@ _FUNCTION = "compare_sources()"
 NO_SOURCE = "(no source given)"
 #: A ShearBoxConversion's label (decision 10).
 CONVERTED = "shear box, converted (Kulhawy & Mayne 1990)"
+#: The columns that place a value in the ground, in the comparison's length unit.
+PLACE = ("depth", "depth_top", "depth_base", "elevation", "ground_level")
 #: The columns a fit source fills, blank for a row source (decision 16).
 FIT_COLUMNS = (
     "count_points",
@@ -59,6 +62,8 @@ class _Rows:
     #: Each unit's key, as a tuple of the ``by`` values, -> its rows.
     units: dict[tuple[Any, ...], np.ndarray]
     unit: str | None
+    #: Every row as ``.values()`` draws it, without ``parameter_source``.
+    drawn: pd.DataFrame
 
 
 @dataclass
@@ -245,14 +250,7 @@ def compare_sources(
     for position, source in enumerate(sources, start=1):
         if isinstance(source, pd.DataFrame):
             rows = _read_rows(
-                source,
-                position,
-                value,
-                by_columns,
-                units,
-                include_assumed,
-                display_units,
-                state.value,
+                source, position, value, by_columns, units, include_assumed, state
             )
             state.value = state.value or rows.unit
             for label in dict.fromkeys(rows.labels):
@@ -313,7 +311,58 @@ def compare_sources(
         depth_unit=state.depth,
         rows=tuple(records),
         placed=tuple(placed),
+        _values_frame=_values(listed, value, by_columns),
     )
+
+
+def _values(listed: list[_Source], value: str, by: list[str]) -> pd.DataFrame:
+    """Build the long frame the figures draw: every row, one row per fit value."""
+    parts = []
+    done: set[int] = set()
+    for source in listed:
+        if source.rows is not None and source.position not in done:
+            done.add(source.position)
+            labels = {
+                s.row_label: s.label for s in listed if s.position == source.position
+            }
+            drawn = source.rows.drawn.copy()
+            drawn.insert(
+                len(by),
+                "parameter_source",
+                [labels[label] for label in source.rows.labels],
+            )
+            parts.append(drawn)
+        elif source.fits is not None:
+            rows = []
+            for place, entries in source.fits.items():
+                keys: dict[str, Any] = {
+                    column: None if key == BLANK_GROUP else key
+                    for column, key in zip(by, place, strict=True)
+                }
+                for entry in entries:
+                    top, base = _range(entry["depths"])
+                    row: dict[str, Any] = {
+                        **keys,
+                        "parameter_source": source.label,
+                        value: entry["value"],
+                        "depth": (top + base) / 2,
+                        "depth_top": top,
+                        "depth_base": base,
+                    }
+                    for column in ("elevation", "ground_level"):
+                        if column in entry:
+                            row[column] = entry[column]
+                    rows.append(row)
+            parts.append(pd.DataFrame(rows))
+    frame = pd.concat(parts, ignore_index=True)
+    first = [*by, "parameter_source", value]
+    frame = frame[first + [c for c in frame.columns if c not in first]]
+    if value in frame.columns:
+        cells = frame[value]
+        numeric = pd.to_numeric(cells, errors="coerce")
+        if numeric.notna().sum() == cells.notna().sum():
+            frame[value] = numeric
+    return frame
 
 
 def _read_rows(
@@ -323,8 +372,7 @@ def _read_rows(
     by: list[str],
     units: Mapping[str, str] | None,
     include_assumed: bool,
-    display_units: str | None,
-    reference: str | None,
+    state: "_Units",
 ) -> _Rows:
     """Read one frame as describe() does, in the comparison's unit (decision 8)."""
     where = f"{_FUNCTION} source {position} (a DataFrame)"
@@ -339,13 +387,14 @@ def _read_rows(
         message = str(error).removeprefix(f"{_FUNCTION} ")
         raise type(error)(f"{where}: {message}") from None
     numbers, texts = text_values(read.frame, read.column)
-    numbers, unit = _in_unit(numbers, read, display_units, reference, where)
+    numbers, unit = _in_unit(numbers, read, state.display, state.value, where)
     flags = _rows.read_flags(read.frame, read.column, _FUNCTION)
     reasons, marks = _rows.choose_rows(
         numbers, texts, flags, include_assumed=include_assumed, positive_only=False
     )
     _rows.warn_left_out(reasons, read.column, where)
     _rows.warn_text(texts, read.column, where)
+    drawn = _drawn(read.frame, read, numbers, texts, unit, by, units, state, where)
     return _Rows(
         position=position,
         numbers=numbers,
@@ -356,7 +405,59 @@ def _read_rows(
             tuple(key.values()): rows for key, rows in _rows.group_keys(read.frame, by)
         },
         unit=unit,
+        drawn=drawn,
     )
+
+
+def _drawn(
+    frame: pd.DataFrame,
+    read: _rows.Input,
+    numbers: np.ndarray,
+    texts: np.ndarray,
+    unit: str | None,
+    by: list[str],
+    units: Mapping[str, str] | None,
+    state: "_Units",
+    where: str,
+) -> pd.DataFrame:
+    """Every row of a frame as the figures draw it, in the comparison's units.
+
+    A text cell (NP, refusal) is kept as text, so P01 counts it as the table
+    does; bands and place columns are converted when their unit is declared.
+    """
+    value = read.column
+    drawn = pd.DataFrame(index=frame.index)
+    for column in by:
+        drawn[column] = frame[column]
+    cells = pd.Series(numbers, index=frame.index, dtype=object)
+    cells[texts != ""] = texts[texts != ""]
+    drawn[value] = cells
+    if "loca_id" in frame.columns:
+        drawn["loca_id"] = frame["loca_id"]
+    declared = {**_units.units_of(frame), **(units or {})}
+    for column in PLACE:
+        if column not in frame.columns:
+            continue
+        given = declared.get(column)
+        if given is None:
+            continue  # a length is never guessed (SPEC §2.6)
+        drawn[column], _ = state.to(
+            pd.to_numeric(frame[column], errors="coerce"), given, "length", "depth"
+        )
+    for column, role in statistics_roles().items():
+        if role["role"] == "source" or column not in frame.columns:
+            continue
+        if value in role.get("values", [value]):
+            drawn[column] = frame[column]
+    for column in (f"{value}_lower", f"{value}_upper"):
+        if column in frame.columns and declared.get(column) and read.quantity:
+            drawn[column], _ = state.to(
+                pd.to_numeric(frame[column], errors="coerce"),
+                declared[column],
+                read.quantity,
+                "value",
+            )
+    return drawn.reset_index(drop=True)
 
 
 def _in_unit(
@@ -596,7 +697,19 @@ def _fit_entry(
         depths = np.full(len(points), np.nan)
     else:
         depths, _ = state.to(depths, depth_unit, "length", "depth")
+    place: dict[str, float] = {}
+    for column in ("elevation", "ground_level"):
+        given = source.depth_units.get(column)
+        found = [p.get(column) for p in points if p.get(column) is not None]
+        if given is None or not found:
+            continue
+        converted, _ = state.to(found, given, "length", "depth")
+        if column == "elevation":
+            place[column] = float((converted.min() + converted.max()) / 2)
+        elif np.ptp(converted) == 0:
+            place[column] = float(converted[0])  # one ground level for the fit
     return {
+        **place,
         "value": float(value[0]),
         "count_points": line["count"],
         "r_squared": line.get("r_squared", np.nan),
@@ -769,6 +882,90 @@ class SourceComparison(_Result):
     rows: tuple[dict[str, Any], ...]
     #: One record per unit, fit and row source: the rows of ``.positions()``.
     placed: tuple[dict[str, Any], ...]
+    #: The rows of ``.values()``; not in ``.to_dict()``.
+    _values_frame: pd.DataFrame = field(repr=False, compare=False)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return every field but the values, JSON-serializable (NaN as None)."""
+        return _plain(
+            {f.name: getattr(self, f.name) for f in fields(self) if f.name[0] != "_"}
+        )
+
+    def values(self) -> pd.DataFrame:
+        """Return the long frame the figures draw, one row per value.
+
+        The ``by`` columns, ``parameter_source``, the value, and where the
+        sources have them ``loca_id``, ``depth``, ``elevation``,
+        ``ground_level``, the flag columns and the bands. Every row is kept,
+        those left out of the statistics too, so a figure counts them as the
+        table does. A fit's value is one row at the middle of its points'
+        depths, with ``depth_top`` and ``depth_base`` at the shallowest and
+        deepest, so P01 draws the range as an interval bar; a fit whose points
+        have no depth has a blank one. ``attrs["units"]`` gives each unit.
+        """
+        frame = self._values_frame.copy()
+        units: dict[str, str] = {}
+        if self.unit is not None and self.value is not None:
+            units |= dict.fromkeys(
+                [self.value, f"{self.value}_lower", f"{self.value}_upper"], self.unit
+            )
+        if self.depth_unit is not None:
+            units |= dict.fromkeys(PLACE, self.depth_unit)
+        frame.attrs["units"] = {k: v for k, v in units.items() if k in frame.columns}
+        return frame
+
+    def profile(self, **kwargs: Any) -> Any:
+        """Draw one unit's sources against depth or elevation: P01 of ``.values()``.
+
+        Name the unit by its ``by`` column, e.g.
+        ``.profile(geology_unit="Terrace")``; it is required when the
+        comparison has more than one unit, because the stats box summarizes
+        each source over what it draws and the table is per unit. Each source
+        is colored by ``parameter_source``, a fit is a point with an interval
+        bar over its points' depths, and the stats box has one line per source
+        with the table's numbers. Other keyword arguments go to
+        ``ht.plot.profile()`` and override these (``figsize`` 7 x 7 in and the
+        legend below, room for long source names). Returns ``(fig, ax)``.
+        """
+        from hangtu.plot import profile  # plot imports stats
+
+        assert self.value is not None  # compare_sources() always names it
+        chosen = {column: kwargs.pop(column) for column in self.by if column in kwargs}
+        values = self.values()
+        keys = list(dict.fromkeys(tuple(r["key"].values()) for r in self.rows))
+        if self.by and (len(keys) > 1 or chosen):
+            missing = [column for column in self.by if column not in chosen]
+            if missing:
+                listed = "; ".join(", ".join(map(str, key)) for key in keys)
+                raise HangtuError(
+                    f"SourceComparison.profile() draws one unit, so its stats box "
+                    f"matches the table: name it, e.g. .profile({missing[0]}="
+                    f"{keys[0][self.by.index(missing[0])]!r}). Units: {listed}."
+                )
+            wanted = tuple(chosen[column] for column in self.by)
+            if wanted not in keys:
+                listed = "; ".join(", ".join(map(str, key)) for key in keys)
+                raise HangtuError(
+                    "SourceComparison.profile(): no unit "
+                    f"{wanted if len(wanted) > 1 else wanted[0]!r}. Units: {listed}."
+                )
+            rows = np.ones(len(values), bool)
+            for column, key in chosen.items():
+                cells = values[column].astype(object)
+                blank = cells.isna().to_numpy()
+                rows &= (
+                    blank if key == BLANK_GROUP else (cells == key).to_numpy() & ~blank
+                )
+            values = values[rows].reset_index(drop=True)
+        options = {
+            "color_by": "parameter_source",
+            "stats_box": True,
+            "intervals": "auto",
+            "figsize": (7, 7),
+            "legend": "bottom",
+            **kwargs,
+        }
+        return profile(values, self.value, **options)
 
     def _statistics(self) -> list[str]:
         return list(self.rows[0]["statistics"]) if self.rows else []
