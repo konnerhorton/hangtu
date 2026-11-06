@@ -25,6 +25,7 @@ from hangtu.stats._describe import (
     _flag_notes,
     _notes,
     check_percentiles,
+    percentile_floor,
     summarize,
 )
 from hangtu.stats._result import _cell, _heading, _Result, _table
@@ -33,6 +34,8 @@ from hangtu.stats._rows import BLANK_GROUP, COUNTS
 _FUNCTION = "compare_sources()"
 #: A row whose source columns are all blank is a source of its own (decision 10).
 NO_SOURCE = "(no source given)"
+#: A ShearBoxConversion's label (decision 10).
+CONVERTED = "shear box, converted (Kulhawy & Mayne 1990)"
 #: The columns a fit source fills, blank for a row source (decision 16).
 FIT_COLUMNS = (
     "count_points",
@@ -68,6 +71,38 @@ class _Source:
     rows: _Rows | None = None
     #: The label the frame's rows carry, before a repeat's suffix.
     row_label: str | None = None
+    #: A fit source's values: each unit's key -> one entry per fitted group.
+    fits: dict[tuple[Any, ...], list[dict[str, Any]]] | None = None
+
+
+@dataclass
+class _Units:
+    """The comparison's units: display_units, else the first source's (decision 8)."""
+
+    display: str | None
+    value: str | None = None
+    stress: str | None = None
+    depth: str | None = None
+
+    def to(
+        self, numbers: Any, unit: str | None, quantity: str, slot: str
+    ) -> tuple[np.ndarray, str | None]:
+        """Convert ``numbers`` in ``unit`` to the slot's unit, setting it if unset."""
+        numbers = np.asarray(numbers, dtype=float)
+        if unit is None:
+            return numbers, None
+        if self.display is not None:
+            converted, shown = _units.to_display(numbers, unit, quantity, self.display)
+            setattr(self, slot, getattr(self, slot) or shown)
+            return converted, shown
+        target = getattr(self, slot) or ("deg" if quantity == "angle" else unit)
+        setattr(self, slot, target)
+        return (
+            _units.convert(
+                numbers, _units.parse_unit(unit), quantity, _units.parse_unit(target)
+            ),
+            target,
+        )
 
 
 def compare_sources(
@@ -98,6 +133,25 @@ def compare_sources(
     takes " (source <n>)", ``n`` the argument's position, so nothing merges
     silently.
 
+    A ``MohrCoulombFit`` gives each group's main fit, for
+    ``effective_friction_angle`` or ``effective_cohesion`` (``total_stress_…``
+    for a total stress fit), labeled "Mohr-Coulomb fit (CD, CU)" by its points'
+    test types. A ``ShearBoxConversion``, from
+    ``ht.analysis.friction_angle_from_shear_box()``, gives its main line's
+    converted ``effective_friction_angle`` only, labeled "shear box, converted
+    (Kulhawy & Mayne 1990)". A ``ShearBoxFit`` isn't taken: a direct shear φ′
+    isn't a triaxial φ′ until converted (SPEC §5). A fit's groups must be
+    keyed by every ``by`` column. One fit in a unit is one value, with
+    ``count_points``, ``r_squared``, its normal stress range and its points'
+    depths; fitted per sample (``group_by=["geology_unit",
+    "sample_reference"]``), a unit's values are summarized like rows. A fit
+    has no standard error here.
+
+    **A fit's value is placed, never tested** (``.positions()``): below,
+    within or above each row source's lowest to highest value in the unit,
+    and, within it and from 4 values, its percentile rank, the inverse of
+    Hyndman & Fan definition 7 (the middle of a run of ties).
+
     **The statistics** of each unit and source are ``describe()``'s, from the
     same rows by the same rules: flags from the registry; bands, non-plastic
     values, text and blanks left out and counted; assumed values only with
@@ -113,8 +167,8 @@ def compare_sources(
 
     Parameters
     ----------
-    *sources : pandas.DataFrame
-        The frames to compare, in the order the table lists them.
+    *sources : pandas.DataFrame, MohrCoulombFit or ShearBoxConversion
+        The sources to compare, in the order the table lists them.
     value : str
         The parameter, a registry column such as
         ``"effective_friction_angle"`` or ``"undrained_shear_strength"``.
@@ -136,13 +190,16 @@ def compare_sources(
     Returns
     -------
     SourceComparison
-        ``.to_frame()`` has one row per unit and source; ``print()`` shows
-        the same numbers with their notes.
+        ``.to_frame()`` has one row per unit and source; ``.positions()``
+        places each fit among the row sources; ``print()`` shows the same
+        numbers with their notes.
 
     Raises
     ------
     HangtuError
-        For no sources, a source that isn't a DataFrame, or an argument out
+        For no sources, a source of another type (a ``ShearBoxFit``, naming
+        the conversion; a ``HoekBrownFit``), a fit that doesn't give
+        ``value`` or isn't grouped by every ``by`` column, or an argument out
         of its range.
     ColumnError
         For a frame without ``value`` or a ``by`` column, naming the frame's
@@ -157,6 +214,17 @@ def compare_sources(
     ...     p.spt(), plasticity_index=25
     ... )
     >>> ht.stats.compare_sources(uu, stroud, value="undrained_shear_strength")
+
+    φ′ in each unit from an SPT correlation and a triaxial fit:
+
+    >>> spt = ht.analysis.correlations.effective_friction_angle_hatanaka_uchida_1996(
+    ...     p.spt()
+    ... )
+    >>> triaxial = ht.analysis.mohr_coulomb_fit(p.triaxial(), group_by="geology_unit")
+    >>> compared = ht.stats.compare_sources(
+    ...     spt, triaxial, value="effective_friction_angle"
+    ... )
+    >>> compared.positions()
     """
     if not sources:
         raise HangtuError(
@@ -170,9 +238,10 @@ def compare_sources(
             f'{_FUNCTION} display_units must be "US", "SI" or None, not '
             f"{display_units!r}."
         )
-    unit: str | None = None
+    state = _Units(display_units)
     listed: list[_Source] = []
     keys: list[pd.DataFrame] = []
+    notes_left: list[str] = []
     for position, source in enumerate(sources, start=1):
         if isinstance(source, pd.DataFrame):
             rows = _read_rows(
@@ -183,36 +252,45 @@ def compare_sources(
                 units,
                 include_assumed,
                 display_units,
-                unit,
+                state.value,
             )
-            unit = unit or rows.unit
+            state.value = state.value or rows.unit
             for label in dict.fromkeys(rows.labels):
                 listed.append(_Source(label, "rows", position, rows, row_label=label))
             keys.append(source[by_columns])
             continue
-        raise HangtuError(
-            f"{_FUNCTION} source {position} is a {type(source).__name__}; it takes "
-            "DataFrames of values."
-        )
+        fit = _read_fit(source, position, value, by_columns, state, notes_left)
+        listed.append(fit)
+        assert fit.fits is not None  # a fit source
+        keys.append(pd.DataFrame(list(fit.fits), columns=by_columns))
+    unit = state.value
     _name_repeats(listed)
     interval, scale_known = _rows.scale(value)
     unit_keys = _union(keys, by_columns)
     records: list[dict[str, Any]] = []
     notes_by_reason: dict[int | str, dict[str, list[str]]] = {}
+    placed: list[dict[str, Any]] = []
     for key in unit_keys:
         place = tuple(key.values())
+        values: dict[str, np.ndarray] = {}
         for source in listed:
-            record = _summarize_rows(source, place, percentiles, interval)
+            summarize_one = _summarize_rows if source.kind == "rows" else _summarize_fit
+            record, values[source.label] = summarize_one(
+                source, place, percentiles, interval, notes_left
+            )
             record["key"] = key
             records.append(record)
             label = f"{_label(key)} · {source.label}"
             for name, why in record["reasons"].items():
                 notes_by_reason.setdefault(why, {}).setdefault(name, []).append(label)
+        placed += _positions(key, listed, values)
     notes = _notes(notes_by_reason, unit_given=True, scale_known=scale_known, log=False)
     notes[-1:-1] = [
         *_flag_notes(records, by_columns, [], include_assumed),
+        *notes_left,
         "Each source is summarized on its own, never pooled; nothing is tested. "
-        "ht.stats.compare() tests two row sources.",
+        "ht.stats.compare() tests two row sources; a fit's value is placed among "
+        "a row source's values (.positions()), not tested against them.",
     ]
     return SourceComparison(
         kind="property",
@@ -231,7 +309,10 @@ def compare_sources(
         percentiles=percentiles,
         percentile_method=PERCENTILE_METHOD,
         display_units=display_units,
+        stress_unit=state.stress,
+        depth_unit=state.depth,
         rows=tuple(records),
+        placed=tuple(placed),
     )
 
 
@@ -338,7 +419,8 @@ def _summarize_rows(
     place: tuple[Any, ...],
     percentiles: tuple[float, ...],
     interval: bool,
-) -> dict[str, Any]:
+    notes: list[str],
+) -> tuple[dict[str, Any], np.ndarray]:
     """One unit and row source: describe()'s statistics and counts (decision 12)."""
     data = source.rows
     assert data is not None  # a row source
@@ -358,15 +440,289 @@ def _summarize_rows(
         reason = "no rows in this unit"
     elif summary.statistics["count"] == 0:
         reason = f"all {total} rows left out"
-    return {
+    record = {
         "parameter_source": source.label,
         "source_kind": source.kind,
         "statistics": summary.statistics,
         "counts": counts,
         "reasons": summary.reasons if total else {},
         **dict.fromkeys(FIT_COLUMNS, np.nan),
+        "stages": None,
+        "line_kind": None,
         "no_value_reason": reason,
     }
+    return record, data.numbers[included]
+
+
+def _read_fit(
+    source: Any,
+    position: int,
+    value: str,
+    by: list[str],
+    state: _Units,
+    notes: list[str],
+) -> _Source:
+    """Read a fit result's main value per group (decisions 10 and 11)."""
+    from hangtu.analysis import (  # analysis imports stats
+        HoekBrownFit,
+        MohrCoulombFit,
+        ShearBoxConversion,
+        ShearBoxFit,
+    )
+
+    where = f"{_FUNCTION} source {position}"
+    if isinstance(source, ShearBoxFit):
+        raise HangtuError(
+            f"{where} is a ShearBoxFit. Its peak_friction_angle is a direct shear φ′, "
+            "not a triaxial one, so the two aren't compared unconverted (SPEC §5). "
+            "Convert it with ht.analysis.friction_angle_from_shear_box(fit, soil=..., "
+            "critical_state_friction_angle=...) and pass the conversion."
+        )
+    if isinstance(source, HoekBrownFit):
+        raise HangtuError(
+            f"{where} is a HoekBrownFit, which gives σci and mi of intact rock. "
+            f"compare_sources() compares soil parameters' sources; it takes "
+            "DataFrames, a MohrCoulombFit or a ShearBoxConversion."
+        )
+    if isinstance(source, MohrCoulombFit):
+        cohesion, angle = source._value_names()
+        if value not in (angle, cohesion):
+            if value in ("effective_friction_angle", "effective_cohesion"):
+                raise HangtuError(
+                    f"{where} is a total stress MohrCoulombFit, which gives {angle} "
+                    f"and {cohesion}, not {value!r}. Fit the effective stresses "
+                    '(mohr_coulomb_fit(df, stress="effective")) to compare them.'
+                )
+            raise HangtuError(
+                f"{where} is a MohrCoulombFit, which gives {angle} and {cohesion}, "
+                f"not {value!r}."
+            )
+        _check_keys(source.by, by, where)
+        types: list[str] = []
+        fits: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
+        for group in source.groups:
+            main = group["fits"][0]
+            types += [str(p["test_type"]) for p in main["points"] if p.get("test_type")]
+            raw, unit, quantity = (
+                (main["friction_angle"], "deg", "angle")
+                if value == angle
+                else (main["cohesion"], source.unit, "stress")
+            )
+            entry = _fit_entry(
+                raw, unit, quantity, main, main["points"], source, state, notes
+            )
+            entry["stages"] = main["stages"]
+            entry["reason"] = main["no_fit_reason"]
+            fits.setdefault(_place(group["key"], by), []).append(entry)
+        listed = ", ".join(dict.fromkeys(types))
+        label = "Mohr-Coulomb fit" + (f" ({listed})" if listed else "")
+        return _Source(label, "fit", position, fits=fits)
+    if isinstance(source, ShearBoxConversion):
+        if value != "effective_friction_angle":
+            raise HangtuError(
+                f"{where} is a ShearBoxConversion, which gives "
+                f"effective_friction_angle only, not {value!r}: Kulhawy & Mayne (1990) "
+                "give no conversion for the cohesion, so it isn't compared with a "
+                "triaxial c′."
+            )
+        _check_keys(source.by, by, where)
+        fits = {}
+        for group in source.groups:
+            line = group["lines"][0]
+            entry = _fit_entry(
+                line["effective_friction_angle"],
+                "deg",
+                "angle",
+                line,
+                group["points"],
+                source,
+                state,
+                notes,
+            )
+            entry["line_kind"] = line["line_kind"]
+            entry["reason"] = line["no_conversion_reason"]
+            fits.setdefault(_place(group["key"], by), []).append(entry)
+        return _Source(CONVERTED, "fit", position, fits=fits)
+    raise HangtuError(
+        f"{where} is a {type(source).__name__}; compare_sources() takes DataFrames of "
+        "values, a MohrCoulombFit or a ShearBoxConversion."
+    )
+
+
+def _check_keys(fitted: Sequence[str], by: list[str], where: str) -> None:
+    """Raise unless a fit's groups are keyed by every by column (decision 11)."""
+    missing = [column for column in by if column not in fitted]
+    if missing:
+        grouped = f"group_by={list(fitted)!r}" if fitted else "no group_by"
+        raise HangtuError(
+            f"{where} was fitted with {grouped}, so its groups have no "
+            f"{', '.join(missing)}. Fit again with group_by={by!r} (more columns, "
+            "such as sample_reference, give several values per unit)."
+        )
+
+
+def _place(key: dict[str, Any], by: list[str]) -> tuple[Any, ...]:
+    return tuple(key[column] for column in by)
+
+
+def _fit_entry(
+    raw: float,
+    unit: str | None,
+    quantity: str,
+    line: dict[str, Any],
+    points: list[dict[str, Any]],
+    source: Any,
+    state: _Units,
+    notes: list[str],
+) -> dict[str, Any]:
+    """One fitted group's value, stresses and depths, in the comparison's units."""
+    value, _ = state.to([raw], unit, quantity, "value")
+    stresses, _ = state.to(
+        [line["lowest_normal_stress"], line["highest_normal_stress"]],
+        source.unit,
+        "stress",
+        "stress",
+    )
+    depths = np.array(
+        [np.nan if p.get("depth") is None else p["depth"] for p in points], float
+    )
+    depth_unit = source.depth_units.get("depth")
+    if depth_unit is None:
+        if (~np.isnan(depths)).any():
+            notes.append(
+                f"{source.function}()'s points have depths with no unit, so they are "
+                "left blank. Declare the depth's unit on the fit's input."
+            )
+        depths = np.full(len(points), np.nan)
+    else:
+        depths, _ = state.to(depths, depth_unit, "length", "depth")
+    return {
+        "value": float(value[0]),
+        "count_points": line["count"],
+        "r_squared": line.get("r_squared", np.nan),
+        "lowest_normal_stress": float(stresses[0]),
+        "highest_normal_stress": float(stresses[1]),
+        "depths": depths,
+        "stages": None,
+        "line_kind": None,
+    }
+
+
+def _summarize_fit(
+    source: _Source,
+    place: tuple[Any, ...],
+    percentiles: tuple[float, ...],
+    interval: bool,
+    notes: list[str],
+) -> tuple[dict[str, Any], np.ndarray]:
+    """One unit and fit source: one value, or several summarized like rows."""
+    assert source.fits is not None  # a fit source
+    entries = source.fits.get(place, [])
+    valued = [entry for entry in entries if not np.isnan(entry["value"])]
+    numbers = np.array([entry["value"] for entry in valued], float)
+    summary = summarize(numbers, percentiles=percentiles, interval=interval)
+    depths = np.concatenate([e["depths"] for e in entries]) if entries else np.array([])
+    shallowest, deepest = _range(depths)
+    record: dict[str, Any] = {
+        "parameter_source": source.label,
+        "source_kind": source.kind,
+        "statistics": summary.statistics,
+        "counts": dict.fromkeys(COUNTS, 0),
+        "reasons": summary.reasons if len(entries) > 1 else {},
+        **dict.fromkeys(FIT_COLUMNS, np.nan),
+        "count_points": sum(int(e["count_points"]) for e in entries),
+        "shallowest_depth": shallowest,
+        "deepest_depth": deepest,
+        "stages": None,
+        "line_kind": None,
+        "no_value_reason": None,
+    }
+    reasons = list(
+        dict.fromkeys(str(e["reason"]) for e in entries if np.isnan(e["value"]))
+    )
+    if len(entries) == 1:
+        (entry,) = entries
+        for name in ("r_squared", "lowest_normal_stress", "highest_normal_stress"):
+            record[name] = entry[name]
+        record["stages"], record["line_kind"] = entry["stages"], entry["line_kind"]
+    if not entries:
+        record["count_points"] = 0
+        record["no_value_reason"] = "no rows in this unit"
+    elif not valued:
+        record["no_value_reason"] = "; ".join(reasons)
+    elif reasons:
+        notes.append(
+            f"{', '.join(map(str, place)) or 'All'} · {source.label}: "
+            f"{len(entries) - len(valued)} of {len(entries)} fits have no value "
+            f"({'; '.join(reasons)})."
+        )
+    return record, numbers
+
+
+def _range(values: np.ndarray) -> tuple[float, float]:
+    finite = values[~np.isnan(values)]
+    if not finite.size:
+        return np.nan, np.nan
+    return float(finite.min()), float(finite.max())
+
+
+def _positions(
+    key: dict[str, Any], listed: list[_Source], values: dict[str, np.ndarray]
+) -> list[dict[str, Any]]:
+    """Each one-value fit placed among each row source's values (decision 13)."""
+    placed = []
+    place = tuple(key.values())
+    for fit in listed:
+        if fit.kind != "fit" or len(values[fit.label]) != 1:
+            continue
+        assert fit.fits is not None  # a fit source
+        if len(fit.fits.get(place, [])) != 1:
+            continue
+        value = float(values[fit.label][0])
+        for rows in listed:
+            if rows.kind != "rows" or not len(values[rows.label]):
+                continue
+            x = np.sort(values[rows.label])
+            position = (
+                "below" if value < x[0] else "above" if value > x[-1] else "within"
+            )
+            rank = (
+                percentile_rank(x, value)
+                if position == "within" and x.size >= percentile_floor(25)
+                else np.nan
+            )
+            placed.append(
+                {
+                    "key": key,
+                    "fit_source": fit.label,
+                    "parameter_source": rows.label,
+                    "fit_value": value,
+                    "count": int(x.size),
+                    "minimum": float(x[0]),
+                    "maximum": float(x[-1]),
+                    "position": position,
+                    "percentile_rank": rank,
+                }
+            )
+    return placed
+
+
+def percentile_rank(values: np.ndarray, value: float) -> float:
+    """Return the rank of ``value`` in percent: the inverse of H&F definition 7.
+
+    For sorted values with x[i] <= v <= x[i+1] (0-based), h = i + (v - x[i]) /
+    (x[i+1] - x[i]) and the rank is 100 h / (n - 1), so the H&F 7 quantile at
+    the rank is ``value`` again. A value equal to a run of tied values takes
+    the middle of the run (decision 13). ``value`` must lie within the values.
+    """
+    x = np.sort(np.asarray(values, dtype=float))
+    equal = np.flatnonzero(x == value)
+    if equal.size:
+        h = (equal[0] + equal[-1]) / 2
+    else:
+        i = int(np.searchsorted(x, value)) - 1
+        h = i + (value - x[i]) / (x[i + 1] - x[i])
+    return float(100 * h / (x.size - 1))
 
 
 def _judgments(sources: Sequence[Any]) -> dict[str, Any]:
@@ -404,10 +760,15 @@ class SourceComparison(_Result):
     percentile_method: str
     #: The system every source was converted to, or None.
     display_units: str | None
+    #: The unit of the fits' normal stresses, and of their depths, or None.
+    stress_unit: str | None
+    depth_unit: str | None
     #: One record per unit and source: ``key``, ``parameter_source``,
-    #: ``source_kind``, ``statistics``, ``counts``, the fit columns and
-    #: ``no_value_reason``.
+    #: ``source_kind``, ``statistics``, ``counts``, the fit columns,
+    #: ``stages`` or ``line_kind`` (a unit's one fit) and ``no_value_reason``.
     rows: tuple[dict[str, Any], ...]
+    #: One record per unit, fit and row source: the rows of ``.positions()``.
+    placed: tuple[dict[str, Any], ...]
 
     def _statistics(self) -> list[str]:
         return list(self.rows[0]["statistics"]) if self.rows else []
@@ -442,12 +803,52 @@ class SourceComparison(_Result):
         ]
         frame = pd.DataFrame(rows, columns=self._columns())
         unitless = {"count", "coefficient_of_variation"}
-        frame.attrs["units"] = (
+        units = (
             {}
             if self.unit is None
-            else {
-                name: self.unit for name in self._statistics() if name not in unitless
-            }
+            else {n: self.unit for n in self._statistics() if n not in unitless}
+        )
+        if self.stress_unit:
+            units |= dict.fromkeys(
+                ["lowest_normal_stress", "highest_normal_stress"], self.stress_unit
+            )
+        if self.depth_unit:
+            units |= dict.fromkeys(
+                ["shallowest_depth", "deepest_depth"], self.depth_unit
+            )
+        frame.attrs["units"] = units
+        return frame
+
+    def positions(self) -> pd.DataFrame:
+        """Return each fit's value placed among each row source's values, by unit.
+
+        One row per unit, fit source with one value there, and row source with
+        a counted value: ``position`` is ``"below"``, ``"within"`` or
+        ``"above"`` the row source's ``minimum`` to ``maximum``, and
+        ``percentile_rank`` the fit value's rank among them in percent (the
+        inverse of Hyndman & Fan definition 7), given within that range from 4
+        values. It places the value; it tests nothing.
+        """
+        columns = [
+            *self.by,
+            "fit_source",
+            "parameter_source",
+            "fit_value",
+            "count",
+            "minimum",
+            "maximum",
+            "position",
+            "percentile_rank",
+        ]
+        rows = [
+            {**r["key"], **{k: v for k, v in r.items() if k != "key"}}
+            for r in self.placed
+        ]
+        frame = pd.DataFrame(rows, columns=columns)
+        frame.attrs["units"] = (
+            dict.fromkeys(["fit_value", "minimum", "maximum"], self.unit)
+            if self.unit
+            else {}
         )
         return frame
 
@@ -473,6 +874,16 @@ class SourceComparison(_Result):
                     ]
                 )
             lines.extend(_table(table, indent="  "))
+            for placed in self.placed:
+                if tuple(placed["key"].items()) != key:
+                    continue
+                rank = placed["percentile_rank"]
+                at = "" if np.isnan(rank) else f", at P{rank:.0f}"
+                lines.append(
+                    f"  {placed['fit_source']} {_cell(placed['fit_value'])} is "
+                    f"{placed['position']} {placed['parameter_source']} "
+                    f"({_cell(placed['minimum'])} to {_cell(placed['maximum'])}{at})"
+                )
         return "\n".join([*lines, *self.notes])
 
     def __repr__(self) -> str:

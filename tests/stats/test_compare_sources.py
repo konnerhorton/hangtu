@@ -374,3 +374,275 @@ def test_names_are_registered():
     statistics |= {c for c in frame.columns if c.startswith("count_")}
     for column in frame.columns:
         assert column in registered or column in statistics, column
+
+
+# --- step 5: fit sources (AC 5-8) -----------------------------------------------------
+
+CONVERTED = "shear box, converted (Kulhawy & Mayne 1990)"
+NEGATIVE = r"the free line's intercept is negative"
+STRESSES = [
+    "minor_principal_stress_at_failure",
+    "major_principal_stress_at_failure",
+    "effective_minor_principal_stress_at_failure",
+    "effective_major_principal_stress_at_failure",
+]
+
+
+def _triaxial_frame(points, **columns):
+    """CD stages with effective (σ′3, σ′1) and totals 300 kPa above them."""
+    minor, major = (np.array(v, dtype=float) for v in zip(*points, strict=True))
+    df = pd.DataFrame(
+        {
+            STRESSES[0]: minor + 300,
+            STRESSES[1]: major + 300,
+            STRESSES[2]: minor,
+            STRESSES[3]: major,
+            "test_type": "CD",
+            **columns,
+        }
+    )
+    df.attrs["units"] = {**dict.fromkeys(STRESSES, "kPa"), "depth": "m"}
+    return df
+
+
+def _mohr_coulomb(group_by="geology_unit"):
+    """G2's triaxial fit: φ′ 36° in Terrace at 4.0-9.0 m; one stage in Alluvium."""
+    df = _triaxial_frame(
+        [(50, 192.592), (100, 385.184), (200, 770.368), (100, 400.0)],
+        geology_unit=["Terrace"] * 3 + ["Alluvium"],
+        depth=[4.0, 6.5, 9.0, 3.0],
+    )
+    # σ′1 is rounded to 3 decimals, so the free intercept is a hair below 0.
+    with pytest.warns(UserWarning, match=r"intercept is negative") as caught:
+        fit = ht.analysis.mohr_coulomb_fit(df, group_by=group_by)
+    assert len(caught) == 1, [str(w.message) for w in caught]
+    return fit
+
+
+def _conversion():
+    """G2's shear box: τ = σn tan 30°, cohesionless, φ′cv 32° → 30.5777°."""
+    df = pd.DataFrame(
+        {
+            "geology_unit": "Terrace",
+            "applied_normal_stress": [50.0, 100.0, 200.0],
+            "peak_shear_stress": [28.867513, 57.735027, 115.470054],
+            "depth": [5.0, 5.0, 5.0],
+        }
+    )
+    df.attrs["units"] = {
+        "applied_normal_stress": "kPa",
+        "peak_shear_stress": "kPa",
+        "depth": "m",
+    }
+    with pytest.warns(UserWarning, match=NEGATIVE):
+        fit = ht.analysis.shear_box_fit(df, group_by="geology_unit", cohesion=0)
+    return ht.analysis.friction_angle_from_shear_box(
+        fit, soil="cohesionless", critical_state_friction_angle={"Terrace": 32}
+    )
+
+
+def _g2(**kwargs):
+    with pytest.warns(UserWarning, match=BAND):
+        return ht.stats.compare_sources(
+            _spt_phi(), _mohr_coulomb(), _conversion(), value=PHI, **kwargs
+        )
+
+
+def test_g2_fit_values_and_their_columns():
+    result = _g2(percentiles=(25, 75))
+    assert [s["parameter_source"] for s in result.sources] == [
+        HATANAKA,
+        KULHAWY,
+        "Mohr-Coulomb fit (CD)",
+        CONVERTED,
+    ]
+    fit = _row(result, "Terrace", "Mohr-Coulomb fit (CD)")
+    assert fit["source_kind"] == "fit"
+    assert fit["count"] == 1
+    assert fit["mean"] == pytest.approx(36.0, abs=1e-3)
+    assert fit["median"] == pytest.approx(36.0, abs=1e-3)
+    assert np.isnan(fit["standard_deviation"])
+    assert fit["count_points"] == 3
+    assert fit["r_squared"] == pytest.approx(1.0, abs=1e-9)
+    assert fit["shallowest_depth"] == 4.0
+    assert fit["deepest_depth"] == 9.0
+    assert fit["lowest_normal_stress"] < fit["highest_normal_stress"]
+    converted = _row(result, "Terrace", CONVERTED)
+    assert converted["mean"] == pytest.approx(30.5777, abs=1e-4)
+    assert converted["count_points"] == 3
+    assert converted["shallowest_depth"] == converted["deepest_depth"] == 5.0
+    record = next(
+        r
+        for r in result.rows
+        if r["parameter_source"] == CONVERTED and r["key"]["geology_unit"] == "Terrace"
+    )
+    assert record["line_kind"] == "through_origin"
+    frame = result.to_frame()
+    assert frame.attrs["units"]["shallowest_depth"] == "m"
+    assert frame.attrs["units"]["lowest_normal_stress"] == "kPa"
+    assert frame.attrs["units"]["mean"] == "deg"
+    json.loads(json.dumps(result.to_dict()))
+
+
+def test_g2_positions():
+    result = _g2()
+    positions = result.positions().set_index(["fit_source", "parameter_source"])
+    a = positions.loc[("Mohr-Coulomb fit (CD)", HATANAKA)]
+    assert a["position"] == "within"
+    assert a["percentile_rank"] == pytest.approx(69.0476, abs=1e-3)
+    assert a["count"] == 8
+    b = positions.loc[("Mohr-Coulomb fit (CD)", KULHAWY)]
+    assert b["position"] == "within"
+    assert b["percentile_rank"] == pytest.approx(32.8571, abs=1e-3)
+    # H&F 7 at the rank gives the fit's value again.
+    df = _spt_phi()
+    terrace = df[df["geology_unit"] == "Terrace"]
+    for name, rank in (
+        (HATANAKA, a["percentile_rank"]),
+        (KULHAWY, b["percentile_rank"]),
+    ):
+        values = terrace.loc[terrace["correlation_name"] == name, PHI].dropna()
+        assert np.percentile(values, rank, method="linear") == pytest.approx(
+            36.0, abs=1e-3
+        )
+    for name in (HATANAKA, KULHAWY):
+        below = positions.loc[(CONVERTED, name)]
+        assert below["position"] == "below"
+        assert np.isnan(below["percentile_rank"])
+    assert set(result.positions()["geology_unit"]) == {"Terrace"}
+    assert result.positions().attrs["units"]["fit_value"] == "deg"
+    assert "Mohr-Coulomb fit (CD) 36.0 is within" in str(result)
+
+
+def test_g2_alluvium_lists_every_source_with_its_reason():
+    result = _g2()
+    assert _row(result, "Alluvium", HATANAKA)["count"] == 3
+    assert _row(result, "Alluvium", KULHAWY)["no_value_reason"] == (
+        "no rows in this unit"
+    )
+    fitted = _mohr_coulomb().groups[0]
+    assert fitted["key"] == {"geology_unit": "Alluvium"}
+    reason = fitted["fits"][0]["no_fit_reason"]
+    assert reason
+    fit = _row(result, "Alluvium", "Mohr-Coulomb fit (CD)")
+    assert fit["count"] == 0
+    assert fit["no_value_reason"] == reason
+    assert _row(result, "Alluvium", CONVERTED)["no_value_reason"] == (
+        "no rows in this unit"
+    )
+
+
+def test_a_rank_under_four_values_is_blank():
+    df = _spt_phi()
+    df = df[~((df["geology_unit"] == "Terrace") & (df.index % 8 > 2))]
+    result = _compare(df, _mohr_coulomb(), value=PHI)
+    placed = result.positions().set_index("parameter_source")
+    assert placed.loc[HATANAKA, "count"] == 3
+    assert placed.loc[HATANAKA, "position"] == "within"
+    assert np.isnan(placed.loc[HATANAKA, "percentile_rank"])
+
+
+def test_percentile_rank_ties_take_the_middle():
+    from hangtu.stats._compare_sources import percentile_rank
+
+    assert percentile_rank(np.array([1.0, 2.0, 2.0, 2.0, 3.0]), 2.0) == 50.0
+    assert percentile_rank(np.array([1.0, 2.0, 3.0, 4.0]), 1.0) == 0.0
+    assert percentile_rank(np.array([1.0, 2.0, 3.0, 4.0]), 4.0) == 100.0
+    assert percentile_rank(np.array([1.0, 2.0, 3.0, 5.0]), 4.0) == pytest.approx(
+        250 / 3
+    )
+
+
+def test_a_per_sample_fit_is_summarized_like_rows():
+    angles = {"S1": 34.0, "S2": 36.0, "S3": 37.0}
+    points, samples = [], []
+    for sample, angle in angles.items():
+        ratio = (1 + np.sin(np.radians(angle))) / (1 - np.sin(np.radians(angle)))
+        points += [(50, 50 * ratio), (150, 150 * ratio)]
+        samples += [sample, sample]
+    df = _triaxial_frame(
+        points, geology_unit="Terrace", sample_reference=samples, depth=np.arange(6.0)
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")  # 2 points per fit
+        fit = ht.analysis.mohr_coulomb_fit(
+            df, group_by=["geology_unit", "sample_reference"]
+        )
+    result = _compare(fit, value=PHI)
+    row = _row(result, "Terrace", "Mohr-Coulomb fit (CD)")
+    assert row["count"] == 3
+    assert row["mean"] == pytest.approx(np.mean(list(angles.values())), abs=1e-6)
+    assert row["standard_deviation"] == pytest.approx(
+        np.std(list(angles.values()), ddof=1), abs=1e-6
+    )
+    assert row["count_points"] == 6
+    assert np.isnan(row["r_squared"])
+    assert (row["shallowest_depth"], row["deepest_depth"]) == (0.0, 5.0)
+    assert result.positions().empty
+
+
+def test_cohesion_from_a_fit_in_us_units():
+    result = _compare(_mohr_coulomb(), value="effective_cohesion", display_units="US")
+    row = _row(result, "Terrace", "Mohr-Coulomb fit (CD)")
+    assert row["mean"] == pytest.approx(0.0, abs=1e-3)
+    assert result.unit == "psf"
+    assert result.stress_unit == "psf"
+    assert result.depth_unit == "ft"
+    assert row["shallowest_depth"] == pytest.approx(4.0 / 0.3048, rel=REL)
+
+
+def test_g3_has_no_positions():
+    result = _compare(_su(), _stroud(), value=SU)
+    assert result.positions().empty
+    assert list(result.positions().columns) == [
+        "geology_unit",
+        "fit_source",
+        "parameter_source",
+        "fit_value",
+        "count",
+        "minimum",
+        "maximum",
+        "position",
+        "percentile_rank",
+    ]
+
+
+def test_fit_source_errors_name_what_to_do():
+    df = pd.DataFrame(
+        {"applied_normal_stress": [50.0, 100.0], "peak_shear_stress": [30.0, 59.0]}
+    )
+    df.attrs["units"] = {"applied_normal_stress": "kPa", "peak_shear_stress": "kPa"}
+    shear_box = ht.analysis.shear_box_fit(df)
+    for value in (PHI, "effective_cohesion"):
+        with pytest.raises(HangtuError, match=r"friction_angle_from_shear_box\(fit"):
+            ht.stats.compare_sources(shear_box, value=value, by=None)
+    triaxial = _triaxial_frame(
+        [(50, 192.592), (100, 385.184), (200, 770.368)], geology_unit="Terrace"
+    )
+    total = ht.analysis.mohr_coulomb_fit(
+        triaxial, stress="total", group_by="geology_unit", cohesion=0
+    )
+    with pytest.raises(HangtuError, match=r"total stress MohrCoulombFit.*stress="):
+        ht.stats.compare_sources(total, value=PHI)
+    from hangtu.analysis import HoekBrownFit
+
+    with pytest.raises(HangtuError, match=r"HoekBrownFit.*intact rock"):
+        ht.stats.compare_sources(object.__new__(HoekBrownFit), value=PHI)
+    with pytest.raises(HangtuError, match=r"effective_friction_angle only"):
+        ht.stats.compare_sources(_conversion(), value="effective_cohesion")
+    with pytest.raises(
+        HangtuError,
+        match=r"gives effective_friction_angle and effective_cohesion, not "
+        r"'undrained_shear_strength'",
+    ):
+        ht.stats.compare_sources(_mohr_coulomb(), value=SU)
+    with pytest.raises(
+        HangtuError,
+        match=r"source 1 was fitted with no group_by.*no geology_unit.*"
+        r"group_by=\['geology_unit'\]",
+    ):
+        ht.stats.compare_sources(
+            ht.analysis.mohr_coulomb_fit(triaxial, cohesion=0), value=PHI
+        )
+    with pytest.raises(HangtuError, match=r"source 2 is a dict"):
+        ht.stats.compare_sources(_su(), {}, value=SU)

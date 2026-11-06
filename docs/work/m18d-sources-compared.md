@@ -214,8 +214,8 @@ ht.stats.compare_sources(
       So one frame can hold several sources, such as two correlations or three test types. A row with none of
       them is labeled "(no source given)" and is still a source of its own, never dropped.
     - **A `MohrCoulombFit`** gives the main fit of each group (its first: `stages` as the fit ordered them), for
-      `effective_friction_angle` or `effective_cohesion`. Its label is "Mohr–Coulomb fit" with its points' test
-      types, such as "Mohr–Coulomb fit (CD, CU)".
+      `effective_friction_angle` or `effective_cohesion`. Its label is "Mohr-Coulomb fit" with its points' test
+      types, such as "Mohr-Coulomb fit (CD, CU)" (a hyphen, as the fit's own text writes it).
     - **A `ShearBoxConversion`** gives its main line's converted value, for `effective_friction_angle` only,
       labeled "shear box, converted (Kulhawy & Mayne 1990)".
     - **Errors:**
@@ -291,7 +291,7 @@ ht.stats.compare_sources(
     by something other than geology unit" item from P07's future enhancements:
     - Each geology unit gets one sub-row per value of the `split_by` column, consecutive under the unit, in
       order of first appearance.
-    - The tick label is "Terrace · Mohr–Coulomb fit (CD)".
+    - The tick label is "Terrace · Mohr-Coulomb fit (CD)".
     - Each sub-row has its own summary and count, so a sub-row split by a source column never "mixes sources".
     - A unit's baseline is drawn once, on its first sub-row.
     - `color_by` also accepts the `split_by` column, and the legend then has one entry per value.

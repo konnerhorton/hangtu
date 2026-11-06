@@ -475,6 +475,7 @@ def _convert(
         "peak_cohesion": line["cohesion"],
         "residual_friction_angle": residual["friction_angle"],
         "count": line["count"],
+        "r_squared": line["r_squared"],
         "lowest_normal_stress": line["lowest_normal_stress"],
         "highest_normal_stress": line["highest_normal_stress"],
         "plane_strain_friction_angle": np.nan,
