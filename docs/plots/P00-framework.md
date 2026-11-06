@@ -173,7 +173,7 @@ Helpers: `nice_limits(vmin, vmax, *, start_at_zero)`, `log_limits(vmin, vmax, mi
   - **Clear** means the legend's box, padded by 4 pt, overlaps no marker (padded by its radius), no line segment (one crossing the box counts, not just its vertices), no data patch, and no text, annotation or text box. Artists below `_layers.LINES` (strata bands, user regions, range bands, P05 envelopes) and the axes background don't count. The test runs after the layout engine, so the axes have their final size.
   - `"inside"`: the same corners with no fallback; if none is clear, the corner with the fewest obstacles, ties to the earlier corner.
   - `"right"`: outside on the right, no frame. `offset=` moves it further right, in points, to clear a secondary axis.
-  - `"bottom"`: centered under the x label in up to four columns, no frame (P05).
+  - `"bottom"`: centered under the x label in up to four columns, fewer when long entries would run past the figure's edges, no frame (P05).
   - An inside legend has a white frame at 0.85 alpha with no edge, so gridlines don't run through the text.
   - `Notes.render` takes the placement: below a right legend, below a bottom legend, and below the x label for an inside legend or none.
   - An entry longer than 28 characters wraps at word boundaries onto as many lines as it needs. It is never shortened.
