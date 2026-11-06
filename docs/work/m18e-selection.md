@@ -331,3 +331,70 @@ Hand-built frames in SI, so each number is checked by hand, not by running the c
 - `docs/drafts/parameters/README.md`: sheet 05's stage D no longer names Bjerrum's μ; sheets 01, 04 and 05
   at close.
 - `docs/TODO.md`: #56, named design cases as a selection key (decision 9).
+
+## Plan
+Six build commits, each with ruff, mypy and the tests it touches green, and the whole suite run once before
+committing. Steps 1–3 run on Opus in one session, 4–5 on Sonnet in a new session, and 6 on Opus.
+
+### 1. `M18: add the selection judgment to the judgments file` (Opus)
+- `src/hangtu/_judgments.py`: `selection` in `KINDS`, read by its own checker because it has a parameter level.
+  The parameter must be a numeric registry column with a quantity kind. `by:` is `geology_unit` or left out, with
+  no `project:` value. Each entry has a `method` from the four, a `reason`, the fields that method takes (the
+  input rules shared with `_representative._check`, so the two can't differ), and a `units: {value: …}` checked
+  against the parameter's quantity kind (decisions 6–9). Add `selection` to the published docstring.
+- `src/hangtu/stats/_representative.py`: split the input checks into a function the file checker can call
+  without data (no change in behavior).
+- Tests: `tests/test_judgments_selection.py`: each method's entry opens; each error in decision 8 names the file,
+  parameter, unit and field (AC 1); a `value` without `units:` fails on open (AC 5, second half).
+
+### 2. `M18: add ht.stats.select() for computed and given values` (Opus)
+- `src/hangtu/stats/_select.py` (new): resolution `selection=` → `judgments=` → the file the sources carry (via
+  `df.attrs["judgments_file"]` or `fit.judgments_file`, `read_judgments_file`) → an error showing an entry
+  (decision 12). Runs `compare_sources()` once, checks the `source` labels and units (decisions 10 and 13), and
+  calls `representative()` on each frame's rows filtered to the label, with its `judgments=` passed through.
+  `value` is converted to the comparison's unit, `none` is listed with its reason, and `no_value_reason` comes
+  with a warning.
+- `src/hangtu/stats/_compare_sources.py`: expose each row source's frame and its label mask on `_Source` so
+  `select()` can filter rows (no change in behavior).
+- `src/hangtu/stats/__init__.py`: export `select` and `SelectionResult` (a minimal result, with `.to_frame()`
+  and `.representative()`).
+- Tests: `tests/stats/test_select.py`: G1 (AC 2), G4 and a `value` for a unit with no rows (AC 5), unlisted
+  units and `none` (AC 6), an unknown source and `ShearBoxFit` (AC 7), resolution with the warning and the
+  path and SHA-256 recorded (AC 8), refusals with `spt_refusal_upper_limit` from the file (AC 9), no value
+  never filled from another source (AC 10), and G5 against `test_representative.py`'s JRC case (AC 12).
+
+### 3. `M18: select a fit's value and place the selection` (Opus)
+- `src/hangtu/stats/_select.py`: `fitted` (one fit value in the unit; a row source or several values is an
+  error naming the methods that take it). A per-sample fit goes to `representative()` from its values. Add
+  `.positions()` with `position`/`percentile_rank` by `percentile_rank()` and the fit's `difference`; a line
+  gives a blank position with "a line with depth" (decision 14).
+- Tests: `tests/stats/test_select_fitted.py`: G2 (AC 3), G3 with c′ and φ′ from one fit, the errors and
+  `difference` (AC 4), and the trend's positions (AC 11, first half).
+
+### 4. `M18: add SelectionResult's views` (Sonnet)
+- `src/hangtu/stats/_select.py`: complete `SelectionResult` (decision 15): `.to_frame()` columns and order,
+  `.to_dict()` with the comparison's and each `representative()` result's, the printed summary and HTML repr,
+  `.design_lines()`, `.profile()`, a note for each unit (decision 16).
+- `src/hangtu/columns.yaml`: `selection_method`, `selection_reason` and (if it collides with nothing)
+  `difference`, checked against the whole registry by an Explore agent.
+- Tests: `tests/stats/test_select_views.py`: the views agree, `.profile()` draws the selected line, and a
+  Project's categorical `geology_unit` raises no warning (AC 13); a trend's `.design_lines()` equals
+  `representative()`'s (AC 11, second half).
+
+### 5. `M18: document the selection` (Sonnet)
+- `docs/site/guides/selection.md` (new, after "Sources compared" in `zensical.toml`) with
+  `docs/site/examples/selection.py`: φ′ for the Terrace, s_u for the Alluvium, from the example site's file. It
+  says c′ and φ′ selected separately aren't a joint fractile, and that the `unit_weight` judgment is the one
+  analyses read.
+- `src/hangtu/examples/data/judgments.yaml`: the Terrace's φ′ and c′ (`fitted`), the Alluvium's s_u, and
+  `none` for the other units.
+- `docs/site/guides/judgments.md`, `docs/site/reference/stats.md`, `docs/site/parameters/` pages 04 and 05
+  (stage D), `docs/analysis/statistics.md` §6.
+- Tests: the reference-entry test and `docs/prepare_site.py` run clean (AC 14).
+
+### 6. `M18: close out (e), the selection` (Opus)
+- Check every acceptance criterion and golden value, and look at the guide's figure.
+- Close-out: SPEC §12.4 marks (e) done (§4 and §5 were changed in the spec commit, decision 19; check they
+  still match what was built). `docs/drafts/parameters/README.md` gets stage D for sheets 01 (the
+  `unit_weight` judgment), 04 and 05, and sheet 05 no longer names Bjerrum's μ. `docs/TODO.md` gets #56
+  (named design cases as a selection key). `CLAUDE.md`'s "next" sentence moves to M18 (f).
