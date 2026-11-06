@@ -209,7 +209,8 @@ class SelectionEntry:
 
     ``inputs`` holds a ``representative()`` method's fields under its argument
     names (``side``, ``distribution``, ``trend`` and that method's inputs),
-    only those written. ``value`` is in the selection's ``unit``.
+    only those written. ``value`` is in ``unit``: the selection's
+    ``units: {value: …}`` in the file, or the quantity's own in ``selection=``.
     """
 
     method: str
@@ -217,6 +218,7 @@ class SelectionEntry:
     source: str | None = None
     inputs: dict[str, Any] = dataclasses.field(default_factory=dict)
     value: float | None = None
+    unit: str | None = None
 
 
 @dataclass(frozen=True)
@@ -777,7 +779,7 @@ def selection_text(entry: SelectionEntry, unit: str | None) -> str:
     """``Mohr-Coulomb fit (CD, CU), fitted (three CD stages)``: one entry in a line."""
     if entry.method == "value":
         assert entry.value is not None  # a value entry has one (decision 7)
-        what = f"value {quantity_text(entry.value, unit or '')}"
+        what = f"value {quantity_text(entry.value, entry.unit or unit or '')}"
     else:
         inputs = ", ".join(f"{name} {value}" for name, value in entry.inputs.items())
         what = ", ".join(part for part in (entry.source, entry.method, inputs) if part)
@@ -799,7 +801,7 @@ def check_selections(body: Any, where: str) -> dict[str, Selection]:
 
 def check_selection(parameter: Any, body: Any, where: str) -> Selection:
     """Check one parameter's selection: ``by``, ``units`` and ``values``."""
-    quantity = _selected_quantity(parameter, where)
+    quantity = selected_quantity(parameter, where)
     sections = (
         ("by", "values") if quantity in PURE_NUMBERS else ("by", "units", "values")
     )
@@ -929,6 +931,7 @@ def check_selection_entry(
             method=method,
             reason=reason,
             value=_selection_value(entry.get("value"), quantity, unit, where),
+            unit=unit,
         )
     inputs: dict[str, Any] = {}
     if method in _representative.METHODS:
@@ -944,7 +947,7 @@ def _method_fields(method: str) -> tuple[str, ...]:
     return SELECTION_FIELDS[method]
 
 
-def _selected_quantity(parameter: Any, where: str) -> str:
+def selected_quantity(parameter: Any, where: str) -> str:
     """Return the parameter's quantity kind, which its registry column must have."""
     from hangtu import registry
 
@@ -963,7 +966,7 @@ def _selected_quantity(parameter: Any, where: str) -> str:
     return str(info["quantity"])
 
 
-def _example_unit(quantity: str) -> str:
+def example_unit(quantity: str) -> str:
     """Return a unit as the file writes it: ``deg``, ``kPa``, ``kN/m3``."""
     return EXAMPLE_UNITS.get(quantity) or str(
         units.quantity_kind(quantity)["SI"]["text"] or '"%"'
@@ -974,7 +977,7 @@ def _selection_unit(quantity: str, given: Any, where: str) -> str | None:
     """Check ``units: {value: …}`` against the parameter's quantity kind."""
     if given is None:
         return None
-    example = _example_unit(quantity)
+    example = example_unit(quantity)
     if not isinstance(given, Mapping) or set(given) != {"value"}:
         raise HangtuError(
             f"{where}, units: gives the unit of the value entries only, e.g. "
@@ -996,7 +999,7 @@ def _selection_value(value: Any, quantity: str, unit: str | None, where: str) ->
     if not math.isfinite(value):
         raise HangtuError(f"{where}, value: must be finite, not {value!r}.")
     if unit is None and quantity not in PURE_NUMBERS:
-        example = _example_unit(quantity)
+        example = example_unit(quantity)
         raise HangtuError(
             f"{where}, value: has no unit. Add the selection's units, e.g. "
             f"units: {{value: {example}}}."

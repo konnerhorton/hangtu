@@ -80,6 +80,21 @@ class _Source:
     #: A fit source's values: each unit's key -> one entry per fitted group.
     fits: dict[tuple[Any, ...], list[dict[str, Any]]] | None = None
 
+    def mask(self, place: tuple[Any, ...]) -> np.ndarray:
+        """Return a row source's rows in the unit ``place`` that carry its label."""
+        data = self.rows
+        assert data is not None  # a row source
+        in_unit = data.units.get(place, np.zeros(len(data.numbers), bool))
+        return in_unit & (data.labels == self.row_label)
+
+
+@dataclass
+class Compared:
+    """A comparison and its sources as read, for ``select()`` (m18e, decision 13)."""
+
+    comparison: "SourceComparison"
+    sources: list[_Source]
+
 
 @dataclass
 class _Units:
@@ -232,6 +247,21 @@ def compare_sources(
     ... )
     >>> compared.positions()
     """
+    return compare(
+        sources, value, by, percentiles, include_assumed, units, display_units
+    ).comparison
+
+
+def compare(
+    sources: Sequence[Any],
+    value: str,
+    by: str | Sequence[str] | None,
+    percentiles: Sequence[float],
+    include_assumed: bool,
+    units: Mapping[str, str] | None,
+    display_units: str | None,
+) -> Compared:
+    """Compute ``compare_sources()``, keeping each source as it was read."""
     if not sources:
         raise HangtuError(
             f"{_FUNCTION} needs at least one source: DataFrames of values, e.g. "
@@ -291,7 +321,7 @@ def compare_sources(
         "ht.stats.compare() tests two row sources; a fit's value is placed among "
         "a row source's values (.positions()), not tested against them.",
     ]
-    return SourceComparison(
+    comparison = SourceComparison(
         kind="property",
         function="compare_sources",
         value=value,
@@ -314,6 +344,7 @@ def compare_sources(
         placed=tuple(placed),
         _values_frame=_values(listed, value, by_columns),
     )
+    return Compared(comparison, listed)
 
 
 def _values(listed: list[_Source], value: str, by: list[str]) -> pd.DataFrame:
@@ -526,8 +557,7 @@ def _summarize_rows(
     """One unit and row source: describe()'s statistics and counts (decision 12)."""
     data = source.rows
     assert data is not None  # a row source
-    in_unit = data.units.get(place, np.zeros(len(data.numbers), bool))
-    rows = in_unit & (data.labels == source.row_label)
+    rows = source.mask(place)
     included = rows & (data.reasons == "")
     summary = summarize(
         data.numbers[included], percentiles=percentiles, interval=interval

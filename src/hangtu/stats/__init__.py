@@ -14,6 +14,7 @@ from hangtu.stats._result import (
     FitResult,
     RepresentativeResult,
 )
+from hangtu.stats._select import SelectionResult, select
 
 __all__ = [
     "CompareGroupsResult",
@@ -22,6 +23,7 @@ __all__ = [
     "DescribeResult",
     "FitResult",
     "RepresentativeResult",
+    "SelectionResult",
     "SourceComparison",
     "compare",
     "compare_groups",
@@ -30,4 +32,5 @@ __all__ = [
     "describe",
     "fit",
     "representative",
+    "select",
 ]
