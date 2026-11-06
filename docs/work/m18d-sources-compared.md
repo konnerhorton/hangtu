@@ -433,6 +433,9 @@ Reused, not rebuilt:
 ### 1. `M18: keep depths and the judgments file on fit results` (Opus)
 - `analysis/_mohr_coulomb.py`, `analysis/_shear_box_fit.py`: `depth`, `elevation`, `ground_level` added to
   `_IDENTIFIERS`, so each point carries them when the input has them (decision 17). Fitted values unchanged.
+  The depths are kept as given, so each fit also records `depth_units` (`{column: unit}` from `units=` →
+  `attrs["units"]`; a column with no declared unit is left out, never guessed), which step 6's `.values()`
+  reads (added in the build).
 - `analysis/_derived.py`: `_DerivedResult` gains `judgments_file: str | None`, from the input's
   `attrs["judgments_file"]`; `mohr_coulomb_fit()`, `shear_box_fit()` and `hoek_brown_fit()` pass it.
 - Tests: `tests/analysis/test_mohr_coulomb_fit.py`, `test_shear_box_fit.py`, `test_hoek_brown_fit.py` (AC 12):

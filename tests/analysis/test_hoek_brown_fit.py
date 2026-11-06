@@ -1063,3 +1063,16 @@ def test_5_the_example_with_two_modes_fits_fourteen_rows():
     assert _get(result)["count"] == 14
     assert _get(result)["count_other_failure_mode"] == 1
     _counts_add_up(result)
+
+
+# --- M18 (d), AC 12: the judgments file kept on the fit ------------------------------
+
+
+def test_judgments_file_recorded(tmp_path):
+    assert _table_1().judgments_file is None
+    path = _judgments(tmp_path)
+    df = _two_units()
+    df.attrs["judgments_file"] = str(path)
+    result, _ = _messages(ht.analysis.hoek_brown_fit, df, group_by="geology_unit")
+    assert result.judgments_file == str(path)
+    assert json.loads(json.dumps(result.to_dict()))["judgments_file"] == str(path)

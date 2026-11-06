@@ -16,7 +16,7 @@ import pandas as pd
 from hangtu import _judgments
 from hangtu import units as _units
 from hangtu._data import flag_column, numeric_column, rows_text
-from hangtu.analysis._derived import _DerivedResult
+from hangtu.analysis._derived import _DerivedResult, judgments_file
 from hangtu.analysis._fit_groups import (
     _cell,
     _check_sources,
@@ -454,6 +454,7 @@ def hoek_brown_fit(
             **({_ARGUMENT: record} if record else {}),
         },
         hangtu_version=version("hangtu"),
+        judgments_file=judgments_file(df),
         stress=stress,
         by=tuple(by),
         pooled=tuple(pooled),

@@ -11,13 +11,15 @@ import pandas as pd
 
 from hangtu import units as _units
 from hangtu._data import numeric_column, rows_text
-from hangtu.analysis._derived import _DerivedResult
+from hangtu.analysis._derived import _DerivedResult, judgments_file
 from hangtu.analysis._fit_groups import (
+    PLACE,
     _cell,
     _check_sources,
     _label,
     _names,
     _pairs,
+    _place_units,
     _reported,
 )
 from hangtu.analysis._line_fit import line_fit
@@ -41,6 +43,7 @@ _IDENTIFIERS = (
     "specimen_reference",
     "test_type",
     "test_stage",
+    *PLACE,
 )
 
 
@@ -314,11 +317,13 @@ def shear_box_fit(
         notes=tuple(notes),
         judgments=dict(df.attrs.get("judgments", {})),
         hangtu_version=version("hangtu"),
+        judgments_file=judgments_file(df),
         by=tuple(by),
         pooled=tuple(pooled),
         cohesion=cohesion,
         normal_stress=normal_stress,
         display_units=display_units,
+        depth_units=_place_units(df, units),
         groups=tuple(groups),
     )
 
@@ -482,6 +487,10 @@ class ShearBoxFit(_DerivedResult):
     normal_stress: str
     #: The system the stresses were converted to before fitting, None if not.
     display_units: str | None
+    #: ``{column: unit}`` of the points' ``depth``, ``elevation`` and
+    #: ``ground_level``, kept as given; a column with no declared unit is
+    #: missing here.
+    depth_units: dict[str, str]
     #: One record per group: its key, its number of rows and, under
     #: ``strengths``, a record for ``"peak"`` and ``"residual"``, each with its
     #: two ``lines`` (the main one first), ``normal_stress_basis``,
