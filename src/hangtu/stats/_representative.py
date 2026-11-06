@@ -40,6 +40,12 @@ INPUTS = {
     "standard_deviations": ("standard_deviations",),
 }
 REQUIRED = {method: inputs[:1] for method, inputs in INPUTS.items()}
+#: Each method's fields as a selection judgment writes them, under
+#: representative()'s argument names (docs/work/m18e-selection.md, decision 7).
+FIELDS = {
+    method: ("side", "distribution", "trend", *inputs)
+    for method, inputs in INPUTS.items()
+}
 EXAMPLES = {
     "characteristic": (
         'method="characteristic", estimate="mean", side="low", distribution="normal"'
@@ -311,7 +317,7 @@ def representative(
         "percentile": percentile,
         "standard_deviations": standard_deviations,
     }
-    method, side, distribution = _check(method, side, distribution, trend, inputs)
+    method, side, distribution = check_view(method, side, distribution, trend, inputs)
     gamma2, capped = _sensitivity(inputs)
     inputs["sensitivity_index"] = gamma2
     lognormal = distribution == "lognormal"
@@ -485,10 +491,15 @@ def representative(
     )
 
 
-def _check(
+def check_view(
     method: Any, side: Any, distribution: Any, trend: Any, inputs: dict[str, Any]
 ) -> tuple[str, str, str]:
-    """Check the view and its judgments (spec decision 1, criterion 1)."""
+    """Check the view and its judgments (spec decision 1, criterion 1).
+
+    It needs no data, so the judgments file's ``selection`` entries are
+    checked by it when the file is opened (docs/work/m18e-selection.md,
+    decision 8). ``inputs`` maps each name in ``INPUTS`` to its value or None.
+    """
     example = EXAMPLES["characteristic"]
     for name, given, choices in (
         ("method", method, METHODS),
