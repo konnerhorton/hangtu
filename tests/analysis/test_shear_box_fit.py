@@ -626,6 +626,9 @@ def test_multistage_test_changes_nothing(site_si):
 
 
 # AC 5-6: the example project's shear box tests (site.ags, stored in psf).
+#: Terrace samples added for M18 (d) (docs/work/m18d-sources-compared.md,
+#: decision 20), left out so the hand fits below stay this unit's.
+SOURCES_COMPARED = ["B-2-D5", "B-5-D5", "B-6-D5"]
 
 
 @pytest.fixture(scope="module")
@@ -636,7 +639,8 @@ def example(tmp_path_factory):
         display_units="US",
     )
     p.set_geology_map(ht.examples.path("strata.csv"))
-    return p.shear_box()
+    df = p.shear_box()
+    return df[~df["sample_reference"].isin(SOURCES_COMPARED)]
 
 
 def _unit(result, name):

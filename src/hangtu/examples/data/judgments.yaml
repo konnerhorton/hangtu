@@ -1,5 +1,5 @@
-# judgments.yaml: the example site's unit weights, water levels, Gs, α and the
-# sandstone's fixed σci (SPEC §4).
+# judgments.yaml: the example site's unit weights, water levels, Gs, α, the
+# sandstone's fixed σci and the Terrace's φ′cv (SPEC §4).
 unit_weight:
   by: geology_unit
   units: {bulk_unit_weight: pcf, saturated_unit_weight: pcf}
@@ -41,3 +41,12 @@ fixed_intact_compressive_strength:
     Sandstone:
       intact_compressive_strength: 61
       reason: "mean of the three UCS tests that failed in shear, 60.8 MPa"
+critical_state_friction_angle:
+  by: geology_unit
+  units: {critical_state_friction_angle: deg}
+  values:
+    Terrace:
+      critical_state_friction_angle: 32
+      reason: >-
+        assumed for subangular quartz sand with gravel; no ring shear or
+        angle of repose test yet

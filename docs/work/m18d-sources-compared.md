@@ -573,6 +573,16 @@ Reused, not rebuilt:
 - `src/hangtu/examples/data/`: regenerated files.
 - The tests and pages whose counts of site.ags rows move (found by the full suite and `prepare_site.py`),
   updated in this commit.
+- **Decided in the build (2026-11-06):**
+  - The unit-level fits are kept free of warnings, as the earlier example data is: the CD tests carry an
+    apparent c′ of 200 psf, and the shear box residual angle is drawn about 30.5°, near critical state,
+    whatever the peak. A lab's negative c is reported as 0, with the line through the origin. B-4-U4's low
+    specimen (the outlier) still makes that sample's own fit negative, as real data would.
+  - The new CSVs name each lab specimen `<sample>-<reference>`, as `rock_triaxial.csv` does, not by the
+    database's number; field vanes have none.
+  - The M17 (b) shear box goldens were hand-calculated on B-3-D4 alone in the Terrace, so those fixtures leave
+    out the three new Terrace samples rather than take computed values. The triaxial shearing check compares
+    only the CU and CDM stages, the only ones with readings.
 - Tests: the full suite; `tests/test_examples.py` reads the new CSVs.
 
 ### 10. `M18: document the sources compared and the shear box conversion` (Opus)

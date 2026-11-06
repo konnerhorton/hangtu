@@ -10,7 +10,7 @@ Triaxial stages at failure with the Mohr-Coulomb envelope fitted to them: Mohr c
 
 ## What it shows
 
-One circle per stage at failure, centered at s′ = (σ′1 + σ′3)/2 with radius t = (σ′1 − σ′3)/2, and the envelope τ = c′ + σ′ tan φ′ that `ht.analysis.mohr_coulomb_fit()` fits to them. Here each geology unit has its own fit: the Alluvium's CU tests and the Terrace's multistage CD test.
+One circle per stage at failure, centered at s′ = (σ′1 + σ′3)/2 with radius t = (σ′1 − σ′3)/2, and the envelope τ = c′ + σ′ tan φ′ that `ht.analysis.mohr_coulomb_fit()` fits to them. Here each geology unit has its own fit: the Alluvium's CU tests and the Terrace's CD tests, single-stage on four tubes and one multistage.
 
 The envelope is solid between the points where it touches the circles and dashed beyond. c′ is where the dashed line meets σ′ = 0, outside the stresses tested, so read it as an intercept, not a measured strength. The box gives each fit's c′, φ′, the number of stages, R², the range of σ′n it holds over, and the lab's own c′ and φ′ where the file reports them. hangtu doesn't judge the difference between the two.
 
