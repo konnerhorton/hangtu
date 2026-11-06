@@ -19,8 +19,8 @@ from hangtu import _judgments
 from hangtu import units as _units
 from hangtu.errors import HangtuError, warn
 from hangtu.stats import _compare_sources, _representative
-from hangtu.stats._compare_sources import PLACE, SourceComparison
-from hangtu.stats._describe import DEFAULT_PERCENTILES
+from hangtu.stats._compare_sources import PLACE, SourceComparison, percentile_rank
+from hangtu.stats._describe import DEFAULT_PERCENTILES, percentile_floor
 from hangtu.stats._result import (
     RepresentativeResult,
     _cell,
@@ -29,6 +29,7 @@ from hangtu.stats._result import (
     _Result,
     _table,
 )
+from hangtu.stats._rows import BLANK_GROUP
 
 FUNCTION = "select()"
 #: A selection is by geology unit only (decision 9).
@@ -70,7 +71,12 @@ def select(
       :func:`representative` on that source's rows in the unit, the frame as
       passed, with the entry's fields as its arguments (``side``,
       ``distribution``, ``trend``, ``estimate``, ...) and ``judgments=``
-      passed through, so ``spt_refusal_upper_limit`` reaches it;
+      passed through, so ``spt_refusal_upper_limit`` reaches it. A fit
+      fitted per sample (several values in the unit) gives its values;
+    - ``fitted``: a fit's one value in the unit, as fitted. Select both
+      ``effective_cohesion`` and ``effective_friction_angle`` as ``fitted``
+      from one ``MohrCoulombFit`` to keep the pair on one line: c′ and φ′
+      selected by views of their own aren't a joint fractile;
     - ``value``: the engineer's value, converted to the comparison's unit;
     - ``none``: no value, on purpose, with the reason.
 
@@ -79,6 +85,12 @@ def select(
     method gives no value (fewer than 2 values, every row left out) is
     listed with ``no_value_reason`` and a warning, and is never filled from
     another source.
+
+    **The other sources** (``.positions()``): a selected constant is placed
+    among each other source's values in the unit, below, within or above
+    them, with its percentile rank within them from 4 values, as
+    :func:`compare_sources` places a fit; against a fit's one value, the
+    difference is given instead. It places the value; it tests nothing.
 
     **Units**: every value is in the comparison's unit (``display_units``,
     else its first source's; angles in degrees). A source in another unit is
@@ -112,14 +124,17 @@ def select(
     -------
     SelectionResult
         ``.to_frame()`` has one row per geology unit, with the selected
-        value (or line), its method, source and reason.
+        value (or line), its method, source and reason; ``.positions()``
+        places it among the other sources.
 
     Raises
     ------
     HangtuError
         For no selection of ``value`` anywhere; a geology unit the sources
         have and the selection doesn't list; a ``source`` that isn't in the
-        comparison; a computed method for a unit no source has; a
+        comparison; ``fitted`` on a row source or a fit with several values
+        in the unit, or a view on a fit's one value; a computed method for
+        a unit no source has; a
         ``selection=`` entry that breaks the file's rules; and the errors of
         :func:`compare_sources` and :func:`representative`.
 
@@ -156,13 +171,15 @@ def select(
         units=units,
         display_units=display_units,
     )
-    rows, results = [], {}
+    rows, results, placed = [], {}, []
     for name in [*map(str, geologies), *(g for g in chosen if g not in geologies)]:
         place = _place(name, geologies)
         row, result = _select_one(context, name, place, chosen[name])
         rows.append(row)
         if result is not None:
             results[name] = result
+        if place is not None:
+            placed += _positions(context, row, place)
     _warn_no_value(rows, value)
     merged = dict(comparison.judgments)
     for result in results.values():
@@ -180,6 +197,7 @@ def select(
         include_assumed=include_assumed,
         display_units=display_units,
         rows=tuple(rows),
+        placed=tuple(placed),
         comparison=comparison,
         representatives=results,
     )
@@ -399,8 +417,75 @@ def _row(
         "selection_reason": entry.reason,
         "no_value_reason": None,
         "entry": entry,
+        #: A fitted value's points' shallowest and deepest depth.
+        "depths": (np.nan, np.nan),
         **values,
     }
+
+
+def _positions(
+    context: _Context, row: dict[str, Any], place: tuple[Any, ...]
+) -> list[dict[str, Any]]:
+    """Place the selected value among each other source's values (decision 14).
+
+    A row source's values (or a fit's per-sample values) give a position and,
+    within their range and from 4 values, a percentile rank; a fit's one value
+    gives the difference instead. A line has no single value to place.
+    """
+    selected = row["value"]
+    line = row["vertical"]
+    if line is None and not np.isfinite(selected):
+        return []
+    placed = []
+    for source in context.compared.sources:
+        if source.label == row["parameter_source"]:
+            continue  # the selected source isn't placed against itself
+        if source.kind == "rows":
+            data = source.rows
+            assert data is not None  # a row source
+            values = data.numbers[source.mask(place) & (data.reasons == "")]
+        else:
+            assert source.fits is not None  # a fit source
+            values = np.array(
+                [e["value"] for e in source.fits.get(place, [])], dtype=float
+            )
+            values = values[np.isfinite(values)]
+        if not values.size:
+            continue
+        record: dict[str, Any] = {
+            "key": row["key"],
+            "selected_source": row["parameter_source"],
+            "parameter_source": source.label,
+            "source_kind": source.kind,
+            "selected_value": selected,
+            "fit_value": np.nan,
+            "difference": np.nan,
+            "count": int(values.size),
+            "minimum": float(values.min()),
+            "maximum": float(values.max()),
+            "position": None,
+            "percentile_rank": np.nan,
+            "no_position_reason": None,
+        }
+        placed.append(record)
+        if line is not None:
+            record["no_position_reason"] = f"a line with {line}"
+        elif source.kind == "fit" and values.size == 1:
+            record["fit_value"] = float(values[0])
+            record["difference"] = float(selected - values[0])
+            record["minimum"] = record["maximum"] = np.nan
+        else:
+            x = np.sort(values)
+            record["position"] = (
+                "below"
+                if selected < x[0]
+                else "above"
+                if selected > x[-1]
+                else "within"
+            )
+            if record["position"] == "within" and x.size >= percentile_floor(25):
+                record["percentile_rank"] = percentile_rank(x, selected)
+    return placed
 
 
 def _select_one(
@@ -417,11 +502,79 @@ def _select_one(
     assert place is not None  # checked: a computed method needs a source
     source = _source(context, geology, place, entry)
     if source.kind == "fit":
-        raise HangtuError(
-            f"{FUNCTION}: {geology!r} selects from a fit, {source.label!r}; "
-            "selecting from a fit isn't built yet (M18 (e), build step 3)."
-        )
+        return _from_fit(context, geology, place, entry, source)
     return _from_rows(context, geology, place, entry, source)
+
+
+def _from_fit(
+    context: _Context,
+    geology: str,
+    place: tuple[Any, ...],
+    entry: "_judgments.SelectionEntry",
+    source: _compare_sources._Source,
+) -> tuple[dict[str, Any], RepresentativeResult | None]:
+    """Take a fit's one value as fitted, or its per-sample values to a view."""
+    assert source.fits is not None  # a fit source
+    fitted = source.fits.get(place, [])
+    computed = ", ".join(_representative.METHODS)
+    if not fitted:
+        return _row(geology, entry, no_value_reason=NO_ROWS), None
+    if entry.method == "fitted":
+        if len(fitted) > 1:
+            raise HangtuError(
+                f"{FUNCTION}: {geology!r} selects fitted from {source.label!r}, "
+                f"which has {len(fitted)} values in this unit (fitted per sample), "
+                f"so there is no one fitted value. Choose {computed}, which compute "
+                "a value from them."
+            )
+        (one,) = fitted
+        no_value = None if np.isfinite(one["value"]) else str(one["reason"])
+        top, base = _compare_sources._range(one["depths"])
+        return (
+            _row(
+                geology,
+                entry,
+                value=one["value"] if no_value is None else np.nan,
+                count=int(one["count_points"]),
+                no_value_reason=no_value,
+                depths=(top, base),
+            ),
+            None,
+        )
+    if len(fitted) == 1:
+        raise HangtuError(
+            f"{FUNCTION}: {geology!r} selects {entry.method} from {source.label!r}, "
+            "which has one fitted value in this unit, not values to compute a "
+            "representative value from. Choose fitted to take it as fitted."
+        )
+    values = _fit_values(context, geology, place, source.label)
+    result = _representative.representative(
+        values,
+        value=context.value,
+        by=GEOLOGY,
+        method=entry.method,
+        include_assumed=context.include_assumed,
+        judgments=context.judgments,
+        units=None,
+        display_units=None,  # .values() is in the comparison's units already
+        **entry.inputs,
+    )
+    return _from_result(geology, entry, result), result
+
+
+def _fit_values(
+    context: _Context, geology: str, place: tuple[Any, ...], label: str
+) -> pd.DataFrame:
+    """Return a per-sample fit's values in the unit, as ``.values()`` draws them."""
+    values = context.compared.comparison.values()
+    cells = values[GEOLOGY].astype(object)
+    in_unit = (
+        cells.isna() if place[0] == BLANK_GROUP else (cells == place[0]) & cells.notna()
+    )
+    rows = values[in_unit & (values["parameter_source"] == label)].copy()
+    rows[GEOLOGY] = geology
+    rows.attrs = dict(values.attrs)
+    return rows
 
 
 def _given_value(context: _Context, entry: "_judgments.SelectionEntry") -> float:
@@ -649,6 +802,8 @@ class SelectionResult(_Result):
     #: One record per unit: its key, method, source, value or line, count,
     #: reason and ``no_value_reason``.
     rows: tuple[dict[str, Any], ...]
+    #: One record per unit and other source: the rows of ``.positions()``.
+    placed: tuple[dict[str, Any], ...]
     #: The sources side by side, as ``compare_sources()`` gives them.
     comparison: SourceComparison = field(compare=False)
     #: Each computed unit's ``representative()`` result, by unit.
@@ -675,6 +830,43 @@ class SelectionResult(_Result):
             f"SelectionResult.representative(): no geology unit {geology_unit!r}. "
             f"Units: {units}."
         )
+
+    def positions(self) -> pd.DataFrame:
+        """Return each unit's selected value placed among its other sources.
+
+        One row per unit with a value and each other source with a counted
+        value there. Against a row source (or a fit's per-sample values),
+        ``position`` is ``"below"``, ``"within"`` or ``"above"`` its
+        ``minimum`` to ``maximum``, and ``percentile_rank`` the selected
+        value's rank among them in percent (the inverse of Hyndman & Fan
+        definition 7), within that range and from 4 values. Against a fit's
+        one value, ``fit_value`` and ``difference`` (selected - fit) instead.
+        A selected line has no single value, so ``position`` is blank, with
+        ``no_position_reason``. It places the value; it tests nothing.
+        """
+        columns = [
+            GEOLOGY,
+            "selected_source",
+            "parameter_source",
+            "source_kind",
+            "selected_value",
+            "fit_value",
+            "difference",
+            "count",
+            "minimum",
+            "maximum",
+            "position",
+            "percentile_rank",
+            "no_position_reason",
+        ]
+        rows = [
+            {**r["key"], **{k: v for k, v in r.items() if k != "key"}}
+            for r in self.placed
+        ]
+        frame = pd.DataFrame(rows, columns=columns)
+        with_unit = ["selected_value", "fit_value", "difference", "minimum", "maximum"]
+        frame.attrs["units"] = dict.fromkeys(with_unit, self.unit) if self.unit else {}
+        return frame
 
     def _vertical_columns(self) -> list[str]:
         verticals = list(
