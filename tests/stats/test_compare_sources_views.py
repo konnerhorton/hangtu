@@ -312,6 +312,23 @@ def test_unit_comparison_in_the_comparisons_units():
         assert ax.get_xlabel().endswith("(psf)" if system == "US" else "(kPa)")
 
 
+def test_unit_comparison_takes_a_categorical_geology_unit():
+    # A Project's datasets give geology_unit the geology map's categories,
+    # some with no rows here: no pandas warning, one sub-row per source.
+    su = _su()
+    su["geology_unit"] = pd.Categorical(
+        su["geology_unit"], categories=["Fill", "Alluvium", "Terrace"]
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        result = ht.stats.compare_sources(su, value=SU)
+    _, ax = _unit_comparison(result)
+    assert _ticks(ax) == [
+        f"Alluvium {DOT} lab, UU",
+        f"Alluvium {DOT} field, in situ vane",
+    ]
+
+
 def test_unit_comparison_needs_a_comparison_by_geology_unit():
     with warnings.catch_warnings():
         warnings.simplefilter("error")

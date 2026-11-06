@@ -1010,7 +1010,11 @@ class SourceComparison(_Result):
             if r["key"]["geology_unit"] != BLANK_GROUP
         ]
         drawn = values.dropna(subset=[self.value])
-        rows = len(drawn.groupby(["geology_unit", "parameter_source"], dropna=False))
+        rows = len(
+            drawn.groupby(
+                ["geology_unit", "parameter_source"], dropna=False, observed=True
+            )
+        )
         options = {
             "split_by": "parameter_source",
             "color_by": "parameter_source",
