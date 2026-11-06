@@ -27,7 +27,8 @@ sandstone's fixed σci the mean of its UCS tests that failed in shear.
 For comparing a parameter's sources (M18 d), ``site.ags`` also has single-stage
 CD triaxial tests on four Terrace tubes and small shear box tests on three
 Terrace spoons, more UU, laboratory vane, hand penetrometer and borehole vane
-tests in the Alluvium, and ``judgments.yaml`` a φ′cv for the Terrace. Each set
+tests in the Alluvium, and ``judgments.yaml`` a φ′cv for the Terrace and the
+selection of the Terrace's φ′ and c′ and the Alluvium's s_u (M18 e). Each set
 has its own seeded sequence and its rows follow every other row of their
 groups, so nothing written before changed. ``triaxial.csv``, ``shear_box.csv``
 and ``strength.csv`` are the project's datasets in their templates' columns.
@@ -141,7 +142,7 @@ SST,Sandstone,rock,4,#8c6d5a
 # The site's judgments (SPEC §4), in the file's US units.
 JUDGMENTS = """\
 # judgments.yaml: the example site's unit weights, water levels, Gs, α, the
-# sandstone's fixed σci and the Terrace's φ′cv (SPEC §4).
+# sandstone's fixed σci, the Terrace's φ′cv and the selected φ′, c′ and s_u (SPEC §4).
 unit_weight:
   by: geology_unit
   units: {bulk_unit_weight: pcf, saturated_unit_weight: pcf}
@@ -192,6 +193,39 @@ critical_state_friction_angle:
       reason: >-
         assumed for subangular quartz sand with gravel; no ring shear or
         angle of repose test yet
+selection:
+  effective_friction_angle:
+    values:
+      Terrace:
+        source: "Mohr-Coulomb fit (CDM, CD)"
+        method: fitted
+        reason: >-
+          the triaxial fit over all 15 stages; the converted shear box agrees,
+          and the SPT correlations run 6-9 degrees higher in this gravelly sand
+      Alluvium:
+        method: none
+        reason: "soft clay: designed undrained, with s_u"
+  effective_cohesion:
+    values:
+      Terrace:
+        source: "Mohr-Coulomb fit (CDM, CD)"
+        method: fitted
+        reason: "with φ′ from the same fit, so the pair stays on one line"
+      Alluvium:
+        method: none
+        reason: "soft clay: designed undrained, with s_u"
+  undrained_shear_strength:
+    values:
+      Alluvium:
+        source: "lab, UU"
+        method: characteristic
+        estimate: mean
+        side: low
+        distribution: lognormal
+        reason: >-
+          the embankment's slip surfaces run through the whole layer, so a
+          cautious estimate of the mean; the UU tests span only 13 to 19 ft,
+          too little for a trend with depth
 """
 
 
