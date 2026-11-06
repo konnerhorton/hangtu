@@ -259,6 +259,9 @@ Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads o
   - Does the AGS file carry `failure_mode`, which `hoek_brown_fit()` needs, or is it added after ingest?
   - The file is in US units while the CSV is in MPa: convert on writing, or keep the CSV in the file's units?
 
+### 56. Named design cases as a selection key · You · SPEC §4, §5, `docs/work/m18e-selection.md` (decision 9) · when a project needs two selections of one unit
+One unit can need two selected values of one parameter: EC7's Type A (a mean) for a long slip surface and Type B (a fractile) for a footing, or short- and long-term cases. SPEC §4 lists a named design case among a judgment's possible keys, but the `selection` judgment (M18 (e)) is keyed by parameter and geology unit only. Until a case key exists, `select(selection=...)` or a second judgments file passed as `judgments=` gives one case at a time. Open: the key's place in the file (a `cases:` level above the parameter, or one per entry), how `select()` names the case (`case=`), and how (f)'s model sets carry it (one set per case).
+
 ---
 
 ## Later / far future (also on the Roadmap)
