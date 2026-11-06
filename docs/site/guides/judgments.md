@@ -138,6 +138,25 @@ critical_state_friction_angle:
 
 `critical_state_friction_angle=` on the call takes a number for a fit with one group, or a mapping by geology unit, and replaces the file's, with a warning.
 
+## The selection
+
+Each geology unit's selected value of a parameter, the end of stage D, is a judgment too: per parameter and unit, the source and method that give it, or a value, each with its reason. [`ht.stats.select()`](../reference/stats.md#hangtu.stats.select) reads it. The [selection guide](selection.md) has the methods and the rules.
+
+```yaml
+selection:
+  effective_friction_angle:
+    values:
+      Terrace:
+        source: "Mohr-Coulomb fit (CDM, CD)"
+        method: fitted
+        reason: "the triaxial fit over all 15 stages"
+```
+
+- **Keyed by parameter, then by `geology_unit` only.** A `project:` value is an error, and every unit the sources have needs an entry (`method: none`, with its reason, for one you don't design with).
+- **Every entry needs a `method` and a `reason`;** a `value` entry needs the parameter's `units: {value: ...}`.
+
+`selection=` on the call takes the whole selection of one parameter and replaces the file's, with a warning.
+
 ## The log
 
 Vertical stress is integrated through each hole's log, `p.stratigraphy()` or a table in the shape of `ht.template("stratigraphy")`. It is always passed explicitly, because it's data you may have edited, such as layers reclassified by USCS.

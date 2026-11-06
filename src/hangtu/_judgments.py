@@ -1,14 +1,17 @@
-"""The judgments file: unit weights, water levels, PI, Gs, α and σci (SPEC §4).
+"""The judgments file: unit weights, water levels, PI, Gs, α, σci, selections.
 
-A judgment has no default. Analyses take it from an argument, then from
+A judgment has no default (SPEC §4). Analyses take it from an argument, then from
 ``judgments=``, then from the Project's file, else raise. The file format and
 its checks are in ``docs/work/m13a-judgments.md``, Spec Decision 1. Two
 judgments are optional: the SPT refusal upper limit leaves refusals
 right-censored when unset (docs/work/m18a-refusals.md, Decision 1), and the
 fixed σci leaves ``hoek_brown_fit()`` with its free fit only
-(docs/work/m17c-hoek-brown-fit.md, decision 8).
+(docs/work/m17c-hoek-brown-fit.md, decision 8). The ``selection`` judgment is
+keyed by parameter and names a method, so it has a checker of its own
+(docs/work/m18e-selection.md, decisions 6-10).
 """
 
+import dataclasses
 import hashlib
 import math
 from collections.abc import Mapping
@@ -151,6 +154,16 @@ PLAUSIBLE = {
     ),
 }
 
+#: The selection judgment: keyed by parameter, then geology unit (m18e,
+#: decision 6). Its entries name a method, so it has its own checker.
+SELECTION = "selection"
+#: The methods with no ``representative()`` view, and their fields (decision 7).
+SELECTION_FIELDS = {"fitted": ("source",), "value": ("value",), "none": ()}
+#: Quantity kinds whose values are pure numbers: no units block, as for Gs.
+PURE_NUMBERS = ("dimensionless", "count")
+#: Fields of a representative() view written as text, the rest as numbers.
+VIEW_TEXT = ("side", "distribution", "trend", "estimate")
+
 #: A field written ``none`` (m18a, Decision 3), held as no limit at all.
 NONE = "none"
 #: Units shown in examples, as they are written in the file.
@@ -191,12 +204,45 @@ class Judgment:
 
 
 @dataclass(frozen=True)
+class SelectionEntry:
+    """One unit's selection: its method, what the method reads, and why.
+
+    ``inputs`` holds a ``representative()`` method's fields under its argument
+    names (``side``, ``distribution``, ``trend`` and that method's inputs),
+    only those written. ``value`` is in ``unit``: the selection's
+    ``units: {value: …}`` in the file, or the quantity's own in ``selection=``.
+    """
+
+    method: str
+    reason: str
+    source: str | None = None
+    inputs: dict[str, Any] = dataclasses.field(default_factory=dict)
+    value: float | None = None
+    unit: str | None = None
+
+
+@dataclass(frozen=True)
+class Selection:
+    """The selection of one parameter, by geology unit (m18e, decisions 6-10)."""
+
+    parameter: str
+    quantity: str
+    unit: str | None  # the unit of value entries; None for a pure number
+    values: dict[str, SelectionEntry]
+
+
+@dataclass(frozen=True)
 class Read:
-    """The file as read once: its judgments and the SHA-256 of its bytes."""
+    """The file as read once: its judgments and the SHA-256 of its bytes.
+
+    ``selections`` holds the ``selection`` judgment, by parameter: its entries
+    have a method and inputs rather than values, so it isn't a ``Judgment``.
+    """
 
     path: Path
     sha256: str
     judgments: dict[str, Judgment]
+    selections: dict[str, Selection] = dataclasses.field(default_factory=dict)
 
 
 def quantity_text(value: float, unit: str) -> str:
@@ -242,19 +288,22 @@ class Judgments:
         """Read and check the file now; raise ``HangtuError`` naming any problem."""
         data = _config.read_file(self.path, "judgments")
         parsed = _config.parse_yaml(data, self.path, "judgments", GUIDE)
+        checked, selections = _check_file(parsed, self.path.name)
         return Read(
             path=self.path,
             sha256=hashlib.sha256(data).hexdigest(),
-            judgments=_check_file(parsed, self.path.name),
+            judgments=checked,
+            selections=selections,
         )
 
     def __repr__(self) -> str:
         head = f"Judgments({str(self.path)!r})"
         try:
-            judgments = self.read().judgments
+            read = self.read()
         except (HangtuError, OSError) as error:
             return f"{head}\n  can't be read: {error}"
-        if not judgments:
+        judgments = read.judgments
+        if not judgments and not read.selections:
             return f"{head}\n  no judgments"
         lines = [head]
         for judgment in judgments.values():
@@ -266,11 +315,15 @@ class Judgments:
                 lines.append(f"    {name}: {entry.text(judgment.units)}")
             if judgment.project is not None:
                 lines.append(f"    project: {judgment.project.text(judgment.units)}")
+        for selection in read.selections.values():
+            lines.append(f"  {SELECTION} of {selection.parameter}, by geology_unit:")
+            for name, chosen in selection.values.items():
+                lines.append(f"    {name}: {selection_text(chosen, selection.unit)}")
         return "\n".join(lines)
 
 
 def judgments(path: str | PathLike[str]) -> Judgments:
-    """Open a judgments file: unit weights, water levels, PI, Gs, α, σci and φ′cv.
+    """Open a judgments file: the project's judgments and its selected values.
 
     Judgments have no defaults in hangtu (SPEC §4). They live in one YAML file
     with their units and reasons, and every analysis that needs one reads it
@@ -321,6 +374,26 @@ def judgments(path: str | PathLike[str]) -> Judgments:
           units: {critical_state_friction_angle: deg}
           values:
             Terrace: {critical_state_friction_angle: 32, reason: "ring shear, BH02"}
+        selection:
+          effective_friction_angle: # a parameter: a numeric registry column
+            by: geology_unit        # always; no project: value
+            units: {value: deg}     # for value entries
+            values:
+              Terrace:
+                source: "Mohr-Coulomb fit (CD, CU)"
+                method: fitted
+                reason: "three CD and two CU stages"
+              Alluvium: {method: value, value: 26, reason: "adjacent project"}
+              Fill: {method: none, reason: "removed under the structure"}
+          undrained_shear_strength:
+            values:
+              Alluvium:
+                source: "laboratory, UU"
+                method: characteristic
+                estimate: mean
+                side: low
+                distribution: lognormal
+                reason: "a mean over a long slip surface"
         ```
 
         - `unit_weight` entries take `bulk_unit_weight` (required) and
@@ -362,9 +435,24 @@ def judgments(path: str | PathLike[str]) -> Judgments:
           φ′cv is set by mineralogy and grading.
           `ht.analysis.friction_angle_from_shear_box()` uses it to convert a
           shear box φ′ to a triaxial one.
+        - `selection` holds the selected value of each parameter, keyed by
+          the parameter (a numeric column of the registry), then by
+          `geology_unit`, with no `project:` value. Every entry has a
+          `method` and a `reason`:
+          `characteristic`, `percentile` or `standard_deviations` take a
+          `source` (a `parameter_source` label from
+          `ht.stats.compare_sources()`) and the inputs
+          `ht.stats.representative()` takes for that method, under its
+          argument names (`side`, `distribution`, `trend`, `estimate`, ...);
+          `fitted` takes a `source`, a fit, and uses its value as fitted;
+          `value` takes a `value` in the parameter's `units: {value: ...}`;
+          `none` gives no value, on purpose. `ht.stats.select()` computes
+          the selection; the entries are checked here as far as they can be
+          without the data.
         - `units:` gives a unit for every field used, except for
           `specific_gravity`, `significance_level` and
-          `spt_refusal_upper_limit`, which have none.
+          `spt_refusal_upper_limit`, which have none, and a selection of a
+          count or dimensionless column.
         - `project:` needs a `reason`. It is optional except for
           `significance_level`, not allowed for
           `critical_state_friction_angle`, and used, with a warning, for every unit or
@@ -385,9 +473,11 @@ def judgments(path: str | PathLike[str]) -> Judgments:
         field, a missing `units`, `by` or `reason`, a wrong unit, a value that
         isn't a number (or isn't positive, for unit weights, Gs, σci and the
         refusal limit, or isn't between 0 and 1, for α, or between 0° and 90°,
-        for φ′cv), a `project:` value for φ′cv, a `units` block for
-        Gs, α or the refusal limit, keys for α, a `by:` other than
-        `geology_unit` for the refusal limit, or invalid YAML.
+        for φ′cv), a `project:` value for φ′cv or a selection, a `units`
+        block for Gs, α or the refusal limit, keys for α, a `by:` other than
+        `geology_unit` for the refusal limit or a selection, a selection's
+        unknown parameter or method, a field its method doesn't take or
+        needs, or invalid YAML.
     FileNotFoundError
         If there is no file at `path`.
 
@@ -435,23 +525,30 @@ def as_judgments(value: Any) -> Judgments | None:
 # --- Checks (Spec Decision 1) -------------------------------------------------------
 
 
-def _check_file(parsed: Any, name: str) -> dict[str, Judgment]:
+def _check_file(
+    parsed: Any, name: str
+) -> tuple[dict[str, Judgment], dict[str, Selection]]:
+    names = ", ".join((*KINDS, SELECTION))
     if parsed is None:
-        return {}
+        return {}, {}
     if not isinstance(parsed, Mapping):
         raise HangtuError(
             f"{name}: the file must map judgment names to their entries "
-            f"({', '.join(KINDS)}), not hold a {type(parsed).__name__}."
+            f"({names}), not hold a {type(parsed).__name__}."
         )
     checked = {}
+    selections: dict[str, Selection] = {}
     for key, body in parsed.items():
+        if key == SELECTION:
+            selections = check_selections(body, f"{name}, {key}")
+            continue
         if key not in KINDS:
             raise HangtuError(
                 f"{name}: {key!r} isn't a judgment hangtu knows. "
-                f"The judgments are {', '.join(KINDS)}."
+                f"The judgments are {names}."
             )
         checked[key] = _check_judgment(key, body, f"{name}, {key}")
-    return checked
+    return checked, selections
 
 
 def _check_judgment(name: str, body: Any, where: str) -> Judgment:
@@ -673,3 +770,282 @@ def _check_entry(
             f'reason: "{kind.reason_example}"'
         )
     return Entry(values=values, reason=reason)
+
+
+# --- The selection (docs/work/m18e-selection.md, decisions 6-10) ---------------------
+
+
+def selection_text(entry: SelectionEntry, unit: str | None) -> str:
+    """``Mohr-Coulomb fit (CD, CU), fitted (three CD stages)``: one entry in a line."""
+    if entry.method == "value":
+        assert entry.value is not None  # a value entry has one (decision 7)
+        what = f"value {quantity_text(entry.value, entry.unit or unit or '')}"
+    else:
+        inputs = ", ".join(f"{name} {value}" for name, value in entry.inputs.items())
+        what = ", ".join(part for part in (entry.source, entry.method, inputs) if part)
+    return f"{what} ({entry.reason})"
+
+
+def check_selections(body: Any, where: str) -> dict[str, Selection]:
+    """Check the ``selection`` judgment: each parameter's entries by geology unit."""
+    if not isinstance(body, Mapping):
+        raise HangtuError(
+            f"{where}: must map each parameter (a registry column, e.g. "
+            f"effective_friction_angle) to its selection, not {body!r}."
+        )
+    return {
+        parameter: check_selection(parameter, entries, f"{where}.{parameter}")
+        for parameter, entries in body.items()
+    }
+
+
+def check_selection(parameter: Any, body: Any, where: str) -> Selection:
+    """Check one parameter's selection: ``by``, ``units`` and ``values``."""
+    quantity = selected_quantity(parameter, where)
+    sections = (
+        ("by", "values") if quantity in PURE_NUMBERS else ("by", "units", "values")
+    )
+    if not isinstance(body, Mapping):
+        raise HangtuError(
+            f"{where}: must be a mapping of {', '.join(sections)}, not {body!r}."
+        )
+    for key in body:
+        if key == "project":
+            raise HangtuError(
+                f"{where}: a selection takes no project: value, only entries under "
+                "values: keyed by geology_unit, each with its reason. One selection "
+                "for every geology unit would be coarser than the judgment allows "
+                "(SPEC §4, §5)."
+            )
+        if key == "units" and quantity in PURE_NUMBERS:
+            raise HangtuError(
+                f"{where}: {parameter} is a pure number ({quantity}) and takes no "
+                "units. Remove the units: line."
+            )
+        if key not in sections:
+            raise HangtuError(
+                f"{where}: {key!r} isn't a section of a selection. "
+                f"The sections are {', '.join(sections)}."
+            )
+    if body.get("by") not in (None, "geology_unit"):
+        raise HangtuError(
+            f"{where}, by: a selection is keyed by geology_unit, not "
+            f"{body.get('by')!r}. Write by: geology_unit, or leave the line out. "
+            "A depth trend within a unit is trend: depth in its entry."
+        )
+    unit = _selection_unit(quantity, body.get("units"), where)
+    keyed = body.get("values")
+    if keyed is None:
+        raise HangtuError(
+            f"{where}: 'values' is missing. List each geology unit with its "
+            'method and reason, e.g. values: {Terrace: {source: "Mohr-Coulomb fit '
+            '(CD)", method: fitted, reason: "three CD stages"}}.'
+        )
+    if not isinstance(keyed, Mapping):
+        raise HangtuError(
+            f"{where}, values: must map each geology unit to its entry, not {keyed!r}."
+        )
+    values = {}
+    for key, entry in keyed.items():
+        if not isinstance(key, str):
+            raise HangtuError(
+                f"{where}, values: the key {key!r} isn't text. YAML reads bare yes, "
+                "no, on, off, null and numbers as other types; put the key in "
+                'quotes as written, e.g. "1": {...}.'
+            )
+        values[key] = check_selection_entry(
+            entry, quantity, unit, f"{where}, values.{key}"
+        )
+    return Selection(parameter=parameter, quantity=quantity, unit=unit, values=values)
+
+
+def check_selection_entry(
+    entry: Any, quantity: str, unit: str | None, where: str
+) -> SelectionEntry:
+    """Check one unit's entry, as far as it can be without the data (decision 8).
+
+    ``unit`` is the selection's ``units: {value: …}``, None when not given (or
+    a pure number). A ``value`` entry of a quantity with units needs it.
+    """
+    # Imported here: hangtu.stats reads this module when it is imported.
+    from hangtu.stats import _representative
+
+    methods = (*_representative.METHODS, *SELECTION_FIELDS)
+    example = (
+        '{source: "laboratory, UU", method: characteristic, estimate: mean, '
+        'side: low, distribution: normal, reason: "a mean over a long slip surface"}'
+    )
+    if not isinstance(entry, Mapping):
+        raise HangtuError(
+            f"{where}: must be a mapping with a method and a reason, e.g. "
+            f"{example}, not {entry!r}."
+        )
+    method = entry.get("method")
+    if method is None:
+        raise HangtuError(
+            f"{where}: 'method' is missing. It is one of {', '.join(methods)}, "
+            f"with no default (SPEC §4). Example: {example}"
+        )
+    if method not in methods:
+        raise HangtuError(
+            f"{where}, method: {method!r} isn't a selection method. "
+            f"Choose from {', '.join(methods)}."
+        )
+    taken = _representative.FIELDS.get(method) or SELECTION_FIELDS[method]
+    if method in _representative.METHODS:
+        taken = ("source", *taken)
+    allowed = ("method", *taken, "reason")
+    for name in entry:
+        if name not in allowed:
+            others = [m for m in methods if name in _method_fields(m)]
+            hint = f" It belongs to {' and '.join(others)}." if others else ""
+            raise HangtuError(
+                f"{where}, {name}: method {method} doesn't take {name!r}. Its "
+                f"fields are {', '.join(allowed)}.{hint}"
+            )
+    reason = entry.get("reason")
+    reason = str(reason).strip() if reason is not None else ""
+    if not reason:
+        raise HangtuError(
+            f"{where}: 'reason' is missing. A selection is the judgment a checker "
+            'reads most closely, so say why, e.g. reason: "three CD and two CU '
+            'stages, consistent with the converted shear box"'
+        )
+    source = None
+    if "source" in taken:
+        source = entry.get("source")
+        if source is None:
+            raise HangtuError(
+                f"{where}: 'source' is missing. Name a source as "
+                "ht.stats.compare_sources() labels it in parameter_source, e.g. "
+                'source: "laboratory, UU".'
+            )
+        if not isinstance(source, str) or not source.strip():
+            raise HangtuError(
+                f"{where}, source: must be a parameter_source label as text, "
+                f"not {source!r}."
+            )
+        source = source.strip()
+    if method == "value":
+        return SelectionEntry(
+            method=method,
+            reason=reason,
+            value=_selection_value(entry.get("value"), quantity, unit, where),
+            unit=unit,
+        )
+    inputs: dict[str, Any] = {}
+    if method in _representative.METHODS:
+        inputs = _selection_view(entry, method, where)
+    return SelectionEntry(method=method, reason=reason, source=source, inputs=inputs)
+
+
+def _method_fields(method: str) -> tuple[str, ...]:
+    from hangtu.stats import _representative
+
+    if method in _representative.FIELDS:
+        return ("source", *_representative.FIELDS[method])
+    return SELECTION_FIELDS[method]
+
+
+def selected_quantity(parameter: Any, where: str) -> str:
+    """Return the parameter's quantity kind, which its registry column must have."""
+    from hangtu import registry
+
+    info = registry.column_info(parameter) if isinstance(parameter, str) else None
+    if info is None or info.get("type") != "number" or not info.get("quantity"):
+        what = (
+            "isn't in the column registry"
+            if info is None
+            else "isn't a numeric column with a quantity kind in the column registry"
+        )
+        raise HangtuError(
+            f"{where}: {parameter!r} {what} (columns.yaml; ht.columns() lists "
+            "them). A selection is keyed by the parameter's registry column, e.g. "
+            "effective_friction_angle or undrained_shear_strength."
+        )
+    return str(info["quantity"])
+
+
+def example_unit(quantity: str) -> str:
+    """Return a unit as the file writes it: ``deg``, ``kPa``, ``kN/m3``."""
+    return EXAMPLE_UNITS.get(quantity) or str(
+        units.quantity_kind(quantity)["SI"]["text"] or '"%"'
+    )
+
+
+def _selection_unit(quantity: str, given: Any, where: str) -> str | None:
+    """Check ``units: {value: …}`` against the parameter's quantity kind."""
+    if given is None:
+        return None
+    example = example_unit(quantity)
+    if not isinstance(given, Mapping) or set(given) != {"value"}:
+        raise HangtuError(
+            f"{where}, units: gives the unit of the value entries only, e.g. "
+            f"units: {{value: {example}}}, not {given!r}."
+        )
+    unit = given["value"]
+    try:
+        units.check_dimension(units.parse_unit(unit), quantity)
+    except HangtuError as error:
+        raise HangtuError(f"{where}, units.value: {error}") from None
+    return str(unit)
+
+
+def _selection_value(value: Any, quantity: str, unit: str | None, where: str) -> float:
+    if value is None:
+        raise HangtuError(f"{where}: 'value' is missing. Give the selected value.")
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        raise HangtuError(f"{where}, value: must be a number, not {value!r}.")
+    if not math.isfinite(value):
+        raise HangtuError(f"{where}, value: must be finite, not {value!r}.")
+    if unit is None and quantity not in PURE_NUMBERS:
+        example = example_unit(quantity)
+        raise HangtuError(
+            f"{where}, value: has no unit. Add the selection's units, e.g. "
+            f"units: {{value: {example}}}."
+        )
+    return float(value)
+
+
+def _selection_view(
+    entry: Mapping[str, Any], method: str, where: str
+) -> dict[str, Any]:
+    """Check a representative() view's fields by representative()'s own rules."""
+    from hangtu.stats import _representative
+
+    for name in _representative.FIELDS[method]:
+        if name not in entry or entry[name] is None:
+            continue
+        given = entry[name]
+        if name in VIEW_TEXT:
+            if not isinstance(given, str):
+                raise HangtuError(f"{where}, {name}: must be text, not {given!r}.")
+        elif isinstance(given, bool) or not isinstance(given, int | float):
+            raise HangtuError(f"{where}, {name}: must be a number, not {given!r}.")
+    # Another method's fields were refused already, so they are None here.
+    inputs = {
+        name: entry.get(name)
+        for names in _representative.INPUTS.values()
+        for name in names
+    }
+    for name in ("side", "distribution"):
+        if entry.get(name) is None:
+            raise HangtuError(
+                f"{where}: {name!r} is missing. Method {method} needs side and "
+                "distribution, with no default (SPEC §4), e.g. side: low, "
+                "distribution: normal."
+            )
+    try:
+        _representative.check_view(
+            method, entry["side"], entry["distribution"], entry.get("trend"), inputs
+        )
+    except HangtuError as error:
+        raise HangtuError(
+            f"{where}: {error} In the file, each argument is a field of the "
+            "entry, e.g. estimate: mean."
+        ) from None
+    return {
+        name: entry[name]
+        for name in _representative.FIELDS[method]
+        if entry.get(name) is not None
+    }

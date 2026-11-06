@@ -133,7 +133,19 @@ interval bar over its specimens' depths.
 
 On the example site, both SPT correlations put the Terrace about 7° to 10° above the triaxial and converted shear
 box fits, which agree within about 1.5°. The laboratory tests on the unit's own soil are the basis; the SPT
-estimates of this gravelly sand overstate φ′ (see Pitfalls). Recording the choice is M18 (e).
+estimates of this gravelly sand overstate φ′ (see Pitfalls).
+
+## Selecting a value
+
+The choice is recorded in the judgments file's `selection`, and `ht.stats.select()` computes it from the same
+sources ([selection](../guides/selection.md)). The example site selects the Terrace's φ′ and c′ both as `fitted`
+from the triaxial fit, so the pair stays on one Mohr–Coulomb line: 35.3° and 162 psf. c′ and φ′ each selected by a
+characteristic value of its own aren't a joint characteristic value, and hangtu doesn't compute one. The result
+places the selected φ′ below both SPT correlations and 1.3° above the converted shear box.
+
+A fitted c′ is an intercept at σ′n = 0, outside the fit's stress range. To take c′ = 0 instead, select it as
+`method: value` with the reason, and φ′ from the fit through the origin, also as a value: the fitted φ′ belongs with
+the fitted c′, not with 0.
 
 ## Variability
 

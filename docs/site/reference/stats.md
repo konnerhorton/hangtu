@@ -26,6 +26,10 @@ Each statistics function is a plain function on a DataFrame, a Series or a list 
 
 ::: hangtu.stats.SourceComparison
 
+::: hangtu.stats.select
+
+::: hangtu.stats.SelectionResult
+
 ::: hangtu.stats.crosstab
 
 ::: hangtu.stats.CrosstabResult

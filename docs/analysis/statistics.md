@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Living spec. `describe` (M15 a), `fit` (M15 c), `compare` and `compare_groups` (M15 d), `crosstab` (M15 e), `representative` (M18 b), `compare_sources` (M18 d) built |
+| **Status** | Living spec. `describe` (M15 a), `fit` (M15 c), `compare` and `compare_groups` (M15 d), `crosstab` (M15 e), `representative` (M18 b), `compare_sources` (M18 d), `select` (M18 e) built |
 | **Parent** | SPEC §5: the result object, "one calculation, many views", the input rules every function follows, and why statistics are designed for lab data |
-| **Related** | [`m15a-describe.md`](../work/m15a-describe.md), [`m15c-fit.md`](../work/m15c-fit.md), [`m15d-compare.md`](../work/m15d-compare.md), [`m15e-crosstab.md`](../work/m15e-crosstab.md), [`m18a-refusals.md`](../work/m18a-refusals.md), [`m18b-representative-values.md`](../work/m18b-representative-values.md), [`m18d-sources-compared.md`](../work/m18d-sources-compared.md). Draft notes: [`../drafts/phase3-stats.md`](../drafts/phase3-stats.md). Background: [`../reference/eurocode7-summary.md`](../reference/eurocode7-summary.md) |
+| **Related** | [`m15a-describe.md`](../work/m15a-describe.md), [`m15c-fit.md`](../work/m15c-fit.md), [`m15d-compare.md`](../work/m15d-compare.md), [`m15e-crosstab.md`](../work/m15e-crosstab.md), [`m18a-refusals.md`](../work/m18a-refusals.md), [`m18b-representative-values.md`](../work/m18b-representative-values.md), [`m18d-sources-compared.md`](../work/m18d-sources-compared.md), [`m18e-selection.md`](../work/m18e-selection.md). Draft notes: [`../drafts/phase3-stats.md`](../drafts/phase3-stats.md). Background: [`../reference/eurocode7-summary.md`](../reference/eurocode7-summary.md) |
 
 Update this file in the same commit as any change to a function's behavior, and SPEC §5 if the change alters a rule there.
 
@@ -61,3 +61,14 @@ Decided 2026-11-05, M18 (d), [`docs/work/m18d-sources-compared.md`](../work/m18d
 - **Descriptive, no tests:** a fit's value is placed among each row source's values in the unit (`position` below, within or above the range; within it and from 4 values, `percentile_rank`, the inverse of H&F 7, ties at the middle of their run). `compare()` is the check for two row sources (SPEC §5: "tests are a check").
 - Nothing is dropped: every unit of every source is listed, an empty pair with `count` 0 and a `no_value_reason`.
 - Views: `.to_frame()`, `.positions()`, `.values()` (the long frame the figures draw, every row kept, a fit at the middle of its points' depths with `depth_top`/`depth_base`), `.profile()` (P01 of one unit, so its stats box equals that unit's table) and `.geology_unit_comparison()` (P07 with `split_by="parameter_source"` and `summary_min_count=1`, so the percentile floors alone decide where a bar is drawn).
+
+## 6. `select()`
+Decided 2026-11-06, M18 (e), [`docs/work/m18e-selection.md`](../work/m18e-selection.md) (decisions 6–18).
+- Gives each geology unit's selected value of one parameter, as the `selection` judgment says (SPEC §4, §5): per parameter and geology unit, a `method` and a `reason`, both required. The methods are `representative()`'s three views on one source's rows (`characteristic`, `percentile`, `standard_deviations`, with that function's argument names and rules), `fitted` (a fit's one value in the unit), `value` (with its unit) and `none`.
+- Keyed by geology unit only: no `project:` value, no depth range, no design case (TODO #56). Every unit the sources have needs an entry; a `value` or `none` may name a unit no source has.
+- Resolution: `selection=` (the whole selection of the parameter, replacing the file's with a warning) → `judgments=` → the Project's file the sources carry → an error showing an entry.
+- Runs `compare_sources()` once, by geology unit, and each unit's method on the rows of the source it names, filtered from the frame as passed, so flags, bands and `spt_refusal_upper_limit` reach `representative()` as they reach `fit()`. A per-sample fit gives its values to a view. Every value is in the comparison's unit.
+- A method that gives no value lists the unit with `no_value_reason` and a warning, and is never filled from another source.
+- **Descriptive, no tests:** a selected constant is placed among each other source's values in the unit, as `compare_sources()` places a fit (`position`, and `percentile_rank` within the range from 4 values); against a fit's one value, `difference` (selected − fit). A line has no position.
+- c′ and φ′ stay on one line only when both are `fitted` from one fit; separate views aren't a joint fractile, and no joint value is computed.
+- Views: `.to_frame()`, `.positions()`, `.comparison`, `.representative(geology_unit)`, `.design_lines()` (a view's own line; a fitted value over its points' depths; a given value over the depths of every source's rows in the unit), `.profile()` (the comparison's P01 of one unit with the selected line, against depth) and `.to_dict()`.

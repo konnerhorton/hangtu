@@ -67,7 +67,7 @@ The N classes place a clay roughly; SPT N is a poor predictor of s_u (below), so
 | Terzaghi & Peck (1967), as given by Kulhawy & Mayne (1990) | field N | clays; a band by class | [`ht.analysis.correlations.undrained_shear_strength_terzaghi_peck_1967()`](../reference/correlations.md#hangtu.analysis.correlations.undrained_shear_strength_terzaghi_peck_1967) |
 | UU triaxial and unconfined compression, s_u = q_f / 2 and q_u / 2 (definition, φu = 0) | deviator stress at failure, q_u | saturated, intact specimens | [`ht.analysis.undrained_shear_strength_from_tests()`](../reference/analysis.md#hangtu.analysis.undrained_shear_strength_from_tests) |
 | Vanes, fall cone and hand penetrometer, s_u as measured, and S_t = s_u / s_u,r | peak and remolded s_u | the test's own mode; an index test for the penetrometer and fall cone | [`ht.analysis.undrained_shear_strength_from_tests()`](../reference/analysis.md#hangtu.analysis.undrained_shear_strength_from_tests) |
-| Field vane, with Bjerrum's correction μ(PI) (Kulhawy & Mayne 1990, Fig. 4-48, p. 4-52) | vane s_u, PI | clays; μ applies to the field vane only | M18 (selection) |
+| Field vane, with Bjerrum's correction μ(PI) (Kulhawy & Mayne 1990, Fig. 4-48, p. 4-52) | vane s_u, PI | clays; μ applies to the field vane only | later |
 | SHANSEP, s_u/σ′v0 = S OCR^m (Ladd & Foott 1974; Ladd 1991) | σ′v0, OCR, CU or DSS tests | sedimentary clays of low to moderate sensitivity; not fissured, cemented or structured clays | W3 |
 | CPTu, s_u = (q_t − σv0) / N_kt | q_t, σv0, a site N_kt | clays | later |
 
@@ -119,11 +119,23 @@ here UU against the field vane. P07 draws one sub-row per source in each unit, w
 
 ![Undrained shear strength of the example project's Alluvium, one row per test type](../img/generated/sources-compared-undrained.png){ width="560" }
 
-The field vane is shown as measured: Bjerrum's correction is a judgment for selection, M18 (e). The SPT
+The field vane is shown as measured: hangtu doesn't apply Bjerrum's correction yet. The SPT
 correlations aren't in this comparison: at the Alluvium's PI of about 23, Stroud's f1 is a band (15 ≤ PI < 30),
 and so is each of Terzaghi & Peck's classes. A band has no single value to summarize, so `compare_sources()` would
 count Stroud's rows in `count_range` and leave every one out. Draw the bands beside the tests on a profile instead.
-Recording the choice is M18 (e).
+
+## Selecting a value
+
+The choice is recorded in the judgments file's `selection`, and `ht.stats.select()` computes it from the same
+sources ([selection](../guides/selection.md)). The example site selects the Alluvium's s_u as the characteristic
+value of the UU tests, Type A (`estimate: mean`, the slip surfaces of an embankment base run through the whole
+layer), low side, lognormal: 551 psf. The result places it within the range of each other test, from the hand
+penetrometer's 13th percentile to the laboratory vane's 47th. Where s_u rises with depth through a unit and the
+tests span it, `trend: depth` selects a line instead.
+
+![Undrained shear strength of the example project's Alluvium by test type, with the selected characteristic value as a dashed line](../img/generated/selection.png){ width="480" }
+
+The field vane is selected as measured, if it is selected: its source label says so.
 
 ## Variability
 
