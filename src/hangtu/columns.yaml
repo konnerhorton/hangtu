@@ -588,6 +588,14 @@ columns:
     label: Residual friction angle, φ_r
     ags: ["derived: docs/work/m17b-shear-box-fit.md"]
     used_by: [P31]
+  critical_state_friction_angle:
+    description: Critical state (constant volume) friction angle φ′cv, a judgment keyed by geology unit
+    type: number
+    quantity: angle
+    scale: ratio
+    label: Critical state friction angle, φ′cv
+    ags: ["derived: docs/work/m18d-sources-compared.md"]
+    used_by: []
   undrained_shear_strength_lower:
     description: Lower bound of an undrained shear strength given as a band, such as a correlation's
     type: number

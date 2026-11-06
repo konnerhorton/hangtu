@@ -25,12 +25,13 @@ ALL = "all"
 WORKING_UNITS = {
     "unit_weight": _units.ureg.Unit("kilonewton / meter**3"),
     "length": _units.ureg.meter,
+    "angle": _units.ureg.degree,
 }
 
 
 @dataclass
 class Values:
-    """One judgment as this call uses it, in m and kN/m³, with its record."""
+    """One judgment as this call uses it, in m, kN/m³ and degrees, with its record."""
 
     name: str
     source: str  # "argument", or the judgments file's path

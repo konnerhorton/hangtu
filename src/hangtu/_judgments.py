@@ -36,6 +36,8 @@ class Kind:
     project_only: bool = False  # one value for the project, no keys (m15d, Decision 8)
     none_allowed: bool = False  # a value may be none, on purpose (m18a, Decision 3)
     reason_required: bool = False  # every entry says why (m17c, decision 8)
+    keyed_only: bool = False  # no project: value, only keyed entries (m18d, decision 5)
+    reason_example: str = "mean of the three UCS tests that failed in shear"
 
 
 KINDS = {
@@ -104,6 +106,19 @@ KINDS = {
         by=None,
         reason_required=True,
     ),
+    # docs/work/m18d-sources-compared.md, decision 5: φ′cv for the shear box
+    # conversion (Kulhawy & Mayne 1990, Eq. 4-10), set by mineralogy and
+    # grading, so keyed by geology unit with no project-wide value.
+    "critical_state_friction_angle": Kind(
+        keyed="values",
+        fields={"critical_state_friction_angle": "angle"},
+        required=("critical_state_friction_angle",),
+        one_of=(),
+        by="geology_unit",
+        reason_required=True,
+        keyed_only=True,
+        reason_example="ring shear test on BH02 4.0 m",
+    ),
 }
 
 #: Fields that must be positive (a water level may be above ground).
@@ -118,6 +133,8 @@ POSITIVE = {
 NON_NEGATIVE = {"plasticity_index"}
 #: Fields strictly between 0 and 1: a probability.
 PROBABILITY = {"significance_level"}
+#: Angles strictly between two bounds, in degrees, whatever unit the file gives.
+ANGLE_BETWEEN = {"critical_state_friction_angle": (0.0, 90.0)}
 #: Fields that warn outside a range, with what lies outside it: QC B003's
 #: particle density range (docs/data/qc.md §4.11).
 PLAUSIBLE = {
@@ -142,6 +159,7 @@ EXAMPLE_UNITS = {
     "length": "m",
     "dimensionless": '"%"',
     "stress": "MPa",
+    "angle": "deg",
 }
 
 
@@ -252,7 +270,7 @@ class Judgments:
 
 
 def judgments(path: str | PathLike[str]) -> Judgments:
-    """Open a judgments file: unit weights, water levels, PI, Gs, α and σci.
+    """Open a judgments file: unit weights, water levels, PI, Gs, α, σci and φ′cv.
 
     Judgments have no defaults in hangtu (SPEC §4). They live in one YAML file
     with their units and reasons, and every analysis that needs one reads it
@@ -298,6 +316,11 @@ def judgments(path: str | PathLike[str]) -> Judgments:
           units: {intact_compressive_strength: MPa}
           values:
             Sandstone: {intact_compressive_strength: 61, reason: "mean of 3 UCS"}
+        critical_state_friction_angle:
+          by: geology_unit          # always; no project: value
+          units: {critical_state_friction_angle: deg}
+          values:
+            Terrace: {critical_state_friction_angle: 32, reason: "ring shear, BH02"}
         ```
 
         - `unit_weight` entries take `bulk_unit_weight` (required) and
@@ -331,11 +354,20 @@ def judgments(path: str | PathLike[str]) -> Judgments:
           `ht.analysis.hoek_brown_fit()` groups by. It fixes σci for the
           fit's second line; it is optional: without it, the fit with σci
           fixed is missing, with a reason, and the free fit is made.
+        - `critical_state_friction_angle` entries take
+          `critical_state_friction_angle`, φ′cv, an angle strictly between 0°
+          and 90°, and a `reason`, which every entry needs: say whether it
+          came from a ring shear test, a correlation or the literature. They
+          are keyed by `geology_unit`, with no `project:` value, because
+          φ′cv is set by mineralogy and grading.
+          `ht.analysis.friction_angle_from_shear_box()` uses it to convert a
+          shear box φ′ to a triaxial one.
         - `units:` gives a unit for every field used, except for
           `specific_gravity`, `significance_level` and
           `spt_refusal_upper_limit`, which have none.
         - `project:` needs a `reason`. It is optional except for
-          `significance_level`, and used, with a warning, for every unit or
+          `significance_level`, not allowed for
+          `critical_state_friction_angle`, and used, with a warning, for every unit or
           hole the keyed entries don't list.
         - Keys match exactly and case-sensitively. Quote keys YAML would read
           as something else (`"yes"`, `"1"`).
@@ -352,7 +384,8 @@ def judgments(path: str | PathLike[str]) -> Judgments:
         Naming the file, the judgment and the entry for an unknown key or
         field, a missing `units`, `by` or `reason`, a wrong unit, a value that
         isn't a number (or isn't positive, for unit weights, Gs, σci and the
-        refusal limit, or isn't between 0 and 1, for α), a `units` block for
+        refusal limit, or isn't between 0 and 1, for α, or between 0° and 90°,
+        for φ′cv), a `project:` value for φ′cv, a `units` block for
         Gs, α or the refusal limit, keys for α, a `by:` other than
         `geology_unit` for the refusal limit, or invalid YAML.
     FileNotFoundError
@@ -433,6 +466,8 @@ def _check_judgment(name: str, body: Any, where: str) -> Judgment:
         sections = tuple(section for section in sections if section != "units")
     if kind.project_only:
         sections = ("project",)
+    if kind.keyed_only:
+        sections = tuple(section for section in sections if section != "project")
     if not isinstance(body, Mapping):
         raise HangtuError(
             f"{where}: must be a mapping of {', '.join(sections)}, not {body!r}."
@@ -449,6 +484,13 @@ def _check_judgment(name: str, body: Any, where: str) -> Judgment:
                 f"{where}: {name} takes only project:, one value for the whole "
                 f"project with its reason, not {key}:. Example: project: "
                 f'{{{name}: 0.05, reason: "the usual convention"}}'
+            )
+        if key == "project" and kind.keyed_only:
+            raise HangtuError(
+                f"{where}: {name} takes no project: value, only entries under "
+                f"{kind.keyed}: keyed by {kind.by}, each with its reason. One value "
+                f"for every {kind.by} would be coarser than the judgment allows "
+                "(SPEC §4)."
             )
         if key not in sections:
             raise HangtuError(
@@ -603,6 +645,17 @@ def _check_entry(
                 f"{where}, {field}: has no unit. Add it to the judgment's units, "
                 f"e.g. units: {{{field}: {EXAMPLE_UNITS[kind.fields[field]]}}}."
             )
+        if field in ANGLE_BETWEEN:
+            low, high = ANGLE_BETWEEN[field]
+            unit = units.parse_unit(units_by_field[field])
+            degrees = float(
+                units.convert([value], unit, "angle", units.parse_unit("deg"))[0]
+            )
+            if not low < degrees < high:
+                raise HangtuError(
+                    f"{where}, {field}: must be between {low:g}° and {high:g}°, "
+                    f"not {value!r} {units_by_field[field]}."
+                )
         if field in PLAUSIBLE:
             low, high, outside = PLAUSIBLE[field]
             if not low <= value <= high:
@@ -617,6 +670,6 @@ def _check_entry(
     if reason is None and kind.reason_required:
         raise HangtuError(
             f"{where}: 'reason' is missing. Say why the value was chosen, e.g. "
-            'reason: "mean of the three UCS tests that failed in shear"'
+            f'reason: "{kind.reason_example}"'
         )
     return Entry(values=values, reason=reason)
