@@ -195,7 +195,7 @@ Analysis code lives in `ht.analysis.*`, as plain functions usable without plotti
 ---
 
 ## 5. Statistics (Phase 3) and model sets
-`ht.stats`: `describe`, `fit`, `compare`, `compare_groups`, `crosstab` (M15) and `representative` (M18 (b)). What each function does: [`docs/analysis/statistics.md`](docs/analysis/statistics.md).
+`ht.stats`: `describe`, `fit`, `compare`, `compare_groups`, `crosstab` (M15), `representative` (M18 (b)) and `compare_sources` (M18 (d)). What each function does: [`docs/analysis/statistics.md`](docs/analysis/statistics.md).
 - The functions that summarize values take an array, a Series, or a DataFrame plus `value=`/`by=`, and accept `log=True` (except `fit()`, whose lognormal fit is the log option); `crosstab()` takes a DataFrame and two text columns.
 - **The result object:** a frozen dataclass per function (`DescribeResult`, `FitResult`, …), on a shared base recording `kind` (*property*: a summary of test values; *parameter*: an interpreted design value), the function, the value and its unit, the method, n, the notes, the input's judgments and the hangtu version. It has a readable summary, `.to_frame()` and `.to_dict()` (the latter for later AGSi export), and keeps no reference to the input.
 - **One calculation, many views** (decided 2026-10-21): a result computes and keeps everything (values, n, the statistics behind each value, outliers, the judgments used, §4). What the user asks for (characteristic values, p-values, variance, outlier detail) changes the view (`.to_frame()`, `.to_dict()`, the summary), never the calculation, so two reports of one result can't disagree.
@@ -435,7 +435,7 @@ Rows are in build order; each milestone after M8 names its wave, or statistics o
 | M | Deliverable | Done when | Status |
 |---|---|---|---|
 | M16 | Wave 0: user-defined groups and curves | Curves from the sample dataset reach the datasets |  |
-| M18 | Selection (stage D), in five units (`docs/work/m18a-refusals.md`, `docs/work/m18d-sources-compared.md`): (a) SPT refusals: the judged upper limit in `fit()` and at-least estimates from the correlations; (b) representative values: EC7 `characteristic` (moved from M15, TODO #13) and the views US practice uses, constant or as design lines; (c) **P09**; (d) sources compared by depth or geology unit, with the shear box to triaxial φ′ conversion; (e) the selection as a judgment, model-set results and the Mohr–Coulomb set | A set per unit, its judgments recorded; views agree; JRC worked examples | (a)–(c) done; (d) next |
+| M18 | Selection (stage D), in five units (`docs/work/m18a-refusals.md`, `docs/work/m18d-sources-compared.md`): (a) SPT refusals: the judged upper limit in `fit()` and at-least estimates from the correlations; (b) representative values: EC7 `characteristic` (moved from M15, TODO #13) and the views US practice uses, constant or as design lines; (c) **P09**; (d) sources compared by depth or geology unit, with the shear box to triaxial φ′ conversion; (e) the selection as a judgment, model-set results and the Mohr–Coulomb set | A set per unit, its judgments recorded; views agree; JRC worked examples | (a)–(d) done; (e) next |
 | M19 | Wave 3: oedometer (σ′p, Cc, Cs, Eoed, Eur,oed, k from cv·mv, Grob and Huder–Amberg swelling); P13–P15 | Golden values; plot criteria |  |
 | M20 | Wave 3: K0 from OCR, SHANSEP; the Soft Soil set | Golden values |  |
 | M21 | Wave 4: rock lab datasets (UCS, tensile, point load, slake durability, intact moduli) and RQD | Datasets feed P01 and P07 |  |
