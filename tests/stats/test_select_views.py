@@ -68,7 +68,7 @@ def test_frame_dict_and_summary_give_the_same_values():
     assert text.splitlines()[0] == f"{PHI} (deg), selected by geology_unit"
     assert "Against the other sources" in text
     assert "Sand: 34.9 is within B (33.0 to 41.0, at P23)" in text
-    assert f"Sand: 34.9 is 4.87 above {FIT} (30.0)" in text
+    assert f"Sand: 34.9 is 4.87 above {FIT}, 30.0" in text
     assert text.index("Against the other sources") < text.index(result.notes[0])
     assert result._repr_html_().startswith("<pre>")
 
@@ -222,3 +222,19 @@ def test_a_categorical_geology_unit_raises_no_warning():
     assert x == pytest.approx([G1_VALUE] * 2, abs=0.001)
     str(result)
     assert np.isfinite(result.to_frame()["value"]).all()
+
+
+def test_profile_draws_against_depth_when_ground_levels_differ():
+    # A Project's holes: elevation and ground levels that differ, so P01 would
+    # draw against elevation, where depth lines can't be placed.
+    a, b = sources()
+    for frame, ground in ((a, 100.0), (b, 95.0)):
+        frame["ground_level"] = ground
+        frame["elevation"] = ground - frame["depth"]
+        frame["loca_id"] = f"B-{int(ground)}"
+        frame.attrs["units"] |= {"ground_level": "m", "elevation": "m"}
+    result = ht.stats.select(a, b, value=PHI, selection={"Sand": G1})
+    _, ax = _quiet(result.profile, display_units="SI")
+    assert ax.get_ylabel().startswith("Depth")
+    ((x, _),) = _dashed(ax)
+    assert x == pytest.approx([G1_VALUE] * 2, abs=0.001)

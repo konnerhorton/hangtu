@@ -848,8 +848,8 @@ def _placed_text(placed: Mapping[str, Any]) -> str:
         side = "above" if difference > 0 else "below" if difference < 0 else ""
         by = f" {_cell(abs(difference))} {side}" if side else " equal to"
         return (
-            f"{_cell(placed['selected_value'])} is{by} {other} "
-            f"({_cell(placed['fit_value'])})"
+            f"{_cell(placed['selected_value'])} is{by} {other}, "
+            f"{_cell(placed['fit_value'])}"
         )
     rank = placed["percentile_rank"]
     at = "" if np.isnan(rank) else f", at P{rank:.0f}"
@@ -1016,8 +1016,9 @@ class SelectionResult(_Result):
 
         The comparison's ``.profile()`` of that unit, with
         ``design_lines=`` its selected line, so the figure shows the sources
-        and the value chosen from them. ``geology_unit`` is required when the
-        comparison has more than one unit. Other keyword arguments go to
+        and the value chosen from them, against depth (elevation for a trend
+        with elevation). ``geology_unit`` is required when the comparison has
+        more than one unit. Other keyword arguments go to
         ``SourceComparison.profile()`` and ``ht.plot.profile()``, a
         ``design_lines=`` of your own replacing the selected line. Returns
         ``(fig, ax)``.
@@ -1029,7 +1030,13 @@ class SelectionResult(_Result):
             rows = [r for r in self.rows if r["key"][GEOLOGY] == str(geology_unit)]
             chosen = {GEOLOGY: geology_unit}
         lines = self._lines(rows)
-        options = {**({"design_lines": lines} if len(lines) else {}), **kwargs}
+        options: dict[str, Any] = {}
+        if len(lines):
+            # Against the lines' own vertical: depth lines can't be drawn
+            # against elevation when the holes' ground levels differ.
+            vertical = next(n for n in lines.columns if n not in ("label", "value"))
+            options = {"design_lines": lines, "vs": vertical}
+        options |= kwargs
         return self.comparison.profile(**chosen, **options)
 
     def _vertical_columns(self) -> list[str]:
