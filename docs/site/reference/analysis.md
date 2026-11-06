@@ -40,6 +40,10 @@ Each analysis is a plain function on a DataFrame. It returns a new DataFrame or 
 
 ::: hangtu.analysis.ShearBoxFit
 
+::: hangtu.analysis.friction_angle_from_shear_box
+
+::: hangtu.analysis.ShearBoxConversion
+
 ::: hangtu.analysis.hoek_brown_fit
 
 ::: hangtu.analysis.HoekBrownFit

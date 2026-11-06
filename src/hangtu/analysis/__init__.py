@@ -11,6 +11,10 @@ from hangtu.analysis._mohr_coulomb import MohrCoulombFit, mohr_coulomb_fit
 from hangtu.analysis._overburden import spt_n1_60
 from hangtu.analysis._phase_relations import phase_relations
 from hangtu.analysis._plasticity import plasticity
+from hangtu.analysis._shear_box_conversion import (
+    ShearBoxConversion,
+    friction_angle_from_shear_box,
+)
 from hangtu.analysis._shear_box_fit import ShearBoxFit, shear_box_fit
 from hangtu.analysis._spt import spt, spt_class
 from hangtu.analysis._triaxial import triaxial_failure_stresses
@@ -21,12 +25,14 @@ from hangtu.analysis._vertical_stress import vertical_stress
 __all__ = [
     "HoekBrownFit",
     "MohrCoulombFit",
+    "ShearBoxConversion",
     "ShearBoxFit",
     "aashto",
     "add_judgment",
     "clay_activity",
     "clogging_potential",
     "correlations",
+    "friction_angle_from_shear_box",
     "gradation",
     "hoek_brown_fit",
     "mohr_coulomb_fit",

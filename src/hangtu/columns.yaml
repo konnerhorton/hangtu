@@ -596,6 +596,14 @@ columns:
     label: Critical state friction angle, φ′cv
     ags: ["derived: docs/work/m18d-sources-compared.md"]
     used_by: []
+  plane_strain_friction_angle:
+    description: Plane strain compression friction angle φ′psc, from a shear box φ′ by Kulhawy & Mayne (1990) Eq. 4-10
+    type: number
+    quantity: angle
+    scale: ratio
+    label: Plane strain friction angle, φ′psc
+    ags: ["derived: docs/work/m18d-sources-compared.md"]
+    used_by: []
   undrained_shear_strength_lower:
     description: Lower bound of an undrained shear strength given as a band, such as a correlation's
     type: number
@@ -667,6 +675,17 @@ columns:
     type: text
     ags: ["derived: docs/work/m13b3-spt-stiffness.md"]
     used_by: [P01]
+  conversion_name:
+    description: The conversion a value came from, by its function's name, such as a shear box φ′ converted to triaxial
+    type: text
+    ags: ["derived: docs/work/m18d-sources-compared.md"]
+    used_by: []
+    statistics: {role: source}
+  conversion_soil:
+    description: The soil type a conversion's ratio was taken from (soil=)
+    type: text
+    ags: ["derived: docs/work/m18d-sources-compared.md"]
+    used_by: []
   correlation_input:
     description: The correlation an input came from, when a correlation read another's estimate
     type: text
