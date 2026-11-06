@@ -553,6 +553,13 @@ Reused, not rebuilt:
 ### 8. `M18: compare the sources geology unit by geology unit` (Sonnet)
 - `_compare_sources.py`: `.geology_unit_comparison(**kwargs)` calls P07 with `split_by="parameter_source"`,
   `color_by="parameter_source"` (decision 19).
+- **Decided in the build (2026-11-06):** P07 draws a summary only from `summary_min_count` values (5 by
+  default, a drawing threshold), but the table gives P25 and P75 from 4. So `.geology_unit_comparison()` passes
+  `summary_min_count=1` and the percentile floors alone decide, and the figure has a bar wherever the table has
+  the percentiles. It needs `by="geology_unit"` alone (an error otherwise), passes the units in the table's
+  order and the comparison's `display_units`, and defaults to `legend="bottom"` and a 9 in wide figure, for the
+  long source names. P07 never summarizes assumed values, so with `include_assumed=True` it warns when there
+  are any. P07 unchanged.
 - Tests: `test_compare_sources_views.py`, AC 10's unit part: one sub-row per source, percentiles equal to
   `.to_frame()`'s, no "mixes sources".
 

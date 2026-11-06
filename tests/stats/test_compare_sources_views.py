@@ -1,4 +1,4 @@
-"""SourceComparison's figures by depth: docs/work/m18d-sources-compared.md, AC 10.
+"""SourceComparison's figures: docs/work/m18d-sources-compared.md, AC 10.
 
 The data are G2's and G3's from test_compare_sources.py. A comparison's
 ``.profile()`` draws one unit (step 6, decided in the build), so its stats box
@@ -14,7 +14,9 @@ from matplotlib.colors import to_rgba
 
 import hangtu as ht
 from hangtu.errors import HangtuError
+from hangtu.plot._geology_units import UNIT_RULE_COLOR
 from hangtu.plot._overlays import format_number
+from hangtu.plot._values import group_text
 
 from .test_compare_sources import (
     CONVERTED,
@@ -24,6 +26,7 @@ from .test_compare_sources import (
     PSF,
     STROUD,
     SU,
+    _compare,
     _g2,
     _spt_phi,
     _stroud,
@@ -32,6 +35,7 @@ from .test_compare_sources import (
 )
 
 FIT = "Mohr-Coulomb fit (CD)"
+DOT = "\N{MIDDLE DOT}"
 #: P01's default stats box, as .to_frame() names each statistic.
 BOX = ("count", "mean", "standard_deviation", "median", "minimum", "maximum")
 
@@ -209,3 +213,137 @@ def test_profile_needs_the_unit_when_there_are_several():
 def test_profile_arguments_override_its_defaults():
     _, ax = _profile(_g2(), geology_unit="Terrace", figsize=(5, 6), legend="right")
     assert tuple(ax.figure.get_size_inches()) == (5, 6)
+
+
+# --- .geology_unit_comparison() -------------------------------------------------
+
+
+def _unit_comparison(result, **kwargs):
+    """Draw P07, failing on any warning."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        return result.geology_unit_comparison(**kwargs)
+
+
+def _ticks(ax):
+    return [label.get_text() for label in ax.get_yticklabels()]
+
+
+def _counts(ax):
+    return [text.get_text() for text in ax.texts if text.get_text().startswith("n =")]
+
+
+def _summary_bars(ax):
+    """Each sub-row's bar as {row: (low, high)}: a horizontal two-point line."""
+    found = {}
+    for line in ax.lines:
+        x, y = (np.asarray(a, dtype=float) for a in line.get_data())
+        if (
+            len(x) == 2
+            and y[0] == y[1]
+            and line.get_marker() in ("None", "")
+            and line.get_color() not in (UNIT_RULE_COLOR, "0.25")
+        ):
+            found[round(y[0])] = tuple(x)
+    return found
+
+
+def _centrals(ax):
+    """Each sub-row's center marker as {row: x}."""
+    return {
+        round(line.get_ydata()[0]): float(line.get_xdata()[0])
+        for line in ax.lines
+        if line.get_marker() == "o"
+    }
+
+
+def _table_rows(result):
+    """The .to_frame() rows that have a value, in the figure's row order."""
+    frame = result.to_frame()
+    return frame[frame["count"] > 0].reset_index(drop=True)
+
+
+def _drawn_matches_the_table(result, ax):
+    table = _table_rows(result)
+    assert _ticks(ax) == [
+        f"{unit} {DOT} {group_text(source)}"
+        for unit, source in zip(
+            table["geology_unit"], table["parameter_source"], strict=True
+        )
+    ]
+    # P07 draws assumed values but leaves them out of the summary.
+    drawn = table["count"] + (0 if result.include_assumed else table["count_assumed"])
+    assert [int(c.split()[2]) for c in _counts(ax)] == drawn.tolist()
+    bars, middles = _summary_bars(ax), _centrals(ax)
+    for row, record in table.iterrows():
+        if np.isnan(record["percentile_25"]):
+            assert row not in bars and row not in middles
+            continue
+        assert bars[row] == pytest.approx(
+            (record["percentile_25"], record["percentile_75"])
+        )
+        assert middles[row] == pytest.approx(record["median"])
+
+
+def test_unit_comparison_one_sub_row_per_source_with_the_tables_percentiles():
+    result = _g2(percentiles=(25, 75))
+    _, ax = _unit_comparison(result)
+    _drawn_matches_the_table(result, ax)
+    # Terrace's A and B have bars; the fits, one value each, don't.
+    assert len(_summary_bars(ax)) == 2
+    assert not any("mixes sources" in c for c in _counts(ax))
+    # The legend wraps long names.
+    legend = [" ".join(t.get_text().split()) for t in ax.get_legend().get_texts()]
+    for source in (HATANAKA, KULHAWY, FIT, CONVERTED):
+        assert group_text(source) in legend
+
+
+def test_unit_comparison_in_the_comparisons_units():
+    for system in ("SI", "US"):
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            result = ht.stats.compare_sources(
+                _su(), _stroud(), value=SU, percentiles=(25, 75), display_units=system
+            )
+        _, ax = _unit_comparison(result)
+        _drawn_matches_the_table(result, ax)
+        # UU has a bar; the vane and Stroud, 3 values each, don't.
+        assert list(_summary_bars(ax)) == [0]
+        assert ax.get_xlabel().endswith("(psf)" if system == "US" else "(kPa)")
+
+
+def test_unit_comparison_needs_a_comparison_by_geology_unit():
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        result = ht.stats.compare_sources(_su(), _stroud(), value=SU, by=None)
+    with pytest.raises(HangtuError, match=r'by None.*by="geology_unit"'):
+        result.geology_unit_comparison()
+
+
+def test_unit_comparison_warns_when_the_table_includes_assumed_values():
+    df = pd.DataFrame(
+        {
+            "geology_unit": "Terrace",
+            "test_type": "particle density",
+            "particle_density": [2.65, 2.68, 2.70, 2.66, 2.71],
+            "particle_density_assumed": [True, False, False, False, False],
+        }
+    )
+    df.attrs["units"] = {"particle_density": "Mg/m3"}
+    value = "particle_density"
+    result = _compare(df, value=value, include_assumed=True)
+    with pytest.warns(UserWarning, match=r"include_assumed=True"):
+        result.geology_unit_comparison()
+    # Left out, as P07 leaves them out, the figure and the table agree.
+    with pytest.warns(UserWarning, match=r"assumed"):
+        result = ht.stats.compare_sources(df, value=value, percentiles=(25, 75))
+    _, ax = _unit_comparison(result, display_units="SI")  # the table's Mg/m3
+    _drawn_matches_the_table(result, ax)
+
+
+def test_unit_comparison_arguments_override_its_defaults():
+    _, ax = _unit_comparison(
+        _g2(), figsize=(6, 5), order=["Terrace", "Alluvium"], color_by=None
+    )
+    assert tuple(ax.figure.get_size_inches()) == (6, 5)
+    assert _ticks(ax)[0].startswith("Terrace")

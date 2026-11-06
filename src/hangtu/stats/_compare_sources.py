@@ -7,6 +7,7 @@ is never pooled with another; the comparison is descriptive and tests nothing
 """
 
 import html
+import warnings
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, fields
 from importlib.metadata import version
@@ -966,6 +967,62 @@ class SourceComparison(_Result):
             **kwargs,
         }
         return profile(values, self.value, **options)
+
+    def geology_unit_comparison(self, **kwargs: Any) -> Any:
+        """Draw the sources geology unit by geology unit: P07 of ``.values()``.
+
+        Each geology unit gets one sub-row per source, in the order passed,
+        colored by ``parameter_source`` with one legend entry per source, so
+        no sub-row "mixes sources". Each sub-row's percentile bar is that unit
+        and source's, as in ``.to_frame()``: drawn wherever the table gives
+        the percentiles, from 4 values for P25 and P75 (P07's
+        ``summary_min_count`` is set to 1, so only the floors decide). A
+        unit's one fit is a point with no bar. The comparison must be by
+        ``geology_unit`` alone. P07 never summarizes assumed values, so with
+        ``include_assumed=True`` it warns when there are any. Other keyword
+        arguments go to ``ht.plot.geology_unit_comparison()`` and override
+        these (the units in the table's order, the comparison's
+        ``display_units``, the legend below, and ``figsize`` 9 in wide, room
+        for the long source names). Returns ``(fig, ax)``.
+        """
+        from hangtu.plot import geology_unit_comparison  # plot imports stats
+
+        assert self.value is not None  # compare_sources() always names it
+        if self.by != ("geology_unit",):
+            by = ", ".join(self.by) if self.by else "None"
+            raise HangtuError(
+                "SourceComparison.geology_unit_comparison() draws one row per "
+                f"geology unit and source, but this comparison is by {by}. "
+                'Compare with by="geology_unit", or draw .profile().'
+            )
+        values = self.values()
+        if self.include_assumed and _rows.read_flags(values, self.value).assumed.any():
+            warnings.warn(
+                "SourceComparison.geology_unit_comparison(): P07 leaves assumed "
+                "values out of each summary, but this comparison includes them "
+                "(include_assumed=True), so the bars and .to_frame() differ.",
+                UserWarning,
+                stacklevel=2,
+            )
+        order = [
+            r["key"]["geology_unit"]
+            for r in self.rows
+            if r["key"]["geology_unit"] != BLANK_GROUP
+        ]
+        drawn = values.dropna(subset=[self.value])
+        rows = len(drawn.groupby(["geology_unit", "parameter_source"], dropna=False))
+        options = {
+            "split_by": "parameter_source",
+            "color_by": "parameter_source",
+            # The table's floors decide, not P07's drawing threshold of 5.
+            "summary_min_count": 1,
+            "figsize": (9, max(4.0, 2.5 + 0.45 * rows)),
+            "legend": "bottom",
+            "order": list(dict.fromkeys(order)),
+            **({"display_units": self.display_units} if self.display_units else {}),
+            **kwargs,
+        }
+        return geology_unit_comparison(values, self.value, **options)
 
     def _statistics(self) -> list[str]:
         return list(self.rows[0]["statistics"]) if self.rows else []
