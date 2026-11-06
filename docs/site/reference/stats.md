@@ -22,6 +22,10 @@ Each statistics function is a plain function on a DataFrame, a Series or a list 
 
 ::: hangtu.stats.CompareGroupsResult
 
+::: hangtu.stats.compare_sources
+
+::: hangtu.stats.SourceComparison
+
 ::: hangtu.stats.crosstab
 
 ::: hangtu.stats.CrosstabResult

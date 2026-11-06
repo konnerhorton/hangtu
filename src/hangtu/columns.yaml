@@ -686,6 +686,17 @@ columns:
     type: text
     ags: ["derived: docs/work/m18d-sources-compared.md"]
     used_by: []
+  parameter_source:
+    description: The source of a parameter's values in a comparison, such as a correlation, a test type or a fit
+    type: text
+    ags: ["derived: docs/work/m18d-sources-compared.md"]
+    used_by: [P01, P07]
+    statistics: {role: source}
+  source_kind:
+    description: Whether a compared source gives values row by row ("rows") or fitted values ("fit")
+    type: text
+    ags: ["derived: docs/work/m18d-sources-compared.md"]
+    used_by: []
   correlation_input:
     description: The correlation an input came from, when a correlation read another's estimate
     type: text

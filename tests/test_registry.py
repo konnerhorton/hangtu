@@ -165,6 +165,7 @@ def test_statistics_roles_lists_the_flag_and_source_columns():
         "specific_gravity_source": "assumed",
         "correlation_name": "source",
         "conversion_name": "source",
+        "parameter_source": "source",
         "source": "source",
         "test_type": "source",
     }
