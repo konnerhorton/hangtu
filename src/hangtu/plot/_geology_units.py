@@ -70,6 +70,8 @@ BASELINE_OFFSET = 0.28  # row heights above the center line
 BASELINE_WIDTH = 1.2  # points
 BASELINE_CAP_HEIGHT = 0.12  # row heights
 BASELINE_MARKER_SIZE = 5.0  # points
+UNIT_RULE_COLOR = "0.8"  # between units split into sub-rows (split_by=)
+UNIT_RULE_WIDTH = 0.5  # points
 #: The text of the error for P07's removed ``percentile_method=`` (m15a, Decision 8).
 PERCENTILE_METHOD_REMOVED = (
     "percentile_method= was removed: percentiles in hangtu are always "
@@ -135,10 +137,18 @@ def _choose_preset(value: str, preset: str | None) -> Preset | None:
     return None
 
 
-def _check_columns(df: pd.DataFrame, value: str, color_by: str | None) -> None:
+def _check_columns(
+    df: pd.DataFrame, value: str, color_by: str | None, split_by: str | None
+) -> None:
     available = ", ".join(map(str, df.columns)) or "none"
-    for column in (value, "geology_unit"):
-        if column not in df.columns:
+    if split_by == "geology_unit":
+        raise HangtuError(
+            'split_by="geology_unit" would split each unit by itself: rows are '
+            "already geology units. Name another column, such as "
+            'split_by="parameter_source", or leave it out.'
+        )
+    for column in (value, "geology_unit", split_by):
+        if column is not None and column not in df.columns:
             raise ColumnError(
                 f"Column {column!r} not found. Available columns: {available}. "
                 + (
@@ -148,10 +158,15 @@ def _check_columns(df: pd.DataFrame, value: str, color_by: str | None) -> None:
                     else ""
                 )
             )
-    if color_by not in ("geology_unit", None):
+    if color_by not in ("geology_unit", None) and color_by != split_by:
+        choices = (
+            '"geology_unit" or None'
+            if split_by is None
+            else f'"geology_unit", {split_by!r} (the split_by column) or None'
+        )
         raise HangtuError(
-            f'color_by must be "geology_unit" or None, not {color_by!r}. Rows are '
-            "always geology units; color_by=None draws them in one neutral color."
+            f"color_by must be {choices}, not {color_by!r}. Rows are always "
+            "geology units; color_by=None draws them in one neutral color."
         )
 
 
@@ -236,6 +251,54 @@ def _non_plastic(df: pd.DataFrame, value: str) -> np.ndarray:
             "specimens True and leave their value blank."
         )
     return flags.eq(True).to_numpy(dtype=bool)
+
+
+def _sub_rows(
+    units: list[Any], unit_of: np.ndarray, split_of: np.ndarray | None
+) -> list[tuple[Any, Any]]:
+    """Return the plot's rows as ``(unit, split value)``, top first (P07 §7).
+
+    Without ``split_by`` each unit is one row, with split value None. With it,
+    a unit's sub-rows follow one another, in order of first appearance in the
+    data, "(blank)" last. A unit with no values drawn (a baseline only) keeps
+    one row, with split value None.
+    """
+    if split_of is None:
+        return [(unit, None) for unit in units]
+    rows: list[tuple[Any, Any]] = []
+    for unit in units:
+        rows.extend((unit, value) for value in _first_seen(split_of[unit_of == unit]))
+        if not (unit_of == unit).any():
+            rows.append((unit, None))
+    return rows
+
+
+def _first_seen(values: np.ndarray) -> list[Any]:
+    """Return the distinct ``values`` in order of first appearance, "(blank)" last."""
+    found = list(dict.fromkeys(values))
+    if _values.BLANK_GROUP in found:
+        found.remove(_values.BLANK_GROUP)
+        found.append(_values.BLANK_GROUP)
+    return found
+
+
+def _row_name(unit: Any, value: Any) -> str:
+    """Return a row's tick label: the unit, or "Terrace · Mohr-Coulomb fit (CD)"."""
+    if value is None:
+        return str(unit)
+    return f"{unit} \N{MIDDLE DOT} {_values.group_text(value)}"
+
+
+def _draw_unit_rules(ax: Axes, rows: list[tuple[Any, Any]]) -> None:
+    """Draw a thin rule between geology units split into sub-rows (P07 §7)."""
+    for i in range(1, len(rows)):
+        if rows[i][0] != rows[i - 1][0]:
+            ax.axhline(
+                i - 0.5,
+                color=UNIT_RULE_COLOR,
+                linewidth=UNIT_RULE_WIDTH,
+                zorder=_layers.UNIT_RULES,
+            )
 
 
 def _set_unit_axis(ax: Axes, names: list[Any]) -> None:
@@ -509,6 +572,7 @@ def _draw_panel(
     label: str | None,
     xlim: tuple[float, float] | None,
     order: list[str] | None,
+    split_by: str | None,
     color_by: str | None,
     points: bool,
     summary: _Summary,
@@ -552,10 +616,19 @@ def _draw_panel(
     groups, colors = _rows(
         df[drawn], order, palette, panel.baseline.units if panel.baseline else []
     )
-    rows = list(colors)
     unit_of = np.full(len(df), None, dtype=object)
     unit_of[drawn] = groups
-    row_of = {unit: i for i, unit in enumerate(rows)}
+    split_of: np.ndarray | None = None
+    split_colors: dict[Any, Any] = {}
+    if split_by is not None:
+        split_of = np.full(len(df), None, dtype=object)
+        split_of[drawn], split_colors = _values.color_groups(
+            df[drawn], split_by, palette
+        )
+    rows = _sub_rows(list(colors), unit_of, split_of)
+    row_of: dict[Any, int] = {}
+    for i, (unit, _) in enumerate(rows):
+        row_of.setdefault(unit, i)  # a unit's baseline goes on its first sub-row
     jitter = np.random.default_rng(JITTER_SEED).uniform(-JITTER, JITTER, len(df))
 
     style.style_axes(ax)
@@ -575,7 +648,9 @@ def _draw_panel(
         set_log_axis(ax, "x", limits)
     else:
         set_linear_axis(ax, "x", limits)
-    _set_unit_axis(ax, rows)
+    _set_unit_axis(ax, [_row_name(unit, split) for unit, split in rows])
+    if split_by is not None:
+        _draw_unit_rules(ax, rows)
     if panel.baseline is not None:
         _draw_baseline(ax, panel.baseline, row_of, log)
 
@@ -592,20 +667,36 @@ def _draw_panel(
         # Clear the edge arrows on the left, so they don't cover the unit names.
         ax.yaxis.set_tick_params(pad=mpl.rcParams["ytick.major.pad"] + EDGE_GAP)
     edge = np.zeros(len(df), dtype=bool)
-    for unit, color in colors.items():
+    grouped = ["geology_unit", *([split_by] if split_by is not None else [])]
+    colored: dict[Any, Any] = {}  # split value: color, for the legend
+    for row, (unit, split) in enumerate(rows):
         these = drawn & (unit_of == unit)
-        color = _values.NEUTRAL if color_by is None else color
-        row = row_of[unit]
+        if split_of is not None and split is not None:
+            these &= split_of == split
+        if color_by is None:
+            color = _values.NEUTRAL
+        elif color_by == split_by and split is not None:
+            color = colored.setdefault(split, split_colors[split])
+        else:
+            color = colors[unit]
         if points and these.any():
             edge |= _draw_points(
-                ax, x, row + jitter, these, qualifiers, carets, color, unit, xlim
+                ax,
+                x,
+                row + jitter,
+                these,
+                qualifiers,
+                carets,
+                color,
+                _row_name(unit, split),
+                xlim,
             )
         n = int(these.sum())
         why = None
         if draw_summary is not None:
             summarized = these & ~assumed
             marks, floor = summary.marks(x[summarized])
-            if source_mix(df.loc[summarized], ["geology_unit"]):
+            if source_mix(df.loc[summarized], grouped):
                 why = "mixes sources"
             elif summarized.sum() < summary.min_count:
                 why = "no summary"
@@ -622,6 +713,15 @@ def _draw_panel(
         panel.handles.append(
             _values.legend_marker("o", _values.NEUTRAL, "Data", POINT_SIZE)
         )
+    # Colored by the split column, the tick labels no longer name the colors.
+    if split_of is not None:
+        for split in _first_seen(split_of[drawn]):
+            if split in colored:
+                panel.handles.append(
+                    _values.legend_marker(
+                        "o", colored[split], _values.group_text(split), CENTRAL_SIZE
+                    )
+                )
     panel.flags = _values.qualifier_handles(
         np.where(drawn, qualifiers, ""), panel.notes
     )
@@ -674,7 +774,8 @@ def geology_unit_comparison(
     label: str | None = None,
     xlim: tuple[float, float] | None = None,
     order: list[str] | None = None,
-    color_by: Literal["geology_unit"] | None = "geology_unit",
+    split_by: str | None = None,
+    color_by: str | None = "geology_unit",
     reference_lines: list[tuple[float, str]] | None = None,
     note: str | None = None,
     palette: dict[str, str] | None = None,
@@ -737,8 +838,16 @@ def geology_unit_comparison(
     order : list of str, optional
         Geology units in stratigraphic order, top first. Other units follow,
         sorted by name.
-    color_by : {"geology_unit", None}
-        None draws every unit in one neutral color.
+    split_by : str, optional
+        A column, such as ``"parameter_source"``, ``"correlation_name"`` or
+        ``"test_type"``: each geology unit is split into one sub-row per value
+        of it, in order of first appearance, labeled "Terrace · UU". Each
+        sub-row is summarized and counted on its own, so split by a source
+        column no sub-row mixes sources. The baseline is drawn once per unit,
+        on its first sub-row.
+    color_by : {"geology_unit", the split_by column, None}
+        None draws every unit in one neutral color. The ``split_by`` column
+        colors each sub-row by its value, with a legend entry per value.
     reference_lines : list of (value, label), optional
         Vertical lines at fixed values, such as a code limit. A string such
         as ``"2000 psf"`` carries its own unit.
@@ -776,7 +885,7 @@ def geology_unit_comparison(
     >>> fig, ax = ht.plot.geology_unit_comparison(
     ...     index, "bulk_unit_weight", order=["Fill", "Alluvium", "Till"])
     """
-    _check_columns(df, value, color_by)
+    _check_columns(df, value, color_by, split_by)
     chosen_summary = _check_summary(
         summary, percentiles, summary_min_count, style_overrides
     )
@@ -797,6 +906,7 @@ def geology_unit_comparison(
             label=label,
             xlim=xlim,
             order=order,
+            split_by=split_by,
             color_by=color_by,
             points=points,
             summary=chosen_summary,
@@ -943,7 +1053,8 @@ def geology_unit_comparisons(
     xlim: dict[str, tuple[float, float]] | None = None,
     reference_lines: dict[str, list[tuple[float, str]]] | None = None,
     order: list[str] | None = None,
-    color_by: Literal["geology_unit"] | None = "geology_unit",
+    split_by: str | None = None,
+    color_by: str | None = "geology_unit",
     palette: dict[str, str] | None = None,
     units: dict[str, str] | None = None,
     display_units: Literal["US", "SI"] | None = None,
@@ -1016,7 +1127,7 @@ def geology_unit_comparisons(
         )
     }
     for value in values:
-        _check_columns(tables[value], value, color_by)
+        _check_columns(tables[value], value, color_by, split_by)
     if baseline is not None and not isinstance(baseline, pd.DataFrame):
         baseline = _units.read_csv(baseline)
     if (
@@ -1056,6 +1167,7 @@ def geology_unit_comparisons(
                 label=settings_for["label"].get(value),
                 xlim=settings_for["xlim"].get(value),
                 order=order,
+                split_by=split_by,
                 color_by=color_by,
                 points=points,
                 summary=chosen_summary,

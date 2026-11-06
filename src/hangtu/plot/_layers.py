@@ -4,6 +4,7 @@ Gridlines sit below everything else (``axes.axisbelow``, zorder 0.5).
 """
 
 ENVELOPES = 0.4  # P05 envelopes, under the gridlines
+UNIT_RULES = 0.6  # P07 rules between geology units split into sub-rows
 STRATA = 1.0
 REGIONS = 1.05  # P04 user regions
 RANGES = 1.1
