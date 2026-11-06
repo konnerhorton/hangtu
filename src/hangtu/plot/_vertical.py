@@ -140,12 +140,21 @@ def length_values(
 
 
 def row_ground_levels(lengths: Mapping[str, np.ndarray]) -> np.ndarray | None:
-    """Each row's ground level: ``ground_level``, or ``elevation + depth``."""
-    if "ground_level" in lengths:
-        return lengths["ground_level"]
+    """Each row's ground level: ``ground_level``, or ``elevation + depth``.
+
+    Row by row, so a row with a blank ground level still has one from its own
+    elevation and depth (a fit's row in ``SourceComparison.values()``, whose
+    points come from several holes).
+    """
+    derived = None
     if "elevation" in lengths and "depth" in lengths:
-        return lengths["elevation"] + lengths["depth"]
-    return None
+        derived = lengths["elevation"] + lengths["depth"]
+    if "ground_level" not in lengths:
+        return derived
+    given = lengths["ground_level"]
+    if derived is None:
+        return given
+    return np.where(np.isfinite(given), given, derived)
 
 
 def single_ground_level(levels: np.ndarray | None) -> float | None:
