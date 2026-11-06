@@ -405,3 +405,174 @@ implementation. Tolerance: 1e-6 relative for the statistics and the conversion. 
   - TODO #32 (ψ's φ′cv is now a judgment; the rest moves to (e));
   - SPEC §12.4's M18 status;
   - CLAUDE.md's "next".
+
+## Plan
+Draft, 2026-11-06. Eleven commits, each green: first the tests the step touches, then the CI command with
+`-n 3`. Steps 1–6 run on Opus (the fits' new fields, the judgment, the conversion with its citations and validity
+limit, the comparison's calculation). Steps 7–9 run on Sonnet (P07's `split_by=` and the example data; P07 §12
+and the spec's counts decide correctness). Steps 10–11 run on Opus (the site pages' citations, the figures judged
+against the spec, close-out). That makes two session boundaries, after 6 and after 9. A step past about 300
+changed lines, not counting test data, splits as noted.
+
+Reused, not rebuilt:
+- **Stats:** `read_input`, `convert`, `scale`, `read_flags`, `choose_rows`, `group_keys`, `breakdown`,
+  `source_mix`, `warn_left_out`, `warn_text` (`stats/_rows.py`); `summarize`, `check_percentiles`,
+  `percentile_name`, `percentile_floor`, `DEFAULT_PERCENTILES`, `COUNTS`, the note builders (`stats/_describe.py`);
+  `_Result`, `_plain`, `_table`, `_cell`, `_number` (`stats/_result.py`).
+- **Fits:** `_DerivedResult` (`analysis/_derived.py`); `MohrCoulombFit.groups` (`stages`, `points`) and
+  `ShearBoxFit.groups` (`strengths["peak"]["lines"]`, `points`); `_label`, `_names`, `_cell`
+  (`analysis/_fit_groups.py`).
+- **Judgments:** `Kind`, `KINDS`, `POSITIVE` (`_judgments.py`); `read_judgments`, `from_file`, `take`,
+  `warn_unused` (`analysis/_judgment_values.py`), as `_hoek_brown_fit.py` uses them for
+  `fixed_intact_compressive_strength`.
+- **Units:** `resolve_units`, `convert`, `to_display` (`hangtu.units`).
+- **Plots:** `ht.plot.profile()` with `intervals=`, `color_by=` a source column and `stats_box=` (P01 §7, §8),
+  unchanged; `geology_unit_comparison()`/`geology_unit_comparisons()` (`plot/_geology_units.py`), extended in
+  step 7.
+
+### 1. `M18: keep depths and the judgments file on fit results` (Opus)
+- `analysis/_mohr_coulomb.py`, `analysis/_shear_box_fit.py`: `depth`, `elevation`, `ground_level` added to
+  `_IDENTIFIERS`, so each point carries them when the input has them (decision 17). Fitted values unchanged.
+- `analysis/_derived.py`: `_DerivedResult` gains `judgments_file: str | None`, from the input's
+  `attrs["judgments_file"]`; `mohr_coulomb_fit()`, `shear_box_fit()` and `hoek_brown_fit()` pass it.
+- Tests: `tests/analysis/test_mohr_coulomb_fit.py`, `test_shear_box_fit.py`, `test_hoek_brown_fit.py` (AC 12):
+  points carry depth, elevation and ground level when given and not when absent; `judgments_file` from a
+  Project's frame and None from a hand-built one; `.to_dict()` is JSON; every existing golden unchanged.
+
+### 2. `M18: add the critical_state_friction_angle judgment` (Opus)
+- `src/hangtu/_judgments.py`: a `Kind` for `critical_state_friction_angle` (decision 5): keyed `values`, field
+  `critical_state_friction_angle` (angle, degrees, through the units block as other angles), `by="geology_unit"`,
+  no `project:` value, `reason_required=True`; a new open-interval check (0, 90) beside `POSITIVE`, with no
+  `PLAUSIBLE` range. `ht.judgments()`'s docstring gains its entry and an example.
+- `columns.yaml`: `critical_state_friction_angle` (angle, "Critical state friction angle, φ′cv",
+  `ags: ["derived: docs/work/m18d-sources-compared.md"]`). `tests/test_registry.py` checks the name.
+- Tests: `tests/test_judgments.py` (AC 3, file part): a valid entry reads, with its `str()` line; a missing
+  reason, a `project:` value, 0 and 90 each raise naming the file and the entry.
+
+### 3. `M18: convert a shear box φ′ to triaxial (Kulhawy & Mayne 1990)` (Opus)
+- `src/hangtu/analysis/_shear_box_conversion.py` (new), exported with `ShearBoxConversion` in
+  `analysis/__init__.py`:
+  - `friction_angle_from_shear_box(fit, *, soil, critical_state_friction_angle=None, judgments=None)`: a
+    non-`ShearBoxFit` raises naming what it takes;
+  - `soil=` (decisions 1, 3): required, the two values or a mapping by `geology_unit`; anything else raises
+    naming the two values, what Tables 4-2 and 4-5 cover, and that `peak_friction_angle` can be compared
+    unconverted; a mapping needs the fit grouped by `geology_unit`, and a missing unit raises naming it;
+  - φ′cv (decision 5): the argument (a number only for a one-group fit, else a mapping by unit) →
+    `judgments=` → the file in `fit.judgments_file` → an error naming the judgment, its key and how to set it.
+    `read_judgments()` gains a form that takes the recorded path instead of a frame's attrs. Out of (0, 90)°
+    raises. Value, key and source recorded;
+  - the equations (decision 1) for both line kinds of the peak strength, main line first (decision 2); residual
+    and `peak_cohesion` kept unconverted, with notes; decision 4's notes on every result, Table 4-5's footnote
+    for the cohesive soil;
+  - decision 6: below critical state converted, flagged in `below_critical_state`, one warning naming the
+    groups; φ′ds ≤ 0 or no line gives no value and `no_conversion_reason` (the fit's `no_fit_reason` first);
+  - `ShearBoxConversion(_DerivedResult)`: `.groups` (with the fit's points and depths), `.to_frame()` with
+    decision 7's columns in order and `attrs["units"]`, `__str__`, `.to_dict()`;
+  - docstring per the sheets' `TEMPLATE.md` checklist: Eq. 4-10 (K&M 1990 p. 4-12), Tables 4-2 (p. 4-14) and 4-5
+    (p. 4-25, with footnote 2), the "2 to 7 degrees" remark, the drained and effective-stress assumption, residual
+    unchanged (p. 4-10), the validity limit, an example on a hand-built fit. Each page re-checked against the
+    scan while writing it.
+- `columns.yaml`: `plane_strain_friction_angle`, `conversion_name` (`statistics: {role: source}`),
+  `conversion_soil`, checked by `tests/test_registry.py`.
+- `docs/site/reference/analysis.md`: `friction_angle_from_shear_box`, `ShearBoxConversion` (AC 13).
+- Tests: `tests/analysis/test_shear_box_conversion.py` (new), on hand-built shear box frames: AC 1 (G1 for both
+  soils, the mapping, both line kinds, residual and cohesion kept, the notes), 2, 3 (resolution from argument,
+  `judgments=` and a Project's file in `tmp_path`; the number-for-several-groups and range errors), 4.
+
+### 4. `M18: compare a parameter's row sources by geology unit` (Opus)
+- `src/hangtu/stats/_compare_sources.py` (new), exported with `SourceComparison` in `stats/__init__.py`:
+  - `compare_sources(*sources, value, by="geology_unit", percentiles=..., include_assumed=False, units=None,
+    display_units=None)` for DataFrame sources in this step; other types raise "not yet" until step 5;
+  - each frame read through `read_input`/`convert`/`read_flags`/`choose_rows` (decision 8), units per frame,
+    converted to `display_units` or the first frame's unit; a frame without a unit raises naming its position;
+  - labels (decision 10): the registry's source columns in registry order, joined by ", ", "(no source given)"
+    for none, " (source 2)" suffixes for repeats across sources;
+  - per unit and label, `summarize()` plus the counts (decisions 12, 15); units the union of `by` keys, in
+    `describe()`'s order; empty pairs with count 0 and `no_value_reason`;
+  - `SourceComparison(_Result)`, kind `"property"`: `.to_frame()` with decision 16's columns (the fit columns
+    blank here), `__str__`, `.to_dict()`.
+- `columns.yaml`: `parameter_source` (text, `statistics: {role: source}`) and `source_kind`, checked by
+  `tests/test_registry.py`.
+- `docs/site/reference/stats.md`: `compare_sources`, `SourceComparison` (AC 13).
+- Tests: `tests/stats/test_compare_sources.py` (new): AC 5 for G2's correlations A and B and all of G3 (counts
+  adding up per unit and source), 7's labels and suffixes, 8's "no rows in this unit" and "all n rows left out",
+  9 (G3 in kPa and US, the psf Stroud frame, the unitless-frame error).
+
+### 5. `M18: place fit values among the sources they're compared with` (Opus)
+- `_compare_sources.py`:
+  - `MohrCoulombFit` sources (the main fit per group, label with test types) and `ShearBoxConversion` sources
+    (the main line) (decision 10); the errors for a `ShearBoxFit` (naming the conversion), a total-stress fit with
+    an effective `value`, a `HoekBrownFit`, a conversion asked for `effective_cohesion`, and any `value` a source
+    doesn't give;
+  - decision 11: fits keyed by every `by` column, else an error naming the keys and `group_by=`; several fits per
+    unit summarized like rows, one fit reported as a value with `count_points`, `r_squared`, the stress range,
+    `stages`/`line_kind`, and its depths;
+  - empty pairs from `no_fit_reason` and `no_conversion_reason`;
+  - `.positions()` (decision 13): position against the row source's range, `percentile_rank` by the inverse of
+    H&F 7 from 4 values, the middle of a tied run; a private helper beside `summarize()`.
+- Tests, same file: AC 5 and 6 on G2 (triaxial fit and converted shear box against A and B, the ranks, "below",
+  H&F 7 at the rank returns 36.000), 7's errors, 8 (Alluvium: B with "no rows in this unit", the fit with its
+  `no_fit_reason`), a per-sample fit summarized like rows, `.positions()` empty for G3, `.to_dict()` JSON.
+- If step 4 or 5 passes about 300 lines, the views of decision 16 (`__str__`, `.to_dict()`) move to their own
+  commit after 5.
+
+### 6. `M18: draw the sources compared against depth` (Opus)
+- `_compare_sources.py`: `.values()` (decision 16): the long frame with `by`, `parameter_source`, `value` and,
+  where present, `loca_id`, `depth`, `elevation`, `ground_level` and the flag columns, every row kept,
+  `attrs["units"]`; a fit as one row at the middle of its points' depths with `depth_top`/`depth_base`, blank
+  depth when its points have none. `.profile(**kwargs)` calls `ht.plot.profile(values, value,
+  color_by="parameter_source", stats_box=True, intervals="auto", **kwargs)`.
+- If P01 warns on rows with no interval beside rows with one, or counts the fits differently from the table,
+  stop: that is a change to P01's spec, not a build detail.
+- Tests: `tests/stats/test_compare_sources_views.py` (new), AC 10's depth part: `.values()` row counts and G2's
+  fit row (6.5, 4.0, 9.0); `.profile()` draws with no warning, one stats box line per source whose numbers
+  equal `.to_frame()`'s, an interval bar per fit, a fit without depth counted in the footnote.
+
+### 7. `P07: split each geology unit into sub-rows by a column` (Sonnet)
+- `plot/_geology_units.py`: `split_by=` on `geology_unit_comparison()` and `geology_unit_comparisons()` (P07
+  §4, §7, §10, §11, already specified): sub-rows per value in order of first appearance, "(blank)" last;
+  tick labels "unit · value"; each sub-row summarized and counted on its own through the existing summary path;
+  the thin rule between units; the baseline once per unit, on its first sub-row; `color_by` also the split
+  column, with one legend entry per value; the errors of §11's new rows.
+- Tests: `tests/plot/test_geology_unit_comparison_split.py` (new), P07 §12's `split_by=` criteria and AC 11; the
+  existing P07 tests unchanged and green.
+
+### 8. `M18: compare the sources geology unit by geology unit` (Sonnet)
+- `_compare_sources.py`: `.geology_unit_comparison(**kwargs)` calls P07 with `split_by="parameter_source"`,
+  `color_by="parameter_source"` (decision 19).
+- Tests: `test_compare_sources_views.py`, AC 10's unit part: one sub-row per source, percentiles equal to
+  `.to_frame()`'s, no "mixes sources".
+
+### 9. `M18: add triaxial, shear box and s_u tests to the example site` (Sonnet)
+- `tests/data/_make_examples.py` (decision 20): CD TRIX/TREG/TRET specimens in Terrace (several holes and depths)
+  and SHBG/SHBT samples in Terrace; UU, laboratory vane, field vane and hand penetrometer tests in Alluvium; each
+  from its own seeded sequence, CoV about 0.1 for φ′ and 0.3 for s_u, skew, one outlier, so no existing value
+  changes (checked by diffing the regenerated `site.ags` against the old one: only added rows). `write_csvs()`
+  writes `triaxial.csv`, `shear_box.csv` and `strength.csv` in their template shapes. `judgments.yaml` gains a
+  `critical_state_friction_angle` for Terrace with its reason. The module docstring says what was added.
+- `src/hangtu/examples/data/`: regenerated files.
+- The tests and pages whose counts of site.ags rows move (found by the full suite and `prepare_site.py`),
+  updated in this commit.
+- Tests: the full suite; `tests/test_examples.py` reads the new CSVs.
+
+### 10. `M18: document the sources compared and the shear box conversion` (Opus)
+- `docs/site/examples/sources-compared-friction-angle.py` and `sources-compared-undrained.py` (new), on the
+  example site: φ′ in Terrace from SPT correlations, the triaxial fit and the converted shear box; s_u in Alluvium
+  from UU, vane, hand penetrometer and Stroud, with `compare()` on UU against field vane. `prepare_site.py` runs
+  them.
+- Site pages 04 (the conversion, the comparison, the citation fixed to Eq. 4-10 p. 4-12, Tables 4-2 p. 4-14 and
+  4-5 p. 4-25, re-checked against the scan) and 05 (the comparison, `compare()` as the check); draft sheet 04's
+  citation; `docs/site/plots/geology-unit-comparison.md` (`split_by=`); `docs/site/guides/judgments.md`
+  (`critical_state_friction_angle`); `docs/analysis/statistics.md` §5.
+- `docs/plots/img/P01-sources-us.png`, `P01-sources-si.png`, `P07-sources-us.png`, `P07-sources-si.png` at 100
+  dpi from the example site, looked at against decisions 18 and 19 and P07 §7 (AC 13).
+- Tests: `tests/docs/test_site.py`; `zensical build --clean --strict`.
+
+### 11. `M18: close out (d), sources compared` (Opus)
+- `SPEC.md`: §4 (φ′cv among the judgments, if the spec commit didn't), §5 derived results and "Statistics feed
+  stage D" checked against what was built, §12.4's M18 row: (d) done, (e) next.
+- `docs/drafts/parameters/README.md`: sheets 04 and 05, stage D part built.
+- `docs/TODO.md` #32: ψ's φ′cv is the judgment; the rest moves to (e).
+- `CLAUDE.md`: "Done through … M18 (a)–(d)", next M18 (e).
+- Each acceptance criterion reported met or not, with evidence; anything a future session would get wrong
+  written where it will be read.
