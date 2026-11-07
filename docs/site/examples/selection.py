@@ -47,3 +47,9 @@ print(strength)
 
 fig, ax = strength.profile(geology_unit="Alluvium")
 fig.savefig("selection.png")
+
+# The Terrace's Mohr-Coulomb set from the same sources and file: c′ and φ′ as
+# selected above, ψ by Bolton's relation from φ′ and the Terrace's φ′cv.
+mc = ht.stats.mohr_coulomb_set(correlations, triaxial, converted)
+print()
+print(mc)

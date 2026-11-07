@@ -1,6 +1,6 @@
 # Selection
 
-Choose each geology unit's value of a parameter, and record the choice where a checker reads it: in the judgments file, with the source it comes from, the method that gives it and your reason. `ht.stats.select()` computes the value, and shows it against what the other sources gave.
+Choose each geology unit's value of a parameter, and record the choice where a checker reads it: in the judgments file, with the source it comes from, the method that gives it and your reason. `ht.stats.select()` computes the value, and shows it against what the other sources gave. A [model set](#model-sets) puts each unit's selections together for one model, such as Mohr–Coulomb.
 
 ```python
 --8<-- "selection.py"
@@ -106,10 +106,76 @@ In the example, the Terrace's φ′ of 35.3° from the triaxial fit is below the
 
 Unit weight already has its selection: the [`unit_weight` judgment](judgments.md#the-judgments-file), a value with its reason per unit, which `vertical_stress()` reads. `select()` works on `bulk_unit_weight` too, to compare a value with the tests, but the `unit_weight` judgment is the one analyses read.
 
-hangtu stops at the selected value. Partial factors and design values are the design's.
+## Model sets
+
+A numerical model takes a set of parameters per geology unit, not one parameter at a time. A model set puts each unit's selections together for one published model, fills in what a rule gives, and records where every value came from. `ht.stats.mohr_coulomb_set()` is the first; the example ends with it:
+
+```python
+mc = ht.stats.mohr_coulomb_set(correlations, triaxial, converted)
+print(mc)
+```
+
+It takes the sources as `select()` does and reads the same judgments file, so the whole set follows from one file. Each parameter's `select()` gets the sources that carry it: here the SPT correlations go to φ′ only, the triaxial fit to c′ and φ′. A source that carries none of the set's parameters is an error.
+
+### The Mohr–Coulomb set
+
+The Mohr–Coulomb model of Vermeer & de Borst (1984, p. 3) has five parameters, and the set gives them in this order, by registry name:
+
+| Parameter | Column | Where it comes from |
+|---|---|---|
+| c′ | `effective_cohesion` | the `selection` of it, required |
+| φ′ | `effective_friction_angle` | the `selection` of it, required |
+| ψ | `dilatancy_angle` | a `selection` of it if one lists the unit, else a rule by the unit's `soil_class` |
+| E′ | `drained_youngs_modulus` | a `selection` of it if one lists the unit, else blank |
+| ν′ | `drained_poissons_ratio` | a `selection` of it if one lists the unit, else blank |
+
+- **c′ and φ′ are `select()`'s,** one call each, with its rules and errors. Every unit in the set needs an entry for both: a unit listed for one and not the other is an error. Give `method: value` with `value: 0` and a reason for a c′ of zero, or `method: none` for a unit you don't design with drained, as the example does for the Alluvium.
+- **The pair is checked.** When a unit's c′ and φ′ aren't both `fitted` from the same source, they aren't one envelope's pair (see c′ and φ′ together, above): the set warns, naming the units, and notes it per unit. It still gives the values.
+- **E′ and ν′ are blank** with the reason "no selection; derived values come with wave 5 (M23)", unless a selection lists the unit, such as a value from a report or a characteristic value of the SPT E′ correlations.
+- **A set holds constants.** A selection with a `trend:` is an error in a set, naming the unit and parameter. `select()` gives the line on its own.
+
+### The dilatancy angle
+
+hangtu doesn't measure ψ yet, so it comes from a selection or a rule, in this order:
+
+1. **A selection of `dilatancy_angle`** that lists the unit, a `value` with its reason or `none`. Use one where the rule doesn't fit: a loose sand, a dense fill, an overconsolidated clay.
+2. **Blank, when the unit has no φ′:** "no φ′ selected". The example's Alluvium, selected `none` and designed undrained, gets no ψ.
+3. **By the unit's `soil_class`** in the geology map:
+    - **`coarse`: Bolton's relation** as Kulhawy & Mayne (1990, Eq. 4-16, p. 4-20) give it, φ′ = φ′cv + 0.8 ψ, so ψ = (φ′ − φ′cv) / 0.8, with φ′ the set's selected φ′ and φ′cv the [`critical_state_friction_angle`](judgments.md#the-critical-state-friction-angle) judgment. A φ′ below φ′cv gives ψ = 0, with a note. Above φ′ − φ′cv = 12°, the limit of I_R = 4 (Kulhawy & Mayne 1990, p. 4-10), ψ is blank with a warning, never clipped to 15°.
+    - **`fine`: 0,** as for a normally consolidated clay (Vermeer & de Borst 1984, p. 13). An overconsolidated clay may dilate; give its ψ as a selection.
+    - **`fill`, `rock`, `organic`, blank or any other class: an error** saying to give ψ as a selection. Rock belongs in the Hoek–Brown set (later).
+
+The example's Terrace is `coarse`, with φ′ 35.29° fitted from the triaxial tests and φ′cv 32° from the file: ψ = (35.29 − 32) / 0.8 = 4.11°. The relation is for a peak φ′, so a cautious selected φ′ gives a smaller ψ, and the set records which φ′ it used. See [dilatancy](../parameters/09-dilatancy.md) for the relation and its limits.
+
+A selection of ψ, E′ or ν′ has no source to compare with, so `select()` takes it with no sources at all when every entry is `value` or `none`:
+
+```yaml
+selection:
+  dilatancy_angle:
+    units: {value: deg}
+    values:
+      Terrace: {method: value, value: 2, reason: "from the volume change of the CD tests at peak"}
+```
+
+### Where the soil class comes from
+
+From the geology map, never from USCS or the data: `geology_map=` (the mapping CSV's path, or `p.geology_map`), else the classes a Project's datasets carry from its map, which `mohr_coulomb_fit()` and the shear box conversion keep. Sources that carry different classes for a unit are an error. ψ's rule reads `coarse` and `fine`; `fill`, `rock` and `organic` are recognized, and nothing reads them yet.
+
+### What the set records
+
+`print(mc)` gives the table, then where each value that isn't a plain selection came from, then the notes. The views are of one calculation:
+
+- `mc.to_frame()`: one row per geology unit, one column per parameter by registry name, values only, with `attrs["units"]`. It's the table a modeler is handed.
+- `mc.provenance()`: one row per unit and parameter, with `parameter_origin` (`selection`, `rule` or `blank`), the source and method of a selection, the rule's name and citation, the reason (a selection's reason, or a rule's inputs: "φ′ 35.3 deg (selected), φ′cv 32 deg (judgment)") and `no_value_reason`.
+- `mc.selections`: each `SelectionResult` the set used, by parameter, so `mc.selections["effective_friction_angle"].profile(geology_unit="Terrace")` draws one.
+- `mc.to_dict()`: all of it, with the judgments used (each selection, φ′cv and the soil classes, with where they came from).
+
+hangtu stops at the set. Partial factors, design values, a tension cut-off and a program's input file are the design's.
 
 ## See also
 
 - [`ht.stats.select`](../reference/stats.md#hangtu.stats.select), [`ht.stats.SelectionResult`](../reference/stats.md#hangtu.stats.SelectionResult)
+- [`ht.stats.mohr_coulomb_set`](../reference/stats.md#hangtu.stats.mohr_coulomb_set), [`ht.stats.MohrCoulombSet`](../reference/stats.md#hangtu.stats.MohrCoulombSet)
+- [Dilatancy](../parameters/09-dilatancy.md): ψ by Bolton's relation, and its limits
 - [Representative values](representative-values.md): the views a selection computes
 - [Drained shear strength](../parameters/04-drained-shear-strength-soil.md#selecting-a-value), [undrained shear strength](../parameters/05-undrained-shear-strength.md#selecting-a-value): the sources compared and selected
