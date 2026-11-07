@@ -326,3 +326,94 @@ Hand calculations; SI, angles in degrees.
 - `docs/TODO.md`, in this commit: #32 records what was verified here and that Bolton (1986) is still to check.
   At close, its Mohr–Coulomb part moves to SPEC §5 and is deleted, and #3 records the defined classes.
 - `docs/drafts/parameters/README.md`, `CLAUDE.md`, SPEC §12.4: at close (intent's list).
+
+## Plan
+Eight build commits, each with ruff, mypy and the tests it touches green, and the whole suite run once (`-n 3`)
+before each commit. Steps 1–6 run on Opus, step 7 on Sonnet in a new session, and step 8 on Opus. **Before step
+6 (ψ):** if Bolton (1986) is at hand, check the 0.8 relation and its stress condition, and record it in the
+spec's Sources table and TODO #32. If it isn't, step 6 keeps K&M Eq. 4-16 as written and the close-out records
+Bolton as still to check.
+
+### 1. `M18: carry the geology map's soil classes on datasets and fits` (Opus)
+- `src/hangtu/datasets/_frame.py`: the map's `{geology_unit: soil_class}` (every unit in the map, from
+  `_geology_map.unit_values`) goes in `attrs["soil_classes"]` beside `attrs["palette"]`, on both geology paths
+  and on empty frames. No map, or a map with no classes, means no attr.
+- `src/hangtu/analysis/_derived.py`: `soil_classes: dict[str, str]` on `_DerivedResult`, filled from the input's
+  attrs in `_mohr_coulomb.py`, `_shear_box_fit.py` and `_hoek_brown_fit.py`, and copied from the fit in
+  `_shear_box_conversion.py`.
+- `src/hangtu/columns.yaml`: `soil_class`'s description gives the defined values (decision 18).
+- Tests: `tests/datasets/` (the Project's datasets carry the classes; no map, no attr) and `tests/analysis/` (a
+  `mohr_coulomb_fit()` and a conversion keep them), the dataset half of AC 8.
+
+### 2. `M18: let select() take a value or none with no source` (Opus)
+- `src/hangtu/stats/_select.py`: split `select()` into the public function and a private
+  `select_from(sources, value, read, …)` that takes a file already read. With no sources, every entry must be
+  `value` or `none`, and any other method is an error saying no source carries the parameter. `.comparison` is
+  None, `.positions()` is empty, and `design_lines()` and `.profile()` say there is nothing to draw. The unit is
+  `display_units`' unit for the quantity, else the first `value` entry's, and the other entries are converted to
+  it (decision 20). `SelectionResult.comparison` becomes `SourceComparison | None`.
+- Tests: `tests/stats/test_select_no_source.py`: `value` and `none` accepted, another method refused, a `value`
+  converted to `display_units`, and views with no comparison (AC 11).
+
+### 3. `registry: add dilatancy_angle and drained_poissons_ratio` (Opus)
+- `src/hangtu/columns.yaml`: `dilatancy_angle` (angle, ratio scale, "Dilatancy angle, ψ") and
+  `drained_poissons_ratio` (dimensionless, "Drained Poisson's ratio, ν′"), checked against the whole registry
+  first (decision 10). Result columns `parameter_origin`, `rule_name` and `rule_citation` aren't added, as with
+  (e)'s result columns. Check them again against the registry and code (decision 7's 🟡).
+- Tests: `tests/test_registry.py` passes; `docs/site/reference/columns.md`, if generated, is regenerated.
+
+### 4. `M18: add the model-set base` (Opus)
+- `src/hangtu/stats/_model_set.py` (new, private): `_ModelSet(_Result)`, frozen, `kind="parameter"`, with the
+  model's name and citation, its parameters in order, records (decision 5's fields), `selections` and notes.
+  Builders for each origin (`selection`, `rule`, `judgment`, `blank`). The views (decision 7): `.to_frame()` (one
+  row per unit, `attrs["units"]`), `.provenance()`, `.selections`, `.to_dict()`, `__str__`, and the HTML repr.
+  Shared work (decision 8): read the file once (as `_select._read_file`, over every source); send each
+  parameter's `select_from()` only the sources that carry it; for an optional parameter, select only when a
+  selection exists (`selection=` or the file); a source that carries none of the set's parameters is an error;
+  a `trend:` entry is an error naming the unit and parameter; units in the selections' order, then units only a
+  `value` names.
+- Tests: `tests/stats/test_model_set.py` with a two-parameter test-only set: the trend error (AC 9), routing and
+  the source that carries nothing (AC 10, second half), unit order, and the views agree on a Project's
+  categorical `geology_unit` with no warning (AC 12, base part).
+
+### 5. `M18: add ht.stats.mohr_coulomb_set() with c′, φ′, E′ and ν′` (Opus)
+- `src/hangtu/stats/_mohr_coulomb_set.py` (new): `mohr_coulomb_set()` and `MohrCoulombSet`, with the five
+  parameters and Vermeer & de Borst (1984) (decisions 9–11, 14–17). Both c′ and φ′ required; a unit listed for
+  one and not the other is an error; the pair check warns once and notes per unit (decision 12). E′ and ν′ come
+  from a selection when listed, else blank with "wave 5 (M23)". ψ is left blank in this step with a placeholder
+  reason, replaced in step 6. `soil_class` resolution: `geology_map=` (path via `_geology_map.read`, or a
+  DataFrame) → the sources' `soil_classes` → an error; sources that disagree are an error; an argument that
+  differs warns (decision 19).
+- `src/hangtu/stats/__init__.py`: export both names. `docs/site/reference/stats.md`: their entries (the
+  reference-entry test needs them).
+- Tests: `tests/stats/test_mohr_coulomb_set.py`: G1's c′ and φ′ equal `select()`'s on the example (AC 1, first
+  half), G3's pair warning (AC 3, warning half), the unlisted-pair error (AC 10, first half), `soil_class`
+  resolution and disagreement (AC 8), E′/ν′ blank or selected.
+
+### 6. `M18: give the Mohr–Coulomb set's ψ by Bolton's relation or 0` (Opus)
+- `src/hangtu/stats/_mohr_coulomb_set.py`: ψ in decision 13's order: a selection; else blank with no φ′; else by
+  class. `coarse` uses (φ′ − φ′cv)/0.8 (K&M 1990 Eq. 4-16) with the floor's note, and is blank with a warning above
+  12° (exactly 12° gives 15°). `fine` gives 0 (Vermeer & de Borst 1984, p. 13, with the Obrzud & Truty note).
+  Any other class is an error, and `rock`'s names M22. φ′cv resolves argument → `judgments=` → the file → an
+  error naming the unit, and an argument over the file warns. The rule records its inputs, and `judgments`
+  records φ′cv and the classes (decision 16). The docstring gives the equation, inputs, limit and sources.
+- Tests: in `tests/stats/test_mohr_coulomb_set.py`: G1 ψ 4.1128 ± 0.0005 (AC 1), G2 (AC 2), G3 ψ 7.5 (AC 3), G4
+  at and past the limit (AC 4), G5 and G6 (AC 5), the class errors and a blank ψ with no φ′ (AC 6), φ′cv missing
+  and the override (AC 7), and the views agree with ψ by rule (AC 12).
+
+### 7. `M18: document the model sets` (Sonnet)
+- `docs/site/guides/selection.md` gets a "Model sets" section, and `docs/site/examples/selection.py` builds
+  `mohr_coulomb_set(correlations, triaxial, converted)` from the example site's file and prints it (AC 13).
+- `docs/site/parameters/09-dilatancy.md` (new): the soil part of the draft sheet (5.2's relation as built, ψ = 0
+  for fine, the limit). 5.1, the practice rule and rock stay in the draft. In `zensical.toml`'s `nav`.
+- Page 04's stage D, `docs/analysis/statistics.md` §6 (no source) and §7 (model sets), `docs/site/guides/
+  judgments.md` (`critical_state_friction_angle` also read by the set). `judgments.yaml` needs no change:
+  it already has the Terrace's c′, φ′ and φ′cv.
+- Tests: the reference-entry test, `docs/prepare_site.py`, and `zensical build --clean --strict`.
+
+### 8. `M18: close out (f) and M18` (Opus)
+- Check every acceptance criterion and golden value, and read the guide's printed set.
+- SPEC §12.4: M18 done, moved to the Done table. Check that §5 and §8.3 match what was built.
+  `docs/TODO.md`: #32's Mohr–Coulomb part deleted (Bolton recorded if still unchecked), #3 gets the defined
+  classes. `docs/drafts/parameters/README.md`: stage D of sheet 04, sheet 09's soil row. `CLAUDE.md`: the
+  "next" sentence (wave 0, M16, waiting on TODO #31; else wave 3, M19).
