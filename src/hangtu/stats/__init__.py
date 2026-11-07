@@ -5,6 +5,7 @@ from hangtu.stats._compare_sources import SourceComparison, compare_sources
 from hangtu.stats._crosstab import crosstab
 from hangtu.stats._describe import describe
 from hangtu.stats._fit import fit
+from hangtu.stats._mohr_coulomb_set import MohrCoulombSet, mohr_coulomb_set
 from hangtu.stats._representative import representative
 from hangtu.stats._result import (
     CompareGroupsResult,
@@ -22,6 +23,7 @@ __all__ = [
     "CrosstabResult",
     "DescribeResult",
     "FitResult",
+    "MohrCoulombSet",
     "RepresentativeResult",
     "SelectionResult",
     "SourceComparison",
@@ -31,6 +33,7 @@ __all__ = [
     "crosstab",
     "describe",
     "fit",
+    "mohr_coulomb_set",
     "representative",
     "select",
 ]

@@ -325,6 +325,13 @@ def _inputs_text(rule: Mapping[str, Any]) -> str:
     return ", ".join(parts)
 
 
+def _joined(items: Sequence[str]) -> str:
+    """Join names as prose: ``a``, ``a and b``, ``a, b and c``."""
+    if len(items) == 1:
+        return items[0]
+    return f"{', '.join(items[:-1])} and {items[-1]}"
+
+
 @dataclass(frozen=True, repr=False)
 class _ModelSet(_Result):
     """A model's parameter set: one value per geology unit and parameter.
@@ -346,6 +353,9 @@ class _ModelSet(_Result):
     records: tuple[dict[str, Any], ...]
     #: The system every source was converted to, or None.
     display_units: str | None
+    #: The units a set fixes for its parameters whatever their values, such
+    #: as degrees for an angle; the rest are their values' units.
+    fixed_units: dict[str, str]
     #: ``select()``'s result for each parameter read by it.
     selections: dict[str, SelectionResult] = field(compare=False)
 
@@ -363,6 +373,7 @@ class _ModelSet(_Result):
         judgments: Mapping[str, Any],
         display_units: str | None,
         notes: Sequence[str] = (),
+        fixed_units: Mapping[str, str] | None = None,
         **fields: Any,
     ) -> Self:
         """Make a set: the base's fields, then a subclass's own ``fields``.
@@ -389,6 +400,7 @@ class _ModelSet(_Result):
             geology_units=tuple(geology_units),
             records=tuple(records),
             display_units=display_units,
+            fixed_units=dict(fixed_units or {}),
             selections=dict(selections),
             **fields,
         )
@@ -398,7 +410,8 @@ class _ModelSet(_Result):
         for record in self.records:
             if record["unit"] and record["parameter"] not in units:
                 units[record["parameter"]] = record["unit"]
-        return units
+        units |= self.fixed_units
+        return {p: units[p] for p in self.parameters if p in units}
 
     def to_frame(self) -> pd.DataFrame:
         """Return one row per geology unit, one column per parameter: values only.
@@ -519,6 +532,29 @@ class _ModelSet(_Result):
             )
         return f"{where}no value, {record['no_value_reason']}"
 
+    def _blank_lines(self) -> list[str]:
+        """One line per reason a parameter is blank, with the units it's blank in.
+
+        Parameters blank for the same reason in the same units share a line.
+        """
+        units_of: dict[tuple[str, str], list[str]] = {}
+        for record in self.records:
+            if record["origin"] == "blank":
+                key = (record["no_value_reason"], record["parameter"])
+                units_of.setdefault(key, []).append(record["geology_unit"])
+        grouped: dict[tuple[str, tuple[str, ...]], list[str]] = {}
+        for (reason, parameter), units in units_of.items():
+            grouped.setdefault((reason, tuple(units)), []).append(_symbol(parameter))
+        lines = []
+        for (reason, blank_in), symbols in grouped.items():
+            where = (
+                "Every unit"
+                if len(blank_in) > 1 and len(blank_in) == len(self.geology_units)
+                else _joined(blank_in)
+            )
+            lines.append(f"  {where}, {_joined(symbols)}: no value, {reason}")
+        return lines
+
     def __str__(self) -> str:
         units = self._units()
         frame = self.to_frame()
@@ -531,7 +567,12 @@ class _ModelSet(_Result):
             table.append([str(row[GEOLOGY]), *(_cell(row[p]) for p in self.parameters)])
         lines = [f"{self.model} set ({self.model_citation}), by geology_unit"]
         lines += _table(table, indent="  ")
-        origins = [line for r in self.records if (line := self._origin_line(r))]
+        origins = [
+            line
+            for r in self.records
+            if r["origin"] != "blank" and (line := self._origin_line(r))
+        ]
+        origins += self._blank_lines()
         if origins:
             lines.append("Where the values come from")
             lines += origins
