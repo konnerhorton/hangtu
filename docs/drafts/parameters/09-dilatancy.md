@@ -63,6 +63,9 @@ $$\varphi'_{max}-\varphi'_{cv} = 0.8\,\psi_{max} = 5 I_R\ (\text{plane strain});
   (≈ 2 σ′v0 for preliminary use, [7] p. 4-10).
 - **Valid for:** clean sands (17 sands in the database); Q lower for crushable grains (8 limestone, 5.5 chalk).
 - **Source:** [2]; [7] Eqs. 4-5 to 4-7, p. 4-10 [V]; ranges and 0.3 I_R via [3] [V].
+- **ψ from φ′ and φ′cv:** φ′tc = φ′cv + 0.8 ψ, "Bolton's approximation", [7] Eq. 4-16, p. 4-20 [V]. [7] writes it
+  for triaxial compression, [3] for plane strain, and [9] §3.2.7, p. 86 uses 0.8 in both (ψ = 3.75 I_R triaxial,
+  6.25 I_R plane strain) [V]. The stress condition is unsettled until [2] is read.
 
 ### 5.3 Sands / clays — practice rule
 $$\psi = \max(0,\ \varphi' - 30^\circ)\ \ \text{(sands, gravels)};\qquad \psi = 0\ \ \text{(clays, fill)}$$
@@ -119,9 +122,14 @@ https://groundhog.readthedocs.io/en/dev/site_investigation/cohesionless.html —
 1165–1186. https://doi.org/10.1016/S1365-1609(97)80069-X (DOI [U]) — [V] preprint at
 https://www.rocscience.com/assets/resources/learning/hoek/Practical-Estimates-of-Rock-Mass-Strength-1997.pdf,
 pp. 12–13 (preprint pagination; journal page numbers not checked).
-[5] Vermeer, P.A. & de Borst, R. (1984). Non-associated plasticity for soils, concrete and rock. Heron 29(3), 1–64. — [U]
+[5] Vermeer, P.A. & de Borst, R. (1984). Non-associated plasticity for soils, concrete and rock. Heron 29(3), 1–64. — [V]
+p. 3 (the perfectly plastic model's five parameters: E, ν, c, φ, ψ); p. 13 (ψ = 15° typical of a very dense sand, a few
+degrees for loose sands, "normally consolidated clays show no dilatancy at all"). Eqs. 3.2–3.3 not re-checked.
 [6] Alejano, L.R. & Alonso, E. (2005). Considerations of the dilatancy angle in rocks and rock masses. Int. J.
 Rock Mech. Min. Sci. 42(4), 481–507. https://doi.org/10.1016/j.ijrmms.2005.01.003 — [V] Eqs. 15, 28, 29; p. 489.
 [7] Kulhawy, F.H. & Mayne, P.W. (1990). Manual on Estimating Soil Properties for Foundation Design. EPRI EL-6800.
 https://restservice.epri.com/publicdownload/EL-6800/0/Product — [V] Eqs. 4-5–4-7, p. 4-10.
 [8] Bentley Systems. PLAXIS 2D/3D Material Models Manual (Mohr-Coulomb and Hardening Soil chapters). — [U]
+[9] Obrzud, R.F. & Truty, A. (2018). The Hardening Soil Model: A Practical Guidebook. Z_Soil.PC 100701 report, revised
+21.10.2018, Zace Services (a software vendor's report). — [V] §3.2.7, p. 86; §3.3.4, p. 107 (cohesive soils: ψ = 0
+normally or lightly overconsolidated, φ′/6 overconsolidated, φ′/3 heavily overconsolidated).
