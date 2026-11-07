@@ -20,6 +20,11 @@ def judgments_file(df: pd.DataFrame) -> str | None:
     return None if path is None else str(path)
 
 
+def soil_classes(df: pd.DataFrame) -> dict[str, str]:
+    """Return the geology map's ``{geology_unit: soil_class}`` that ``df`` carries."""
+    return {str(k): str(v) for k, v in df.attrs.get("soil_classes", {}).items()}
+
+
 @dataclass(frozen=True, repr=False)
 class _DerivedResult:
     """What every derived result records: what was fitted, and from what.
@@ -41,6 +46,10 @@ class _DerivedResult:
     #: or None. A later step that needs a judgment reads it from here
     #: (docs/work/m18d-sources-compared.md, Decision 17).
     judgments_file: str | None
+    #: ``attrs["soil_classes"]`` of the input: the geology map's
+    #: ``{geology_unit: soil_class}``, empty without a map. A model set reads
+    #: it (docs/work/m18f-mohr-coulomb-set.md, Decision 19).
+    soil_classes: dict[str, str]
     #: Always ``"derived"``: a value derived from test results (SPEC §5).
     kind: str = field(default="derived", init=False)
 

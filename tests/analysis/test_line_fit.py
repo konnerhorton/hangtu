@@ -101,7 +101,7 @@ def test_derived_result_base():
         def __str__(self):
             return f"value = {self.value}"
 
-    result = _Example("example", "kPa", ("a note",), {}, "0.0.0", None, math.nan)
+    result = _Example("example", "kPa", ("a note",), {}, "0.0.0", None, {}, math.nan)
     assert result.kind == "derived"
     assert repr(result) == "value = nan"
     assert result._repr_html_() == "<pre>value = nan</pre>"

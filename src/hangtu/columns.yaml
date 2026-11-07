@@ -265,7 +265,7 @@ columns:
     ags: [GEOL.GEOL_BGS]
     used_by: []
   soil_class:
-    description: Cohesive / cohesionless class of the unit (categories TODO #3)
+    description: "The geology unit's class, from the geology map: coarse or fine (read by the Mohr-Coulomb set's dilatancy rule), fill, rock or organic (named, read by nothing yet); other values are kept (categories TODO #3)"
     type: text
     ags: ["derived: mapping file"]
     used_by: [P03]

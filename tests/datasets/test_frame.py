@@ -106,6 +106,7 @@ def test_geology_codes_without_a_map(fresh):
     assert df["geology_description"].iloc[4] == "Medium dense brown SAND"
     assert df["soil_class"].isna().all()
     assert "palette" not in df.attrs
+    assert "soil_classes" not in df.attrs
 
 
 def test_geology_map(fresh):
@@ -120,6 +121,12 @@ def test_geology_map(fresh):
         "Fill": "#a0a0a0",
         "Alluvium": "tan",
         "Terrace": "#d9b26f",
+    }
+    # Every unit in the map, Fill too though it has no rows here (M18 f).
+    assert df.attrs["soil_classes"] == {
+        "Fill": "fill",
+        "Alluvium": "fine",
+        "Terrace": "coarse",
     }
 
 
@@ -184,6 +191,16 @@ def test_empty_group(fresh):
         df = build.finish(pd.DataFrame(), COLUMNS, group="PTST")
     assert df.empty
     assert list(df.columns) == [*COLUMNS, *GEOLOGY, "source_line"]
+    assert "soil_classes" not in df.attrs
+
+
+def test_empty_group_carries_the_soil_classes(fresh):
+    p = fresh("joins")
+    p.set_geology_map(STRATA)
+    build = Build(p.path, noun=("permeability result", "permeability results"))
+    with pytest.warns(UserWarning, match="No PTST group"):
+        df = build.finish(pd.DataFrame(), COLUMNS, group="PTST")
+    assert df.attrs["soil_classes"]["Terrace"] == "coarse"
 
 
 GEOLOGY = ["geology_unit", "soil_class", "geology_description"]

@@ -506,3 +506,18 @@ def test_judgments_file_from_a_projects_frame(tmp_path):
     assert all(p["depth"] is not None for p in points)
     assert result.depth_units["depth"] == "m"
     json.dumps(result.to_dict())
+
+
+# --- M18 (f): the geology map's soil classes travel with the fit ---
+
+
+def test_the_fit_keeps_the_soil_classes():
+    df = _points([(100, 300), (200, 560), (300, 820)])
+    df.attrs["soil_classes"] = {"Terrace": "coarse", "Alluvium": "fine"}
+    fit = _fit(df)
+    assert fit.soil_classes == {"Terrace": "coarse", "Alluvium": "fine"}
+    assert fit.to_dict()["soil_classes"] == {"Terrace": "coarse", "Alluvium": "fine"}
+
+
+def test_no_map_no_soil_classes():
+    assert _fit(_points([(100, 300), (200, 560), (300, 820)])).soil_classes == {}

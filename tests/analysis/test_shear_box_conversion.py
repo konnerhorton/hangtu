@@ -467,3 +467,17 @@ def test_cv_mapping_with_an_unknown_unit_warns():
             soil="cohesionless",
             critical_state_friction_angle={"Terrace": 32, "Terace": 31},
         )
+
+
+# --- M18 (f): the conversion keeps the fit's soil classes ---
+
+
+def test_the_conversion_keeps_the_soil_classes():
+    df = _frame({"Terrace": 30})
+    df.attrs["soil_classes"] = {"Terrace": "coarse"}
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        fit = ht.analysis.shear_box_fit(df, group_by="geology_unit")
+    assert fit.soil_classes == {"Terrace": "coarse"}
+    converted = _convert(fit, soil="cohesionless", critical_state_friction_angle=32)
+    assert converted.soil_classes == {"Terrace": "coarse"}
