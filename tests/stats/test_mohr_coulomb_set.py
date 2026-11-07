@@ -15,6 +15,8 @@ import pytest
 import hangtu as ht
 from hangtu.errors import HangtuError
 
+from .test_select_fitted import FITTED, g3_fit
+
 C = "effective_cohesion"
 PHI = "effective_friction_angle"
 PSI = "dilatancy_angle"
@@ -129,8 +131,12 @@ def test_g3_a_value_pair_warns_and_notes():
     selection = {C: {"Sand": _value("0 kPa")}, PHI: {"Sand": _value("38 deg")}}
     with pytest.warns(UserWarning, match=PAIR):
         result = ht.stats.mohr_coulomb_set(
-            selection=selection, geology_map=_map(Sand="coarse")
+            selection=selection,
+            geology_map=_map(Sand="coarse"),
+            critical_state_friction_angle=32,
         )
+    # G3: ψ = (38 - 32) / 0.8 = 7.5 deg.
+    assert result.to_frame()[PSI].iloc[0] == pytest.approx(7.5, abs=1e-12)
     assert (
         "Sand: c′ (value) and φ′ (value) don't come from one fit, so they aren't "
         "one envelope's pair."
@@ -182,7 +188,9 @@ def test_e_and_nu_from_a_selection():
     }
     with pytest.warns(UserWarning, match=PAIR):
         result = ht.stats.mohr_coulomb_set(
-            selection=selection, geology_map=_map(Sand="coarse")
+            selection=selection,
+            geology_map=_map(Sand="coarse"),
+            critical_state_friction_angle=32,
         )
     frame = result.to_frame()
     assert frame[E].iloc[0] == 40
@@ -228,6 +236,7 @@ SAND_SELECTION = {
 
 
 def _set(*sources, **kwargs):
+    kwargs.setdefault("critical_state_friction_angle", 32)
     with pytest.warns(UserWarning, match=PAIR):
         return ht.stats.mohr_coulomb_set(*sources, selection=SAND_SELECTION, **kwargs)
 
@@ -249,8 +258,19 @@ def test_soil_classes_from_geology_map_as_a_path(tmp_path):
     assert result.judgments["soil_class"]["source"] == "geology_map="
 
 
-def test_no_classes_anywhere_records_none():
-    result = _set(_phi_frame())
+def test_no_class_for_the_rule_is_an_error_saying_pass_geology_map():
+    with pytest.raises(
+        HangtuError,
+        match=r"ψ's rule reads 'Sand''s soil_class, coarse or fine, and no "
+        r"geology map was given and the sources carry none\. Pass geology_map=",
+    ):
+        ht.stats.mohr_coulomb_set(_phi_frame(), selection=SAND_SELECTION)
+
+
+def test_no_class_is_needed_when_psi_is_selected():
+    selection = {**SAND_SELECTION, PSI: {"Sand": _value("2 deg")}}
+    with pytest.warns(UserWarning, match=PAIR):
+        result = ht.stats.mohr_coulomb_set(_phi_frame(), selection=selection)
     assert result.soil_classes == {}
     assert "soil_class" not in result.judgments
 
@@ -311,8 +331,235 @@ def test_views_agree(example):
         "Mohr-Coulomb set (Vermeer & de Borst (1984), Heron 29(3), p. 3), "
         "by geology_unit"
     )
-    assert "  Terrace        162      35.3" in text
+    assert "  Terrace        162      35.3     4.11" in text
     assert "c′ (psf)  φ′ (deg)  ψ (deg)" in text
     assert "  Every unit, E′ and ν′: no value, no selection; derived values" in text
     assert as_dict["model"] == "Mohr-Coulomb"
     assert as_dict["parameters"] == [C, PHI, PSI, E, NU]
+
+
+# --- ψ (decision 13; G1-G6, AC 1-7) ---------------------------------------------------
+
+
+def test_g1_terrace_psi_by_boltons_relation(example):
+    _, correlations, triaxial, converted = example
+    result = _quiet(ht.stats.mohr_coulomb_set, correlations, triaxial, converted)
+    frame = result.to_frame().set_index("geology_unit")
+    phi = frame.loc["Terrace", PHI]
+    # ψ = (35.2902 - 32) / 0.8 = 4.1128 deg.
+    assert frame.loc["Terrace", PSI] == pytest.approx(4.1128, abs=0.0005)
+    assert frame.loc["Terrace", PSI] == pytest.approx((phi - 32) / 0.8, rel=1e-12)
+    assert frame.attrs["units"][PSI] == "deg"
+    terrace = _by_parameter(result, "Terrace")[PSI]
+    assert terrace["origin"] == "rule"
+    assert terrace["rule"]["citation"] == (
+        "Kulhawy & Mayne (1990), Eq. 4-16, p. 4-20, after Bolton (1986)"
+    )
+    phi_input, critical_input = terrace["rule"]["inputs"]
+    assert phi_input["value"] == phi
+    assert phi_input["parameter_source"] == "Mohr-Coulomb fit (CDM, CD)"
+    assert phi_input["selection_method"] == "fitted"
+    assert critical_input["value"] == 32
+    assert critical_input["source"] == "judgments.yaml"
+    recorded = result.judgments["critical_state_friction_angle"]
+    assert recorded["values"] == {
+        "Terrace": {
+            "critical_state_friction_angle": "32 deg",
+            "reason": (
+                "assumed for subangular quartz sand with gravel; no ring shear or "
+                "angle of repose test yet"
+            ),
+        }
+    }
+    assert recorded["sha256"]
+    # The Alluvium is designed undrained: φ′ none, so ψ is blank, not 0.
+    alluvium = _by_parameter(result, "Alluvium")[PSI]
+    assert alluvium["origin"] == "blank"
+    assert alluvium["no_value_reason"] == "no φ′ selected"
+    provenance = result.provenance().set_index(["geology_unit", "parameter"])
+    assert provenance.loc[("Terrace", PSI), "reason"] == (
+        "φ′ 35.3 deg (selected), φ′cv 32 deg (judgment)"
+    )
+    assert provenance.loc[("Terrace", PSI), "rule_name"] == (
+        "Bolton's relation, ψ = (φ′ - φ′cv) / 0.8"
+    )
+
+
+def test_g2_the_floor():
+    selection = {C: {"Sand": FITTED}, PHI: {"Sand": FITTED}}
+    result = _quiet(
+        ht.stats.mohr_coulomb_set,
+        g3_fit(),
+        selection=selection,
+        geology_map=_map(Sand="coarse"),
+        critical_state_friction_angle=32,
+    )
+    assert result.to_frame()[PSI].iloc[0] == 0
+    assert (
+        "Sand, ψ: φ′ 30.0 deg is below φ′cv 32.0 deg, so ψ is 0 (the relation "
+        "gives -2.5 deg)."
+    ) in result.notes
+
+
+def _sand_set(phi, **kwargs):
+    """``Sand`` (coarse) with c′ 0 kPa and φ′ as values; φ′cv 32 by default."""
+    selection = {C: {"Sand": _value("0 kPa")}, PHI: {"Sand": _value(f"{phi} deg")}}
+    selection |= kwargs.pop("selection", {})
+    kwargs.setdefault("critical_state_friction_angle", 32)
+    return ht.stats.mohr_coulomb_set(
+        selection=selection, geology_map=_map(Sand="coarse"), **kwargs
+    )
+
+
+def _sand(phi, **kwargs):
+    """As ``_sand_set()``, expecting the pair warning (two values, no one fit)."""
+    with pytest.warns(UserWarning, match=PAIR):
+        return _sand_set(phi, **kwargs)
+
+
+def test_g4_at_the_limit():
+    # 44 - 32 = 12 deg, the limit itself: 12 / 0.8 = 15.0 deg.
+    assert _sand(44).to_frame()[PSI].iloc[0] == pytest.approx(15.0, abs=1e-12)
+
+
+def test_g4_beyond_the_limit_is_blank_never_clipped():
+    with pytest.warns(UserWarning, match=r"φ′ - φ′cv is above 12 deg in 'Sand'"):
+        result = _sand(45)
+    assert np.isnan(result.to_frame()[PSI].iloc[0])
+    record = _by_parameter(result, "Sand")[PSI]
+    assert record["origin"] == "rule"
+    assert record["no_value_reason"] == (
+        "φ′ - φ′cv = 13.0 deg, above the 12 deg of I_R = 4 (Kulhawy & Mayne 1990, "
+        "p. 4-10); give ψ as a value selection"
+    )
+
+
+def test_g5_fine():
+    selection = {C: {"Clay": _value("5 kPa")}, PHI: {"Clay": _value("26 deg")}}
+    with pytest.warns(UserWarning, match=r"c′ and φ′ of 'Clay'"):
+        result = ht.stats.mohr_coulomb_set(
+            selection=selection, geology_map=_map(Clay="fine")
+        )
+    assert result.to_frame()[PSI].iloc[0] == 0
+    record = _by_parameter(result, "Clay")[PSI]
+    assert record["origin"] == "rule"
+    assert record["rule"]["citation"] == "Vermeer & de Borst (1984), p. 13"
+    assert any("Obrzud & Truty 2018, p. 107" in note for note in result.notes)
+    assert "critical_state_friction_angle" not in result.judgments
+
+
+def test_g6_psi_selected():
+    given = {"method": "value", "value": "2 deg", "reason": "a loose sand"}
+    result = _sand(38, selection={PSI: {"Sand": given}})
+    assert result.to_frame()[PSI].iloc[0] == 2
+    record = _by_parameter(result, "Sand")[PSI]
+    assert record["origin"] == "selection"
+    assert record["selection"]["selection_reason"] == "a loose sand"
+    assert "critical_state_friction_angle" not in result.judgments
+    assert set(result.selections) == {C, PHI, PSI}
+
+
+@pytest.mark.parametrize("soil_class", ["fill", "rock", "organic", "silty"])
+def test_a_class_the_rule_cant_read_is_an_error(soil_class):
+    selection = {C: {"Unit": _value("0 kPa")}, PHI: {"Unit": _value("30 deg")}}
+    match = rf"'Unit' has soil_class '{soil_class}'.*give ψ as a selection"
+    if soil_class == "rock":
+        match += r".*Hoek-Brown set \(M22\)"
+    if soil_class == "silty":
+        match = r"'Unit' has soil_class 'silty', a class hangtu doesn't know"
+    with pytest.raises(HangtuError, match=match):
+        ht.stats.mohr_coulomb_set(
+            selection=selection, geology_map=_map(Unit=soil_class)
+        )
+
+
+def test_a_blank_class_is_an_error():
+    selection = {C: {"Unit": _value("0 kPa")}, PHI: {"Unit": _value("30 deg")}}
+    with pytest.raises(HangtuError, match=r"'Unit''s soil_class.*geology_map= gives"):
+        ht.stats.mohr_coulomb_set(selection=selection, geology_map=_map(Unit=None))
+
+
+@pytest.mark.parametrize("soil_class", ["fill", "rock", None])
+def test_no_phi_gives_a_blank_psi_and_no_error(soil_class):
+    none = {"method": "none", "reason": "not used"}
+    result = _quiet(
+        ht.stats.mohr_coulomb_set,
+        selection={C: {"Unit": none}, PHI: {"Unit": none}},
+        geology_map=_map(Unit=soil_class),
+    )
+    assert _by_parameter(result, "Unit")[PSI]["no_value_reason"] == "no φ′ selected"
+
+
+def test_a_coarse_unit_without_phi_cv_is_an_error():
+    with pytest.raises(
+        HangtuError,
+        match=r"Bolton's relation needs critical_state_friction_angle, φ′cv, for "
+        r"'Sand': no judgments file was given",
+    ):
+        _sand_set(38, critical_state_friction_angle=None)
+
+
+def test_a_file_without_phi_cv_for_the_unit_is_an_error(tmp_path):
+    path = tmp_path / "judgments.yaml"
+    path.write_text(
+        "critical_state_friction_angle:\n"
+        "  by: geology_unit\n"
+        "  units: {critical_state_friction_angle: deg}\n"
+        "  values:\n"
+        "    Gravel: {critical_state_friction_angle: 34, reason: x}\n",
+        encoding="utf-8",
+    )
+    missing = r"has no critical_state_friction_angle.*'Sand'"
+    with pytest.raises(HangtuError, match=missing):
+        _sand_set(38, critical_state_friction_angle=None, judgments=path)
+
+
+def test_an_argument_overrides_the_file(tmp_path):
+    path = tmp_path / "judgments.yaml"
+    path.write_text(
+        "critical_state_friction_angle:\n"
+        "  by: geology_unit\n"
+        "  units: {critical_state_friction_angle: deg}\n"
+        "  values:\n"
+        "    Sand: {critical_state_friction_angle: 30, reason: x}\n",
+        encoding="utf-8",
+    )
+    from_file = _sand(38, critical_state_friction_angle=None, judgments=path)
+    assert from_file.to_frame()[PSI].iloc[0] == pytest.approx(10.0, abs=1e-12)
+    with pytest.warns(UserWarning, match=r"critical_state_friction_angle= replaces"):
+        argued = _sand(38, critical_state_friction_angle={"Sand": 34}, judgments=path)
+    assert argued.to_frame()[PSI].iloc[0] == pytest.approx(5.0, abs=1e-12)
+    assert argued.judgments["critical_state_friction_angle"]["source"] == "argument"
+
+
+def test_one_number_for_two_coarse_units_is_an_error():
+    selection = {
+        C: {"Sand": _value("0 kPa"), "Gravel": _value("0 kPa")},
+        PHI: {"Sand": _value("36 deg"), "Gravel": _value("38 deg")},
+    }
+    with pytest.raises(HangtuError, match=r"is one number.*for 2 units"):
+        ht.stats.mohr_coulomb_set(
+            selection=selection,
+            geology_map=_map(Sand="coarse", Gravel="coarse"),
+            critical_state_friction_angle=32,
+        )
+
+
+def test_views_agree_with_psi_by_rule(example):
+    _, correlations, triaxial, converted = example
+    result = _quiet(ht.stats.mohr_coulomb_set, correlations, triaxial, converted)
+    psi = result.to_frame().set_index("geology_unit").loc["Terrace", PSI]
+    provenance = result.provenance().set_index(["geology_unit", "parameter"])
+    assert provenance.loc[("Terrace", PSI), "value"] == psi
+    assert provenance.loc[("Terrace", PSI), "parameter_origin"] == "rule"
+    records = {
+        (r["geology_unit"], r["parameter"]): r for r in result.to_dict()["records"]
+    }
+    assert records[("Terrace", PSI)]["value"] == psi
+    text = str(result)
+    assert "  Terrace        162      35.3     4.11" in text
+    assert (
+        "  Terrace, ψ: Bolton's relation, ψ = (φ′ - φ′cv) / 0.8 (Kulhawy & Mayne "
+        "(1990), Eq. 4-16, p. 4-20, after Bolton (1986)): φ′ 35.3 deg (selected), "
+        "φ′cv 32 deg (judgment)"
+    ) in text

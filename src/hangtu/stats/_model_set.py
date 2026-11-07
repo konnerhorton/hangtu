@@ -94,9 +94,10 @@ def from_rule(
 ) -> dict[str, Any]:
     """Return a value a rule gives, with its citation and its inputs.
 
-    Each input is ``{"name", "symbol", "value", "unit", "origin"}``: the
-    origin says where the rule's input came from (``"selected"``,
-    ``"judgment"``), so the reader sees what the value rests on.
+    Each input is ``{"name", "symbol", "value", "unit", "origin"}``, with
+    ``"text"`` for a judgment as the file wrote it: the origin says where
+    the rule's input came from (``"selected"``, ``"judgment"``), so the
+    reader sees what the value rests on.
     """
     return _record(
         geology_unit,
@@ -319,9 +320,13 @@ def _inputs_text(rule: Mapping[str, Any]) -> str:
     """Return a rule's inputs in one line: ``φ′ 35.3 deg (selected), ...``."""
     parts = []
     for item in rule["inputs"]:
-        unit = f" {item['unit']}" if item.get("unit") else ""
-        value = _cell(item["value"])
-        parts.append(f"{item['symbol']} {value}{unit} ({item['origin']})")
+        given = item["value"]
+        if item.get("text"):  # as the judgment wrote it, with its unit
+            shown = str(item["text"])
+        else:
+            unit = f" {item['unit']}" if item.get("unit") else ""
+            shown = (given if isinstance(given, str) else _cell(given)) + unit
+        parts.append(f"{item['symbol']} {shown} ({item['origin']})")
     return ", ".join(parts)
 
 
