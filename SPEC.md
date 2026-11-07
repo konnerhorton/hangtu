@@ -432,12 +432,12 @@ Rows are in build order; each milestone after M8 names its wave, or statistics o
 | M15 | Statistics: `describe`, correlation statistics, `fit` and P08, `compare`, `compare_groups`, `crosstab` |
 | M11 | Wave 2: `p.triaxial()`, the envelope fitting core and **P11**, **P12** from a CSV of readings |
 | M17 | Wave 2: `p.undrained_strength()`, `p.shear_box()`; the shear box fit and **P31**; the intact Hoek–Brown fit and **P32** from a CSV of rock tests |
+| M18 | Selection (stage D): SPT refusals in `fit()`; `representative()` (EC7 characteristic, JRC worked examples, and US views); **P09**; `compare_sources()` and the shear box φ′ conversion; `select()`; the model-set base and `mohr_coulomb_set()` |
 
 **Open:**
 | M | Deliverable | Done when | Status |
 |---|---|---|---|
 | M16 | Wave 0: user-defined groups and curves | Curves from the sample dataset reach the datasets |  |
-| M18 | Selection (stage D), in six units (`docs/work/m18a-refusals.md`, `docs/work/m18d-sources-compared.md`, `docs/work/m18e-selection.md`): (a) SPT refusals: the judged upper limit in `fit()` and at-least estimates from the correlations; (b) representative values: EC7 `characteristic` (moved from M15, TODO #13) and the views US practice uses, constant or as design lines; (c) **P09**; (d) sources compared by depth or geology unit, with the shear box to triaxial φ′ conversion; (e) the selection as a judgment; (f) the model-set base and the Mohr–Coulomb set, with ψ reading coarse or fine from the geology map's `soil_class` | A set per unit, its judgments recorded; views agree; JRC worked examples | (a)–(e) done; (f) next |
 | M19 | Wave 3: oedometer (σ′p, Cc, Cs, Eoed, Eur,oed, k from cv·mv, Grob and Huder–Amberg swelling); P13–P15 | Golden values; plot criteria |  |
 | M20 | Wave 3: K0 from OCR, SHANSEP; the Soft Soil set | Golden values |  |
 | M21 | Wave 4: rock lab datasets (UCS, tensile, point load, slake durability, intact moduli) and RQD | Datasets feed P01 and P07 |  |
