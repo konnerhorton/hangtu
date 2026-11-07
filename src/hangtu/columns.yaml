@@ -265,7 +265,7 @@ columns:
     ags: [GEOL.GEOL_BGS]
     used_by: []
   soil_class:
-    description: Cohesive / cohesionless class of the unit (categories TODO #3)
+    description: "The geology unit's class, from the geology map: coarse or fine (read by the Mohr-Coulomb set's dilatancy rule), fill, rock or organic (named, read by nothing yet); other values are kept (categories TODO #3)"
     type: text
     ags: ["derived: mapping file"]
     used_by: [P03]
@@ -524,6 +524,14 @@ columns:
     label: Effective cohesion, c′
     ags: ["derived: docs/work/m11b-envelope-fit.md"]
     used_by: []
+  dilatancy_angle:
+    description: Dilatancy angle of a Mohr-Coulomb set, by Bolton's relation, 0 for a fine-grained unit, or selected
+    type: number
+    quantity: angle
+    scale: ratio
+    label: Dilatancy angle, ψ
+    ags: ["derived: docs/work/m18f-mohr-coulomb-set.md"]
+    used_by: []
   total_stress_cohesion:
     description: Cohesion intercept of a Mohr-Coulomb envelope fitted to total-stress failure points
     type: number
@@ -654,6 +662,14 @@ columns:
     label: Drained Young's modulus, E′
     ags: ["derived: docs/work/m13b3-spt-stiffness.md"]
     used_by: [P01]
+  drained_poissons_ratio:
+    description: Drained Poisson's ratio, of a Mohr-Coulomb set (selected until wave 5)
+    type: number
+    quantity: dimensionless
+    scale: ratio
+    label: Drained Poisson's ratio, ν′
+    ags: ["derived: docs/work/m18f-mohr-coulomb-set.md"]
+    used_by: []
   shear_wave_velocity:
     description: Shear wave velocity, measured in situ or estimated
     type: number

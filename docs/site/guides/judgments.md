@@ -138,6 +138,8 @@ critical_state_friction_angle:
 
 `critical_state_friction_angle=` on the call takes a number for a fit with one group, or a mapping by geology unit, and replaces the file's, with a warning.
 
+[`ht.stats.mohr_coulomb_set()`](../reference/stats.md#hangtu.stats.mohr_coulomb_set) reads the same judgment for the dilatancy angle of each coarse unit, by Bolton's relation ψ = (φ′ − φ′cv) / 0.8 ([model sets](selection.md#the-dilatancy-angle)). Its `critical_state_friction_angle=` takes a number when one unit needs it, or a mapping by geology unit. A unit whose ψ is selected doesn't read it.
+
 ## The selection
 
 Each geology unit's selected value of a parameter, the end of stage D, is a judgment too: per parameter and unit, the source and method that give it, or a value, each with its reason. [`ht.stats.select()`](../reference/stats.md#hangtu.stats.select) reads it. The [selection guide](selection.md) has the methods and the rules.
@@ -155,7 +157,7 @@ selection:
 - **Keyed by parameter, then by `geology_unit` only.** A `project:` value is an error, and every unit the sources have needs an entry (`method: none`, with its reason, for one you don't design with).
 - **Every entry needs a `method` and a `reason`;** a `value` entry needs the parameter's `units: {value: ...}`.
 
-`selection=` on the call takes the whole selection of one parameter and replaces the file's, with a warning.
+`selection=` on the call takes the whole selection of one parameter and replaces the file's, with a warning. [`ht.stats.mohr_coulomb_set()`](../reference/stats.md#hangtu.stats.mohr_coulomb_set) reads the selections of all five of its parameters from the same file, and its `selection=` takes `{parameter: {geology_unit: entry}}`.
 
 ## The log
 

@@ -171,7 +171,9 @@ class Build:
                 f"No {group} group in {self.file}, so there are no {self.noun[1]}. "
                 "The dataset is empty."
             )
-            return self._empty(order)
+            empty = self._empty(order)
+            self._soil_classes(empty)
+            return empty
         frame = frame.copy()
         frame["source_line"] = frame.pop("_line").astype("Int64")
         if layers is None:
@@ -189,6 +191,7 @@ class Build:
         frame.attrs["units"] = self._units(frame)
         if palette:
             frame.attrs["palette"] = palette
+        self._soil_classes(frame)
         if self.datum:
             frame.attrs["vertical_datum"] = self.datum
         self._judgments_file(frame)
@@ -198,6 +201,22 @@ class Build:
         """Carry the project's judgments file, for the analyses (SPEC §4)."""
         if self.judgments_file is not None:
             frame.attrs["judgments_file"] = self.judgments_file
+
+    def _soil_classes(self, frame: pd.DataFrame) -> None:
+        """Carry the map's ``{geology_unit: soil_class}``, for the model sets.
+
+        Every unit in the map, whether or not it has rows here, so a fit of
+        the dataset can tell a set each unit's class (SPEC §8.3). No map, or
+        a map with no classes, means no attr.
+        """
+        mapping = database.read_geology_map(self.path)
+        if mapping.empty:
+            return
+        classes = _geology_map.unit_values(mapping, "soil_class")
+        if classes:
+            frame.attrs["soil_classes"] = {
+                str(unit): str(value) for unit, value in classes.items()
+            }
 
     def _ground_level(self, frame: pd.DataFrame) -> None:
         if self.has("LOCA"):

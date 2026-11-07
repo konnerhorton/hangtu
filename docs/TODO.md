@@ -10,7 +10,8 @@ Items to think through or research. Each item notes who owns it and the SPEC.md 
 ## Geology and classification
 
 ### 3. `soil_class` categories · You · SPEC §8.3
-- **Current draft:** `coarse | fine | organic | fill | rock`.
+- **Defined so far** (M18 (f), SPEC §8.3): `coarse` and `fine` are read by the Mohr–Coulomb set's ψ; `fill`, `rock` and `organic` are recognized and read by nothing yet (ψ for them is an error asking for a selection); other values are accepted. A Project's datasets carry the classes in `attrs["soil_classes"]`.
+- **Still open:** the rest of the split and the column's name, below.
 - **No longer needed for the SPT histograms (P03):** the user picks the class table and passes the rows it applies to (M3 intent, decision 6). `soil_class` could later pick the table automatically.
 - **What depends on it:**
   - USCS organic flags (§8.2);
@@ -177,12 +178,11 @@ Each judgment declares what it is keyed by and whether one project-wide value is
 ### 31. Curves in real files · You · input for wave 0's intent (M16)
 Which user-defined groups and headings real files use for triaxial stress–strain curves, rock triaxial, swelling against time and shear box displacement, gathered from the sample dataset being prepared from real projects. Rock triaxial and UCS rows are read into `ht.template("triaxial")`'s shape, with `failure_mode` (SPEC §2.6, M17 c).
 
-### 32. Published definitions of the model sets · You (copies) + Claude (verify) · SPEC §5 · Mohr–Coulomb for M18 (f), the rest with their waves
-**Mohr–Coulomb set for M18 (f)** (decided 2026-11-02): c′ and φ′ from the selections (`select()`, M18 (e)); ψ as an estimate; E′ and ν′ left blank until wave 5 (M23). Mohr–Coulomb is defined in any soil mechanics text, so a standard citation does.
-- **ψ:** Bolton (1986), ψ = (φ′_peak − φ′_cv) / 0.8, floored at 0, for coarse-grained units, with φ′_cv the `critical_state_friction_angle` judgment per geology unit (no default), which M18 (d) added for the shear box conversion and (f) reuses; ψ = 0 for fine-grained units. The relation is for plane strain; used with a triaxial φ′ it is an approximation, and the result says so. The practice rule ψ = max(0, φ′ − 30°) is not offered: its only sources are software manuals (GEO5, PLAXIS), and it hides the same φ′_cv assumption (sheet 09, §5.2–5.3).
-- **To verify against the primary:** Bolton, M.D. (1986), The strength and dilatancy of sands, *Géotechnique* 36(1), 65–78 (now [V] only through secondary sources).
+### 32. Published definitions of the model sets · You (copies) + Claude (verify) · SPEC §5 · each set with its wave
+The Mohr–Coulomb set is built (M18 (f), SPEC §5). One citation in it is still unchecked:
+- **Bolton, M.D. (1986), The strength and dilatancy of sands, *Géotechnique* 36(1), 65–78** (paywalled, not at hand): the 0.8 relation and the stress condition it was derived for. hangtu cites Kulhawy & Mayne (1990) Eq. 4-16, p. 4-20, which writes it for triaxial compression (φ′tc = φ′cv + 0.8 ψ); the groundhog docs give it for plane strain, and Obrzud & Truty (2018, p. 86) use it for both. The hand calculation doesn't change; the docstring of `mohr_coulomb_set()`, the dilatancy site page and sheet 09 say which condition holds once the primary is read.
 
-**The other sets**, each checked by the wave that builds it: Hardening Soil (Schanz, Vermeer & Bonnier 1999?) and HS-small (Benz 2007?) with wave 5 (M23); Soft Soil (Vermeer & Neher 1999?) with wave 3; generalized Hoek–Brown (Hoek, Carranza-Torres & Corkum 2002) with wave 4 (M22). Confirm a non-vendor published source that defines each set's parameters; where only a software manual defines a model, say so.
+**The other sets**, each checked by the wave that builds it on M18's model-set base: Hardening Soil (Schanz, Vermeer & Bonnier 1999?) and HS-small (Benz 2007?) with wave 5 (M23); Soft Soil (Vermeer & Neher 1999?) with wave 3; generalized Hoek–Brown (Hoek, Carranza-Torres & Corkum 2002) with wave 4 (M22). Confirm a non-vendor published source that defines each set's parameters; where only a software manual defines a model, say so.
 
 ### 34. γw as a judgment · You · SPEC §4
 `ht.settings.water_unit_weight` is one session value. Sites with both seawater and fresh water (or brines) need two, so γw may become a judgment keyed by hole or zone.

@@ -96,10 +96,18 @@ def select(
     else its first source's; angles in degrees). A source in another unit is
     converted, with its depths, before its method is computed.
 
+    **No source**: a parameter nothing measures yet (a dilatancy angle, a
+    Poisson's ratio) can be selected with no sources when every entry is
+    ``value`` or ``none``. There is nothing to compare or place:
+    ``.comparison`` is None, ``.positions()`` is empty, and there is no line
+    to draw. The unit is ``display_units``' for the quantity, else the first
+    ``value`` entry's, and the other entries are converted to it.
+
     Parameters
     ----------
     *sources : pandas.DataFrame, MohrCoulombFit or ShearBoxConversion
-        As for :func:`compare_sources`.
+        As for :func:`compare_sources`; none when every entry is ``value``
+        or ``none``.
     value : str
         The parameter, a numeric registry column such as
         ``"effective_friction_angle"`` or ``"undrained_shear_strength"``.
@@ -134,7 +142,7 @@ def select(
         have and the selection doesn't list; a ``source`` that isn't in the
         comparison; ``fitted`` on a row source or a fit with several values
         in the unit, or a view on a fit's one value; a computed method for
-        a unit no source has; a
+        a unit no source has, or with no sources at all; a
         ``selection=`` entry that breaks the file's rules; and the errors of
         :func:`compare_sources` and :func:`representative`.
 
@@ -146,26 +154,63 @@ def select(
     ... )
     >>> selected.to_frame()
     """
-    quantity = _judgments.selected_quantity(value, f"{FUNCTION} value=")
-    compared = _compare_sources.compare(
+    return select_from(
         sources,
-        value,
-        GEOLOGY,
-        DEFAULT_PERCENTILES,
-        include_assumed,
-        units,
-        display_units,
+        value=value,
+        read=_read_file(sources, judgments),
+        selection=selection,
+        include_assumed=include_assumed,
+        judgments=judgments,
+        units=units,
+        display_units=display_units,
     )
-    comparison = compared.comparison
-    read = _read_file(sources, judgments)
+
+
+def select_from(
+    sources: Sequence[Any],
+    *,
+    value: str,
+    read: "_judgments.Read | None",
+    selection: Mapping[str, Any] | None = None,
+    include_assumed: bool = False,
+    judgments: Any = None,
+    units: Mapping[str, str] | None = None,
+    display_units: str | None = None,
+) -> "SelectionResult":
+    """``select()`` with the judgments file already read (``read``).
+
+    A model set reads the file once for every parameter it selects
+    (docs/work/m18f-mohr-coulomb-set.md, decision 8); ``judgments`` still
+    reaches each method, for the judgments it reads.
+    """
+    quantity = _judgments.selected_quantity(value, f"{FUNCTION} value=")
+    compared: _compare_sources.Compared | None = None
+    comparison: SourceComparison | None = None
+    if sources:
+        compared = _compare_sources.compare(
+            sources,
+            value,
+            GEOLOGY,
+            DEFAULT_PERCENTILES,
+            include_assumed,
+            units,
+            display_units,
+        )
+        comparison = compared.comparison
     chosen, record = _resolve(value, quantity, selection, read, comparison)
-    geologies = _geologies(comparison)
+    if comparison is None:
+        _check_no_source(value, chosen)
+        unit = _no_source_unit(chosen, quantity, display_units)
+    else:
+        unit = comparison.unit
+    geologies = [] if comparison is None else _geologies(comparison)
     _check_listed(value, geologies, chosen, comparison)
     context = _Context(
         sources=sources,
         compared=compared,
         value=value,
         quantity=quantity,
+        unit=unit,
         include_assumed=include_assumed,
         judgments=judgments,
         units=units,
@@ -181,8 +226,16 @@ def select(
         if place is not None:
             placed += _positions(context, row, place)
     _warn_no_value(rows, value)
-    _value_depths(rows, comparison, geologies)
-    merged = dict(comparison.judgments)
+    if comparison is None:
+        later = [
+            f"No source carries {value}, so the selection has nothing to compare "
+            "or draw."
+        ]
+        merged: dict[str, Any] = {}
+    else:
+        _value_depths(rows, comparison, geologies)
+        later = _line_notes(rows, results)
+        merged = dict(comparison.judgments)
     for result in results.values():
         merged |= result.judgments
     merged[_judgments.SELECTION] = record
@@ -190,8 +243,8 @@ def select(
         kind="parameter",
         function="select",
         value=value,
-        unit=comparison.unit,
-        notes=(*_notes(rows, comparison.unit), *_line_notes(rows, results)),
+        unit=unit,
+        notes=(*_notes(rows, unit), *later),
         judgments=merged,
         hangtu_version=version("hangtu"),
         by=(GEOLOGY,),
@@ -209,13 +262,22 @@ class _Context:
     """What every unit's method reads: the sources, the comparison, the call."""
 
     sources: Sequence[Any]
-    compared: _compare_sources.Compared
+    #: None with no sources (a ``value`` or ``none`` selection only).
+    compared: _compare_sources.Compared | None
     value: str
     quantity: str
+    #: The selection's unit: the comparison's, or with no sources decision 20's.
+    unit: str | None
     include_assumed: bool
     judgments: Any
     units: Mapping[str, str] | None
     display_units: str | None
+
+    def with_sources(self) -> _compare_sources.Compared:
+        """Return the comparison, for a method that reads a source."""
+        # Only value and none reach a selection with no sources (decision 20).
+        assert self.compared is not None
+        return self.compared
 
 
 def _read_file(sources: Sequence[Any], judgments: Any) -> "_judgments.Read | None":
@@ -238,7 +300,7 @@ def _resolve(
     quantity: str,
     selection: Any,
     read: "_judgments.Read | None",
-    comparison: SourceComparison,
+    comparison: SourceComparison | None,
 ) -> tuple[dict[str, "_judgments.SelectionEntry"], dict[str, Any]]:
     """Resolve the selection: selection=, then the file (decision 12)."""
     in_file = None if read is None else read.selections.get(value)
@@ -328,9 +390,36 @@ def _record(
 
 
 def _missing(
-    value: str, read: "_judgments.Read | None", comparison: SourceComparison
+    value: str, read: "_judgments.Read | None", comparison: SourceComparison | None
 ) -> str:
     """Name the parameter and show an entry to add (decision 12)."""
+    where = (
+        f"{str(read.path)!r} has no selection of it"
+        if read is not None
+        else "no judgments file was given, and the sources carry none"
+    )
+    start = (
+        f"{FUNCTION} has no selection of {value!r}: {where}. The selection is a "
+        "judgment, with no default (SPEC §4). Add it to the judgments file and "
+        "pass judgments=ht.judgments(path), or give selection=. Example:\n"
+        "selection:\n"
+        f"  {value}:\n"
+        "    values:\n"
+    )
+    if comparison is None:
+        quantity = _judgments.selected_quantity(value, FUNCTION)
+        given = (
+            "1"
+            if quantity in _judgments.PURE_NUMBERS
+            else f'"1 {_judgments.example_unit(quantity)}"'
+        )
+        return (
+            f"{start}"
+            "      Terrace:\n"
+            "        method: value\n"
+            f"        value: {given}\n"
+            '        reason: "from the design report"'
+        )
     labels = [s["parameter_source"] for s in comparison.sources]
     geology = next(
         (
@@ -340,18 +429,8 @@ def _missing(
         ),
         "Terrace",
     )
-    where = (
-        f"{str(read.path)!r} has no selection of it"
-        if read is not None
-        else "no judgments file was given, and the sources carry none"
-    )
     return (
-        f"{FUNCTION} has no selection of {value!r}: {where}. The selection is a "
-        "judgment, with no default (SPEC §4). Add it to the judgments file and "
-        "pass judgments=ht.judgments(path), or give selection=. Example:\n"
-        "selection:\n"
-        f"  {value}:\n"
-        "    values:\n"
+        f"{start}"
         f"      {geology}:\n"
         f'        source: "{labels[0]}"\n'
         "        method: characteristic\n"
@@ -360,6 +439,40 @@ def _missing(
         "        distribution: normal\n"
         '        reason: "a mean over a long slip surface"'
     )
+
+
+def _check_no_source(
+    value: str, chosen: Mapping[str, "_judgments.SelectionEntry"]
+) -> None:
+    """With no sources, only ``value`` and ``none`` (decision 20)."""
+    computed = [
+        f"{geology} ({entry.method})"
+        for geology, entry in chosen.items()
+        if entry.method not in ("value", "none")
+    ]
+    if computed:
+        raise HangtuError(
+            f"{FUNCTION}: no source carries {value!r}, so the selection can't "
+            f"compute {', '.join(computed)}. With no sources, give each unit "
+            "method: value with its value and reason, or method: none; or pass "
+            "the sources that carry it."
+        )
+
+
+def _no_source_unit(
+    chosen: Mapping[str, "_judgments.SelectionEntry"],
+    quantity: str,
+    display_units: str | None,
+) -> str | None:
+    """Return the unit with no sources: display_units', else the first value's."""
+    given = [e for e in chosen.values() if e.method == "value"]
+    if not given:
+        return None
+    first = given[0]
+    if display_units is None:
+        return first.unit
+    _, unit = _units.to_display([0.0], first.unit, quantity, display_units)
+    return unit
 
 
 def _geologies(comparison: SourceComparison) -> list[Any]:
@@ -376,7 +489,7 @@ def _check_listed(
     value: str,
     geologies: list[Any],
     chosen: Mapping[str, "_judgments.SelectionEntry"],
-    comparison: SourceComparison,
+    comparison: SourceComparison | None,
 ) -> None:
     """Raise for a unit not listed, or computed with no source (decision 10)."""
     missing = [str(g) for g in geologies if str(g) not in chosen]
@@ -438,7 +551,7 @@ def _positions(
     if line is None and not np.isfinite(selected):
         return []
     placed = []
-    for source in context.compared.sources:
+    for source in context.with_sources().sources:
         if source.label == row["parameter_source"]:
             continue  # the selected source isn't placed against itself
         if source.kind == "rows":
@@ -567,7 +680,7 @@ def _fit_values(
     context: _Context, geology: str, place: tuple[Any, ...], label: str
 ) -> pd.DataFrame:
     """Return a per-sample fit's values in the unit, as ``.values()`` draws them."""
-    values = context.compared.comparison.values()
+    values = context.with_sources().comparison.values()
     cells = values[GEOLOGY].astype(object)
     in_unit = (
         cells.isna() if place[0] == BLANK_GROUP else (cells == place[0]) & cells.notna()
@@ -579,10 +692,9 @@ def _fit_values(
 
 
 def _given_value(context: _Context, entry: "_judgments.SelectionEntry") -> float:
-    """Return a ``value`` entry in the comparison's unit (decision 13)."""
+    """Return a ``value`` entry in the selection's unit (decisions 13, 20)."""
     assert entry.value is not None  # a value entry has one
-    comparison = context.compared.comparison
-    if entry.unit is None or comparison.unit is None:
+    if entry.unit is None or context.unit is None:
         return float(entry.value)
     if context.display_units is not None:
         converted, _ = _units.to_display(
@@ -593,7 +705,7 @@ def _given_value(context: _Context, entry: "_judgments.SelectionEntry") -> float
             [entry.value],
             _units.parse_unit(entry.unit),
             context.quantity,
-            _units.parse_unit(comparison.unit),
+            _units.parse_unit(context.unit),
         )
     return float(converted[0])
 
@@ -605,10 +717,10 @@ def _source(
     entry: "_judgments.SelectionEntry",
 ) -> _compare_sources._Source:
     """Find the entry's source in the comparison, else list those in the unit."""
-    for source in context.compared.sources:
+    for source in context.with_sources().sources:
         if source.label == entry.source:
             return source
-    comparison = context.compared.comparison
+    comparison = context.with_sources().comparison
     there = [
         r["parameter_source"]
         for r in comparison.rows
@@ -662,7 +774,7 @@ def _comparison_row(
     """Return the comparison's record of one unit and source."""
     return next(
         r
-        for r in context.compared.comparison.rows
+        for r in context.with_sources().comparison.rows
         if tuple(r["key"].values()) == place and r["parameter_source"] == label
     )
 
@@ -682,7 +794,7 @@ def _rows_in_units(
     if GEOLOGY in rows.columns:
         # One unit's rows: a categorical's other categories would be groups.
         rows[GEOLOGY] = rows[GEOLOGY].astype(object)
-    comparison = context.compared.comparison
+    comparison = context.with_sources().comparison
     if context.display_units is None:
         value = context.value
         targets = {
@@ -878,8 +990,9 @@ class SelectionResult(_Result):
     rows: tuple[dict[str, Any], ...]
     #: One record per unit and other source: the rows of ``.positions()``.
     placed: tuple[dict[str, Any], ...]
-    #: The sources side by side, as ``compare_sources()`` gives them.
-    comparison: SourceComparison = field(compare=False)
+    #: The sources side by side, as ``compare_sources()`` gives them; None
+    #: for a selection with no sources (every entry ``value`` or ``none``).
+    comparison: SourceComparison | None = field(compare=False)
     #: Each computed unit's ``representative()`` result, by unit.
     representatives: dict[str, RepresentativeResult] = field(compare=False)
 
@@ -959,9 +1072,19 @@ class SelectionResult(_Result):
         ------
         HangtuError
             When one unit's line is by depth and another's by elevation, so
-            the lines can't share a table.
+            the lines can't share a table; and for a selection with no
+            sources, which has no depths to draw at.
         """
+        self._check_drawable("design_lines")
         return self._lines(self.rows)
+
+    def _check_drawable(self, view: str) -> None:
+        if self.comparison is None:
+            raise HangtuError(
+                f"SelectionResult.{view}(): no source carries {self.value}, so "
+                "the selection has nothing to draw: each value was given, with no "
+                "rows or depths. Pass the sources to select() to draw them."
+            )
 
     def _lines(self, rows: Sequence[Mapping[str, Any]]) -> pd.DataFrame:
         frames: list[pd.DataFrame] = []
@@ -982,6 +1105,7 @@ class SelectionResult(_Result):
             top, base = row["depths"]
             if not (np.isfinite(top) and np.isfinite(base)):
                 continue
+            assert self.comparison is not None  # depths come from a source
             if self.comparison.depth_unit is not None:
                 units["depth"] = self.comparison.depth_unit
             frames.append(
@@ -1021,8 +1145,11 @@ class SelectionResult(_Result):
         more than one unit. Other keyword arguments go to
         ``SourceComparison.profile()`` and ``ht.plot.profile()``, a
         ``design_lines=`` of your own replacing the selected line. Returns
-        ``(fig, ax)``.
+        ``(fig, ax)``. A selection with no sources has nothing to draw, and
+        raises.
         """
+        self._check_drawable("profile")
+        assert self.comparison is not None  # checked
         if geology_unit is None:
             rows: Sequence[Mapping[str, Any]] = self.rows
             chosen: dict[str, Any] = {}
@@ -1086,7 +1213,7 @@ class SelectionResult(_Result):
         units: dict[str, str] = {}
         if self.unit is not None:
             units |= dict.fromkeys(["value", "value_top", "value_base"], self.unit)
-        if self.comparison.depth_unit is not None:
+        if self.comparison is not None and self.comparison.depth_unit is not None:
             units |= dict.fromkeys(verticals, self.comparison.depth_unit)
         frame.attrs["units"] = units
         return frame
@@ -1118,7 +1245,9 @@ class SelectionResult(_Result):
                 "display_units": self.display_units,
                 "rows": rows,
                 "positions": self.placed,
-                "comparison": self.comparison.to_dict(),
+                "comparison": (
+                    None if self.comparison is None else self.comparison.to_dict()
+                ),
                 "representatives": {
                     name: result.to_dict()
                     for name, result in self.representatives.items()

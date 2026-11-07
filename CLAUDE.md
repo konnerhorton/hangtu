@@ -1,6 +1,6 @@
 # hangtu
 
-Python library that derives the ground parameters a geotechnical design needs, from AGS4 or CSV test data through to model parameter sets, for soil and rock, with plots, analyses, AGS4 ingest/QC and statistics along the way (SPEC §1). Work is organized as stages A–D per parameter and waves 0–6 (SPEC §1.3). Done through M15, M11, M17 and M18 (a)–(e); 0.1.0 is on PyPI. Next: selection's M18 (f), the model-set base and the Mohr–Coulomb set (c′ and φ′ from `select()`, ψ by Bolton (1986) reading coarse or fine from the geology map's `soil_class`, TODO #32 and #3), designed against every wave 2 fit (`mohr_coulomb_fit()`, `shear_box_fit()`, `hoek_brown_fit()`); then wave 0 (M16, waiting on TODO #31) and waves 3–6. Status: SPEC §12.4 for milestones, `docs/drafts/parameters/README.md` for parameters.
+Python library that derives the ground parameters a geotechnical design needs, from AGS4 or CSV test data through to model parameter sets, for soil and rock, with plots, analyses, AGS4 ingest/QC and statistics along the way (SPEC §1). Work is organized as stages A–D per parameter and waves 0–6 (SPEC §1.3). Done through M15, M11, M17 and M18; 0.1.0 is on PyPI. Next: wave 0 (M16, user-defined groups and curves) once TODO #31 is settled; else wave 3 (M19, the oedometer), whose Soft Soil set (M20) is built on M18's model-set base. Then waves 4–6. Status: SPEC §12.4 for milestones, `docs/drafts/parameters/README.md` for parameters.
 
 ## Where things are
 - `SPEC.md`: product spec and cross-cutting decisions. Read the relevant section before designing anything.

@@ -244,6 +244,7 @@ def friction_angle_from_shear_box(
         judgments={**fit.judgments, **({_JUDGMENT: record} if record else {})},
         hangtu_version=version("hangtu"),
         judgments_file=fit.judgments_file,
+        soil_classes=dict(fit.soil_classes),
         by=fit.by,
         soil=soil if isinstance(soil, str) else dict(soil),
         depth_units=dict(fit.depth_units),

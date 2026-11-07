@@ -147,6 +147,10 @@ A fitted c′ is an intercept at σ′n = 0, outside the fit's stress range. To 
 `method: value` with the reason, and φ′ from the fit through the origin, also as a value: the fitted φ′ belongs with
 the fitted c′, not with 0.
 
+A numerical model takes c′ and φ′ as part of a set. `ht.stats.mohr_coulomb_set()` reads both selections from the
+same file, warns when a unit's pair isn't fitted from one source, and adds the [dilatancy angle](09-dilatancy.md)
+from the selected φ′ and φ′cv: 4.1° for the example's Terrace ([model sets](../guides/selection.md#model-sets)).
+
 ## Variability
 
 - Sand, laboratory φ′ at 16 sites with at least 10 tests each: COV 4.2–12.5 % (Ching & Schweckendiek 2021,

@@ -30,6 +30,10 @@ Each statistics function is a plain function on a DataFrame, a Series or a list 
 
 ::: hangtu.stats.SelectionResult
 
+::: hangtu.stats.mohr_coulomb_set
+
+::: hangtu.stats.MohrCoulombSet
+
 ::: hangtu.stats.crosstab
 
 ::: hangtu.stats.CrosstabResult

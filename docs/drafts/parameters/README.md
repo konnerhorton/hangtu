@@ -29,29 +29,29 @@ Each stage cell gives the wave (W0–W6) or milestone that builds it, and **buil
 | # | Sheet | Parameters | A | B | C | D |
 |---|---|---|---|---|---|---|
 | 01 | [Unit weight and vertical stress](01-unit-weight-and-vertical-stress.md) | γ, γsat, σv0, u0, σ′v0 | **built** (`p.density()`, lab and field: M14 a) | **built** (σv0, u0, σ′v0: M13; γd and γsat from phase relations: M14 b) | — | **built** (the `unit_weight` judgment, a value with its reason per unit, read by `vertical_stress()`: M13; `select()` compares it with the tests, M18 e) |
-| 02 | [Index properties](02-index-properties.md) | w, LL, PL, PI, LI, Ic, activity, fines | **built** (M7, M8) | **built** (PI, LI, Ic, classes, with LI and Ic as analyses: M8; activity: M14 b) | — | M18 |
-| 03 | [Specific gravity and void ratio](03-specific-gravity-and-void-ratio.md) | Gs, e0, n | **part built** (ρs: `p.particle_density()`, M14 a); W2, W3 (specimen e0), W4 (rock n) | **built** (Gs, e0, n, S: `ht.analysis.phase_relations()`, M14 b) | — | M18 |
-| 04 | [Drained shear strength of soil](04-drained-shear-strength-soil.md) | φ′, c′ | **part built** (triaxial: `p.triaxial()`, M11 a; shear box: `p.shear_box()`, M17 a) | **built** (triaxial: `mohr_coulomb_fit()`, M11 b; shear box: `shear_box_fit()`, M17 b) | **part built** (SPT φ′: M13 b1); W1 (others) | **part built** (sources compared: `compare_sources()`, with the shear box φ′ converted by `friction_angle_from_shear_box()`, M18 d; the selection: `select()`, M18 e); M18 f (the Mohr–Coulomb set) |
+| 02 | [Index properties](02-index-properties.md) | w, LL, PL, PI, LI, Ic, activity, fines | **built** (M7, M8) | **built** (PI, LI, Ic, classes, with LI and Ic as analyses: M8; activity: M14 b) | — | **built** (`select()` on the rows, M18 e) |
+| 03 | [Specific gravity and void ratio](03-specific-gravity-and-void-ratio.md) | Gs, e0, n | **part built** (ρs: `p.particle_density()`, M14 a); W2, W3 (specimen e0), W4 (rock n) | **built** (Gs, e0, n, S: `ht.analysis.phase_relations()`, M14 b) | — | **built** (`select()` on the rows, M18 e) |
+| 04 | [Drained shear strength of soil](04-drained-shear-strength-soil.md) | φ′, c′ | **part built** (triaxial: `p.triaxial()`, M11 a; shear box: `p.shear_box()`, M17 a) | **built** (triaxial: `mohr_coulomb_fit()`, M11 b; shear box: `shear_box_fit()`, M17 b) | **part built** (SPT φ′: M13 b1); W1 (others) | **part built** (sources compared: `compare_sources()`, with the shear box φ′ converted by `friction_angle_from_shear_box()`, M18 d; the selection: `select()`, M18 e; the Mohr–Coulomb set: `mohr_coulomb_set()`, M18 f) |
 | 05 | [Undrained shear strength](05-undrained-shear-strength.md) | su, su,r, St | **built** (`p.undrained_strength()`: UU, UCS, vanes, hand penetrometer, fall cone, M17 a) | **part built** (s_u = q / 2, S_t: M17 a); W3 (SHANSEP) | **part built** (SPT: M13 b2); later (CPT) | **part built** (sources compared: `compare_sources()`, M18 d; the selection: `select()`, the field vane as measured, M18 e); Bjerrum's μ not yet placed |
 | 06 | [Preconsolidation and compressibility](06-preconsolidation-and-compressibility.md) | σ′p, OCR, Cc, Cs/Cr | W3 | W3 | **part built** (SPT: M13 b2); later (CPT) | W3 |
 | 07 | [At-rest earth pressure (soil)](07-at-rest-earth-pressure.md) | K0 | — | W3 | **part built** (SPT: M13 b2); later (CPT, DMT) | W3 |
 | 08 | [Elastic stiffness of soil](08-elastic-stiffness-soil.md) | E, ν | W5 | W5 | **part built** (SPT: M13 b3); W5 (others) | W5 |
-| 09 | [Dilatancy](09-dilatancy.md) | ψ (soil and rock mass) | — | W4 (rock), W5 (soil) | — | W4, W5 |
+| 09 | [Dilatancy](09-dilatancy.md) | ψ (soil and rock mass) | — | **part built** (soil: Bolton's relation for coarse units, 0 for fine, in `mohr_coulomb_set()`, M18 f); W4 (rock), W5 (soil: from test curves and I_R) | — | **part built** (soil: a selected ψ or the rule, in the Mohr–Coulomb set, M18 f); W4 (rock) |
 | 10 | [Small-strain stiffness](10-small-strain-stiffness.md) | Vs, G0, G0ref, γ0.7 | W5 | W5 | **part built** (SPT Vs: M13 b3); W5 (others) | W5 |
 | 11 | [Hardening Soil stiffness](11-hardening-soil-stiffness.md) | Eoed, Eur,oed, E50ref, Eoedref, Eurref, m, pref, Rf, νur | W3 | W3 (Eoed, Eur,oed); W5 (full set) | W5 | W5 |
 | 12 | [Hydraulic conductivity](12-hydraulic-conductivity.md) | k (soil, rock mass) | **part built** (`p.permeability()`); W6 | W3 (cv·mv); W6 | W6 | W6 |
 | 13 | [Intact rock strength](13-intact-rock-strength.md) | σci, σt, Is50 | W4 | W4 | — | W4 |
 | 14 | [Intact rock deformability](14-intact-rock-deformability.md) | Ei, νi | W4 | W4 | — | W4 |
-| 15 | [Hoek–Brown constant mi](15-hoek-brown-mi.md) | mi | **part built** (a CSV in the `triaxial` template, M17 c); W0 (`TRIT` and user-defined AGS groups) | **built** (`hoek_brown_fit()`, σci and mi free and with σci fixed: M17 c) | W4 | M18 |
+| 15 | [Hoek–Brown constant mi](15-hoek-brown-mi.md) | mi | **part built** (a CSV in the `triaxial` template, M17 c); W0 (`TRIT` and user-defined AGS groups) | **built** (`hoek_brown_fit()`, σci and mi free and with σci fixed: M17 c) | W4 | W4 (the Hoek–Brown set, M22; `select()` doesn't take a `HoekBrownFit`) |
 | 16 | [GSI and disturbance](16-gsi-and-disturbance.md) | GSI, D, RQD, JCond89 | W4 (RQD) | W4 | — | W4 |
 | 17 | [Rock mass strength](17-rock-mass-strength.md) | mb, s, a, σcm, σt,mass, equivalent c′, φ′ | — | W4 | — | W4 |
 | 18 | [Rock mass modulus](18-rock-mass-modulus.md) | Em | — | W4 | — | W4 |
 | 19 | [Post-peak (residual) rock mass](19-post-peak-rock-mass.md) | GSIr, mr, sr, ar | — | W4 | — | W4 |
 | 20 | [In situ stress in rock](20-in-situ-stress-rock.md) | σH, σh, kH, kh | — | W4 | — | W4 |
 | 21 | [Swelling of rock](21-swelling-rock.md) | free swell, swell pressure, Grob kq, σ0 | W3 | W3 | — | W3 |
-| 22 | [Discontinuity shear strength](22-discontinuity-shear-strength.md) | φj, cj | **built** (`p.shear_box()`, M17 a) | **built** (`shear_box_fit()`, peak and residual, free and through the origin: M17 b) | — | M18 |
+| 22 | [Discontinuity shear strength](22-discontinuity-shear-strength.md) | φj, cj | **built** (`p.shear_box()`, M17 a) | **built** (`shear_box_fit()`, peak and residual, free and through the origin: M17 b) | — | not yet placed (`select()` doesn't take a `ShearBoxFit`; joints aren't in a model set yet) |
 | 23 | [Slake durability](23-slake-durability.md) | Id1, Id2 | W4 | W4 | — | W4 |
 
 Curves (triaxial stress–strain, rock triaxial, swelling against time, shear box displacement) come from the AGS
-file with wave 0, after wave 2; wave 2 reads them from a CSV (SPEC §1.3). Stage D for the sheets whose derivations land in waves 1–2 is the selection milestone (M18); each
-later wave builds stage D for its own sheets.
+file with wave 0, after wave 2; wave 2 reads them from a CSV (SPEC §1.3). Stage D for the sheets whose derivations land in waves 1–2 was the selection milestone (M18, done); each
+later wave builds stage D for its own sheets, with its model set.
