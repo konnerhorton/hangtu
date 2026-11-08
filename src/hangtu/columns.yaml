@@ -488,7 +488,7 @@ columns:
     quantity: stress
     scale: ratio
     label: Total vertical stress, σ_v0
-    ags: ["derived: docs/work/m13a-judgments.md"]
+    ags: ["derived: ht.analysis.vertical_stress()"]
     used_by: [P01]
   pore_pressure:
     description: In situ pore pressure (hydrostatic from the water level)
@@ -496,7 +496,7 @@ columns:
     quantity: stress
     scale: ratio
     label: Pore pressure, u_0
-    ags: ["derived: docs/work/m13a-judgments.md"]
+    ags: ["derived: ht.analysis.vertical_stress()"]
     used_by: [P01]
   effective_vertical_stress:
     description: Effective vertical stress, total less pore pressure
@@ -504,7 +504,7 @@ columns:
     quantity: stress
     scale: ratio
     label: Effective vertical stress, σ′_v0
-    ags: ["derived: docs/work/m13a-judgments.md"]
+    ags: ["derived: ht.analysis.vertical_stress()"]
     used_by: [P01]
 
   # --- Strength (correlations from M13; measured values from W2) -----------------------

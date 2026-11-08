@@ -1,14 +1,12 @@
 """The judgments file: unit weights, water levels, PI, Gs, α, σci, selections.
 
 A judgment has no default (SPEC §4). Analyses take it from an argument, then from
-``judgments=``, then from the Project's file, else raise. The file format and
-its checks are in ``docs/work/m13a-judgments.md``, Spec Decision 1. Two
-judgments are optional: the SPT refusal upper limit leaves refusals
-right-censored when unset (docs/work/m18a-refusals.md, Decision 1), and the
-fixed σci leaves ``hoek_brown_fit()`` with its free fit only
-(docs/work/m17c-hoek-brown-fit.md, decision 8). The ``selection`` judgment is
-keyed by parameter and names a method, so it has a checker of its own
-(docs/work/m18e-selection.md, decisions 6-10).
+``judgments=``, then from the Project's file, else raise. The file format, its
+checks and each judgment are in ``docs/analysis/judgments.md``. Two judgments
+are optional (§2 there): the SPT refusal upper limit leaves refusals
+right-censored when unset, and the fixed σci leaves ``hoek_brown_fit()`` with
+its free fit only. The ``selection`` judgment is keyed by parameter and names a
+method, so it has a checker of its own (§5.9).
 """
 
 import dataclasses
@@ -35,11 +33,11 @@ class Kind:
     required: tuple[str, ...]  # fields every entry needs
     one_of: tuple[str, ...]  # exactly one of these, when not empty
     by: str | None  # the column keys match, when fixed
-    unitless: bool = False  # a pure number: no units block (m14b, Decision 4)
-    project_only: bool = False  # one value for the project, no keys (m15d, Decision 8)
-    none_allowed: bool = False  # a value may be none, on purpose (m18a, Decision 3)
-    reason_required: bool = False  # every entry says why (m17c, decision 8)
-    keyed_only: bool = False  # no project: value, only keyed entries (m18d, decision 5)
+    unitless: bool = False  # a pure number: no units block (§1)
+    project_only: bool = False  # one value for the project, no keys (§3)
+    none_allowed: bool = False  # a value may be none, on purpose (§3)
+    reason_required: bool = False  # every entry says why (§3)
+    keyed_only: bool = False  # no project: value, only keyed entries (§3)
     reason_example: str = "mean of the three UCS tests that failed in shear"
 
 
@@ -61,7 +59,7 @@ KINDS = {
         one_of=("depth", "elevation"),
         by="loca_id",
     ),
-    # docs/work/m13b2-spt-strength-history.md, Decision 11.
+    # docs/analysis/judgments.md §5.3.
     "plasticity_index": Kind(
         keyed="values",
         fields={"plasticity_index": "dimensionless"},
@@ -69,7 +67,7 @@ KINDS = {
         one_of=(),
         by=None,
     ),
-    # docs/work/m14b-phase-relations.md, Decision 4.
+    # docs/analysis/judgments.md §5.4.
     "specific_gravity": Kind(
         keyed="values",
         fields={"specific_gravity": "dimensionless"},
@@ -78,7 +76,7 @@ KINDS = {
         by=None,
         unitless=True,
     ),
-    # docs/work/m15d-compare.md, Decision 8.
+    # docs/analysis/judgments.md §5.5.
     "significance_level": Kind(
         keyed="values",
         fields={"significance_level": "dimensionless"},
@@ -88,8 +86,8 @@ KINDS = {
         unitless=True,
         project_only=True,
     ),
-    # docs/work/m18a-refusals.md, spec item 1 and Decisions 1-3: field N, so
-    # one limit serves every N column; none keeps a unit right-censored.
+    # docs/analysis/judgments.md §5.6: field N, so one limit serves every N
+    # column; none keeps a unit right-censored.
     "spt_refusal_upper_limit": Kind(
         keyed="values",
         fields={"spt_n": "dimensionless"},
@@ -99,8 +97,8 @@ KINDS = {
         unitless=True,
         none_allowed=True,
     ),
-    # docs/work/m17c-hoek-brown-fit.md, decision 8: σci for the fit with σci
-    # fixed, keyed by any column the fit groups by.
+    # docs/analysis/judgments.md §5.7: σci for the fit with σci fixed, keyed
+    # by any column the fit groups by.
     "fixed_intact_compressive_strength": Kind(
         keyed="values",
         fields={"intact_compressive_strength": "stress"},
@@ -109,7 +107,7 @@ KINDS = {
         by=None,
         reason_required=True,
     ),
-    # docs/work/m18d-sources-compared.md, decision 5: φ′cv for the shear box
+    # docs/analysis/judgments.md §5.8: φ′cv for the shear box
     # conversion (Kulhawy & Mayne 1990, Eq. 4-10), set by mineralogy and
     # grading, so keyed by geology unit with no project-wide value.
     "critical_state_friction_angle": Kind(
@@ -154,17 +152,18 @@ PLAUSIBLE = {
     ),
 }
 
-#: The selection judgment: keyed by parameter, then geology unit (m18e,
-#: decision 6). Its entries name a method, so it has its own checker.
+#: The selection judgment: keyed by parameter, then geology unit
+#: (docs/analysis/judgments.md §5.9). Its entries name a method, so it has its
+#: own checker.
 SELECTION = "selection"
-#: The methods with no ``representative()`` view, and their fields (decision 7).
+#: The methods with no ``representative()`` view, and their fields (§5.9).
 SELECTION_FIELDS = {"fitted": ("source",), "value": ("value",), "none": ()}
 #: Quantity kinds whose values are pure numbers: no units block, as for Gs.
 PURE_NUMBERS = ("dimensionless", "count")
 #: Fields of a representative() view written as text, the rest as numbers.
 VIEW_TEXT = ("side", "distribution", "trend", "estimate")
 
-#: A field written ``none`` (m18a, Decision 3), held as no limit at all.
+#: A field written ``none`` (§3), held as no limit at all.
 NONE = "none"
 #: Units shown in examples, as they are written in the file.
 EXAMPLE_UNITS = {
@@ -223,7 +222,7 @@ class SelectionEntry:
 
 @dataclass(frozen=True)
 class Selection:
-    """The selection of one parameter, by geology unit (m18e, decisions 6-10)."""
+    """The selection of one parameter, by geology unit (judgments.md §5.9)."""
 
     parameter: str
     quantity: str
@@ -491,7 +490,7 @@ def judgments(path: str | PathLike[str]) -> Judgments:
     return Judgments(path)
 
 
-#: The ``meta_project`` key holding a project's judgments file (Decision 5).
+#: The ``meta_project`` key holding a project's judgments file (§1).
 STORED_KEY = "judgments_path"
 
 
@@ -522,7 +521,7 @@ def as_judgments(value: Any) -> Judgments | None:
     )
 
 
-# --- Checks (Spec Decision 1) -------------------------------------------------------
+# --- Checks (judgments.md §1, §3) ------------------------------------------------
 
 
 def _check_file(
@@ -771,13 +770,13 @@ def _check_entry(
     return Entry(values=values, reason=reason)
 
 
-# --- The selection (docs/work/m18e-selection.md, decisions 6-10) ---------------------
+# --- The selection (docs/analysis/judgments.md §5.9) ---------------------
 
 
 def selection_text(entry: SelectionEntry, unit: str | None) -> str:
     """``Mohr-Coulomb fit (CD, CU), fitted (three CD stages)``: one entry in a line."""
     if entry.method == "value":
-        assert entry.value is not None  # a value entry has one (decision 7)
+        assert entry.value is not None  # a value entry has one (§5.9)
         what = f"value {quantity_text(entry.value, entry.unit or unit or '')}"
     else:
         inputs = ", ".join(f"{name} {value}" for name, value in entry.inputs.items())
@@ -860,7 +859,7 @@ def check_selection(parameter: Any, body: Any, where: str) -> Selection:
 def check_selection_entry(
     entry: Any, quantity: str, unit: str | None, where: str
 ) -> SelectionEntry:
-    """Check one unit's entry, as far as it can be without the data (decision 8).
+    """Check one unit's entry, as far as it can be without the data (§5.9).
 
     ``unit`` is the selection's ``units: {value: …}``, None when not given (or
     a pure number). A ``value`` entry of a quantity with units needs it.

@@ -41,7 +41,7 @@ INPUTS = {
 }
 REQUIRED = {method: inputs[:1] for method, inputs in INPUTS.items()}
 #: Each method's fields as a selection judgment writes them, under
-#: representative()'s argument names (docs/work/m18e-selection.md, decision 7).
+#: representative()'s argument names (docs/analysis/judgments.md §5.9).
 FIELDS = {
     method: ("side", "distribution", "trend", *inputs)
     for method, inputs in INPUTS.items()
@@ -497,8 +497,8 @@ def check_view(
     """Check the view and its judgments (spec decision 1, criterion 1).
 
     It needs no data, so the judgments file's ``selection`` entries are
-    checked by it when the file is opened (docs/work/m18e-selection.md,
-    decision 8). ``inputs`` maps each name in ``INPUTS`` to its value or None.
+    checked by it when the file is opened (docs/analysis/judgments.md §5.9).
+    ``inputs`` maps each name in ``INPUTS`` to its value or None.
     """
     example = EXAMPLES["characteristic"]
     for name, given, choices in (

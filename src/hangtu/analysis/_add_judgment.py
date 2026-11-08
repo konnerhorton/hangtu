@@ -1,4 +1,4 @@
-"""Put a keyed judgment on the rows (docs/work/m13b2-spt-strength-history.md).
+"""Put a keyed judgment on the rows (docs/analysis/judgments.md §5.3).
 
 A correlation reads its inputs as columns. A judgment such as the plasticity
 index of a geology unit becomes one with ``add_judgment()``: from the call,
