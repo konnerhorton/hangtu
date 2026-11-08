@@ -343,3 +343,89 @@ against the code; 4–5 are (Sonnet), because they are mechanical once the livin
 
 The build commits of steps 1b and 2 follow the approved plan without separate approval, docs-only ones included
 (review, 2026-11-08).
+
+### Step 3: SPEC, STATUS.md, CLAUDE.md, process.md
+Three docs-only commits, no code or tests touched (no test reads SPEC, `CLAUDE.md` or `process.md`). Each one
+is checked by grep and a read of the changed sections. 1–2 are (Sonnet), because they move text; 3 is (Opus),
+because it checks SPEC against the living docs before cutting.
+
+**The size target is in words, not lines** (review, 2026-11-08). SPEC's bullets are one line each, however long, so trimming §4
+and §5 hardly changes the line count: moving §12.4 out and dropping the stamps gives about 400 lines. The
+target "about 330 lines" becomes about 6,000 words (from 7,996), a cut of a quarter, and the final count is
+given in both.
+
+**Commit 1: `cleanup: give status one home in STATUS.md`** (Sonnet)
+1. **`STATUS.md`** (new, root), in the shape of the skill's template, under 50 lines:
+   - **Next:** the `CLAUDE.md` sentence (wave 0, M16, once TODO #31 is settled; else wave 3, M19, with M20 on
+     M18's model-set base; then waves 4–6).
+   - **Last checkpoint:** this unit, 2026-11-08; its merge commit is filled in at the merge.
+   - **Open:** SPEC §12.4's table (M16, M19–M24) with Done when and Status.
+   - **Done:** one line per milestone in build order, from §12.4's Done table, then the rule for numbers (kept
+     when the order changes; M10 dropped, not reused).
+   - **Elsewhere:** the plot list (`docs/plots/README.md`) and the parameter index
+     (`docs/drafts/parameters/README.md`).
+   - **Releases:** 0.0.1 (the M2b state: P00, P01, P07) and 0.1.0 (M9: P00–P03 and P07, the SPT analysis,
+     AGS4 ingest, QC, the four datasets, `examples/` and `ht.examples`), from §12.1 and §1.3.
+2. **SPEC:**
+   - §12.4 becomes one line: "Milestones and their status: [`STATUS.md`](STATUS.md)." Its intro's rules
+     (rows in build order, each milestone names its wave, numbers kept) move to `STATUS.md`.
+   - §12.1: the 0.0.1 and 0.1.0 bullets go; §1.1's "claimed by the 0.0.1 placeholder release (§12.1)" stays as
+     a fact, pointing to `STATUS.md`.
+   - §1.3 Releases keeps the rule (cut when a milestone leaves something usable, not tied to waves or planned
+     ahead); "0.1.0 … is the first, on PyPI" goes. "§12.4 has the milestones" points to `STATUS.md`.
+   - §3: the "Batch 1 (P00–P07): all built" line goes; "the milestone of every other plot is in §12.4" points
+     to `STATUS.md`.
+   - The document map gains `STATUS.md`; `Status: Draft.` goes.
+3. **`CLAUDE.md`:**
+   - The first paragraph ends at the waves sentence, then "Status and what's next: `STATUS.md`."
+   - Commands: the whole suite is `uv run pytest -n 3 --dist loadfile`; the CI line keeps `-n auto`
+     (Decision 3).
+   - "Where things are" gains `STATUS.md` (status, what's next, releases) as its second bullet.
+4. **`docs/reference/process.md`:** the documents table gains `STATUS.md`, and `CLAUDE.md`'s row loses "What's
+   next? Done work is in SPEC §12.4"; "Stages and waves" and "Starting from zero" step 3 say `STATUS.md` for
+   §12.4; the close-out updates `STATUS.md` (the unit's status, and Next when it changes) instead of §12.4 and
+   `CLAUDE.md`'s "Next" sentence; "Starting from zero" step 4 loses the `phase2-data.md` instruction and keeps
+   the rule (a phase boundary is where the spec is redesigned).
+5. **Other pointers to §12.4:** `docs/plots/README.md:115`, `docs/plots/TEMPLATE.md:16`,
+   `docs/drafts/parameters/README.md:6`.
+6. **Check:** `grep -rn "§12\.4\|SPEC §12\.1" . --exclude-dir=docs/work --exclude-dir=sandbox` leaves only
+   SPEC's pointer and `CLAUDE.md`'s dependency rule (§12.1 keeps the dependencies).
+
+**Commit 2: `cleanup: drop SPEC's decided stamps and Conventions block`** (Sonnet)
+1. Every "(decided)", "(decided <date>)", "(decided <date>, `docs/work/…`)", "(agreed for now)", "(naming
+   decided)", "(was TODO 0b)", and the heading "Framework (decided)" go (Decision 1). Where a stamp holds the
+   bullet's only link to a living doc, the link stays as the pointer ("…, [`strength.md`](…) §1"). §8.2's
+   "Depth used (decided)" header becomes "Depth used".
+2. The milestone tags that are only provenance ("(M18 (a))", "(M15 (c), …)", "M11 c", "(M14 (a))") go; those
+   that point at future work ("until wave 5", "for GSI and D in M22", "M16's user-defined groups") stay.
+3. The Conventions block goes; 🔬 marks become plain "TODO #n".
+4. §1.2: the AGSi row gets its missing separator (`… later also input | Later (export, then import) |`).
+5. §1.3 "Order of work": the order and its one reason each (statistics before waves 2 and 0, wave 0 waits on
+   TODO #31); the history of why wave 2 moved goes.
+6. §8.2's CSV row cites `index-and-spt.md` §1.2 (not "analysis.md").
+7. §13: "None open. Pending decisions and research: [`docs/TODO.md`](docs/TODO.md)." The history of #1 and #2
+   goes (it is in `datasets.md`).
+8. **Check:** `grep -n "decided\|🟡\|❓\|🔬\|docs/work/" SPEC.md` is empty.
+
+**Commit 3: `cleanup: keep SPEC §4 and §5 to the cross-cutting rules`** (Opus)
+1. For each bullet in §4 and §5, keep the rule another feature could get wrong, one sentence where it can, and
+   its living doc as the pointer. Before cutting a detail, check that the doc holds it; one it doesn't is added
+   there in this commit. The cuts the Spec names:
+   - **Envelope fits** keep the shared core, "a reason, not an error", nothing through the origin unless asked,
+     and σci never picked by a rule; each fit's mechanics (four lines per group, Hoek's axes, 0.5 σci) go to
+     `strength.md` §4–§6, which holds them.
+   - **Derived results** keep `kind = "derived"`, the naming rule (the parameter's name, a test's name where it
+     would pool unlike tests, `reported_`, `correlation_name`, `conversion_name`); the conversion's equation and
+     tables go (`strength.md` §8).
+   - **`compare_sources()`, `select()`**: "never pooled, a position, never a test" and "the selection is a
+     judgment that names a method or gives a value with a reason"; the method list, the error for an unlisted
+     unit and the no-source case go (`statistics.md` §5–§6).
+   - **Model sets** keep the published model as the definition, the four origins, and that a set reads
+     `select()` and never re-implements it; `mohr_coulomb_set()`'s ψ rules, E′/ν′ and the views go
+     (`statistics.md` §7).
+   - **Judgments**: resolution, keys, the file, recording and "absence is an error, with two exceptions" stay,
+     each in a line; the selection bullet keeps its keys and points to `judgments.md` §5.9.
+   - **Undrained strength, phase relations, triaxial stresses**: one or two lines each, the rule and the doc.
+2. §5's opening list of functions drops the milestone tags.
+3. **Check:** each cut detail found in its living doc (listed in the commit body as "checked: …"); every link
+   resolves; `wc -l -w SPEC.md` against the target above.
