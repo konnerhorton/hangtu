@@ -13,6 +13,7 @@ Correlations (decided 2026-10-15; widened 2026-10-21) are stage C of every param
 
 ## 2. What each correlation does
 - **States its equation and cites its source**, with constants kept in the source's units.
+- **Has one entry in `config/correlations.yaml`** holding its facts (source, range, input, applies to), so the result's metadata and a plot's footnote read one place; the docstring is written by hand, and a test checks it against the entry.
 - **Says when it applies and when it doesn't:** soil types, input range, the input it was derived with (for SPT, field N, N60 or (N1)60), the data and region behind it, and known biases. The input is explicit: a column that doesn't match is an error, never a silent correction. This is in the docstring and in metadata attached to the result, so a plot or report can show it.
 - **Returns NaN with a count outside its range**, and never clips or extrapolates the input. The one exception is an SPT correlation's N input (§3).
 - **Returns rows that name the correlation** (`correlation_name`), so several estimates of one property compare on P01 (`color_by=`) or P07.

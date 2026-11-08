@@ -1,4 +1,4 @@
-# SPT class tables (docs/drafts/analysis.md §1.4). Each class runs from its
+# SPT class tables (docs/analysis/index-and-spt.md §1.4). Each class runs from its
 # lower bound up to, not including, the next class's lower bound (lower bound
 # inclusive), so N = 10 is "Medium dense". The last class has no upper bound.
 # Classes are listed from the lowest N up; the first lower bound is 0.

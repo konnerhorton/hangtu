@@ -16,8 +16,8 @@
 | `SPEC.md` (this file) | Scope, phasing, cross-cutting decisions (units, data, conventions, QC, statistics, engineering) |
 | [`docs/plots/README.md`](docs/plots/README.md) | Shared plot conventions, and the plot list with each plot's status |
 | `docs/plots/PXX-*.md` | One spec per figure, from [`TEMPLATE.md`](docs/plots/TEMPLATE.md) |
-| [`docs/analysis/`](docs/analysis/) | Living specs for analyses that span units of work: the correlation contract, what each statistics function does |
-| [`docs/drafts/`](docs/drafts/) | The analyses draft spec and notes for later work (Phase 2 data, Phase 3 statistics) |
+| [`docs/analysis/`](docs/analysis/) | Living specs for analyses that span units of work: index tests and SPT, judgments, strength, the correlation contract, what each statistics function does |
+| [`docs/drafts/`](docs/drafts/) | Notes for later work (Phase 2 data, Phase 3 statistics) |
 | [`docs/drafts/parameters/`](docs/drafts/parameters/README.md) | Draft reference sheets, one per ground parameter, and the index that tracks each parameter's stages (§1.3) |
 | `docs/site/parameters/NN-*.md` | A parameter's page on the docs site, promoted from its sheet by the wave that builds it |
 | [`docs/reference/eurocode7-summary.md`](docs/reference/eurocode7-summary.md) | Background for characteristic values |
@@ -168,7 +168,7 @@ Full conventions are in [`docs/plots/README.md`](docs/plots/README.md); each fig
 ---
 
 ## 4. Analyses (Phase 1 unless noted)
-Analysis code lives in `ht.analysis.*`, as plain functions usable without plotting. SPT, Atterberg and classification, and grain size are specified in [`docs/drafts/analysis.md`](docs/drafts/analysis.md) §1–§3 (decided; values to verify against the standards, TODO #5). Decisions that more than one feature depends on:
+Analysis code lives in `ht.analysis.*`, as plain functions usable without plotting. SPT, Atterberg and classification, and grain size are specified in [`docs/analysis/index-and-spt.md`](docs/analysis/index-and-spt.md) §1–§3 (decided; values to verify against the standards, TODO #5). Decisions that more than one feature depends on:
 - **SPT refusals** are included by default at the cap value (`spt_cap = 100`) with a note. Statistics treat them as censored, and a correlation gives them as a bound (below).
 - **N60** stays NULL until an energy ratio or `hammer_efficiency` is given. There is no default.
 - **NP** is distinct from blank everywhere and shown as a count on plots.

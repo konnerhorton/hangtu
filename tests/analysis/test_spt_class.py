@@ -1,4 +1,7 @@
-"""ht.analysis.spt_class(): SPT class tables (docs/drafts/analysis.md §1.4, §1.6)."""
+"""ht.analysis.spt_class(): SPT class tables.
+
+Spec: docs/analysis/index-and-spt.md §1.4, §1.6.
+"""
 
 import numpy as np
 import pandas as pd

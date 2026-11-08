@@ -782,7 +782,7 @@ columns:
     quantity: count
     scale: ratio
     label: SPT N (capped)
-    ags: ["derived: docs/drafts/analysis.md §1"]
+    ags: ["derived: docs/analysis/index-and-spt.md §1"]
     used_by: [P02, P03]
   spt_n60:
     description: N corrected to 60% energy (N × ER / 60)
@@ -832,13 +832,13 @@ columns:
   spt_refusal:
     description: True if the test reached refusal or partial penetration
     type: bool
-    ags: ["derived: docs/drafts/analysis.md §1"]
+    ags: ["derived: docs/analysis/index-and-spt.md §1"]
     used_by: [P02, P03]
     statistics: {role: at_least, values: [spt_n, spt_n60, spt_n_capped, spt_n1_60]}
   spt_class:
     description: SPT relative-density or consistency class, or Refusal
     type: text
-    ags: ["derived: docs/drafts/analysis.md §1.4"]
+    ags: ["derived: docs/analysis/index-and-spt.md §1.4"]
     used_by: [P03]
 
   # --- Atterberg limits (P04, P06) ---------------------------------------------------------
@@ -906,22 +906,22 @@ columns:
   plasticity_class_uscs:
     description: USCS fine-grained class from LL and PI (CL, CL-ML, ML, CH, MH; never OL or OH)
     type: text
-    ags: ["derived: docs/drafts/analysis.md §2.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §2.5"]
     used_by: [P04]
   plasticity_class_bs5930:
     description: BS 5930 plasticity class (C or M, then L, I, H, V or E by LL)
     type: text
-    ags: ["derived: docs/drafts/analysis.md §2.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §2.5"]
     used_by: [P04]
   uscs_symbol:
     description: USCS group symbol (ASTM D2487), e.g. SP-SM or CL; never OL or OH
     type: text
-    ags: ["derived: docs/drafts/analysis.md §2.6"]
+    ags: ["derived: docs/analysis/index-and-spt.md §2.6"]
     used_by: [P04, P05]
   aashto_group:
     description: AASHTO soil group (AASHTO M 145), A-1-a to A-7-6
     type: text
-    ags: ["derived: docs/drafts/analysis.md §2.7"]
+    ags: ["derived: docs/analysis/index-and-spt.md §2.7"]
     used_by: []
   aashto_group_index:
     description: AASHTO group index (AASHTO M 145), a whole number, 0 or more
@@ -929,7 +929,7 @@ columns:
     quantity: count
     scale: ratio
     label: AASHTO group index
-    ags: ["derived: docs/drafts/analysis.md §2.7"]
+    ags: ["derived: docs/analysis/index-and-spt.md §2.7"]
     used_by: []
 
   # --- Grain size (P05) ---------------------------------------------------------------------
@@ -955,7 +955,7 @@ columns:
     quantity: particle_size
     scale: ratio
     label: D10
-    ags: ["derived: docs/drafts/analysis.md §3"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3"]
     used_by: [P05]
   d15:
     description: Particle size at 15% passing (filter criteria)
@@ -963,7 +963,7 @@ columns:
     quantity: particle_size
     scale: ratio
     label: D15
-    ags: ["derived: docs/drafts/analysis.md §3.3"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.3"]
     used_by: [P05]
   d30:
     description: Particle size at 30% passing
@@ -979,7 +979,7 @@ columns:
     quantity: particle_size
     scale: ratio
     label: D50
-    ags: ["derived: docs/drafts/analysis.md §3.3"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.3"]
     used_by: [P05]
   d60:
     description: Particle size at 60% passing
@@ -995,7 +995,7 @@ columns:
     quantity: particle_size
     scale: ratio
     label: D85
-    ags: ["derived: docs/drafts/analysis.md §3.3"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.3"]
     used_by: [P05]
   uniformity_coefficient:
     description: Coefficient of uniformity, D60 / D10
@@ -1016,7 +1016,7 @@ columns:
   fraction_system:
     description: Size-fraction system the *_content columns follow (astm_uscs, aashto, iso14688 or the user's)
     type: text
-    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
     used_by: [P05]
   fines_content:
     description: Percentage of the sample that is finer than 0.075 mm (USCS)
@@ -1024,7 +1024,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Fines content
-    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
     used_by: [P05]
   sand_content:
     description: Percentage of the sample that is sand, by the row's fraction_system
@@ -1032,7 +1032,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Sand content
-    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
     used_by: [P05]
   gravel_content:
     description: Percentage of the sample that is gravel, by the row's fraction_system
@@ -1040,7 +1040,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Gravel content
-    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
     used_by: [P05]
   cobbles_content:
     description: Percentage of the sample that is cobbles, by the row's fraction_system
@@ -1048,7 +1048,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Cobbles content
-    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
     used_by: [P05]
   boulders_content:
     description: Percentage of the sample that is boulders, by the row's fraction_system
@@ -1056,7 +1056,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Boulders content
-    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
     used_by: [P05]
   silt_content:
     description: Percentage of the sample that is silt, by the row's fraction_system (ISO 14688)
@@ -1064,7 +1064,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Silt content
-    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
     used_by: [P05]
   clay_content:
     description: Percentage of the sample that is clay, by the row's fraction_system (ISO 14688)
@@ -1072,7 +1072,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Clay content
-    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
     used_by: [P05]
   silt_clay_content:
     description: Percentage of the sample that is finer than 0.075 mm (AASHTO silt-clay)
@@ -1080,7 +1080,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Silt-clay content
-    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
     used_by: [P05]
   fine_sand_content:
     description: Percentage of the sample that is fine sand, 0.075 to 0.425 mm (AASHTO)
@@ -1088,7 +1088,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Fine sand content
-    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
     used_by: [P05]
   coarse_sand_content:
     description: Percentage of the sample that is coarse sand, 0.425 to 2.0 mm (AASHTO)
@@ -1096,7 +1096,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Coarse sand content
-    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
     used_by: [P05]
   # Triaxial stages at failure (M11 a, docs/work/m11a-triaxial-data.md). Values
   # at failure end in _at_failure; the state before shearing doesn't.

@@ -23,7 +23,7 @@ Items to think through or research. Each item notes who owns it and the SPEC.md 
   - Is rock (weathered, IGM) worth separating?
   - Should the column be renamed (`material_class` or `ground_class`) now the example site has a rock unit (Sandstone, `rock`, M17 b) and the draft list has `fill`, neither a soil class? 0.1.0 is on PyPI, so the old header would be read through a deprecation period. Decide with the categories, as a unit of its own.
 
-### 5. Plasticity and gradation systems · Claude (verify) · docs/drafts/analysis.md §2–3 · needed for P04–P05 (Phase 1)
+### 5. Plasticity and gradation systems · Claude (verify) · docs/analysis/index-and-spt.md §2–3 · needed for P04–P05 (Phase 1)
 Verify against the source standards during M8:
 - BS 5930:2015+A1:2020 plasticity terms (low < 35, intermediate 35–50, high 50–70, very high 70–90, extremely high > 90 LL);
 - AASHTO M 145 / ASTM D3282 group and group-index rules;
@@ -31,13 +31,13 @@ Verify against the source standards during M8:
 - ISO 14688-1 size fractions.
 - the sieve lists in `config/sieves.yaml` (ASTM E11 sizes and designations; the ISO list at the ISO 14688-1 boundaries), used by P05.
 
-### 22. Organic soils (OL, OH) in USCS · You · docs/drafts/analysis.md §2; P04
+### 22. Organic soils (OL, OH) in USCS · You · docs/analysis/index-and-spt.md §2; P04
 - **Problem:** USCS splits OL from ML and OH from MH by the oven-dried LL, which isn't in AGS LLPL. In M8 the analysis gives only the inorganic symbol (M8 intent, decision 3).
 - **To decide:**
   - Where a user records that a specimen is organic: a per-specimen column, `soil_class = organic` (#3), or a field the user names.
   - How P04 marks organic specimens so they read differently from the rest (e.g. hollow markers with a legend entry).
 
-### 24. NP specimens with LL under 20 · You · docs/drafts/analysis.md §2.5
+### 24. NP specimens with LL under 20 · You · docs/analysis/index-and-spt.md §2.5
 - **Problem:** `plasticity()` classes an NP specimen at PI = 0. Below LL 20 the A-line's PI is negative, so PI = 0 is on or above it, and BS 5930 gives `CL` (a clay) for a non-plastic soil. USCS gives `ML` only because PI = 0 is under 4. Found in the M8 index datasets, where the test file's NP sand has LL 21 to stay clear of it.
 - **To decide:**
   - Whether an NP specimen is always M (silt) in both systems, whatever its LL.

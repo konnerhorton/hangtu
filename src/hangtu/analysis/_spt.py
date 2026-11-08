@@ -1,4 +1,4 @@
-"""SPT analysis (docs/drafts/analysis.md §1)."""
+"""SPT analysis (docs/analysis/index-and-spt.md §1)."""
 
 from collections.abc import Mapping
 from numbers import Real

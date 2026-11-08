@@ -1,4 +1,7 @@
-"""ht.analysis.uscs(): USCS group symbols (docs/drafts/analysis.md §2.6, §2.9)."""
+"""ht.analysis.uscs(): USCS group symbols.
+
+Spec: docs/analysis/index-and-spt.md §2.6, §2.9.
+"""
 
 import numpy as np
 import pandas as pd

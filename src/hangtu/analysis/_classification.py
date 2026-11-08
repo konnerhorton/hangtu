@@ -1,4 +1,4 @@
-"""USCS group symbols and AASHTO groups (docs/drafts/analysis.md §2.6 to 2.7)."""
+"""USCS group symbols and AASHTO groups (docs/analysis/index-and-spt.md §2.6 to 2.7)."""
 
 import operator
 from collections.abc import Callable
