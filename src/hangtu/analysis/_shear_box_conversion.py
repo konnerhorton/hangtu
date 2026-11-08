@@ -285,7 +285,7 @@ def _soils(soil: Any, fit: ShearBoxFit, convertible: list[bool]) -> list[str | N
             f'{_FUNCTION} needs soil=: "cohesionless" (Kulhawy & Mayne 1990, Table '
             '4-2, φ′psc = 1.12 φ′tc) or "normally_consolidated_cohesive" (Table '
             "4-5, φ′psc = 1.10 φ′tc), or a mapping {geology_unit: soil}. It is "
-            "never inferred from a soil class (SPEC §4)."
+            "never inferred from a soil class."
         )
     if not isinstance(soil, Mapping):
         one = _check_soil(soil, "soil=")
@@ -388,7 +388,7 @@ def _from_argument(
                 f"{_FUNCTION} {_JUDGMENT}= is one number, but the fit has "
                 f"{len(fit.groups)} groups ({groups}). Give a mapping by {_KEY}, "
                 f"e.g. {{'Terrace': 32}}: one φ′cv for every unit would be coarser "
-                "than the judgment allows (SPEC §4)."
+                "than the judgment allows."
             )
         one = entry(value)
         return [one], {"source": "argument", "by": None, "values": {"all": one["text"]}}

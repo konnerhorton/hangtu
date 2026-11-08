@@ -640,7 +640,7 @@ def _quantity(given: Any, unit: str, where: str) -> dict[str, Any]:
     if isinstance(given, int | float):  # bool too
         raise HangtuError(
             f"{_FUNCTION} {where} needs its unit: write it as text, e.g. "
-            f'"{given:g} MPa", not {given!r}. A unit is never guessed (SPEC §2.6).'
+            f'"{given:g} MPa", not {given!r}. A unit is never guessed.'
         )
     if not isinstance(given, str):
         raise HangtuError(

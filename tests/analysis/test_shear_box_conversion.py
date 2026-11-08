@@ -435,7 +435,8 @@ def test_cv_file_missing_a_unit_names_it(tmp_path):
 def test_cv_one_number_for_several_groups():
     fit = _fit({"Alluvium": 28, "Terrace": 30})
     with pytest.raises(
-        HangtuError, match=r"is one number, but the fit has 2 groups.*SPEC §4"
+        HangtuError,
+        match=r"is one number, but the fit has 2 groups.*than the judgment allows\.",
     ):
         ht.analysis.friction_angle_from_shear_box(
             fit, soil="cohesionless", critical_state_friction_angle=32

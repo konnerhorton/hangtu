@@ -606,7 +606,7 @@ def _read_fit(
     if isinstance(source, ShearBoxFit):
         raise HangtuError(
             f"{where} is a ShearBoxFit. Its peak_friction_angle is a direct shear φ′, "
-            "not a triaxial one, so the two aren't compared unconverted (SPEC §5). "
+            "not a triaxial one, so the two aren't compared unconverted. "
             "Convert it with ht.analysis.friction_angle_from_shear_box(fit, soil=..., "
             "critical_state_friction_angle=...) and pass the conversion."
         )

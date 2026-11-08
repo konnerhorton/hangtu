@@ -437,7 +437,7 @@ def _missing(read: Any, count: int, df: pd.DataFrame) -> str:
     if read is not None:
         return (
             f"{rows}, and the judgments file {str(read.path)!r} has no "
-            "specific_gravity, a judgment with no default (SPEC §4). Add "
+            "specific_gravity, a judgment with no default. Add "
             "specific_gravity: to the file, keyed by geology unit, or give it in "
             f"the call, {example}."
         )
@@ -449,7 +449,7 @@ def _missing(read: Any, count: int, df: pd.DataFrame) -> str:
     )
     return (
         f"{rows}, so their Gs is the specific_gravity judgment, which has no "
-        f"default (SPEC §4). Give it in the call, {example}, or in a judgments "
+        f"default. Give it in the call, {example}, or in a judgments "
         "file under specific_gravity: and pass judgments=ht.judgments(path), or "
         f"set it on the project with p.set_judgments(path).{hint}"
     )

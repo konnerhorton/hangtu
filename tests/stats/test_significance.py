@@ -59,7 +59,7 @@ def test_missing_everywhere_is_an_error_showing_the_entry():
         resolve(None, None, [], "compare()")
     text = str(error.value)
     assert "compare() tests at the significance level" in text
-    assert "no default (SPEC §4)" in text
+    assert "a judgment with no default: 0.05 is a convention" in text
     assert "significance_level:\n  project: {significance_level: 0.05" in text
     assert "merge and concat" not in text
 

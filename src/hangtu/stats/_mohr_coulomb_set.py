@@ -38,7 +38,7 @@ MODEL_CITATION = "Vermeer & de Borst (1984), Heron 29(3), p. 3"
 #: φ′ and ψ are in degrees whatever their values (decision 15).
 FIXED_UNITS = {FRICTION: "deg", DILATANCY: "deg"}
 #: Why E′ and ν′ are blank without a selection (decision 14).
-NO_STIFFNESS = "no selection; derived values come with wave 5 (M23)"
+NO_STIFFNESS = "no selection; derived values aren't built yet"
 #: The judgment record of the classes the set read (decision 16).
 SOIL_CLASS = "soil_class"
 #: φ′cv, the judgment Bolton's relation reads (M18 d).
@@ -113,7 +113,7 @@ def mohr_coulomb_set(
          Truty 2018, p. 107), and ψ is then given as a selection;
        - ``fill``, ``rock``, ``organic``, blank or any other class: an
          error, saying to give ψ as a ``value`` selection. Rock belongs in
-         the Hoek-Brown set, planned but not built yet.
+         the generalized Hoek-Brown set, planned but not built yet.
 
     **E′ and ν′** are a selection's when it lists the unit, else blank:
     derived values aren't built yet.
@@ -451,7 +451,8 @@ def _check_classes(
                 f"{fix}."
             )
         rock = (
-            " Rock belongs in the Hoek-Brown set (M22), not Mohr-Coulomb."
+            " Rock belongs in the generalized Hoek-Brown set (planned, not built yet), "
+            "not Mohr-Coulomb."
             if soil_class == "rock"
             else ""
         )
@@ -558,7 +559,7 @@ def _from_argument(
                 f"{FUNCTION} {CRITICAL}= is one number, but Bolton's relation needs "
                 f"φ′cv for {len(needed)} units ({', '.join(map(repr, needed))}). "
                 "Give a mapping by geology_unit, e.g. {'Terrace': 32}: one φ′cv for "
-                "every unit would be coarser than the judgment allows (SPEC §4)."
+                "every unit would be coarser than the judgment allows."
             )
         given = {needed[0]: value}
     else:

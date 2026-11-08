@@ -586,8 +586,7 @@ def _check_judgment(name: str, body: Any, where: str) -> Judgment:
             raise HangtuError(
                 f"{where}: {name} takes no project: value, only entries under "
                 f"{kind.keyed}: keyed by {kind.by}, each with its reason. One value "
-                f"for every {kind.by} would be coarser than the judgment allows "
-                "(SPEC §4)."
+                f"for every {kind.by} would be coarser than the judgment allows."
             )
         if key not in sections:
             raise HangtuError(
@@ -814,8 +813,7 @@ def check_selection(parameter: Any, body: Any, where: str) -> Selection:
             raise HangtuError(
                 f"{where}: a selection takes no project: value, only entries under "
                 "values: keyed by geology_unit, each with its reason. One selection "
-                "for every geology unit would be coarser than the judgment allows "
-                "(SPEC §4, §5)."
+                "for every geology unit would be coarser than the judgment allows."
             )
         if key == "units" and quantity in PURE_NUMBERS:
             raise HangtuError(
@@ -884,7 +882,7 @@ def check_selection_entry(
     if method is None:
         raise HangtuError(
             f"{where}: 'method' is missing. It is one of {', '.join(methods)}, "
-            f"with no default (SPEC §4). Example: {example}"
+            f"with no default. Example: {example}"
         )
     if method not in methods:
         raise HangtuError(
@@ -1032,7 +1030,7 @@ def _selection_view(
         if entry.get(name) is None:
             raise HangtuError(
                 f"{where}: {name!r} is missing. Method {method} needs side and "
-                "distribution, with no default (SPEC §4), e.g. side: low, "
+                "distribution, with no default, e.g. side: low, "
                 "distribution: normal."
             )
     try:

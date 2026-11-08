@@ -476,7 +476,7 @@ def _missing(name: str, read: "_judgments.Read | None", attached: bool) -> str:
     if read is not None:
         return (
             f"The judgments file {str(read.path)!r} has no {name}, and "
-            f"vertical_stress() needs {what}, a judgment with no default (SPEC §4). "
+            f"vertical_stress() needs {what}, a judgment with no default. "
             f"Add {name}: to the file, or give them in the call, {example}."
         )
     hint = (
@@ -486,7 +486,7 @@ def _missing(name: str, read: "_judgments.Read | None", attached: bool) -> str:
         "pass judgments=p.judgments."
     )
     return (
-        f"vertical_stress() needs {what}, a judgment with no default (SPEC §4). "
+        f"vertical_stress() needs {what}, a judgment with no default. "
         f"Give them in the call, {example}, or in a judgments file under "
         f"{name}: and pass judgments=ht.judgments(path), or set it on the project "
         f"with p.set_judgments(path).{hint}"

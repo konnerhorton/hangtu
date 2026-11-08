@@ -509,7 +509,7 @@ def check_view(
         if given is None:
             raise HangtuError(
                 f"{FUNCTION} needs {name}=, one of {_listed(choices)}: it is a "
-                f"judgment, so it has no default (SPEC §4). Example: {example}"
+                f"judgment, so it has no default. Example: {example}"
             )
         if given not in choices:
             raise HangtuError(
@@ -539,7 +539,7 @@ def check_view(
         if inputs[name] is None:
             raise HangtuError(
                 f"{FUNCTION} with method={method!r} needs {name}=: it is a "
-                f"judgment, so it has no default (SPEC §4). Example: "
+                f"judgment, so it has no default. Example: "
                 f"{EXAMPLES[method]}"
             )
     if method == "characteristic":
@@ -601,7 +601,7 @@ def _check_characteristic(inputs: dict[str, Any], trend: Any) -> None:
             f'{FUNCTION} with estimate="intermediate" (Type C) needs '
             f"{' and '.join(f'{name}=' for name in missing)}, θ and L in one "
             "length unit, or sensitivity_index= for Γ² directly. They are "
-            "judgments, with no default (SPEC §4). Example: "
+            "judgments, with no default. Example: "
             "scale_of_fluctuation=1.0, failure_length=10.0"
         )
     if trend is not None:

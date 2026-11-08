@@ -400,7 +400,7 @@ def _missing(
     )
     start = (
         f"{FUNCTION} has no selection of {value!r}: {where}. The selection is a "
-        "judgment, with no default (SPEC §4). Add it to the judgments file and "
+        "judgment, with no default. Add it to the judgments file and "
         "pass judgments=ht.judgments(path), or give selection=. Example:\n"
         "selection:\n"
         f"  {value}:\n"

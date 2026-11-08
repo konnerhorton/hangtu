@@ -265,8 +265,8 @@ def _missing(
         "pass judgments=p.judgments."
     )
     return (
-        f"{where} the rows need a {name}{rows}, a judgment with no default "
-        f"(SPEC §4). Give it in the call, {EXAMPLES[name]}, or in a judgments "
+        f"{where} the rows need a {name}{rows}, a judgment with no default. "
+        f"Give it in the call, {EXAMPLES[name]}, or in a judgments "
         f"file under {name}: keyed by geology unit, and pass "
         f"judgments=ht.judgments(path) or set it with p.set_judgments(path).{hint}"
     )

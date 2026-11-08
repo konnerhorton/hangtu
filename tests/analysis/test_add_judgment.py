@@ -102,7 +102,10 @@ def test_a_full_column_is_compared_with_the_file_without_a_lookup_error(tmp_path
 
 
 def test_a_missing_judgment_raises_naming_it():
-    with pytest.raises(ht.HangtuError, match=r"need a plasticity_index.*SPEC §4"):
+    with pytest.raises(
+        ht.HangtuError,
+        match=r"need a plasticity_index.*a judgment with no default\. Give it",
+    ):
         ht.analysis.add_judgment(rows(), "plasticity_index")
 
 
