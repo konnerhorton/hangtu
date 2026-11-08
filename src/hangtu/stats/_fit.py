@@ -346,7 +346,7 @@ def fit(
         "none"}`` by geology unit. None reads it from ``judgments=``, then
         the Project's file; not found anywhere, refusals are fitted as at
         least their value. It is optional, unlike other judgments: leaving
-        it out adds nothing beyond the data (SPEC §4).
+        it out adds nothing beyond the data.
     judgments : Judgments or path, optional
         The judgments file to read ``spt_refusal_upper_limit`` from, e.g.
         ``p.judgments``. None reads the Project's file the data carries.

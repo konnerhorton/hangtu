@@ -325,7 +325,7 @@ class Judgments:
 def judgments(path: str | PathLike[str]) -> Judgments:
     """Open a judgments file: the project's judgments and its selected values.
 
-    Judgments have no defaults in hangtu (SPEC §4). They live in one YAML file
+    Judgments have no defaults in hangtu. They live in one YAML file
     with their units and reasons, and every analysis that needs one reads it
     from there unless the call gives the value directly. The file is checked
     now, so a mistake shows up where it is opened, and re-read by each analysis.

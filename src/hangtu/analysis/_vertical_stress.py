@@ -80,7 +80,7 @@ def vertical_stress(
     weight $\gamma_w |z_w|$ is added to $\sigma_{v0}$, with a warning, so
     $\sigma'_{v0}$ is what it would be with the water at ground level.
 
-    **Judgments taken** (SPEC §4); none has a default. Each resolves from its
+    **Judgments taken**; none has a default. Each resolves from its
     argument, else ``judgments=``, else the project's judgments file carried in
     ``df.attrs["judgments_file"]``, else an error naming it.
 

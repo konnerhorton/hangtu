@@ -33,7 +33,7 @@ def crosstab(
 
     Each row of ``df`` is counted once, in the cell of its ``rows`` value and
     its ``columns`` value, so the logged legend code can be read against the
-    lab's USCS symbol, or one GEOL key against another (SPEC §8.3). It counts
+    lab's USCS symbol, or one GEOL key against another. It counts
     and runs no test.
 
     Values are compared as text, exactly as written: case and spaces count,

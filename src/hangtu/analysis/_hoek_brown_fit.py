@@ -120,7 +120,7 @@ def hoek_brown_fit(
     at $\sigma_3 = 0$ also give ``uniaxial_count`` and ``uniaxial_mean``,
     printed beside the free σci as a check; they never fix it.
 
-    **σci fixed** is a judgment (SPEC §4), so nothing picks it from the data.
+    **σci fixed** is a judgment, so nothing picks it from the data.
     It comes from ``fixed_intact_compressive_strength=``, else the judgments
     file's ``fixed_intact_compressive_strength`` (keyed by one of the
     ``group_by`` columns, with a ``project:`` value used, with a warning, for
@@ -189,16 +189,20 @@ def hoek_brown_fit(
 
     **Names:** the fitted values take the parameter's names,
     ``intact_compressive_strength`` and ``intact_hoek_brown_constant``: UCS
-    and triaxial points are one method's input (SPEC §5). σci here is a
+    and triaxial points are one method's input. σci here is a
     fitted parameter, not soil's ``unconfined_compressive_strength`` (q_u).
     The lab's own pairs (``reported_intact_compressive_strength`` and
     ``reported_intact_hoek_brown_constant``) are listed beside the fit, each
     distinct pair with its count of rows, and not compared with it.
 
     The fit uses no coefficient or cited value: it is least squares on
-    Hoek's own line, derived in docs/work/m17c-hoek-brown-fit.md,
-    "Derivation"; Hoek (2007, ch. 11) eq. 5 is the criterion and eqs. 6-8
-    the regression it reproduces.
+    Hoek's own line, derived above; Hoek (2007, ch. 11) eq. 5 is the
+    criterion and eqs. 6-8 the regression it reproduces. Eqs. 7-8 are the
+    free fit's $a$ and $b$ with the sums expanded,
+    $S_{xy} = \sum xy - \sum x \sum y / n$ and
+    $S_{xx} = \sum x^2 - (\sum x)^2 / n$. The fixed fit minimizes
+    $\sum (y - \sigma_{ci}^2 - b\,x)^2$ over $b$ alone, which gives the
+    $m_i$ above.
 
     Parameters
     ----------

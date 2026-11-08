@@ -311,13 +311,12 @@ class Project:
     ) -> pd.DataFrame:
         """Return the SPT results, one row per test, ready for P02 and P03.
 
-        Each test is placed at the middle of its test drive (SPEC §8.2):
+        Each test is placed at the middle of its test drive:
         ``depth_basis`` says ``mid_drive`` when the file gives the increment
         penetrations, ``mid_drive_nominal`` when hangtu assumed the nominal
         150 mm seating drive. Refusal, N60 and capped N come from
         ``ht.analysis.spt()``; ``spt_n60`` keeps an N60 the file gives, and
-        ``energy_source`` says where each N60 came from. See
-        ``docs/data/datasets.md`` §6.1.
+        ``energy_source`` says where each N60 came from.
 
         Parameters
         ----------
@@ -388,7 +387,7 @@ class Project:
         filled with LL - PL. A plastic limit above the liquid limit is kept as
         the file gives it, with the computed columns blank and a warning.
         Depth is the specimen's, else its sample's midpoint, else its top
-        (``depth_basis``). See ``docs/data/datasets.md`` §6.2.
+        (``depth_basis``).
 
         Parameters
         ----------
@@ -446,8 +445,8 @@ class Project:
 
         ``particle_size`` is in mm in US and SI output alike, as US practice
         keeps it. Each point carries its specimen (``specimen_id``) and depth,
-        so a curve is the rows of one specimen. See ``docs/data/datasets.md``
-        §6.3.
+        so a curve is the rows of one specimen. Depth is the specimen's, else
+        its sample's midpoint, else its top (``depth_basis``).
 
         Parameters
         ----------
@@ -510,7 +509,7 @@ class Project:
         points (a whole curve, since its points share a depth). D-values are
         in mm in US and SI output alike. A curve that doesn't reach a
         percentage or a fraction's sizes gets a blank, with a warning; nothing
-        is extrapolated. See ``docs/data/datasets.md`` §6.5.
+        is extrapolated.
 
         Parameters
         ----------
@@ -589,7 +588,7 @@ class Project:
         sample has a grading, its D-values and astm_uscs fractions
         (``gradation()``), USCS symbol (``uscs()``) and AASHTO group
         (``aashto()``). A symbol the data can't decide is left blank, with a
-        warning that counts it. See ``docs/data/datasets.md`` §6.6.
+        warning that counts it.
 
         Parameters
         ----------
@@ -650,8 +649,7 @@ class Project:
         depth), ``FGHG_IPRM`` and, in 4.0.x files, each ``IPRG_IPRM`` stage
         (``source = "field"``, at the middle of the test zone, with
         ``depth_top`` and ``depth_base``). ``<``/``>`` results keep their
-        bound as the value and the sign in ``qualifier``. See
-        ``docs/data/datasets.md`` §6.4.
+        bound as the value and the sign in ``qualifier``.
 
         Parameters
         ----------
@@ -720,8 +718,7 @@ class Project:
         field tests on stabilized ground (``stabilizer_content``) are kept
         and labeled. They aren't in situ values: leave them out before
         choosing a unit weight, with a pandas filter such as
-        ``gamma[gamma["sample_condition"] != "RECOMPACTED"]``. See
-        ``docs/data/datasets.md`` §6.8.
+        ``gamma[gamma["sample_condition"] != "RECOMPACTED"]``.
 
         Parameters
         ----------
@@ -786,7 +783,7 @@ class Project:
         marks as assumed (``#2.65``) keeps its number, with
         ``particle_density_assumed = True``: compare or drop those rows
         yourself, since an assumed value isn't a measurement (QC B004 lists
-        them). See ``docs/data/datasets.md`` §6.9.
+        them).
 
         Parameters
         ----------
@@ -871,8 +868,7 @@ class Project:
         **Initial state, not in situ:** ``water_content``, ``bulk_unit_weight``
         and ``dry_unit_weight`` (density × g) and ``void_ratio`` are the
         specimen's as set up for the test (as made, if recompacted:
-        ``sample_condition``). Don't pool them with ``p.density()``. See
-        ``docs/data/datasets.md`` §6.10.
+        ``sample_condition``). Don't pool them with ``p.density()``.
 
         Parameters
         ----------
@@ -951,8 +947,7 @@ class Project:
         s_u / s_u,r where a test gives both. Field vane values are as
         measured: Bjerrum's correction isn't applied. A value beyond an
         instrument's range (``>200``) is a bound, with ``qualifier`` (and
-        ``remolded_qualifier`` for the remolded value). See
-        ``docs/data/datasets.md`` §6.11.
+        ``remolded_qualifier`` for the remolded value).
 
         Parameters
         ----------
@@ -1049,7 +1044,7 @@ class Project:
         ``reported_peak_friction_angle`` and the residual pair) is repeated on
         every stage: summarize it on one row per specimen. The specimen's
         density, water content and void ratio are its initial state, as set
-        up. See ``docs/data/datasets.md`` §6.12.
+        up.
 
         Parameters
         ----------
@@ -1116,7 +1111,7 @@ class Project:
         layers by USCS, say) and pass it back. Layers are as written: gaps and
         overlaps are kept, and ``p.qc()`` reports them (G002, G003). There is
         no ``depth=`` or ``elevation=``: a log cut at a depth can't be
-        integrated. See ``docs/data/datasets.md`` §6.7.
+        integrated.
 
         Parameters
         ----------
@@ -1192,7 +1187,7 @@ class Project:
         The path is stored with the project, not the file's content, so an
         edit to the file shows up in the next analysis. Every dataset carries
         it in ``df.attrs["judgments_file"]``, and analyses that need a
-        judgment read it from there (SPEC §4). A path inside the database's
+        judgment read it from there. A path inside the database's
         folder is stored relative to it, so the folder can move whole. The
         file is read now, so a mistake in it shows up here. The setting lasts
         until the database is rebuilt.

@@ -1,4 +1,4 @@
-"""The hangtu house style (docs/plots/P00-framework.md §6)."""
+"""The hangtu house style."""
 
 import difflib
 from collections.abc import Iterator

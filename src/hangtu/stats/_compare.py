@@ -411,7 +411,7 @@ def compare(
     (``count_at_least``, ``count_at_most``); the means, and so Welch's
     results, are then biased, and the summary says so.
 
-    **The significance level α is a judgment with no default** (SPEC §4):
+    **The significance level α is a judgment with no default**:
     ``significance_level=``, else ``judgments=``, else the project's
     judgments file, else an error. The p-values don't depend on it; the
     intervals (at 1 - α) and the summary's conclusions do.
@@ -419,7 +419,7 @@ def compare(
     The tests assume independent values. Values from one hole, or close
     together, aren't, and the p-values are then too small.
 
-    Not yet checked against the original papers (TODO #48): Welch (1947);
+    Not yet checked against the original papers: Welch (1947);
     Brunner & Munzel (2000) and Neubert & Brunner (2007), for the statistic,
     its variance and the permutation form, which follow SciPy's
     ``brunnermunzel`` and Karch (2021).
@@ -704,7 +704,7 @@ def compare_groups(
     The tests assume independent values. Values from one hole, or close
     together, aren't, and the p-values are then too small.
 
-    Not yet checked against the original papers (TODO #48): Welch (1951),
+    Not yet checked against the original papers: Welch (1951),
     Games & Howell (1976), Dunn (1964), Holm (1979).
 
     Parameters

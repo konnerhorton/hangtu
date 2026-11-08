@@ -51,7 +51,7 @@ def select(
 ) -> "SelectionResult":
     r"""Select one parameter's value in each geology unit, as the judgments say.
 
-    The selection is a judgment (SPEC §4, §5): for each geology unit, the
+    The selection is a judgment: for each geology unit, the
     judgments file's ``selection`` names the source and the method that give
     the value, or gives the value with its reason. ``select()`` computes it,
     and records what was chosen, from what, and what the other sources gave.

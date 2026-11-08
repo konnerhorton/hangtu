@@ -142,8 +142,8 @@ def compare_sources(
     s_u. Each source is summarized on its own, per unit, and **never pooled**:
     grouping by source is the point, so there is no ``pool=``. The comparison
     is descriptive and tests nothing; ``ht.stats.compare()`` is the check for
-    two row sources (SPEC §5: selection pools units "on geology and plots;
-    tests are a check").
+    two row sources (selection pools units on geology and plots; tests are a
+    check).
 
     **Sources.** Each DataFrame gives its rows of ``value``, labeled by the
     non-blank values of the registry's source columns (``source``,
@@ -161,7 +161,7 @@ def compare_sources(
     ``ht.analysis.friction_angle_from_shear_box()``, gives its main line's
     converted ``effective_friction_angle`` only, labeled "shear box, converted
     (Kulhawy & Mayne 1990)". A ``ShearBoxFit`` isn't taken: a direct shear φ′
-    isn't a triaxial φ′ until converted (SPEC §5). A fit's groups must be
+    isn't a triaxial φ′ until converted. A fit's groups must be
     keyed by every ``by`` column. One fit in a unit is one value, with
     ``count_points``, ``r_squared``, its normal stress range and its points'
     depths; fitted per sample (``group_by=["geology_unit",

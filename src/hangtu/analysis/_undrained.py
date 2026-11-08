@@ -58,7 +58,7 @@ def undrained_shear_strength_from_tests(
     $s$ and radius $t = (\sigma_1 - \sigma_3)/2$, at its top, so
     $s_u = t = q_f / 2$ at any cell pressure; unconfined compression is the
     case $\sigma_3 = 0$, $s_u = q_u / 2$. This is a derivation, not a
-    correlation (``docs/work/m17a-strength-data.md``, Sources).
+    correlation, so it has no coefficient and no source to cite.
 
     **Sensitivity** $S_t = s_u / s_{u,r}$, ``strength_sensitivity``, is given
     where a row has both its peak and its remolded strength

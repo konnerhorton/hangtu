@@ -80,8 +80,15 @@ def mohr_coulomb_fit(
     intercept at $\sigma'_n = 0$, outside it.
 
     These follow from the circle's geometry and the definitions of $s'$ and
-    $t$, without a coefficient or a cited value; the steps are written out in
-    docs/work/m11b-envelope-fit.md, "Derivations".
+    $t$, without a coefficient or a cited value. The envelope's unit normal
+    is $(-\sin\phi', \cos\phi')$, so the distance from the center $(s', 0)$
+    to it is $s' \sin\phi' + c' \cos\phi'$; tangency sets that equal to
+    $t$. The radius to the tangent point lies along the same normal, which
+    gives the point above. Least squares minimizes
+    $\sum (t - a - s' \tan\alpha)^2$: with $x = s'$ and $y = t$,
+    $\tan\alpha = S_{xy} / S_{xx}$ and
+    $a = \bar t - \bar{s'} \tan\alpha$; with ``cohesion=0``, $a = 0$ and
+    $\tan\alpha = \sum s' t / \sum s'^2$.
 
     **Rows left out**, each counted once under the first reason that applies:
     a total principal stress blank (extension and incomplete rows,

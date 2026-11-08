@@ -113,10 +113,10 @@ def mohr_coulomb_set(
          Truty 2018, p. 107), and ψ is then given as a selection;
        - ``fill``, ``rock``, ``organic``, blank or any other class: an
          error, saying to give ψ as a ``value`` selection. Rock belongs in
-         the Hoek-Brown set (M22).
+         the Hoek-Brown set, planned but not built yet.
 
     **E′ and ν′** are a selection's when it lists the unit, else blank:
-    derived values come with wave 5 (M23).
+    derived values aren't built yet.
 
     **A set holds constants**: a selection that gives a line with depth
     (``trend:``) is an error; :func:`select` gives the line on its own.

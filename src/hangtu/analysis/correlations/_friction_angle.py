@@ -31,7 +31,7 @@ def effective_friction_angle_hatanaka_uchida_1996(
 
     **Input:** ``spt_n1_60``, from ``ht.analysis.spt_n1_60()``. It is the only
     column read: field N or N60 can't be passed instead, and there is no
-    argument to choose another column (SPEC §4).
+    argument to choose another column.
 
     **Valid for:** relatively clean fine to medium sands, and
     4.55 ≤ (N1)60 ≤ 39, the source's 3.5 ≤ N1 ≤ 30 at 78 % energy
@@ -148,7 +148,7 @@ def effective_friction_angle_kulhawy_mayne_1990(
     ``effective_vertical_stress`` (from ``ht.analysis.vertical_stress()``),
     with its units. GEC 5 gives the input as N60, not field N or (N1)60: the
     overburden is in the equation. There is no argument to read another N
-    column (SPEC §4).
+    column.
 
     **Valid for:** relatively clean sands, within the chart's axes:
     0 < σ′v ≤ 300 kPa and N60 ≤ 60.

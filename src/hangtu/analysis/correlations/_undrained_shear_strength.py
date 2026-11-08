@@ -45,8 +45,7 @@ def undrained_shear_strength_terzaghi_peck_1967(
     **Input:** ``spt_n``, field N as measured. The table predates energy
     correction: its N values "have not all been standardized to the same
     energy level" (EPRI, p. 4-53), so N60 isn't read and isn't converted to
-    the hammers of the time. There is no argument to read another column
-    (SPEC §4).
+    the hammers of the time. There is no argument to read another column.
 
     **Valid for:** clays, and N of 0 or more. The table was "developed
     primarily using unconfined compression tests" (EPRI, p. 4-53).
@@ -189,8 +188,7 @@ def undrained_shear_strength_stroud_1974(
     **Inputs:** ``spt_n60`` (from ``ht.analysis.spt()`` or ``p.spt()``) and
     ``plasticity_index`` (from ``ht.analysis.add_judgment()``). PI is rarely
     tested at the SPT depth, so it is a judgment by geology unit; the nearest
-    Atterberg test isn't used. There is no argument to read another column
-    (SPEC §4).
+    Atterberg test isn't used. There is no argument to read another column.
 
     **Valid for:** clays with PI of 15 or more. No N range is stated.
 

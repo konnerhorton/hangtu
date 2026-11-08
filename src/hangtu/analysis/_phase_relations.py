@@ -89,7 +89,7 @@ def phase_relations(
     3. ``judgment``: the ``specific_gravity`` judgment, for rows with no
        particle density.
 
-    **Judgment taken** (SPEC §4); it has no default. Gs for rows with no
+    **Judgment taken**; it has no default. Gs for rows with no
     particle density, keyed by geology unit (the file's ``by:``): from
     ``specific_gravity=``, else ``judgments=``, else the project's judgments
     file carried in ``df.attrs["judgments_file"]``, else an error naming it.

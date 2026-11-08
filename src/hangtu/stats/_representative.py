@@ -104,7 +104,7 @@ def representative(
     r"""Compute a parameter's representative value per group, in one named view.
 
     One calculation, one view per call: the view and every judgment it needs
-    are arguments, none has a default (SPEC §4), and the result records them
+    are arguments, none has a default, and the result records them
     with the statistics behind each value. Two views of the same rows are two
     calls, and both read the same statistics.
 

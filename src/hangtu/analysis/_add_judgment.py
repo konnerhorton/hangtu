@@ -42,7 +42,7 @@ def add_judgment(
 
     Some correlations read an input that is a judgment, not a test result at
     the row: Stroud (1974) reads the plasticity index of the clay at each
-    SPT. A judgment has no default (SPEC §4); this puts it on the rows, as
+    SPT. A judgment has no default; this puts it on the rows, as
     ``vertical_stress()`` puts σ′v, so the correlation reads it as a column.
     In this version it takes ``"plasticity_index"``.
 
