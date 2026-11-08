@@ -127,7 +127,8 @@ def range_text(item: Mapping[str, Any]) -> str:
     """Write an entry's range as ``"4.55 ≤ (N1)60 ≤ 39"``, joined by ``"; "``.
 
     Each input or term is named by its ``labels`` entry, as the docstring
-    writes it, and followed by its unit where it has one (TODO #41).
+    writes it, and followed by its unit where it has one
+    (docs/analysis/correlations.md §2).
     """
     labels = item.get("labels") or {}
     parts = []
@@ -522,7 +523,8 @@ def estimate(
         reasons = ", ".join(
             f"{counts[reason]} {reason}" for reason in REASONS if reason in counts
         )
-        # The range explains only the rows outside it (TODO #41).
+        # The range explains only the rows outside it
+        # (docs/analysis/correlations.md §2).
         outside = BELOW_RANGE in counts or ABOVE_RANGE in counts
         warn(
             f"{name} gave no estimate for {int(noted.sum())} of {len(df)} rows "

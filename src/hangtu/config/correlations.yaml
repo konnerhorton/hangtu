@@ -22,7 +22,7 @@
 #               the estimate at its N. Only for an estimate that rises with N
 #               (docs/analysis/correlations.md §3)
 #   labels      {input or term in range: how the docstring writes it}, for the
-#               warning, so it names the range in the user's terms (TODO #41)
+#               warning, so it names the range in the user's terms (docs/analysis/correlations.md §2)
 #   bands       optional, for a correlation published as classes: each class's lower
 #               bound on the input (inclusive) and its target band (lower, upper;
 #               upper null for an open band), written as <target>_lower / _upper
