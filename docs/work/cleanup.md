@@ -429,3 +429,34 @@ given in both.
 2. §5's opening list of functions drops the milestone tags.
 3. **Check:** each cut detail found in its living doc (listed in the commit body as "checked: …"); every link
    resolves; `wc -l -w SPEC.md` against the target above.
+
+### Step 4: TODO sweep
+One commit (Sonnet), checked by grep and a read of `TODO.md`. Only comments change in code, so ruff, mypy and
+the correlation tests run.
+
+**Checked against the code and specs (2026-11-08):** no item is resolved, so none is deleted.
+- #5 stays: the `# verify` marks are still in `config/fraction_systems.yaml`, `plasticity_systems.yaml` and
+  `sieves.yaml`, and `index-and-spt.md` still marks values 🔬. Only "during M8" goes.
+- #21 stays: P17 §14 still has the figure number and stated validity open. "Needed for M12's spec" goes.
+- The rest are open as written: #44 (labels still clipped), #47 (three `scale: null`), #55
+  (`rock_triaxial.csv` still outside `site.ags`), #34 (γw still a setting), #36 and #39 (not built).
+
+**Commit: `cleanup: keep TODO to what is still open`** (Sonnet)
+1. **History inside open items goes**, keeping what is open:
+   - the "built in …", "settled in …" and "done in …" bullets of #13, #16, #29 and #41, and the "Decided for
+     now" bullet of #7, each after checking that its fact is in a living doc (`statistics.md` §2, SPEC §5,
+     `judgments.md` §5.1, §5.2 and §5.4, `qc.md` §4.10). #41's warning wording isn't in one, so it moves to
+     `correlations.md` §2, and the three comments that cite TODO #41 for it (`correlations/_framework.py`,
+     `config/correlations.yaml`) point there;
+   - milestone and unit tags that are only provenance ("(M18 (f), …)", "(M3 intent, decision 6)", "M17 b",
+     "Cut from M13 b2", "`qc-review`"), and stale timing ("during M8", "for M12's spec", "with M13 b2 or
+     M18"). Tags that point at future work stay ("wave 0 (M16)", "with wave 4 (M22)").
+2. **Work-file citations point at living docs**: `m13a`, `m14b`, `m15b`–`m15e`, `m18b`, `m18d`, `m18e`, `m11*`,
+   `m17b` → `judgments.md`, `statistics.md`, `correlations.md`, `strength.md`; `m13b1`, `m13b2` → `correlations.md`;
+   `qc-review` → `qc.md` §3.4; the section heading's `parameter-roadmap.md` → the parameter index. A work file
+   stays only where the item cites its Sources list and no living doc holds that list (#48, #53).
+3. **The header** says a resolved item's decision moves into SPEC or its living spec.
+4. **Moved docs:** no `drafts/analysis` or `phase[23]-` path is left (step 2 repointed them); checked by grep.
+5. Item numbers don't change.
+6. **Check:** `grep -n "docs/work/" docs/TODO.md` leaves only the Sources citations in #48 and #53;
+   `grep -nE "\bM[0-9]{1,2}\b" docs/TODO.md` leaves only future work.
