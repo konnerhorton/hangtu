@@ -60,3 +60,15 @@ def test_messages_cite_no_internal_files():
             ):
                 hits.append(f"{path.relative_to(SOURCE)}:{node.lineno}")
     assert hits == [], "\n".join(hits)
+
+
+def test_source_cites_no_work_file():
+    # A decision's spec is a living doc (docs/analysis/, docs/data/, a plot
+    # spec); docs/work/ files are history, so code points at the living doc.
+    hits = []
+    for pattern in ("*.py", "*.yaml"):
+        for path in sorted(SOURCE.rglob(pattern)):
+            for number, line in enumerate(path.read_text("utf-8").splitlines(), 1):
+                if "docs/work/" in line:
+                    hits.append(f"{path.relative_to(SOURCE)}:{number}")
+    assert hits == [], "\n".join(hits)

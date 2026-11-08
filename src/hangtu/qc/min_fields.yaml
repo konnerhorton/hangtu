@@ -67,7 +67,7 @@ min_fields:
   TRIT:
     required: [*sample_key, TRIT_TESN, TRIT_CELL, TRIT_DEVF]
     recommended: [SPEC_REF, SPEC_DPTH, TRIT_STRN]
-  # Undrained strength (M17 a, docs/work/m17a-strength-data.md Decision 16).
+  # Undrained strength (M17 a, docs/data/qc.md §4.10).
   LUCT:
     required: [*sample_key, LUCT_UCS]
     recommended: [SPEC_REF, SPEC_DPTH, LUCT_STRA]

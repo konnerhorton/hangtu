@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | Living spec. `describe` (M15 a), `fit` (M15 c), `compare` and `compare_groups` (M15 d), `crosstab` (M15 e), `representative` (M18 b), `compare_sources` (M18 d), `select` (M18 e), `mohr_coulomb_set` (M18 f) built |
 | **Parent** | SPEC §5: the result object, "one calculation, many views", the input rules every function follows, and why statistics are designed for lab data |
-| **Related** | [`m15a-describe.md`](../work/m15a-describe.md), [`m15c-fit.md`](../work/m15c-fit.md), [`m15d-compare.md`](../work/m15d-compare.md), [`m15e-crosstab.md`](../work/m15e-crosstab.md), [`m18a-refusals.md`](../work/m18a-refusals.md), [`m18b-representative-values.md`](../work/m18b-representative-values.md), [`m18d-sources-compared.md`](../work/m18d-sources-compared.md), [`m18e-selection.md`](../work/m18e-selection.md), [`m18f-mohr-coulomb-set.md`](../work/m18f-mohr-coulomb-set.md). Draft notes: [`../drafts/phase3-stats.md`](../drafts/phase3-stats.md). Background: [`../reference/eurocode7-summary.md`](../reference/eurocode7-summary.md) |
+| **Related** | [`m15a-describe.md`](../work/m15a-describe.md), [`m15c-fit.md`](../work/m15c-fit.md), [`m15d-compare.md`](../work/m15d-compare.md), [`m15e-crosstab.md`](../work/m15e-crosstab.md), [`m18a-refusals.md`](../work/m18a-refusals.md), [`m18b-representative-values.md`](../work/m18b-representative-values.md), [`m18d-sources-compared.md`](../work/m18d-sources-compared.md), [`m18e-selection.md`](../work/m18e-selection.md), [`m18f-mohr-coulomb-set.md`](../work/m18f-mohr-coulomb-set.md). Background: [`../reference/eurocode7-summary.md`](../reference/eurocode7-summary.md) |
 
 Update this file in the same commit as any change to a function's behavior, and SPEC §5 if the change alters a rule there.
 

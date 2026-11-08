@@ -1,6 +1,6 @@
 """``mohr_coulomb_set()``: each geology unit's Mohr-Coulomb parameters (SPEC §5).
 
-Spec: docs/work/m18f-mohr-coulomb-set.md, decisions 9-19. c′ and φ′ come
+Spec: docs/analysis/statistics.md §7. c′ and φ′ come
 from ``select()``; ψ from a selection, else by rule from the unit's
 ``soil_class``; E′ and ν′ from a selection, else blank until wave 5 (M23).
 """

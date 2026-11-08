@@ -1,6 +1,6 @@
 """The base every model set is built on (SPEC §5, "Model sets").
 
-Spec: docs/work/m18f-mohr-coulomb-set.md, decisions 5-8. A model set is one
+Spec: docs/analysis/statistics.md §7. A model set is one
 value per geology unit and parameter, each with where it came from: a
 selection (``select()``), a rule with its citation, a judgment, or blank
 with a reason. A set is a function that builds the records and a thin

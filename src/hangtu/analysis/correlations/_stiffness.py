@@ -1,4 +1,4 @@
-"""E and Vs from SPT (sheets 08, 10; docs/work/m13b3-spt-stiffness.md).
+"""E and Vs from SPT (sheets 08, 10; docs/analysis/correlations.md).
 
 The E correlations take their coefficient from the source's soil row, named
 by a required ``soil=`` (Decision 3).

@@ -1,6 +1,6 @@
 """``select()``: each geology unit's selected value of one parameter (SPEC §5).
 
-Spec: docs/work/m18e-selection.md, decisions 10-17. The selection is a
+Spec: docs/analysis/statistics.md §6. The selection is a
 judgment: the judgments file (or ``selection=``) names, per geology unit, a
 source and a method. ``select()`` runs ``compare_sources()`` once, then each
 unit's method on that source's rows, and records what was chosen, from what.
@@ -179,8 +179,8 @@ def select_from(
 ) -> "SelectionResult":
     """``select()`` with the judgments file already read (``read``).
 
-    A model set reads the file once for every parameter it selects
-    (docs/work/m18f-mohr-coulomb-set.md, decision 8); ``judgments`` still
+    A model set reads the file once for every parameter it selects;
+    ``judgments`` still
     reaches each method, for the judgments it reads.
     """
     quantity = _judgments.selected_quantity(value, f"{FUNCTION} value=")

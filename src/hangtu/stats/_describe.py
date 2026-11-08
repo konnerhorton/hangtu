@@ -1,6 +1,6 @@
 """``describe()``: count, mean, spread and percentiles by group.
 
-Spec: docs/work/m15a-describe.md.
+Spec: SPEC §5, the input rules.
 
 ``summarize()`` is the arithmetic, on values already chosen. ``describe()``
 chooses them from a frame; P01 and P07 call ``summarize()`` on the values they

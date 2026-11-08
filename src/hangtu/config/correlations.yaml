@@ -1,5 +1,5 @@
-# Published correlations (ht.analysis.correlations; docs/work/m13b1-spt-framework.md,
-# Decision 6). One entry per correlation, named as its function. The code reads
+# Published correlations (ht.analysis.correlations; docs/analysis/correlations.md).
+# One entry per correlation, named as its function. The code reads
 # target, inputs and range; each function's docstring repeats the sources, their
 # locators and the range bounds, and tests/analysis/test_correlations.py checks
 # that they agree. Every entry is recorded in df.attrs["correlations"] on each
@@ -20,7 +20,7 @@
 #               at_least above 0, the estimate is at that end, marked at least (above)
 #               or at most (below) in correlation_qualifier; at a refusal, at least
 #               the estimate at its N. Only for an estimate that rises with N
-#               (docs/work/m18a-refusals.md, spec item 2)
+#               (docs/analysis/correlations.md §3)
 #   labels      {input or term in range: how the docstring writes it}, for the
 #               warning, so it names the range in the user's terms (TODO #41)
 #   bands       optional, for a correlation published as classes: each class's lower
@@ -29,9 +29,9 @@
 #   rows        optional, for a coefficient the source gives by soil type: {name:
 #               {wording, coefficient, uscs}}, the source's wording, its coefficient,
 #               and hangtu's proposed USCS groups for it; soil= names the row and
-#               uscs= checks it (docs/work/m13b3-spt-stiffness.md, Decision 3)
+#               uscs= checks it (docs/analysis/correlations.md §2)
 #   applies_to, not_for, notes   as the sources state them
-#   scatter     the source's own statistics (docs/work/m15b-correlation-statistics.md):
+#   scatter     the source's own statistics (docs/analysis/correlations.md §2):
 #               words (its statement, verbatim; "Not stated." when none), data_count
 #               (its n), r_squared, standard_deviation {value, unit, scale}; null when
 #               not stated. unit: a unit, pa (the entry's pa = 100 kPa), or null for a
@@ -222,7 +222,7 @@ preconsolidation_stress_mayne_kemper_1988:
     words: "n = 126, r² = 0.699, S.D. = 4.37 pa"
     data_count: 126
     r_squared: 0.699
-    standard_deviation: {value: 4.37, unit: pa, scale: null}   # 🔬 arithmetic or log: docs/work/m15b-correlation-statistics.md
+    standard_deviation: {value: 4.37, unit: pa, scale: null}   # 🔬 arithmetic or log: TODO #47
   advice: {words: "SPT N is a poor predictor in clay: use the estimate to check oedometer σ′p, not in its place.", by: hangtu}
   evaluations: []
   notes: >-

@@ -1,4 +1,4 @@
-"""φ′ from SPT (sheet 04; docs/work/m13b1-spt-framework.md, Decision 7)."""
+"""φ′ from SPT (sheet 04; docs/analysis/correlations.md)."""
 
 from collections.abc import Mapping
 

@@ -1,6 +1,6 @@
 """``p.shear_box()``: one row per shear box stage (datasets.md §6.12; M17 a).
 
-Spec: docs/work/m17a-strength-data.md, Decisions 11-13. Shear box and ring
+Spec: docs/data/datasets.md §6.12. Shear box and ring
 shear, soil and rock joint tests alike; nothing labels which a test is, or
 whether its stresses are effective.
 """

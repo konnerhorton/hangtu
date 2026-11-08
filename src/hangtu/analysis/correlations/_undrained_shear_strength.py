@@ -1,4 +1,4 @@
-"""s_u from SPT (sheet 05; docs/work/m13b2-spt-strength-history.md, Decision 1)."""
+"""s_u from SPT (sheet 05; docs/analysis/correlations.md)."""
 
 from collections.abc import Mapping
 

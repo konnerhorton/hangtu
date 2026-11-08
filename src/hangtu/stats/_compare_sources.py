@@ -1,6 +1,6 @@
 """``compare_sources()``: one parameter's sources side by side, by geology unit.
 
-Spec: docs/work/m18d-sources-compared.md, decisions 8-16. Each source is
+Spec: docs/analysis/statistics.md §5. Each source is
 summarized on its own through the calculation ``describe()`` uses, so a source
 is never pooled with another; the comparison is descriptive and tests nothing
 (decision 14).

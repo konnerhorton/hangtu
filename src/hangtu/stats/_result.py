@@ -1,4 +1,4 @@
-"""The results of the statistics functions (docs/work/m15a-describe.md, Decision 2)."""
+"""The results of the statistics functions (SPEC §5, the result object)."""
 
 import html
 import math

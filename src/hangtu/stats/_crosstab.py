@@ -1,6 +1,6 @@
 """``crosstab()``: two classifications of the same rows, counted against each other.
 
-Spec: docs/work/m15e-crosstab.md. A value is its text as written; a blank is
+Spec: docs/analysis/statistics.md §4. A value is its text as written; a blank is
 the category ``"(blank)"``, as ``describe()`` labels a blank group.
 """
 

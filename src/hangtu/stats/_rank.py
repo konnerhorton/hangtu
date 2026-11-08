@@ -1,6 +1,6 @@
 """Rank-based tests SciPy doesn't give in the form hangtu reports them.
 
-Spec: docs/work/m15d-compare.md, Decisions 4 and 6. ``brunner_munzel()``
+Spec: docs/analysis/statistics.md §3. ``brunner_munzel()``
 carries its degrees of freedom, an interval for the probability of
 superiority, and a permutation p-value for small groups. ``dunn()`` and
 ``holm()`` are the pairwise rank tests of ``compare_groups()``, which SciPy

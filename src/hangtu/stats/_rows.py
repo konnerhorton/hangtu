@@ -1,6 +1,6 @@
 """Reading the rows a statistics function summarizes or fits.
 
-Spec: docs/work/m15a-describe.md, Decisions 1, 3, 5 and 6. ``describe()`` and
+Spec: SPEC §5, the input rules. ``describe()`` and
 ``fit()`` read their input here, so both choose the same rows. Each message
 names the calling function (``function="describe()"``).
 """
@@ -300,9 +300,8 @@ def read_flags(frame: pd.DataFrame, value: str, function: str = "describe()") ->
     roles = statistics_roles()
     # A qualifier column that names its values and says it replaces the
     # generic one is the only qualifier read for them, so a row with two values
-    # has one for each (a vane's peak and remolded s_u; SPEC §5,
-    # docs/work/m17a-strength-data.md Decision 9). Any other is read alongside
-    # it (docs/work/m18a-refusals.md, Decision 5).
+    # has one for each (a vane's peak and remolded s_u; SPEC §5, the input
+    # rules). Any other is read alongside it.
     replaced = {
         field["replaces"]
         for field in roles.values()

@@ -1,4 +1,4 @@
-"""σ′p, OCR and K0 from SPT (sheets 06, 07; docs/work/m13b2-spt-strength-history.md).
+"""σ′p, OCR and K0 from SPT (sheets 06, 07; docs/analysis/correlations.md).
 
 All three were derived on field N, before energy correction was practice, so
 they read ``spt_n`` (Decision 4).

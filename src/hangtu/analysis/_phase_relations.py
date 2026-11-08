@@ -1,4 +1,4 @@
-"""Phase relations of one specimen (docs/work/m14b-phase-relations.md, Decisions 1-6).
+"""Phase relations of one specimen.
 
 Void ratio, porosity and degree of saturation from a specimen's bulk unit
 weight, water content and specific gravity. Gs comes from the row's particle

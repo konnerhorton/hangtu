@@ -1,4 +1,4 @@
-"""Vertical stress through each hole's log (docs/work/m13a-judgments.md, Decision 6).
+"""Vertical stress through each hole's log.
 
 Unit weights and water levels are judgments (SPEC §4): each comes from an
 argument, else from a judgments file, else the call raises. Everything is

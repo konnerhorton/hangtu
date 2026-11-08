@@ -1,6 +1,6 @@
 """``representative()``: a parameter's representative value per group (SPEC §5).
 
-Spec: docs/work/m18b-representative-values.md. The rows are read as ``fit()``
+Spec: docs/analysis/statistics.md §2. The rows are read as ``fit()``
 reads them (``_fit.read_groups``), so refusals, ``>`` and ``<`` values are
 censored and enter through the censored maximum-likelihood fit.
 """

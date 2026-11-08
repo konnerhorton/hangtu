@@ -1,6 +1,6 @@
 """``p.undrained_strength()``: one row per undrained strength result (§6.11).
 
-Spec: docs/work/m17a-strength-data.md, Decisions 1-10.
+Spec: docs/data/datasets.md §6.11; the s_u rules, docs/analysis/strength.md §7.
 """
 
 from os import PathLike

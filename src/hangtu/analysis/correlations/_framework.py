@@ -1,18 +1,18 @@
-"""The correlations framework (SPEC §4; docs/work/m13b1-spt-framework.md, Decision 5).
+"""The correlations framework (SPEC §4; docs/analysis/correlations.md).
 
 Each correlation function reads its inputs with ``inputs()``, computes its
 estimate in the units its entry gives, and returns ``estimate()``'s frame: the
 target column, ``correlation_name`` and ``correlation_note``, with NaN and a
 count by reason wherever there is no estimate. A correlation published as a
 band also gives ``<target>_lower`` and ``<target>_upper``
-(docs/work/m13b2-spt-strength-history.md, Decision 6). Every row carries the
+(correlations.md §2). Every row carries the
 source's statistics and advice, and a target with a
 ``<target>_correlation_standard_deviation`` in the registry gets the source's
-standard deviation (docs/work/m15b-correlation-statistics.md, Decisions 2-3).
+standard deviation (§2).
 An SPT correlation's N input (its entry's ``bound_by``) is never a reason by
 itself beyond an inclusive end of its range, or at a refusal: ``bound()`` sets
 it to the range's end and marks the estimate "at least" or "at most" in
-``correlation_qualifier`` (docs/work/m18a-refusals.md, intent decision 1).
+``correlation_qualifier`` (§3).
 """
 
 import copy
@@ -60,7 +60,7 @@ ABOVE_RANGE = "above range"
 REASONS = (NOT_FOR_SOIL, SOIL_UNKNOWN, INPUT_BLANK, REFUSAL, BELOW_RANGE, ABOVE_RANGE)
 #: The column the opt-in USCS map reads (Decision 10). It is never derived.
 USCS = "uscs_symbol"
-#: The column a soil= mapping is keyed by (docs/work/m13b3-spt-stiffness.md, D3).
+#: The column a soil= mapping is keyed by (docs/analysis/correlations.md §2).
 SOIL_KEY = "geology_unit"
 #: What adds each input column, for the error when it's missing (Decision 3).
 MADE_BY = {
@@ -222,7 +222,7 @@ def soil_rows(df: pd.DataFrame, item: Mapping[str, Any], soil: Any) -> np.ndarra
 
     ``soil`` names one of the entry's ``rows`` for every row, or maps each
     ``geology_unit`` to one. It is required: the row is the engineer's reading
-    of the log, never inferred (docs/work/m13b3-spt-stiffness.md, Decision 3).
+    of the log, never inferred (docs/analysis/correlations.md §2).
     """
     rows = item["rows"]
     listed = "; ".join(f"{name!r} ({row['wording']})" for name, row in rows.items())
@@ -279,7 +279,7 @@ def notes(
     ``uscs`` is the function's argument (Decision 10). ``rows``, from
     ``soil_rows()``, gives each row's soil row; with ``uscs="proposed"`` each
     row is checked against its own soil row's groups, which ``uscs=`` checks
-    but never chooses (docs/work/m13b3-spt-stiffness.md, Decision 3).
+    but never chooses (docs/analysis/correlations.md §2).
     """
     missing = [key for key in item["range"] if key not in values]
     if missing:
@@ -362,7 +362,7 @@ def bound(
     0), and each row's ``Bounded``: ``">"`` above the range or at a refusal,
     ``"<"`` below it, None otherwise. Every SPT correlation rises with N, so
     the estimate at the bounded N is a bound of the estimate at the row's
-    (docs/work/m18a-refusals.md, spec item 2). ``note`` is ``notes()``'s: a
+    (docs/analysis/correlations.md §3). ``note`` is ``notes()``'s: a
     row with a reason is never bounded.
     """
     column = item["bound_by"]

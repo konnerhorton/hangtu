@@ -1,6 +1,6 @@
 """``compare()``: whether a property differs between two groups.
 
-Spec: docs/work/m15d-compare.md. The rows are chosen by ``_rows``, as
+Spec: docs/analysis/statistics.md §3. The rows are chosen by ``_rows``, as
 ``describe()`` and ``fit()`` choose them; each group's count, mean and spread
 come from ``_describe.summarize()``, so they agree with ``describe()``.
 """
