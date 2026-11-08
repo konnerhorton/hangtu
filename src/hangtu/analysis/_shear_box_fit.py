@@ -1,4 +1,4 @@
-"""The shear box fit of peak and residual stages (docs/work/m17b-shear-box-fit.md)."""
+"""The shear box fit of peak and residual stages (docs/analysis/strength.md §5)."""
 
 import math
 from collections.abc import Mapping, Sequence
@@ -451,7 +451,7 @@ def _strength(
 def _line(
     normal: np.ndarray, shear: np.ndarray, intercept: float | None, kind: str
 ) -> dict[str, Any]:
-    """Fit one line τ = c + σn tan φ, free or through the origin (Derivation)."""
+    """Fit one line τ = c + σn tan φ, free or through the origin (see Notes)."""
     line = line_fit(normal, shear, intercept=intercept, x_name="normal stress")
     reason = line.no_fit_reason
     slope = line.slope

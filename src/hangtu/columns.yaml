@@ -316,7 +316,7 @@ columns:
     quantity: stress
     scale: ratio
     label: Undrained shear strength, s_u
-    ags: ["derived: q_f / 2 or q_u / 2, docs/work/m17a-strength-data.md", IVAN.IVAN_IVAN, LVAN.LVAN_VNPK, LPEN.LPEN_PPEN, LFCN.LFCN_FCPK]
+    ags: ["derived: q_f / 2 or q_u / 2, docs/analysis/strength.md §7", IVAN.IVAN_IVAN, LVAN.LVAN_VNPK, LPEN.LPEN_PPEN, LFCN.LFCN_FCPK]
     used_by: [P01, P07]
   undrained_shear_strength_basis:
     description: How s_u was found (half_deviator_stress, half_unconfined_compressive_strength, half_hand_penetrometer_reading, hand_penetrometer_reading, as_reported)
@@ -514,7 +514,7 @@ columns:
     quantity: angle
     scale: ratio
     label: Effective friction angle, φ′
-    ags: ["derived: docs/work/m13b1-spt-framework.md", "derived: docs/work/m11b-envelope-fit.md"]
+    ags: ["derived: docs/work/m13b1-spt-framework.md", "derived: arcsin(slope) of mohr_coulomb_fit()'s s′–t line"]
     used_by: [P01]
   effective_cohesion:
     description: Effective cohesion intercept of a Mohr-Coulomb envelope fitted to failure points
@@ -522,7 +522,7 @@ columns:
     quantity: stress
     scale: ratio
     label: Effective cohesion, c′
-    ags: ["derived: docs/work/m11b-envelope-fit.md"]
+    ags: ["derived: intercept / cos φ′ of mohr_coulomb_fit()'s s′–t line"]
     used_by: []
   dilatancy_angle:
     description: Dilatancy angle of a Mohr-Coulomb set, by Bolton's relation, 0 for a fine-grained unit, or selected
@@ -538,7 +538,7 @@ columns:
     quantity: stress
     scale: ratio
     label: Total stress cohesion, c
-    ags: ["derived: docs/work/m11b-envelope-fit.md"]
+    ags: ["derived: intercept / cos φ of mohr_coulomb_fit()'s s–t line"]
     used_by: []
   total_stress_friction_angle:
     description: Friction angle of a Mohr-Coulomb envelope fitted to total-stress failure points
@@ -546,7 +546,7 @@ columns:
     quantity: angle
     scale: ratio
     label: Total stress friction angle, φ
-    ags: ["derived: docs/work/m11b-envelope-fit.md"]
+    ags: ["derived: arcsin(slope) of mohr_coulomb_fit()'s s–t line"]
     used_by: []
   intact_compressive_strength:
     description: Intact compressive strength σci of a Hoek–Brown criterion fitted to rock triaxial and UCS failures
@@ -554,7 +554,7 @@ columns:
     quantity: stress
     scale: ratio
     label: Intact compressive strength, σci
-    ags: ["derived: docs/work/m17c-hoek-brown-fit.md"]
+    ags: ["derived: √intercept of hoek_brown_fit()'s (σ1 − σ3)²–σ3 line"]
     used_by: [P32]
   intact_hoek_brown_constant:
     description: Hoek–Brown constant mi of intact rock, fitted with σci to rock triaxial and UCS failures
@@ -562,7 +562,7 @@ columns:
     quantity: dimensionless
     scale: ratio
     label: Hoek–Brown constant of intact rock, mi
-    ags: ["derived: docs/work/m17c-hoek-brown-fit.md"]
+    ags: ["derived: slope / σci of hoek_brown_fit()'s (σ1 − σ3)²–σ3 line"]
     used_by: [P32]
   peak_cohesion:
     description: Cohesion intercept of a line fitted to shear box peak stages, τ against σn
@@ -570,7 +570,7 @@ columns:
     quantity: stress
     scale: ratio
     label: Peak cohesion, c_p
-    ags: ["derived: docs/work/m17b-shear-box-fit.md"]
+    ags: ["derived: intercept of shear_box_fit()'s peak τ–σn line"]
     used_by: [P31]
   peak_friction_angle:
     description: Friction angle of a line fitted to shear box peak stages, τ against σn
@@ -578,7 +578,7 @@ columns:
     quantity: angle
     scale: ratio
     label: Peak friction angle, φ_p
-    ags: ["derived: docs/work/m17b-shear-box-fit.md"]
+    ags: ["derived: arctan(slope) of shear_box_fit()'s peak τ–σn line"]
     used_by: [P31]
   residual_cohesion:
     description: Cohesion intercept of a line fitted to shear box residual stages, τ against σn
@@ -586,7 +586,7 @@ columns:
     quantity: stress
     scale: ratio
     label: Residual cohesion, c_r
-    ags: ["derived: docs/work/m17b-shear-box-fit.md"]
+    ags: ["derived: intercept of shear_box_fit()'s residual τ–σn line"]
     used_by: [P31]
   residual_friction_angle:
     description: Friction angle of a line fitted to shear box residual stages, τ against σn
@@ -594,7 +594,7 @@ columns:
     quantity: angle
     scale: ratio
     label: Residual friction angle, φ_r
-    ags: ["derived: docs/work/m17b-shear-box-fit.md"]
+    ags: ["derived: arctan(slope) of shear_box_fit()'s residual τ–σn line"]
     used_by: [P31]
   critical_state_friction_angle:
     description: Critical state (constant volume) friction angle φ′cv, a judgment keyed by geology unit
@@ -602,7 +602,7 @@ columns:
     quantity: angle
     scale: ratio
     label: Critical state friction angle, φ′cv
-    ags: ["derived: docs/work/m18d-sources-compared.md"]
+    ags: ["derived: the judgments file (docs/analysis/judgments.md §5.8)"]
     used_by: []
   plane_strain_friction_angle:
     description: Plane strain compression friction angle φ′psc, from a shear box φ′ by Kulhawy & Mayne (1990) Eq. 4-10
@@ -610,7 +610,7 @@ columns:
     quantity: angle
     scale: ratio
     label: Plane strain friction angle, φ′psc
-    ags: ["derived: docs/work/m18d-sources-compared.md"]
+    ags: ["derived: arctan(tan φ′ds / cos φ′cv), docs/analysis/strength.md §8"]
     used_by: []
   undrained_shear_strength_lower:
     description: Lower bound of an undrained shear strength given as a band, such as a correlation's
@@ -694,24 +694,24 @@ columns:
   conversion_name:
     description: The conversion a value came from, by its function's name, such as a shear box φ′ converted to triaxial
     type: text
-    ags: ["derived: docs/work/m18d-sources-compared.md"]
+    ags: ["derived: docs/analysis/strength.md §8"]
     used_by: []
     statistics: {role: source}
   conversion_soil:
     description: The soil type a conversion's ratio was taken from (soil=)
     type: text
-    ags: ["derived: docs/work/m18d-sources-compared.md"]
+    ags: ["derived: docs/analysis/strength.md §8"]
     used_by: []
   parameter_source:
     description: The source of a parameter's values in a comparison, such as a correlation, a test type or a fit
     type: text
-    ags: ["derived: docs/work/m18d-sources-compared.md"]
+    ags: ["derived: docs/analysis/statistics.md §5"]
     used_by: [P01, P07]
     statistics: {role: source}
   source_kind:
     description: Whether a compared source gives values row by row ("rows") or fitted values ("fit")
     type: text
-    ags: ["derived: docs/work/m18d-sources-compared.md"]
+    ags: ["derived: docs/analysis/statistics.md §5"]
     used_by: []
   correlation_input:
     description: The correlation an input came from, when a correlation read another's estimate

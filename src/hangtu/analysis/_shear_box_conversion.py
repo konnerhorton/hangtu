@@ -1,7 +1,7 @@
-"""Convert a shear box φ′ to a triaxial one (docs/work/m18d-sources-compared.md).
+"""Convert a shear box φ′ to a triaxial one (docs/analysis/strength.md §8).
 
 Kulhawy & Mayne (1990), Eq. 4-10 with the ratios of Tables 4-2 and 4-5, and
-the critical state friction angle as a judgment (decisions 1-7).
+the critical state friction angle as a judgment.
 """
 
 import math
@@ -24,9 +24,9 @@ _FUNCTION = "friction_angle_from_shear_box()"
 _JUDGMENT = "critical_state_friction_angle"
 _KEY = "geology_unit"
 #: The name a converted value carries, as a correlation's estimate carries its
-#: correlation_name (decision 7).
+#: correlation_name (§8).
 CONVERSION_NAME = "friction_angle_from_shear_box_kulhawy_mayne_1990"
-#: soil= -> (φ′psc / φ′tc, where Kulhawy & Mayne 1990 give it) (decision 1).
+#: soil= -> (φ′psc / φ′tc, where Kulhawy & Mayne 1990 give it) (§8).
 _SOILS = {
     "cohesionless": (1.12, "Table 4-2, p. 4-14"),
     "normally_consolidated_cohesive": (1.10, "Table 4-5, p. 4-25"),
@@ -344,7 +344,10 @@ def _angle(value: Any, where: str) -> float:
 def _critical_state(
     argument: Any, judgments: Any, fit: ShearBoxFit, needed: list[bool]
 ) -> tuple[list[dict[str, Any] | None], dict[str, Any] | None]:
-    """Each group's φ′cv in degrees, with its source, and the record (decision 5)."""
+    """Each group's φ′cv in degrees, with its source, and the record.
+
+    The judgment's rules: docs/analysis/judgments.md §5.8.
+    """
     read = read_judgments_file(judgments, fit.judgments_file, "the fit")
     in_file = read is not None and _JUDGMENT in read.judgments
     if argument is not None:
@@ -468,7 +471,7 @@ def _convert(
     soil: str | None,
     angle: dict[str, Any] | None,
 ) -> dict[str, Any]:
-    """Convert one peak line's φ′ds: Eq. 4-10, then the soil's ratio (decision 1)."""
+    """Convert one peak line's φ′ds: Eq. 4-10, then the soil's ratio (§8)."""
     friction = line["friction_angle"]
     record: dict[str, Any] = {
         "line_kind": line["line_kind"],

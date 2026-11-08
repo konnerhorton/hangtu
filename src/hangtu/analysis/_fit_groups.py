@@ -2,8 +2,7 @@
 
 ``mohr_coulomb_fit()``, ``shear_box_fit()`` and ``hoek_brown_fit()`` group rows
 the same way, refuse to pool unlike sources the same way and list the lab's
-reported pairs beside the fit the same way (docs/work/m17b-shear-box-fit.md,
-Decision 14).
+reported pairs beside the fit the same way (docs/analysis/strength.md §3).
 """
 
 from collections.abc import Mapping, Sequence
@@ -18,7 +17,7 @@ from hangtu.errors import HangtuError
 from hangtu.stats._rows import breakdown
 
 #: The columns that place a fitted point in the ground, kept with it when given
-#: (docs/work/m18d-sources-compared.md, Decision 17).
+#: (docs/analysis/strength.md §3).
 PLACE = ("depth", "elevation", "ground_level")
 
 

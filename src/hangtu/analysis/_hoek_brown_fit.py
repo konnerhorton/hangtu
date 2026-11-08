@@ -1,7 +1,7 @@
 """The intact Hoek-Brown fit of rock triaxial and UCS failures.
 
-The spec is docs/work/m17c-hoek-brown-fit.md; decisions cited by number are its
-Spec's.
+The spec is docs/analysis/strength.md §6, and §3 for what every envelope fit
+shares.
 """
 
 import math
@@ -37,7 +37,7 @@ _KINDS = ("free", "fixed_strength")
 _STAGES = ("all", "single_stage")
 _STRESS = ("total", "effective")
 _MODE = "failure_mode"
-#: The columns a fit's rows must share one value of, unless pooled (decision 7).
+#: The columns a fit's rows must share one value of, unless pooled (§3, §6).
 _CHECKED = ["failure_criterion"]
 #: The columns that identify a fitted point, kept with its stresses.
 _IDENTIFIERS = (
@@ -48,7 +48,7 @@ _IDENTIFIERS = (
     "test_type",
     "test_stage",
 )
-#: The counts of rows left out, in the order a row is counted (decision 9).
+#: The counts of rows left out, in the order a row is counted (§6).
 _LEFT_OUT = (
     "count_no_principal_stresses",
     "count_no_effective_stresses",
@@ -515,7 +515,7 @@ def _stresses(
 def _modes(
     df: pd.DataFrame, failure_modes: str | Sequence[str | None] | None
 ) -> tuple[np.ndarray, tuple[str | None, ...] | None, str | None]:
-    """Return the rows of a mode not named, the modes named and a note (decision 5)."""
+    """Return the rows of a mode not named, the modes named and a note (§6)."""
     names = (
         None
         if failure_modes is None
@@ -618,7 +618,9 @@ def _strengths(
     keyed: list[tuple[dict[str, Any], np.ndarray]],
     unit: str,
 ) -> tuple[list[dict[str, Any] | str], dict[str, Any] | None]:
-    """Return each group's fixed σci, or why it has none, and the record (decision 8).
+    """Return each group's fixed σci, or why it has none, and the record.
+
+    The judgment's rules: docs/analysis/judgments.md §5.7.
 
     A group's σci is a dict with its value in the fit's unit and its source;
     a string is the reason the group has no fixed fit.
@@ -840,7 +842,7 @@ def _fit(
     strength: dict[str, Any] | str,
     multistaged: np.ndarray,
 ) -> dict[str, Any]:
-    """Fit one line, free or σci fixed, and back-transform it (Derivation)."""
+    """Fit one line, free or σci fixed, and back-transform it (see Notes)."""
     x = minor[fitted]
     s1 = major[fitted]
     y = (s1 - x) ** 2

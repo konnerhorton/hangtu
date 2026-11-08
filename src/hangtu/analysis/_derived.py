@@ -1,4 +1,4 @@
-"""The results of fits to test results (docs/work/m11b-envelope-fit.md, Decision 12).
+"""The results of fits to test results (docs/analysis/strength.md §3).
 
 A fit of test results gives a *derived* value of a parameter (Eurocode 7's
 measured → derived → representative → design), not a statistic of a property,
@@ -44,11 +44,11 @@ class _DerivedResult:
     hangtu_version: str
     #: ``attrs["judgments_file"]`` of the input: the Project's judgments file,
     #: or None. A later step that needs a judgment reads it from here
-    #: (docs/work/m18d-sources-compared.md, Decision 17).
+    #: (docs/analysis/strength.md §3).
     judgments_file: str | None
     #: ``attrs["soil_classes"]`` of the input: the geology map's
     #: ``{geology_unit: soil_class}``, empty without a map. A model set reads
-    #: it (docs/work/m18f-mohr-coulomb-set.md, Decision 19).
+    #: it (docs/analysis/statistics.md §7).
     soil_classes: dict[str, str]
     #: Always ``"derived"``: a value derived from test results (SPEC §5).
     kind: str = field(default="derived", init=False)

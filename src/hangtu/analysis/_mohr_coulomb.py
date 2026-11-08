@@ -1,4 +1,4 @@
-"""The Mohr-Coulomb fit of triaxial failure points (docs/work/m11b-envelope-fit.md)."""
+"""The Mohr-Coulomb fit of triaxial failure points (docs/analysis/strength.md §4)."""
 
 import math
 from collections.abc import Mapping, Sequence
@@ -38,7 +38,7 @@ _IDENTIFIERS = (
     "test_stage",
     *PLACE,
 )
-#: The counts of rows left out, in the order a row is counted (Decision 6).
+#: The counts of rows left out, in the order a row is counted (§4).
 _LEFT_OUT = (
     "count_no_principal_stresses",
     "count_no_effective_stresses",
@@ -381,7 +381,7 @@ def _fit(
     cohesion: float | None,
     reported: tuple[np.ndarray, np.ndarray] | None,
 ) -> dict[str, Any]:
-    """Fit one set of stages: the line in s′-t, then c′ and φ′ (Derivations 1-3)."""
+    """Fit one set of stages: the line in s′-t, then c′ and φ′ (see Notes)."""
     mean = (major[fitted] + minor[fitted]) / 2
     radius = (major[fitted] - minor[fitted]) / 2
     line = line_fit(mean, radius, intercept=cohesion, x_name="mean stress")
