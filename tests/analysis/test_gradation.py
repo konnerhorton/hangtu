@@ -1,4 +1,7 @@
-"""ht.analysis.gradation(): D-values, Cu and Cc (docs/drafts/analysis.md §3.3, §3.7)."""
+"""ht.analysis.gradation(): D-values, Cu and Cc.
+
+Spec: docs/analysis/index-and-spt.md §3.3, §3.7.
+"""
 
 import numpy as np
 import pandas as pd

@@ -1,7 +1,7 @@
 """``fit()``: probability distributions fitted to a property's values, ranked by AICc.
 
-Spec: docs/work/m15c-fit.md. The rows are chosen by ``_rows``, as ``describe()``
-chooses them.
+Spec: docs/analysis/statistics.md §1. The rows are chosen by ``_rows``, as
+``describe()`` chooses them.
 """
 
 import math
@@ -71,7 +71,7 @@ class Values:
     #: Known only to be at least these (a refusal, ``>x``).
     right: np.ndarray
     #: Known only to lie between each row's two: a refusal and its judged
-    #: upper limit (docs/work/m18a-refusals.md, spec item 1).
+    #: upper limit (docs/analysis/statistics.md §1).
     interval: np.ndarray = field(default_factory=lambda: np.empty((0, 2)))
 
     @property
@@ -346,7 +346,7 @@ def fit(
         "none"}`` by geology unit. None reads it from ``judgments=``, then
         the Project's file; not found anywhere, refusals are fitted as at
         least their value. It is optional, unlike other judgments: leaving
-        it out adds nothing beyond the data (SPEC §4).
+        it out adds nothing beyond the data.
     judgments : Judgments or path, optional
         The judgments file to read ``spt_refusal_upper_limit`` from, e.g.
         ``p.judgments``. None reads the Project's file the data carries.

@@ -68,7 +68,7 @@ aren't design values.
 `SHBG_TYPE`'s codes are shear box and ring shear, with none for a rock joint, and no heading records the
 orientation of the sheared plane against bedding: check the specimen description, `SHBG_REM` and the test sheets.
 [`p.shear_box()`](../reference/project.md#hangtu.Project.shear_box) gives one row per stage, soil and rock joint
-tests alike, and doesn't label which a test is (`docs/data/datasets.md` §6.12).
+tests alike, and doesn't label which a test is (see the [datasets guide](../guides/datasets.md)).
 
 ## Methods
 
@@ -76,9 +76,9 @@ tests alike, and doesn't label which a test is (`docs/data/datasets.md` §6.12).
 |---|---|---|---|
 | Linear fit of peak and residual results (Hoek 2023, ch. 4, eqs. 1–2) | τ and σn per stage | any discontinuity, over the tested σn range | [`ht.analysis.shear_box_fit()`](../reference/analysis.md#hangtu.analysis.shear_box_fit), drawn by [`ht.plot.shear_box_envelope()`](../plots/shear-box-envelope.md) |
 | Fit through the origin (cj = 0) | as above | open or clay-coated planes; report it beside the free fit | [`ht.analysis.shear_box_fit()`](../reference/analysis.md#hangtu.analysis.shear_box_fit), which always gives both lines |
-| Patton (1966), τ = σn tan(φb + i), as given by Hoek (2023, ch. 4, eq. 3) | φb, i | low σn, where sliding rides over the asperities | wave 4 |
-| Barton (1973), Barton & Choubey (1977), as given by Hoek (2023, ch. 4, eqs. 4–6) | JRC, JCS, φr | natural joints in variably weathered rock; not as σn → 0 | wave 4 |
-| Scale corrections, Barton & Bandis (1982), as given by Hoek (2023, ch. 4, eqs. 7–8) | JRC, JCS, block size | rough joints, from laboratory to field scale | wave 4 |
+| Patton (1966), τ = σn tan(φb + i), as given by Hoek (2023, ch. 4, eq. 3) | φb, i | low σn, where sliding rides over the asperities | planned |
+| Barton (1973), Barton & Choubey (1977), as given by Hoek (2023, ch. 4, eqs. 4–6) | JRC, JCS, φr | natural joints in variably weathered rock; not as σn → 0 | planned |
+| Scale corrections, Barton & Bandis (1982), as given by Hoek (2023, ch. 4, eqs. 7–8) | JRC, JCS, block size | rough joints, from laboratory to field scale | planned |
 
 The fit gives each group's peak and residual lines, free and through the origin, with n, R², the range of σn
 fitted and the lab's own `SHBG_PCOH`/`SHBG_PHI` beside them. It names its values `peak_friction_angle` and
@@ -100,7 +100,7 @@ together: a large intercept from few stages is usually roughness, not cohesion. 
 the envelope of a rough joint is curved, so a straight line holds only near its stresses; Hoek (2023, ch. 4, p. 10)
 takes the tangent to the curved envelope at the design normal stress for programs that need c and φ. Correct a rough
 joint for scale before design use; a planar, clay-coated bedding plane changes little with scale. Choosing a design
-value is selection (M18).
+value is selection: [`ht.stats.select()`](../guides/selection.md).
 
 ## Variability
 

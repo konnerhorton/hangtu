@@ -5,7 +5,7 @@
 | **ID / function** | P32 · `ht.plot.hoek_brown_envelope()` (+ `ht.analysis.hoek_brown_fit()`) |
 | **Status** | built |
 | **Type** | plot + analysis |
-| **Milestone** | M17 (c) (SPEC §12.4), [`docs/work/m17c-hoek-brown-fit.md`](../work/m17c-hoek-brown-fit.md) |
+| **Milestone** | M17 (c) (`STATUS.md`), [`docs/work/m17c-hoek-brown-fit.md`](../work/m17c-hoek-brown-fit.md) |
 | **Depends on** | P00; `ht.analysis.triaxial_failure_stresses()` (M11 a); `hoek_brown_fit()` (M17 (c) Spec) |
 | **Related** | P11 (the soil triaxial envelope, Mohr circles); P31 (the shear box envelope); sheet 15 |
 

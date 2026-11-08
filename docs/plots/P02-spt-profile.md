@@ -6,7 +6,7 @@
 | **Status** | built |
 | **Type** | plot + light analysis |
 | **Milestone** | M3 (0.1.0) |
-| **Depends on** | P00, P01, the SPT analysis (`docs/drafts/analysis.md` §1) |
+| **Depends on** | P00, P01, the SPT analysis (`docs/analysis/index-and-spt.md` §1) |
 | **Related** | SPEC §4 (refusals, N60), §8.2 (test depth). P03 (shown beside it). M3 intent: `docs/work/m3-spt.md` |
 
 ---
@@ -177,7 +177,7 @@ As P01, plus:
 - **Visual check:** [`img/P02.png`](img/P02.png), a `Sheet` with N in US (with `connect=True`) and N60 in SI side by side, with strata and a water level.
 
 ## 13. References
-- `docs/drafts/analysis.md` §1 and its references.
+- `docs/analysis/index-and-spt.md` §1 and its references.
 - ASTM D1586/D1586M-18, *Standard Test Method for Standard Penetration Test (SPT) and Split-Barrel Sampling of Soils*.
 
 ## 14. Open questions

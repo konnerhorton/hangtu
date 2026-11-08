@@ -1,4 +1,4 @@
-# Plasticity chart systems (docs/drafts/analysis.md §2.3). ht.analysis.plasticity()
+# Plasticity chart systems (docs/analysis/index-and-spt.md §2.3). ht.analysis.plasticity()
 # and the plasticity chart (P04) both read this file, so the classes and the
 # drawn lines can't disagree. Values marked "verify" are checked against the
 # standard before release (TODO #5).

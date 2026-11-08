@@ -5,7 +5,7 @@
 | **ID / function** | P12 · `ht.plot.triaxial_shearing()` (+ `ht.analysis.triaxial_failure_from_readings()`) |
 | **Status** | built |
 | **Type** | plot + light analysis |
-| **Milestone** | M11 (c) (SPEC §12.4), [`docs/work/m11c-triaxial-shearing.md`](../work/m11c-triaxial-shearing.md) |
+| **Milestone** | M11 (c) (`STATUS.md`), [`docs/work/m11c-triaxial-shearing.md`](../work/m11c-triaxial-shearing.md) |
 | **Depends on** | P00; `triaxial_failure_stresses()` (M11 a); `mohr_coulomb_fit()` and P11 (M11 b) |
 | **Related** | P11 (the same failure points and fit); sheet 04; TODO #53 |
 

@@ -70,7 +70,7 @@ jobs:
           pytest
 
   # Runs each script in examples/ against the built wheel, from an empty
-  # folder, the way a user would run it after pip install (SPEC §12.1, §12.4).
+  # folder, the way a user would run it after pip install (SPEC §12.1).
   # Anything written to stderr, such as a warning, fails the job.
   examples:
     name: examples (${{ matrix.os }})

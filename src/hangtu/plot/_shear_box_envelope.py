@@ -73,7 +73,8 @@ def shear_box_envelope(
     have them. Equal aspect, so a slope reads as its angle.
 
     The stresses aren't labeled effective, and a direct shear φ isn't a
-    triaxial φ′: selection converts one to the other (M18).
+    triaxial φ′: ``ht.analysis.friction_angle_from_shear_box()`` converts
+    one to the other.
 
     Parameters
     ----------

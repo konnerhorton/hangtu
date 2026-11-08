@@ -1,4 +1,4 @@
-"""Activity of the clay fraction (docs/work/m14b-phase-relations.md, Decision 7)."""
+"""Activity of the clay fraction."""
 
 import numpy as np
 import pandas as pd

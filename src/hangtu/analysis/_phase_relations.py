@@ -1,4 +1,4 @@
-"""Phase relations of one specimen (docs/work/m14b-phase-relations.md, Decisions 1-6).
+"""Phase relations of one specimen.
 
 Void ratio, porosity and degree of saturation from a specimen's bulk unit
 weight, water content and specific gravity. Gs comes from the row's particle
@@ -89,7 +89,7 @@ def phase_relations(
     3. ``judgment``: the ``specific_gravity`` judgment, for rows with no
        particle density.
 
-    **Judgment taken** (SPEC §4); it has no default. Gs for rows with no
+    **Judgment taken**; it has no default. Gs for rows with no
     particle density, keyed by geology unit (the file's ``by:``): from
     ``specific_gravity=``, else ``judgments=``, else the project's judgments
     file carried in ``df.attrs["judgments_file"]``, else an error naming it.
@@ -437,7 +437,7 @@ def _missing(read: Any, count: int, df: pd.DataFrame) -> str:
     if read is not None:
         return (
             f"{rows}, and the judgments file {str(read.path)!r} has no "
-            "specific_gravity, a judgment with no default (SPEC §4). Add "
+            "specific_gravity, a judgment with no default. Add "
             "specific_gravity: to the file, keyed by geology unit, or give it in "
             f"the call, {example}."
         )
@@ -449,7 +449,7 @@ def _missing(read: Any, count: int, df: pd.DataFrame) -> str:
     )
     return (
         f"{rows}, so their Gs is the specific_gravity judgment, which has no "
-        f"default (SPEC §4). Give it in the call, {example}, or in a judgments "
+        f"default. Give it in the call, {example}, or in a judgments "
         "file under specific_gravity: and pass judgments=ht.judgments(path), or "
         f"set it on the project with p.set_judgments(path).{hint}"
     )

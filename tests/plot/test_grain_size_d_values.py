@@ -11,7 +11,7 @@ CURVE_A = (
     [0.075, 0.15, 0.3, 0.6, 1.18, 2.36, 4.75],
     [4, 12, 30, 55, 75, 90, 100],
 )
-#: Curve A's D-values, worked by hand (docs/drafts/analysis.md §3.7).
+#: Curve A's D-values, worked by hand (docs/analysis/index-and-spt.md §3.7).
 GOLDEN = {10: 0.1261, 30: 0.300, 60: 0.7105}
 
 

@@ -6,7 +6,7 @@
 | **Status** | built |
 | **Type** | plot + classification |
 | **Milestone** | M3 (0.1.0) |
-| **Depends on** | P00, the SPT analysis (`docs/drafts/analysis.md` §1) |
+| **Depends on** | P00, the SPT analysis (`docs/analysis/index-and-spt.md` §1) |
 | **Related** | SPEC §4 (refusals, N60). P02 (shown beside it), P07 (unit order). TODO #3 (`soil_class`, no longer needed here). M3 intent: `docs/work/m3-spt.md` |
 
 ---
@@ -202,7 +202,7 @@ fig, ax = ht.plot.spt_histogram(clay, table="cohesive", refusal="exclude")
 - **Visual check:** [`img/P03.png`](img/P03.png), a Letter `Sheet` with the cohesionless and cohesive histograms of the test data side by side, with bar labels. One image, since nothing converts between US and SI (§9).
 
 ## 13. References
-- `docs/drafts/analysis.md` §1.4 and its references.
+- `docs/analysis/index-and-spt.md` §1.4 and its references.
 - Terzaghi, K. & Peck, R.B. (1948). *Soil Mechanics in Engineering Practice*. Wiley.
 - Peck, R.B., Hanson, W.E. & Thornburn, T.H. (1974). *Foundation Engineering*, 2nd ed. Wiley.
 

@@ -1,4 +1,4 @@
-"""Size fractions and fraction systems (docs/drafts/analysis.md §3.5, §3.7)."""
+"""Size fractions and fraction systems (docs/analysis/index-and-spt.md §3.5, §3.7)."""
 
 import numpy as np
 import pandas as pd

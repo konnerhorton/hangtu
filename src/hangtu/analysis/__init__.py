@@ -1,4 +1,7 @@
-"""Analyses on SPT and lab data, usable without plotting (docs/drafts/analysis.md)."""
+"""Analyses on SPT and lab data, usable without plotting.
+
+Spec: docs/analysis/index-and-spt.md.
+"""
 
 from hangtu.analysis import correlations
 from hangtu.analysis._add_judgment import add_judgment

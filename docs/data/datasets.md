@@ -5,7 +5,7 @@
 | **Status** | done (M7); the M8 additions (classification columns in §6.2, §6.5 and §6.6) done; M14 (a)'s §6.8–6.9 done; M11 (a)'s §6.10 done; M17 (a)'s §6.11–6.12 done |
 | **Intent** | [`docs/work/m7-datasets.md`](../work/m7-datasets.md#intent); M8: [`docs/work/m8-index-plots.md`](../work/m8-index-plots.md#intent); M14 (a): [`docs/work/m14a-density-data.md`](../work/m14a-density-data.md) (decisions and acceptance criteria); M11 (a): [`docs/work/m11a-triaxial-data.md`](../work/m11a-triaxial-data.md); M17 (a): [`docs/work/m17a-strength-data.md`](../work/m17a-strength-data.md) |
 | **Parent** | SPEC §2.6 (units), §7 (data model), §8 (depth, elevation, geology), §10 (datasets, registry), §11 (errors) |
-| **Related** | [`ingest.md`](ingest.md) (canonical layer, value flags), [`qc.md`](qc.md) (C001, G004, D004/D005). `docs/drafts/analysis.md` §1 (SPT), §2–3 (classification, gradation). P01–P07 (the plots these feed) |
+| **Related** | [`ingest.md`](ingest.md) (canonical layer, value flags), [`qc.md`](qc.md) (C001, G004, D004/D005). `docs/analysis/index-and-spt.md` §1 (SPT), §2–3 (classification, gradation). P01–P07 (the plots these feed) |
 
 ## 1. Purpose and scope
 Turn a project's canonical tables into the DataFrames the plots take:
@@ -14,7 +14,7 @@ Turn a project's canonical tables into the DataFrames the plots take:
 - **the geology map**: `p.set_geology_map(path)` maps the codes in the file to the units an engineer reports on;
 - **QC G004**, unmapped geology code, deferred here from M6.
 
-**Added in M8:** the plasticity class columns in `p.atterberg()` (§6.2), `p.grain_size_summary()` (§6.5) and `p.index_properties()` (§6.6), built on the analyses in `docs/drafts/analysis.md` §2–3.
+**Added in M8:** the plasticity class columns in `p.atterberg()` (§6.2), `p.grain_size_summary()` (§6.5) and `p.index_properties()` (§6.6), built on the analyses in `docs/analysis/index-and-spt.md` §2–3.
 
 **Not in scope:** settings export (`to_yaml()`) and stored QC overrides; datasets for other tests (consolidation); inclined holes (QC L004); changing the data (SPEC §1.4).
 

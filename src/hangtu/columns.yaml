@@ -10,7 +10,7 @@
 #   ags          AGS source heading(s), or "derived: ..." (Phase 2)
 #   used_by      plot specs that read the column
 #   agsi         AGSi code (later; omitted for now)
-#   statistics   how ht.stats functions treat a flag or source column (docs/work/m15a-describe.md):
+#   statistics   how ht.stats functions treat a flag or source column (SPEC §5, the input rules):
 #                  role    at_least    the value is a lower bound (included, counted)
 #                          qualifier   "<" or ">" on the row's value: an upper or lower bound
 #                          non_plastic the value is NP: left out, counted
@@ -35,7 +35,7 @@ templates:
   # One row per shear box stage, p.shear_box()'s columns without source_line (M17 a).
   shear_box:      [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, test_type, test_stage, sample_condition, encapsulation, failure_criterion, applied_normal_stress, normal_stress_at_peak, normal_stress_at_residual, peak_shear_stress, residual_shear_stress, horizontal_displacement_at_peak, horizontal_displacement_at_residual, vertical_displacement_at_peak, vertical_displacement_at_residual, peak_displacement_rate, residual_displacement_rate, shear_traverses, specimen_height, specimen_diameter_along_shear, specimen_diameter_across_shear, water_content, final_water_content, bulk_unit_weight, dry_unit_weight, particle_density, particle_density_assumed, void_ratio, reported_peak_cohesion, reported_peak_friction_angle, reported_residual_cohesion, reported_residual_friction_angle, test_remarks, remarks, geology_unit, soil_class, geology_description]
   # The strength template is p.undrained_strength()'s columns without those the
-  # analysis adds (M17 a, docs/work/m17a-strength-data.md Decision 14).
+  # analysis adds (docs/data/datasets.md §11.1).
   strength:       [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, source, test_type, test_stage, multistage_test, sample_condition, undrained_shear_strength, qualifier, remolded_undrained_shear_strength, remolded_qualifier, reported_undrained_shear_strength, cell_pressure, deviator_stress_at_failure, unconfined_compressive_strength, hand_penetrometer_reading, axial_strain_at_failure, water_content, bulk_unit_weight, dry_unit_weight, test_remarks, remarks, geology_unit, soil_class, geology_description]
   index:          [loca_id, depth, ground_level, elevation, water_content, bulk_unit_weight, geology_unit]
   spt:            [loca_id, ground_level, depth, depth_basis, elevation, spt_n, spt_n60, energy_ratio, spt_refusal, spt_penetration, remarks, geology_unit, soil_class, geology_description]
@@ -265,7 +265,7 @@ columns:
     ags: [GEOL.GEOL_BGS]
     used_by: []
   soil_class:
-    description: "The geology unit's class, from the geology map: coarse or fine (read by the Mohr-Coulomb set's dilatancy rule), fill, rock or organic (named, read by nothing yet); other values are kept (categories TODO #3)"
+    description: "The geology unit's class, from the geology map: coarse or fine (read by the Mohr-Coulomb set's dilatancy rule), fill, rock or organic (named, read by nothing yet); other values are kept"
     type: text
     ags: ["derived: mapping file"]
     used_by: [P03]
@@ -316,7 +316,7 @@ columns:
     quantity: stress
     scale: ratio
     label: Undrained shear strength, s_u
-    ags: ["derived: q_f / 2 or q_u / 2, docs/work/m17a-strength-data.md", IVAN.IVAN_IVAN, LVAN.LVAN_VNPK, LPEN.LPEN_PPEN, LFCN.LFCN_FCPK]
+    ags: ["derived: q_f / 2 or q_u / 2, docs/analysis/strength.md §7", IVAN.IVAN_IVAN, LVAN.LVAN_VNPK, LPEN.LPEN_PPEN, LFCN.LFCN_FCPK]
     used_by: [P01, P07]
   undrained_shear_strength_basis:
     description: How s_u was found (half_deviator_stress, half_unconfined_compressive_strength, half_hand_penetrometer_reading, hand_penetrometer_reading, as_reported)
@@ -415,7 +415,7 @@ columns:
     ags: [IDEN.IDEN_STAB]
     used_by: []
   particle_density:
-    description: Density of the solid particles, rho_s (Gs = rho_s / rho_w, M14 b)
+    description: Density of the solid particles, rho_s (Gs = rho_s / rho_w)
     type: number
     quantity: density
     scale: ratio
@@ -488,15 +488,15 @@ columns:
     quantity: stress
     scale: ratio
     label: Total vertical stress, σ_v0
-    ags: ["derived: docs/work/m13a-judgments.md"]
+    ags: ["derived: ht.analysis.vertical_stress()"]
     used_by: [P01]
   pore_pressure:
-    description: In situ pore pressure (hydrostatic from the water level in M13)
+    description: In situ pore pressure (hydrostatic from the water level)
     type: number
     quantity: stress
     scale: ratio
     label: Pore pressure, u_0
-    ags: ["derived: docs/work/m13a-judgments.md"]
+    ags: ["derived: ht.analysis.vertical_stress()"]
     used_by: [P01]
   effective_vertical_stress:
     description: Effective vertical stress, total less pore pressure
@@ -504,7 +504,7 @@ columns:
     quantity: stress
     scale: ratio
     label: Effective vertical stress, σ′_v0
-    ags: ["derived: docs/work/m13a-judgments.md"]
+    ags: ["derived: ht.analysis.vertical_stress()"]
     used_by: [P01]
 
   # --- Strength (correlations from M13; measured values from W2) -----------------------
@@ -514,7 +514,7 @@ columns:
     quantity: angle
     scale: ratio
     label: Effective friction angle, φ′
-    ags: ["derived: docs/work/m13b1-spt-framework.md", "derived: docs/work/m11b-envelope-fit.md"]
+    ags: ["derived: docs/analysis/correlations.md", "derived: arcsin(slope) of mohr_coulomb_fit()'s s′–t line"]
     used_by: [P01]
   effective_cohesion:
     description: Effective cohesion intercept of a Mohr-Coulomb envelope fitted to failure points
@@ -522,7 +522,7 @@ columns:
     quantity: stress
     scale: ratio
     label: Effective cohesion, c′
-    ags: ["derived: docs/work/m11b-envelope-fit.md"]
+    ags: ["derived: intercept / cos φ′ of mohr_coulomb_fit()'s s′–t line"]
     used_by: []
   dilatancy_angle:
     description: Dilatancy angle of a Mohr-Coulomb set, by Bolton's relation, 0 for a fine-grained unit, or selected
@@ -530,7 +530,7 @@ columns:
     quantity: angle
     scale: ratio
     label: Dilatancy angle, ψ
-    ags: ["derived: docs/work/m18f-mohr-coulomb-set.md"]
+    ags: ["derived: docs/analysis/statistics.md §7"]
     used_by: []
   total_stress_cohesion:
     description: Cohesion intercept of a Mohr-Coulomb envelope fitted to total-stress failure points
@@ -538,7 +538,7 @@ columns:
     quantity: stress
     scale: ratio
     label: Total stress cohesion, c
-    ags: ["derived: docs/work/m11b-envelope-fit.md"]
+    ags: ["derived: intercept / cos φ of mohr_coulomb_fit()'s s–t line"]
     used_by: []
   total_stress_friction_angle:
     description: Friction angle of a Mohr-Coulomb envelope fitted to total-stress failure points
@@ -546,7 +546,7 @@ columns:
     quantity: angle
     scale: ratio
     label: Total stress friction angle, φ
-    ags: ["derived: docs/work/m11b-envelope-fit.md"]
+    ags: ["derived: arcsin(slope) of mohr_coulomb_fit()'s s–t line"]
     used_by: []
   intact_compressive_strength:
     description: Intact compressive strength σci of a Hoek–Brown criterion fitted to rock triaxial and UCS failures
@@ -554,7 +554,7 @@ columns:
     quantity: stress
     scale: ratio
     label: Intact compressive strength, σci
-    ags: ["derived: docs/work/m17c-hoek-brown-fit.md"]
+    ags: ["derived: √intercept of hoek_brown_fit()'s (σ1 − σ3)²–σ3 line"]
     used_by: [P32]
   intact_hoek_brown_constant:
     description: Hoek–Brown constant mi of intact rock, fitted with σci to rock triaxial and UCS failures
@@ -562,7 +562,7 @@ columns:
     quantity: dimensionless
     scale: ratio
     label: Hoek–Brown constant of intact rock, mi
-    ags: ["derived: docs/work/m17c-hoek-brown-fit.md"]
+    ags: ["derived: slope / σci of hoek_brown_fit()'s (σ1 − σ3)²–σ3 line"]
     used_by: [P32]
   peak_cohesion:
     description: Cohesion intercept of a line fitted to shear box peak stages, τ against σn
@@ -570,7 +570,7 @@ columns:
     quantity: stress
     scale: ratio
     label: Peak cohesion, c_p
-    ags: ["derived: docs/work/m17b-shear-box-fit.md"]
+    ags: ["derived: intercept of shear_box_fit()'s peak τ–σn line"]
     used_by: [P31]
   peak_friction_angle:
     description: Friction angle of a line fitted to shear box peak stages, τ against σn
@@ -578,7 +578,7 @@ columns:
     quantity: angle
     scale: ratio
     label: Peak friction angle, φ_p
-    ags: ["derived: docs/work/m17b-shear-box-fit.md"]
+    ags: ["derived: arctan(slope) of shear_box_fit()'s peak τ–σn line"]
     used_by: [P31]
   residual_cohesion:
     description: Cohesion intercept of a line fitted to shear box residual stages, τ against σn
@@ -586,7 +586,7 @@ columns:
     quantity: stress
     scale: ratio
     label: Residual cohesion, c_r
-    ags: ["derived: docs/work/m17b-shear-box-fit.md"]
+    ags: ["derived: intercept of shear_box_fit()'s residual τ–σn line"]
     used_by: [P31]
   residual_friction_angle:
     description: Friction angle of a line fitted to shear box residual stages, τ against σn
@@ -594,7 +594,7 @@ columns:
     quantity: angle
     scale: ratio
     label: Residual friction angle, φ_r
-    ags: ["derived: docs/work/m17b-shear-box-fit.md"]
+    ags: ["derived: arctan(slope) of shear_box_fit()'s residual τ–σn line"]
     used_by: [P31]
   critical_state_friction_angle:
     description: Critical state (constant volume) friction angle φ′cv, a judgment keyed by geology unit
@@ -602,7 +602,7 @@ columns:
     quantity: angle
     scale: ratio
     label: Critical state friction angle, φ′cv
-    ags: ["derived: docs/work/m18d-sources-compared.md"]
+    ags: ["derived: the judgments file (docs/analysis/judgments.md §5.8)"]
     used_by: []
   plane_strain_friction_angle:
     description: Plane strain compression friction angle φ′psc, from a shear box φ′ by Kulhawy & Mayne (1990) Eq. 4-10
@@ -610,7 +610,7 @@ columns:
     quantity: angle
     scale: ratio
     label: Plane strain friction angle, φ′psc
-    ags: ["derived: docs/work/m18d-sources-compared.md"]
+    ags: ["derived: arctan(tan φ′ds / cos φ′cv), docs/analysis/strength.md §8"]
     used_by: []
   undrained_shear_strength_lower:
     description: Lower bound of an undrained shear strength given as a band, such as a correlation's
@@ -618,7 +618,7 @@ columns:
     quantity: stress
     scale: ratio
     label: Undrained shear strength (lower), s_u
-    ags: ["derived: docs/work/m13b2-spt-strength-history.md"]
+    ags: ["derived: docs/analysis/correlations.md"]
     used_by: [P01]
   undrained_shear_strength_upper:
     description: Upper bound of an undrained shear strength given as a band; blank for an open band
@@ -626,7 +626,7 @@ columns:
     quantity: stress
     scale: ratio
     label: Undrained shear strength (upper), s_u
-    ags: ["derived: docs/work/m13b2-spt-strength-history.md"]
+    ags: ["derived: docs/analysis/correlations.md"]
     used_by: [P01]
 
   # --- Stress history (correlations from M13; oedometer values from W2) ---------------
@@ -636,7 +636,7 @@ columns:
     quantity: stress
     scale: ratio
     label: Preconsolidation stress, σ′p
-    ags: ["derived: docs/work/m13b2-spt-strength-history.md"]
+    ags: ["derived: docs/analysis/correlations.md"]
     used_by: [P01]
   overconsolidation_ratio:
     description: Overconsolidation ratio, preconsolidation stress over effective vertical stress
@@ -644,7 +644,7 @@ columns:
     quantity: dimensionless
     scale: ratio
     label: Overconsolidation ratio, OCR
-    ags: ["derived: docs/work/m13b2-spt-strength-history.md"]
+    ags: ["derived: docs/analysis/correlations.md"]
     used_by: [P01]
   at_rest_earth_pressure_coefficient:
     description: At-rest earth pressure coefficient, horizontal over vertical effective stress
@@ -652,7 +652,7 @@ columns:
     quantity: dimensionless
     scale: ratio
     label: At-rest earth pressure coefficient, K0
-    ags: ["derived: docs/work/m13b2-spt-strength-history.md"]
+    ags: ["derived: docs/analysis/correlations.md"]
     used_by: [P01]
   drained_youngs_modulus:
     description: Drained Young's modulus, a secant modulus at working strains, not the small-strain E0
@@ -660,15 +660,15 @@ columns:
     quantity: modulus
     scale: ratio
     label: Drained Young's modulus, E′
-    ags: ["derived: docs/work/m13b3-spt-stiffness.md"]
+    ags: ["derived: docs/analysis/correlations.md"]
     used_by: [P01]
   drained_poissons_ratio:
-    description: Drained Poisson's ratio, of a Mohr-Coulomb set (selected until wave 5)
+    description: Drained Poisson's ratio, of a Mohr-Coulomb set (selected; derived values aren't built yet)
     type: number
     quantity: dimensionless
     scale: ratio
     label: Drained Poisson's ratio, ν′
-    ags: ["derived: docs/work/m18f-mohr-coulomb-set.md"]
+    ags: ["derived: docs/analysis/statistics.md §7"]
     used_by: []
   shear_wave_velocity:
     description: Shear wave velocity, measured in situ or estimated
@@ -683,45 +683,45 @@ columns:
   correlation_name:
     description: The correlation an estimate came from, by its function's name
     type: text
-    ags: ["derived: docs/work/m13b1-spt-framework.md"]
+    ags: ["derived: docs/analysis/correlations.md"]
     used_by: [P01]
     statistics: {role: source}
   correlation_soil:
     description: The source's soil row a correlation's coefficient was taken from (soil=)
     type: text
-    ags: ["derived: docs/work/m13b3-spt-stiffness.md"]
+    ags: ["derived: docs/analysis/correlations.md"]
     used_by: [P01]
   conversion_name:
     description: The conversion a value came from, by its function's name, such as a shear box φ′ converted to triaxial
     type: text
-    ags: ["derived: docs/work/m18d-sources-compared.md"]
+    ags: ["derived: docs/analysis/strength.md §8"]
     used_by: []
     statistics: {role: source}
   conversion_soil:
     description: The soil type a conversion's ratio was taken from (soil=)
     type: text
-    ags: ["derived: docs/work/m18d-sources-compared.md"]
+    ags: ["derived: docs/analysis/strength.md §8"]
     used_by: []
   parameter_source:
     description: The source of a parameter's values in a comparison, such as a correlation, a test type or a fit
     type: text
-    ags: ["derived: docs/work/m18d-sources-compared.md"]
+    ags: ["derived: docs/analysis/statistics.md §5"]
     used_by: [P01, P07]
     statistics: {role: source}
   source_kind:
     description: Whether a compared source gives values row by row ("rows") or fitted values ("fit")
     type: text
-    ags: ["derived: docs/work/m18d-sources-compared.md"]
+    ags: ["derived: docs/analysis/statistics.md §5"]
     used_by: []
   correlation_input:
     description: The correlation an input came from, when a correlation read another's estimate
     type: text
-    ags: ["derived: docs/work/m13b2-spt-strength-history.md"]
+    ags: ["derived: docs/analysis/correlations.md"]
     used_by: [P01]
   correlation_qualifier:
     description: "Whether a correlation's estimate is a bound: > at least (a refusal, or N above the range), < at most (N below the range), blank otherwise"
     type: text
-    ags: ["derived: docs/work/m18a-refusals.md"]
+    ags: ["derived: docs/analysis/correlations.md §3"]
     used_by: [P01, P07]
     # Read alongside the generic qualifier, so a frame pooling lab and SPT
     # values counts each row's own (m18a spec decision 5).
@@ -738,7 +738,7 @@ columns:
   correlation_note:
     description: "Why a correlation gave no estimate (not for this soil, soil type unknown, input blank, refusal, below range or above range), or a bound (at least: refusal; at least or at most: N beyond the range)"
     type: text
-    ags: ["derived: docs/work/m13b1-spt-framework.md"]
+    ags: ["derived: docs/analysis/correlations.md"]
     used_by: [P01]
   correlation_data_count:
     description: The number of data points a correlation's source fit it to (its n); blank when not stated
@@ -746,7 +746,7 @@ columns:
     quantity: count
     scale: ratio
     label: Correlation's data points, n
-    ags: ["derived: docs/work/m15b-correlation-statistics.md"]
+    ags: ["derived: docs/analysis/correlations.md §2"]
     used_by: []
   correlation_r_squared:
     description: The coefficient of determination a correlation's source gives (its r²); blank when not stated
@@ -754,17 +754,17 @@ columns:
     quantity: dimensionless
     scale: ratio
     label: Correlation's coefficient of determination, r²
-    ags: ["derived: docs/work/m15b-correlation-statistics.md"]
+    ags: ["derived: docs/analysis/correlations.md §2"]
     used_by: []
   correlation_scatter:
     description: A correlation's scatter as its source states it, or "Not stated."
     type: text
-    ags: ["derived: docs/work/m15b-correlation-statistics.md"]
+    ags: ["derived: docs/analysis/correlations.md §2"]
     used_by: []
   correlation_advice:
     description: "The source's advice on using a correlation, quoted with its citation, or hangtu's own marked \"hangtu:\""
     type: text
-    ags: ["derived: docs/work/m15b-correlation-statistics.md"]
+    ags: ["derived: docs/analysis/correlations.md §2"]
     used_by: []
 
   # --- SPT (P02, P03) ------------------------------------------------------------------
@@ -782,7 +782,7 @@ columns:
     quantity: count
     scale: ratio
     label: SPT N (capped)
-    ags: ["derived: docs/drafts/analysis.md §1"]
+    ags: ["derived: docs/analysis/index-and-spt.md §1"]
     used_by: [P02, P03]
   spt_n60:
     description: N corrected to 60% energy (N × ER / 60)
@@ -832,13 +832,13 @@ columns:
   spt_refusal:
     description: True if the test reached refusal or partial penetration
     type: bool
-    ags: ["derived: docs/drafts/analysis.md §1"]
+    ags: ["derived: docs/analysis/index-and-spt.md §1"]
     used_by: [P02, P03]
     statistics: {role: at_least, values: [spt_n, spt_n60, spt_n_capped, spt_n1_60]}
   spt_class:
     description: SPT relative-density or consistency class, or Refusal
     type: text
-    ags: ["derived: docs/drafts/analysis.md §1.4"]
+    ags: ["derived: docs/analysis/index-and-spt.md §1.4"]
     used_by: [P03]
 
   # --- Atterberg limits (P04, P06) ---------------------------------------------------------
@@ -906,22 +906,22 @@ columns:
   plasticity_class_uscs:
     description: USCS fine-grained class from LL and PI (CL, CL-ML, ML, CH, MH; never OL or OH)
     type: text
-    ags: ["derived: docs/drafts/analysis.md §2.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §2.5"]
     used_by: [P04]
   plasticity_class_bs5930:
     description: BS 5930 plasticity class (C or M, then L, I, H, V or E by LL)
     type: text
-    ags: ["derived: docs/drafts/analysis.md §2.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §2.5"]
     used_by: [P04]
   uscs_symbol:
     description: USCS group symbol (ASTM D2487), e.g. SP-SM or CL; never OL or OH
     type: text
-    ags: ["derived: docs/drafts/analysis.md §2.6"]
+    ags: ["derived: docs/analysis/index-and-spt.md §2.6"]
     used_by: [P04, P05]
   aashto_group:
     description: AASHTO soil group (AASHTO M 145), A-1-a to A-7-6
     type: text
-    ags: ["derived: docs/drafts/analysis.md §2.7"]
+    ags: ["derived: docs/analysis/index-and-spt.md §2.7"]
     used_by: []
   aashto_group_index:
     description: AASHTO group index (AASHTO M 145), a whole number, 0 or more
@@ -929,7 +929,7 @@ columns:
     quantity: count
     scale: ratio
     label: AASHTO group index
-    ags: ["derived: docs/drafts/analysis.md §2.7"]
+    ags: ["derived: docs/analysis/index-and-spt.md §2.7"]
     used_by: []
 
   # --- Grain size (P05) ---------------------------------------------------------------------
@@ -955,7 +955,7 @@ columns:
     quantity: particle_size
     scale: ratio
     label: D10
-    ags: ["derived: docs/drafts/analysis.md §3"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3"]
     used_by: [P05]
   d15:
     description: Particle size at 15% passing (filter criteria)
@@ -963,7 +963,7 @@ columns:
     quantity: particle_size
     scale: ratio
     label: D15
-    ags: ["derived: docs/drafts/analysis.md §3.3"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.3"]
     used_by: [P05]
   d30:
     description: Particle size at 30% passing
@@ -979,7 +979,7 @@ columns:
     quantity: particle_size
     scale: ratio
     label: D50
-    ags: ["derived: docs/drafts/analysis.md §3.3"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.3"]
     used_by: [P05]
   d60:
     description: Particle size at 60% passing
@@ -995,7 +995,7 @@ columns:
     quantity: particle_size
     scale: ratio
     label: D85
-    ags: ["derived: docs/drafts/analysis.md §3.3"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.3"]
     used_by: [P05]
   uniformity_coefficient:
     description: Coefficient of uniformity, D60 / D10
@@ -1016,7 +1016,7 @@ columns:
   fraction_system:
     description: Size-fraction system the *_content columns follow (astm_uscs, aashto, iso14688 or the user's)
     type: text
-    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
     used_by: [P05]
   fines_content:
     description: Percentage of the sample that is finer than 0.075 mm (USCS)
@@ -1024,7 +1024,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Fines content
-    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
     used_by: [P05]
   sand_content:
     description: Percentage of the sample that is sand, by the row's fraction_system
@@ -1032,7 +1032,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Sand content
-    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
     used_by: [P05]
   gravel_content:
     description: Percentage of the sample that is gravel, by the row's fraction_system
@@ -1040,7 +1040,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Gravel content
-    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
     used_by: [P05]
   cobbles_content:
     description: Percentage of the sample that is cobbles, by the row's fraction_system
@@ -1048,7 +1048,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Cobbles content
-    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
     used_by: [P05]
   boulders_content:
     description: Percentage of the sample that is boulders, by the row's fraction_system
@@ -1056,7 +1056,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Boulders content
-    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
     used_by: [P05]
   silt_content:
     description: Percentage of the sample that is silt, by the row's fraction_system (ISO 14688)
@@ -1064,7 +1064,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Silt content
-    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
     used_by: [P05]
   clay_content:
     description: Percentage of the sample that is clay, by the row's fraction_system (ISO 14688)
@@ -1072,7 +1072,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Clay content
-    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
     used_by: [P05]
   silt_clay_content:
     description: Percentage of the sample that is finer than 0.075 mm (AASHTO silt-clay)
@@ -1080,7 +1080,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Silt-clay content
-    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
     used_by: [P05]
   fine_sand_content:
     description: Percentage of the sample that is fine sand, 0.075 to 0.425 mm (AASHTO)
@@ -1088,7 +1088,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Fine sand content
-    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
     used_by: [P05]
   coarse_sand_content:
     description: Percentage of the sample that is coarse sand, 0.425 to 2.0 mm (AASHTO)
@@ -1096,9 +1096,9 @@ columns:
     quantity: percent
     scale: ratio
     label: Coarse sand content
-    ags: ["derived: docs/drafts/analysis.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
     used_by: [P05]
-  # Triaxial stages at failure (M11 a, docs/work/m11a-triaxial-data.md). Values
+  # Triaxial stages at failure (M11 a, docs/data/datasets.md §6.10). Values
   # at failure end in _at_failure; the state before shearing doesn't.
   cell_pressure:
     description: Total cell pressure during the shearing stage of a triaxial test
@@ -1253,7 +1253,7 @@ columns:
     label: Reported Hoek–Brown constant of intact rock, mi
     ags: ["none: a user CSV, M17 (c)"]
     used_by: [P32]
-  # --- Shear box (M17 a, docs/work/m17a-strength-data.md) ---
+  # --- Shear box (M17 a, docs/data/datasets.md §6.12) ---
   encapsulation:
     description: How the specimen was set in the shear box, as written (resin, plaster), for rock joints
     type: text
@@ -1424,7 +1424,7 @@ columns:
     type: text
     ags: [TREG.TREG_REM, TRIG.TRIG_REM, SHBG.SHBG_REM]
     used_by: []
-  # Readings during shearing (M11 c, docs/work/m11c-triaxial-shearing.md): one
+  # Readings during shearing (M11 c, docs/analysis/strength.md §2): one
   # row per strain step, from a CSV the user shapes. Bare names, against the
   # _at_failure values of a stage; ht.analysis.triaxial_failure_from_readings()
   # reduces them to those.

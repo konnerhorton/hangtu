@@ -1,7 +1,7 @@
-"""Convert a shear box φ′ to a triaxial one (docs/work/m18d-sources-compared.md).
+"""Convert a shear box φ′ to a triaxial one (docs/analysis/strength.md §8).
 
 Kulhawy & Mayne (1990), Eq. 4-10 with the ratios of Tables 4-2 and 4-5, and
-the critical state friction angle as a judgment (decisions 1-7).
+the critical state friction angle as a judgment.
 """
 
 import math
@@ -24,9 +24,9 @@ _FUNCTION = "friction_angle_from_shear_box()"
 _JUDGMENT = "critical_state_friction_angle"
 _KEY = "geology_unit"
 #: The name a converted value carries, as a correlation's estimate carries its
-#: correlation_name (decision 7).
+#: correlation_name (§8).
 CONVERSION_NAME = "friction_angle_from_shear_box_kulhawy_mayne_1990"
-#: soil= -> (φ′psc / φ′tc, where Kulhawy & Mayne 1990 give it) (decision 1).
+#: soil= -> (φ′psc / φ′tc, where Kulhawy & Mayne 1990 give it) (§8).
 _SOILS = {
     "cohesionless": (1.12, "Table 4-2, p. 4-14"),
     "normally_consolidated_cohesive": (1.10, "Table 4-5, p. 4-25"),
@@ -72,7 +72,7 @@ def friction_angle_from_shear_box(
 
     A direct shear test shears the soil in plane strain on a plane it doesn't
     choose, so its peak angle $\phi'_{ds}$ isn't a triaxial compression angle
-    $\phi'_{tc}$ (SPEC §5 keeps them apart by name). Kulhawy & Mayne (1990,
+    $\phi'_{tc}$, and the two are kept apart by name. Kulhawy & Mayne (1990,
     Eq. 4-10, p. 4-12) relate direct shear to plane strain compression:
 
     $$
@@ -98,7 +98,7 @@ def friction_angle_from_shear_box(
     ``"free"`` and ``"through_origin"``, main line first, as the fit ordered
     them. The converted value is ``effective_friction_angle``, with
     ``conversion_name`` saying it was converted, so a frame with triaxial and
-    converted rows keeps them apart as two sources (SPEC §5).
+    converted rows keeps them apart as two sources.
     ``plane_strain_friction_angle`` is the step between. **Not converted:**
     residual angles, because $\phi_r$ is independent of test type (p. 4-10),
     and ``peak_cohesion``, for which the source gives no conversion; both are
@@ -123,7 +123,7 @@ def friction_angle_from_shear_box(
     degrees, keyed by ``geology_unit`` with no project-wide value, because
     mineralogy and grading set it. It resolves from the argument, then
     ``judgments=``, then the Project's judgments file that the fit's input
-    carried (``fit.judgments_file``), else an error naming it (SPEC §4). The
+    carried (``fit.judgments_file``), else an error naming it. The
     soil type is an argument too, never inferred from a soil class or a USCS
     symbol.
 
@@ -285,7 +285,7 @@ def _soils(soil: Any, fit: ShearBoxFit, convertible: list[bool]) -> list[str | N
             f'{_FUNCTION} needs soil=: "cohesionless" (Kulhawy & Mayne 1990, Table '
             '4-2, φ′psc = 1.12 φ′tc) or "normally_consolidated_cohesive" (Table '
             "4-5, φ′psc = 1.10 φ′tc), or a mapping {geology_unit: soil}. It is "
-            "never inferred from a soil class (SPEC §4)."
+            "never inferred from a soil class."
         )
     if not isinstance(soil, Mapping):
         one = _check_soil(soil, "soil=")
@@ -344,7 +344,10 @@ def _angle(value: Any, where: str) -> float:
 def _critical_state(
     argument: Any, judgments: Any, fit: ShearBoxFit, needed: list[bool]
 ) -> tuple[list[dict[str, Any] | None], dict[str, Any] | None]:
-    """Each group's φ′cv in degrees, with its source, and the record (decision 5)."""
+    """Each group's φ′cv in degrees, with its source, and the record.
+
+    The judgment's rules: docs/analysis/judgments.md §5.8.
+    """
     read = read_judgments_file(judgments, fit.judgments_file, "the fit")
     in_file = read is not None and _JUDGMENT in read.judgments
     if argument is not None:
@@ -388,7 +391,7 @@ def _from_argument(
                 f"{_FUNCTION} {_JUDGMENT}= is one number, but the fit has "
                 f"{len(fit.groups)} groups ({groups}). Give a mapping by {_KEY}, "
                 f"e.g. {{'Terrace': 32}}: one φ′cv for every unit would be coarser "
-                "than the judgment allows (SPEC §4)."
+                "than the judgment allows."
             )
         one = entry(value)
         return [one], {"source": "argument", "by": None, "values": {"all": one["text"]}}
@@ -468,7 +471,7 @@ def _convert(
     soil: str | None,
     angle: dict[str, Any] | None,
 ) -> dict[str, Any]:
-    """Convert one peak line's φ′ds: Eq. 4-10, then the soil's ratio (decision 1)."""
+    """Convert one peak line's φ′ds: Eq. 4-10, then the soil's ratio (§8)."""
     friction = line["friction_angle"]
     record: dict[str, Any] = {
         "line_kind": line["line_kind"],

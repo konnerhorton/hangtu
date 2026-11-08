@@ -1,4 +1,7 @@
-"""Grain size: D-values, Cu, Cc and size fractions (docs/drafts/analysis.md §3)."""
+"""Grain size: D-values, Cu, Cc and size fractions.
+
+Spec: docs/analysis/index-and-spt.md §3.
+"""
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field

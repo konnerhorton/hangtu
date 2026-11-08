@@ -110,6 +110,85 @@ def test_every_public_name_has_a_reference_entry():
     assert expected - _documented() == set()
 
 
+# What a user can't follow: an internal spec, a TODO item, a milestone or a wave.
+INTERNAL_REFERENCE = re.compile(r"SPEC §|docs/|TODO #|\bM\d{1,2}\b|\bwave \d\b")
+
+
+def _resolve(path):
+    parts = path.split(".")
+    for split in range(len(parts), 0, -1):
+        try:
+            obj = importlib.import_module(".".join(parts[:split]))
+        except ImportError:
+            continue
+        for part in parts[split:]:
+            obj = getattr(obj, part)
+        return obj
+    raise ImportError(path)
+
+
+def _published_docstrings(path):
+    # The object's docstring and those of the public members the reference shows.
+    obj = _resolve(path)
+    found = [(path, inspect.getdoc(obj))]
+    if inspect.isclass(obj):
+        for name, member in vars(obj).items():
+            if name.startswith("_"):
+                continue
+            if isinstance(member, (staticmethod, classmethod)):
+                member = member.__func__
+            if callable(member) or isinstance(member, property):
+                found.append((f"{path}.{name}", inspect.getdoc(member)))
+    elif inspect.ismodule(obj):
+        for name in getattr(obj, "__all__", []):
+            found.append((f"{path}.{name}", inspect.getdoc(getattr(obj, name))))
+    return found
+
+
+def test_public_docstrings_cite_no_internal_files():
+    # The API reference is published; SPEC, docs/ and TODO are not.
+    hits = []
+    for path in sorted(_documented()):
+        for name, doc in _published_docstrings(path):
+            for line in (doc or "").splitlines():
+                if INTERNAL_REFERENCE.search(line):
+                    hits.append(f"{name}: {line.strip()}")
+    assert hits == [], "\n".join(dict.fromkeys(hits))
+
+
+def test_site_pages_cite_no_internal_files():
+    # The hand-written pages are published too. Generated pages aren't tracked.
+    import subprocess
+
+    tracked = subprocess.run(
+        ["git", "ls-files", "docs/site"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.split()
+    hits = []
+    for name in tracked:
+        if not name.endswith(".md"):
+            continue
+        text = (ROOT / name).read_text(encoding="utf-8")
+        for number, line in enumerate(text.splitlines(), 1):
+            if INTERNAL_REFERENCE.search(line):
+                hits.append(f"{name}:{number}: {line.strip()}")
+    assert hits == [], "\n".join(hits)
+
+
+def test_column_descriptions_cite_no_internal_files():
+    # ht.columns() prints the descriptions and reference/columns.md lists them.
+    registry = ht.columns()
+    hits = [
+        f"{row.name}: {row.description}"
+        for row in registry.itertuples()
+        if INTERNAL_REFERENCE.search(str(row.description))
+    ]
+    assert hits == [], "\n".join(hits)
+
+
 def test_columns_page_lists_every_column(tmp_path, monkeypatch):
     # Criterion 5.
     monkeypatch.setattr(prepare_site, "SITE", tmp_path)

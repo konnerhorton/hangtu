@@ -74,7 +74,7 @@ the correlations on the example project.
 Oedometer tests on good-quality samples of the unit are the basis, and overrule an SPT estimate. SPT N is a poor
 predictor in clay: use the SPT correlations to check an oedometer σ′p profile, or to sketch one where there is none,
 not to set a design value. Fissured clays plot above the Mayne & Kemper trend (Kulhawy & Mayne 1990, Fig. 3-9).
-Choosing a design value is stage D (M18).
+Choosing a design value is selection: [`ht.stats.select()`](../guides/selection.md).
 
 ## Variability
 

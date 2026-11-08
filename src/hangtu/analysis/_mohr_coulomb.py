@@ -1,4 +1,4 @@
-"""The Mohr-Coulomb fit of triaxial failure points (docs/work/m11b-envelope-fit.md)."""
+"""The Mohr-Coulomb fit of triaxial failure points (docs/analysis/strength.md §4)."""
 
 import math
 from collections.abc import Mapping, Sequence
@@ -38,7 +38,7 @@ _IDENTIFIERS = (
     "test_stage",
     *PLACE,
 )
-#: The counts of rows left out, in the order a row is counted (Decision 6).
+#: The counts of rows left out, in the order a row is counted (§4).
 _LEFT_OUT = (
     "count_no_principal_stresses",
     "count_no_effective_stresses",
@@ -80,8 +80,15 @@ def mohr_coulomb_fit(
     intercept at $\sigma'_n = 0$, outside it.
 
     These follow from the circle's geometry and the definitions of $s'$ and
-    $t$, without a coefficient or a cited value; the steps are written out in
-    docs/work/m11b-envelope-fit.md, "Derivations".
+    $t$, without a coefficient or a cited value. The envelope's unit normal
+    is $(-\sin\phi', \cos\phi')$, so the distance from the center $(s', 0)$
+    to it is $s' \sin\phi' + c' \cos\phi'$; tangency sets that equal to
+    $t$. The radius to the tangent point lies along the same normal, which
+    gives the point above. Least squares minimizes
+    $\sum (t - a - s' \tan\alpha)^2$: with $x = s'$ and $y = t$,
+    $\tan\alpha = S_{xy} / S_{xx}$ and
+    $a = \bar t - \bar{s'} \tan\alpha$; with ``cohesion=0``, $a = 0$ and
+    $\tan\alpha = \sum s' t / \sum s'^2$.
 
     **Rows left out**, each counted once under the first reason that applies:
     a total principal stress blank (extension and incomplete rows,
@@ -374,7 +381,7 @@ def _fit(
     cohesion: float | None,
     reported: tuple[np.ndarray, np.ndarray] | None,
 ) -> dict[str, Any]:
-    """Fit one set of stages: the line in s′-t, then c′ and φ′ (Derivations 1-3)."""
+    """Fit one set of stages: the line in s′-t, then c′ and φ′ (see Notes)."""
     mean = (major[fitted] + minor[fitted]) / 2
     radius = (major[fitted] - minor[fitted]) / 2
     line = line_fit(mean, radius, intercept=cohesion, x_name="mean stress")

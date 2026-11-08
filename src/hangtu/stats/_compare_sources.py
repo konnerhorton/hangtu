@@ -1,6 +1,6 @@
 """``compare_sources()``: one parameter's sources side by side, by geology unit.
 
-Spec: docs/work/m18d-sources-compared.md, decisions 8-16. Each source is
+Spec: docs/analysis/statistics.md §5. Each source is
 summarized on its own through the calculation ``describe()`` uses, so a source
 is never pooled with another; the comparison is descriptive and tests nothing
 (decision 14).
@@ -142,8 +142,8 @@ def compare_sources(
     s_u. Each source is summarized on its own, per unit, and **never pooled**:
     grouping by source is the point, so there is no ``pool=``. The comparison
     is descriptive and tests nothing; ``ht.stats.compare()`` is the check for
-    two row sources (SPEC §5: selection pools units "on geology and plots;
-    tests are a check").
+    two row sources (selection pools units on geology and plots; tests are a
+    check).
 
     **Sources.** Each DataFrame gives its rows of ``value``, labeled by the
     non-blank values of the registry's source columns (``source``,
@@ -161,7 +161,7 @@ def compare_sources(
     ``ht.analysis.friction_angle_from_shear_box()``, gives its main line's
     converted ``effective_friction_angle`` only, labeled "shear box, converted
     (Kulhawy & Mayne 1990)". A ``ShearBoxFit`` isn't taken: a direct shear φ′
-    isn't a triaxial φ′ until converted (SPEC §5). A fit's groups must be
+    isn't a triaxial φ′ until converted. A fit's groups must be
     keyed by every ``by`` column. One fit in a unit is one value, with
     ``count_points``, ``r_squared``, its normal stress range and its points'
     depths; fitted per sample (``group_by=["geology_unit",
@@ -606,7 +606,7 @@ def _read_fit(
     if isinstance(source, ShearBoxFit):
         raise HangtuError(
             f"{where} is a ShearBoxFit. Its peak_friction_angle is a direct shear φ′, "
-            "not a triaxial one, so the two aren't compared unconverted (SPEC §5). "
+            "not a triaxial one, so the two aren't compared unconverted. "
             "Convert it with ht.analysis.friction_angle_from_shear_box(fit, soil=..., "
             "critical_state_friction_angle=...) and pass the conversion."
         )

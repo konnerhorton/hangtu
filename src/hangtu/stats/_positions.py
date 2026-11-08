@@ -1,4 +1,4 @@
-"""Plotting positions for P08's Q-Q panel (docs/work/m15c-fit.md, Decision 8)."""
+"""Plotting positions for P08's Q-Q panel (docs/plots/P08-distribution-fit.md)."""
 
 import numpy as np
 from scipy import stats as _stats

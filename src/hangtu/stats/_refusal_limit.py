@@ -1,6 +1,6 @@
 """The SPT refusal upper limit: an optional judgment for ``fit()`` (SPEC §4, §5).
 
-Spec: docs/work/m18a-refusals.md, spec item 1 and Decisions 1-3. ``fit()``
+Spec: docs/analysis/judgments.md §5.6 and docs/analysis/statistics.md §1. ``fit()``
 reads it as ``spt_refusal_upper_limit=``, then ``judgments=``, then the
 Project's file the frame carries. Unset is not an error: refusals stay
 right-censored, the test's own result (ASTM D1586), and a note says the tail

@@ -106,7 +106,7 @@ def representative_profile(
     the lines.
 
     Every judgment is passed to ``representative()`` unchanged and none has
-    a default (SPEC §4), so its errors are this function's.
+    a default, so its errors are this function's.
 
     Parameters
     ----------

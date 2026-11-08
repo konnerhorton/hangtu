@@ -5,7 +5,7 @@
 | **ID / function** | P31 · `ht.plot.shear_box_envelope()` (+ `ht.analysis.shear_box_fit()`) |
 | **Status** | built |
 | **Type** | plot + analysis |
-| **Milestone** | M17 (b) (SPEC §12.4), [`docs/work/m17b-shear-box-fit.md`](../work/m17b-shear-box-fit.md) |
+| **Milestone** | M17 (b) (`STATUS.md`), [`docs/work/m17b-shear-box-fit.md`](../work/m17b-shear-box-fit.md) |
 | **Depends on** | P00; `p.shear_box()` (M17 a); `shear_box_fit()` (M17 (b) Spec) |
 | **Related** | P11 (the triaxial envelope; its Mohr view is also τ against σ); sheets 04 and 22; TODO #53 |
 

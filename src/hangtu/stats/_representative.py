@@ -1,6 +1,6 @@
 """``representative()``: a parameter's representative value per group (SPEC §5).
 
-Spec: docs/work/m18b-representative-values.md. The rows are read as ``fit()``
+Spec: docs/analysis/statistics.md §2. The rows are read as ``fit()``
 reads them (``_fit.read_groups``), so refusals, ``>`` and ``<`` values are
 censored and enter through the censored maximum-likelihood fit.
 """
@@ -41,7 +41,7 @@ INPUTS = {
 }
 REQUIRED = {method: inputs[:1] for method, inputs in INPUTS.items()}
 #: Each method's fields as a selection judgment writes them, under
-#: representative()'s argument names (docs/work/m18e-selection.md, decision 7).
+#: representative()'s argument names (docs/analysis/judgments.md §5.9).
 FIELDS = {
     method: ("side", "distribution", "trend", *inputs)
     for method, inputs in INPUTS.items()
@@ -104,7 +104,7 @@ def representative(
     r"""Compute a parameter's representative value per group, in one named view.
 
     One calculation, one view per call: the view and every judgment it needs
-    are arguments, none has a default (SPEC §4), and the result records them
+    are arguments, none has a default, and the result records them
     with the statistics behind each value. Two views of the same rows are two
     calls, and both read the same statistics.
 
@@ -497,8 +497,8 @@ def check_view(
     """Check the view and its judgments (spec decision 1, criterion 1).
 
     It needs no data, so the judgments file's ``selection`` entries are
-    checked by it when the file is opened (docs/work/m18e-selection.md,
-    decision 8). ``inputs`` maps each name in ``INPUTS`` to its value or None.
+    checked by it when the file is opened (docs/analysis/judgments.md §5.9).
+    ``inputs`` maps each name in ``INPUTS`` to its value or None.
     """
     example = EXAMPLES["characteristic"]
     for name, given, choices in (
@@ -509,7 +509,7 @@ def check_view(
         if given is None:
             raise HangtuError(
                 f"{FUNCTION} needs {name}=, one of {_listed(choices)}: it is a "
-                f"judgment, so it has no default (SPEC §4). Example: {example}"
+                f"judgment, so it has no default. Example: {example}"
             )
         if given not in choices:
             raise HangtuError(
@@ -539,7 +539,7 @@ def check_view(
         if inputs[name] is None:
             raise HangtuError(
                 f"{FUNCTION} with method={method!r} needs {name}=: it is a "
-                f"judgment, so it has no default (SPEC §4). Example: "
+                f"judgment, so it has no default. Example: "
                 f"{EXAMPLES[method]}"
             )
     if method == "characteristic":
@@ -601,7 +601,7 @@ def _check_characteristic(inputs: dict[str, Any], trend: Any) -> None:
             f'{FUNCTION} with estimate="intermediate" (Type C) needs '
             f"{' and '.join(f'{name}=' for name in missing)}, θ and L in one "
             "length unit, or sensitivity_index= for Γ² directly. They are "
-            "judgments, with no default (SPEC §4). Example: "
+            "judgments, with no default. Example: "
             "scale_of_fluctuation=1.0, failure_length=10.0"
         )
     if trend is not None:

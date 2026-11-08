@@ -192,6 +192,13 @@ def _check_rounding_band(d007: RuleSettings) -> None:
         )
 
 
+#: An override of each kind, for the error on one of the wrong type.
+_EXAMPLES = {
+    "rules": '{"G002": {"thresholds": {"depth_tolerance": "0.05 ft"}}}',
+    "min_fields": '{"LOCA": {"recommended": ["LOCA_TYPE"]}}',
+}
+
+
 def _read(source: Override, top_key: str) -> dict[str, Any]:
     """Read an override from a path or a dict; ``top_key`` may wrap it."""
     if source is None:
@@ -203,7 +210,7 @@ def _read(source: Override, top_key: str) -> dict[str, Any]:
     if not isinstance(source, Mapping):
         raise HangtuError(
             f"QC {top_key} overrides must be a dict or a path to a YAML file, "
-            f"not {type(source).__name__}. See docs/data/qc.md §3.3."
+            f"not {type(source).__name__}. Example: {_EXAMPLES[top_key]}"
         )
     if set(source) == {top_key}:
         source = source[top_key] or {}
@@ -212,7 +219,7 @@ def _read(source: Override, top_key: str) -> dict[str, Any]:
 
 def read_yaml(path: str | PathLike[str], what: str) -> Any:
     """Read a QC YAML file; ``what`` names it in errors (``rules``)."""
-    return _config.read_yaml(path, f"QC {what}", "docs/data/qc.md §3")
+    return _config.read_yaml(path, f"QC {what}", "the AGS and QC guide")
 
 
 def _check_rules(overrides: dict[str, Any], defaults: dict[str, Any]) -> None:

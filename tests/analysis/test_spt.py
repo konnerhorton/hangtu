@@ -1,4 +1,7 @@
-"""ht.analysis.spt(): refusal, N60 and the cap (docs/drafts/analysis.md §1.3, §1.6)."""
+"""ht.analysis.spt(): refusal, N60 and the cap.
+
+Spec: docs/analysis/index-and-spt.md §1.3, §1.6.
+"""
 
 import numpy as np
 import pandas as pd

@@ -6,7 +6,7 @@
 | **Status** | built |
 | **Type** | plot + analysis (D-values, fractions) |
 | **Milestone** | M8 |
-| **Depends on** | P00, the gradation analysis (`docs/drafts/analysis.md` §3) |
+| **Depends on** | P00, the gradation analysis (`docs/analysis/index-and-spt.md` §3) |
 | **Related** | QC P001 (non-monotonic curves). P25 draft (fractions by unit). TODO #5 (verify the boundaries), #17 (sizes in mm). M8 intent: `docs/work/m8-index-plots.md` |
 
 ---

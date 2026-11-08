@@ -5,7 +5,7 @@
 | **ID / function** | P09 · `ht.plot.representative_profile()` (+ `ht.stats.representative()`; also `RepresentativeResult.plot()`) |
 | **Status** | built (M18 (c), 2026-11-04) |
 | **Type** | plot + analysis (statistics) |
-| **Milestone** | M18 (c) (SPEC §12.4), [`docs/work/m18c-representative-profile.md`](../work/m18c-representative-profile.md) |
+| **Milestone** | M18 (c) (`STATUS.md`), [`docs/work/m18c-representative-profile.md`](../work/m18c-representative-profile.md) |
 | **Depends on** | P01; `ht.stats.representative()` (M18 (b), [`m18b-representative-values.md`](../work/m18b-representative-values.md) Spec) |
 | **Related** | P08 (the precedent: a plot that runs a statistic and draws its result); SPEC §4, §5; [`statistics.md`](../analysis/statistics.md) §2 |
 

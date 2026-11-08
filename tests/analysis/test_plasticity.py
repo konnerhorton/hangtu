@@ -1,4 +1,7 @@
-"""ht.analysis.plasticity(): indices and classes (docs/drafts/analysis.md §2.9)."""
+"""ht.analysis.plasticity(): indices and classes.
+
+Spec: docs/analysis/index-and-spt.md §2.9.
+"""
 
 import numpy as np
 import pandas as pd

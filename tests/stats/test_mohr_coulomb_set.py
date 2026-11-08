@@ -110,7 +110,7 @@ def test_g1_c_and_phi_equal_selects(example):
     for parameter in (E, NU):
         assert terrace[parameter]["origin"] == "blank"
         assert terrace[parameter]["no_value_reason"] == (
-            "no selection; derived values come with wave 5 (M23)"
+            "no selection; derived values aren't built yet"
         )
     assert result.selections[PHI].to_frame().equals(friction.to_frame())
     assert result.soil_classes == {"Terrace": "coarse", "Alluvium": "fine"}
@@ -464,7 +464,7 @@ def test_a_class_the_rule_cant_read_is_an_error(soil_class):
     selection = {C: {"Unit": _value("0 kPa")}, PHI: {"Unit": _value("30 deg")}}
     match = rf"'Unit' has soil_class '{soil_class}'.*give ψ as a selection"
     if soil_class == "rock":
-        match += r".*Hoek-Brown set \(M22\)"
+        match += r".*generalized Hoek-Brown set \(planned, not built yet\)"
     if soil_class == "silty":
         match = r"'Unit' has soil_class 'silty', a class hangtu doesn't know"
     with pytest.raises(HangtuError, match=match):

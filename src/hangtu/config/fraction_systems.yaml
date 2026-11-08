@@ -1,4 +1,4 @@
-# Size-fraction systems (docs/drafts/analysis.md §3.5). ht.analysis.gradation()
+# Size-fraction systems (docs/analysis/index-and-spt.md §3.5). ht.analysis.gradation()
 # and the grain size plot's header band (P05) both read this file, so the
 # fractions and the band can't disagree. Sizes in mm. Each fraction runs from
 # its lower size up to its upper size; the last has no upper size. Parts split a

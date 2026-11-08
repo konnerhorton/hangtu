@@ -68,8 +68,7 @@ def read_judgments_file(
     """Read ``judgments=``, else the project's file ``attached`` names.
 
     ``carrier`` names what carried the project's file, such as "df" or "the
-    fit" (a derived result records it: docs/work/m18d-sources-compared.md,
-    Decision 17).
+    fit" (a derived result records it: docs/analysis/judgments.md §2).
     """
     given = _judgments.as_judgments(judgments)
     if given is None:

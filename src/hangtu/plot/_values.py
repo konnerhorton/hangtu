@@ -203,7 +203,7 @@ def label_colors(
 
 
 #: A correlation's bound on its estimate, read with ``qualifier`` for the values
-#: the registry lists (docs/work/m18a-refusals.md, spec item 3).
+#: the registry lists (docs/analysis/correlations.md §3).
 CORRELATION_QUALIFIER = "correlation_qualifier"
 
 

@@ -1,8 +1,9 @@
-"""The line every wave 2 fit is made of (docs/work/m11b-envelope-fit.md, Decision 3).
+"""The line every envelope fit is made of (docs/analysis/strength.md §3).
 
 A criterion's public function transforms its failure points into x and y, fits
 y = a + b x here, free or with a fixed, and back-transforms a and b into the
-criterion's parameters. Mohr-Coulomb uses x = s′, y = t; M17's fits reuse it.
+criterion's parameters. Mohr-Coulomb uses x = s′, y = t; the shear box and
+Hoek-Brown fits reuse it.
 """
 
 from dataclasses import dataclass

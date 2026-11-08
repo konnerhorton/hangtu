@@ -1,6 +1,6 @@
 """``select()``: each geology unit's selected value of one parameter (SPEC §5).
 
-Spec: docs/work/m18e-selection.md, decisions 10-17. The selection is a
+Spec: docs/analysis/statistics.md §6. The selection is a
 judgment: the judgments file (or ``selection=``) names, per geology unit, a
 source and a method. ``select()`` runs ``compare_sources()`` once, then each
 unit's method on that source's rows, and records what was chosen, from what.
@@ -51,7 +51,7 @@ def select(
 ) -> "SelectionResult":
     r"""Select one parameter's value in each geology unit, as the judgments say.
 
-    The selection is a judgment (SPEC §4, §5): for each geology unit, the
+    The selection is a judgment: for each geology unit, the
     judgments file's ``selection`` names the source and the method that give
     the value, or gives the value with its reason. ``select()`` computes it,
     and records what was chosen, from what, and what the other sources gave.
@@ -179,8 +179,8 @@ def select_from(
 ) -> "SelectionResult":
     """``select()`` with the judgments file already read (``read``).
 
-    A model set reads the file once for every parameter it selects
-    (docs/work/m18f-mohr-coulomb-set.md, decision 8); ``judgments`` still
+    A model set reads the file once for every parameter it selects;
+    ``judgments`` still
     reaches each method, for the judgments it reads.
     """
     quantity = _judgments.selected_quantity(value, f"{FUNCTION} value=")
@@ -400,7 +400,7 @@ def _missing(
     )
     start = (
         f"{FUNCTION} has no selection of {value!r}: {where}. The selection is a "
-        "judgment, with no default (SPEC §4). Add it to the judgments file and "
+        "judgment, with no default. Add it to the judgments file and "
         "pass judgments=ht.judgments(path), or give selection=. Example:\n"
         "selection:\n"
         f"  {value}:\n"

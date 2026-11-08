@@ -1,4 +1,4 @@
-"""Published correlations, one function per source (SPEC §4).
+"""Published correlations, one function per source.
 
 Each function reads the one input column its correlation was derived with,
 returns a copy of ``df`` with the estimate in the target property's column,

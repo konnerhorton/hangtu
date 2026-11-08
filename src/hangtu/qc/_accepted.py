@@ -81,7 +81,8 @@ def read_accepted(source: AcceptedSource, settings: Settings) -> Accepted:
     if isinstance(items, str | bytes | Mapping) or not isinstance(items, Sequence):
         raise HangtuError(
             "Accepted findings must be a list of entries, each with a rule_id and "
-            f"a reason, not {type(items).__name__}. See docs/data/qc.md §3.4."
+            f"a reason, not {type(items).__name__}. See 'Accepting reviewed "
+            "findings' in the AGS and QC guide."
         )
     entries = tuple(
         _entry(position, item, settings) for position, item in enumerate(items, start=1)

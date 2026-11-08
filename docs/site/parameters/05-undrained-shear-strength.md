@@ -80,7 +80,7 @@ entry, and [(N1)60 and correlations](../guides/correlations.md) shows them on th
 
 `p.undrained_strength()` gives every test's s_u side by side, one row per result, with `test_type` and `source`
 keeping them apart so `ht.stats.describe()` won't pool a vane with a UU test unless asked
-(`docs/data/datasets.md` §6.11). Each row says how its s_u was found (`undrained_shear_strength_basis`), and the
+(see the [datasets guide](../guides/datasets.md)). Each row says how its s_u was found (`undrained_shear_strength_basis`), and the
 lab's own UU s_u is kept beside hangtu's q_f / 2 as `reported_undrained_shear_strength`; QC Q001 compares them.
 Field vane values are as measured, without Bjerrum's correction.
 

@@ -1,4 +1,4 @@
-"""The shear box fit of peak and residual stages (docs/work/m17b-shear-box-fit.md)."""
+"""The shear box fit of peak and residual stages (docs/analysis/strength.md §5)."""
 
 import math
 from collections.abc import Mapping, Sequence
@@ -131,14 +131,21 @@ def shear_box_fit(
 
     **Names:** the values are ``peak_friction_angle`` and the like, not
     ``effective_friction_angle``: a direct shear φ′ isn't a triaxial φ′ until
-    selection converts it (SPEC §5). The lab's own pairs
+    ``ht.analysis.friction_angle_from_shear_box()`` converts it. The lab's
+    own pairs
     (``reported_peak_cohesion`` and ``reported_peak_friction_angle``, and the
     residual's) are listed beside the fit, each distinct pair with its count
     of stages, and not compared with it.
 
     The fit uses no coefficient or cited value: it is least squares on the
-    criterion's own line, derived in docs/work/m17b-shear-box-fit.md,
-    "Derivation".
+    criterion's own line (Hoek 2023, ch. 4, eqs. 1-2),
+    $\tau = c + \sigma_n \tan\phi$, a line in $\sigma_n$-$\tau$ with
+    intercept $a = c$ and slope $b = \tan\phi$, so $c = a$ and
+    $\phi = \arctan b$. The free line minimizes
+    $\sum (\tau - a - b\,\sigma_n)^2$, giving $b = S_{xy} / S_{xx}$ and
+    $a = \bar\tau - b\,\bar\sigma_n$; the line through the origin minimizes
+    $\sum (\tau - b\,\sigma_n)^2$, giving
+    $b = \sum \sigma_n \tau / \sum \sigma_n^2$.
 
     Parameters
     ----------
@@ -444,7 +451,7 @@ def _strength(
 def _line(
     normal: np.ndarray, shear: np.ndarray, intercept: float | None, kind: str
 ) -> dict[str, Any]:
-    """Fit one line τ = c + σn tan φ, free or through the origin (Derivation)."""
+    """Fit one line τ = c + σn tan φ, free or through the origin (see Notes)."""
     line = line_fit(normal, shear, intercept=intercept, x_name="normal stress")
     reason = line.no_fit_reason
     slope = line.slope

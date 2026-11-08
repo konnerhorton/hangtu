@@ -1,23 +1,23 @@
 # hangtu
 
-Python library that derives the ground parameters a geotechnical design needs, from AGS4 or CSV test data through to model parameter sets, for soil and rock, with plots, analyses, AGS4 ingest/QC and statistics along the way (SPEC §1). Work is organized as stages A–D per parameter and waves 0–6 (SPEC §1.3). Done through M15, M11, M17 and M18; 0.1.0 is on PyPI. Next: wave 0 (M16, user-defined groups and curves) once TODO #31 is settled; else wave 3 (M19, the oedometer), whose Soft Soil set (M20) is built on M18's model-set base. Then waves 4–6. Status: SPEC §12.4 for milestones, `docs/drafts/parameters/README.md` for parameters.
+Python library that derives the ground parameters a geotechnical design needs, from AGS4 or CSV test data through to model parameter sets, for soil and rock, with plots, analyses, AGS4 ingest/QC and statistics along the way (SPEC §1). Work is organized as stages A–D per parameter and waves 0–6 (SPEC §1.3). Status and what's next: `STATUS.md`.
 
 ## Where things are
 - `SPEC.md`: product spec and cross-cutting decisions. Read the relevant section before designing anything.
-- `docs/data/`: data-layer specs that outlive a unit of work (`ingest.md`, M5; `qc.md`, M6; `datasets.md`, M7).
-- `docs/analysis/`: analysis specs that outlive a unit of work (`correlations.md`, the contract every correlation follows; `statistics.md`, what each `ht.stats` function does). Update them when the behavior changes.
+- `STATUS.md`: status, what's next, and the releases. The close-out of each unit updates it.
+- `docs/data/`: data-layer specs that outlive a unit of work (`ingest.md`, `qc.md`, `datasets.md`).
+- `docs/analysis/`: analysis specs that outlive a unit of work: `index-and-spt.md` (the SPT, Atterberg, classification and grain size analyses), `judgments.md` (the judgments file, how a value resolves, each judgment), `strength.md` (stresses at failure, the envelope fits, undrained strength, the shear box conversion), `correlations.md` (the contract every correlation follows) and `statistics.md` (what each `ht.stats` function does). Update them when the behavior changes.
 - `docs/plots/PXX-*.md`: one spec per figure, with acceptance criteria. `docs/plots/README.md` has the shared plot conventions.
 - `docs/drafts/parameters/`: one draft reference sheet per ground parameter (tests, methods, sources with [V]/[U] tags), the page template with the docstring checklist, and the index (`README.md`) that tracks each parameter's stages A–D. Sheets are not decisions until a wave promotes them to `docs/site/parameters/`.
 - `docs/plots/drafts/`: draft notes for plots not yet specified, in the TEMPLATE format, including proposed IDs P24–P30. They are not decisions. When a plot's unit of work starts, promote its draft to `docs/plots/PXX-*.md` in the spec step.
 - `docs/work/<id>.md`: intent, plan and (when there is no other feature spec) spec for each unit of work, as `## Intent`, `## Spec` and `## Plan` sections (see `docs/reference/process.md`). `docs/work/` files for merged units are history. Read one only when the task or a spec points to it.
 - `src/hangtu/columns.yaml` and `src/hangtu/units/aliases.yaml`: the column registry and unit aliases.
-- `docs/drafts/`: the analyses draft spec (`analysis.md`, M3 and M8) and notes for later phases. Items marked "decided" are decided; the rest is not. Finish the relevant draft as the feature spec before building from it.
 - `docs/TODO.md`: research items and pending decisions, referenced as "TODO #n".
 - `docs/site/`: the public docs site (Zensical; config in `zensical.toml`; built and follows `main`). Each page's example is a file in `docs/site/examples/`; `docs/prepare_site.py` runs them and writes the generated files. The rest of `docs/` is internal and not published.
 
 ## Commands
 - `uv sync`: install
-- `uv run pytest -n auto --dist loadfile`: the whole suite in parallel, about 1.5 minutes (warnings are errors; assert expected ones with `pytest.warns`)
+- `uv run pytest -n 3 --dist loadfile`: the whole suite in parallel, about 1.5 minutes (warnings are errors; assert expected ones with `pytest.warns`)
 - `uv run pytest <files>`: only the tests a change touches; add `--lf` to rerun only the last failures
 - `uv run ruff check . && uv run ruff format .`: lint and format
 - `uv run mypy`: type-check `src/hangtu` (settings in `pyproject.toml`)
@@ -32,6 +32,7 @@ Python library that derives the ground parameters a geotechnical design needs, f
 - **Units:** resolve them in the order explicit argument → `df.attrs["units"]` → registry/settings → error (analysis) or "(units unknown)" (plot). Never guess a unit (SPEC §2.6).
 - **A Project's datasets give `geology_unit` as a categorical** (the geology map's order, with units that have no rows here). Group by it with `observed=` given, and test new grouping code on a categorical column too: hand-built fixtures use strings and miss pandas' FutureWarning, which fails a docs example.
 - **Never drop data silently.** Draw out-of-range values at the edge with a count, and keep flagged values (NP, refusal, `<x`) distinct from blank.
+- **Published text cites no internal file.** Public docstrings, messages, site pages and column descriptions never cite `SPEC §`, `docs/`, a TODO number, a milestone or a wave: state the rule, or name the site page by its title. Code cites living docs (`docs/analysis/`, `docs/data/`, plot specs), never `docs/work/`. Tests in `tests/docs/test_site.py` and `tests/test_errors.py` fail otherwise.
 - **Error messages** say what is wrong, where, and what to do. Don't show raw tracebacks for anticipated data problems.
 - **Annotations are published** in the API reference and checked by mypy. Correct a wrong annotation to what the code does. A `# type: ignore[<code>]` names its code and covers only a library's typing gap (or hangtu's attributes on an `Axes`); narrow a value the code already guarantees with an `assert` and a comment saying why. Read a plot's figure with `figure_of(ax)`.
 - Use American spelling everywhere: prose, docs, comments and identifiers (color, behavior, recognize, analyze, gray, judgment).

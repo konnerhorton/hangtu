@@ -1,4 +1,7 @@
-"""Atterberg indices and plasticity classes (docs/drafts/analysis.md §2.3 to 2.5)."""
+"""Atterberg indices and plasticity classes.
+
+Spec: docs/analysis/index-and-spt.md §2.3 to 2.5.
+"""
 
 from typing import Any
 

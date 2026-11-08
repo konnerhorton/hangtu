@@ -1,6 +1,6 @@
 """The significance level α: a judgment with no default (SPEC §4).
 
-Spec: docs/work/m15d-compare.md, Decision 8. ``compare()`` and
+Spec: docs/analysis/judgments.md §5.5. ``compare()`` and
 ``compare_groups()`` resolve it here: the argument, then ``judgments=``, then
 the Project's file a DataFrame input carries, else an error naming it.
 """
@@ -72,8 +72,8 @@ def _check(argument: Any) -> float:
 
 def _missing(read: Any, frames: bool, function: str) -> str:
     why = (
-        f"{function} tests at the significance level, a judgment with no default "
-        "(SPEC §4): 0.05 is a convention, not a law, so set it on purpose."
+        f"{function} tests at the significance level, a judgment with no default: "
+        "0.05 is a convention, not a law, so set it on purpose."
     )
     if read is not None:
         return (

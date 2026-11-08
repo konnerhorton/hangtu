@@ -1,4 +1,7 @@
-"""Size-fraction systems and the passing at a size (docs/drafts/analysis.md §3.5)."""
+"""Size-fraction systems and the passing at a size.
+
+Spec: docs/analysis/index-and-spt.md §3.5.
+"""
 
 import re
 from os import PathLike

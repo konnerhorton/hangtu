@@ -1,4 +1,4 @@
-"""(N1)60: N60 corrected for overburden (docs/work/m13b1-spt-framework.md, Decision 1).
+"""(N1)60: N60 corrected for overburden.
 
 C_N is computed in kPa, with pa = 100 kPa converted with pint, so a σ′v in
 psf gives the same result.

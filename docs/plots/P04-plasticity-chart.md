@@ -6,7 +6,7 @@
 | **Status** | built |
 | **Type** | plot + classification |
 | **Milestone** | M8 |
-| **Depends on** | P00, the plasticity analysis (`docs/drafts/analysis.md` §2) |
+| **Depends on** | P00, the plasticity analysis (`docs/analysis/index-and-spt.md` §2) |
 | **Related** | SPEC §4 (NP, classification systems). P06, P07. TODO #5 (verify the lines), #22 (organic soils). M8 intent: `docs/work/m8-index-plots.md` |
 
 ---

@@ -78,7 +78,7 @@ Measured σh0 (self-boring pressuremeter) is the basis where there is one. Witho
 OCR (Mayne & Kulhawy 1982) carries the uncertainty of OCR as roughly OCR^0.5. The SPT
 correlation is a check, and a biased one: on the TC304 clay database, measured K0 averaged about twice its estimate
 (below). Assuming OCR = 1 where there is no oedometer data gives the lowest K0, and underestimates K0 in most
-natural deposits (Kulhawy & Mayne 1990, p. 3-6). Choosing a design value is stage D (M18).
+natural deposits (Kulhawy & Mayne 1990, p. 3-6). Choosing a design value is selection: [`ht.stats.select()`](../guides/selection.md).
 
 ## Variability
 

@@ -19,7 +19,7 @@ class ColumnError(HangtuError, ValueError):
 
 
 class AgsFileError(HangtuError, ValueError):
-    """An AGS file can't be read at all (docs/data/ingest.md §10)."""
+    """An AGS file can't be read at all: missing, not AGS4, not UTF-8 or unparseable."""
 
 
 class HangtuHint(UserWarning):

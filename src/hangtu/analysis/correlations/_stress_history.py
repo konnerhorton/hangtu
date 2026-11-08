@@ -1,4 +1,4 @@
-"""σ′p, OCR and K0 from SPT (sheets 06, 07; docs/work/m13b2-spt-strength-history.md).
+"""σ′p, OCR and K0 from SPT (sheets 06, 07; docs/analysis/correlations.md).
 
 All three were derived on field N, before energy correction was practice, so
 they read ``spt_n`` (Decision 4).
@@ -38,7 +38,7 @@ def preconsolidation_stress_mayne_kemper_1988(
 
     **Input:** ``spt_n``, field N as measured. The data predate energy
     correction, so N60 isn't read and isn't converted to the hammers of the
-    time. There is no argument to read another column (SPEC §4).
+    time. There is no argument to read another column.
 
     **Valid for:** clays, and 0.5 ≤ N ≤ 200, the chart's N axis.
 
@@ -144,7 +144,7 @@ def overconsolidation_ratio_mayne_kemper_1988(
     **Inputs:** ``spt_n``, field N as measured, and
     ``effective_vertical_stress`` (from ``ht.analysis.vertical_stress()``),
     with its units. The data predate energy correction, so N60 isn't read.
-    There is no argument to read another column (SPEC §4).
+    There is no argument to read another column.
 
     **Valid for:** clays, and 1 ≤ N pa/σ′v0 ≤ 100, the chart's axis (OCR 1
     to 50); σ′v0 must be greater than 0.
@@ -256,7 +256,7 @@ def at_rest_earth_pressure_coefficient_kulhawy_et_al_1989(
     ``effective_vertical_stress`` (from ``ht.analysis.vertical_stress()``),
     with its units. EPRI gives the input as N, not N60: some later sources
     write N60, but the data predate energy correction. There is no argument
-    to read another column (SPEC §4).
+    to read another column.
 
     **Valid for:** clays, and 0 < N pa/σ′v0 ≤ 60, the chart's axis; σ′v0
     must be greater than 0.

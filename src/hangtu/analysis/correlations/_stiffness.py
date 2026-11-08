@@ -1,4 +1,4 @@
-"""E and Vs from SPT (sheets 08, 10; docs/work/m13b3-spt-stiffness.md).
+"""E and Vs from SPT (sheets 08, 10; docs/analysis/correlations.md).
 
 The E correlations take their coefficient from the source's soil row, named
 by a required ``soil=`` (Decision 3).
@@ -75,8 +75,7 @@ def drained_youngs_modulus_aashto_2004(
     factors in ksi, rounded (0.056, 0.097, 0.139, 0.167).
 
     **Input:** ``spt_n1_60``, N60 corrected for overburden, from
-    ``ht.analysis.spt_n1_60()``. There is no argument to read another column
-    (SPEC §4).
+    ``ht.analysis.spt_n1_60()``. There is no argument to read another column.
 
     **Valid for:** the soils of the four rows, and (N1)60 > 0. The source gives
     no N range; the lower bound is hangtu's, since a zero modulus is no
@@ -206,8 +205,7 @@ def drained_youngs_modulus_kulhawy_mayne_1990(
     | ``"clean_overconsolidated_sands"`` | clean OC sands | 15 |
 
     **Input:** ``spt_n60``, N at 60 % energy, as the source states, not
-    corrected for overburden. There is no argument to read another column
-    (SPEC §4).
+    corrected for overburden. There is no argument to read another column.
 
     **Valid for:** sands, and N60 > 0. The source gives no N range; the lower
     bound is hangtu's, since a zero modulus is no estimate.
@@ -344,7 +342,7 @@ def shear_wave_velocity_imai_tonouchi_1982(
     **Input:** ``spt_n60``, N at 60 % energy. Wair et al. converted the
     source's N assuming the 67 % energy typical of Japanese practice (Seed
     et al. 1985), not a measured one. There is no argument to read another
-    column (SPEC §4).
+    column.
 
     **Valid for:** all soils, and 0 < N60 ≤ 447: the source's N "from less
     than one bpf to nearly 400 bpf" (§4.1.3, p. 18) at the same 67 %. The
@@ -458,7 +456,7 @@ def shear_wave_velocity_ohta_goto_1978(
     **Input:** ``spt_n60``, N at 60 % energy. Wair et al. converted the
     source's N assuming the 67 % energy typical of Japanese practice (Seed
     et al. 1985), not a measured one. There is no argument to read another
-    column (SPEC §4).
+    column.
 
     **Valid for:** all soils, and 2.23 ≤ N60 ≤ 223: the source's N of about
     2 to 200 bpf (§4.1.2, p. 18) at the same 67 %. The data are 289 pairs,

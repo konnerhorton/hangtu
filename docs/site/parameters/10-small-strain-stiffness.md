@@ -83,7 +83,7 @@ Measured Vs is the basis wherever there is one; the SPT correlations are for whe
 small-strain value: a G0 or E0 from them is far stiffer than a working-strain modulus, and needs a reduction for
 strain before it stands in for one ([elastic stiffness](08-elastic-stiffness-soil.md)). The two SPT correlations
 are close at moderate N: at N60 = 10, 191 m/s (Imai & Tonouchi) and 184 m/s (Ohta & Goto) (computed). Choosing a
-design value is stage D (M18).
+design value is selection: [`ht.stats.select()`](../guides/selection.md).
 
 ## Variability
 

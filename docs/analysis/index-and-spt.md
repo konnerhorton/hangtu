@@ -1,7 +1,13 @@
-# Phase 1 analyses — feature spec
+# Index tests and SPT
 
-**Status:** §1 SPT is decided (M3). §2–3 Atterberg limits, classification and grain size are decided (M8), except values marked 🔬. §4 is specified in M13's units of work (`docs/work/m13b1-spt-framework.md`). Analyses are specified here, apart from the plot specs, so they can be used without a plot.
-**Parent:** SPEC §4. The cross-cutting analysis decisions are there. This file holds the detail. Depth conventions are in SPEC §8.
+| | |
+|---|---|
+| **Status** | Living spec. §1 SPT built in M3; §2–3 Atterberg limits, classification and grain size built in M8. Values marked 🔬 are still to verify against the standards (TODO #5) |
+| **Parent** | SPEC §4: the cross-cutting analysis decisions. Depth conventions are in SPEC §8. The SPT correlations and (N1)60: [`correlations.md`](correlations.md) and the `spt_n1_60()` docstring |
+| **Related** | [`m3-spt.md`](../work/m3-spt.md), [`m8-index-plots.md`](../work/m8-index-plots.md). The figures that read these analyses: P02–P06 in [`docs/plots/`](../plots/README.md) |
+
+Update this file in the same commit as any change to these analyses' behavior, and SPEC §4 if the change alters a
+rule there. The analyses are specified here, apart from the plot specs, so they can be used without a plot.
 
 ---
 
@@ -381,31 +387,3 @@ Worked by hand on curve A: sizes 0.075, 0.15, 0.3, 0.6, 1.18, 2.36, 4.75 mm pass
 - Sorting `particle_size` and `percent_passing` independently, which re-pairs the points.
 - Typos in boundaries: fine/medium sand is 0.425 mm, not 0.475; fine/coarse gravel is 19 mm, not 20. The config test checks every boundary against the table above.
 - Interpolating linearly in size instead of log size.
-
-## 4. SPT correlations (M13)
-The principles are decided in SPEC §4. The framework, C_N and (N1)60 are specified in `docs/work/m13b1-spt-framework.md` (Spec), decided 2026-10-22; that spec settles the points below where they differ (the column is `correlation_name`; the function has no argument choosing its input column; docstrings are written by hand and tested against the config). The list stays as the draft it was.
-
-- **Module:** `ht.analysis.correlations`, one function per published correlation, named after the source (`sowers_1979`, `hatanaka_uchida_1996`). The docstring follows the same headings for every correlation: equation, source, applies to, doesn't apply to, input N, range, derived from, notes.
-- **Metadata:** the same facts as a YAML entry in the config (proposed `config/correlations.yaml`), so the docstring, the result's `df.attrs` and a plot footnote all come from one place. Constants are kept in the source's units and converted with pint.
-- **Input N is explicit.** Each correlation declares which N it was derived with. If the column the user passes doesn't match (field N into an N60 correlation), the function raises an error that names the expected column, rather than guessing a correction.
-- **Out of range:** NaN plus a count, by reason (outside another input's range, wrong soil type, a refusal below the N range, missing input). A refusal, or N beyond an inclusive end of the N range, gives a bound instead: the estimate at its N or at the range's end, marked `>` or `<` in `correlation_qualifier` (M18 (a), `docs/work/m18a-refusals.md`).
-- **Output:** long format, one row per test and correlation, with the estimate in the target property's registry column and a column naming the correlation, so `profile(est, "friction_angle", color_by=<that column>)` compares several correlations against depth. Correlations that give a range (Sowers) return lower and upper values. Column names are to be checked against the registry (`method` is already the test method).
-- **Comparison:** P01 and P07 draw the results. Overlaying measured values (lab s_u, φ′ from P11) on the estimates is the main use, so it should be one call.
-
-### 4.1 Vertical stress and (N1)60
-(N1)60 = N60 × C_N, with C_N from the effective vertical stress σ′v. Some correlations (Kulhawy & Mayne 1990) also take σ′v. So σ′v is its own function, and (N1)60 and the correlations take a σ′v column as input.
-
-`ht.analysis.vertical_stress()` is specified in `docs/work/m13a-judgments.md` (Spec), decided 2026-10-22: unit weights by a log column from the judgments file, integrated through each hole's stratigraphy, and water levels by hole. That replaces the depth profile and `interpolation=` drafted here on 2026-10-15. Still from that draft: the hydrostatic pore pressure, γw as the setting `ht.settings.water_unit_weight`, and the assumptions stated in the docstring (level ground with laterally uniform layers; geostatic stress only, with no surcharge, structures or arching; hydrostatic pore pressure; not conservative in a fixed direction, since a σ′v that's too high lowers (N1)60, safe for strength, but also lowers OCR, unsafe for settlement).
-
-C_N is settled in `docs/work/m13b1-spt-framework.md`: Liao & Whitman (1986) or Kayen et al. (1992) by a required `method=`, capped at 1.7, blank above 300 kPa (Youd et al. 2001).
-
-### 4.2 Candidate correlations (settled in M13 b1–b3; the built set is in `src/hangtu/config/correlations.yaml`)
-Friction angle is built in M13 unit (b1) (Hatanaka & Uchida 1996; Kulhawy & Mayne 1990; Wolff 1989 cut, TODO #36). Undrained shear strength, σ′p/OCR and K0 are unit (b2)'s, specified in `docs/work/m13b2-spt-strength-history.md` (decided 2026-10-23): Stroud (1974), Terzaghi & Peck (1967) as a band, Mayne & Kemper (1988) for σ′p and for OCR, and Kulhawy et al. (1989) for K0; Sowers (1979) cut (TODO #39). Functions are named target first (`undrained_shear_strength_stroud_1974`). Young's modulus and Vs are unit (b3)'s, specified in `docs/work/m13b3-spt-stiffness.md` (decided 2026-10-26): AASHTO (2004) on (N1)60 and Kulhawy & Mayne (1990) on N60 for drained E, each with a coefficient by a required soil row (`soil=`), and Imai & Tonouchi (1982) and Ohta & Goto (1978) for Vs in Wair et al.'s (2012) N60 forms. The table is the draft it was:
-
-| Property | Candidates |
-|---|---|
-| Undrained shear strength | Terzaghi & Peck (1967); Sowers (1979) (P28 draft); Stroud (1974), f1 × N60 by PI |
-| Friction angle | Peck, Hanson & Thornburn (1974), as fitted by Wolff (1989); Hatanaka & Uchida (1996); Kulhawy & Mayne (1990) |
-| Relative density | Skempton (1986); Meyerhof (1957) |
-| Young's modulus | Kulhawy & Mayne (1990), by soil type |
-| Shear wave velocity | Imai & Tonouchi (1982) |

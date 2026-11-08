@@ -246,7 +246,7 @@ def draw(
     exact = np.asarray(record["values"]["exact"], float)
     left = np.asarray(record["values"]["left"], float)
     # A refusal under an upper limit is drawn at its value, as P08's Q-Q
-    # panel places it (docs/work/m18a-refusals.md, spec item 1).
+    # panel places it (docs/plots/P08-distribution-fit.md).
     interval = np.asarray(record["values"].get("interval", []), float).reshape(-1, 2)
     right = np.concatenate(
         [np.asarray(record["values"]["right"], float), interval[:, 0]]

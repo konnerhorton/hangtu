@@ -88,7 +88,7 @@ Measured stiffness at the right strain level is the basis where there is one: pr
 or Vs with a reduction for strain. Both SPT correlations give a drained, working-strain secant modulus "as a first
 order estimator" (Kulhawy & Mayne 1990, p. 5-17); NHI-06-088 gives its table "for preliminary design" (p. 5-83).
 They are not interchangeable with E0 from Vs, which is far stiffer, nor with an undrained Eu. Choosing a design
-value is stage D (M18).
+value is selection: [`ht.stats.select()`](../guides/selection.md).
 
 ## Variability
 

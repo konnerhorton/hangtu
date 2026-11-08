@@ -13,8 +13,10 @@ Correlations (decided 2026-10-15; widened 2026-10-21) are stage C of every param
 
 ## 2. What each correlation does
 - **States its equation and cites its source**, with constants kept in the source's units.
+- **Has one entry in `config/correlations.yaml`** holding its facts (source, range, input, applies to), so the result's metadata and a plot's footnote read one place; the docstring is written by hand, and a test checks it against the entry.
 - **Says when it applies and when it doesn't:** soil types, input range, the input it was derived with (for SPT, field N, N60 or (N1)60), the data and region behind it, and known biases. The input is explicit: a column that doesn't match is an error, never a silent correction. This is in the docstring and in metadata attached to the result, so a plot or report can show it.
 - **Returns NaN with a count outside its range**, and never clips or extrapolates the input. The one exception is an SPT correlation's N input (§3).
+- **Its out-of-range warning gives the range only when some rows are outside it**, in the docstring's terms and units (`N pa/σ′v0`, `σ′v0 > 0 kPa`).
 - **Returns rows that name the correlation** (`correlation_name`), so several estimates of one property compare on P01 (`color_by=`) or P07.
 - **Reads the one column its correlation was derived with**, by its registry name, with no argument to point it at another. A correlation published at another hammer energy is used in its 60 % form, from a cited source (decided 2026-10-22, `docs/work/m13b1-spt-framework.md`). One derived on field N reads `spt_n`, and says so.
 - **Gives a band, where its source does,** as `<target>_lower` and `<target>_upper` beside `<target>`, which holds the central value or NaN; nothing is interpolated between the source's values.

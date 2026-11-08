@@ -80,7 +80,8 @@ def triaxial_failure_from_readings(
     2. Otherwise the reading the lab marked in ``reported_failure_reading``.
     3. Otherwise an error. There is no default criterion: on an undrained
        curve the two pick different readings, and which is right depends on
-       the test standard and the lab's report (TODO #53).
+       the test standard and the lab's report, not yet checked against the
+       standards.
 
     Ties go to the first reading at the maximum, the lowest strain. A reading
     with a blank strain or deviator stress, or (for the ratio) a blank

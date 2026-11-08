@@ -1,4 +1,4 @@
-"""Put a keyed judgment on the rows (docs/work/m13b2-spt-strength-history.md).
+"""Put a keyed judgment on the rows (docs/analysis/judgments.md §5.3).
 
 A correlation reads its inputs as columns. A judgment such as the plasticity
 index of a geology unit becomes one with ``add_judgment()``: from the call,
@@ -42,7 +42,7 @@ def add_judgment(
 
     Some correlations read an input that is a judgment, not a test result at
     the row: Stroud (1974) reads the plasticity index of the clay at each
-    SPT. A judgment has no default (SPEC §4); this puts it on the rows, as
+    SPT. A judgment has no default; this puts it on the rows, as
     ``vertical_stress()`` puts σ′v, so the correlation reads it as a column.
     In this version it takes ``"plasticity_index"``.
 
@@ -265,8 +265,8 @@ def _missing(
         "pass judgments=p.judgments."
     )
     return (
-        f"{where} the rows need a {name}{rows}, a judgment with no default "
-        f"(SPEC §4). Give it in the call, {EXAMPLES[name]}, or in a judgments "
+        f"{where} the rows need a {name}{rows}, a judgment with no default. "
+        f"Give it in the call, {EXAMPLES[name]}, or in a judgments "
         f"file under {name}: keyed by geology unit, and pass "
         f"judgments=ht.judgments(path) or set it with p.set_judgments(path).{hint}"
     )

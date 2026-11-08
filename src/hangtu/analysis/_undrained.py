@@ -10,8 +10,8 @@ from hangtu._data import numeric_column, rows_text
 from hangtu.errors import HangtuError, warn
 
 #: The inputs to s_u, in the order the output's unit is taken from, with the
-#: factor applied and the basis recorded (docs/work/m17a-strength-data.md,
-#: Decision 3). The hand penetrometer's factor depends on its scale.
+#: factor applied and the basis recorded (docs/analysis/strength.md §7). The
+#: hand penetrometer's factor depends on its scale.
 INPUTS = {
     "deviator_stress_at_failure": (0.5, "half_deviator_stress"),
     "unconfined_compressive_strength": (0.5, "half_unconfined_compressive_strength"),
@@ -58,7 +58,7 @@ def undrained_shear_strength_from_tests(
     $s$ and radius $t = (\sigma_1 - \sigma_3)/2$, at its top, so
     $s_u = t = q_f / 2$ at any cell pressure; unconfined compression is the
     case $\sigma_3 = 0$, $s_u = q_u / 2$. This is a derivation, not a
-    correlation (``docs/work/m17a-strength-data.md``, Sources).
+    correlation, so it has no coefficient and no source to cite.
 
     **Sensitivity** $S_t = s_u / s_{u,r}$, ``strength_sensitivity``, is given
     where a row has both its peak and its remolded strength
@@ -146,7 +146,7 @@ def undrained_shear_strength_from_tests(
     given = [c for c in STRESSES if (v := raw[c]) is not None and not np.isnan(v).all()]
     declared = _units.resolve_units(df, given, units, analysis=True) if given else {}
     known = {**_units.units_of(df), **(units or {}), **declared}
-    # s_u in its own declared unit, else in the first input's (Decision 3).
+    # s_u in its own declared unit, else in the first input's (§7).
     order = ["undrained_shear_strength", *(c for c in INPUTS if c in given)]
     target_column = next((c for c in order if c in known), None)
     target = known.get(target_column) if target_column else None
