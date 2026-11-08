@@ -10,12 +10,11 @@ Personal reference notes. Adapted from Anthropic's [AI-native SDLC playbook](htt
 | `CLAUDE.md` | Whole repo | Permanent; under a page | How do I work in this repo (commands, conventions, recurring mistakes)? What's next? Done work is in SPEC §12.4 and git, not here |
 | `docs/work/<id>.md` | One unit of work | `## Intent` frozen once done, `## Plan` frozen once merged | What do we want and why (Intent)? Which files, in what order, proven by which tests (Plan)? |
 | Feature spec | One feature | Kept while the feature exists | What exactly does it do, and how do we know it works? |
-| `docs/drafts/` | Upcoming features and future phases | Until promoted to a feature spec | Draft feature specs and early notes. Input for intents; only items marked "decided" are decisions |
 | `docs/plots/drafts/` | Plots not yet specified | Until promoted to `docs/plots/PXX-*.md` | Draft plot specs in the TEMPLATE format. Input for a plot's spec step; not decisions |
 | `docs/drafts/parameters/` | One sheet per ground parameter, and the index | Sheets until promoted to site pages; the index is permanent | What is known about each parameter (tests, methods, sources), and how far along each of its stages is |
 | `docs/TODO.md` | Backlog | Permanent | What hasn't been decided or researched yet? |
 
-The **feature spec** for a plot is `docs/plots/PXX-*.md`. For other work it is the `## Spec` section of `docs/work/<id>.md`, or a new topic doc under `docs/` when it will outlive the change, such as the Phase 2 data model.
+The **feature spec** for a plot is `docs/plots/PXX-*.md`. For other work it is the `## Spec` section of `docs/work/<id>.md`, or a living spec when it will outlive the change: `docs/analysis/` for an analysis that spans units of work, `docs/data/` for the data layer.
 
 Each unit of work is one file, `docs/work/<id>.md`, named after its branch. The intent commit creates it with `## Intent`, and each later loop step's commit adds its section (`## Spec` when needed, then `## Plan`), so nothing is merged at the close-out.
 

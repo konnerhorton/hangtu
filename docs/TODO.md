@@ -73,7 +73,7 @@ A downhole or surface velocity profile (often a user-defined group) can run belo
 
 ## Statistics (research items, with Claude's recommendations)
 
-### 8. The truncated normal, and bands in `fit()` · You · docs/drafts/phase3-stats.md · after M15 (c)
+### 8. The truncated normal, and bands in `fit()` · You · `docs/analysis/statistics.md` §1 · after M15 (c)
 The rest of this item is built (M15 (c), SPEC §5): refusals and `<x`/`>x` are fitted as censored, positive distributions are bounded at 0, beta fits between two bounds, and each fit reports its probability beyond the bounds. Two options remain:
 1. **A truncated normal with fixed physical bounds**, for doubly bounded data near a bound (fines near 0 %). SciPy's `truncnorm` takes its bounds in standard units, so fixed bounds need a small custom likelihood, tested on its own. Beta covers the case meanwhile.
 2. **Bands as interval-censored values.** `fit()` leaves bands (`<target>_lower`/`_upper` with no value) out and counts them, because a correlation's band is the spread of its coefficient, not a measurement known to lie in an interval. Fitting one as an interval would treat a modeling range as data; revisit only if a source gives true intervals.
@@ -161,6 +161,12 @@ Axes, zones and limits are settled (P17 §4, §6). Still needed from the paper: 
 
 ### 54. Scatter in the committed figures' data · Claude + You · `docs/plots/img/`, `docs/site/examples/`, P09 §12 (AC 11)
 Some synthetic data behind the visual checks and site examples sits closer to its fitted lines and means than a site's data would, so the figures look cleaner than what a user will see. P09 asks for site-like scatter (CoV about 0.3, skew, uneven depths, an outlier or two). Check each image in `docs/plots/img/` and the examples that make them, and regenerate the ones whose data look too clean, with the scatter set on purpose. One commit per plot, each regenerating its image.
+
+### 57. pcf in AGS density headings · Claude + You · `docs/data/ingest.md` §7 (U002); P00 §4.3 · when real US files are available
+Check real US files for unit weights put into AGS *density* headings (`RDEN_BDEN`, `PTST_BDEN`, dictionary unit Mg/m³), or the reverse. Ingest resolves pcf by the heading's expected dimension either way, so a unit weight in a density heading would be read as a density. References: ASTM D7263, ASTM D2937, FHWA NHI-16-072.
+
+### 58. How US files fill `ISPT_PEN*` · Claude + You · SPEC §8.2; P00 §4.3 · when real US files are available
+Check whether US files fill `ISPT_PEN*` as 6-in increments (152.4 mm) or as nominal 150 mm values. They drive the mid-drive depth (SPEC §8.2), and are converted as lengths either way.
 
 ---
 

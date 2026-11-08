@@ -17,7 +17,6 @@
 | [`docs/plots/README.md`](docs/plots/README.md) | Shared plot conventions, and the plot list with each plot's status |
 | `docs/plots/PXX-*.md` | One spec per figure, from [`TEMPLATE.md`](docs/plots/TEMPLATE.md) |
 | [`docs/analysis/`](docs/analysis/) | Living specs for analyses that span units of work: index tests and SPT, judgments, strength, the correlation contract, what each statistics function does |
-| [`docs/drafts/`](docs/drafts/) | Notes for later work (Phase 2 data, Phase 3 statistics) |
 | [`docs/drafts/parameters/`](docs/drafts/parameters/README.md) | Draft reference sheets, one per ground parameter, and the index that tracks each parameter's stages (§1.3) |
 | `docs/site/parameters/NN-*.md` | A parameter's page on the docs site, promoted from its sheet by the wave that builds it |
 | [`docs/reference/eurocode7-summary.md`](docs/reference/eurocode7-summary.md) | Background for characteristic values |

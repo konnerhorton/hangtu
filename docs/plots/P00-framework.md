@@ -17,7 +17,7 @@ This spec defines the *implementation* of the shared conventions in the plots RE
 Everything P01–P07 need, so that each plot spec only describes its own drawing. M1 is done when the acceptance criteria in §14 pass and a dummy plot composes on a `Sheet`.
 
 **In scope:** settings · units for DataFrames · column registry and CSV templates · house style · labels · axis limits and ticks · out-of-range markers and exclusion notes · palette · legend rules · hints · errors · `Sheet`.
-**Not in scope:** any real plot (P01 is M2), AGS ingest, unit rules that only matter on ingest (in `docs/drafts/phase2-data.md`).
+**Not in scope:** any real plot (P01 is M2), AGS ingest, unit rules that only matter on ingest (in `docs/data/ingest.md`).
 
 ## 2. Public API added in M1
 ```python

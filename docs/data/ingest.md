@@ -183,4 +183,4 @@ All but `defects.ags` pass python-ags4 validation with no errors.
 12. **Vertical datum:** the good files' `LOCA_DATM` (`NAVD88` in every hole) becomes the project's datum, source `LOCA_DATM`, carried by the datasets' `df.attrs["vertical_datum"]`; `NAVD 88` is stored as `NAVD88`; a blank `LOCA_DATM`, a `LOCA_LOCZ`, two datums or a name not in the table each set nothing; `vertical_datum=` wins over the file, and the file over `ht.settings.vertical_datum`.
 
 ## 13. Open questions
-1. Research items kept from the draft, not blocking: pcf in density headings in real US files (#5), nominal vs 152.4 mm SPT penetrations (#6). Ingest converts what the file declares either way.
+1. Research items, not blocking: pcf in density headings in real US files (TODO #57), nominal vs 152.4 mm SPT penetrations (TODO #58). Ingest converts what the file declares either way.

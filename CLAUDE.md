@@ -4,14 +4,13 @@ Python library that derives the ground parameters a geotechnical design needs, f
 
 ## Where things are
 - `SPEC.md`: product spec and cross-cutting decisions. Read the relevant section before designing anything.
-- `docs/data/`: data-layer specs that outlive a unit of work (`ingest.md`, M5; `qc.md`, M6; `datasets.md`, M7).
-- `docs/analysis/`: analysis specs that outlive a unit of work (`correlations.md`, the contract every correlation follows; `statistics.md`, what each `ht.stats` function does). Update them when the behavior changes.
+- `docs/data/`: data-layer specs that outlive a unit of work (`ingest.md`, `qc.md`, `datasets.md`).
+- `docs/analysis/`: analysis specs that outlive a unit of work: `index-and-spt.md` (the SPT, Atterberg, classification and grain size analyses), `judgments.md` (the judgments file, how a value resolves, each judgment), `strength.md` (stresses at failure, the envelope fits, undrained strength, the shear box conversion), `correlations.md` (the contract every correlation follows) and `statistics.md` (what each `ht.stats` function does). Update them when the behavior changes.
 - `docs/plots/PXX-*.md`: one spec per figure, with acceptance criteria. `docs/plots/README.md` has the shared plot conventions.
 - `docs/drafts/parameters/`: one draft reference sheet per ground parameter (tests, methods, sources with [V]/[U] tags), the page template with the docstring checklist, and the index (`README.md`) that tracks each parameter's stages A–D. Sheets are not decisions until a wave promotes them to `docs/site/parameters/`.
 - `docs/plots/drafts/`: draft notes for plots not yet specified, in the TEMPLATE format, including proposed IDs P24–P30. They are not decisions. When a plot's unit of work starts, promote its draft to `docs/plots/PXX-*.md` in the spec step.
 - `docs/work/<id>.md`: intent, plan and (when there is no other feature spec) spec for each unit of work, as `## Intent`, `## Spec` and `## Plan` sections (see `docs/reference/process.md`). `docs/work/` files for merged units are history. Read one only when the task or a spec points to it.
 - `src/hangtu/columns.yaml` and `src/hangtu/units/aliases.yaml`: the column registry and unit aliases.
-- `docs/drafts/`: the analyses draft spec (`analysis.md`, M3 and M8) and notes for later phases. Items marked "decided" are decided; the rest is not. Finish the relevant draft as the feature spec before building from it.
 - `docs/TODO.md`: research items and pending decisions, referenced as "TODO #n".
 - `docs/site/`: the public docs site (Zensical; config in `zensical.toml`; built and follows `main`). Each page's example is a file in `docs/site/examples/`; `docs/prepare_site.py` runs them and writes the generated files. The rest of `docs/` is internal and not published.
 
