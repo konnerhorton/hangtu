@@ -68,7 +68,7 @@ The tabulated values place a rock roughly; tests on the rock of interest overrul
 Hoek (2023, ch. 3, p. 6) asks for at least 3, preferably 5, triaxial tests in addition to the UCS tests, and Hoek
 (2007, ch. 11, p. 2) for at least five well-spaced points over 0 < σ3 < 0.5 σci.
 
-**Entering the results.** Until hangtu reads rock tests from AGS (wave 0 for `TRIT` and user-defined groups, wave 4
+**Entering the results.** Until hangtu reads rock tests from AGS (planned for `TRIT` and user-defined groups, and
 for `RUCS` and `RTEN`), enter them in a CSV in [`ht.template("triaxial")`](../guides/templates.md)'s columns, the
 same template as soil triaxial stages: one row per test or per stage of a multistage test, with
 `cell_pressure` as σ3, `deviator_stress_at_failure` as σ1 − σ3, `failure_mode` as the lab wrote it, and
@@ -85,8 +85,8 @@ reach [`p.triaxial()`](../reference/project.md#hangtu.Project.triaxial) in the s
 |---|---|---|---|
 | Least squares on Hoek's line, σci and mi together (Hoek 2007, ch. 11, eqs. 6–8, p. 4) | (σ3, σ1) of UCS and triaxial tests | shear failures, 0 < σ3 < 0.5 σci | [`ht.analysis.hoek_brown_fit()`](../reference/analysis.md#hangtu.analysis.hoek_brown_fit), drawn by [`ht.plot.hoek_brown_envelope()`](../plots/hoek-brown-envelope.md) |
 | As above, σci fixed, mi only | as above, with σci a judgment | few triaxial tests, or a free σci far from the UCS tests | [`ht.analysis.hoek_brown_fit()`](../reference/analysis.md#hangtu.analysis.hoek_brown_fit), which makes both fits |
-| mi from σci/σt (Cai 2009; Hoek 2023, ch. 3, eq. 8) | σci, σt | brittle rocks; a check on the fit | wave 4 |
-| mi from tables (Hoek 2007, ch. 11, Table 3) | rock type and texture | no tests | wave 4 |
+| mi from σci/σt (Cai 2009; Hoek 2023, ch. 3, eq. 8) | σci, σt | brittle rocks; a check on the fit | planned |
+| mi from tables (Hoek 2007, ch. 11, Table 3) | rock type and texture | no tests | planned |
 
 The fit uses Hoek's regression: (σ1 − σ3)² against σ3 is a straight line with intercept σci² and slope mi σci, so
 UCS tests (σ3 = 0) and triaxial tests are fitted together. With σci fixed, only the slope is fitted. σci for the
@@ -118,7 +118,7 @@ Tests on the rock of interest are the basis: a fit of at least five well-spaced 
 overrules the tables and σci/σt. Report the free and the fixed fit together. Where the free σci is far from the UCS
 mean, or the triaxial tests are few, the fixed fit is the more stable estimate of mi. Compare the fitted mi with
 the table's value for the rock type and with σci/σt; a difference of more than about half the table's value is
-worth investigating _[judgment, for review]_. Choosing σci and mi for design is selection (M18).
+worth investigating _[judgment, for review]_. Choosing σci and mi for design is selection: [`ht.stats.select()`](../guides/selection.md).
 
 ## Variability
 

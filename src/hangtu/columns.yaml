@@ -265,7 +265,7 @@ columns:
     ags: [GEOL.GEOL_BGS]
     used_by: []
   soil_class:
-    description: "The geology unit's class, from the geology map: coarse or fine (read by the Mohr-Coulomb set's dilatancy rule), fill, rock or organic (named, read by nothing yet); other values are kept (categories TODO #3)"
+    description: "The geology unit's class, from the geology map: coarse or fine (read by the Mohr-Coulomb set's dilatancy rule), fill, rock or organic (named, read by nothing yet); other values are kept"
     type: text
     ags: ["derived: mapping file"]
     used_by: [P03]
@@ -415,7 +415,7 @@ columns:
     ags: [IDEN.IDEN_STAB]
     used_by: []
   particle_density:
-    description: Density of the solid particles, rho_s (Gs = rho_s / rho_w, M14 b)
+    description: Density of the solid particles, rho_s (Gs = rho_s / rho_w)
     type: number
     quantity: density
     scale: ratio
@@ -491,7 +491,7 @@ columns:
     ags: ["derived: docs/work/m13a-judgments.md"]
     used_by: [P01]
   pore_pressure:
-    description: In situ pore pressure (hydrostatic from the water level in M13)
+    description: In situ pore pressure (hydrostatic from the water level)
     type: number
     quantity: stress
     scale: ratio
@@ -663,7 +663,7 @@ columns:
     ags: ["derived: docs/work/m13b3-spt-stiffness.md"]
     used_by: [P01]
   drained_poissons_ratio:
-    description: Drained Poisson's ratio, of a Mohr-Coulomb set (selected until wave 5)
+    description: Drained Poisson's ratio, of a Mohr-Coulomb set (selected; derived values aren't built yet)
     type: number
     quantity: dimensionless
     scale: ratio

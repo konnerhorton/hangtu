@@ -131,7 +131,7 @@ The Mohr–Coulomb model of Vermeer & de Borst (1984, p. 3) has five parameters,
 
 - **c′ and φ′ are `select()`'s,** one call each, with its rules and errors. Every unit in the set needs an entry for both: a unit listed for one and not the other is an error. Give `method: value` with `value: 0` and a reason for a c′ of zero, or `method: none` for a unit you don't design with drained, as the example does for the Alluvium.
 - **The pair is checked.** When a unit's c′ and φ′ aren't both `fitted` from the same source, they aren't one envelope's pair (see c′ and φ′ together, above): the set warns, naming the units, and notes it per unit. It still gives the values.
-- **E′ and ν′ are blank** with the reason "no selection; derived values come with wave 5 (M23)", unless a selection lists the unit, such as a value from a report or a characteristic value of the SPT E′ correlations.
+- **E′ and ν′ are blank** with the reason "no selection; derived values aren't built yet", unless a selection lists the unit, such as a value from a report or a characteristic value of the SPT E′ correlations.
 - **A set holds constants.** A selection with a `trend:` is an error in a set, naming the unit and parameter. `select()` gives the line on its own.
 
 ### The dilatancy angle

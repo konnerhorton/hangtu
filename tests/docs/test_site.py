@@ -156,6 +156,39 @@ def test_public_docstrings_cite_no_internal_files():
     assert hits == [], "\n".join(dict.fromkeys(hits))
 
 
+def test_site_pages_cite_no_internal_files():
+    # The hand-written pages are published too. Generated pages aren't tracked.
+    import subprocess
+
+    tracked = subprocess.run(
+        ["git", "ls-files", "docs/site"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.split()
+    hits = []
+    for name in tracked:
+        if not name.endswith(".md"):
+            continue
+        text = (ROOT / name).read_text(encoding="utf-8")
+        for number, line in enumerate(text.splitlines(), 1):
+            if INTERNAL_REFERENCE.search(line):
+                hits.append(f"{name}:{number}: {line.strip()}")
+    assert hits == [], "\n".join(hits)
+
+
+def test_column_descriptions_cite_no_internal_files():
+    # ht.columns() prints the descriptions and reference/columns.md lists them.
+    registry = ht.columns()
+    hits = [
+        f"{row.name}: {row.description}"
+        for row in registry.itertuples()
+        if INTERNAL_REFERENCE.search(str(row.description))
+    ]
+    assert hits == [], "\n".join(hits)
+
+
 def test_columns_page_lists_every_column(tmp_path, monkeypatch):
     # Criterion 5.
     monkeypatch.setattr(prepare_site, "SITE", tmp_path)
