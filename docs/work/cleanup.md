@@ -59,8 +59,8 @@ Pause between waves and tidy what has built up over M0–M18. This covers four t
 
 ## Spec
 
-The unit is done in four steps, in order. Each step's plan is written after the step before it is merged
-into this branch (step 1's is below).
+The unit is done in steps 1, 1b, 2, 3 and 4, in that order. Each step's plan is written after the step before it is merged
+into this branch.
 
 ### Step 1: published text cites no internal file
 **What counts as published:**
@@ -85,6 +85,27 @@ wave (`wave` and a number).
 **Tests:** two tests fail on any internal reference. One walks the documented objects; the other scans
 string literals with `ast` and leaves docstrings out. The two `pytest.raises` matches that expect `SPEC §4`
 (`test_shear_box_conversion.py:438`, `test_add_judgment.py:105`) match the rest of the message instead.
+
+### Step 1b: site pages and column descriptions cite no internal file
+Step 1 covered docstrings and messages. Two more kinds of text are published, with the same definition of an
+internal reference:
+- the hand-written pages under `docs/site/` (15 lines on 8 pages). One is wrong, not just internal:
+  `guides/selection.md:134` quotes the `NO_STIFFNESS` message as it was before step 1;
+- the registry's column `description`s, which `ht.columns()` prints and `docs/prepare_site.py` writes to
+  `reference/columns.md` (4 entries).
+
+The README links to SPEC and `docs/plots` on GitHub on purpose, and stays as it is.
+
+**Rewrites**, using the step 1 table plus these:
+| Reference | Rewrite |
+|---|---|
+| "Choosing a design value is stage D (M18)" | Name the function and the guide: "…is selection: `ht.stats.select()` (the selection guide)" |
+| A wave in a "when" column or sentence (page 15, page 22) | "planned" |
+| `docs/data/datasets.md` §6.11/§6.12 (pages 05, 22) | Say the rule in the sentence, or name the datasets guide where it covers it |
+| A milestone in a column description ("M14 b", "in M13", "until wave 5", "TODO #3") | Drop it, keeping the fact ("selected; derived values aren't built yet") |
+
+**Tests:** `test_site_pages_cite_no_internal_files` scans `docs/site/**/*.md`, leaving out generated files.
+`test_column_descriptions_cite_no_internal_files` scans the loaded registry's descriptions.
 
 ### Step 2: decisions in living specs
 - **`docs/analysis/judgments.md`** (new, living): the file format, how a value resolves, keys and the
@@ -196,3 +217,129 @@ Two build commits, each with ruff, mypy and the tests it touches passing, and th
 
 Commit messages are shown for approval before the intent/spec/plan commit; the two build commits follow the
 approved plan.
+
+### Step 1b: site pages and column descriptions cite no internal file
+**Commit: `cleanup: keep internal references out of site pages and columns`** (Sonnet)
+1. **Test first,** both in `tests/docs/test_site.py`. Run them to confirm the 15 and 4 hits:
+   - `test_site_pages_cite_no_internal_files`: every `docs/site/**/*.md` that git tracks (`git ls-files`),
+     which leaves out the generated pages. It fails with `file:line` on the step 1 pattern.
+   - `test_column_descriptions_cite_no_internal_files`: every column's `description` in the loaded registry.
+2. **Rewrite** by the Spec's tables:
+   - `guides/selection.md:134`: the message as it is now. Grep the guides for other quoted messages that
+     step 1 changed.
+   - Parameter pages 06, 07, 08, 10, 15 and 22: "stage D (M18)" and "selection (M18)";
+   - Page 15, lines 71, 88 and 89, and page 22's table: waves;
+   - Pages 05 and 22: the `datasets.md` pointers;
+   - `columns.yaml` lines 268, 418, 494 and 666.
+3. **Check:** `uv run python docs/prepare_site.py && uv run zensical build --clean --strict`. Run
+   `tests/docs/test_site.py` and the registry tests, ruff and mypy.
+
+### Step 2: decisions in living specs
+Five build commits. Each one runs ruff, mypy and the tests it touches, and the whole suite
+(`uv run pytest -n 3 --dist loadfile`) runs before the last. Commits 1–3 are (Opus), because they check specs
+against the code; 4–5 are (Sonnet), because they are mechanical once the living docs exist.
+
+**How a pointer is rewritten** (commits 1–4):
+- If the decision is in a living doc after this step, cite that doc and section. The living docs are
+  `judgments.md`, `strength.md`, `index-and-spt.md`, `statistics.md` and `correlations.md` in `docs/analysis/`,
+  `docs/data/*.md`, and a plot spec.
+- If it is only in the module's own public docstring (`vertical_stress()`, `spt_n1_60()`,
+  `phase_relations()`, `clay_activity()`), drop the citation. The module comment keeps the rule, in a line
+  where it doesn't already say it.
+- Every repointed citation is checked against its target. A fact the target doesn't hold is added to it in
+  the same commit.
+- SPEC: inside a "decided …" stamp, only the work-file path changes to the living doc. Step 3 removes the
+  stamp and keeps the link as the bullet's pointer. Stamps that cite only provenance (`parameter-roadmap.md`,
+  `docs-site.md`, `type-check.md`) are left for step 3 to remove.
+- `docs/work/` files, plot specs and `docs/data/*.md` keep their work-file citations, which are history or
+  "Related" links (Out of scope). The only exception is the path of the moved draft (commit 3).
+
+**Commit 1: `cleanup: write the judgments living spec`** (Opus)
+1. `docs/analysis/judgments.md`, with a header table in the shape of `statistics.md` (Status, Parent: SPEC §4,
+   Related: the work files below):
+   - §1 The file: `judgments.yaml`, where it is found, `p.set_judgments()`, units blocks and `unitless`.
+   - §2 How a value resolves: explicit argument → file → error naming it, plus the two exceptions.
+   - §3 Keys and the project-wide value: `by:`, the optional project-wide value with its `reason`,
+     `project_only`, and `none_allowed` with `none`.
+   - §4 What a result records.
+   - §5 One entry per judgment: `unit_weight`, `water_level`, `plasticity_index`, `specific_gravity`,
+     `significance_level`, `spt_refusal_upper_limit`, `fixed_intact_compressive_strength`,
+     `critical_state_friction_angle` and `selection`. Each entry gives its keys, whether a project-wide value
+     is allowed, its checks, what absence does, and its readers.
+   - Sources: the Spec of `m13a`, then `m13b2` D11, `m14b` D4, `m15d` D8, `m17c` D8, `m18a` D1–3, `m18d` D5
+     and `m18e` D6–10, each checked against `KINDS` and the selection section of `_judgments.py`. Where a work
+     file and the code disagree, the code wins and the disagreement is listed in the commit body.
+2. Repoint to it: `_judgments.py` (module docstring and the 12 comments), `analysis/_add_judgment.py`,
+   `analysis/_judgment_values.py:71`, `stats/_representative.py:44,500`, the 3 `m13a` entries in
+   `columns.yaml`, and SPEC §4's judgment bullets (lines 182, 187, 192–193).
+3. Check: `uv run pytest tests/test_judgments*.py tests/analysis/test_add_judgment.py`, ruff and mypy. (A
+   comment-only change, but the yaml loads in tests.)
+
+**Commit 2: `cleanup: write the strength living spec`** (Opus)
+1. `docs/analysis/strength.md`, with the same header (Parent: SPEC §4, Related: `m11a`–`m11c`, `m17a`–`m17c`,
+   `m18d`, and `docs/data/datasets.md` §6.10–6.12 for the datasets):
+   - §1 Triaxial stresses at failure (`triaxial_failure_stresses()`), the one place σ1, σ3 and σ′ are computed.
+   - §2 Failure from readings (`m11c`).
+   - §3 The line-fit core (`_line_fit`): transform, free or fixed intercept, back-transform, and the derived
+     result base (`m11b` D3, D12).
+   - §4–§6 The three fits, `mohr_coulomb_fit()`, `shear_box_fit()` and `hoek_brown_fit()`: the rules that span
+     them (groups, reported pairs, validity, what a result records) and each fit's reasons. Derivations
+     aren't repeated, because the docstrings hold them since step 1. A one-line pointer names the
+     docstring.
+   - §7 Undrained strength from tests: the basis and the factors.
+   - §8 The shear box φ′ conversion (`m18d`), including the `critical_state_friction_angle` link to
+     `judgments.md` §5.
+2. Repoint to it: `analysis/_line_fit.py`, `_mohr_coulomb.py`, `_shear_box_fit.py`, `_hoek_brown_fit.py`
+   ("decisions cited by number" becomes section numbers), `_derived.py` (3), `_fit_groups.py` (2),
+   `_undrained.py:13`, `_shear_box_conversion.py`, the `m11b`, `m17b`, `m17c` and `m18d` entries in
+   `columns.yaml` (16, as a short formula where one fits, e.g. `derived: arctan(b) of the line fit`, otherwise
+   `derived: docs/analysis/strength.md §n`), and SPEC §4 lines 183–185 and §5 line 203.
+3. Check: the strength tests (`tests/analysis/test_*fit*.py`, `test_triaxial*.py`, `test_undrained*.py`,
+   `test_shear_box_conversion.py`) and `tests/test_registry*.py`, ruff and mypy.
+
+**Commit 3: `cleanup: move the analyses draft to docs/analysis/index-and-spt.md`** (Opus)
+1. `git mv docs/drafts/analysis.md docs/analysis/index-and-spt.md`. The title becomes "Index tests and SPT",
+   with a header table: Status: living spec, §1 built in M3, §2–3 in M8, 🔬 values marked; Parent: SPEC §4.
+2. Drop §4. Its facts are already in the `vertical_stress()` docstring (assumptions, γw), the `spt_n1_60()`
+   docstring (C_N methods, cap 1.7, blank above 300 kPa), `correlations.md` (naming, explicit N, out of range,
+   bounds) and `config/correlations.yaml` (the built set). Before deleting, check each bullet against those;
+   any that is missing goes into `correlations.md`.
+3. Repoint the path (sections keep their numbers): SPEC line 171 and the §4 document map row (line 19),
+   `columns.yaml`, `analysis/__init__.py`, `_fractions.py`, `_gradation.py`, `_plasticity.py`,
+   `_classification.py`, `_spt.py`, the three `config/*.yaml`, the 7 test files, P00, P02–P06,
+   `docs/data/datasets.md` and the 3 `TODO.md` headings (#5, #22, #24). Step 4 then only checks TODO, so no
+   link is left broken between steps.
+4. Check: `grep -rn "drafts/analysis" . --exclude-dir=docs/work` is empty. Run the touched tests, ruff and mypy.
+
+**Commit 4: `cleanup: point the remaining work-file citations at living docs`** (Sonnet)
+1. **`ht.stats` → `statistics.md`:** `_rows.py` (3), `_result.py`, `_note.py`, `_significance.py`,
+   `_compare.py`, `_crosstab.py`, `_representative.py:3`, `_compare_sources.py`, `_refusal_limit.py`,
+   `_model_set.py` and `_mohr_coulomb_set.py`. Remove the `phase3-stats.md` link from the header.
+2. **Correlations → `correlations.md`:** `correlations/_friction_angle.py`, `_undrained_shear_strength.py`,
+   `_stress_history.py` and `_stiffness.py`, and the `m13b*`, `m15b` and `m18a` entries in `columns.yaml`.
+3. **Plots → their spec:** `plot/_geology_units.py` (P07), `_profile.py` (P01), `stats/_positions.py` and
+   `plot/_distribution_fit.py` (P08), `plot/_values.py:206` (`correlations.md` §3).
+4. **Datasets → `docs/data/datasets.md`:** `datasets/_shear_box.py` (§6.12), `_undrained.py` (§6.11), and the
+   `columns.yaml` comments (lines 13, 38, 319, 1101, 1256 and 1427) and the `m18f` entries.
+5. **Public docstrings → none:** `_vertical_stress.py`, `_overburden.py`, `_phase_relations.py`,
+   `_clay_activity.py`, under the rule above.
+6. **SPEC:** the remaining work-file paths in §4–§5 (lines 186, 206–207).
+7. **Regression test:** `tests/test_errors.py::test_source_cites_no_work_file`, which fails on
+   `docs/work/` in any `src/hangtu/**/*.py` or `*.yaml`, so a new module points at a living doc from the
+   start.
+8. Check: `grep -rn "docs/work/" src/hangtu` is empty, and `grep -n "docs/work/" SPEC.md` leaves only the
+   provenance stamps. Run the whole suite, ruff and mypy.
+
+**Commit 5: `cleanup: retire the phase drafts and list the living specs`** (Sonnet)
+1. Delete `docs/drafts/phase2-data.md` and `phase3-stats.md`. Their two research items become TODO #57 (pcf in
+   AGS density headings, with its references) and #58 (how US files fill `ISPT_PEN*`). The rest is already
+   in `ingest.md`, `qc.md`, `datasets.md`, SPEC §5 and §7, `statistics.md`, and TODO #8, which loses its
+   `phase3-stats.md` pointer. SPEC §7's metadata table list is checked against the draft's.
+2. `CLAUDE.md`, "Where things are": `docs/analysis/` lists all five living specs; the `docs/drafts/` bullet
+   names only the parameter sheets; the `docs/data/` bullet loses its milestone tags.
+3. `docs/reference/process.md`: the documents table names `docs/analysis/` as the feature spec for an
+   analysis that spans units (line 18). "Starting from zero" step 4 is left for step 3.
+4. Check: `grep -rn "phase[23]-\|drafts/analysis" . --exclude-dir=docs/work` is empty.
+
+The build commits of steps 1b and 2 follow the approved plan without separate approval, docs-only ones included
+(review, 2026-11-08).
