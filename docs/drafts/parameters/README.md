@@ -3,7 +3,7 @@
 **Status:** drafts, not decisions. One sheet per ground parameter, from the test data to the values a
 constitutive model takes. Each wave's spec step promotes the sheets it covers to site pages
 (`docs/site/parameters/NN-*.md`, from [`TEMPLATE.md`](TEMPLATE.md)), after checking their sources and what can be
-published. Until then nothing here overrides `SPEC.md` or a feature spec. The roadmap is in SPEC §1.3 and §12.4.
+published. Until then nothing here overrides `SPEC.md` or a feature spec. The roadmap is in SPEC §1.3, the milestones in `STATUS.md`.
 
 ## Conventions
 - **Citation tags:** **[V]** = checked against the source (or an authoritative copy of it), with the locator

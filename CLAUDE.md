@@ -1,9 +1,10 @@
 # hangtu
 
-Python library that derives the ground parameters a geotechnical design needs, from AGS4 or CSV test data through to model parameter sets, for soil and rock, with plots, analyses, AGS4 ingest/QC and statistics along the way (SPEC §1). Work is organized as stages A–D per parameter and waves 0–6 (SPEC §1.3). Done through M15, M11, M17 and M18; 0.1.0 is on PyPI. Next: wave 0 (M16, user-defined groups and curves) once TODO #31 is settled; else wave 3 (M19, the oedometer), whose Soft Soil set (M20) is built on M18's model-set base. Then waves 4–6. Status: SPEC §12.4 for milestones, `docs/drafts/parameters/README.md` for parameters.
+Python library that derives the ground parameters a geotechnical design needs, from AGS4 or CSV test data through to model parameter sets, for soil and rock, with plots, analyses, AGS4 ingest/QC and statistics along the way (SPEC §1). Work is organized as stages A–D per parameter and waves 0–6 (SPEC §1.3). Status and what's next: `STATUS.md`.
 
 ## Where things are
 - `SPEC.md`: product spec and cross-cutting decisions. Read the relevant section before designing anything.
+- `STATUS.md`: status, what's next, and the releases. The close-out of each unit updates it.
 - `docs/data/`: data-layer specs that outlive a unit of work (`ingest.md`, `qc.md`, `datasets.md`).
 - `docs/analysis/`: analysis specs that outlive a unit of work: `index-and-spt.md` (the SPT, Atterberg, classification and grain size analyses), `judgments.md` (the judgments file, how a value resolves, each judgment), `strength.md` (stresses at failure, the envelope fits, undrained strength, the shear box conversion), `correlations.md` (the contract every correlation follows) and `statistics.md` (what each `ht.stats` function does). Update them when the behavior changes.
 - `docs/plots/PXX-*.md`: one spec per figure, with acceptance criteria. `docs/plots/README.md` has the shared plot conventions.
@@ -16,7 +17,7 @@ Python library that derives the ground parameters a geotechnical design needs, f
 
 ## Commands
 - `uv sync`: install
-- `uv run pytest -n auto --dist loadfile`: the whole suite in parallel, about 1.5 minutes (warnings are errors; assert expected ones with `pytest.warns`)
+- `uv run pytest -n 3 --dist loadfile`: the whole suite in parallel, about 1.5 minutes (warnings are errors; assert expected ones with `pytest.warns`)
 - `uv run pytest <files>`: only the tests a change touches; add `--lf` to rerun only the last failures
 - `uv run ruff check . && uv run ruff format .`: lint and format
 - `uv run mypy`: type-check `src/hangtu` (settings in `pyproject.toml`)

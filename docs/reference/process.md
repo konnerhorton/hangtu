@@ -7,7 +7,8 @@ Personal reference notes. Adapted from Anthropic's [AI-native SDLC playbook](htt
 | Document | Scope | Lifetime | Answers |
 |---|---|---|---|
 | `SPEC.md` | Whole product | Permanent; changes with the product | What is hangtu, and what holds for every feature? |
-| `CLAUDE.md` | Whole repo | Permanent; under a page | How do I work in this repo (commands, conventions, recurring mistakes)? What's next? Done work is in SPEC §12.4 and git, not here |
+| `STATUS.md` | Whole repo | Permanent; about 50 lines | What's next, what's open and done, and the releases? The only place status lives |
+| `CLAUDE.md` | Whole repo | Permanent; under a page | How do I work in this repo (commands, conventions, recurring mistakes)? |
 | `docs/work/<id>.md` | One unit of work | `## Intent` frozen once done, `## Plan` frozen once merged | What do we want and why (Intent)? Which files, in what order, proven by which tests (Plan)? |
 | Feature spec | One feature | Kept while the feature exists | What exactly does it do, and how do we know it works? |
 | `docs/plots/drafts/` | Plots not yet specified | Until promoted to `docs/plots/PXX-*.md` | Draft plot specs in the TEMPLATE format. Input for a plot's spec step; not decisions |
@@ -20,7 +21,7 @@ Each unit of work is one file, `docs/work/<id>.md`, named after its branch. The 
 
 ## Stages and waves
 
-hangtu's roadmap is organized by parameter (SPEC §1.3). Every parameter climbs four **stages**: A data, B direct derivation, C correlations, D selection. A **wave** groups stages that share an engine, so a wave moves several parameters forward a stage each. Each wave is one or more milestones in SPEC §12.4, and each milestone is one or more units of work through the loop below.
+hangtu's roadmap is organized by parameter (SPEC §1.3). Every parameter climbs four **stages**: A data, B direct derivation, C correlations, D selection. A **wave** groups stages that share an engine, so a wave moves several parameters forward a stage each. Each wave is one or more milestones in `STATUS.md`, and each milestone is one or more units of work through the loop below.
 
 **Data and analysis are separate units.** When a wave or milestone proposes both a dataset (stage A) and the analyses built on it (stage B or C), they become two units, data first: for example M14 (a) density data, then M14 (b) phase relations. Each then fits in one review, and the shape of the data is settled before formulas are built on it.
 
@@ -38,7 +39,7 @@ A unit of work is a milestone, a plot, a fix or a decision. Keep it small enough
 3. **Plan**: Claude Code plan mode, then add the `## Plan` section and commit it. It names the files, the order, and the tests that prove each acceptance criterion.
 4. **Build**: implement the plan. If the plan has to change, update the `## Plan` section in the same commit.
 5. **Test**: check against the acceptance criteria and golden values, and look at the figure yourself.
-6. **Close**: merge. In the same PR, update `SPEC.md` (decisions, and the unit's Status in §12.4), the plot status in `docs/plots/README.md`, `docs/TODO.md`, and the "Next" sentence at the top of `CLAUDE.md` when the next unit changes. `CLAUDE.md` names what's next, never what's done. Before merging, ask what a future session would get wrong without being told: put a recurring mistake in `CLAUDE.md` Conventions, a decision in `SPEC.md`, and a preference of the user's in Claude's memory.
+6. **Close**: merge. In the same PR, update `STATUS.md` (the unit's status, and Next when the next unit changes), `SPEC.md` when a decision changed, the plot status in `docs/plots/README.md` and `docs/TODO.md`. Before merging, ask what a future session would get wrong without being told: put a recurring mistake in `CLAUDE.md` Conventions, a decision in `SPEC.md`, and a preference of the user's in Claude's memory.
 
 For a trivial fix, skip the intent and plan and just write a good commit message. Use the full loop when a decision is involved.
 
@@ -57,8 +58,8 @@ The playbook's loop needs something for each intent to point at. In an existing 
 
 1. **Product spec first.** Write down the scope, phasing and cross-cutting decisions (done: `SPEC.md`).
 2. **M0 (scaffolding) is the first run through the loop.** Once it lands, fill in the commands section of `CLAUDE.md`.
-3. **Each later milestone or plot is one run through the loop.** Milestones in SPEC §12.4 map onto intents, and each names its wave (above). A milestone can be split into several intents, for example M8 into P04, P05 and P06.
-4. **Phase boundaries are where the spec is redesigned.** At M4 (the start of Phase 2), turn `docs/drafts/phase2-data.md` into intents and specs, and move the decisions that apply across Phase 2 into `SPEC.md`.
+3. **Each later milestone or plot is one run through the loop.** Milestones in `STATUS.md` map onto intents, and each names its wave (above). A milestone can be split into several intents, for example M8 into P04, P05 and P06.
+4. **Phase boundaries are where the spec is redesigned.** At the start of a phase, turn its drafts into intents and specs, and move the decisions that apply across the phase into `SPEC.md`.
 
 ## How detailed should SPEC.md be?
 

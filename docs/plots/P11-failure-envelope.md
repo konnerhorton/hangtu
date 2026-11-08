@@ -5,7 +5,7 @@
 | **ID / function** | P11 · `ht.plot.failure_envelope()` (+ `ht.analysis.mohr_coulomb_fit()`) |
 | **Status** | built |
 | **Type** | plot + analysis |
-| **Milestone** | M11 (b) (SPEC §12.4), [`docs/work/m11b-envelope-fit.md`](../work/m11b-envelope-fit.md) |
+| **Milestone** | M11 (b) (`STATUS.md`), [`docs/work/m11b-envelope-fit.md`](../work/m11b-envelope-fit.md) |
 | **Depends on** | P00; `p.triaxial()` and `ht.analysis.triaxial_failure_stresses()` (M11 a); `mohr_coulomb_fit()` (M11 (b) Spec) |
 | **Related** | P12 (M11 (c), reuses the fit), P26 and P27 (drafts: fitted c′, φ′ against correlations and published values); sheet 04; TODO #53 |
 

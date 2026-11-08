@@ -1,7 +1,5 @@
 # hangtu — Product Specification
 
-**Status:** Draft.
-
 **What belongs here:** decisions that constrain more than one feature, plus scope and phasing. Per-feature detail lives in that feature's spec (e.g. `docs/plots/PXX-*.md`). Detail for later phases is held in `docs/drafts/` until those phases start. Update this file in the same commit as any change that alters a decision. How the process works: [`docs/reference/process.md`](docs/reference/process.md).
 
 **Conventions**
@@ -14,6 +12,7 @@
 | Document | Contents |
 |---|---|
 | `SPEC.md` (this file) | Scope, phasing, cross-cutting decisions (units, data, conventions, QC, statistics, engineering) |
+| [`STATUS.md`](STATUS.md) | Milestones and their status: what's next, open and done; the releases |
 | [`docs/plots/README.md`](docs/plots/README.md) | Shared plot conventions, and the plot list with each plot's status |
 | `docs/plots/PXX-*.md` | One spec per figure, from [`TEMPLATE.md`](docs/plots/TEMPLATE.md) |
 | [`docs/analysis/`](docs/analysis/) | Living specs for analyses that span units of work: index tests and SPT, judgments, strength, the correlation contract, what each statistics function does |
@@ -38,7 +37,7 @@
 - **Project model** (decided): open source, developed independently. Published on **PyPI** and public GitHub under the **MIT** license. No company data is used in development or testing.
 - **Name** (decided): **`hangtu`**, imported as `import hangtu as ht`. It replaces the working name `ags-kit`, which tied the package to one file format and could look endorsed by the AGS trade body.
   - Keep "AGS" and "DIGGS" in the PyPI description, keywords and README, so the package is still easy to find.
-  - The name is claimed on PyPI by the 0.0.1 placeholder release (§12.1).
+  - The name is claimed on PyPI by the 0.0.1 placeholder release ([`STATUS.md`](STATUS.md)).
 
 ### 1.2 Formats
 | Format | Role | When |
@@ -69,9 +68,9 @@
 | 5 | Stiffness | 08, 10 and 11 (the full set), 09 (soil); P19, P20 |
 | 6 | Hydraulic | 12 A–C (field permeability tests) |
 
-**Order of work:** wave 1, statistics, wave 2, wave 0, selection (stage D, starting with the Mohr–Coulomb set), then waves 3–6, each adding stage D and the model sets its sheets complete. Statistics come ahead of waves 2 and 0 because by then there are measured properties, derived values with depth trends and several correlations per property to compare, so they are designed against real uses. Wave 2 comes ahead of wave 0 (decided 2026-10-31, `docs/work/m11a-triaxial-data.md`) because nothing in it waits on curves in the AGS file: the values at failure are in standard groups (`TRET`, `TRIT`, `SHBT`), and readings during shearing come from a CSV the user shapes (decided 2026-10-15; the P12 draft §3). Wave 0 is built against the sample dataset of real files (TODO #31), which isn't ready. §12.4 has the milestones.
+**Order of work:** wave 1, statistics, wave 2, wave 0, selection (stage D, starting with the Mohr–Coulomb set), then waves 3–6, each adding stage D and the model sets its sheets complete. Statistics come ahead of waves 2 and 0 because by then there are measured properties, derived values with depth trends and several correlations per property to compare, so they are designed against real uses. Wave 2 comes ahead of wave 0 (decided 2026-10-31, `docs/work/m11a-triaxial-data.md`) because nothing in it waits on curves in the AGS file: the values at failure are in standard groups (`TRET`, `TRIT`, `SHBT`), and readings during shearing come from a CSV the user shapes (decided 2026-10-15; the P12 draft §3). Wave 0 is built against the sample dataset of real files (TODO #31), which isn't ready. The milestones: [`STATUS.md`](STATUS.md).
 
-**Releases** (decided 2026-10-21) are cut when a milestone leaves something usable, and aren't tied to waves or planned ahead. 0.1.0 (the plots P00–P03 and P07 and the data layer) is the first, on PyPI.
+**Releases** (decided 2026-10-21) are cut when a milestone leaves something usable, and aren't tied to waves or planned ahead. The releases so far: [`STATUS.md`](STATUS.md).
 
 **Not yet placed**, built when needed: the Hollmann & Thewes (2013) clogging diagram (P18); relative density, from emax and emin (`RELD`) or from SPT (deferred from M14); QC level 2 (engineering-judgment ranges); standards comparison with a library of published ranges; user-defined PSD regions and the plasticity-chart data region; the compaction curve (P16).
 
@@ -161,8 +160,7 @@ Full conventions are in [`docs/plots/README.md`](docs/plots/README.md); each fig
   - Exports to PDF, PNG or SVG.
   - Simple title only; no title block (Later).
 - **Plot list and status:** see `docs/plots/README.md`.
-  - Batch 1 (P00–P07): all built; P06 closed M8.
-  - The milestone of every other plot is in §12.4, or it is not yet placed (§1.3).
+  - The milestone of every plot not yet built is in [`STATUS.md`](STATUS.md), or it is not yet placed (§1.3).
 
 ---
 
@@ -382,8 +380,6 @@ ht.stats.representative(spt, value="spt_n60", by="geology_unit", method="charact
 - Python ≥ 3.12, developed with `uv`.
 - PyPI + public GitHub, MIT license.
 - **CI:** GitHub Actions on Windows, macOS and Linux × Python 3.12–3.14 (ruff + pytest), and mypy in one job on the locked versions. Release to PyPI on a `v*` tag (trusted publishing, `release.yml`): the tag must match the version in `pyproject.toml`, and the test suite runs against the built wheel on all three operating systems before upload. A manual run publishes to TestPyPI instead. Before either upload, the scripts in `examples/` run against the built wheel in an empty directory on all three operating systems.
-- **0.0.1** is a placeholder release that claims the name on PyPI before v0.1 (decided 2026-10-12). It contains the M2b state: P00, P01 and P07.
-- **0.1.0** (M9) is the first release meant for use: P00–P03 and P07, the SPT analysis, AGS4 ingest, QC and the four datasets, with `examples/` and the example data in `ht.examples`.
 - **Docs:** the README, `examples/` and a docs site built with Zensical from `docs/site/` (`zensical.toml` at the root), which grows with each feature (decided 2026-10-16, `docs/work/docs-site.md`). The rest of `docs/` is internal and not published. The API reference is generated from the numpy docstrings (mkdocstrings), so a docstring is user documentation. The site follows `main`, not the last release (`docs.yml`). Zensical and `mkdocstrings-python` are in a `docs` dependency group; Zensical is pinned exactly while it is alpha.
 - **Runtime dependencies** (floors in `pyproject.toml`, each the oldest release that installs and imports on Python 3.12; a lowest-version CI job keeps them honest):
   - Phase 1: `pandas` (<3), `numpy`, `matplotlib`, `pint`, `pyyaml`.
@@ -410,39 +406,7 @@ ht.stats.representative(spt, value="spt_n60", by="geology_unit", method="charact
 - **Phase 3:** JRC worked examples for EC7; scipy reference values.
 
 ### 12.4 Milestones
-Rows are in build order; each milestone after M8 names its wave, or statistics or selection (§1.3). Milestones keep their numbers when the order changes, because other documents refer to them, so M8 comes after M9 and M16 after M17. M10 (a feedback round) was dropped, and its number isn't reused. A milestone can split into several units of work, as M8 did; units without a milestone go where §1.3's order of work puts them. The Status column is where a unit's close-out records it; a finished milestone moves to the Done table, in one line (its unit's work file has the detail). `CLAUDE.md` names only what's next.
-
-**Done:**
-| M | Deliverable |
-|---|---|
-| M0 | Scaffolding: src layout, deps, ruff, pytest, CI matrix, MIT license |
-| M1 | **P00** framework: settings, units for DataFrames, column registry, style, palette, `Sheet` |
-| M2, M2b | **P01** property profile; **P07** property by geology unit |
-| M3 | **P02–P03** + SPT analysis |
-| M4 | Phase 2 design: data model decided (§7) |
-| M5 | AGS4 ingest: raw and canonical layers, units on ingest, value flags |
-| M6 | QC level 1, CSV report and `diff()` |
-| M7 | Depth/elevation/geology joins and the first datasets |
-| M9 | Examples, CSV templates, README → **v0.1.0 on PyPI** |
-| M8 | **P04–P06** + classification and gradation analyses |
-| M13 | Wave 1: judgments file, stratigraphy, vertical stress; (N1)60, the correlations framework and the SPT correlations |
-| M14 | Wave 1: density and particle density data; phase relations, the Gs judgment and activity |
-| M12 | Wave 1: **P17** clogging diagram (Thewes & Burger 2004) |
-| M15 | Statistics: `describe`, correlation statistics, `fit` and P08, `compare`, `compare_groups`, `crosstab` |
-| M11 | Wave 2: `p.triaxial()`, the envelope fitting core and **P11**, **P12** from a CSV of readings |
-| M17 | Wave 2: `p.undrained_strength()`, `p.shear_box()`; the shear box fit and **P31**; the intact Hoek–Brown fit and **P32** from a CSV of rock tests |
-| M18 | Selection (stage D): SPT refusals in `fit()`; `representative()` (EC7 characteristic, JRC worked examples, and US views); **P09**; `compare_sources()` and the shear box φ′ conversion; `select()`; the model-set base and `mohr_coulomb_set()` |
-
-**Open:**
-| M | Deliverable | Done when | Status |
-|---|---|---|---|
-| M16 | Wave 0: user-defined groups and curves | Curves from the sample dataset reach the datasets |  |
-| M19 | Wave 3: oedometer (σ′p, Cc, Cs, Eoed, Eur,oed, k from cv·mv, Grob and Huder–Amberg swelling); P13–P15 | Golden values; plot criteria |  |
-| M20 | Wave 3: K0 from OCR, SHANSEP; the Soft Soil set | Golden values |  |
-| M21 | Wave 4: rock lab datasets (UCS, tensile, point load, slake durability, intact moduli) and RQD | Datasets feed P01 and P07 |  |
-| M22 | Wave 4: the Hoek–Brown chain, rock dilatancy, in situ stress; the generalized Hoek–Brown set with residual values | Published worked examples reproduced |  |
-| M23 | Wave 5: soil stiffness (elastic, small-strain, Hardening Soil), soil dilatancy; P19, P20; the HS and HS-small sets | Golden values; plot criteria |  |
-| M24 | Wave 6: field permeability tests | Golden values; censored values kept |  |
+Milestones and their status: [`STATUS.md`](STATUS.md).
 
 ---
 
