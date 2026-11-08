@@ -3,7 +3,7 @@
 **Next:** wave 0 (M16, user-defined groups and curves) once TODO #31 is settled; else wave 3 (M19, the
 oedometer), whose Soft Soil set (M20) is built on M18's model-set base. Then waves 4–6.
 
-Last checkpoint: `cleanup`, after M18, 2026-11-08, `<merge commit>`.
+Last checkpoint: `cleanup`, after M18, 2026-11-08 (its merge in `git log --first-parent main`).
 
 ## Open
 Each milestone names its wave (SPEC §1.3). A unit's close-out records its status here; a finished milestone
