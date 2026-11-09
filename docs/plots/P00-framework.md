@@ -25,7 +25,7 @@ import hangtu as ht
 
 ht.settings                     # session settings (§3)
 ht.read_csv(path, units=None, **pandas_kwargs) -> pd.DataFrame
-ht.set_units(df, units: dict[str, str]) -> pd.DataFrame     # returns a new frame, never modifies df (decided)
+ht.set_units(df, units: dict[str, str]) -> pd.DataFrame     # returns a new frame, never modifies df
 ht.units_of(df) -> dict[str, str]
 ht.add_unit_alias(text: str, pint_expr: str) -> None
 ht.define_unit(pint_definition: str) -> None
@@ -44,7 +44,7 @@ Internal helpers used by every plot live in `ht.plot.common` (§6–§9). They a
 
 | Key | Type | Default | Used by |
 |---|---|---|---|
-| `display_units` | `"US"` \| `"SI"` | `"US"` (decided) | every plot and analysis without `display_units=` |
+| `display_units` | `"US"` \| `"SI"` | `"US"` | every plot and analysis without `display_units=` |
 | `display_overrides` | `dict[quantity, unit]` | `{}` | e.g. `{"stress": "ksf"}` |
 | `vertical_datum` | `str \| None` | `None` | elevation labels. A name in the datum table (`vertical_datums.yaml`, `ht.add_vertical_datum()`) is stored as its short name (`navd 88` → `NAVD88`); another is kept as written, with a hint |
 | `palette` | `dict[unit, color]` | `{}` | §10 |
@@ -68,11 +68,11 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 |---|---|---|---|---|---|
 | `length` | m | ft | m | ft / m | depth, elevation |
 | `small_length` | mm | in | mm | in / mm | penetrations, increments |
-| `particle_size` | mm | mm | mm | mm | always mm (decided); inch display for coarse sizes is Later |
-| `stress` | kPa | **psf** (decided) | kPa | psf / kPa | override e.g. `ksf` |
+| `particle_size` | mm | mm | mm | mm | always mm; inch display for coarse sizes is Later |
+| `stress` | kPa | **psf** | kPa | psf / kPa | override e.g. `ksf` |
 | `unit_weight` | kN/m³ | pcf (lbf/ft³) | kN/m³ | pcf / kN/m³ | §4.3 #1 |
 | `density` | Mg/m³ | pcf (lb/ft³) | Mg/m³ | pcf / Mg/m³ | §4.3 #1 |
-| `hydraulic_conductivity` | m/s | **cm/s** (decided) | m/s | cm/s / m/s | |
+| `hydraulic_conductivity` | m/s | **cm/s** | m/s | cm/s / m/s | |
 | `modulus` | kPa | ksf | MPa | ksf / MPa | Young's and other moduli (M13 b3); kept after `stress`, which a kPa unit matches first |
 | `velocity` | m/s | ft/s | m/s | ft/s / m/s | wave velocities (M13 b3); kept after `hydraulic_conductivity`, which an m/s unit matches first |
 | `displacement_rate` | mm/min | in/min | mm/min | in/min / mm/min | shear box displacement rates (M17 a); kept after `velocity`, so an m/s heading stays a velocity |
@@ -84,7 +84,7 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 `percent`, `dimensionless` and `count` columns never need declared units.
 
 ### 4.2 Unit strings and aliases
-- **Lookup order** (decided), all case-sensitive:
+- **Lookup order**, all case-sensitive:
   1. the alias table, [`src/hangtu/units/aliases.yaml`](../../src/hangtu/units/aliases.yaml);
   2. pint's own parser. If pint understands the string, it is accepted with a `UserWarning` saying what it was read as and how to make that explicit, e.g. `Unit "feet" for column 'depth' was read as foot. Add it with ht.add_unit_alias("feet", "foot") to silence this.`;
   3. otherwise `UnitsError`, showing `ht.add_unit_alias(...)`.
@@ -93,8 +93,8 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 - One pint `UnitRegistry` per process, owned by `hangtu.units`.
 
 ### 4.3 Phase 1 unit rules
-1. **pcf** (decided) converts by quantity kind: unit weight → kN/m³, density → Mg/m³. The column's quantity kind decides, so the same string is safe for both, and both display as "pcf" in US mode. In US practice pcf usually means lbm/ft³, but some reports use it for lbf/ft³; under standard gravity the two are numerically identical, so whichever the author meant, the number is the same.
-2. **SPT N** (decided) is a count and never converted. ASTM D1586 counts blows per 12 in (304.8 mm) and ISO 22476-3 per 300 mm; the 1.6% difference is far below SPT repeatability. Penetrations are `small_length` and are converted.
+1. **pcf** converts by quantity kind: unit weight → kN/m³, density → Mg/m³. The column's quantity kind decides, so the same string is safe for both, and both display as "pcf" in US mode. In US practice pcf usually means lbm/ft³, but some reports use it for lbf/ft³; under standard gravity the two are numerically identical, so whichever the author meant, the number is the same.
+2. **SPT N** is a count and never converted. ASTM D1586 counts blows per 12 in (304.8 mm) and ISO 22476-3 per 300 mm; the 1.6% difference is far below SPT repeatability. Penetrations are `small_length` and are converted.
 3. **Elevation** = ground level − depth, after both are converted to the same unit.
 4. **Overlay definitions and thresholds** given as strings (`"3 m"`, `"10 ft"`) are parsed through the same alias table.
 5. **Dimension check:** when a registered column is declared with a unit of the wrong dimension (e.g. `depth: "kPa"`), `set_units`/`read_csv` raise `UnitsError`.
@@ -119,10 +119,10 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 - `ht.columns()` returns one row per column (name, description, quantity, US unit, SI unit, used by). `ht.columns("spt")` limits it to a template.
 - **Overlay fields:** names used only in overlay tables (P01 §8: `low`, `high`, `label`, `value`) go in a separate `fields:` section, with a description and type. They share the column namespace and naming rules, and templates may use them, but they aren't data columns: `ht.columns()` leaves them out, and `ht.columns("ranges")` lists them with blank units.
 - `ht.template(name)` returns an empty DataFrame with the template's columns. Unknown names raise `ColumnError` listing the available templates.
-- **Template CSVs are plain** (decided): one header row, no units row. Units are declared in `read_csv(..., units={...})`, which matches how engineers keep units: in their head or in a note, not in the file.
+- **Template CSVs are plain:** one header row, no units row. Units are declared in `read_csv(..., units={...})`, which matches how engineers keep units: in their head or in a note, not in the file.
 - **Names are written out** (CLAUDE.md, "Naming"): `undrained_shear_strength`, `uniformity_coefficient`, `curvature_coefficient`, `liquid_limit`, `spt_n60`, not `su`, `cu`, `cc`, `ll`, `n60`. Symbols belong in axis labels (`label`), never in column names. Units never appear in names (`particle_size`, not `size_mm`).
 - A registry test loads the file and checks the rules above (§14).
-- `loca_id` keeps the AGS name (decided): it is the most widely adopted convention.
+- `loca_id` keeps the AGS name: it is the most widely adopted convention.
 
 ## 6. House style
 - `plot/hangtu.mplstyle` plus a context manager `ht.plot.style.context()`; every plot body runs inside it. rcParams are identical before and after a call.
@@ -137,7 +137,7 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 - `axis_label(text, unit=None, datum=None, unknown=False)` → `"Elevation (ft, NAVD88)"`, `"Depth (m)"`, `"Liquid limit, LL (%)"`, `"SPT N60"` (no unit for counts and dimensionless), `"k (units unknown)"`.
 - Unit text uses display forms: `kN/m³`, `Mg/m³`, `cm/s`, `psf`, `°`, with Unicode superscripts.
 - Label text comes from the registry `label`, a preset, or `label=`; only the unit part is generated.
-- The datum is added only to elevation labels, from the data's `df.attrs["vertical_datum"]` (a project dataset carries its project's), else `settings.vertical_datum`. The data's wins because a datum is a fact about the data, not a preference (decided 2026-10-14, M9). A project's datum may come from the file's `LOCA_DATM` (`docs/data/ingest.md` §7).
+- The datum is added only to elevation labels, from the data's `df.attrs["vertical_datum"]` (a project dataset carries its project's), else `settings.vertical_datum`. The data's wins because a datum is a fact about the data, not a preference. A project's datum may come from the file's `LOCA_DATM` (`docs/data/ingest.md` §7).
 
 ## 8. Axis limits and ticks
 | Case | Rule |
@@ -150,14 +150,14 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 | Elevation axis | normal direction, nice floor/ceiling with 5% padding |
 | Single point / zero range | ± one nice step around the value, or the preset's typical range if there is one |
 | Fixed limits (`xlim=`, presets with fixed limits) | used as given; data beyond them handled by §9 |
-| A value exactly on a limit hangtu picks | the limit moves out one step (a tick step, or a decade on a log axis), so no point sits on the frame. A lower limit of 0 stays at 0, and fixed limits are used as given (decided 2026-10-14, TODO #18) |
+| A value exactly on a limit hangtu picks | the limit moves out one step (a tick step, or a decade on a log axis), so no point sits on the frame. A lower limit of 0 stays at 0, and fixed limits are used as given |
 
 Helpers: `nice_limits(vmin, vmax, *, start_at_zero)`, `log_limits(vmin, vmax, min_decades=2)`, `apply_vertical_axis(ax, vs)`.
 
 ## 9. Out-of-range markers and exclusion notes
 - **Edge markers:** a value beyond a fixed limit is drawn at the limit as an **open** marker in the series color, with a short arrow pointing outward (`edge_markers(ax, x, y, limits, color)`). It returns a mask of the values drawn at the edge, so the plot draws the rest normally and counts these.
 - **Notes collector:** every plot creates a `Notes` object that counts exclusions and edge-clipped values by reason ("NaN", "≤ 0 on log axis", "beyond axis limit", "less than", "greater than", "refusal", "NP"). At the end of the plot it renders one footnote (7 pt, gray), listing only non-zero counts, one per line. It sits below the legend, or below the x label when the legend is inside the axes or there is none, e.g. "3 values beyond axis limit, shown at the edge" / "2 values ≤ 0 not shown on log axis".
-- The counts are also attached to the axes as `ax.ags_notes` (a dict) so tests and users can read them (decided).
+- The counts are also attached to the axes as `ax.ags_notes` (a dict) so tests and users can read them.
 
 ## 10. Palette
 - Resolution: `palette=` argument → `settings.palette` → `df.attrs["palette"]` (a project's geology map, `docs/data/datasets.md` §5.2) → automatic.

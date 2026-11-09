@@ -24,7 +24,7 @@ same readings.
 
 **Where the readings come from.** AGS carries only the values at failure (`TRET` and `TRIT` have one row per
 stage; checked against the 4.1–4.2 dictionaries, 2026-10-15). Readings arrive as exports from the lab's software,
-which the user shapes into a CSV in `ht.template("triaxial_readings")`'s shape (decided 2026-10-15). There is no
+which the user shapes into a CSV in `ht.template("triaxial_readings")`'s shape. There is no
 reader for lab software formats.
 
 ## 2. Reference figure

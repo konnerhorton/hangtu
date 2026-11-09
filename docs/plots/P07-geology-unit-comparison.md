@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **ID / function** | P07 · `ht.plot.geology_unit_comparison()`, `ht.plot.geology_unit_comparisons()` |
-| **Status** | built; `split_by=` built in M18 (d) |
+| **Status** | built |
 | **Type** | plot (percentiles only, no analysis module) |
 | **Milestone** | M2b (0.1.0) |
 | **Depends on** | P00 (framework); reuses the P01 presets and overlay helpers (`plot/_overlays.py`) |

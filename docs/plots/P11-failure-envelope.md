@@ -133,8 +133,7 @@ option is §15.
   above the largest τ, t or q.
 - US labels use psf, or ksf with `ht.settings.display_overrides = {"stress": "ksf"}`, as P01 (*changed in the
   build*: P01 doesn't switch to ksf by itself, so neither does P11).
-- Equal aspect leaves one axis short of the space the axes have; that axis is extended to fill it (*settled in the
-  build*), which also gives the result box room above the envelope.
+- Equal aspect leaves one axis short of the space the axes have; that axis is extended to fill it, which also gives the result box room above the envelope.
 
 **Range constraints:** [x] equal aspect in all three spaces. Required for Mohr circles (README); required in s′–t
 and p′–q too, so slopes (1 in s′–t, 3 in p′–q for the drained path, M) read true and figures are comparable.

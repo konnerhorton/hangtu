@@ -103,7 +103,7 @@ accepted:
 - Entries are passed to each call, not stored with the project, as overrides are. An entry that matches nothing is shown in `report.accepted` (§5.4), not ignored.
 
 ## 4. Rules
-Every rule is listed in `rules.yaml` with the severity below. The thresholds are decided (2026-10-14), except the P001/P003 tolerances (TODO #6).
+Every rule is listed in `rules.yaml` with the severity below. The P001/P003 tolerances are still open (TODO #6).
 
 **General behavior:**
 - **A rule needs the headings it reads.** If a group or heading is absent, the rule checks nothing for it and raises no finding; the rules table (§5.2) shows how many records each rule checked, so a rule that checked nothing is visible. Missing headings themselves are C001/C002's job.

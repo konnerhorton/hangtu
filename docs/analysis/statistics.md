@@ -9,23 +9,21 @@
 Update this file in the same commit as any change to a function's behavior, and SPEC §5 if the change alters a rule there.
 
 ## 1. `fit()`
-Decided 2026-10-30, M15 (c), [`docs/work/m15c-fit.md`](../work/m15c-fit.md).
 - Fits normal, lognormal, gamma and Weibull (two parameters, the positive ones located at 0), and beta between two given bounds, by maximum likelihood with censored values as censored.
 - Ranks them by AICc.
-- Checks each with an Anderson–Darling p-value by seeded parametric bootstrap: none when a value is censored, and with a note that ties read as misfit when a group has fewer distinct values than half its count (decided 2026-11-02, TODO #50).
+- Checks each with an Anderson–Darling p-value by seeded parametric bootstrap: none when a value is censored, and with a note that ties read as misfit when a group has fewer distinct values than half its count.
 - Reports each fit's probability beyond the physical bounds.
 - A group needs 4 uncensored values.
 - It never chooses the distribution: selection (M18) records that choice.
 - Takes no `log=True`: a normal fit to the logs is its lognormal fit.
 
-**Refusals** (decided 2026-11-02, TODO #49; built in M18 (a)):
+**Refusals:**
 - They stay right-censored at their N60 by default: that is the test's result as ASTM D1586 defines refusal, not a judgment.
 - An optional judgment, an upper limit per geology unit (`spt_refusal_upper_limit`, SPEC §4), makes them interval-censored between their value and the limit, so the fitted tail can reflect the ground where the penetration shows refusals well above the cap. hangtu doesn't extrapolate blows from penetration.
 - The limit is field N and scales per row by value / `spt_n` for N60 and (N1)60; `spt_n` and `spt_n_capped` take it as is.
 - On the Q-Q panel an interval is placed as right-censored at its value.
 
 ## 2. `representative()`
-Decided 2026-11-03, M18 (b), [`docs/work/m18b-representative-values.md`](../work/m18b-representative-values.md).
 - Gives one view per call, constant per group or as a line with depth:
   - EC7's characteristic value (Types A, B and C, V_X computed or assumed, from the JRC report, EUR 40260, which quotes EN 1997-1:2024);
   - a percentile of the fitted distribution;
@@ -37,7 +35,6 @@ Decided 2026-11-03, M18 (b), [`docs/work/m18b-representative-values.md`](../work
 - The result gives P01's `design_lines` frame, and P09 (`ht.plot.representative_profile()`, `RepresentativeResult.plot()`) draws it with the mean and the view ([`P09`](../plots/P09-representative-profile.md), M18 (c)).
 
 ## 3. `compare()` and `compare_groups()`
-Decided 2026-10-30, M15 (d), [`docs/work/m15d-compare.md`](../work/m15d-compare.md).
 - **No pre-tests:** no statistics function tests normality or equal variances to choose a method. Each reports a parametric and a rank-based result together, and a plain-English note on whether they agree. The note never says groups "are the same", only that the data don't show a difference at α, with the interval for scale.
 - `compare()` gives Welch's t-test with the difference (or, with `log=True`, the ratio of geometric means) and its interval, beside the Brunner–Munzel test with the probability of superiority (a permutation p-value below 10 values per group, Karch 2021).
 - `compare_groups()` gives Welch's ANOVA and Kruskal–Wallis, and every pair's Games–Howell interval and p beside Dunn's test with Holm's adjustment, both family-wise.
@@ -46,14 +43,12 @@ Decided 2026-10-30, M15 (d), [`docs/work/m15d-compare.md`](../work/m15d-compare.
 - The tests assume independent values, and the note says so.
 
 ## 4. `crosstab()`
-Decided 2026-10-30, M15 (e), [`docs/work/m15e-crosstab.md`](../work/m15e-crosstab.md).
 - Counts two text columns of the same rows against each other, values as written (SPEC §8.3's exact match), blanks as `"(blank)"`. It follows only the input rule "counts add up".
 - Agreement is counted only when the user says what agrees (`agree="same"`, or a mapping that names every class it is asked about), never inferred.
 - A row blank on either side is counted on its own, never as a mismatch.
 - No test or chance-corrected agreement (TODO #52).
 
 ## 5. `compare_sources()`
-Decided 2026-11-05, M18 (d), [`docs/work/m18d-sources-compared.md`](../work/m18d-sources-compared.md) (decisions 8–16).
 - Puts every source of one parameter side by side, per geology unit (`by=`), for stage D: DataFrames of rows, a `MohrCoulombFit`'s main fit, and a `ShearBoxConversion` from `ht.analysis.friction_angle_from_shear_box()`. A `ShearBoxFit` is refused: a direct shear φ′ isn't a triaxial φ′ until converted (SPEC §5).
 - **Never pooled, no `pool=`:** grouping by source is the point. A row's source is its non-blank registry source columns (`source`, `test_type`, `correlation_name`, `conversion_name`), joined, in `parameter_source`; a repeated label across arguments takes " (source n)".
 - Row sources follow `describe()`'s input rules and statistics exactly (flags, bands and non-plastic values left out and counted, assumed values only with `include_assumed=True`, censored values at their value and counted, H&F 7 with each percentile's floor).
@@ -63,7 +58,6 @@ Decided 2026-11-05, M18 (d), [`docs/work/m18d-sources-compared.md`](../work/m18d
 - Views: `.to_frame()`, `.positions()`, `.values()` (the long frame the figures draw, every row kept, a fit at the middle of its points' depths with `depth_top`/`depth_base`), `.profile()` (P01 of one unit, so its stats box equals that unit's table) and `.geology_unit_comparison()` (P07 with `split_by="parameter_source"` and `summary_min_count=1`, so the percentile floors alone decide where a bar is drawn).
 
 ## 6. `select()`
-Decided 2026-11-06, M18 (e), [`docs/work/m18e-selection.md`](../work/m18e-selection.md) (decisions 6–18).
 - Gives each geology unit's selected value of one parameter, as the `selection` judgment says (SPEC §4, §5): per parameter and geology unit, a `method` and a `reason`, both required. The methods are `representative()`'s three views on one source's rows (`characteristic`, `percentile`, `standard_deviations`, with that function's argument names and rules), `fitted` (a fit's one value in the unit), `value` (with its unit) and `none`.
 - Keyed by geology unit only: no `project:` value, no depth range, no design case (TODO #56). Every unit the sources have needs an entry; a `value` or `none` may name a unit no source has.
 - Resolution: `selection=` (the whole selection of the parameter, replacing the file's with a warning) → `judgments=` → the Project's file the sources carry → an error showing an entry.
@@ -75,7 +69,6 @@ Decided 2026-11-06, M18 (e), [`docs/work/m18e-selection.md`](../work/m18e-select
 - **With no source** (M18 (f), decision 20): allowed when every entry is `value` or `none`, for a parameter nothing measures yet (ψ, E′, ν′). Any other method is an error saying no source carries the parameter. `.comparison` is None, `.positions()` is empty, `.design_lines()` and `.profile()` say there is nothing to draw, and the unit is `display_units`' for the quantity, else the first `value` entry's, with the others converted to it.
 
 ## 7. Model sets and `mohr_coulomb_set()`
-Decided 2026-11-06, M18 (f), [`docs/work/m18f-mohr-coulomb-set.md`](../work/m18f-mohr-coulomb-set.md) (decisions 5–20).
 - **The base** (`hangtu/stats/_model_set.py`, private): a result of kind *parameter* with the model's name and citation, its parameters in order (registry names), and one record per geology unit and parameter: a constant `value` and `unit`, its `origin` (`selection`, `rule`, `judgment` or `blank`), the selection's source, method and reason, or the rule's name, citation and inputs (each with value, unit and origin), or the judgment's name, key and source, a `no_value_reason`, and notes. A set defines its parameters and how each is reached; the base knows no model. `judgment` is unused by Mohr–Coulomb and is there for GSI and D (M22).
 - **Checks every set makes:** a selection with a `trend:` is an error naming the unit and parameter (constants only); each parameter's `select()` gets only the sources that carry it, and a source that carries none of the set's parameters is an error; an optional parameter is selected only when a selection exists. Units come in the selections' order (the comparison's, so the geology map's), then units only a `value` names.
 - **Views:** `.to_frame()` (one row per unit, one column per parameter, values only, `attrs["units"]`), `.provenance()` (one row per unit and parameter: `parameter_origin`, `parameter_source`, `selection_method`, `rule_name`, `rule_citation`, `reason`, `no_value_reason`), `.selections` (`{parameter: SelectionResult}`), `.to_dict()` (every record and field, the selections, judgments, notes and version; what the AGSi export will read) and the printed summary.

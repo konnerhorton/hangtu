@@ -47,7 +47,7 @@ p.judgments                              # a Judgments, or None; datasets carry 
 fig, ax = ht.plot.spt_profile(p.spt(geology=["Alluvium"]))
 ```
 
-**Common arguments** (names decided in SPEC §10.2), on every dataset:
+**Common arguments** (names in SPEC §10.2), on every dataset:
 
 | Argument | Keeps | Notes |
 |---|---|---|
@@ -327,7 +327,7 @@ One row per `LPDN` row: the particle density results, reviewed by geology unit w
 | `test_type` | `LPDN_TYPE` |
 
 - An assumed value keeps its number and its flag; neither is dropped. QC lists them (B004).
-- Specific gravity, Gs = ρs / ρw, is M14 (b)'s, decided with γw.
+- Specific gravity, Gs = ρs / ρw, is computed by `phase_relations()`, not here.
 - No `LPDN` group: an empty frame with the warning "No LPDN group".
 
 ### 6.10 `p.triaxial()` (M11 a)
@@ -491,7 +491,7 @@ New columns, each checked against the whole registry (CLAUDE.md, "Naming"): `loc
 - M17 c (`docs/work/m17c-hoek-brown-fit.md`, Changes): `failure_mode` (`TRET_MODE`, `TRIT_MODE`), `reported_intact_compressive_strength` and `reported_intact_hoek_brown_constant` in the `triaxial` template and `p.triaxial()`; the fitted `intact_compressive_strength` and `intact_hoek_brown_constant`.
 
 ### 11.1 CSV templates
-Each template (`ht.template(<name>)`) is its dataset's columns in the same order, without those only hangtu produces, so CSV and AGS data reach the plots in the same shape (decided 2026-10-14, `docs/work/m9-release.md`; SPEC §2.6). What each leaves out:
+Each template (`ht.template(<name>)`) is its dataset's columns in the same order, without those only hangtu produces, so CSV and AGS data reach the plots in the same shape (SPEC §2.6). What each leaves out:
 
 | Template | Dataset | Left out |
 |---|---|---|
@@ -535,4 +535,4 @@ M17 (a) adds `TRIT_CU` to the UU stages, `LUCT`, `LVAN`, `LPEN` and `LFCN` on ex
 16. **Combining:** on a test sample with two Atterberg specimens and one water content specimen, the Atterberg specimen nearest the water content specimen is used, named in `atterberg_specimen_id`, with the warning; a tie goes to the lower `SPEC_REF`; a sample with only a grading gets a row with blank limits; a specimen with both tests keeps its own water content and limits together.
 
 ## 14. Decisions in review
-1. **`SPEC_REF` and `SPEC_DPTH` move to `recommended`** in `qc/min_fields.yaml` (decided 2026-10-14, TODO #7). Required, they made §7 leave out every lab result without a specimen depth, so the lab depth fallback (`sample_mid`, `sample_top`, SPEC §8.2) could never run by default. A blank one is still reported, by C002.
+1. **`SPEC_REF` and `SPEC_DPTH` move to `recommended`** in `qc/min_fields.yaml`. Required, they made §7 leave out every lab result without a specimen depth, so the lab depth fallback (`sample_mid`, `sample_top`, SPEC §8.2) could never run by default. A blank one is still reported, by C002.
