@@ -269,6 +269,61 @@ One unit can need two selected values of one parameter: EC7's Type A (a mean) fo
 - **Problem:** seven `ht.stats` modules each write their own `_notes()` (`_compare`, `_crosstab`, `_describe`, `_fit`, `_refusal_limit`, `_representative`, `_select`), and the count lines are built in `_fit._count()` and twice in `_result.py`. A new result type would add another copy. `_select.py`, `_result.py`, `_compare_sources.py` and `project.py` are each over 1,100 lines.
 - **Open:** whether the notes and counts share one helper, and whether the four modules split, as a refactor unit of its own before M19 adds the oedometer results.
 
+## Agent-use review (2026-11-09)
+A review of the whole package asked one question: if an AI agent does the work and an engineer signs it off, how likely is a wrong answer, and how easy is it to catch? It used probe scripts plus two agent trials (an SPT correlation task and a lab strength task, from the public docs only). Items 60–61 can give a plausible wrong number with nothing to flag it; 62–67 lead an agent to misuse; 68–69 are friction.
+
+### 60. A correlation on rows its `soil_class` rules out · You + Claude · SPEC §4, `docs/analysis/correlations.md` §2 · related to #3, #41
+- **Problem:** `effective_friction_angle_hatanaka_uchida_1996` on the Alluvium (lean clay) rows gives φ′ = 28–32° for every row. The only warning is about range bounds, although the frame carries `soil_class == "fine"` and `attrs["soil_classes"]`. SPEC §4 reads soil type only when asked (`uscs=`), so this follows the spec; an agent passing the whole frame won't ask.
+- **Options:**
+  - warn, and note it in `correlation_note`, when `soil_class` contradicts the entry's `applies_to`;
+  - give those rows NaN with a reason unless `uscs=` or an explicit override is passed;
+  - leave it as decided.
+- **Recommendation (Claude):** the first. It costs nothing when the classes agree, and it reads a column the user already supplied rather than inferring one.
+
+### 61. `spt_class()` defaults to the cohesionless table · You + Claude · `docs/analysis/index-and-spt.md` §1.4, `src/hangtu/analysis/_spt.py`
+- **Problem:** `spt_class(clay_rows)` returns "Very loose" and "Loose" for clays with no warning. Its docstring says the table is the engineer's call, but `table="cohesionless"` and `n="spt_n"` are defaults. P03's `spt_histogram()` has the same defaults.
+- **Proposed:** make `table=` required in both, which matches SPEC §4's "no defaults for judgments". Also warn when `soil_class` contradicts the table (#3).
+- **Open:** whether `n=` is a judgment too (field N or N60 for a class table), or a convention that stays a default.
+
+### 62. Example CSVs that fail their own analyses · Claude · `tests/data/_make_examples.py`, `tests/test_examples.py`
+- **Problem:** `undrained_shear_strength_from_tests()` on `strength.csv` raises "more than one input to s_u" on the UU rows, because both s_u and q_f are filled in. The trial agent edited the data by hand to make it run. The hand penetrometer values sit in `undrained_shear_strength` with `hand_penetrometer_reading` blank, so `hand_penetrometer_scale=` never applies, while the docs example says the instrument read q_u. The docs examples take the AGS route only, so no test runs the CSVs.
+- **Wanted:** each example CSV passes the analysis its template feeds, tested, with the penetrometer readings in `hand_penetrometer_reading`.
+
+### 63. `representative()` with most values censored · You + Claude · `docs/analysis/statistics.md`
+- **Problem:** with 25 of 40 Hatanaka & Uchida values "at least 44.5°", the censored normal fit gives a mean of 45.4° and a characteristic value of 44.6°. That is above every real estimate (max 44.1°) and above the correlation's ceiling. The note explains how censored values were treated but doesn't warn about the result.
+- **Proposed:** warn when more than half the values are censored, or when the representative value is beyond the largest (or, low side, the smallest) uncensored value.
+- **Open:** the threshold, and whether `fit()` and `compare_sources()` warn the same way.
+
+### 64. Messages about text values point to the wrong fix · Claude (+ You for `read_csv`) · `src/hangtu/stats/_rows.py`, `src/hangtu/plot/`, SPEC §2.6
+- **Problem:** for `"<10"` in a value column, `describe()` says "Replace it with a number", and the plots say "clean the column". An agent writes 10 and the value is no longer censored.
+- **Proposed:** say "put `<` or `>` in `qualifier` (or the column's own qualifier) and the number in the value column".
+- **Open (You):** should `ht.read_csv` split `<x`/`>x` into the qualifier column when the template has one, as AGS ingest does for value flags?
+
+### 65. `spt()` doesn't record the energy ratio or cap it used · Claude · `docs/analysis/index-and-spt.md` §1.3
+- **Problem:** when N60 uses `hammer_efficiency` or `ht.settings.hammer_efficiency`, only a warning says so. `energy_ratio` stays blank and `attrs` holds only units. `ht.settings.spt_cap` changes `spt_n_capped` with no record either. An engineer reviewing the output can't tell which ER produced N60.
+- **Proposed:** `attrs["spt"]` with the cap and, per hole, the ER and its source (data, argument, setting), the way `vertical_stress` and `spt_n1_60` record theirs.
+
+### 66. The CSV route leads to invented inputs · Claude + You · `docs/site/getting-started/csv.md`, `src/hangtu/examples/data/`
+- **Problem:** no page shows a CSV stratigraphy for `vertical_stress()`, nor the triaxial and undrained strength analyses from CSV; every example starts from `site.ags`. The trial agent tried `strata.csv` as the log (it is the geology map), then made up layer boundaries midway between tests. The lab agent built about 24 unit declarations by hand from `ht.columns()`.
+- **Proposed:** ship `stratigraphy.csv` with the examples; add one CSV-route example per analysis family; rename `strata.csv` to `geology_map.csv` (examples-ags-first: written from `site.ags`).
+- **Open (You):** a way to declare a file's units in one step, e.g. from each column's `quantity` and a stated system. It is a declaration, not a guess, but it would cover columns the user never looked at.
+
+### 67. Stress units declared wrong · You · SPEC §2.2, §2.6
+- **Problem:** the triaxial CSV in psf declared as kPa gives c′ = 104 kPa and σ′n up to 3,680 kPa at 18 ft, with no check. The summary prints the unit, so a reviewer could catch it; an agent won't. Typical ranges are never used for QC (P00), by design.
+- **Idea:** a physical check rather than a typical range, for example a consolidation stress more than about 10× the overburden at the sample depth warns.
+
+### 68. Internal references in published docstrings · Claude · `tests/docs/test_site.py`
+- **Problem:** the `ht.stats` module docstring cites `SPEC §5`, and the `ht.plot` module docstring cites `docs/plots/README.md`. `spt`, `spt_class`, `plasticity`, `uscs`, `aashto` and `gradation` cite `analysis.md §x`. Plot IDs appear in published text: "(P01)" and "(P11)", and the `used_by` column of `ht.columns()`. Both trial agents were confused by them. The site test doesn't scan module or function docstrings for these.
+- **Wanted:** the references removed, and the test extended to every public module and function docstring.
+- **Open:** whether `used_by` names plot functions instead of IDs, or is dropped from `ht.columns()`.
+
+### 69. Friction from the agent trials · Claude · plots, `src/hangtu/units/`
+- `spt_profile(n="spt_n1_60")` is rejected; the agent fell back to `profile()` and marked refusals by hand.
+- A long `note=` collapses the axes, and the only sign is matplotlib's warning.
+- `units={"x": "inch"}` warns "read as inch; add alias inch → inch".
+- `failure_envelope()` with two units on shared equal axes crams the clay circles near the origin.
+- `fit(group_by=[...])` returns count-0 rows for groups with nothing to fit.
+
 ---
 
 ## Later / far future (also on the Roadmap)
