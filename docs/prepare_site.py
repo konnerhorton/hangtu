@@ -1,7 +1,5 @@
 """Write the docs site's generated files before a build.
 
-Spec: docs/work/docs-site.md, Spec §5.
-
 Run from the repo root, then build:
 
     uv run python docs/prepare_site.py

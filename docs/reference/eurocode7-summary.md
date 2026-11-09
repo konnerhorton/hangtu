@@ -250,7 +250,7 @@ The themes that recur in both generations, translated into hangtu QC requirement
 
 ## 7. hangtu API
 
-Superseded by `ht.stats.representative()` (M18 (b)): the spec, its decisions and golden values from the JRC worked examples are in [`docs/work/m18b-representative-values.md`](../work/m18b-representative-values.md), the behavior in SPEC §5 ("Representative values") and the function's docstring. Every judgment (the method, side, distribution, type of estimate, V_X, θ and L) is a required argument, with no default. Still open (TODO #13): the Angus (1988) bound on the mean for a lognormal trend, and whether to compute Γ² from a variance function.
+Superseded by `ht.stats.representative()`: its decisions are in [`docs/analysis/statistics.md`](../analysis/statistics.md) §2, the cross-cutting rule in SPEC §5 ("Representative values"), and the method and the JRC worked examples in the function's docstring and tests. Every judgment (the method, side, distribution, type of estimate, V_X, θ and L) is a required argument, with no default. Still open (TODO #13): the Angus (1988) bound on the mean for a lognormal trend, and whether to compute Γ² from a variance function.
 
 ---
 

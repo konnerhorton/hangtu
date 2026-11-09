@@ -1,4 +1,4 @@
-# The docs site (docs/work/docs-site.md, Spec §2). Build with:
+# The docs site, built from docs/site/. Build with:
 #   uv run python docs/prepare_site.py && uv run zensical build --clean --strict
 
 [project]

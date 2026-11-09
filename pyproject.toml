@@ -57,7 +57,7 @@ dev = [
     "mypy>=2.4.1",
     "types-PyYAML>=6.0.12",
 ]
-# The docs site (docs/work/docs-site.md). Zensical is alpha, so it is pinned exactly.
+# The docs site. Zensical is alpha, so it is pinned exactly.
 docs = ["zensical==0.0.70", "mkdocstrings-python>=2.0.9"]
 
 [build-system]
@@ -86,7 +86,8 @@ convention = "numpy"
 # Page examples are a few lines a user copies, not modules.
 "docs/site/examples/**" = ["D"]
 
-# Checks the annotations that exist; not strict (docs/work/type-check.md).
+# Checks the annotations that exist; not strict: full typing coverage isn't
+# the goal.
 [tool.mypy]
 files = ["src/hangtu"]
 python_version = "3.12"
