@@ -6,7 +6,8 @@
 | Document | Contents |
 |---|---|
 | `SPEC.md` (this file) | Scope, phasing, cross-cutting decisions (units, data, conventions, QC, statistics, engineering) |
-| [`STATUS.md`](STATUS.md) | Milestones and their status: what's next, open and done; the releases |
+| [`STATUS.md`](STATUS.md) | Milestones and their status: what's next, open and done |
+| [`CHANGELOG.md`](CHANGELOG.md) | What each release holds, and what's unreleased |
 | [`docs/plots/README.md`](docs/plots/README.md) | Shared plot conventions, and the plot list with each plot's status |
 | `docs/plots/PXX-*.md` | One spec per figure, from [`TEMPLATE.md`](docs/plots/TEMPLATE.md) |
 | [`docs/analysis/`](docs/analysis/) | Living specs for analyses that span units of work: index tests and SPT, judgments, strength, the correlation contract, what each statistics function does |
@@ -31,7 +32,7 @@
 - **Project model:** open source, developed independently. Published on **PyPI** and public GitHub under the **MIT** license. No company data is used in development or testing.
 - **Name:** **`hangtu`**, imported as `import hangtu as ht`. It replaces the working name `ags-kit`, which tied the package to one file format and could look endorsed by the AGS trade body.
   - Keep "AGS" and "DIGGS" in the PyPI description, keywords and README, so the package is still easy to find.
-  - The name is claimed on PyPI by the 0.0.1 placeholder release ([`STATUS.md`](STATUS.md)).
+  - The name is claimed on PyPI by the 0.0.1 placeholder release ([`CHANGELOG.md`](CHANGELOG.md)).
 
 ### 1.2 Formats
 | Format | Role | When |
@@ -64,7 +65,7 @@
 
 **Order of work:** wave 1, statistics, wave 2, wave 0, selection (stage D, starting with the Mohr–Coulomb set), then waves 3–6, each adding stage D and the model sets its sheets complete. Statistics come ahead of waves 2 and 0 because by then there are measured properties, derived values with depth trends and several correlations per property to compare, so they are designed against real uses. Wave 0 is built against a sample dataset of real files (TODO #31), so it waits on that. The milestones: [`STATUS.md`](STATUS.md).
 
-**Releases** are cut when a milestone leaves something usable, and aren't tied to waves or planned ahead. The releases so far: [`STATUS.md`](STATUS.md).
+**Releases** are cut when a milestone leaves something usable, and aren't tied to waves or planned ahead. The releases so far: [`CHANGELOG.md`](CHANGELOG.md).
 
 **Not yet placed**, built when needed: the Hollmann & Thewes (2013) clogging diagram (P18); relative density, from emax and emin (`RELD`) or from SPT; QC level 2 (engineering-judgment ranges); standards comparison with a library of published ranges; user-defined PSD regions and the plasticity-chart data region; the compaction curve (P16).
 
