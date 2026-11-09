@@ -55,7 +55,7 @@ An `spt_n60` already filled in is kept. N60 is computed for refusals too; the pl
 
 **Capped N** (`spt_n_capped`) = min(N, cap), and = cap for every refusal, including a refusal with a blank N. `cap` is `cap=`, else `ht.settings.spt_cap` (100). Only N is capped. N60 isn't: a non-refusal N60 above 100 is a real value.
 
-**Refusals in plots and statistics** are included by default at the cap, with a note (SPEC §4). `fit()` treats them as censored, between their value and an optional judged upper limit (M18 (a), `docs/work/m18a-refusals.md`); characteristic values are M18 (b).
+**Refusals in plots and statistics** are included by default at the cap, with a note (SPEC §4). `fit()` treats them as censored, between their value and an optional judged upper limit ([`statistics.md`](statistics.md) §1, "Refusals"); `representative()` takes them as censored for a constant value and counts them for a trend (§2).
 
 ### 1.4 `ht.analysis.spt_class()`
 ```python

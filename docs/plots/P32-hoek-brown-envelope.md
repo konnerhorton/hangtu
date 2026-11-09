@@ -215,7 +215,7 @@ stated.
 - The fit is least squares on Hoek's line, derived in the M17 (c) Spec. ASTM D7012-23 defines the tests.
 
 ## 14. Open questions
-- None beyond the M17 (c) Spec's 🟡 items, for review with it.
+- None open.
 
 **Pitfalls:**
 - Drawing the free curve solid across the whole axis, which reads as if σ1 were measured past the last test.
