@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Living spec. §1 SPT built in M3; §2–3 Atterberg limits, classification and grain size built in M8. Values marked 🔬 are still to verify against the standards (TODO #5) |
+| **Status** | Living spec. Values marked 🔬 are still to verify against the standards (TODO #5) |
 | **Parent** | SPEC §4: the cross-cutting analysis decisions. Depth conventions are in SPEC §8. The SPT correlations and (N1)60: [`correlations.md`](correlations.md) and the `spt_n1_60()` docstring |
 | **Related** | [`m3-spt.md`](../work/m3-spt.md), [`m8-index-plots.md`](../work/m8-index-plots.md). The figures that read these analyses: P02–P06 in [`docs/plots/`](../plots/README.md) |
 
@@ -13,7 +13,7 @@ rule there. The analyses are specified here, apart from the plot specs, so they 
 
 ## 1. SPT (used by P02, P03)
 
-**Status:** decided (M3). Everything in this section is decided except where marked 🔬.
+Values marked 🔬 are still to verify (TODO #5).
 
 ### 1.1 Purpose
 Turns SPT results as reported into the values the plots and an engineer need: whether each test is a refusal, N60, and N capped for refusals. It also gives each test a relative-density or consistency class. Both work without a plot: `ht.analysis.spt(df)` returns the table with the derived columns, ready to export or filter.
@@ -55,7 +55,7 @@ An `spt_n60` already filled in is kept. N60 is computed for refusals too; the pl
 
 **Capped N** (`spt_n_capped`) = min(N, cap), and = cap for every refusal, including a refusal with a blank N. `cap` is `cap=`, else `ht.settings.spt_cap` (100). Only N is capped. N60 isn't: a non-refusal N60 above 100 is a real value.
 
-**Refusals in plots and statistics** are included by default at the cap, with a note (SPEC §4). `fit()` treats them as censored, between their value and an optional judged upper limit (M18 (a), `docs/work/m18a-refusals.md`); characteristic values are M18 (b).
+**Refusals in plots and statistics** are included by default at the cap, with a note (SPEC §4). `fit()` treats them as censored, between their value and an optional judged upper limit ([`statistics.md`](statistics.md) §1, "Refusals"); `representative()` takes them as censored for a constant value and counts them for a trend (`statistics.md` §2).
 
 ### 1.4 `ht.analysis.spt_class()`
 ```python
@@ -126,7 +126,7 @@ Worked by hand.
 
 ## 2. Atterberg limits and classification (used by P04, P06)
 
-**Status:** decided (M8, [intent](../work/m8-index-plots.md#intent)). Values marked 🔬 are checked against the standard before the build (TODO #5).
+Values marked 🔬 are still to verify against the standard (TODO #5).
 
 ### 2.1 Purpose
 Gives each specimen its plasticity index, liquidity and consistency indices, and its class on the plasticity chart. For specimens with both Atterberg limits and a grading, it also gives the full USCS group symbol and the AASHTO group and group index. Each is a plain function, usable without a plot. P04 draws the chart lines from the same config, so the chart and the classes can't disagree.
@@ -305,7 +305,6 @@ Worked by hand.
 
 ## 3. Grain size (used by P05)
 
-**Status:** decided (M8), as §2.
 
 ### 3.1 Purpose
 Turns grading curves (one row per sieve or hydrometer point) into one row per specimen: D-values, Cu, Cc and the size fractions of a named system. The P05 header band and sieve labels read the same fraction system, so the band and the numbers can't disagree.

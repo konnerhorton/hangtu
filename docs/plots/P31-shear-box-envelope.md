@@ -203,7 +203,7 @@ stated.
   (ring shear) define the tests and failure criteria (TODO #53).
 
 ## 14. Open questions
-- None beyond the M17 (b) Spec's 🟡 items, for review with it.
+- None open.
 
 **Pitfalls:**
 - Drawing the free line solid across the whole axis, which reads as if c were measured at σn = 0.

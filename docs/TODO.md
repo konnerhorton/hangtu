@@ -265,6 +265,10 @@ Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads o
 ### 56. Named design cases as a selection key · You · SPEC §4, §5, `docs/analysis/judgments.md` §5.9 · when a project needs two selections of one unit
 One unit can need two selected values of one parameter: EC7's Type A (a mean) for a long slip surface and Type B (a fractile) for a footing, or short- and long-term cases. SPEC §4 lists a named design case among a judgment's possible keys, but the `selection` judgment is keyed by parameter and geology unit only. Until a case key exists, `select(selection=...)` or a second judgments file passed as `judgments=` gives one case at a time. Open: the key's place in the file (a `cases:` level above the parameter, or one per entry), how `select()` names the case (`case=`), and how model sets carry it (one set per case).
 
+### 59. Shared result code in `ht.stats`, and module size · Claude · `src/hangtu/stats/`, `src/hangtu/project.py` · for M19's intent
+- **Problem:** seven `ht.stats` modules each write their own `_notes()` (`_compare`, `_crosstab`, `_describe`, `_fit`, `_refusal_limit`, `_representative`, `_select`), and the count lines are built in `_fit._count()` and twice in `_result.py`. A new result type would add another copy. `_select.py`, `_result.py`, `_compare_sources.py` and `project.py` are each over 1,100 lines.
+- **Open:** whether the notes and counts share one helper, and whether the four modules split, as a refactor unit of its own before M19 adds the oedometer results.
+
 ---
 
 ## Later / far future (also on the Roadmap)

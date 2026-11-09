@@ -178,6 +178,17 @@ def test_site_pages_cite_no_internal_files():
     assert hits == [], "\n".join(hits)
 
 
+def test_changelog_cites_no_internal_files():
+    # The changelog is read on GitHub and linked from the README on PyPI.
+    text = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    hits = [
+        f"CHANGELOG.md:{number}: {line.strip()}"
+        for number, line in enumerate(text.splitlines(), 1)
+        if INTERNAL_REFERENCE.search(line)
+    ]
+    assert hits == [], "\n".join(hits)
+
+
 def test_column_descriptions_cite_no_internal_files():
     # ht.columns() prints the descriptions and reference/columns.md lists them.
     registry = ht.columns()

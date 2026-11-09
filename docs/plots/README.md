@@ -54,7 +54,7 @@ Each figure is a separate feature with its own spec file in this folder, written
   - `stats_box`: `True` shows the plot's default statistics (set in its spec); a list chooses them, e.g. `["count", "mean", "cov"]`;
   - representative values: a result of `ht.stats.representative()`, through P01's `design_lines=` or P09;
   - `note`: free text.
-- **Numbers in a box:** hangtu's own results to 3 significant figures (`format_number()`); a lab's reported value as the lab wrote it (`f"{value:g}"`, a dash when blank), never padded to digits it didn't report (P11, P31, P32). A value converted to another unit keeps the significant figures it was reported with (64 MPa shows as 9300 psi, not 9282.42), counted from the value as read, so trailing zeros before the decimal point don't count (decided 2026-11-05, in the M17 (c) close-out review).
+- **Numbers in a box:** hangtu's own results to 3 significant figures (`format_number()`); a lab's reported value as the lab wrote it (`f"{value:g}"`, a dash when blank), never padded to digits it didn't report (P11, P31, P32). A value converted to another unit keeps the significant figures it was reported with (64 MPa shows as 9300 psi, not 9282.42), counted from the value as read, so trailing zeros before the decimal point don't count.
 - Overlays come from data and are never hard-coded: published zones (A-line, classification bands, etc.) live in `config/defaults.yaml` or in the plot module, with their source cited.
 
 ### Output

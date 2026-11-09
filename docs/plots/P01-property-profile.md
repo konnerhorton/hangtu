@@ -93,7 +93,7 @@ n/a, apart from:
 | Label (SI) | e.g. `Hydraulic conductivity, k (m/s)` | `Elevation (m, <datum>)` / `Depth (m)` | `Depth (m)` |
 | Scale | linear or log (from the preset or `log=`) | linear | linear |
 | Direction | normal | elevation: up · depth: **inverted** (0 at top) | inverted |
-| Position | **bottom** (decided; `xaxis_position="top"` gives the borehole-log convention) | left | right |
+| Position | **bottom** (`xaxis_position="top"` gives the borehole-log convention) | left | right |
 | Limits rule | linear: from 0 if the preset is ratio-scale, else padded "nice" limits · log: whole decades enclosing the data · fixed preset limits if set · `xlim=` overrides | depth: 0 → nice ceiling of max depth/base · elevation: nice floor/ceiling with 5% padding · `ylim=` overrides | follows the primary axis |
 | Major / minor ticks | linear: nice steps (1-2-5) · log: decades labeled `10ⁿ`, minor 2–9 unlabeled | nice steps (e.g. every 5 or 10 ft, 2 or 5 m) | same |
 | Gridlines | major; minor on log only | major | none |
@@ -163,7 +163,7 @@ Presets live in `config/defaults.yaml`, with the typical range in the quantity's
   - The length columns (`depth`, `elevation`, `ground_level`, `depth_top`, `depth_base`) are converted together, and each is converted before any subtraction. If any of them has no units, none is converted: all are drawn as given, the label says "(units unknown)", and the usual warning names the column.
   - With `vs="depth"` and no `depth` column, depth is `ground_level − elevation`.
 - **Value:** converted according to the preset or registry quantity.
-  - k: cm/s (US, decided) / m/s (SI). A log axis keeps whole decades in either unit, since the conversion is a factor of 100.
+  - k: cm/s (US) / m/s (SI). A log axis keeps whole decades in either unit, since the conversion is a factor of 100.
   - s_u: psf / kPa (per-quantity override, e.g. ksf).
   - Unit weight: pcf / kN/m³.
   - Moisture: % in both.
@@ -297,7 +297,7 @@ fig, ax = ht.plot.profile(su, "undrained_shear_strength", preset="undrained_shea
 - NAVFAC (1986). *Design Manual 7.01: Soil Mechanics*. Typical unit weights.
 
 ## 14. Open questions
-None open. Text values in the value column (TODO #15) were decided in M8 (§3, §7). Review decisions are recorded in the body: overlay column names and the depth-or-elevation pairs for strata and ranges (§8), k shown in cm/s in US units (§9), x-axis at the bottom (§6), stats box contents (§8), `connect=` off by default (§7), per-hole water levels (§8), and only `value` plus depth or elevation required (§3).
+None open. Text values in the value column are in §3 and §7. Decisions from review are recorded in the body: overlay column names and the depth-or-elevation pairs for strata and ranges (§8), k shown in cm/s in US units (§9), x-axis at the bottom (§6), stats box contents (§8), `connect=` off by default (§7), per-hole water levels (§8), and only `value` plus depth or elevation required (§3).
 
 ## 15. Future enhancements
 - `facet_by="loca_id"`: one panel per hole with a shared vertical axis (a borehole-by-borehole profile sheet).

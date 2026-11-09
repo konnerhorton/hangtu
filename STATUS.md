@@ -3,7 +3,7 @@
 **Next:** wave 0 (M16, user-defined groups and curves) once TODO #31 is settled; else wave 3 (M19, the
 oedometer), whose Soft Soil set (M20) is built on M18's model-set base. Then waves 4–6.
 
-Last checkpoint: `cleanup`, after M18, 2026-11-08 (its merge in `git log --first-parent main`).
+Last checkpoint: 2, after `cleanup`, 2026-11-09, 1e39bac.
 
 ## Open
 Each milestone names its wave (SPEC §1.3). A unit's close-out records its status here; a finished milestone
@@ -41,9 +41,7 @@ comes after M9 and M16 after M17. M10 (a feedback round) was dropped, and its nu
 - **M18:** selection (stage D): SPT refusals in `fit()`; `representative()` (EC7 characteristic, JRC worked examples, and US views); **P09**; `compare_sources()` and the shear box φ′ conversion; `select()`; the model-set base and `mohr_coulomb_set()`.
 
 ## Releases
-- **0.1.0** (M9): the first release meant for use: P00–P03 and P07, the SPT analysis, AGS4 ingest, QC and the
-  four datasets, with `examples/` and the example data in `ht.examples`.
-- **0.0.1**: a placeholder that claims the name on PyPI. It holds the M2b state: P00, P01 and P07.
+The latest is **0.1.0** (M9). Each release and what's unreleased: [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Elsewhere
 - Plots and their status: [`docs/plots/README.md`](docs/plots/README.md).

@@ -65,7 +65,7 @@ Thewes & Burger (2004), Fig. 🔬 (number to confirm). The zones are in §4.
 - **Ic** = (LL − w) / PI, from `plasticity()`. Not computed a second time.
 - **`clogging_potential`**: the name of the zone the specimen's (PI, Ic) falls in, as the source names it, or blank where the specimen can't be placed (NP, blank w, LL or PL, PI = 0) or falls outside the diagram (§4). One warning counts the blank rows by reason, as `clay_activity()` does; the chart doesn't repeat it, since its footnote counts them.
 - **Zones** come from `config/clogging_methods.yaml`, which both the analysis and the chart read, so they can't disagree (as P04's `plasticity_systems.yaml`). Each zone is a polygon of (PI, Ic) vertices with its name and the method's citation.
-- **On a boundary** 🟡: a point on the line between two zones takes the higher potential, so a borderline specimen is never reported as the safer one. A point on a zone's outer edge (PI = 10 or 70, Ic = 0.6 or 1.5) is in the zone. Boundaries are compared with a tolerance of 1e-9, as QC does, so 52 / 40 lands on Ic = 1.3.
+- **On a boundary:** a point on the line between two zones takes the higher potential, so a borderline specimen is never reported as the safer one. A point on a zone's outer edge (PI = 10 or 70, Ic = 0.6 or 1.5) is in the zone. Boundaries are compared with a tolerance of 1e-9, as QC does, so 52 / 40 lands on Ic = 1.3.
 - **`zones=`**: a user table in the same shape (§8) replaces the method's zones, in both the analysis and the chart, so a variant from another source can be used without being built in.
 
 **`method="thewes_burger_2004"`** (checked against the paper, 2026-10-29; TODO #21). Four zones, listed from lowest potential to highest. As the paper draws them, high and medium-high are rectangles, medium is the border around them, and low is the rest of the diagram:
@@ -77,7 +77,7 @@ Thewes & Burger (2004), Fig. 🔬 (number to confirm). The zones are in §4.
 | medium-high | PI 20–70, Ic 1.3–1.5 | (20, 1.3), (70, 1.3), (70, 1.5), (20, 1.5) |
 | high | PI 20–70, Ic 0.75–1.3 | (20, 0.75), (70, 0.75), (70, 1.3), (20, 1.3) |
 
-- **Outside the diagram** 🟡: a specimen with Ic < 0.3, Ic > 1.5 or PI > 70 is beyond what the paper draws, so `clogging_potential` is blank and the count reads "outside the diagram". It is still drawn, at the edge. Extending "low" past the axes would claim what the figure doesn't (a very plastic clay at PI 80 isn't shown to be low).
+- **Outside the diagram:** a specimen with Ic < 0.3, Ic > 1.5 or PI > 70 is beyond what the paper draws, so `clogging_potential` is blank and the count reads "outside the diagram". It is still drawn, at the edge. Extending "low" past the axes would claim what the figure doesn't (a very plastic clay at PI 80 isn't shown to be low).
 - **Validity** 🔬: as stated in the paper (soil type, machine type). Outside the stated range, the docstring says so; the function doesn't screen on soil type (that is P18's gradation step).
 
 ## 5. Figure layout
@@ -185,7 +185,6 @@ Listed in `docs/work/m12-clogging-diagram.md` (Spec) with the golden values.
 
 ## 14. Open questions
 1. 🔬 **Figure number and stated validity** (soil and machine type) from the paper (TODO #21). Axes, zones and limits are settled (§4, §6).
-2. **The rest of the diagram is "low"** (decided 2026-10-29). 🟡 Beyond the axes is "outside the diagram", not low (§4).
 
 **Pitfalls:**
 - Dropping specimens with Ic below 0.3 or outside the axes instead of drawing them at the edge.

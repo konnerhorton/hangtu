@@ -183,7 +183,7 @@ None open. Decided in review:
 1. **Axis direction:** coarse on the right (size increasing to the right), the same default in US and SI display, so one figure serves both. `reverse=True` gives the coarse-on-the-left layout of some US forms (§6).
 2. **Fraction dividers** run down through the main axes as light lines, so a curve can be read against the boundaries (§8).
 3. **D-value labels** only for a single curve; ticks without labels for several (§7).
-4. **Sieve lists** in a new `config/sieves.yaml`, with the ISO list at the fraction boundaries (§8). The labels sit above the frame and are horizontal (changed in the build's review from rotated labels inside the top edge, which curves near 100 % passing crossed). They are off by default (`sieves=None`, decided in review); `sieves="auto"` turns them on.
+4. **Sieve lists** in a new `config/sieves.yaml`, with the ISO list at the fraction boundaries (§8). The labels sit above the frame and are horizontal (rotated labels inside the top edge were crossed by curves near 100 % passing). They are off by default (`sieves=None`); `sieves="auto"` turns them on.
 5. **Envelope and fraction-system colors** are gray unless given, apart from geology unit colors (§7).
 
 ## 15. Future enhancements

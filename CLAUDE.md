@@ -4,7 +4,8 @@ Python library that derives the ground parameters a geotechnical design needs, f
 
 ## Where things are
 - `SPEC.md`: product spec and cross-cutting decisions. Read the relevant section before designing anything.
-- `STATUS.md`: status, what's next, and the releases. The close-out of each unit updates it.
+- `STATUS.md`: status and what's next. The close-out of each unit updates it.
+- `CHANGELOG.md`: what each release holds, and an Unreleased section the close-out of each user-visible unit adds to. Published: no internal references.
 - `docs/data/`: data-layer specs that outlive a unit of work (`ingest.md`, `qc.md`, `datasets.md`).
 - `docs/analysis/`: analysis specs that outlive a unit of work: `index-and-spt.md` (the SPT, Atterberg, classification and grain size analyses), `judgments.md` (the judgments file, how a value resolves, each judgment), `strength.md` (stresses at failure, the envelope fits, undrained strength, the shear box conversion), `correlations.md` (the contract every correlation follows) and `statistics.md` (what each `ht.stats` function does). Update them when the behavior changes.
 - `docs/plots/PXX-*.md`: one spec per figure, with acceptance criteria. `docs/plots/README.md` has the shared plot conventions.

@@ -36,7 +36,8 @@ jobs:
 
   typecheck:
     # mypy on the locked versions only: matplotlib's and numpy's type
-    # information changes between releases (docs/work/type-check.md, Decision 5).
+    # information changes between releases, so a mypy result holds for one set
+    # of versions.
     name: typecheck
     runs-on: ubuntu-latest
     steps:
@@ -63,7 +64,8 @@ jobs:
       - run: uv run pytest -n auto --dist loadfile
 
   docs:
-    # The docs site builds with no warnings (docs/work/docs-site.md, spec §7).
+    # The docs site builds with no warnings: --strict stops on any, including a
+    # link to a page that doesn't exist.
     name: docs
     runs-on: ubuntu-latest
     steps:

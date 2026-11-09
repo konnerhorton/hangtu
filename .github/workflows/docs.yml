@@ -1,7 +1,7 @@
 name: Docs
 
-# Publishes the docs site to GitHub Pages from main (docs/work/docs-site.md,
-# spec §7). It runs when a push changes anything the site is built from, or by
+# Publishes the docs site to GitHub Pages from main, so the site follows main.
+# It runs when a push changes anything the site is built from, or by
 # hand. CI builds the same site on every push and pull request.
 on:
   push:

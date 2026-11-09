@@ -7,7 +7,8 @@ Personal reference notes. Adapted from Anthropic's [AI-native SDLC playbook](htt
 | Document | Scope | Lifetime | Answers |
 |---|---|---|---|
 | `SPEC.md` | Whole product | Permanent; changes with the product | What is hangtu, and what holds for every feature? |
-| `STATUS.md` | Whole repo | Permanent; about 50 lines | What's next, what's open and done, and the releases? The only place status lives |
+| `STATUS.md` | Whole repo | Permanent; about 50 lines | What's next, what's open and done? The only place status lives |
+| `CHANGELOG.md` | Whole product | Permanent; an Unreleased section, then one per release | What does each release hold, and what's on `main` but unreleased? Published, so no internal references |
 | `CLAUDE.md` | Whole repo | Permanent; under a page | How do I work in this repo (commands, conventions, recurring mistakes)? |
 | `docs/work/<id>.md` | One unit of work | `## Intent` frozen once done, `## Plan` frozen once merged | What do we want and why (Intent)? Which files, in what order, proven by which tests (Plan)? |
 | Feature spec | One feature | Kept while the feature exists | What exactly does it do, and how do we know it works? |
@@ -39,7 +40,7 @@ A unit of work is a milestone, a plot, a fix or a decision. Keep it small enough
 3. **Plan**: Claude Code plan mode, then add the `## Plan` section and commit it. It names the files, the order, and the tests that prove each acceptance criterion.
 4. **Build**: implement the plan. If the plan has to change, update the `## Plan` section in the same commit.
 5. **Test**: check against the acceptance criteria and golden values, and look at the figure yourself.
-6. **Close**: merge. In the same PR, update `STATUS.md` (the unit's status, and Next when the next unit changes), `SPEC.md` when a decision changed, the plot status in `docs/plots/README.md` and `docs/TODO.md`. Before merging, ask what a future session would get wrong without being told: put a recurring mistake in `CLAUDE.md` Conventions, a decision in `SPEC.md`, and a preference of the user's in Claude's memory.
+6. **Close**: merge. In the same PR, update `STATUS.md` (the unit's status, and Next when the next unit changes), `CHANGELOG.md`'s Unreleased section for anything a user would notice, `SPEC.md` when a decision changed, the plot status in `docs/plots/README.md` and `docs/TODO.md`. Before merging, ask what a future session would get wrong without being told: put a recurring mistake in `CLAUDE.md` Conventions, a decision in `SPEC.md`, and a preference of the user's in Claude's memory.
 
 For a trivial fix, skip the intent and plan and just write a good commit message. Use the full loop when a decision is involved.
 

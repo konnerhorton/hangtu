@@ -9,8 +9,7 @@
 | **Depends on** | P01; `ht.stats.representative()` (M18 (b), [`m18b-representative-values.md`](../work/m18b-representative-values.md) Spec) |
 | **Related** | P08 (the precedent: a plot that runs a statistic and draws its result); SPEC §4, §5; [`statistics.md`](../analysis/statistics.md) §2 |
 
-Formerly "characteristic value profile", `characteristic_profile`: renamed with `representative()` (M18 (b) intent
-decision 1). The choices proposed in the spec step are decided (2026-11-04).
+Formerly "characteristic value profile", `characteristic_profile`: renamed with `representative()`, the function it draws.
 
 | Constant per unit (US) | Line with depth (SI) |
 |---|---|
@@ -119,13 +118,13 @@ pairs a line with its values, and the table names the view.
 |---|---|---|---|
 | Mean (median) line | `mean=` | on | §7 |
 | Band | `band=` | on | §7; independent of `mean=` |
-| Table | `table=` | on | Text box at P01's stats-box place (lower left, with its room rule): the view in full, `result._view()`, wrapped, then one row per unit in legend order: unit, n (with "k censored" for a constant), the value (constant) or "top → base" (trend), 3 significant figures in the display unit; a unit with no line shows "—" and its reason, wrapped at 40 characters under its own text so the table stays narrow (settled in the build). Replaces P01's `stats_box`, which isn't offered (the two would overlap and say different things) |
-| Footnote | — | when non-zero | below P01's lines: "Left out of the lines: Clay 2 censored, 1 with no depth"; "Not in the lines: 2 assumed"; "No line: Fill (fewer than 2 values (1))". Each wrapped at 64 characters, so a line listing several units fits under the axes (settled in the build) |
+| Table | `table=` | on | Text box at P01's stats-box place (lower left, with its room rule): the view in full, `result._view()`, wrapped, then one row per unit in legend order: unit, n (with "k censored" for a constant), the value (constant) or "top → base" (trend), 3 significant figures in the display unit; a unit with no line shows "—" and its reason, wrapped at 40 characters under its own text so the table stays narrow. Replaces P01's `stats_box`, which isn't offered (the two would overlap and say different things) |
+| Footnote | — | when non-zero | below P01's lines: "Left out of the lines: Clay 2 censored, 1 with no depth"; "Not in the lines: 2 assumed"; "No line: Fill (fewer than 2 values (1))". Each wrapped at 64 characters, so a line listing several units fits under the axes |
 | P01's overlays | `strata=`, `water_level=`, `ranges=`, `reference_lines=`, `note=` | off | passed to P01 |
 
 **Values drawn or not** (intent "Out of scope"): `values=False` draws only the lines, band and table, into
 a given `ax=` (an error without one). That is how a second view goes on the same figure: the values once, the
-views by call. A comparison of views as a feature waits for M18 (d). Settled in the build (M18 (c) step 4):
+views by call. Comparing sources is `compare_sources()` (`statistics.md` §5). The rules:
 - `ax=` must hold a profile drawn by P09 or `profile()` (it keeps `ax.ags_profile`), of the same parameter;
   the view is drawn in its coordinates and limits. P01's drawing arguments (`preset=`, `xlim=`, `strata=`,
   `legend=`, …) are an error with `values=False`: they belong to the call that drew the values.
@@ -141,7 +140,7 @@ views by call. A comparison of views as a feature waits for M18 (d). Settled in 
 - `RepresentativeResult.plot()` draws in the units the result was computed in (`result.display_units`); a
   different `display_units=` is an error naming both, rather than converting the table. A result computed
   without `display_units=` is drawn in `ht.settings.display_units`, its lines and table converted with the
-  values, as P01 has no "the data's units" (settled in the build).
+  values, as P01 has no "the data's units".
 - N and dimensionless values have no unit.
 
 ## 10. API

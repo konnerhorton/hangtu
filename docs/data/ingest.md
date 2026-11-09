@@ -83,12 +83,12 @@ AGS file
   2. the **file's own version's dictionary**, for groups and headings that 4.2 removed;
   3. the file's **`DICT` group**, for user-defined groups and headings.
 - **Removed by 4.2**, and kept under their own names with finding `M001` (info): the groups `IPRG`, `IPRT` (in-situ permeability, deprecated in 4.1, where `FGHG`/`FGHS`/`FGHT` were added alongside) and `ERES` (deprecated in 4.1, no 4.2 replacement); the headings `RUCS_E`, `RUCS_ESTR`, `RUCS_ETYP`, `RUCS_MU`, `PMTD_ARM1`–`3` (4.0.3–4.1.1), `PMTL.PMTD_SEQ` (4.0.3–4.1), and `GCHM_RDEV`, `WGPG_LIM`, `WGPG_ULIM` (4.1 only).
-- **`IPRG` isn't turned into `FGHG`** (decided 2026-10-14). `IPRG` has a row per stage where `FGHG` has a row per test, and `FGHT` needs keys `IPRT` doesn't have (`FGHT_TIME`, `FGHI_INST`, `FGHT_TYPE`), so a mapping would invent data (SPEC §7, "only what the file says"). The permeability dataset (M7) reads `IPRG_IPRM` next to `FGHG_IPRM`.
+- **`IPRG` isn't turned into `FGHG`**. `IPRG` has a row per stage where `FGHG` has a row per test, and `FGHT` needs keys `IPRT` doesn't have (`FGHT_TIME`, `FGHI_INST`, `FGHT_TYPE`), so a mapping would invent data (SPEC §7, "only what the file says"). The permeability dataset (M7) reads `IPRG_IPRM` next to `FGHG_IPRM`.
 - Headings that exist only from 4.1 (`ISPT_N60`, `SPEC_BASE`, `GRAG_CC`) are simply absent in older files; the datasets (M7) treat them as blank.
 - Unit spellings that changed between versions (`degC` → `DegC`, `Bar` → `bar`, `µS/cm` → `uS/cm`) are handled by the unit aliases (§7). A few headings had no unit before 4.2 (`ISAG_SI`, `SCPT_MAGX`/`Y`/`Z`/`T`); in an older file with the unit blank they raise `U003` like any other, since the unit isn't declared.
 
 ## 7. Typing and units
-**Type** from the file's `TYPE` row (the draft's type mapping, decided here):
+**Type** from the file's `TYPE` row :
 
 | AGS TYPE | Canonical | Notes |
 |---|---|---|
@@ -122,7 +122,7 @@ AGS file
 - Elevations are `LOCA_GL` as written, never converted between datums; mixed datums are a SPEC §1.3 "Later" item.
 
 ## 8. Value flags
-As decided in SPEC §6.2:
+As SPEC §6.2 sets out:
 - Blank → NULL, no flag.
 - `NP` → NULL + `NP`; `Dry` → NULL + `DRY`; refusal text in `ISPT_NVAL`/`ISPT_REP` → value kept + `REFUSAL`; `<x` / `>x` → `x` kept + `LT` / `GT` (with `bound`); `#x` (`GRAG_PDEN` "assumed") → `x` kept + `ASSUMED`.
 - Anything else in a numeric column → NULL + `OTHER` + `T001` (info), with the text kept in `value_flag.text`.
