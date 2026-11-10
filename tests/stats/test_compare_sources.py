@@ -222,8 +222,7 @@ def test_a_frame_without_a_unit_names_its_position():
 def test_angles_are_in_degrees():
     df = pd.DataFrame({"geology_unit": "Terrace", PHI: [0.6, 0.62]})
     df.attrs["units"] = {PHI: "radian"}
-    with pytest.warns(UserWarning, match="read as radian"):
-        result = ht.stats.compare_sources(df, value=PHI)
+    result = ht.stats.compare_sources(df, value=PHI)
     assert result.unit == "deg"
     assert _row(result, "Terrace", "(no source given)")["minimum"] == pytest.approx(
         np.degrees(0.6), rel=REL

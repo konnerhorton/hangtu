@@ -28,6 +28,12 @@ def test_pint_only_string_is_accepted_with_a_warning():
     assert unit == ureg.Unit("foot")
 
 
+@pytest.mark.parametrize("text", ["inch", "foot"])
+def test_pint_own_unit_name_parses_silently(text):
+    # pint reads these as themselves, so there is nothing to confirm.
+    assert parse_unit(text) == ureg.Unit(text)
+
+
 def test_warning_from_inside_the_package_points_at_the_users_line():
     with pytest.warns(UserWarning, match="kip/ft") as record:
         ht.settings.display_overrides = {"stress": "kip/ft**2"}
