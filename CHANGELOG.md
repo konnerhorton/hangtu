@@ -43,6 +43,7 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
 - SPT: `ISPT_REP` is read as AGS defines it, and a refusal with a blank N is kept as a refusal.
 - `profile()` draws text values (such as a classification) in its value column.
 - A plot counts a row beyond an axis limit once, however many of its values are beyond it.
+- A unit string that is pint's own name for the unit, such as `inch`, is read without a warning.
 
 ## 0.1.0 (2026-10-15)
 

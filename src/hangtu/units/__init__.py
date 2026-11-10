@@ -60,7 +60,8 @@ def parse_unit(text: str | None, column: str | None = None) -> pint.Unit:
     """Read a unit string, in the lookup order of P00 §4.2.
 
     1. The alias table (``units/aliases.yaml`` plus ``ht.add_unit_alias``).
-    2. pint's own parser, with a warning saying what the string was read as.
+    2. pint's own parser, with a warning saying what the string was read as,
+       unless the string is already pint's name for the unit (``"inch"``).
     3. Otherwise ``UnitsError``.
 
     Lookups are case-sensitive: ``"ft"`` is a foot, ``"Ft"`` is unknown.
@@ -80,7 +81,9 @@ def parse_unit(text: str | None, column: str | None = None) -> pint.Unit:
             f'ht.add_unit_alias("{text}", "<pint unit>"), '
             f'e.g. ht.add_unit_alias("{text}", "foot").'
         )
-    if not from_alias:
+    # A string that is pint's own name for the unit isn't a guess, so it
+    # doesn't warn; a string pint had to interpret ("feet") does.
+    if not from_alias and str(unit) != text:
         warn(
             f'Unit "{text}"{_where(column)} was read as {unit}. Add it with '
             f'ht.add_unit_alias("{text}", "{unit}") to silence this.'

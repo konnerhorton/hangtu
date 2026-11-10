@@ -320,7 +320,6 @@ A review of the whole package asked one question: if an AI agent does the work a
 ### 69. Friction from the agent trials · Claude · plots, `src/hangtu/units/`
 - `spt_profile(n="spt_n1_60")` is rejected; the agent fell back to `profile()` and marked refusals by hand.
 - A long `note=` collapses the axes, and the only sign is matplotlib's warning.
-- `units={"x": "inch"}` warns "read as inch; add alias inch → inch".
 - `failure_envelope()` with two units on shared equal axes crams the clay circles near the origin.
 - `fit(group_by=[...])` returns count-0 rows for groups with nothing to fit.
 
