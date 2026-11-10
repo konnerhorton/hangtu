@@ -78,7 +78,8 @@ def spt(
         cap=cap,
         units={"spt_penetration": "mm"},
     )
-    _, filled = _energy_ratios(frame, hammer_efficiency)
+    _, source = _energy_ratios(frame, hammer_efficiency)
+    filled = np.isin(source, ["argument", "setting"])
     frame["energy_source"] = pd.Series(
         np.select(  # type: ignore[call-overload]
             [

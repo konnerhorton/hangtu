@@ -73,13 +73,13 @@ def _check_hammer_efficiency(
 def _energy_ratios(
     df: pd.DataFrame, hammer_efficiency: float | Mapping[str, float | None] | None
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Return each row's energy ratio and a mask of the rows it was filled for.
+    """Return each row's energy ratio and where it came from.
 
     The ratio is the row's ``energy_ratio``, else ``hammer_efficiency`` (one
     number, or the value for the row's hole), else
-    ``ht.settings.hammer_efficiency``, else blank. The mask is True where the
-    argument or the setting filled a blank. Shared with ``p.spt()``, whose
-    ``energy_source`` follows the same order.
+    ``ht.settings.hammer_efficiency``, else blank. The source is ``"data"``,
+    ``"argument"``, ``"setting"`` or None, in that order. Shared with
+    ``p.spt()``, whose ``energy_source`` follows the same order.
     """
     energy = np.full(len(df), np.nan)
     if "energy_ratio" in df.columns:
@@ -91,15 +91,46 @@ def _energy_ratios(
                 f"most 100, but rows {rows_text(df.index[bad])} aren't. An energy "
                 "ratio of 0.8 should be entered as 80."
             )
-    blank = np.isnan(energy)
+    source = np.full(len(df), None, dtype=object)
+    source[~np.isnan(energy)] = "data"
     if isinstance(hammer_efficiency, Mapping):
         by_hole = df["loca_id"].astype(str).map(hammer_efficiency)
-        energy = np.where(blank, by_hole.to_numpy(dtype=float), energy)
+        energy = np.where(np.isnan(energy), by_hole.to_numpy(dtype=float), energy)
     elif hammer_efficiency is not None:
-        energy = np.where(blank, hammer_efficiency, energy)
+        energy = np.where(np.isnan(energy), hammer_efficiency, energy)
+    source[pd.isna(source) & ~np.isnan(energy)] = "argument"
     if settings.hammer_efficiency is not None:
         energy = np.where(np.isnan(energy), settings.hammer_efficiency, energy)
-    return energy, blank & ~np.isnan(energy)
+    source[pd.isna(source) & ~np.isnan(energy)] = "setting"
+    return energy, source
+
+
+def _energy_record(
+    df: pd.DataFrame, energy: np.ndarray, source: np.ndarray, computed: np.ndarray
+) -> dict[str | None, list[dict[str, Any]]]:
+    """Group the energy ratios N60 was computed with by hole, ratio and source.
+
+    Keyed by ``loca_id`` (None when ``df`` has none). Each entry counts the
+    tests one ratio from one source gave, so a hole that mixes measured and
+    supplied ratios lists both.
+    """
+    holes = (
+        df["loca_id"].astype(str).to_numpy(dtype=object)
+        if "loca_id" in df.columns
+        else np.full(len(df), None, dtype=object)
+    )
+    record: dict[str | None, list[dict[str, Any]]] = {}
+    counts: dict[tuple[Any, Any, Any], int] = {}
+    for hole, ratio, origin in zip(
+        holes[computed], energy[computed], source[computed], strict=True
+    ):
+        value = None if np.isnan(ratio) else float(ratio)
+        counts[hole, value, origin] = counts.get((hole, value, origin), 0) + 1
+    for (hole, value, origin), tests in counts.items():
+        record.setdefault(hole, []).append(
+            {"value": value, "source": origin, "tests": tests}
+        )
+    return record
 
 
 def _warn_filled(df: pd.DataFrame, energy: np.ndarray, used: np.ndarray) -> None:
@@ -181,6 +212,13 @@ def spt(
       test's ER, a warning names the holes, the ratio and the number of tests.
     - **Capped N** = min(N, cap), and the cap for every refusal.
 
+    ``result.attrs["spt"]`` records what was used: ``"cap"``, and
+    ``"energy_ratio"``, by hole (``loca_id``, or None without it), a list of
+    ``{"value": ER, "source": ..., "tests": count}``. The source is ``"data"``
+    (the row's ``energy_ratio``), ``"argument"``, ``"setting"`` or None (no
+    ratio, so a blank N60). Only the tests whose N60 is computed here are
+    counted, not those with N60 already filled in.
+
     Parameters
     ----------
     df : pandas.DataFrame
@@ -233,14 +271,14 @@ def spt(
         penetration = _penetration_mm(df, blank, units)
         refusal |= blank & (penetration < REFUSAL_PENETRATION - SLACK)
 
-    energy, filled = _energy_ratios(df, efficiency)
+    energy, source = _energy_ratios(df, efficiency)
     computed = n60(n, energy)
-    used = filled & ~np.isnan(n)
+    here = ~np.isnan(n)  # the tests whose N60 is computed here
     if "spt_n60" in df.columns:
         given = numeric_column(df, "spt_n60")
         computed = np.where(np.isnan(given), computed, given)
-        used &= np.isnan(given)
-    _warn_filled(df, energy, used)
+        here &= np.isnan(given)
+    _warn_filled(df, energy, here & np.isin(source, ["argument", "setting"]))
 
     capped = np.where(refusal, float(cap), np.minimum(n, cap))
 
@@ -248,6 +286,10 @@ def spt(
     result["spt_refusal"] = refusal
     result["spt_n60"] = computed
     result["spt_n_capped"] = capped
+    result.attrs["spt"] = {
+        "cap": cap,
+        "energy_ratio": _energy_record(df, energy, source, here),
+    }
     return result
 
 

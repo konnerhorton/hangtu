@@ -251,6 +251,53 @@ def test_cap_from_the_argument_and_the_setting():
     assert ht.analysis.spt(df)["spt_n_capped"].tolist() == [50.0, 50.0]
 
 
+# --- The record in attrs --------------------------------------------------------------
+
+
+def test_record_of_a_measured_ratio_and_the_cap():
+    df = frame(loca_id=["BH01", "BH01"], spt_n=[30, 25], energy_ratio=[80, 80])
+    record = ht.analysis.spt(df, cap=50).attrs["spt"]
+    assert record == {
+        "cap": 50,
+        "energy_ratio": {"BH01": [{"value": 80.0, "source": "data", "tests": 2}]},
+    }
+
+
+def test_record_of_the_argument_and_the_setting():
+    ht.settings.hammer_efficiency = 60
+    with pytest.warns(UserWarning, match="Energy ratio"):
+        out = ht.analysis.spt(by_hole(), hammer_efficiency={"BH01": 80})
+    assert out.attrs["spt"]["cap"] == 100  # the setting's default
+    assert out.attrs["spt"]["energy_ratio"] == {
+        # BH01 mixes the argument for two tests and its own 90 for one.
+        "BH01": [
+            {"value": 80.0, "source": "argument", "tests": 2},
+            {"value": 90.0, "source": "data", "tests": 1},
+        ],
+        "BH02": [{"value": 60.0, "source": "setting", "tests": 2}],
+    }
+
+
+def test_record_of_no_ratio_and_of_a_frame_without_holes():
+    out = ht.analysis.spt(frame(spt_n=[30, 25]))
+    assert out.attrs["spt"]["energy_ratio"] == {
+        None: [{"value": None, "source": None, "tests": 2}]
+    }
+
+
+def test_record_leaves_out_tests_whose_n60_is_not_computed_here():
+    # A given N60 is kept, and a blank N has no N60, so no ratio was used.
+    df = frame(
+        loca_id=["BH01"] * 3,
+        spt_n=[30, 25, np.nan],
+        spt_n60=[40.0, np.nan, np.nan],
+        energy_ratio=[80, 72, 72],
+    )
+    assert ht.analysis.spt(df).attrs["spt"]["energy_ratio"] == {
+        "BH01": [{"value": 72.0, "source": "data", "tests": 1}]
+    }
+
+
 # --- Rows -----------------------------------------------------------------------------
 
 
