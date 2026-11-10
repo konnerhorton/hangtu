@@ -120,7 +120,8 @@ def test_a_bound_written_as_text_points_to_the_qualifier_column(frame):
     with pytest.warns(
         UserWarning,
         match=r"'<10' \(1\), '> 40' \(1\)\. .*Put < or > in 'qualifier' \(or "
-        r"the column's own qualifier\) and the number in the value column",
+        r"the column's own qualifier\) and the number in the value column, so the "
+        r"value stays a bound\. ht\.read_csv does this for a registered column",
     ):
         ht.plot.profile(df, VALUE, vs="depth")
 

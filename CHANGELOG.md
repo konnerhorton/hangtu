@@ -38,6 +38,8 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
 - `legend=` on every plot with a legend; legends sit in a clear corner inside the axes.
 - `spt()` records the cap and, by hole, each energy ratio and where it came from (the data, the argument or
   the setting) in `attrs["spt"]`.
+- `read_csv()` reads a bound written into a value cell (`<5`, `> 200`, `<1e-9`) as the number, with `<` or
+  `>` in the value's qualifier column, as an AGS file's `LT` and `GT` flags are read.
 - `spt_profile(n="spt_n1_60")` plots (N1)60 from `spt_n1_60()`, with refusals drawn at the cap as for N60.
 - Type annotations ship with the package (`py.typed`).
 - The documentation site, with a page and example for each plot and parameter, and the API reference.

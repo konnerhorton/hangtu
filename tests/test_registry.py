@@ -341,3 +341,18 @@ def test_triaxial_readings_template_has_p12_columns():
     ]
     assert table.loc["axial_strain", "quantity"] == "percent"
     assert ht.template("triaxial_readings")["reported_failure_reading"].dtype == bool
+
+
+@pytest.mark.parametrize(
+    "column, qualifier",
+    [
+        ("remolded_undrained_shear_strength", "remolded_qualifier"),
+        ("undrained_shear_strength", "qualifier"),
+        ("hydraulic_conductivity", "qualifier"),
+        ("effective_friction_angle", "qualifier"),
+    ],
+)
+def test_qualifier_for_a_value_column(column, qualifier):
+    # correlation_qualifier names undrained_shear_strength but replaces nothing,
+    # so it is never where a bound read from a file goes.
+    assert registry.qualifier_for(column) == qualifier

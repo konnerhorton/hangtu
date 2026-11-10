@@ -175,3 +175,109 @@ def test_parse_quantity_checks_the_dimension():
 def test_parse_quantity_needs_a_number_and_a_unit(text):
     with pytest.raises(ht.UnitsError, match="number followed by a unit"):
         parse_quantity(text)
+
+
+def _read(tmp_path, text, **kwargs):
+    path = tmp_path / "data.csv"
+    path.write_text(text)
+    return ht.read_csv(path, **kwargs)
+
+
+@pytest.mark.parametrize(
+    "cell, sign, number",
+    [
+        ("<5", "<", 5.0),
+        ("> 200", ">", 200.0),
+        ("<1e-9", "<", 1e-9),
+        ("<.5", "<", 0.5),
+        ("< -3", "<", -3.0),
+    ],
+)
+def test_read_csv_reads_a_bound_as_a_number_and_a_qualifier(
+    tmp_path, cell, sign, number
+):
+    df = _read(tmp_path, f"hydraulic_conductivity\n2\n{cell}\n")
+    assert df["hydraulic_conductivity"].dtype == "float64"
+    assert df["hydraulic_conductivity"].tolist() == [2.0, number]
+    assert df["qualifier"].tolist() == ["", sign]
+
+
+def test_read_csv_puts_a_remolded_bound_in_its_own_qualifier(tmp_path):
+    df = _read(
+        tmp_path,
+        "undrained_shear_strength,remolded_undrained_shear_strength\n>120,<5\n80,10\n",
+    )
+    assert df["undrained_shear_strength"].tolist() == [120.0, 80.0]
+    assert df["remolded_undrained_shear_strength"].tolist() == [5.0, 10.0]
+    assert df["qualifier"].tolist() == [">", ""]
+    assert df["remolded_qualifier"].tolist() == ["<", ""]
+    assert "correlation_qualifier" not in df
+
+
+def test_read_csv_keeps_a_matching_sign_and_fills_blanks(tmp_path):
+    df = _read(tmp_path, "hydraulic_conductivity,qualifier\n<1e-9,<\n3,\n4,>\n")
+    assert df["hydraulic_conductivity"].tolist() == [1e-9, 3.0, 4.0]
+    assert df["qualifier"].tolist() == ["<", "", ">"]
+
+
+def test_read_csv_raises_on_a_sign_that_differs_from_the_qualifier(tmp_path):
+    # The second data row is row 3 in a spreadsheet, below the header.
+    with pytest.raises(
+        ht.errors.ColumnError, match=r"^Row 3 of data\.csv: .*'qualifier'"
+    ):
+        _read(tmp_path, "hydraulic_conductivity,qualifier\n2,\n<1e-9,>\n")
+
+
+def test_read_csv_names_rows_by_the_index_when_pandas_shifts_them(tmp_path):
+    text = "a note\nhydraulic_conductivity,qualifier\n2,\n<1e-9,>\n<1e-9,>\n"
+    with pytest.raises(
+        ht.errors.ColumnError, match=r"^Rows 1, 2 \(the table's index\): "
+    ):
+        _read(tmp_path, text, skiprows=1)
+
+
+def test_read_csv_raises_on_two_bounds_sharing_a_qualifier(tmp_path):
+    text = "undrained_shear_strength,hydraulic_conductivity\n>120,<1e-9\n80,<1e-9\n"
+    with pytest.raises(ht.errors.ColumnError) as raised:
+        _read(tmp_path, text)
+    message = str(raised.value)
+    assert message.startswith("Row 2 of data.csv: ")
+    assert "'undrained_shear_strength' and 'hydraulic_conductivity'" in message
+
+
+def test_read_csv_leaves_other_text_as_written(tmp_path):
+    df = _read(
+        tmp_path,
+        "plasticity_index,depth,sample_reference\nNP,12 ft,<5\n<5,3,A\n12,4,B\n",
+    )
+    assert df["plasticity_index"].tolist() == ["NP", 5.0, "12"]
+    assert df["qualifier"].tolist() == ["", "<", ""]
+    assert df["depth"].tolist() == ["12 ft", "3", "4"]
+    assert df["sample_reference"].tolist() == ["<5", "A", "B"]
+
+
+def test_read_csv_leaves_an_unregistered_column_as_text(tmp_path):
+    df = _read(tmp_path, "my_value\n<5\n6\n")
+    assert df["my_value"].tolist() == ["<5", "6"]
+    assert "qualifier" not in df
+
+
+def test_read_csv_declares_units_on_a_split_column(tmp_path):
+    df = _read(
+        tmp_path,
+        "hydraulic_conductivity\n<1e-9\n",
+        units={"hydraulic_conductivity": "m/s"},
+    )
+    assert ht.units_of(df) == {"hydraulic_conductivity": "m/s"}
+
+
+def test_read_csv_bound_is_censored_in_describe(tmp_path):
+    df = _read(
+        tmp_path,
+        "undrained_shear_strength\n80\n>200\n120\n",
+        units={"undrained_shear_strength": "kPa"},
+    )
+    row = ht.stats.describe(df, value="undrained_shear_strength").to_frame().iloc[0]
+    assert row["count"] == 3
+    assert row["count_at_least"] == 1
+    assert row["count_text"] == 0

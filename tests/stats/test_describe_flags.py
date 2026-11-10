@@ -92,7 +92,7 @@ def test_a_bound_written_as_text_points_to_the_qualifier_column():
         UserWarning,
         match=r"'<5' \(1\)\. It is counted in count_text and left out\. Put < or > "
         r"in 'qualifier' \(or the column's own qualifier\) and the number in the "
-        r"value column",
+        r"value column, so the value stays a bound\. ht\.read_csv does this",
     ):
         row = ht.stats.describe(df, value="plasticity_index").to_frame().iloc[0]
     assert row["count_text"] == 1
