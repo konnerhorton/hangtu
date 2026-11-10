@@ -786,7 +786,7 @@ def geology_unit_comparison(
     ax: Axes | None = None,
     **style_overrides: Any,
 ) -> tuple[Figure, Axes]:
-    """Compare a property's values by geology unit with a report's ranges (P07).
+    """Compare a property's values by geology unit with a report's ranges.
 
     Each geology unit is a row: its values as jittered points, a summary bar,
     and the report's baseline range above it. Nothing is dropped silently:
@@ -1061,7 +1061,7 @@ def geology_unit_comparisons(
     figsize: tuple[float, float] | None = None,
     **style_overrides: Any,
 ) -> tuple[Figure, np.ndarray]:
-    """Compare several properties by geology unit, one panel each (P07).
+    """Compare several properties by geology unit, one panel each.
 
     Each panel is a ``geology_unit_comparison``. The panels share one legend,
     below the grid, and one footnote that names the panel of each note.

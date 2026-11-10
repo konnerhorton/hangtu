@@ -72,7 +72,7 @@ def hoek_brown_envelope(
     ax: Axes | None = None,
     **style_overrides: Any,
 ) -> tuple[Figure, Axes, HoekBrownFit | None]:
-    r"""Plot rock UCS and triaxial tests in σ1-σ3 with the Hoek-Brown curves (P32).
+    r"""Plot rock UCS and triaxial tests in σ1-σ3 with the Hoek-Brown curves.
 
     Each test is a point at its principal stresses at failure, a UCS test on
     the σ1 axis. The curves are ``ht.analysis.hoek_brown_fit()``'s, drawn,

@@ -102,7 +102,7 @@ def spt_histogram(
     ax: Axes | None = None,
     **style_overrides: Any,
 ) -> tuple[Figure, Axes]:
-    """Plot the share of SPT tests in each density or consistency class (P03).
+    """Plot the share of SPT tests in each density or consistency class.
 
     Each geology unit gets one bar per class: the percent of its classified
     tests in that class. Classes come from ``ht.analysis.spt_class()``, so a

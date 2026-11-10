@@ -250,7 +250,7 @@ def water_content_profile(
     ax: Axes | None = None,
     **style_overrides: Any,
 ) -> tuple[Figure, Axes]:
-    """Plot water content against depth or elevation, with the Atterberg limits (P06).
+    """Plot water content against depth or elevation, with the Atterberg limits.
 
     Each specimen's water content is a point, and its plastic limit (PL) and
     liquid limit (LL) are a bar from PL to LL at the same depth, so you see

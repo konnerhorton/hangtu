@@ -1136,7 +1136,7 @@ class SelectionResult(_Result):
         return frame
 
     def profile(self, geology_unit: str | None = None, **kwargs: Any) -> Any:
-        """Draw one unit's sources with the line selected from them (P01).
+        """Draw one unit's sources with the line selected from them.
 
         The comparison's ``.profile()`` of that unit, with
         ``design_lines=`` its selected line, so the figure shows the sources

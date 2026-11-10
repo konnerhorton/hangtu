@@ -324,7 +324,7 @@ def gradation(
     d_values: Sequence[int] = (10, 30, 60),
     units: Mapping[str, str] | None = None,
 ) -> pd.DataFrame:
-    """Summarize grading curves: D-values, Cu, Cc and fractions (analysis.md §3).
+    """Summarize grading curves: D-values, Cu, Cc and fractions.
 
     Returns one row per curve (specimen), in order of first appearance.
 

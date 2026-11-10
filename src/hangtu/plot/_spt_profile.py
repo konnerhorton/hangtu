@@ -66,7 +66,7 @@ def spt_profile(
     ax: Axes | None = None,
     **style_overrides: Any,
 ) -> tuple[Figure, Axes]:
-    """Plot SPT N against depth or elevation (P02).
+    """Plot SPT N against depth or elevation.
 
     The data first go through ``ht.analysis.spt()``, which finds refusals and
     computes N60 and capped N. Refusals are drawn at the cap as a filled

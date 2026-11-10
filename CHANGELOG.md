@@ -46,6 +46,7 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
 - A unit string that is pint's own name for the unit, such as `inch`, is read without a warning.
 - A bound written into a value cell (`<10`) is warned about with the fix: put `<` or `>` in `qualifier` and
   the number in the value column.
+- `ht.columns()` names the plots that read a column by function (`plot.profile`).
 
 ## 0.1.0 (2026-10-15)
 

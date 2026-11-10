@@ -72,7 +72,7 @@ def distribution_fit(
     figsize: tuple[float, float] | None = None,
     **style_overrides: Any,
 ) -> tuple[Figure, np.ndarray, FitResult]:
-    """Plot the distributions fitted to one property's values in one group (P08).
+    """Plot the distributions fitted to one property's values in one group.
 
     Fits with :func:`hangtu.stats.fit` and draws its result for one group:
     on the left, a histogram of the values with each fitted probability

@@ -166,7 +166,7 @@ def spt(
     cap: int | None = None,
     units: Mapping[str, str] | None = None,
 ) -> pd.DataFrame:
-    """Add refusal, N60 and capped N to SPT results (analysis.md §1.3).
+    """Add refusal, N60 and capped N to SPT results.
 
     Returns a copy of ``df`` with the columns ``spt_refusal``, ``spt_n60`` and
     ``spt_n_capped`` added, or their blanks filled in. No row is dropped or
@@ -268,7 +268,7 @@ def class_table(table: str) -> tuple[list[str], np.ndarray]:
 def spt_class(
     df: pd.DataFrame, *, n: str = "spt_n", table: str = "cohesionless"
 ) -> pd.Series:
-    """Classify SPT tests by relative density or consistency (analysis.md §1.4).
+    """Classify SPT tests by relative density or consistency.
 
     Each class runs from its lower bound up to, not including, the next one, so
     N = 0 is "Very loose" and N = 10 is "Medium dense". A refusal is

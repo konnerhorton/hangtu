@@ -323,7 +323,7 @@ def grain_size(
     ax: Axes | None = None,
     **style_overrides: Any,
 ) -> tuple[Figure, Axes]:
-    """Plot grading curves on a log size axis with the soil fractions above (P05).
+    """Plot grading curves on a log size axis with the soil fractions above.
 
     One curve per specimen (told apart by ``loca_id`` and ``specimen_id``),
     drawn through its points sorted by size as rows, with the size fractions

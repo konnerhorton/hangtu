@@ -427,7 +427,7 @@ def profile(
     ax: Axes | None = None,
     **style_overrides: Any,
 ) -> tuple[Figure, Axes]:
-    """Plot a property against depth or elevation (P01).
+    """Plot a property against depth or elevation.
 
     Points are colored by geology unit. Nothing is dropped silently: blanks,
     values ≤ 0 on a log axis and values beyond fixed limits are counted in a
