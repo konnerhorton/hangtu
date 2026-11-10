@@ -307,7 +307,6 @@ A review of the whole package asked one question: if an AI agent does the work a
 - **Idea:** a physical check rather than a typical range, for example a consolidation stress more than about 10× the overburden at the sample depth warns.
 
 ### 69. Friction from the agent trials · Claude · plots, `src/hangtu/units/`
-- `spt_profile(n="spt_n1_60")` is rejected; the agent fell back to `profile()` and marked refusals by hand.
 - A long `note=` collapses the axes, and the only sign is matplotlib's warning.
 - `failure_envelope()` with two units on shared equal axes crams the clay circles near the origin.
 - `fit(group_by=[...])` returns count-0 rows for groups with nothing to fit.

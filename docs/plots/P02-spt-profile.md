@@ -14,7 +14,7 @@
 P02 is P01 with SPT conventions. Everything not stated here is as P01: axes, overlays, units, legend, notes, edge cases. This spec records only what differs.
 
 ## 1. Purpose
-Shows SPT N (or N60) against elevation or depth for many holes at once, colored by geology unit. It answers: how dense or stiff is each unit, does N trend with depth, and are there holes or zones that stand out. It's the most common figure in a GIR's in-situ testing section, usually shown next to the SPT class histogram (P03).
+Shows SPT N (or N60, or (N1)60) against elevation or depth for many holes at once, colored by geology unit. It answers: how dense or stiff is each unit, does N trend with depth, and are there holes or zones that stand out. It's the most common figure in a GIR's in-situ testing section, usually shown next to the SPT class histogram (P03).
 
 ## 2. Reference figure
 ```
@@ -31,8 +31,8 @@ Shows SPT N (or N60) against elevation or depth for many holes at once, colored 
 ```
 **A good version** is P01 with SPT conventions:
 - refusals are visible as a distinct marker at the cap, clear of the frame;
-- the axis names the column plotted: "SPT N", "SPT N60" or "SPT N (capped)";
-- nothing is mixed: one plot shows N or N60, never both.
+- the axis names the column plotted: "SPT N", "SPT N60", "SPT N (capped)" or "SPT (N1)60";
+- nothing is mixed: one plot shows one of N, N60 or (N1)60.
 
 ## 3. Input data
 **Row grain:** one row per SPT test. Columns are the `spt` template (`ht.template("spt")`).
@@ -46,6 +46,7 @@ Shows SPT N (or N60) against elevation or depth for many holes at once, colored 
 | `spt_refusal` | Refusal flag | bool | – | Analysis §1.3 |
 | `spt_penetration` | Seating + test penetration | small_length | – | Finds refusal where `spt_refusal` is blank; needs units |
 | `spt_n60` | N60 | count | – | Kept where filled in |
+| `spt_n1_60` | (N1)60 | count | – | From `ht.analysis.spt_n1_60()`; needed for `n="spt_n1_60"` |
 | `geology_unit` | Geology unit | — | – | Color |
 | `loca_id` | Hole | — | – | `connect=`, per-hole water levels |
 
@@ -57,32 +58,33 @@ Shows SPT N (or N60) against elevation or depth for many holes at once, colored 
 - refusal: a right-pointing filled triangle ▶ at the cap, or left out and counted (§7);
 - blank N (not a refusal): counted, as P01;
 - with `n="spt_n60"`, a test without an energy ratio: left out and counted.
+- with `n="spt_n1_60"`, a blank (N1)60 (not a refusal): counted as blank N is.
 
 P02 doesn't read `qualifier`. Refusal is the SPT's only flag.
 
 **Minimum data:** as P01 (≥ 1 point, else "No data").
 
 ## 4. Analysis / calculations
-`spt_profile()` runs `ht.analysis.spt()` on the data first (analysis §1.3), passing `hammer_efficiency=` and `units=`. Refusal, N60 and the cap are therefore exactly the analysis's. Nothing else is computed beyond P01's elevation and unit conversion.
+`spt_profile()` runs `ht.analysis.spt()` on the data first (analysis §1.3), passing `hammer_efficiency=` and `units=`. Refusal, N60 and the cap are therefore exactly the analysis's. (N1)60 is read from the input as `ht.analysis.spt_n1_60()` wrote it: P02 doesn't compute it, since that needs σ′v and a C_N method. Nothing else is computed beyond P01's elevation and unit conversion.
 
 ## 5. Figure layout
 As P01: single panel, the `profile` size, portrait.
 
 ## 6. Axes
 As P01, with:
-- **X axis:** the column `n`: linear, from 0. Label from the registry: "SPT N", "SPT N60" or "SPT N (capped)", with no unit.
+- **X axis:** the column `n`: linear, from 0. Label from the registry: "SPT N", "SPT N60", "SPT N (capped)" or "SPT (N1)60", with no unit.
 - **X limits:** as P01: nice limits over the drawn values from 0, with the preset's typical range (0–50) used only for sparse data (plots README, "Presets"). When refusals are drawn at the cap, the upper limit is the nice limit above 1.05 × cap (120 for a cap of 100), so the markers aren't on the frame. `xlim=` overrides, as P01.
-- **Presets** `spt_n`, `spt_n60` and `spt_n_capped` in `config/defaults.yaml`: quantity count, linear, start at zero, typical [0, 50]. The preset is picked from `n`; there is no `preset=` or `log=` argument.
+- **Presets** `spt_n`, `spt_n60`, `spt_n_capped` and `spt_n1_60` in `config/defaults.yaml`: quantity count, linear, start at zero, typical [0, 50]. The preset is picked from `n`; there is no `preset=` or `log=` argument.
 
 ## 7. Data marks
 As P01, plus:
 
 | Series | Mark | Color by | Size | Legend entry | Notes |
 |---|---|---|---|---|---|
-| Refusal, `refusal="cap"` | filled triangle ▶ at x = cap | unit color | 6 pt | ✔ gray ▶ "refusal (n)" | Footnote "n refusals, shown at N = 100" (the cap and N or N60 as plotted). Replaces the normal marker. Beyond `xlim`, drawn open at the edge and counted both ways, as P01 qualifiers |
+| Refusal, `refusal="cap"` | filled triangle ▶ at x = cap | unit color | 6 pt | ✔ gray ▶ "refusal (n)" | Footnote "n refusals, shown at N = 100" (the cap and N, N60 or (N1)60 as plotted). Replaces the normal marker. Beyond `xlim`, drawn open at the edge and counted both ways, as P01 qualifiers |
 | Refusal, `refusal="exclude"` | none | — | — | — | Footnote "n refusals not shown". The x-axis isn't extended for the cap |
 
-- **Refusals are drawn at the cap whichever column is plotted.** A refusal is a refusal; its N60 isn't meaningful as a number.
+- **Refusals are drawn at the cap whichever column is plotted.** A refusal is a refusal; its N60 or (N1)60 isn't meaningful as a number.
 - **A non-refusal value above the cap is drawn at its value.** N60 is not capped (analysis §1.3), so N = 90 with ER = 80 is drawn at 120.
 - **Stats box** (`stats_box=`, as P01) includes refusals at the cap when they're drawn (SPEC §4), and the footnote says so.
 
@@ -92,14 +94,14 @@ As P01, plus:
 As P01: `strata`, `water_level`, `ranges`, `design_lines`, `reference_lines`, `stats_box`, `note`. `ranges` and `reference_lines` are in N (no units), e.g. a "Very dense" band from 50 to 100.
 
 ## 9. Units behavior
-N, N60 and capped N are counts and never convert. Only the vertical axis changes (m / ft), as P01. `spt_penetration` needs units only when it's used to find refusals (analysis §1.3).
+N, N60, capped N and (N1)60 are counts and never convert. Only the vertical axis changes (m / ft), as P01. `spt_penetration` needs units only when it's used to find refusals (analysis §1.3).
 
 ## 10. API
 ```python
 def spt_profile(
     df: pd.DataFrame,
     *,
-    n: Literal["spt_n", "spt_n60", "spt_n_capped"] = "spt_n",
+    n: Literal["spt_n", "spt_n60", "spt_n_capped", "spt_n1_60"] = "spt_n",
     vs: Literal["elevation", "depth"] | None = None,
     refusal: Literal["cap", "exclude"] = "cap",
     hammer_efficiency: float | None = None,  # passed to ht.analysis.spt()
@@ -151,6 +153,7 @@ As P01, plus:
 | No `spt_n` column | The analysis's error, listing the columns |
 | `n="spt_n60"`, some tests without N60 | Those tests left out (refusals still drawn at the cap) and counted: "n tests without an energy ratio not shown" |
 | `n="spt_n60"`, no test has N60 | Error: "No test has N60, because no energy ratio is known. Set ht.settings.hammer_efficiency = 80, pass hammer_efficiency=80, or fill in 'energy_ratio'. Or plot N with n="spt_n"." With no N at all, there is no error: the plot shows "No data" |
+| `n="spt_n1_60"`, no `spt_n1_60` column | Error: "n="spt_n1_60" needs the column 'spt_n1_60'. Add it with ht.analysis.spt_n1_60(df, method="liao_whitman_1986") (or "kayen_1992"), or plot N60 with n="spt_n60"." |
 | `n` or `refusal` not one of the allowed values | Error listing them, with an example |
 | Refusal with a blank N | Drawn at the cap |
 | Refusal with N above the cap (e.g. 150) | Drawn at the cap, as every refusal |
@@ -170,6 +173,7 @@ As P01, plus:
   - refusal markers: shape, color, position and count; legend "refusal (n)"; footnote text for both `refusal=` values;
   - the x upper limit clears the cap when there are refusals (120 for 100);
   - N60 partial (count) and none (error text);
+  - (N1)60 from `ht.analysis.spt_n1_60()`: label "SPT (N1)60", refusals at the cap with footnote "shown at (N1)60 = 100", blank (N1)60 counted; error text without the column;
   - the refusal hint when both refusal columns are missing, and not otherwise;
   - `assert_us_si_equivalent` on the vertical axis; `assert_no_global_state`, also with `ax=` on a `Sheet` panel;
   - empty input gives "No data".
@@ -186,7 +190,7 @@ None.
 **Pitfalls:**
 - Plotting the SPT *top* depth instead of the mid-drive depth (SPEC §8.2). For CSV input, the user gives the depth, and the docstring says which.
 - Inferring refusal from a large N instead of using `spt_refusal`, `spt_penetration` and the cap (SPEC §4).
-- Mixing N and N60 in one plot.
+- Mixing N, N60 and (N1)60 in one plot.
 
 ## 15. Future enhancements
 - Color by any column (e.g. an upper/lower elevation split).

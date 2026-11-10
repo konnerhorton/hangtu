@@ -15,10 +15,15 @@ from hangtu.plot import _values
 from hangtu.plot._notes import Notes
 from hangtu.plot._profile import _draw_profile
 
-N_COLUMNS = ("spt_n", "spt_n60", "spt_n_capped")
+N_COLUMNS = ("spt_n", "spt_n60", "spt_n_capped", "spt_n1_60")
 REFUSAL_OPTIONS = ("cap", "exclude")
 # How the footnote names the plotted value (P02 §7).
-AXIS_SYMBOL = {"spt_n": "N", "spt_n60": "N60", "spt_n_capped": "N"}
+AXIS_SYMBOL = {
+    "spt_n": "N",
+    "spt_n60": "N60",
+    "spt_n_capped": "N",
+    "spt_n1_60": "(N1)60",
+}
 # A refusal drawn at the cap: a filled triangle pointing right (P02 §7).
 REFUSAL = "refusal"
 REFUSAL_FLAGS = {
@@ -37,7 +42,7 @@ def _check_choice(name: str, value: Any, choices: tuple[str, ...]) -> None:
 def spt_profile(
     df: pd.DataFrame,
     *,
-    n: Literal["spt_n", "spt_n60", "spt_n_capped"] = "spt_n",
+    n: Literal["spt_n", "spt_n60", "spt_n_capped", "spt_n1_60"] = "spt_n",
     vs: Literal["elevation", "depth"] | None = None,
     refusal: Literal["cap", "exclude"] = "cap",
     hammer_efficiency: float | Mapping[str, float] | None = None,
@@ -66,7 +71,7 @@ def spt_profile(
     ax: Axes | None = None,
     **style_overrides: Any,
 ) -> tuple[Figure, Axes]:
-    """Plot SPT N against depth or elevation.
+    """Plot SPT N, N60 or (N1)60 against depth or elevation.
 
     The data first go through ``ht.analysis.spt()``, which finds refusals and
     computes N60 and capped N. Refusals are drawn at the cap as a filled
@@ -89,9 +94,11 @@ def spt_profile(
     df : pandas.DataFrame
         One row per SPT test, as ``ht.template("spt")``: ``spt_n`` plus
         ``depth`` or ``elevation``.
-    n : {"spt_n", "spt_n60", "spt_n_capped"}
-        The value plotted: N as reported, N60, or N capped for refusals. N and
-        N60 are never mixed in one plot.
+    n : {"spt_n", "spt_n60", "spt_n_capped", "spt_n1_60"}
+        The value plotted: N as reported, N60, N capped for refusals, or
+        (N1)60. N, N60 and (N1)60 are never mixed in one plot. ``"spt_n1_60"``
+        needs the ``spt_n1_60`` column from ``ht.analysis.spt_n1_60()``; a
+        blank (N1)60 is counted as blank.
     vs : {"elevation", "depth"}, optional
         The vertical axis, as ``profile()``.
     refusal : {"cap", "exclude"}
@@ -121,6 +128,12 @@ def spt_profile(
     """
     _check_choice("n", n, N_COLUMNS)
     _check_choice("refusal", refusal, REFUSAL_OPTIONS)
+    if n == "spt_n1_60" and "spt_n1_60" not in df.columns:
+        raise HangtuError(
+            "n=\"spt_n1_60\" needs the column 'spt_n1_60'. Add it with "
+            'ht.analysis.spt_n1_60(df, method="liao_whitman_1986") (or '
+            '"kayen_1992"), or plot N60 with n="spt_n60".'
+        )
     data = analysis.spt(df, hammer_efficiency=hammer_efficiency, cap=cap, units=units)
     cap = settings.spt_cap if cap is None else cap  # checked by the analysis
     refused = data["spt_refusal"].to_numpy(dtype=bool)

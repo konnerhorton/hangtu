@@ -807,7 +807,7 @@ columns:
     scale: ratio
     label: SPT (N1)60
     ags: ["derived: spt_n60, spt_overburden_correction"]
-    used_by: [plot.profile]
+    used_by: [plot.profile, plot.spt_profile]
   energy_ratio:
     description: Hammer energy ratio
     type: number
