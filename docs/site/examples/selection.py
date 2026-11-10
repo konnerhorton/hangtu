@@ -38,9 +38,7 @@ print()
 print(cohesion)
 
 # The Alluvium's s_u: the characteristic mean of the UU tests, drawn against depth.
-tests = p.undrained_strength(
-    geology=["Alluvium"], hand_penetrometer_scale="unconfined_compressive_strength"
-)
+tests = p.undrained_strength(geology=["Alluvium"])
 strength = ht.stats.select(tests, value="undrained_shear_strength", display_units="US")
 print()
 print(strength)

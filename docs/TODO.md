@@ -285,10 +285,6 @@ A review of the whole package asked one question: if an AI agent does the work a
 - **Proposed:** make `table=` required in both, which matches SPEC §4's "no defaults for judgments". Also warn when `soil_class` contradicts the table (#3).
 - **Open:** whether `n=` is a judgment too (field N or N60 for a class table), or a convention that stays a default.
 
-### 62. Example CSVs that fail their own analyses · Claude · `tests/data/_make_examples.py`, `tests/test_examples.py`
-- **Problem:** `undrained_shear_strength_from_tests()` on `strength.csv` raises "more than one input to s_u" on the UU rows, because both s_u and q_f are filled in. The trial agent edited the data by hand to make it run. The hand penetrometer values sit in `undrained_shear_strength` with `hand_penetrometer_reading` blank, so `hand_penetrometer_scale=` never applies, while the docs example says the instrument read q_u. The docs examples take the AGS route only, so no test runs the CSVs.
-- **Wanted:** each example CSV passes the analysis its template feeds, tested, with the penetrometer readings in `hand_penetrometer_reading`.
-
 ### 63. `representative()` with most values censored · You + Claude · `docs/analysis/statistics.md`
 - **Problem:** with 25 of 40 Hatanaka & Uchida values "at least 44.5°", the censored normal fit gives a mean of 45.4° and a characteristic value of 44.6°. That is above every real estimate (max 44.1°) and above the correlation's ceiling. The note explains how censored values were treated but doesn't warn about the result.
 - **Proposed:** warn when more than half the values are censored, or when the representative value is beyond the largest (or, low side, the smallest) uncensored value.
