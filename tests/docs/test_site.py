@@ -111,7 +111,21 @@ def test_every_public_name_has_a_reference_entry():
 
 
 # What a user can't follow: an internal spec, a TODO item, a milestone or a wave.
-INTERNAL_REFERENCE = re.compile(r"SPEC §|docs/|TODO #|\bM\d{1,2}\b|\bwave \d\b")
+INTERNAL_REFERENCE = re.compile(
+    r"SPEC §|docs/|TODO #|\bM\d{1,2}\b|\bwave \d\b|\(P\d\d\)"
+)
+# In a docstring, which links to no page, a Markdown file (``analysis.md``) is too.
+DOCSTRING_REFERENCE = re.compile(rf"{INTERNAL_REFERENCE.pattern}|\w+\.md\b")
+
+# Modules whose own docstrings a user reads with help(): the reference
+# documents their members, not them.
+PUBLIC_MODULES = [
+    "hangtu",
+    "hangtu.analysis",
+    "hangtu.analysis.correlations",
+    "hangtu.plot",
+    "hangtu.stats",
+]
 
 
 def _resolve(path):
@@ -147,13 +161,22 @@ def _published_docstrings(path):
 
 def test_public_docstrings_cite_no_internal_files():
     # The API reference is published; SPEC, docs/ and TODO are not.
-    hits = []
+    docstrings = [(name, inspect.getdoc(_resolve(name))) for name in PUBLIC_MODULES]
     for path in sorted(_documented()):
-        for name, doc in _published_docstrings(path):
-            for line in (doc or "").splitlines():
-                if INTERNAL_REFERENCE.search(line):
-                    hits.append(f"{name}: {line.strip()}")
+        docstrings += _published_docstrings(path)
+    hits = [
+        f"{name}: {line.strip()}"
+        for name, doc in docstrings
+        for line in (doc or "").splitlines()
+        if DOCSTRING_REFERENCE.search(line)
+    ]
     assert hits == [], "\n".join(dict.fromkeys(hits))
+
+
+def test_columns_name_plots_by_function():
+    # ht.columns() is read by users, who know plot.profile, not a plot ID.
+    used_by = ht.columns()["used_by"]
+    assert not used_by.str.contains(r"\bP\d\d\b").any()
 
 
 def test_site_pages_cite_no_internal_files():

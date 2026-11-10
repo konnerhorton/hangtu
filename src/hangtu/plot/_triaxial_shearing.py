@@ -62,7 +62,7 @@ def triaxial_shearing(
     ax: Axes | None = None,
     **style_overrides: Any,
 ) -> tuple[Figure, Axes, MohrCoulombFit | None]:
-    r"""Plot triaxial readings during shearing: curves or stress paths (P12).
+    r"""Plot triaxial readings during shearing: curves or stress paths.
 
     Draws each stage's readings, one row per strain step as
     ``ht.template("triaxial_readings")`` lays them out, in one of three

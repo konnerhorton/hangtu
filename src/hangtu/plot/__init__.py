@@ -1,4 +1,10 @@
-"""Plots for geotechnical data. Every plot follows docs/plots/README.md."""
+"""Plots for geotechnical data.
+
+Every plot takes a DataFrame and returns ``(fig, ax)``; "Plots" in the
+documentation lists what they share.
+"""
+
+# Shared conventions: docs/plots/README.md; one spec per plot in docs/plots/.
 
 from hangtu.plot import common, style
 from hangtu.plot._clogging_diagram import clogging_diagram

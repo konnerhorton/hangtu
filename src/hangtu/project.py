@@ -207,7 +207,7 @@ class Project:
         min_fields: "str | PathLike[str] | dict | None" = None,
         accepted: "str | PathLike[str] | list[dict] | None" = None,
     ) -> "qc.Report":
-        """Check the data for integrity problems and return a report (qc.md).
+        """Check the data for integrity problems and return a report.
 
         Runs every QC level 1 rule over the canonical tables and adds the
         findings stored at ingest. Nothing is written to the database, so
@@ -253,7 +253,7 @@ class Project:
         heading: str | list[str] | None = None,
         changed_only: bool = False,
     ) -> pd.DataFrame:
-        """Compare the file's text with the stored value, cell by cell (qc.md §7).
+        """Compare the file's text with the stored value, cell by cell.
 
         Parameters
         ----------
@@ -289,8 +289,7 @@ class Project:
     def locations(self) -> pd.DataFrame:
         """One row per hole: ID, type, ground level, final depth, coordinates.
 
-        In the project's display units, with ``df.attrs["units"]`` set
-        (datasets.md §3).
+        In the project's display units, with ``df.attrs["units"]`` set.
         """
         return datasets.locations(self._path)
 

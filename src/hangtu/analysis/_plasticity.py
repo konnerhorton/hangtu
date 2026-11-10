@@ -115,7 +115,7 @@ def _read(df: pd.DataFrame) -> dict[str, np.ndarray]:
 
 
 def plasticity(df: pd.DataFrame) -> pd.DataFrame:
-    """Add the plasticity index, LI, Ic and plasticity classes (analysis.md §2.4).
+    """Add the plasticity index, LI, Ic and plasticity classes.
 
     Returns a copy of ``df`` with these columns added, or their blanks filled
     in. No row is dropped or reordered, other columns are unchanged, and

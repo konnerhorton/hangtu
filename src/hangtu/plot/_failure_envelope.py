@@ -52,7 +52,7 @@ def failure_envelope(
     ax: Axes | None = None,
     **style_overrides: Any,
 ) -> tuple[Figure, Axes, MohrCoulombFit | None]:
-    r"""Plot triaxial failure states with the fitted Mohr-Coulomb envelope (P11).
+    r"""Plot triaxial failure states with the fitted Mohr-Coulomb envelope.
 
     Draws the same failure points and the same fit in one of three spaces:
     Mohr circles in σ′-τ (``"mohr"``), points in s′-t (``"s_t"``), or points

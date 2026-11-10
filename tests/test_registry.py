@@ -55,7 +55,9 @@ def test_column_entry_follows_the_rules(name):
     assert entry["description"]
     assert entry["type"] in {"number", "text", "bool"}
     assert entry["ags"]
-    assert all(re.fullmatch(r"P\d\d", plot) for plot in entry["used_by"])
+    # Plot functions, as a user calls them, not the plots' internal IDs.
+    for plot in entry["used_by"]:
+        assert plot.startswith("plot.") and callable(getattr(ht.plot, plot[5:], None))
     if entry["type"] == "number":
         assert entry["quantity"] in KINDS
         assert entry["scale"] in {"ratio", "interval"}

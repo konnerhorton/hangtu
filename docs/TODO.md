@@ -310,11 +310,6 @@ A review of the whole package asked one question: if an AI agent does the work a
 - **Problem:** the triaxial CSV in psf declared as kPa gives c′ = 104 kPa and σ′n up to 3,680 kPa at 18 ft, with no check. The summary prints the unit, so a reviewer could catch it; an agent won't. Typical ranges are never used for QC (P00), by design.
 - **Idea:** a physical check rather than a typical range, for example a consolidation stress more than about 10× the overburden at the sample depth warns.
 
-### 68. Internal references in published docstrings · Claude · `tests/docs/test_site.py`
-- **Problem:** the `ht.stats` module docstring cites `SPEC §5`, and the `ht.plot` module docstring cites `docs/plots/README.md`. `spt`, `spt_class`, `plasticity`, `uscs`, `aashto` and `gradation` cite `analysis.md §x`. Plot IDs appear in published text: "(P01)" and "(P11)", and the `used_by` column of `ht.columns()`. Both trial agents were confused by them. The site test doesn't scan module or function docstrings for these.
-- **Wanted:** the references removed, and the test extended to every public module and function docstring.
-- **Open:** whether `used_by` names plot functions instead of IDs, or is dropped from `ht.columns()`.
-
 ### 69. Friction from the agent trials · Claude · plots, `src/hangtu/units/`
 - `spt_profile(n="spt_n1_60")` is rejected; the agent fell back to `profile()` and marked refusals by hand.
 - A long `note=` collapses the axes, and the only sign is matplotlib's warning.

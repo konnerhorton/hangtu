@@ -148,7 +148,7 @@ def _symbol(
 
 
 def uscs(df: pd.DataFrame) -> pd.DataFrame:
-    """Add the USCS group symbol, ``uscs_symbol`` (ASTM D2487, analysis.md §2.6).
+    """Add the USCS group symbol, ``uscs_symbol`` (ASTM D2487).
 
     Returns a copy of ``df`` with ``uscs_symbol`` added: GW, GP, SW, SP, the
     dual symbols (GW-GM, SP-SC, ...), GM, GC, GC-GM, SM, SC, SC-SM, or for fine
@@ -278,7 +278,7 @@ def _group_index(group: str, fines: float, liquid: float, index: float) -> float
 
 
 def aashto(df: pd.DataFrame) -> pd.DataFrame:
-    """Add the AASHTO group and group index (AASHTO M 145, analysis.md §2.7).
+    """Add the AASHTO group and group index (AASHTO M 145).
 
     Returns a copy of ``df`` with ``aashto_group`` (A-1-a to A-7-6) and
     ``aashto_group_index`` (a whole number, 0 or more) added.

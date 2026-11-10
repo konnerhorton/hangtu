@@ -1,7 +1,6 @@
-"""Analyses on SPT and lab data, usable without plotting.
+"""Analyses on SPT and lab data, usable without plotting."""
 
-Spec: docs/analysis/index-and-spt.md.
-"""
+# Specs: docs/analysis/ (index-and-spt.md for SPT, Atterberg, classification).
 
 from hangtu.analysis import correlations
 from hangtu.analysis._add_judgment import add_judgment

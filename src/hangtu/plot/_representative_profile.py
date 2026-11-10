@@ -87,7 +87,7 @@ def representative_profile(
     ax: Axes | None = None,
     **style_overrides: Any,
 ) -> tuple[Figure, Axes, RepresentativeResult]:
-    """Plot a property's representative value per unit on its profile (P09).
+    """Plot a property's representative value per unit on its profile.
 
     Computes the representative values with
     :func:`hangtu.stats.representative` and draws them over the values, as

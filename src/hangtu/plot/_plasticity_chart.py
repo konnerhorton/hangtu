@@ -473,7 +473,7 @@ def plasticity_chart(
     ax: Axes | None = None,
     **style_overrides: Any,
 ) -> tuple[Figure, Axes]:
-    """Plot liquid limit against plasticity index on the Casagrande chart (P04).
+    """Plot liquid limit against plasticity index on the Casagrande chart.
 
     PI, NP and the checks come from ``ht.analysis.plasticity()``: PI is
     LL - PL where it is blank, and the zones are the areas of its classes, so

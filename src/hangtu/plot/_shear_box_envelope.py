@@ -55,7 +55,7 @@ def shear_box_envelope(
     ax: Axes | None = None,
     **style_overrides: Any,
 ) -> tuple[Figure, Axes, ShearBoxFit | None]:
-    r"""Plot shear box stages in τ-σn with the fitted peak and residual lines (P31).
+    r"""Plot shear box stages in τ-σn with the fitted peak and residual lines.
 
     Peak points are filled and residual points open, each at the normal
     stress the fit used for it. The lines are ``ht.analysis.shear_box_fit()``'s,

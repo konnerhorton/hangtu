@@ -1,4 +1,9 @@
-"""Statistics of test values (SPEC §5): plain functions returning a result object."""
+"""Statistics of test values: plain functions returning a result object.
+
+See "Statistics" in the documentation for what each one does.
+"""
+
+# What each function does: docs/analysis/statistics.md.
 
 from hangtu.stats._compare import compare, compare_groups
 from hangtu.stats._compare_sources import SourceComparison, compare_sources

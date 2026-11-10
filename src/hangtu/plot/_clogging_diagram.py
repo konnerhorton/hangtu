@@ -199,7 +199,7 @@ def clogging_diagram(
     ax: Axes | None = None,
     **style_overrides: Any,
 ) -> tuple[Figure, Axes]:
-    """Plot specimens on the Thewes & Burger (2004) clay clogging diagram (P17).
+    """Plot specimens on the Thewes & Burger (2004) clay clogging diagram.
 
     Plasticity index across, consistency index at in situ water content up,
     with the zones of ``ht.analysis.clogging_potential()``: each specimen is
