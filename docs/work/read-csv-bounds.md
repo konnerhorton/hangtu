@@ -22,6 +22,7 @@ The SPEC §2.6 bullet "Bounds in a CSV" records the decision, in this commit.
    - value → the number, column → float (other text left, so the column stays object where it has any);
    - sign → `qualifier_for(column)`, created as `""` where missing, blanks read as `""`;
    - `ColumnError` naming rows and columns for a differing existing sign, and for two columns on one row whose bounds go to the same qualifier.
+   - Rows are named as a spreadsheet numbers them (header row 1) with the file's name, so they match what the user sees; after a pandas argument that shifts rows (`header`, `names`, `skiprows`, `index_col`, `comment`), by the frame's index. (Added at build review.)
 
    Docstring: a "Bounds" paragraph with an example. Tests in `tests/units/test_dataframes.py` (CSV written to `tmp_path`): each case of step 1 through `read_csv`; remolded goes to `remolded_qualifier`; an existing matching sign is kept, a differing one raises; two bounds on one row raise; `NP` and `12 ft` are left as text; an unregistered column is left as text; units still declared on the split column; end to end, `ht.stats.describe()` on a CSV with `>200` counts the row as censored, not as text.
    - Steps 2–3 commit: `units: read <x and >x in read_csv as a bound and qualifier`

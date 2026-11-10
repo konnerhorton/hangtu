@@ -221,8 +221,19 @@ def test_read_csv_keeps_a_matching_sign_and_fills_blanks(tmp_path):
 
 
 def test_read_csv_raises_on_a_sign_that_differs_from_the_qualifier(tmp_path):
-    with pytest.raises(ht.errors.ColumnError, match=r"Rows 1 .*'qualifier'"):
+    # The second data row is row 3 in a spreadsheet, below the header.
+    with pytest.raises(
+        ht.errors.ColumnError, match=r"^Row 3 of data\.csv: .*'qualifier'"
+    ):
         _read(tmp_path, "hydraulic_conductivity,qualifier\n2,\n<1e-9,>\n")
+
+
+def test_read_csv_names_rows_by_the_index_when_pandas_shifts_them(tmp_path):
+    text = "a note\nhydraulic_conductivity,qualifier\n2,\n<1e-9,>\n<1e-9,>\n"
+    with pytest.raises(
+        ht.errors.ColumnError, match=r"^Rows 1, 2 \(the table's index\): "
+    ):
+        _read(tmp_path, text, skiprows=1)
 
 
 def test_read_csv_raises_on_two_bounds_sharing_a_qualifier(tmp_path):
@@ -230,7 +241,7 @@ def test_read_csv_raises_on_two_bounds_sharing_a_qualifier(tmp_path):
     with pytest.raises(ht.errors.ColumnError) as raised:
         _read(tmp_path, text)
     message = str(raised.value)
-    assert "Rows 0 " in message
+    assert message.startswith("Row 2 of data.csv: ")
     assert "'undrained_shear_strength' and 'hydraulic_conductivity'" in message
 
 

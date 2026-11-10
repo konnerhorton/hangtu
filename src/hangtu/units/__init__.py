@@ -5,8 +5,9 @@ plain magnitudes from here; pint objects never reach matplotlib.
 """
 
 import re
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from os import PathLike
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -351,11 +352,38 @@ def read_csv(
     0            2.000000e-07
     1            1.000000e-09         <
     """
-    df = _split_bounds(pd.read_csv(path, **pandas_kwargs))
+    df = _split_bounds(
+        pd.read_csv(path, **pandas_kwargs), _row_names(path, pandas_kwargs)
+    )
     return set_units(df, units) if units else df
 
 
-def _split_bounds(df: pd.DataFrame) -> pd.DataFrame:
+# pandas arguments after which a frame's row is no longer the file's line less two.
+_ROW_SHIFTING = {"header", "names", "skiprows", "index_col", "comment"}
+
+
+def _row_names(
+    path: str | PathLike[str], pandas_kwargs: Mapping[str, Any]
+) -> Callable[[pd.Index], str]:
+    """Name rows as a spreadsheet numbers them: the header is row 1.
+
+    When a pandas argument shifts the rows, name them by the frame's index.
+    """
+
+    def word(index: pd.Index) -> str:
+        return "Row" if len(index) == 1 else "Rows"
+
+    if not _ROW_SHIFTING.isdisjoint(pandas_kwargs):
+        return lambda index: f"{word(index)} {rows_text(index)} (the table's index)"
+    name = Path(path).name
+
+    def spreadsheet(index: pd.Index) -> str:
+        return f"{word(index)} {rows_text(pd.Index(index + 2))} of {name}"
+
+    return spreadsheet
+
+
+def _split_bounds(df: pd.DataFrame, rows: Callable[[pd.Index], str]) -> pd.DataFrame:
     """Move ``<`` and ``>`` from registered number cells to their qualifier."""
     signs: dict[str, pd.Series] = {}  # value column -> sign, "" where none
     for column in df.columns:
@@ -383,21 +411,25 @@ def _split_bounds(df: pd.DataFrame) -> pd.DataFrame:
     for column in signs:
         by_qualifier.setdefault(qualifier_for(column), []).append(column)
     for qualifier, columns in by_qualifier.items():
-        _write_signs(df, qualifier, columns, signs)
+        _write_signs(df, qualifier, columns, signs, rows)
     return df
 
 
 def _write_signs(
-    df: pd.DataFrame, qualifier: str, columns: list[str], signs: dict[str, pd.Series]
+    df: pd.DataFrame,
+    qualifier: str,
+    columns: list[str],
+    signs: dict[str, pd.Series],
+    rows: Callable[[pd.Index], str],
 ) -> None:
     has_sign = pd.DataFrame({column: signs[column] != "" for column in columns})
     shared = has_sign.sum(axis=1) > 1
     if shared.any():
         names = " and ".join(repr(column) for column in columns)
         raise ColumnError(
-            f"Rows {rows_text(df.index[shared])} have a bound written as a value in "
-            f"both {names}, and both would go to {qualifier!r}, which holds one "
-            f"sign per row. Put each value's sign in its own qualifier column, "
+            f"{rows(df.index[shared])}: a bound is written as a value in {names}, "
+            f"and each would go to {qualifier!r}, which holds one sign per row. "
+            f"Put each value's sign in its own qualifier column, "
             f"or split these rows so each holds one bounded value."
         )
     sign = pd.Series("", index=df.index, dtype=object)
@@ -413,8 +445,8 @@ def _write_signs(
     if differs.any():
         names = " or ".join(repr(column) for column in columns)
         raise ColumnError(
-            f"Rows {rows_text(df.index[differs])} have a bound written in {names} "
-            f"whose sign differs from the one in {qualifier!r}. Make the value and "
+            f"{rows(df.index[differs])}: the bound written in {names} has a sign "
+            f"that differs from the one in {qualifier!r}. Make the value and "
             f"{qualifier!r} agree on each row, then read the file again."
         )
     df[qualifier] = existing.where(sign == "", sign)
