@@ -290,9 +290,6 @@ A review of the whole package asked one question: if an AI agent does the work a
 - **Proposed:** warn when more than half the values are censored, or when the representative value is beyond the largest (or, low side, the smallest) uncensored value.
 - **Open:** the threshold, and whether `fit()` and `compare_sources()` warn the same way.
 
-### 64. `read_csv` and bounds written as text · You · `src/hangtu/units/__init__.py`, SPEC §2.6
-- **Open:** should `ht.read_csv` split `<x`/`>x` into the qualifier column when the template has one, as AGS ingest does for value flags?
-
 ### 66. The CSV route leads to invented inputs · Claude + You · `docs/site/getting-started/csv.md`, `src/hangtu/examples/data/`
 - **Problem:** no page shows a CSV stratigraphy for `vertical_stress()`, nor the triaxial and undrained strength analyses from CSV; every example starts from `site.ags`. The trial agent tried `strata.csv` as the log (it is the geology map), then made up layer boundaries midway between tests. The lab agent built about 24 unit declarations by hand from `ht.columns()`.
 - **Proposed:** ship `stratigraphy.csv` with the examples; add one CSV-route example per analysis family; rename `strata.csv` to `geology_map.csv` (examples-ags-first: written from `site.ags`).

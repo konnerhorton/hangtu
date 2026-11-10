@@ -22,7 +22,8 @@ _BOUND = re.compile(r"([<>])\s*([-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)")
 #: What to do with a bound found in a value column, for messages.
 BOUND_FIX = (
     "Put < or > in 'qualifier' (or the column's own qualifier) and the number "
-    "in the value column, so the value stays a bound."
+    "in the value column, so the value stays a bound. ht.read_csv does this "
+    "for a registered column when it reads the file."
 )
 
 
