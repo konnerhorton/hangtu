@@ -36,6 +36,8 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
 - The project's vertical datum is read from the file's `LOCA_DATM` and shown on elevation axes.
 - Units that a file's `UNIT` group defines are kept as written.
 - `legend=` on every plot with a legend; legends sit in a clear corner inside the axes.
+- `spt()` records the cap and, by hole, each energy ratio and where it came from (the data, the argument or
+  the setting) in `attrs["spt"]`.
 - Type annotations ship with the package (`py.typed`).
 - The documentation site, with a page and example for each plot and parameter, and the API reference.
 

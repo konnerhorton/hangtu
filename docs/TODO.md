@@ -297,10 +297,6 @@ A review of the whole package asked one question: if an AI agent does the work a
 ### 64. `read_csv` and bounds written as text · You · `src/hangtu/units/__init__.py`, SPEC §2.6
 - **Open:** should `ht.read_csv` split `<x`/`>x` into the qualifier column when the template has one, as AGS ingest does for value flags?
 
-### 65. `spt()` doesn't record the energy ratio or cap it used · Claude · `docs/analysis/index-and-spt.md` §1.3
-- **Problem:** when N60 uses `hammer_efficiency` or `ht.settings.hammer_efficiency`, only a warning says so. `energy_ratio` stays blank and `attrs` holds only units. `ht.settings.spt_cap` changes `spt_n_capped` with no record either. An engineer reviewing the output can't tell which ER produced N60.
-- **Proposed:** `attrs["spt"]` with the cap and, per hole, the ER and its source (data, argument, setting), the way `vertical_stress` and `spt_n1_60` record theirs.
-
 ### 66. The CSV route leads to invented inputs · Claude + You · `docs/site/getting-started/csv.md`, `src/hangtu/examples/data/`
 - **Problem:** no page shows a CSV stratigraphy for `vertical_stress()`, nor the triaxial and undrained strength analyses from CSV; every example starts from `site.ags`. The trial agent tried `strata.csv` as the log (it is the geology map), then made up layer boundaries midway between tests. The lab agent built about 24 unit declarations by hand from `ht.columns()`.
 - **Proposed:** ship `stratigraphy.csv` with the examples; add one CSV-route example per analysis family; rename `strata.csv` to `geology_map.csv` (examples-ags-first: written from `site.ags`).

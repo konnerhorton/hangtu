@@ -53,6 +53,8 @@ Returns a copy of `df` with `spt_refusal`, `spt_n60` and `spt_n_capped` added, o
 
 An `spt_n60` already filled in is kept. N60 is computed for refusals too; the plots decide how refusals are drawn.
 
+**The record** (`result.attrs["spt"]`) says what was used, so a reviewer can check it without rerunning: `"cap"`, the cap applied, and `"energy_ratio"`, by `loca_id` (None when `df` has none), a list of `{"value", "source", "tests"}`, one entry per ratio and source. `source` is `"data"`, `"argument"`, `"setting"` or None (no ratio: N60 blank), following the order above. A list rather than one value, because a hole can mix measured ratios with the argument's. Only the tests whose N60 `spt()` computes are counted: a row with `spt_n60` already filled in, or with a blank N, used no ratio.
+
 **Capped N** (`spt_n_capped`) = min(N, cap), and = cap for every refusal, including a refusal with a blank N. `cap` is `cap=`, else `ht.settings.spt_cap` (100). Only N is capped. N60 isn't: a non-refusal N60 above 100 is a real value.
 
 **Refusals in plots and statistics** are included by default at the cap, with a note (SPEC §4). `fit()` treats them as censored, between their value and an optional judged upper limit ([`statistics.md`](statistics.md) §1, "Refusals"); `representative()` takes them as censored for a constant value and counts them for a trend (`statistics.md` §2).
