@@ -15,9 +15,10 @@ import pint
 from numpy.typing import ArrayLike
 
 from hangtu import _config
+from hangtu._data import rows_text, split_bound
 from hangtu._settings import _display_units, settings
 from hangtu.errors import ColumnError, UnitsError, warn
-from hangtu.registry import column_info
+from hangtu.registry import column_info, qualifier_for
 
 ureg = pint.UnitRegistry()
 
@@ -327,12 +328,96 @@ def read_csv(
     **pandas_kwargs
         Passed to ``pandas.read_csv``.
 
+    Notes
+    -----
+    **Bounds.** A cell of a registered number column written as ``<x`` or ``>x``
+    (``<5``, ``> 200``, ``<1e-9``) is read as the number ``x``, with the sign
+    in the value's qualifier column: ``remolded_qualifier`` for
+    ``remolded_undrained_shear_strength``, else ``qualifier``, which is added
+    if the file has none. The value stays a bound, as an AGS file's ``LT`` and
+    ``GT`` flags do. A row whose qualifier already holds the other sign, or
+    with two bounds that would share one qualifier, raises ``ColumnError``.
+    Other text, such as ``NP`` or ``12 ft``, is left as written.
+
     Examples
     --------
     >>> spt = ht.read_csv("spt.csv", units={"depth": "ft", "ground_level": "ft"})
+
+    A file with ``hydraulic_conductivity`` cells ``2e-7`` and ``<1e-9``:
+
+    >>> lab = ht.read_csv("permeability.csv", units={"hydraulic_conductivity": "m/s"})
+    >>> lab[["hydraulic_conductivity", "qualifier"]]
+       hydraulic_conductivity qualifier
+    0            2.000000e-07
+    1            1.000000e-09         <
     """
-    df = pd.read_csv(path, **pandas_kwargs)
+    df = _split_bounds(pd.read_csv(path, **pandas_kwargs))
     return set_units(df, units) if units else df
+
+
+def _split_bounds(df: pd.DataFrame) -> pd.DataFrame:
+    """Move ``<`` and ``>`` from registered number cells to their qualifier."""
+    signs: dict[str, pd.Series] = {}  # value column -> sign, "" where none
+    for column in df.columns:
+        info = column_info(str(column))
+        if info is None or info["type"] != "number":
+            continue
+        if pd.api.types.is_numeric_dtype(df[column]):
+            continue
+        split = df[column].map(
+            lambda cell: split_bound(cell) if isinstance(cell, str) else None
+        )
+        bounded = split.notna()
+        if not bounded.any():
+            continue
+        signs[str(column)] = (
+            split[bounded].map(lambda pair: pair[0]).reindex(df.index, fill_value="")
+        )
+        values = df[column].astype(object).copy()
+        values[bounded] = split[bounded].map(lambda pair: pair[1])
+        try:
+            df[column] = pd.to_numeric(values)
+        except (ValueError, TypeError):
+            df[column] = values  # other text stays, and is named where it is read
+    by_qualifier: dict[str, list[str]] = {}
+    for column in signs:
+        by_qualifier.setdefault(qualifier_for(column), []).append(column)
+    for qualifier, columns in by_qualifier.items():
+        _write_signs(df, qualifier, columns, signs)
+    return df
+
+
+def _write_signs(
+    df: pd.DataFrame, qualifier: str, columns: list[str], signs: dict[str, pd.Series]
+) -> None:
+    has_sign = pd.DataFrame({column: signs[column] != "" for column in columns})
+    shared = has_sign.sum(axis=1) > 1
+    if shared.any():
+        names = " and ".join(repr(column) for column in columns)
+        raise ColumnError(
+            f"Rows {rows_text(df.index[shared])} have a bound written as a value in "
+            f"both {names}, and both would go to {qualifier!r}, which holds one "
+            f"sign per row. Put each value's sign in its own qualifier column, "
+            f"or split these rows so each holds one bounded value."
+        )
+    sign = pd.Series("", index=df.index, dtype=object)
+    for column in columns:
+        sign = sign.where(signs[column] == "", signs[column])
+    if qualifier in df.columns:
+        existing = df[qualifier].map(
+            lambda cell: "" if pd.isna(cell) else str(cell).strip()
+        )
+    else:
+        existing = pd.Series("", index=df.index, dtype=object)
+    differs = (sign != "") & (existing != "") & (existing != sign)
+    if differs.any():
+        names = " or ".join(repr(column) for column in columns)
+        raise ColumnError(
+            f"Rows {rows_text(df.index[differs])} have a bound written in {names} "
+            f"whose sign differs from the one in {qualifier!r}. Make the value and "
+            f"{qualifier!r} agree on each row, then read the file again."
+        )
+    df[qualifier] = existing.where(sign == "", sign)
 
 
 def needs_units(column: str, quantity: str | None = None) -> bool:

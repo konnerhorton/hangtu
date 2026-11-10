@@ -32,6 +32,24 @@ def statistics_roles() -> dict[str, dict[str, Any]]:
     }
 
 
+def qualifier_for(column: str) -> str:
+    """Return the qualifier column that holds ``<`` or ``>`` for ``column``.
+
+    It is the qualifier that names ``column`` and replaces the generic one
+    (``remolded_qualifier`` for ``remolded_undrained_shear_strength``), else the
+    generic ``qualifier``. A qualifier that doesn't replace the generic one, such
+    as ``correlation_qualifier``, which only hangtu writes, is never returned.
+    """
+    for name, field in statistics_roles().items():
+        if (
+            field["role"] == "qualifier"
+            and "replaces" in field
+            and column in field.get("values", ())
+        ):
+            return name
+    return "qualifier"
+
+
 def _entry(name: str) -> dict[str, Any]:
     """Return the entry for a template name: a column, or an overlay field."""
     registry = _registry()
