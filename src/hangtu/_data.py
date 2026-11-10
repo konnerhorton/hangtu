@@ -16,8 +16,8 @@ _FALSE = {"false", "no", "0", "0.0"}
 #: the key each is counted under (P01 §3, TODO #15).
 TEXT_FLAGS = {"np": "NP", "refusal": "refusal"}
 
-# A bound written into a value cell, such as "<10" or "> 200".
-_BOUND = re.compile(r"[<>]\s*[-+]?(\d+\.?\d*|\.\d+)")
+# A bound written into a value cell, such as "<10", "> 200" or "<1e-9".
+_BOUND = re.compile(r"([<>])\s*([-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)")
 
 #: What to do with a bound found in a value column, for messages.
 BOUND_FIX = (
@@ -29,6 +29,18 @@ BOUND_FIX = (
 def is_bound(text: str) -> bool:
     """Return whether ``text`` is a bound written as a value, ``<x`` or ``>x``."""
     return _BOUND.fullmatch(text.strip()) is not None
+
+
+def split_bound(text: str) -> tuple[str, float] | None:
+    """Split a bound written as a value into its sign and number.
+
+    ``"> 200"`` gives ``(">", 200.0)``. Text that isn't entirely ``<`` or ``>``
+    and a number (``"<5 kPa"``, ``"≤5"``) gives None.
+    """
+    match = _BOUND.fullmatch(text.strip())
+    if match is None:
+        return None
+    return match.group(1), float(match.group(2))
 
 
 def rows_text(index: pd.Index) -> str:
