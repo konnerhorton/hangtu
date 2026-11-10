@@ -50,6 +50,8 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
 - A bound written into a value cell (`<10`) is warned about with the fix: put `<` or `>` in `qualifier` and
   the number in the value column.
 - `ht.columns()` names the plots that read a column by function (`plot.profile`).
+- The example `strength.csv` gives the UU tests' q_f without the s_u worked out from it, so
+  `undrained_shear_strength_from_tests()` runs on the file as shipped.
 
 ## 0.1.0 (2026-10-15)
 

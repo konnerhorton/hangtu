@@ -41,6 +41,16 @@ CSVS = [
     "triaxial_readings.csv",
 ]
 NOT_FINDINGS = {"Metadata", "Summary of data"}
+READING_UNITS = dict.fromkeys(
+    [
+        "effective_consolidation_stress",
+        "back_pressure",
+        "cell_pressure",
+        "deviator_stress",
+        "excess_pore_pressure",
+    ],
+    "psf",
+)
 
 
 def _load_generator():
@@ -126,7 +136,9 @@ def test_csv_and_ags_hold_the_same_tests(site, name, value):
     [
         ("triaxial", "triaxial", "deviator_stress_at_failure"),
         ("shear_box", "shear_box", "peak_shear_stress"),
-        ("strength", "undrained_strength", "undrained_shear_strength"),
+        # The CSV keeps only the s_u that is an input; the next test checks
+        # the s_u worked out from it against the project's.
+        ("strength", "undrained_strength", "deviator_stress_at_failure"),
     ],
 )
 def test_test_csvs_hold_the_projects_tests(site, name, dataset, value):
@@ -147,6 +159,121 @@ def test_test_csvs_hold_the_projects_tests(site, name, dataset, value):
     named = from_csv["sample_reference"] + "-" + from_csv["specimen_reference"]
     assert (from_csv.loc[lab, "specimen_id"] == named[lab]).all()
     assert from_csv.loc[~lab, "specimen_id"].isna().all()
+
+
+# Each test CSV through the analysis its template feeds, with the units the
+# file is in (it is written from site.ags, in US units; the rock in MPa).
+# permeability.csv feeds plots only.
+FEET = dict.fromkeys(
+    ["depth", "ground_level", "elevation", "depth_top", "depth_base"], "ft"
+)
+DEGREES = dict.fromkeys(
+    [
+        "reported_effective_friction_angle",
+        "reported_peak_friction_angle",
+        "reported_residual_friction_angle",
+    ],
+    "deg",
+)
+TRIAXIAL_STRESSES = [
+    "effective_consolidation_stress",
+    "back_pressure",
+    "cell_pressure",
+    "deviator_stress_at_failure",
+    "pore_pressure_at_failure",
+    "reported_effective_cohesion",
+    "reported_intact_compressive_strength",
+]
+SHEAR_BOX_STRESSES = [
+    "applied_normal_stress",
+    "normal_stress_at_peak",
+    "normal_stress_at_residual",
+    "peak_shear_stress",
+    "residual_shear_stress",
+    "reported_peak_cohesion",
+    "reported_residual_cohesion",
+]
+STRENGTH_STRESSES = [
+    "undrained_shear_strength",
+    "remolded_undrained_shear_strength",
+    "reported_undrained_shear_strength",
+    "cell_pressure",
+    "deviator_stress_at_failure",
+    "unconfined_compressive_strength",
+    "hand_penetrometer_reading",
+]
+EXAMPLE_ANALYSES = {
+    "atterberg.csv": ({}, ht.analysis.plasticity),
+    "spt.csv": ({"spt_penetration": "in"}, ht.analysis.spt),
+    "triaxial.csv": (
+        dict.fromkeys(TRIAXIAL_STRESSES, "psf"),
+        lambda df: ht.analysis.mohr_coulomb_fit(
+            ht.analysis.triaxial_failure_stresses(df),
+            group_by=["geology_unit", "test_type"],
+        ),
+    ),
+    "rock_triaxial.csv": (
+        dict.fromkeys(TRIAXIAL_STRESSES, "MPa"),
+        lambda df: ht.analysis.hoek_brown_fit(
+            ht.analysis.triaxial_failure_stresses(df), failure_modes=["Shear"]
+        ),
+    ),
+    "triaxial_readings.csv": (
+        READING_UNITS,
+        ht.analysis.triaxial_failure_from_readings,
+    ),
+    "shear_box.csv": (
+        dict.fromkeys(SHEAR_BOX_STRESSES, "psf"),
+        lambda df: ht.analysis.shear_box_fit(
+            df, group_by=["geology_unit", "test_type"]
+        ),
+    ),
+    "strength.csv": (
+        dict.fromkeys(STRENGTH_STRESSES, "psf"),
+        ht.analysis.undrained_shear_strength_from_tests,
+    ),
+}
+
+
+def read_example(name, units):
+    columns = pd.read_csv(DATA / name, nrows=0).columns
+    declared = {c: u for c, u in {**FEET, **DEGREES, **units}.items() if c in columns}
+    text = {"specimen_id": str, "specimen_reference": str, "test_stage": str}
+    dtype = {c: t for c, t in text.items() if c in columns}
+    return ht.read_csv(ht.examples.path(name), units=declared, dtype=dtype)
+
+
+def test_every_test_csv_has_its_analysis():
+    assert set(EXAMPLE_ANALYSES) == set(CSVS) - {"permeability.csv"}
+
+
+@pytest.mark.parametrize("name", sorted(EXAMPLE_ANALYSES))
+def test_example_csv_passes_its_analysis(name):
+    units, analysis = EXAMPLE_ANALYSES[name]
+    df = read_example(name, units)
+    if name == "atterberg.csv":
+        # The PI planted for the QC example (A002) is warned about, not refused.
+        with pytest.warns(UserWarning, match=r"Rows 7 have a plasticity_index"):
+            result = analysis(df)
+    else:
+        result = analysis(df)
+    # A fit gives a result object; its table has a row per group fitted.
+    table = result if isinstance(result, pd.DataFrame) else result.to_frame()
+    assert len(table)
+
+
+def test_strength_csv_gives_the_projects_undrained_strength(site):
+    units, analysis = EXAMPLE_ANALYSES["strength.csv"]
+    from_csv = analysis(read_example("strength.csv", units))
+    from_ags = site.undrained_strength()
+    for column in ["undrained_shear_strength", "undrained_shear_strength_basis"]:
+        pd.testing.assert_series_equal(
+            from_csv[column],
+            from_ags[column].reset_index(drop=True),
+            check_dtype=False,
+            check_exact=False,
+            obj=column,
+        )
 
 
 def test_the_sources_compared_are_in_the_example_site(site):
@@ -202,16 +329,6 @@ def test_example_runs_clean(tmp_path, script, outputs):
 
 # --- Triaxial readings (M11 c, spec AC 11) -----------------------------------------
 
-READING_UNITS = dict.fromkeys(
-    [
-        "effective_consolidation_stress",
-        "back_pressure",
-        "cell_pressure",
-        "deviator_stress",
-        "excess_pore_pressure",
-    ],
-    "psf",
-)
 AT_FAILURE = [
     "deviator_stress_at_failure",
     "pore_pressure_at_failure",

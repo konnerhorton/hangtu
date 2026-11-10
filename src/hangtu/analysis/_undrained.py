@@ -116,8 +116,9 @@ def undrained_shear_strength_from_tests(
     >>> tests = ht.read_csv(
     ...     "strength.csv",
     ...     units={
-    ...         "deviator_stress_at_failure": "kPa",
-    ...         "undrained_shear_strength": "kPa",
+    ...         "deviator_stress_at_failure": "psf",
+    ...         "undrained_shear_strength": "psf",
+    ...         "remolded_undrained_shear_strength": "psf",
     ...     },
     ... )
     >>> su = ht.analysis.undrained_shear_strength_from_tests(tests)

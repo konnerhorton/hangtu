@@ -1312,6 +1312,13 @@ def write_csvs(out):
             sample = dataset["sample_reference"]
             named = sample + "-" + dataset["specimen_reference"].astype(str)
             dataset = dataset.assign(specimen_id=named.where(sample.notna()))
+            if name == "strength":
+                # The template has no undrained_shear_strength_basis, so an s_u
+                # the dataset worked out (q_f / 2) would read as a second input
+                # beside q_f. Only an s_u as reported is an input.
+                derived = dataset["undrained_shear_strength_basis"] != "as_reported"
+                su = dataset["undrained_shear_strength"].mask(derived)
+                dataset = dataset.assign(undrained_shear_strength=su)
             dataset[list(ht.template(name).columns)].to_csv(
                 out / f"{name}.csv",
                 index=False,

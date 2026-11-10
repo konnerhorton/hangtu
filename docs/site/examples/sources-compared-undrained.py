@@ -6,11 +6,10 @@ p.set_geology_map(ht.examples.path("strata.csv"))
 p.set_judgments(ht.examples.path("judgments.yaml"))
 
 # Every test's s_u side by side: UU, laboratory vane (LV), the hand
-# penetrometer, whose instrument read q_u, and the field vane in the borehole
-# (BOREHOLE, AGS's IVAN_TYPE). Each keeps its source and test type.
-tests = p.undrained_strength(
-    geology=["Alluvium"], hand_penetrometer_scale="unconfined_compressive_strength"
-)
+# penetrometer on the tubes (an s_u, as AGS defines LPEN_PPEN), and the field
+# vane in the borehole (BOREHOLE, AGS's IVAN_TYPE). Each keeps its source and
+# test type.
+tests = p.undrained_strength(geology=["Alluvium"])
 
 compared = ht.stats.compare_sources(
     tests, value="undrained_shear_strength", display_units="US"
