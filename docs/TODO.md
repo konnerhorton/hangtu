@@ -294,10 +294,8 @@ A review of the whole package asked one question: if an AI agent does the work a
 - **Proposed:** warn when more than half the values are censored, or when the representative value is beyond the largest (or, low side, the smallest) uncensored value.
 - **Open:** the threshold, and whether `fit()` and `compare_sources()` warn the same way.
 
-### 64. Messages about text values point to the wrong fix · Claude (+ You for `read_csv`) · `src/hangtu/stats/_rows.py`, `src/hangtu/plot/`, SPEC §2.6
-- **Problem:** for `"<10"` in a value column, `describe()` says "Replace it with a number", and the plots say "clean the column". An agent writes 10 and the value is no longer censored.
-- **Proposed:** say "put `<` or `>` in `qualifier` (or the column's own qualifier) and the number in the value column".
-- **Open (You):** should `ht.read_csv` split `<x`/`>x` into the qualifier column when the template has one, as AGS ingest does for value flags?
+### 64. `read_csv` and bounds written as text · You · `src/hangtu/units/__init__.py`, SPEC §2.6
+- **Open:** should `ht.read_csv` split `<x`/`>x` into the qualifier column when the template has one, as AGS ingest does for value flags?
 
 ### 65. `spt()` doesn't record the energy ratio or cap it used · Claude · `docs/analysis/index-and-spt.md` §1.3
 - **Problem:** when N60 uses `hammer_efficiency` or `ht.settings.hammer_efficiency`, only a warning says so. `energy_ratio` stays blank and `attrs` holds only units. `ht.settings.spt_cap` changes `spt_n_capped` with no record either. An engineer reviewing the output can't tell which ER produced N60.

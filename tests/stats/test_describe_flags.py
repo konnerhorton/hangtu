@@ -86,6 +86,24 @@ def test_non_plastic_rows_are_left_out(fresh):
     _adds_up(result, [4])
 
 
+def test_a_bound_written_as_text_points_to_the_qualifier_column():
+    df = pd.DataFrame({"plasticity_index": [20, "<5", 30, 25]})
+    with pytest.warns(
+        UserWarning,
+        match=r"'<5' \(1\)\. It is counted in count_text and left out\. Put < or > "
+        r"in 'qualifier' \(or the column's own qualifier\) and the number in the "
+        r"value column",
+    ):
+        row = ht.stats.describe(df, value="plasticity_index").to_frame().iloc[0]
+    assert row["count_text"] == 1
+
+
+def test_other_text_is_asked_to_be_replaced_with_a_number():
+    df = pd.DataFrame({"plasticity_index": [20, "dry", 30, 25]})
+    with pytest.warns(UserWarning, match="Replace it with a number, or leave the"):
+        ht.stats.describe(df, value="plasticity_index")
+
+
 def test_np_text_counts_as_non_plastic():
     df = pd.DataFrame({"plasticity_index": [20, "NP", 30, " np ", 25]})
     row = ht.stats.describe(df, value="plasticity_index").to_frame().iloc[0]

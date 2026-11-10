@@ -1,5 +1,6 @@
 """Reading input columns, shared by the plots and the analyses."""
 
+import re
 from numbers import Real
 from typing import Any
 
@@ -14,6 +15,20 @@ _FALSE = {"false", "no", "0", "0.0"}
 #: Text a value column may hold in place of a number, by lowercase text:
 #: the key each is counted under (P01 §3, TODO #15).
 TEXT_FLAGS = {"np": "NP", "refusal": "refusal"}
+
+# A bound written into a value cell, such as "<10" or "> 200".
+_BOUND = re.compile(r"[<>]\s*[-+]?(\d+\.?\d*|\.\d+)")
+
+#: What to do with a bound found in a value column, for messages.
+BOUND_FIX = (
+    "Put < or > in 'qualifier' (or the column's own qualifier) and the number "
+    "in the value column, so the value stays a bound."
+)
+
+
+def is_bound(text: str) -> bool:
+    """Return whether ``text`` is a bound written as a value, ``<x`` or ``>x``."""
+    return _BOUND.fullmatch(text.strip()) is not None
 
 
 def rows_text(index: pd.Index) -> str:
