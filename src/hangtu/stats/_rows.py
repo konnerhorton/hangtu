@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 
 from hangtu import units as _units
-from hangtu._data import TEXT_FLAGS, flag_column, text_values
+from hangtu._data import BOUND_FIX, TEXT_FLAGS, flag_column, is_bound, text_values
 from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.registry import column_info, statistics_roles
 
@@ -470,8 +470,12 @@ def warn_text(texts: np.ndarray, column: str, function: str) -> None:
         found = ", ".join(
             f"{text!r} ({unknown.count(text)})" for text in dict.fromkeys(unknown)
         )
+        fix = (
+            BOUND_FIX
+            if any(is_bound(text) for text in unknown)
+            else "Replace it with a number, or leave the cell blank, if it is one."
+        )
         warn(
             f"{function} found text in {column!r} that isn't a number: {found}. "
-            "It is counted in count_text and left out. Replace it with a number, or "
-            "leave the cell blank, if it is one."
+            f"It is counted in count_text and left out. {fix}"
         )

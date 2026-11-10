@@ -14,7 +14,7 @@ from matplotlib.axes import Axes
 from matplotlib.lines import Line2D
 from matplotlib.transforms import offset_copy
 
-from hangtu._data import TEXT_FLAGS, rows_text
+from hangtu._data import BOUND_FIX, TEXT_FLAGS, is_bound, rows_text
 from hangtu.errors import warn
 from hangtu.plot import _layers, _values
 from hangtu.plot._notes import Notes, edge_markers, figure_of
@@ -49,10 +49,14 @@ def warn_unrecognized(index: pd.Index, column: str, texts: np.ndarray) -> None:
     found = ", ".join(
         f"{text!r} ({np.count_nonzero(texts == text)})" for text in order(texts[other])
     )
+    fix = (
+        BOUND_FIX
+        if any(is_bound(text) for text in texts[other])
+        else "Clean the column to remove them."
+    )
     warn(
         f"Column {column!r} has text in rows {rows_text(index[other])}: {found}. "
-        "They are drawn at the left edge and counted; clean the column to "
-        "remove them."
+        f"They are drawn at the left edge and counted. {fix}"
     )
 
 

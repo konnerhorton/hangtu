@@ -108,11 +108,21 @@ def test_unrecognized_text_is_warned_about_once_naming_rows(frame):
     messages = [str(w.message) for w in record if "text in rows" in str(w.message)]
     assert messages == [
         "Column 'water_content' has text in rows 0, 2, 3: 'dry' (2), 'n/a' (1). "
-        "They are drawn at the left edge and counted; clean the column to "
+        "They are drawn at the left edge and counted. Clean the column to "
         "remove them."
     ]
     assert ax.ags_notes == {"text_value": 3}
     assert "3 text values, shown at the left edge" in ax.texts[-1].get_text()
+
+
+def test_a_bound_written_as_text_points_to_the_qualifier_column(frame):
+    df = water(frame, ["<10", 25.0, "> 40", 30.0])
+    with pytest.warns(
+        UserWarning,
+        match=r"'<10' \(1\), '> 40' \(1\)\. .*Put < or > in 'qualifier' \(or "
+        r"the column's own qualifier\) and the number in the value column",
+    ):
+        ht.plot.profile(df, VALUE, vs="depth")
 
 
 def test_more_than_six_texts_list_six_and_the_footnote_names_the_rest(frame):

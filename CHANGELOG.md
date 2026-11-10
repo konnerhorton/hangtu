@@ -44,6 +44,8 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
 - `profile()` draws text values (such as a classification) in its value column.
 - A plot counts a row beyond an axis limit once, however many of its values are beyond it.
 - A unit string that is pint's own name for the unit, such as `inch`, is read without a warning.
+- A bound written into a value cell (`<10`) is warned about with the fix: put `<` or `>` in `qualifier` and
+  the number in the value column.
 
 ## 0.1.0 (2026-10-15)
 
