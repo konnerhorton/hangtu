@@ -55,6 +55,41 @@ def test_n60_and_capped_n_are_labeled_by_column(points):
     assert sorted(points(ax)[:, 0]) == [9.0, 30.0, 35.0, 100.0]
 
 
+def n1_60_frame(**columns):
+    """spt_frame() through spt() and spt_n1_60(): ER 60, so N60 = N."""
+    df = spt_frame(energy_ratio=[60, 60, 60, 60], **columns)
+    df = ht.analysis.spt(df)
+    df["effective_vertical_stress"] = [25.0, 100.0, 100.0, 400.0]
+    df = ht.set_units(df, {"effective_vertical_stress": "kPa"})
+    with pytest.warns(UserWarning, match="300"):
+        return ht.analysis.spt_n1_60(df, method="liao_whitman_1986")
+
+
+def test_n1_60_is_plotted_with_refusals_at_the_cap(points):
+    df = n1_60_frame(
+        spt_n=[4.0, 9.0, 38.0, 35.0], spt_refusal=[False, False, True, False]
+    )
+    _, ax = ht.plot.spt_profile(df, n="spt_n1_60")
+    assert ax.get_xlabel() == "SPT (N1)60"
+    # C_N: 25 kPa -> 1.7 (cap), 100 kPa -> 1.0; 400 kPa is beyond 300, blank.
+    # The refusal is drawn at the cap, whatever its (N1)60 (38 here).
+    assert sorted(points(ax)[:, 0]) == pytest.approx([6.8, 9.0, 100.0])
+    sand = [c for c in ax.collections if c.get_label().startswith("_Sand")]
+    (refusals,) = [c for c in sand if len(c.get_offsets())]
+    assert refusals.get_offsets().data.tolist() == [[100.0, 105.0]]
+    assert ax.ags_notes == {"nan": 1, "refusal": 1}
+    (footnote,) = [t for t in ax.texts if t.get_text().startswith(tuple("0123456789"))]
+    assert footnote.get_text().splitlines() == [
+        "1 blank value not shown",
+        "1 refusal, shown at (N1)60 = 100",
+    ]
+
+
+def test_n1_60_without_the_column_says_how_to_add_it():
+    with pytest.raises(ht.HangtuError, match=r"ht\.analysis\.spt_n1_60\(df"):
+        ht.plot.spt_profile(spt_frame(), n="spt_n1_60")
+
+
 def test_label_overrides_the_column_label():
     _, ax = ht.plot.spt_profile(spt_frame(), label="Blow count, N")
     assert ax.get_xlabel() == "Blow count, N"
@@ -209,7 +244,14 @@ def test_missing_spt_n_lists_the_columns():
 @pytest.mark.parametrize(
     ("argument", "value", "message"),
     [
-        ("n", "N60", r"n must be one of 'spt_n', 'spt_n60', 'spt_n_capped', not 'N60'"),
+        (
+            "n",
+            "N60",
+            (
+                r"n must be one of 'spt_n', 'spt_n60', 'spt_n_capped', "
+                r"'spt_n1_60', not 'N60'"
+            ),
+        ),
         ("refusal", "drop", r"refusal must be one of 'cap', 'exclude', not 'drop'"),
     ],
 )
