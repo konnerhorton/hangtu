@@ -18,7 +18,7 @@ from hangtu.plot._geology_units import UNIT_RULE_COLOR
 from hangtu.plot._overlays import format_number
 from hangtu.plot._values import group_text
 
-from .test_compare_sources import (
+from .conftest import (
     CONVERTED,
     HATANAKA,
     KULHAWY,

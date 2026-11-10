@@ -16,7 +16,7 @@ import hangtu as ht
 from hangtu.errors import HangtuError
 from hangtu.plot._overlays import DESIGN_COLOR
 
-from .test_select_fitted import FIT, FITTED, G1, PHI, g3_fit, phi, sources
+from .conftest import FIT, FITTED, G1, PHI, g3_fit, phi, sources
 
 G1_VALUE = 34.868
 GIVEN = {"method": "value", "value": "32 deg", "reason": "cautious"}

@@ -17,7 +17,7 @@ from hangtu.errors import HangtuError
 from hangtu.stats import _model_set
 from hangtu.stats._model_set import _ModelSet
 
-from .test_select_fitted import G1, PHI, phi, sources
+from .conftest import G1, PHI, phi, sources
 
 C = "effective_cohesion"
 G1_VALUE = 34.868

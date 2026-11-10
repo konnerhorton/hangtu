@@ -15,7 +15,7 @@ import pytest
 import hangtu as ht
 from hangtu.errors import HangtuError
 
-from .test_select_fitted import FITTED, g3_fit
+from .conftest import FITTED, g3_fit
 
 C = "effective_cohesion"
 PHI = "effective_friction_angle"

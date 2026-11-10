@@ -4,80 +4,22 @@ G2 and G3 are the spec's golden values, hand-calculated: G2 by Hyndman & Fan
 definition 7 inverted, G3 from the line t = c′ cos φ′ + s′ sin φ′.
 """
 
-import math
-
-import numpy as np
 import pandas as pd
 import pytest
 
 import hangtu as ht
 from hangtu.errors import HangtuError
 
-PHI = "effective_friction_angle"
-COHESION = "effective_cohesion"
-STRESSES = [
-    "minor_principal_stress_at_failure",
-    "major_principal_stress_at_failure",
-    "effective_minor_principal_stress_at_failure",
-    "effective_major_principal_stress_at_failure",
-]
-FIT = "Mohr-Coulomb fit (CD)"
-G1 = {
-    "source": "A",
-    "method": "characteristic",
-    "estimate": "mean",
-    "side": "low",
-    "distribution": "normal",
-    "reason": "a mean over a long slip surface",
-}
-FITTED = {"source": FIT, "method": "fitted", "reason": "three CD stages"}
-
-
-def phi(name, values):
-    frame = pd.DataFrame(
-        {
-            "geology_unit": "Sand",
-            "depth": np.arange(1.0, len(values) + 1),
-            "correlation_name": name,
-            PHI: values,
-        }
-    )
-    return ht.set_units(frame, {PHI: "deg", "depth": "m"})
-
-
-def sources():
-    return phi("A", [34.0, 36.0, 37.0, 38.0, 40.0]), phi(
-        "B", [33.0, 35.0, 36.0, 39.0, 41.0]
-    )
-
-
-def triaxial(mean_stresses, cohesion=5.0, angle=30.0, **columns):
-    """CD stages on t = c′ cos φ′ + s′ sin φ′, at each s′, totals 300 kPa above."""
-    s = np.asarray(mean_stresses, dtype=float)
-    t = cohesion * math.cos(math.radians(angle)) + s * math.sin(math.radians(angle))
-    minor, major = s - t, s + t
-    df = pd.DataFrame(
-        {
-            STRESSES[0]: minor + 300,
-            STRESSES[1]: major + 300,
-            STRESSES[2]: minor,
-            STRESSES[3]: major,
-            "test_type": "CD",
-            "geology_unit": "Sand",
-            "depth": [3.0, 4.0, 5.0][: len(s)] if len(s) <= 3 else 4.0,
-            **columns,
-        }
-    )
-    df.attrs["units"] = {**dict.fromkeys(STRESSES, "kPa"), "depth": "m"}
-    return df
-
-
-def g3_fit():
-    """G3: three CD stages at s′ = 100, 200, 300 kPa; c′ = 5 kPa, φ′ = 30°."""
-    return ht.analysis.mohr_coulomb_fit(
-        triaxial([100.0, 200.0, 300.0]), group_by="geology_unit"
-    )
-
+from .conftest import (
+    COHESION,
+    FIT,
+    FITTED,
+    G1,
+    PHI,
+    g3_fit,
+    sources,
+    triaxial,
+)
 
 # --- G2: the selected value's position (AC 3) --------------------------------------
 

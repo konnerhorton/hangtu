@@ -14,75 +14,26 @@ import pytest
 import hangtu as ht
 from hangtu.errors import ColumnError, HangtuError, UnitsError
 
+from .conftest import (
+    BAND,
+    CONVERTED,
+    HATANAKA,
+    KULHAWY,
+    PHI,
+    PSF,
+    STROUD,
+    SU,
+    _compare,
+    _conversion,
+    _g2,
+    _mohr_coulomb,
+    _spt_phi,
+    _stroud,
+    _su,
+    _triaxial_frame,
+)
+
 REL = 1e-6
-PHI = "effective_friction_angle"
-SU = "undrained_shear_strength"
-HATANAKA = "effective_friction_angle_hatanaka_uchida_1996"
-KULHAWY = "effective_friction_angle_kulhawy_mayne_1990"
-STROUD = "undrained_shear_strength_stroud_1974"
-BAND = r"left out 1 rows of 'effective_friction_angle' that give only a range"
-#: 1 psf in kPa (exact): 0.45359237 kg × 9.80665 m/s² / 0.3048² m² / 1000.
-PSF = 0.45359237 * 9.80665 / 0.3048**2 / 1000
-
-
-def _compare(*sources, **kwargs):
-    """Compare, failing on any warning."""
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        return ht.stats.compare_sources(*sources, **kwargs)
-
-
-def _spt_phi():
-    """G2's correlations A and B in one frame, as an SPT frame holds them."""
-    a = [31.2, 34.8, 36.1, 33.0, 38.4, 35.5, 32.7, 37.9]
-    b = [34.0, 36.5, 39.2, 35.1, 41.0, 37.3, np.nan, np.nan]
-    alluvium = [30.1, 31.5, 29.8]
-    df = pd.DataFrame(
-        {
-            "loca_id": [f"BH{i % 4 + 1:02d}" for i in range(19)],
-            "geology_unit": ["Terrace"] * 16 + ["Alluvium"] * 3,
-            "depth": np.linspace(1.5, 19.5, 19),
-            PHI: [*a, *b, *alluvium],
-            f"{PHI}_lower": [np.nan] * 14 + [33.0, np.nan] + [np.nan] * 3,
-            f"{PHI}_upper": [np.nan] * 14 + [38.0, np.nan] + [np.nan] * 3,
-            "correlation_name": [HATANAKA] * 8 + [KULHAWY] * 8 + [HATANAKA] * 3,
-            "correlation_qualifier": [""] * 4 + [">"] + [""] * 14,
-        }
-    )
-    df.attrs["units"] = {
-        PHI: "deg",
-        f"{PHI}_lower": "deg",
-        f"{PHI}_upper": "deg",
-        "depth": "m",
-    }
-    return df
-
-
-def _su():
-    """G3: UU and field vane in kPa."""
-    df = pd.DataFrame(
-        {
-            "geology_unit": "Alluvium",
-            "source": ["lab"] * 4 + ["field"] * 3,
-            "test_type": ["UU"] * 4 + ["in situ vane"] * 3,
-            SU: [42.0, 55.0, 61.0, 48.0, 58.0, 71.0, 66.0],
-        }
-    )
-    df.attrs["units"] = {SU: "kPa"}
-    return df
-
-
-def _stroud():
-    """G3: Stroud (1974) estimates in psf."""
-    df = pd.DataFrame(
-        {
-            "geology_unit": "Alluvium",
-            SU: [1200.0, 1500.0, 1350.0],
-            "correlation_name": STROUD,
-        }
-    )
-    df.attrs["units"] = {SU: "psf"}
-    return df
 
 
 def _row(result, unit, source):
@@ -381,75 +332,6 @@ def test_names_are_registered():
 
 
 # --- step 5: fit sources (AC 5-8) -----------------------------------------------------
-
-CONVERTED = "shear box, converted (Kulhawy & Mayne 1990)"
-NEGATIVE = r"the free line's intercept is negative"
-STRESSES = [
-    "minor_principal_stress_at_failure",
-    "major_principal_stress_at_failure",
-    "effective_minor_principal_stress_at_failure",
-    "effective_major_principal_stress_at_failure",
-]
-
-
-def _triaxial_frame(points, **columns):
-    """CD stages with effective (σ′3, σ′1) and totals 300 kPa above them."""
-    minor, major = (np.array(v, dtype=float) for v in zip(*points, strict=True))
-    df = pd.DataFrame(
-        {
-            STRESSES[0]: minor + 300,
-            STRESSES[1]: major + 300,
-            STRESSES[2]: minor,
-            STRESSES[3]: major,
-            "test_type": "CD",
-            **columns,
-        }
-    )
-    df.attrs["units"] = {**dict.fromkeys(STRESSES, "kPa"), "depth": "m"}
-    return df
-
-
-def _mohr_coulomb(group_by="geology_unit"):
-    """G2's triaxial fit: φ′ 36° in Terrace at 4.0-9.0 m; one stage in Alluvium."""
-    df = _triaxial_frame(
-        [(50, 192.592), (100, 385.184), (200, 770.368), (100, 400.0)],
-        geology_unit=["Terrace"] * 3 + ["Alluvium"],
-        depth=[4.0, 6.5, 9.0, 3.0],
-    )
-    # σ′1 is rounded to 3 decimals, so the free intercept is a hair below 0.
-    with pytest.warns(UserWarning, match=r"intercept is negative") as caught:
-        fit = ht.analysis.mohr_coulomb_fit(df, group_by=group_by)
-    assert len(caught) == 1, [str(w.message) for w in caught]
-    return fit
-
-
-def _conversion():
-    """G2's shear box: τ = σn tan 30°, cohesionless, φ′cv 32° → 30.5777°."""
-    df = pd.DataFrame(
-        {
-            "geology_unit": "Terrace",
-            "applied_normal_stress": [50.0, 100.0, 200.0],
-            "peak_shear_stress": [28.867513, 57.735027, 115.470054],
-            "depth": [5.0, 5.0, 5.0],
-        }
-    )
-    df.attrs["units"] = {
-        "applied_normal_stress": "kPa",
-        "peak_shear_stress": "kPa",
-        "depth": "m",
-    }
-    with pytest.warns(UserWarning, match=NEGATIVE):
-        fit = ht.analysis.shear_box_fit(df, group_by="geology_unit", cohesion=0)
-    return ht.analysis.friction_angle_from_shear_box(
-        fit, soil="cohesionless", critical_state_friction_angle={"Terrace": 32}
-    )
-
-
-def _g2(**kwargs):
-    with pytest.warns(UserWarning, match=BAND):
-        return ht.stats.compare_sources(
-            _spt_phi(), _mohr_coulomb(), _conversion(), value=PHI, **kwargs
-        )
 
 
 def test_g2_fit_values_and_their_columns():
