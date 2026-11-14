@@ -32,6 +32,18 @@ Each comes in the project's display units, or in `display_units="SI"` or `"US"` 
 - **Elevation** is the hole's ground level minus the depth.
 - **Geology unit** comes from the geology log at that depth. `p.set_geology_map("strata.csv")` maps the file's geology codes to the units you report on, with their order and colors.
 
+## Gradings reported as percentages
+
+`p.grain_size_summary()` gives one row per grading, and `p.index_properties()` classifies each sample from its grading. A grading usually comes from its curve (`GRAT`), but some labs report only the percentages of gravel, sand and fines (`GRAG`) with no curve. hangtu reads those too, once you say which fraction system the lab used:
+
+```python
+p.settings.grag_fraction_system = "astm_uscs"   # or "aashto", "iso14688"
+```
+
+The AGS dictionary describes these columns with ISO 14688 sizes (2 mm, 0.063 mm), but many labs put ASTM D2487 fractions (4.75 mm, 0.075 mm) in them, so hangtu doesn't guess. Until the setting is given, the rows are kept with blank fractions and a warning. It is read each time a dataset is built, so changing it needs no rereading of the file; `from_ags(..., grag_fraction_system="astm_uscs")` sets it at the start.
+
+A reported grading has no D-values, and its Cu and Cc are the lab's. A fraction is filled only where the lab's size ranges make it up exactly: ASTM percentages give the AASHTO fines but not its sand split, and ISO percentages give no USCS fraction, so no USCS symbol, but they can give the clay activity. Nothing is interpolated. A blank cobbles column counts as 0 when the other percentages add up to 100 (within 2 points). The `grading_source` column says `"curve"` or `"reported"`; a sample with a curve is read from the curve.
+
 ## Filters
 
 Every dataset takes the same filters:

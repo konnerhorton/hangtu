@@ -214,7 +214,7 @@ blank, with the second warning naming those three.
 
 ## Plan
 
-Six build steps, each green. Steps 1, 2 and 6 on Sonnet; 3 to 5 on Opus (the rule, the classification inputs). Order:
+Six build steps, each green. (Built all on Opus in one session, at the user's request.) Steps 1, 2 and 6 on Sonnet; 3 to 5 on Opus (the rule, the classification inputs). Order:
 1–2 (Sonnet), 3–5 (Opus), 6 (Sonnet), so each model's steps run in one session.
 
 ### 1. `settings: add grag_fraction_system` (Sonnet)
@@ -282,9 +282,11 @@ Six build steps, each green. Steps 1, 2 and 6 on Sonnet; 3 to 5 on Opus (the rul
   if it describes `grain_size_summary()`. No internal references (the docs tests check).
 - `CHANGELOG.md` Unreleased: reported gradings in `grain_size_summary()` and `index_properties()`, the setting, the
   `grading_source` column.
-- `docs/TODO.md`: a QC rule comparing `GRAG` with the curve (trigger: the next file with both); whether `uscs()`
-  should leave the symbol blank when cobbles or boulders are blank rather than count them as 0 (trigger: before M8's
-  classification is next changed, or the next file with oversize).
+- `docs/TODO.md`: a QC rule comparing `GRAG` with the curve (trigger: the next file with both); `uscs()` and
+  oversize (trigger: before M8's classification is next changed, or the next file with oversize). Found in step 5:
+  `uscs()` already leaves the symbol blank where a cobbles or boulders column is present but blank, and counts them
+  as 0 only where the columns are absent, so the item asks about the absent case (decision 10's oversize still
+  makes G2 GC).
 - `STATUS.md`: the unit done; LDEN unit weight (item 2 of the file review) is next to decide.
 - Whole suite (`uv run pytest -n 2 --dist loadfile`), ruff, mypy, `docs/prepare_site.py` and the strict site build.
 
