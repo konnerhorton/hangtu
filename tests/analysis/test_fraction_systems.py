@@ -199,3 +199,41 @@ def test_own_system_needs_a_name_other_than_a_builtin():
 def test_unknown_system_lists_the_builtins():
     with pytest.raises(HangtuError, match="'astm_uscs', 'aashto', 'iso14688'"):
         fractions("uscs")
+
+
+#: The GRAG heading ranges of datasets.md §6.13, typed again (open upper: None).
+GRAG_RANGES = {
+    "astm_uscs": {
+        "GRAG_FINE": (0, 0.075),
+        "GRAG_SAND": (0.075, 4.75),
+        "GRAG_GRAV": (4.75, 75),
+        "GRAG_VCRE": (75, None),
+    },
+    "aashto": {
+        "GRAG_FINE": (0, 0.075),
+        "GRAG_SAND": (0.075, 2.0),
+        "GRAG_GRAV": (2.0, 75),
+        "GRAG_VCRE": (75, None),
+    },
+    "iso14688": {
+        "GRAG_CLAY": (0, 0.002),
+        "GRAG_SILT": (0.002, 0.063),
+        "GRAG_FINE": (0, 0.063),
+        "GRAG_SAND": (0.063, 2.0),
+        "GRAG_GRAV": (2.0, 63),
+        "GRAG_VCRE": (63, None),
+    },
+}
+
+
+@pytest.mark.parametrize("name", list(GRAG_RANGES))
+def test_builtin_grag_headings_span_adjacent_fractions(name):
+    system = builtin_systems()[name]
+    order = [fraction["name"] for fraction in system["fractions"]]
+    by_name = {fraction["name"]: fraction for fraction in system["fractions"]}
+    ranges = {}
+    for heading, names in system["grag"].items():
+        first = order.index(names[0])
+        assert names == order[first : first + len(names)], heading
+        ranges[heading] = (by_name[names[0]]["lower"], by_name[names[-1]]["upper"])
+    assert ranges == GRAG_RANGES[name]

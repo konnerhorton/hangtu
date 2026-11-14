@@ -4,6 +4,10 @@
 # its lower size up to its upper size; the last has no upper size. Parts split a
 # fraction for the header band only, each up to its upper size. Values marked
 # "verify" are checked against the standard before release (TODO #5).
+#
+# grag: the fractions each GRAG heading spans when a lab reports GRAG in this
+# system (docs/data/datasets.md §6.13). A heading's size range runs from its
+# first fraction's lower size to its last fraction's upper size.
 
 astm_uscs:
   description: Unified Soil Classification System
@@ -25,6 +29,11 @@ astm_uscs:
         - {name: coarse, upper: 75}
     - {name: cobbles, lower: 75, upper: 300}
     - {name: boulders, lower: 300, upper: null}
+  grag:
+    GRAG_FINE: [fines]
+    GRAG_SAND: [sand]
+    GRAG_GRAV: [gravel]
+    GRAG_VCRE: [cobbles, boulders]
 
 aashto:
   description: AASHTO soil classification
@@ -35,6 +44,11 @@ aashto:
     - {name: coarse_sand, lower: 0.425, upper: 2.0}
     - {name: gravel, lower: 2.0, upper: 75}
     - {name: boulders, lower: 75, upper: null}
+  grag:
+    GRAG_FINE: [silt_clay]
+    GRAG_SAND: [fine_sand, coarse_sand]
+    GRAG_GRAV: [gravel]
+    GRAG_VCRE: [boulders]
 
 iso14688:
   description: ISO soil identification and classification
@@ -64,3 +78,10 @@ iso14688:
         - {name: coarse, upper: 63}
     - {name: cobbles, lower: 63, upper: 200}
     - {name: boulders, lower: 200, upper: null}
+  grag:
+    GRAG_CLAY: [clay]
+    GRAG_SILT: [silt]
+    GRAG_FINE: [clay, silt]
+    GRAG_SAND: [sand]
+    GRAG_GRAV: [gravel]
+    GRAG_VCRE: [cobbles, boulders]
