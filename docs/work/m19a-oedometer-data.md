@@ -93,20 +93,21 @@ or name proposed here, awaiting review; 🔬 marks something to verify against a
   has the defects cases.
 - **`ht.analysis.oedometer_load_branch()`** (new, decision 3), with its reference entry. Its rule goes in a new
   section of `docs/analysis/` only if (b) needs one; until then the docstring and datasets.md §6.14 hold it.
-- **`docs/plots/P00-framework.md` §4.1 and `config/defaults.yaml`:** three quantity kinds (decision 6).
+- **`docs/plots/P00-framework.md` §4.1 and `config/defaults.yaml`:** two quantity kinds (decision 6). Ingest then
+  stores `CONS_INMV`, `CONS_CVRT` and `CONS_CVLG` with a kind, so the database schema version goes up
+  (`docs/data/ingest.md` §2) and an older database asks to be re-ingested.
 - **SPEC:** §10.2, the dataset. §8.2 doesn't change: `CONG` is a lab test placed by the lab-test row.
 - **Registry** (each name checked against `columns.yaml` on 2026-11-14; none exists, and none collides):
   - new columns: `applied_vertical_stress`, `void_ratio_at_increment_start`, `void_ratio_at_increment_end`,
     `load_branch`, `reported_coefficient_of_volume_compressibility`,
     `reported_coefficient_of_consolidation_root_time`, `reported_coefficient_of_consolidation_log_time`,
     `swelling_pressure`, `height_change_on_saturation`, `specimen_diameter`, `equipment_deformation_corrected`;
-    for the readings template, `elapsed_time` and `vertical_displacement`;
   - new AGS sources for existing columns: `test_type` (`CONG_TYPE`), `sample_condition` (`CONG_COND`),
     `test_stage` (`CONS_INCN`), `water_content` (`CONG_MCI`), `final_water_content` (`CONG_MCF`),
     `bulk_unit_weight` and `dry_unit_weight` (`CONG_BDEN`, `CONG_DDEN` × g), `particle_density` (`CONG_PDEN`),
     `degree_of_saturation` (`CONG_SATR`), `void_ratio` (`CONG_IVR`), `specimen_height` (`CONG_HIGT`),
     `test_remarks` (`CONG_REM`), `remarks` (`CONS_REM`);
-  - the `oedometer` and `oedometer_readings` templates (decision 9).
+  - the `oedometer` template (decision 9).
 - **Test files:** `CONG`/`CONS` in `site_si.ags`, `site_us.ags` and `site_v404.ags`; the edge cases in `joins.ags`;
   the E cases in `qc_defects.ags`.
 - **Example file:** `site.ags` gains two oedometer tests through `_make_examples.py` (decision 10), and
@@ -165,17 +166,19 @@ or name proposed here, awaiting review; 🔬 marks something to verify against a
    - **An assumed particle density** (`#2.65`) keeps its value with `particle_density_assumed = True`, as
      `p.particle_density()` and `p.shear_box()` do. It is never borrowed from `LPDN`: the lab's own value for the
      specimen is the one its void ratio was computed with.
-6. **Three quantity kinds** (P00 §4.1; 🟡 the US displays):
+6. **Two quantity kinds** (P00 §4.1; 🟡 the US displays):
 
    | Kind | Canonical | US display | SI display | Columns |
    |---|---|---|---|---|
    | `volume_compressibility` | m²/MN | ft²/kip | m²/MN | mv |
    | `consolidation_coefficient` | m²/yr | ft²/yr | m²/yr | cv |
-   | `time` | min | min | min | `elapsed_time` |
 
    ft²/kip is the inverse of ksf, the US display of `modulus`, so mv and Eoed = 1/mv read in matching units. The
    aliases `m2/MN` and `m2/yr` already exist. `CONS_INSC` (secondary compression, whose definition, e or strain
    per log cycle, the dictionary doesn't give) and `CONS_TEMP` aren't read; (c) decides on them.
+   - *Changed in the plan step (2026-11-14):* a `time` kind is left to (c). Ingest converts every heading to its
+     kind's canonical unit, so a `time` kind would also convert about 20 standard headings in s, min or day (CPT,
+     DMT, pressuremeter durations) that nothing here reads.
 7. **QC (level 1), E001–E005 in qc.md §4.15** (🟡 the letter, since `E` is free; the thresholds). Each checks a
    specimen against itself: a record whose numbers can't all be right. Ranges for Cc or σ′p are level 2.
 
@@ -215,11 +218,9 @@ or name proposed here, awaiting review; 🔬 marks something to verify against a
 9. **Templates:**
    - `ht.template("oedometer")` is the dataset's columns without `source_line` and `load_branch`, which
      `oedometer_load_branch()` adds.
-   - `ht.template("oedometer_readings")` (intent decision 3): `loca_id`, `specimen_id`, `sample_reference`,
-     `specimen_reference`, `depth`, `test_stage`, `applied_vertical_stress`, `elapsed_time`,
-     `vertical_displacement`, `geology_unit`. One row per reading. `vertical_displacement` is the specimen's
-     compression since the increment started, positive downward (🟡). No dataset produces it, and nothing reads it
-     until (c), which may change its columns before it is used.
+   - *Changed in the plan step (2026-11-14):* `ht.template("oedometer_readings")` (intent decision 3) moves to
+     (c), with the `time` kind it needs (decision 6). It is still a CSV template rather than wave 0's AGS route;
+     (c) is the first unit that reads it, and it designs the columns with the fit that reads them.
 10. **Example data** (`ht.examples`, through `_make_examples.py`, with site-like scatter): two specimens in the
     example's clay unit, one lightly overconsolidated and one stiffer, each with eight to twelve increments and
     one unload–reload loop, plus a swelling pressure test with no increments. Enough for (b)'s σ′p and Cc and P13
@@ -298,8 +299,107 @@ The good files' specimen (BH1, 🟡 sample U3) is: `CONG_TYPE` `OEDOMETER`, `UND
     `ht.plot.geology_unit_comparison(p.oedometer().drop_duplicates("specimen_id"), "void_ratio")` run on the good
     files with no warning.
 14. **Templates:** `ht.template("oedometer")` is the dataset's columns without `source_line` and `load_branch`, in
-    the same order; `ht.template("oedometer_readings")` has decision 9's columns (`tests/test_registry.py`).
+    the same order (`tests/test_registry.py`).
 15. **Common arguments:** `depth=`, `geology=`, `holes=` and `where={"test_type": "OEDOMETER"}` filter
     `p.oedometer()` as §2 says, keeping or dropping a specimen's increments together.
 16. **Example file:** `ht.examples` gives `p.oedometer()` rows for decision 10's three specimens, with no E finding,
     and `oedometer.csv` read with `ht.read_csv()` equals the dataset's template columns.
+
+## Plan
+Seven build commits, each with ruff, mypy and the touched tests green, and the whole suite (`-n 2`) before each
+commit. A step past about 300 changed lines (not counting test data or the test-file generators) splits as noted.
+Steps 1–4 are Sonnet (wiring on existing patterns, decided by the tests); steps 5–7 are Opus (the QC arithmetic,
+E003's source, close-out). Start a new session at step 5.
+
+**Reused, not rebuilt:**
+- **Dataset plumbing:** `Build` (`src/hangtu/datasets/_frame.py`: `rows()`, `numbers()`, `texts()`, `flagged()`,
+  `finish()`); `specimens()` and `SPECIMEN_COLUMNS` (`datasets/_lab.py`) for lab depth; the parent join of
+  `_stages()` in `datasets/_triaxial.py` (`CONS` under `CONG` as `TRET` under `TREG`, broken links kept with blank
+  parent columns); the `ASSUMED` flag and × g of `datasets/_shear_box.py` for `CONG_PDEN` and the densities.
+- **Analysis pattern:** `analysis/_triaxial.py` (`ColumnError`, returns a copy).
+- **QC:** `qc/_shear_box.py`'s and `qc/_triaxial.py`'s shape (`@rule`, `Finding`, `RuleResult`, `_unflagged`,
+  `_value`, `_where`), `rules.yaml` thresholds, `min_fields.yaml` with the `<SPEC_KEY>` anchor.
+- **Test files:** `group()` and the SI/US twins of `tests/data/ags/_make_files.py`; the example generator
+  `tests/data/_make_examples.py`.
+
+### 1. `M19: add quantity kinds for mv and cv` (Sonnet)
+- `src/hangtu/config/defaults.yaml`: `volume_compressibility` (meter² / meganewton; US foot² / kip, "ft²/kip"; SI
+  m²/MN) and `consolidation_coefficient` (meter² / year; US foot² / year; SI m²/yr), placed so no existing unit
+  matches them first. Aliases for `ft2/kip` and `ft2/yr` in `units/aliases.yaml` if the US twin file needs them.
+- `src/hangtu/db.py`: `SCHEMA_VERSION` 2 → 3; `docs/data/ingest.md` §2 says why.
+- `docs/plots/P00-framework.md` §4.1: the two rows.
+- Tests: `tests/units/`: 0.16 m²/MN → 0.00766085 ft²/kip and 2.1 m²/yr → 22.60421 ft²/yr (1e-6 relative); a
+  `CONS_INMV` heading ingested from a minimal AGS string is stored with kind `volume_compressibility`; the
+  schema-mismatch test reads version 3.
+
+### 2. `M19: add oedometer_load_branch()` (Sonnet)
+- `src/hangtu/analysis/_oedometer.py` (new), exported in `analysis/__init__.py`: spec decision 3, per
+  `specimen_id` in row order; `ColumnError` naming a missing column; returns a copy. Docstring: the four values and
+  the rule, with equal-to-maximum as reloading.
+- `columns.yaml`: `applied_vertical_stress` (stress, ratio) and `load_branch` (text), each with its description
+  (decision 4); `docs/site/reference/analysis.md` entry.
+- Tests: `tests/analysis/test_oedometer_load_branch.py` (new): AC 3, and AC 2's twelve stresses of the table on a
+  hand-built frame (in kPa and in psf, the same branches).
+
+### 3. `M19: add p.oedometer()` (Sonnet)
+- `columns.yaml`: the rest of the spec's new columns and AGS sources; `test_stage`'s description; the `oedometer`
+  template (decision 9).
+- `src/hangtu/qc/min_fields.yaml`: `CONG` and `CONS` (decision 8; here, since §7 leaves records out by it, as M17
+  (a) found).
+- `src/hangtu/datasets/_oedometer.py` (new): one row per `CONS` row in file order with its `CONG` values; a `CONG`
+  with no `CONS` as one row (decision 1); unit weights × g; `CONG_PDEN`'s flag; then
+  `oedometer_load_branch()`; "No CONG group" for an empty file.
+- `src/hangtu/project.py`: `Project.oedometer()` with the common arguments and the docstring;
+  `docs/site/reference/project.md` entry.
+- Test files (`tests/data/ags/_make_files.py`, regenerated): the AC table's specimen on BH1 (🟡 U3, or the nearest
+  existing undisturbed sample in the clay) in `site_si`, `site_us` (psf) and `site_v404`, every recommended heading
+  filled so no new C002; `CONG`/`CONS` ABBR codes. `joins.ags`: a `SWELLPRESS` with `CONG_SPRS` 150 and no
+  `CONS`; a `SETTLESAT` with `CONG_SATH` −1.1; a type not in the dictionary; `CONG_PDEN` `#2.65`; a `CONS` row with
+  `CONS_INCE` blank.
+- Tests: `tests/datasets/test_oedometer.py` (new): AC 1, 2, 4–9, 12, 13, 15; `tests/test_registry.py` covers the
+  template (AC 14). Existing tests counting groups in the good files updated.
+- Split if large: (3a) the good-file specimen, `Project.oedometer()` and AC 1–5, 13–15; (3b) the `joins.ags` cases
+  and AC 6–9, 12.
+
+### 4. `M19: add oedometer tests to the example project` (Sonnet)
+- `tests/data/_make_examples.py`: decision 10's three specimens in the example's clay, in the file's units, with
+  site-like scatter and each increment's void ratios chained to 3DP and mv written from them by the E003 formula
+  (so step 6 finds nothing); regenerate `src/hangtu/examples/data/site.ags` and write `oedometer.csv` from it.
+- `docs/site/guides/datasets.md`: `p.oedometer()` in the table. Run `docs/prepare_site.py` and
+  `zensical build --clean --strict`.
+- Tests: `tests/test_examples.py`: AC 16's rows and CSV half; its exact QC findings updated (C002 only if a
+  recommended heading is blank by design).
+
+### 5. `M19: check oedometer results in QC (E001, E002, E004, E005)` (Opus)
+- `src/hangtu/qc/_oedometer.py` (new), registered in `qc/__init__.py`; `rules.yaml` E001, E002, E004, E005 with
+  `void_ratio_chain_tolerance: 0.002` and `initial_void_ratio_tolerance: 0.02`; `docs/data/qc.md` §4.15.
+- `qc_defects.ags`: AC 10's E001, E002, E004 and E005 cases.
+- `docs/site/guides/ags-and-qc.md`: the E rules.
+- Tests: `tests/qc/test_oedometer.py` (new): AC 10's four cases with their messages (the 0.010, 0.005 and 0.150
+  differences; the assumed-ρs wording); a case at exactly each tolerance raises nothing; `test_qc_acceptance.py`
+  and `test_examples.py` keep the good files and the example clean (AC 11, 16).
+
+### 6. `M19: check the lab's mv against the void ratios (E003)` (Opus)
+- **Before it:** the mv definition checked against BS 1377-5 and ISO 17892-5 (spec decision 7, 🔬), with the clause
+  in `qc.md` §4.15 and the rule's docstring. If neither standard is at hand, the step doesn't run: E003 goes to
+  `docs/TODO.md` with the trigger "when BS 1377-5 or ISO 17892-5 is at hand, or before (c) recomputes mv", and
+  step 7 notes it.
+- `qc/_oedometer.py`: E003 with the interval arithmetic of decision 7; `rules.yaml`; `qc_defects.ags`: AC 10's
+  E003 case.
+- Tests: AC 10's E003 case (0.32 against 0.134–0.178) and the table's six mv values raising nothing (increment 6 at
+  0.1139–0.1169 against 0.115–0.125); the first increment and an unloading increment skipped.
+
+### 7. `M19: close out (a)` (Opus)
+- SPEC §10.2: `p.oedometer()`. `docs/data/datasets.md` §1, §6.14 and the status line; `qc.md`'s status line.
+- `STATUS.md`: M19's row reads "(a) done; (b) next", with the four units named; `CHANGELOG.md` Unreleased:
+  `p.oedometer()`, `ht.analysis.oedometer_load_branch()`, the E rules, the `oedometer` template, and that a
+  database made by an earlier version needs re-ingesting.
+- Parameter index (`docs/drafts/parameters/README.md`): stage A of 06, 11 and 12 (oedometer) part built; 21 A part
+  built (`CONG_SPRS`, `CONG_SATH`; rock free swell waits for wave 0).
+- `docs/TODO.md`: #67's text notes the oedometer was considered and doesn't fit (it stays open); E003 if step 6
+  deferred it.
+- What a future session would get wrong without being told, written where it will be read (for example, a new
+  quantity kind converts every AGS heading with that dimension at ingest, so check the dictionary before adding
+  one).
+- **Verification:** every AC reported met or not with its test; the whole suite (`-n 2`); ruff check and format
+  check; mypy; the lowest-versions run (then `git checkout uv.lock`); the strict docs build.
