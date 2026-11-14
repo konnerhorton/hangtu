@@ -17,6 +17,7 @@ settings:
   summary_min_count: 5         # fewest values per unit for a P07 summary bar
   geology_key: GEOL_GEOL       # GEOL heading holding each layer's code (datasets, M7)
   water_unit_weight: 9.81 kN/m3  # γw for pore pressure, converted as needed (M13)
+  grag_fraction_system: null   # astm_uscs | aashto | iso14688: the system a lab reported GRAG in; never assumed
 
 # Plot presets (docs/plots/P01-property-profile.md §6). The preset name is the
 # registry column it plots. Typical ranges are in the quantity's canonical unit

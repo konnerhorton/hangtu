@@ -58,6 +58,7 @@ class Build:
         self.overrides = stored.get("display_overrides", {})
         self.geology_key = stored.get("geology_key", "GEOL_GEOL")
         self.datum = stored.get("vertical_datum")
+        self.grag_fraction_system = stored.get("grag_fraction_system")
         judgments = stored.get(_judgments.STORED_KEY)
         self.judgments_file = (
             None
