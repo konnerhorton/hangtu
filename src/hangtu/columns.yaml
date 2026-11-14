@@ -1429,6 +1429,20 @@ columns:
     type: text
     ags: [TREG.TREG_REM, TRIG.TRIG_REM, SHBG.SHBG_REM]
     used_by: []
+  # --- Oedometer (M19 a, docs/data/datasets.md §6.14) ---
+  applied_vertical_stress:
+    description: Vertical stress applied at the end of an oedometer increment; in a drained oedometer, the effective vertical stress on the specimen
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Applied vertical stress, σ′_v
+    ags: [CONS.CONS_INCF]
+    used_by: []
+  load_branch:
+    description: Branch of the oedometer curve an increment is on (loading, unloading, reloading, constant_stress)
+    type: text
+    ags: ["derived: ht.analysis.oedometer_load_branch()"]
+    used_by: []
   # Readings during shearing (M11 c, docs/analysis/strength.md §2): one
   # row per strain step, from a CSV the user shapes. Bare names, against the
   # _at_failure values of a stage; ht.analysis.triaxial_failure_from_readings()
