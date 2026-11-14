@@ -270,7 +270,7 @@ The good files' specimen (BH1, 🟡 sample U3) is: `CONG_TYPE` `OEDOMETER`, `UND
    specimen gives `loading`, `constant_stress`, `unloading`, blank, `reloading`, `loading`; on two specimens in one
    frame it starts each at `loading`; without `applied_vertical_stress` it raises an error naming it.
 4. **US display:** with `display_units="US"`, increment 6 gives `applied_vertical_stress` 16708.35 psf
-   (800 × 20.8854342), increment 2's mv 0.00766085 ft²/kip (0.16 × 0.0478803), increment 4's cv by root time
+   (800 × 20.8854342), increment 2's mv 0.00766084 ft²/kip (0.16 × 10.7639104 / 224.808943; the 0.0478803 above is rounded to 6 SF), increment 4's cv by root time
    22.60421 ft²/yr (2.1 × 10.7639104); to 1e-6 relative, the precision of the factors.
 5. **Twins:** `site_si.ags` and `site_us.ags` give equal `p.oedometer()` (1e-9 relative) for each `display_units`,
    and the same E findings (none).

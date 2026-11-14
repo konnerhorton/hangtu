@@ -219,6 +219,15 @@ quantity_kinds:
     canonical: millimeter / minute
     US: {unit: inch / minute, text: in/min}
     SI: {unit: millimeter / minute, text: mm/min}
+  # No other kind shares their dimensions (M19 a).
+  volume_compressibility:
+    canonical: meter**2 / meganewton
+    US: {unit: foot**2 / kip, text: ft²/kip}
+    SI: {unit: meter**2 / meganewton, text: m²/MN}
+  consolidation_coefficient:
+    canonical: meter**2 / year
+    US: {unit: foot**2 / year, text: ft²/yr}
+    SI: {unit: meter**2 / year, text: m²/yr}
   percent:
     canonical: null
     US: {unit: null, text: "%"}

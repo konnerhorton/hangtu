@@ -336,3 +336,30 @@ def test_meta_heading_standard_flag():
     assert headings["ISPT", "ISPT_NVAL"].standard
     assert not headings["RUCS", "RUCS_E"].standard  # removed in 4.2
     assert not headings["XPPT", "XPPT_RES"].standard  # user-defined
+
+
+@pytest.mark.parametrize(
+    ("heading", "unit", "kind"),
+    [
+        ("CONS_INMV", "m2/MN", "volume_compressibility"),
+        ("CONS_CVRT", "m2/yr", "consolidation_coefficient"),
+        ("CONS_CVLG", "m2/yr", "consolidation_coefficient"),
+    ],
+)
+def test_oedometer_coefficients_have_their_kinds(heading, unit, kind):
+    entry = Heading("CONS", heading, "OTHER", "2SF", unit, "4.2")
+    result, finding = u.resolve_heading("CONS", heading, unit, "2SF", entry, "SI", 7)
+    assert (result.quantity, result.unit, finding) == (kind, unit, None)
+
+
+@pytest.mark.parametrize(
+    ("file_unit", "dictionary_unit", "value", "expected"),
+    [
+        ("ft2/kip", "m2/MN", 0.16 * 10.7639104 / 224.808943, 0.16),
+        ("ft2/yr", "m2/yr", 22.60421, 2.1),
+    ],
+)
+def test_us_oedometer_coefficients_convert(file_unit, dictionary_unit, value, expected):
+    result, _, finding = converted(file_unit, standard(dictionary_unit, "2SF"), value)
+    assert result == pytest.approx(expected, rel=1e-6)
+    assert finding is None
