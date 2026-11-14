@@ -312,6 +312,10 @@ A review of the whole package asked one question: if an AI agent does the work a
 - **Found (grag-fractions):** `uscs()` leaves the symbol blank ("no fractions") where a `cobbles_content` or `boulders_content` column is present but blank, and counts them as 0 only where the columns are absent. So a hand-built frame without the columns is classified on the whole sample even when it has oversize. `p.index_properties()` gives `uscs()` the reported `GRAG_VCRE` as the oversize, so it isn't affected.
 - **Open:** whether an absent oversize column should also leave the symbol blank, or warn, rather than count as 0.
 
+### 72. Standard quantities in user-defined headings · You + Claude · SPEC §2.6, §7, `docs/data/datasets.md` §6.8 · with M16's readings map, once a second file needs it
+- **Found (lden-unit-weight):** a real file gave its lab unit weights only in a user-defined `LDEN_UWT` (kN/m³), with no `LDEN_BDEN`, so `C001` flagged every `LDEN` row and `p.density()` had none. The same file had `LPEN_QU` and `ISPT_B150`. For now the extractor writes `LDEN_BDEN` = γ / g and hangtu reads only the standard heading.
+- **Decided:** if a heading map is needed, it is part of M16's readings map (for example `LDEN_UWT` → `bulk_unit_weight`, with hangtu deriving the density), not a separate project setting. M16's draft maps user-defined groups, so its map then has to cover a user-defined heading inside a standard group too.
+
 ---
 
 ## Later / far future (also on the Roadmap)
