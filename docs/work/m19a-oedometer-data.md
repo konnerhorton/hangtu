@@ -80,3 +80,226 @@ added to `site.ags` through `_make_examples.py`, with the CSVs written from it.
 - Every derivation: σ′p, Cc, Cs, Eoed, k and swelling (M19 b–d).
 - `ESCG` and `ESCT` (decision 4); settlement-against-time readings from AGS (wave 0).
 - Stage D for sheet 06 (`representative()`, `select()`) and TODO #59.
+
+## Spec
+The rules live in the topic docs: the dataset in `docs/data/datasets.md` §6.14, the QC rules in `docs/data/qc.md`
+§4.15. This section lists what changes where, the decisions behind it and the acceptance criteria. 🟡 marks a value
+or name proposed here, awaiting review; 🔬 marks something to verify against a source before the build.
+
+### Changes
+- **`docs/data/datasets.md`:** §6.14 `p.oedometer()` (new); §1 (consolidation in scope), §2, §8, §11, §11.1 and §12
+  updated for it.
+- **`docs/data/qc.md`:** §4.15 oedometer rules E001–E005 (new); §4.10's minimum fields gain `CONG` and `CONS`; §8
+  has the defects cases.
+- **`ht.analysis.oedometer_load_branch()`** (new, decision 3), with its reference entry. Its rule goes in a new
+  section of `docs/analysis/` only if (b) needs one; until then the docstring and datasets.md §6.14 hold it.
+- **`docs/plots/P00-framework.md` §4.1 and `config/defaults.yaml`:** three quantity kinds (decision 6).
+- **SPEC:** §10.2, the dataset. §8.2 doesn't change: `CONG` is a lab test placed by the lab-test row.
+- **Registry** (each name checked against `columns.yaml` on 2026-11-14; none exists, and none collides):
+  - new columns: `applied_vertical_stress`, `void_ratio_at_increment_start`, `void_ratio_at_increment_end`,
+    `load_branch`, `reported_coefficient_of_volume_compressibility`,
+    `reported_coefficient_of_consolidation_root_time`, `reported_coefficient_of_consolidation_log_time`,
+    `swelling_pressure`, `height_change_on_saturation`, `specimen_diameter`, `equipment_deformation_corrected`;
+    for the readings template, `elapsed_time` and `vertical_displacement`;
+  - new AGS sources for existing columns: `test_type` (`CONG_TYPE`), `sample_condition` (`CONG_COND`),
+    `test_stage` (`CONS_INCN`), `water_content` (`CONG_MCI`), `final_water_content` (`CONG_MCF`),
+    `bulk_unit_weight` and `dry_unit_weight` (`CONG_BDEN`, `CONG_DDEN` × g), `particle_density` (`CONG_PDEN`),
+    `degree_of_saturation` (`CONG_SATR`), `void_ratio` (`CONG_IVR`), `specimen_height` (`CONG_HIGT`),
+    `test_remarks` (`CONG_REM`), `remarks` (`CONS_REM`);
+  - the `oedometer` and `oedometer_readings` templates (decision 9).
+- **Test files:** `CONG`/`CONS` in `site_si.ags`, `site_us.ags` and `site_v404.ags`; the edge cases in `joins.ags`;
+  the E cases in `qc_defects.ags`.
+- **Example file:** `site.ags` gains two oedometer tests through `_make_examples.py` (decision 10), and
+  `oedometer.csv` is written from it.
+- **Docs site:** `p.oedometer()` in the datasets guide's table and its reference entry; the E rules where the AGS
+  and QC guide lists rules.
+
+### Decisions
+1. **One row per increment** (intent decision 5): each `CONS` row in file order, with its `CONG` row's values
+   repeated. The specimen's columns are its initial state (and `final_water_content`); the increment's are the
+   stress at its end, the void ratios at its start and end, and the lab's mv and cv.
+   - **A `CONG` row with no `CONS` rows is one row** with blank increment columns. A swelling pressure test
+     (`SWELLPRESS`) often reports only `CONG_SPRS`, and a settlement on saturation test only `CONG_SATH`; dropping
+     the specimen would drop them silently. This differs from `p.triaxial()`, where a `TREG` with no stages
+     gives no row, because a triaxial result is always in a stage.
+   - **Every `CONG_TYPE` is read** (`OEDOMETER`, `HYDRAULIC CELL`, `SETTLESAT`, `SWELL`, `SWELLPRESS`,
+     `EXPANDABILITY`, and any other text as written), with `test_type` saying which. (d) interprets the swelling
+     types; (b) fits only the types it names. Reason: leaving rows out by type would be dropping data, and
+     `test_type` filters them in one line.
+2. **Increment order is file order.** AGS lists an increment's rows in sequence, and `CONS_INCN` is free text
+   (`"3"`, `"3a"`, `"Flood"`). QC E004 flags a file whose numeric `CONS_INCN` values aren't increasing in file
+   order, so a resorted file is caught rather than reordered by a guess.
+3. **`load_branch` comes from `ht.analysis.oedometer_load_branch(df)`,** which `p.oedometer()` calls, so CSV and
+   AGS rows follow one rule (as `p.triaxial()` calls `triaxial_failure_stresses()`). Per `specimen_id`, in row
+   order, comparing each `applied_vertical_stress` with the previous one and with the largest so far:
+   - `loading`: the first increment, or a stress above every earlier stress;
+   - `unloading`: a stress below the previous one;
+   - `reloading`: a stress above the previous one but not above the largest so far (equal to it counts as
+     reloading: the curve has only just come back to it);
+   - `constant_stress`: a stress equal to the previous one (flooding, or a creep stage held at one stress).
+   - A blank stress gives a blank branch, and the next row is compared with the last stress given. A specimen
+     with no increments has a blank branch.
+   - The function returns a copy with the column added. On a CSV frame without `specimen_id` or
+     `applied_vertical_stress` it raises an error naming the missing column.
+   - 🟡 The four values and `constant_stress` as the name for a held stress.
+4. **Names** (🟡, checked against the registry):
+   - **`applied_vertical_stress`** for `CONS_INCF`, as `applied_normal_stress` is the shear box's. Not
+     `effective_vertical_stress`, which is the in situ σ′v0 that `vertical_stress()` writes; a frame passed
+     through it would be overwritten (the reason M11 (a) gave for `pore_pressure_at_failure`). In a drained
+     oedometer the applied stress at the end of an increment is the effective stress, and the description says so.
+   - **`void_ratio_at_increment_start`, `void_ratio_at_increment_end`**, and `void_ratio` for the specimen's
+     initial `CONG_IVR`, as `p.triaxial()` and `p.shear_box()` use it.
+   - **`reported_` for the lab's mv and cv:** they are the lab's derived values, which (c) recomputes (mv from the
+     void ratios, cv from P15's readings) and compares, as M11 (a) decision 8 did for c′ and φ′. They are written
+     out (`coefficient_of_volume_compressibility`, `coefficient_of_consolidation`) since `mv` and `cv` are bare
+     symbols.
+   - **`test_stage` for `CONS_INCN`,** the generic stage column the triaxial, vane and shear box datasets already
+     use, rather than a new `load_increment`. Its description gains "an oedometer increment".
+   - **`height_change_on_saturation`** (`CONG_SATH`, %) is kept with the file's sign: the dictionary doesn't
+     say whether swelling is positive. The description says so, and (d) decides how to read it.
+5. **The specimen's initial state uses the existing names** (`water_content`, `bulk_unit_weight`,
+   `dry_unit_weight`, `particle_density`, `particle_density_assumed`, `degree_of_saturation`, `void_ratio`,
+   `specimen_height`), as M11 (a) decision 7 did: they are a specimen set up for the test, in their own dataset,
+   so they aren't pooled with `p.density()` by accident.
+   - Densities become unit weights (× g), as in every dataset (M14 (a) decision 2).
+   - **An assumed particle density** (`#2.65`) keeps its value with `particle_density_assumed = True`, as
+     `p.particle_density()` and `p.shear_box()` do. It is never borrowed from `LPDN`: the lab's own value for the
+     specimen is the one its void ratio was computed with.
+6. **Three quantity kinds** (P00 §4.1; 🟡 the US displays):
+
+   | Kind | Canonical | US display | SI display | Columns |
+   |---|---|---|---|---|
+   | `volume_compressibility` | m²/MN | ft²/kip | m²/MN | mv |
+   | `consolidation_coefficient` | m²/yr | ft²/yr | m²/yr | cv |
+   | `time` | min | min | min | `elapsed_time` |
+
+   ft²/kip is the inverse of ksf, the US display of `modulus`, so mv and Eoed = 1/mv read in matching units. The
+   aliases `m2/MN` and `m2/yr` already exist. `CONS_INSC` (secondary compression, whose definition, e or strain
+   per log cycle, the dictionary doesn't give) and `CONS_TEMP` aren't read; (c) decides on them.
+7. **QC (level 1), E001–E005 in qc.md §4.15** (🟡 the letter, since `E` is free; the thresholds). Each checks a
+   specimen against itself: a record whose numbers can't all be right. Ranges for Cc or σ′p are level 2.
+
+   | ID | Rule | Severity | Thresholds |
+   |---|---|---|---|
+   | E001 | Void ratios don't chain: an increment's `CONS_IVR` differs from the previous increment's `CONS_INCE` | warning | `void_ratio_chain_tolerance: 0.002` |
+   | E002 | The void ratio rose over an increment whose stress is above the previous one | warning | `void_ratio_chain_tolerance` |
+   | E003 | `CONS_INMV` differs from Δe / (1 + e_start) / Δσ′ by more than the rounding of the values allows | warning | |
+   | E004 | Numeric `CONS_INCN` values aren't increasing in file order | warning | |
+   | E005 | `CONG_IVR` differs from ρs / ρd − 1 (`CONG_PDEN`, `CONG_DDEN`) | warning | `initial_void_ratio_tolerance: 0.02` |
+
+   - E001 and E002's tolerance clears the 3DP rounding of two void ratios (at most 0.001). The first increment
+     isn't chained to `CONG_IVR`, since flooding or seating can change the void ratio between them.
+   - E002 is a warning, not an error: a swelling soil can still swell under a small load increase. The message
+     says so.
+   - E003 skips the first increment (its start stress is the seating load, which the file doesn't give) and any
+     increment whose Δσ′ is 0 or less. "Allows" is interval arithmetic: e ± 0.0005 (3DP), the stresses as
+     written, and the reported mv ± half a unit in its second significant figure (2SF). A finding means the two
+     intervals don't overlap. 🔬 The definition, mv = Δe / ((1 + e_start) Δσ′) with e at the start of the
+     increment, is to be checked against BS 1377-5 and ISO 17892-5 before the build. A lab that divides by 1 + e0
+     of the specimen gives values 5–20 % apart at later increments, which this rule would flag. If either
+     standard defines mv on e0, the rule takes the one the standard gives, and the message names it.
+   - E005 only where all three are given. 2DP densities move ρs / ρd − 1 by at most 0.010 (ρs 2.70, ρd 1.50);
+     0.02 clears it. The message says when ρs is assumed (`#`). The dictionary's own example (ρd 1.75, ρs 2.65,
+     e0 0.800) raises it: 2.65 / 1.75 − 1 = 0.514. The example's values are illustrative and not one specimen.
+   - **TODO #67's physical check isn't taken here.** An oedometer is loaded far past the overburden by design
+     (often 10–30 σ′v0), so "consolidation stress far above overburden" doesn't fit this test. It belongs to the
+     triaxial's `TRET_CONP`, and #67 stays open.
+8. **Minimum fields** (qc.md §4.10):
+   - `CONG`: required `<SPEC_KEY>`; recommended `SPEC_REF`, `SPEC_DPTH`, `CONG_TYPE`, `CONG_COND`, `CONG_IVR`,
+     `CONG_HIGT`.
+   - `CONS`: required `<SPEC_KEY>`, `CONS_INCN`, `CONS_INCF`, `CONS_INCE`; recommended `CONS_IVR`.
+
+   An increment with no stress or no end void ratio can't place a point on the curve, so it is incomplete (§7):
+   left out by default with the §7 warning, kept by `include_incomplete=True`. Leaving one out breaks the chain
+   around it, which E001 reports as well.
+9. **Templates:**
+   - `ht.template("oedometer")` is the dataset's columns without `source_line` and `load_branch`, which
+     `oedometer_load_branch()` adds.
+   - `ht.template("oedometer_readings")` (intent decision 3): `loca_id`, `specimen_id`, `sample_reference`,
+     `specimen_reference`, `depth`, `test_stage`, `applied_vertical_stress`, `elapsed_time`,
+     `vertical_displacement`, `geology_unit`. One row per reading. `vertical_displacement` is the specimen's
+     compression since the increment started, positive downward (🟡). No dataset produces it, and nothing reads it
+     until (c), which may change its columns before it is used.
+10. **Example data** (`ht.examples`, through `_make_examples.py`, with site-like scatter): two specimens in the
+    example's clay unit, one lightly overconsolidated and one stiffer, each with eight to twelve increments and
+    one unload–reload loop, plus a swelling pressure test with no increments. Enough for (b)'s σ′p and Cc and P13
+    to draw from the example file. The values are invented and say so in the generator.
+
+### Sources
+- **AGS 4.2 dictionary** (python-ags4 1.2.0, `Standard_dictionary_v4_2.ags`): `CONG` (parent `SAMP`; its keys
+  include `SPEC_REF` and `SPEC_DPTH`) and `CONS` (parent `CONG`, key `CONS_INCN`); headings, types, units, and the
+  pick lists `CONG_TYPE` and `CONG_COND`. Checked 2026-11-14.
+- **Unit factors:** exact by definition (1 ft = 0.3048 m, 1 lbf = 4.4482216152605 N). 1 m²/MN = 10.7639104 ft² /
+  224.808943 kip = 0.0478803 ft²/kip; 1 m²/yr = 10.7639104 ft²/yr; 1 kPa = 20.8854342 psf.
+- 🔬 **mv's definition** for E003: BS 1377-5 and ISO 17892-5 (decision 7). Needed from the user, or E003 waits.
+- No correlation or empirical source is used. The E thresholds are rounding bounds, not cited values.
+
+### Acceptance criteria
+Golden values hand-calculated. Tolerance 1e-9 relative unless a criterion says otherwise.
+
+The good files' specimen (BH1, 🟡 sample U3) is: `CONG_TYPE` `OEDOMETER`, `UNDISTURBED`, ρ 1.92, ρd 1.50,
+ρs 2.70 Mg/m³, w 28.0 %, S 95 %, e0 0.800 (= 2.70 / 1.50 − 1), H 20.00 mm, D 75.00 mm, with these increments:
+
+| # | σ′ (kPa) | e start | e end | mv reported (m²/MN) | mv recomputed | Branch |
+|---|---|---|---|---|---|---|
+| 1 | 25 | 0.800 | 0.795 | | (skipped) | loading |
+| 2 | 50 | 0.795 | 0.788 | 0.16 | 0.007 / 1.795 / 25 kPa = 0.1560 | loading |
+| 3 | 100 | 0.788 | 0.776 | 0.13 | 0.012 / 1.788 / 50 = 0.1342 | loading |
+| 4 | 200 | 0.776 | 0.748 | 0.16 | 0.028 / 1.776 / 100 = 0.1577 | loading |
+| 5 | 400 | 0.748 | 0.690 | 0.17 | 0.058 / 1.748 / 200 = 0.1659 | loading |
+| 6 | 800 | 0.690 | 0.612 | 0.12 | 0.078 / 1.690 / 400 = 0.1154 | loading |
+| 7 | 200 | 0.612 | 0.625 | | | unloading |
+| 8 | 50 | 0.625 | 0.638 | | | unloading |
+| 9 | 200 | 0.638 | 0.630 | | | reloading |
+| 10 | 800 | 0.630 | 0.608 | | | reloading |
+| 11 | 1600 | 0.608 | 0.520 | 0.068 | 0.088 / 1.608 / 800 = 0.06841 | loading |
+| 12 | 400 | 0.520 | 0.538 | | | unloading |
+
+(1/kPa = 1000 m²/MN.) Increment 4 has `CONS_CVRT` 2.1 and `CONS_CVLG` 1.8 m²/yr.
+
+1. **Rows:** `p.oedometer()` gives twelve rows for this specimen in file order, with `test_stage` `"1"`–`"12"`,
+   the stresses and void ratios of the table, and the specimen's values on each: `bulk_unit_weight` 18.82877 kN/m³
+   (1.92 × 9.80665 = 18.828768), `dry_unit_weight` 14.70998 kN/m³ (1.50 × 9.80665 = 14.709975), `water_content`
+   28.0, `particle_density` 2.70, `particle_density_assumed` False, `degree_of_saturation` 95, `void_ratio` 0.800,
+   `specimen_height` 20.00 mm, `specimen_diameter` 75.00 mm, the lab depth and `depth_basis` (§6.2), and
+   `test_type` `OEDOMETER`.
+2. **Branches:** `load_branch` is the table's column, including increment 10 (800 kPa, equal to the earlier
+   maximum) as `reloading` and 11 as `loading`.
+3. **Branch rule on a CSV frame:** `oedometer_load_branch()` on the stresses 100, 100, 50, blank, 100, 200 of one
+   specimen gives `loading`, `constant_stress`, `unloading`, blank, `reloading`, `loading`; on two specimens in one
+   frame it starts each at `loading`; without `applied_vertical_stress` it raises an error naming it.
+4. **US display:** with `display_units="US"`, increment 6 gives `applied_vertical_stress` 16708.35 psf
+   (800 × 20.8854342), increment 2's mv 0.00766085 ft²/kip (0.16 × 0.0478803), increment 4's cv by root time
+   22.60421 ft²/yr (2.1 × 10.7639104); to 1e-6 relative, the precision of the factors.
+5. **Twins:** `site_si.ags` and `site_us.ags` give equal `p.oedometer()` (1e-9 relative) for each `display_units`,
+   and the same E findings (none).
+6. **No increments:** a `joins.ags` `SWELLPRESS` specimen with `CONG_SPRS` 150 kPa and no `CONS` rows is one row:
+   `swelling_pressure` 150 kPa, `test_type` `SWELLPRESS`, blank increment columns and `load_branch`.
+7. **Every type kept:** a `SETTLESAT` specimen with `CONG_SATH` −1.1 % gives `height_change_on_saturation` −1.1, as
+   written; a type the dictionary doesn't list is kept with its text.
+8. **Assumed particle density:** a `CONG_PDEN` of `#2.65` gives 2.65 and `particle_density_assumed = True`, never
+   blank.
+9. **Incomplete:** a `CONS` row with `CONS_INCE` blank is left out with the §7 warning, and kept with
+   `include_incomplete=True` with a blank `void_ratio_at_increment_end`.
+10. **QC (`qc_defects.ags`):** each E rule raises exactly the findings its case seeds:
+    - E001: an increment ending at 0.700 followed by one starting at 0.690 (0.010 apart);
+    - E002: 100 → 200 kPa with e 0.776 → 0.781 (up 0.005);
+    - E003: increment 2 of the table with `CONS_INMV` 0.32 (recomputed 0.156; intervals 0.134–0.178 and
+      0.315–0.325 don't overlap). The table's own mv values raise nothing: increment 6's intervals are
+      0.1139–0.1169 (Δe 0.077–0.079, 1 + e 1.6895–1.6905) and 0.115–0.125;
+    - E004: `CONS_INCN` 1, 2, 4, 3 in file order;
+    - E005: `CONG_IVR` 0.650 with ρd 1.50, ρs 2.70 (expected 0.800; 0.150 apart).
+11. **Good files stay clean:** `site_si.ags`, `site_us.ags` and `site_v404.ags` raise no E finding and no C001 for
+    `CONG` or `CONS`.
+12. **Empty:** a file with no `CONG` gives an empty frame with every column and the warning "No CONG group". A
+    `CONS` row whose `CONG` is missing (Rule 10c) is built in the test, as the triaxial's is, and kept with blank
+    specimen columns.
+13. **Feeds the plots:** `ht.plot.profile(p.oedometer(), "void_ratio")` and
+    `ht.plot.geology_unit_comparison(p.oedometer().drop_duplicates("specimen_id"), "void_ratio")` run on the good
+    files with no warning.
+14. **Templates:** `ht.template("oedometer")` is the dataset's columns without `source_line` and `load_branch`, in
+    the same order; `ht.template("oedometer_readings")` has decision 9's columns (`tests/test_registry.py`).
+15. **Common arguments:** `depth=`, `geology=`, `holes=` and `where={"test_type": "OEDOMETER"}` filter
+    `p.oedometer()` as §2 says, keeping or dropping a specimen's increments together.
+16. **Example file:** `ht.examples` gives `p.oedometer()` rows for decision 10's three specimens, with no E finding,
+    and `oedometer.csv` read with `ht.read_csv()` equals the dataset's template columns.
