@@ -112,7 +112,9 @@ a value from the typical ranges above, stated as a judgment with its reason.
 ## Pitfalls
 
 - AGS `LDEN` gives density in Mg/m³, not unit weight. A kN/m³ heading such as `LDEN_UWT` is a project addition to
-  the dictionary, not AGS 4.2; check its unit.
+  the dictionary, not AGS 4.2; check its unit. hangtu doesn't read such a heading: `p.density()` takes the bulk unit
+  weight from `LDEN_BDEN` only, and its unit weight is blank for those rows. To use them, write `LDEN_BDEN` = γ / g
+  (g = 9.80665 m/s²) into the file, and say in `LDEN_REM` that it is derived.
 - `RDEN_BDEN` is in kg/m³ while `LDEN`, `TRET` and `CONG` densities are in Mg/m³: a factor of 1000. hangtu converts
   each by its declared unit on ingest.
 - Densities from disturbed samples, or thick-walled samples of granular soil, are approximate (Loehr et al. 2016,

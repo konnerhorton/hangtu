@@ -1,9 +1,7 @@
 # Status
 
-**Next:** decide how the LDEN unit weight held in a user-defined heading (`LDEN_UWT`) is read: a heading map
-in hangtu, with M16's readings map, or the extractor writing `LDEN_BDEN`; its own unit. Then wave 0 (M16,
-user-defined groups and curves) once TODO #31 is settled; else wave 3 (M19, the oedometer), whose Soft Soil set
-(M20) is built on M18's model-set base. Then waves 4–6.
+**Next:** wave 0 (M16, user-defined groups and curves) once TODO #31 is settled; else wave 3 (M19, the
+oedometer), whose Soft Soil set (M20) is built on M18's model-set base. Then waves 4–6.
 
 Last checkpoint: 2, after `cleanup`, 2026-11-09, 1e39bac.
 
