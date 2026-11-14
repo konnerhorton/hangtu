@@ -223,15 +223,16 @@ p.grain_size_summary(*, fractions="astm_uscs", d_values=(10, 30, 60), **common)
 ```
 `ht.analysis.gradation(p.grain_size(**common), fractions=, d_values=)`: one row per specimen (analysis §3.4). The common arguments (§2) filter the curve points first, so `depth=` and `geology=` act on the specimen's depth and unit, which every point of a curve shares.
 
-Columns: `loca_id`, `specimen_id`, `sample_reference`, `specimen_reference`, `ground_level`, `depth`, `depth_basis`, `elevation`, the D-values, `uniformity_coefficient`, `curvature_coefficient`, the fraction columns of the system, `fraction_system`, then the geology columns. `qualifier` and `source_line` change within a curve, so they aren't carried (analysis §3.4). D-values are in mm in both systems.
-- With no `GRAT`, or no curve left after the filters, it is an empty frame with these columns; the missing-group warning is `p.grain_size()`'s.
+Columns: `loca_id`, `specimen_id`, `sample_reference`, `specimen_reference`, `ground_level`, `depth`, `depth_basis`, `elevation`, the D-values, `uniformity_coefficient`, `curvature_coefficient`, the fraction columns of the system, `fraction_system`, `grading_source`, then the geology columns. `qualifier` and `source_line` change within a curve, so they aren't carried (analysis §3.4). D-values are in mm in both systems.
+- **Reported gradings** (§6.13) follow the curves, one row per specimen in file order, with the same columns: blank D-values, Cu and Cc from `GRAG_UC` and `GRAG_CC`, the fractions of `fractions=` by §6.13, and `fraction_system` naming `fractions=`. `grading_source` (`"curve"` or `"reported"`) follows `fraction_system`. The common arguments act on them as on the curves. `p.grain_size()` is unchanged: a reported grading has no points.
+- With neither `GRAT` nor `GRAG`, or no grading left after the filters, it is an empty frame with these columns; the missing-group warning names both groups.
 - `gradation()` stops on a percent passing outside 0 to 100 or a size of 0 or less (analysis §3.6). A dataset doesn't stop on the file's data (as §6.2), so such a curve keeps its row with blank D-values and fractions, and one warning per call names it and points to `p.qc()` (P002).
 
 ### 6.6 `p.index_properties()` (M8)
 ```python
 p.index_properties(**common)
 ```
-One row per **sample** (`SAMP`) that has a water content, an Atterberg test or a grading, combining them so that each sample can be classified. Settles SPEC §13 #2 (M8 intent, decision 7). A sample is told apart by its AGS key fields (`LOCA_ID`, `SAMP_TOP`, `SAMP_TYPE`, `SAMP_REF`, `SAMP_ID`), which every test row carries, so a sample with no `SAMP` row is still one. Samples are listed in order of their first test row: `LNMC`, then `LLPL`, then `GRAT`.
+One row per **sample** (`SAMP`) that has a water content, an Atterberg test or a grading, combining them so that each sample can be classified. Settles SPEC §13 #2 (M8 intent, decision 7). A sample is told apart by its AGS key fields (`LOCA_ID`, `SAMP_TOP`, `SAMP_TYPE`, `SAMP_REF`, `SAMP_ID`), which every test row carries, so a sample with no `SAMP` row is still one. Samples are listed in order of their first test row: `LNMC`, then `LLPL`, then `GRAT`, then `GRAG` (reported gradings, §6.13). A sample's grading candidates are its `GRAT` specimens and its reported `GRAG` specimens, chosen by the rules below as one test.
 
 **Which specimen** of each test, where a sample has several:
 1. The **reference depth** is the water content specimen's depth (§6.2) when the sample has exactly one, else the sample's lab depth (§6.2, without `SPEC_DPTH`). A specimen with several `LNMC` rows is one specimen, with a blank water content (§6.2).
@@ -248,17 +249,18 @@ One row per **sample** (`SAMP`) that has a water content, an Atterberg test or a
 | `water_content` | The chosen `LNMC` specimen |
 | `liquid_limit`, `plastic_limit`, `plasticity_index`, `non_plastic` | The chosen `LLPL` specimen, as §6.2 |
 | `liquidity_index`, `consistency_index`, `plasticity_class_uscs`, `plasticity_class_bs5930` | `ht.analysis.plasticity()` on the combined row: LI and Ic use the chosen water content, which may be another specimen's |
-| `d10`, `d30`, `d60`, `uniformity_coefficient`, `curvature_coefficient`, `fines_content`, `sand_content`, `gravel_content`, `cobbles_content`, `boulders_content`, `fraction_system` | `gradation(fractions="astm_uscs")` on the chosen `GRAT` specimen |
-| `uscs_symbol` | `ht.analysis.uscs()` on the combined row |
-| `aashto_group`, `aashto_group_index` | `ht.analysis.aashto()` on the `aashto` fractions of the same specimen, which aren't returned |
-| `clay_activity` | `ht.analysis.clay_activity()` on the row's PI and the `iso14688` clay content (< 0.002 mm) of the same specimen, which isn't returned; blank, without a warning, where the curve doesn't reach 0.002 mm (M14 b) |
+| `d10`, `d30`, `d60`, `uniformity_coefficient`, `curvature_coefficient`, `fines_content`, `sand_content`, `gravel_content`, `cobbles_content`, `boulders_content`, `fraction_system` | `gradation(fractions="astm_uscs")` on the chosen `GRAT` specimen, or the `astm_uscs` fractions of a reported grading by §6.13 (blank D-values) |
+| `grading_source` | `"curve"` or `"reported"` (§6.13), blank without a grading |
+| `uscs_symbol` | `ht.analysis.uscs()` on the combined row. For a reported grading whose `GRAG_VCRE` is above 0, cobbles and boulders are blank in `astm_uscs` but their sum is known, so `uscs()` is given `GRAG_VCRE` as the oversize (the returned columns stay blank); otherwise it would classify the whole sample rather than the part finer than 75 mm |
+| `aashto_group`, `aashto_group_index` | `ht.analysis.aashto()` on the `aashto` fractions of the same specimen, which aren't returned (from a reported grading by §6.13, so the group is blank where the missing sand split could decide it) |
+| `clay_activity` | `ht.analysis.clay_activity()` on the row's PI and the `iso14688` clay content (< 0.002 mm) of the same specimen, which isn't returned (from a reported grading only where it is `iso14688` with `GRAG_CLAY`); blank, without a warning, where the curve doesn't reach 0.002 mm (M14 b) |
 | `water_content_specimen_id`, `atterberg_specimen_id`, `grain_size_specimen_id` | The specimen key (`specimen_id`) used for each test, blank where the sample has none |
 | geology columns | The geology at the reference depth (§5.4) |
 | `source_line` | The line of the sample's `SAMP` row, the one record all of the row's tests share; blank when the file has none |
 
 - The common arguments (§2) act on the combined rows: `depth=` on the reference depth, `geology=` on its unit. `include_incomplete=` applies to each test's records before the specimens are chosen, and the warning of rule 3 counts only the samples returned.
-- With none of `LNMC`, `LLPL` and `GRAT`, it is an empty frame with every column and the missing-group warning ("No LNMC, LLPL or GRAT group").
-- **Classification only where there is a grading.** `uscs()` and `aashto()` run only on rows with a chosen `GRAT` specimen. A sample with only a water content, or only limits, gets blank symbols without a warning, since no test was run to classify it.
+- With none of `LNMC`, `LLPL`, `GRAT` and `GRAG`, it is an empty frame with every column and the missing-group warning ("No LNMC, LLPL, GRAT or GRAG group").
+- **Classification only where there is a grading.** `uscs()` and `aashto()` run only on rows with a chosen grading (a `GRAT` curve or a reported grading). A sample with only a water content, or only limits, gets blank symbols without a warning, since no test was run to classify it.
 - The classifications' own warnings (blank symbols by reason) are passed on, once per call, and count only the samples returned: they are classified before the filters, so `where=` can name a symbol, and the warnings come from the rows the filters keep. `gradation()` runs twice on the chosen curves (astm_uscs, then aashto); the second run's warnings would repeat the first's, so they aren't shown.
 
 ### 6.7 `p.stratigraphy()` (M13)
@@ -459,6 +461,40 @@ One row per `SHBT` stage, in file order, with its `SHBG` test's values on each: 
 - **The lab's fit is repeated on each stage**, as §6.10's: summarize it on one row per specimen.
 - No `SHBT` group: an empty frame with every column and the warning "No SHBT group".
 
+### 6.13 Reported gradings (`GRAG`)
+A **reported grading** is a `GRAG` row whose specimen (the `GRAG` keys, which `GRAT` shares as its parent) has no `GRAT` row in the file: the lab's percentages without the curve. It is counted before §7 leaves any record out, so a curve whose points are incomplete never turns into a reported grading. §6.5 and §6.6 read reported gradings by these rules (`docs/work/grag-fractions.md`); a specimen with a curve is read from the curve and its `GRAG` row isn't used.
+
+**The fraction system is stated, never assumed.** AGS 4 defines the `GRAG` headings with ISO 14688 boundaries (2 mm, 0.063 mm), but labs reporting by ASTM D2487 put their 4.75 mm and 0.075 mm fractions in the same headings, and `GRAG_METH` names a test method, which doesn't fix the reporting boundaries. So the setting `grag_fraction_system` says which system the lab used: `None` (default), `"astm_uscs"`, `"aashto"` or `"iso14688"`. It is a session setting stored with the project like the others (`from_ags(..., grag_fraction_system="astm_uscs")`, `p.settings.grag_fraction_system = ...`) and read when a dataset is built, so changing it needs no re-ingest. Any other value is a `HangtuError` listing the three names and saying a user's own system can't be used for `GRAG`. It is a setting, not a judgment: it says how the data was reported.
+
+**Each heading is a size range** of the stated system's own fractions (`config/fraction_systems.yaml`):
+
+| Heading | `astm_uscs` | `aashto` | `iso14688` |
+|---|---|---|---|
+| `GRAG_FINE` | fines (< 0.075) | silt_clay (< 0.075) | clay + silt (< 0.063) |
+| `GRAG_SAND` | sand (0.075–4.75) | fine_sand + coarse_sand (0.075–2.0) | sand (0.063–2.0) |
+| `GRAG_GRAV` | gravel (4.75–75) | gravel (2.0–75) | gravel (2.0–63) |
+| `GRAG_VCRE` | cobbles + boulders (≥ 75) | boulders (≥ 75) | cobbles + boulders (≥ 63) |
+| `GRAG_SILT` | – | – | silt (0.002–0.063) |
+| `GRAG_CLAY` | – | – | clay (< 0.002) |
+
+`astm_uscs` and `aashto` have no clay–silt boundary, so there `GRAG_SILT` and `GRAG_CLAY` are read only as their sum. Under every system a blank `GRAG_FINE` is `GRAG_SILT` + `GRAG_CLAY` where both are given, as QC P003 reads it.
+
+**A requested fraction** (lower to upper size, in whichever system the dataset asks for) is:
+1. the sum of the headings whose ranges make it up exactly (one heading, or several next to each other), blank if any of them is blank;
+2. else 0, where it lies inside one heading's range and that heading is 0;
+3. else blank.
+
+Boundaries are compared exactly, as the config writes them. `astm_uscs` and `aashto` share 0.075 mm and 75 mm, so an `astm_uscs` reported grading gives the `aashto` silt_clay and boulders but not its sand split or gravel; an `iso14688` one gives no `astm_uscs` fraction but zeros. Nothing is interpolated or converted.
+
+- **A blank `GRAG_VCRE` counts as 0** where gravel, sand and fines are all given and add up to 100 within 2 percentage points (P003's default tolerance, fixed here because a dataset doesn't take QC overrides). Otherwise it is blank.
+- **Cu and Cc** are `GRAG_UC` and `GRAG_CC`. The D-values are blank.
+- **`grading_source`** is `"curve"` or `"reported"` on every row with a grading.
+
+**Warnings**, one per kind per call:
+- No system set (rows kept, fractions blank): "3 gradings are reported only as fractions (GRAG), and their fractions are blank because the project's GRAG fraction system isn't set. AGS 4 defines these headings with ISO 14688 boundaries (2 mm, 0.063 mm), but many labs report ASTM D2487 fractions (4.75 mm, 0.075 mm) in them. Set the system the lab used, for example p.settings.grag_fraction_system = "astm_uscs"."
+- The requested system differs from the stated one (§6.5's `fractions=`): "3 gradings are reported as astm_uscs fractions (GRAG), so the aashto fractions with other boundaries are blank: fine_sand, coarse_sand, gravel." It lists only the fractions blank for that reason.
+- §6.6 with an `iso14688` reported grading: "3 samples' gradings are reported as iso14688 fractions (GRAG), so their USCS fractions (finer than 0.075 mm, …) and symbols are blank." `uscs()`'s own count of rows with no fractions doesn't repeat them.
+
 ## 7. Incomplete records
 - A record is **incomplete** when QC C001 says so (with `SPEC_REF` and `SPEC_DPTH` recommended, §14): a `required` field of its own group in `qc/min_fields.yaml` is blank (qc.md §4.10). Only the dataset's source group is checked, not its parents: a hole with no `LOCA_GL` keeps its tests, with a blank elevation.
 - **Left out by default**, with one warning per call: "Left out 2 of 5 ISPT records with a blank required field (ISPT_NVAL on lines 98, 103). p.qc() lists them; include them with include_incomplete=True."
@@ -516,6 +552,8 @@ M11 (a) adds `TREG`/`TRET` and `TRIG`/`TRIT` to the three good files: a set of t
 
 M17 (a) adds `TRIT_CU` to the UU stages, `LUCT`, `LVAN`, `LPEN` and `LFCN` on existing samples, `IVAN` (two borehole vanes) and `IPEN` (one reading beyond the instrument's range, `>200`), and `SHBG`/`SHBT` (a recompacted small shear box set of three stages), to the three good files. `joins.ags` gains a vane with a flagged peak, a vane with a remolded value of 0, an `IVAN` with no type, an `IVAN` with `IVAN_IVAN` blank (incomplete, §7), a rock joint test in MPa with encapsulation and diameters, and a ring shear test with only a residual stress.
 
+A new `grag.ags` (4.2, SI, passes python-ags4) holds reported gradings with invented values (`docs/work/grag-fractions.md`, golden values G1–G8): `GRAG` with no `GRAT` on seven samples, some with `LLPL`; a blank `GRAG_VCRE` with fractions adding to 100, to 98.5 and to 95; `GRAG_FINE` blank with silt and clay given; `GRAG_UC` and `GRAG_CC` on a clean sand; an ISO 14688 row with clay; and one specimen with both `GRAG` and a `GRAT` curve. The good files are unchanged: their `GRAG` rows all have curves, so they raise no warning without the setting.
+
 ## 13. Acceptance criteria
 1. **Feeds the plots unchanged:** `ht.plot.spt_profile(p.spt())`, `ht.plot.spt_histogram(p.spt())`, `ht.plot.profile(p.permeability(), "hydraulic_conductivity")`, `ht.plot.profile(p.atterberg(), "liquid_limit")` and `ht.plot.geology_unit_comparison(p.atterberg(), "plasticity_index")` run on the good files with no error, no warning and no hint, and with the map's colors and order.
 2. **Twin files:** `site_si.ags` and `site_us.ags` give equal datasets and `p.locations` (values to 1e-9 relative), for `display_units="SI"` and for `"US"`.
@@ -533,6 +571,14 @@ M17 (a) adds `TRIT_CU` to the UU stages, `LUCT`, `LVAN`, `LPEN` and `LFCN` on ex
 14. **M8 datasets feed the plots:** `ht.plot.plasticity_chart(p.atterberg())`, `ht.plot.grain_size(p.grain_size())` and `ht.plot.water_content_profile(p.index_properties())` run on the good files with no error, warning or hint. The P06 call is tested with P06.
 15. **Summary:** `p.grain_size_summary()` gives one row per GRAT specimen, with the D-values and fractions `gradation()` gives on `p.grain_size()`, and the same on the SI and US twins.
 16. **Combining:** on a test sample with two Atterberg specimens and one water content specimen, the Atterberg specimen nearest the water content specimen is used, named in `atterberg_specimen_id`, with the warning; a tie goes to the lower `SPEC_REF`; a sample with only a grading gets a row with blank limits; a specimen with both tests keeps its own water content and limits together.
+17. **Setting:** `grag_fraction_system` takes `None` and the three built-in names, at `from_ags` and on `p.settings`; anything else is an error listing them. Changing it on `p.settings` changes the next dataset without a re-ingest.
+18. **Heading map and rule:** on `grag.ags` with `astm_uscs`, G1, G3 and G5–G7 give the fractions, Cu and Cc of the golden table in both datasets; G4 with `iso14688` gives its ISO fractions in `grain_size_summary(fractions="iso14688")`.
+19. **Across systems:** G1 with `fractions="aashto"` gives silt_clay 33, boulders 0, and fine_sand, coarse_sand and gravel blank, with the warning naming those three.
+20. **Classification:** in `index_properties()`, G1 is SC and A-2-6 (GI 0), G2 is GC and A-2-6 (GI 0), G3 is SW; G4 has blank fines and USCS symbol with the ISO warning, and clay activity 1.5.
+21. **No system:** with the setting `None`, every reported grading keeps its row in both datasets, with blank fractions, symbols and `fraction_system` still naming the requested system, and the no-system warning counts them.
+22. **Curve wins:** G8's row has the curve's values and `grading_source = "curve"`; with its `GRAT` rows incomplete and left out (§7), it doesn't become a reported grading.
+23. **Source column:** `grading_source` is `"curve"` on every good-file row, `"reported"` on G1–G7, and blank on an `index_properties()` row with no grading.
+24. **Good files unchanged:** every existing dataset test on the good files passes with no new warning, and `grain_size_summary()` on them has the same rows as before plus `grading_source`.
 
 ## 14. Decisions in review
 1. **`SPEC_REF` and `SPEC_DPTH` move to `recommended`** in `qc/min_fields.yaml`. Required, they made §7 leave out every lab result without a specimen depth, so the lab depth fallback (`sample_mid`, `sample_top`, SPEC §8.2) could never run by default. A blank one is still reported, by C002.

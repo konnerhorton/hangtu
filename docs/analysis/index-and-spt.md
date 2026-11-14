@@ -362,6 +362,8 @@ A fraction needing a blank P is blank, never estimated: without a hydrometer, IS
 
 **Column names:** `fines_content`, `sand_content`, `gravel_content`, `cobbles_content`, `boulders_content`, `silt_content`, `clay_content`, `silt_clay_content`, `fine_sand_content`, `coarse_sand_content`, and `fraction_system`. A fraction name means different sizes in different systems (gravel starts at 4.75 mm in USCS, 2.0 mm in AASHTO and ISO), which is why every row carries `fraction_system`, and `uscs()` and `aashto()` check it. It is a column rather than an attribute so it survives a CSV export.
 
+**Reported fractions** (`GRAG` without a curve) aren't a curve, so `gradation()` doesn't read them. The project datasets read them by the rules of `docs/data/datasets.md` §6.13: the lab's fraction system is a project setting, never assumed, and a fraction is filled only where the headings' boundaries make it up exactly.
+
 ### 3.6 Errors
 - A required column missing; `particle_size` with no units (`UnitsError`, with the `set_units` example).
 - `particle_size` ≤ 0; `percent_passing` outside 0–100; two points at the same size in one curve (rows listed).
