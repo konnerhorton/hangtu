@@ -1018,13 +1018,18 @@ columns:
     type: text
     ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
     used_by: [plot.grain_size]
+  grading_source:
+    description: Where a grading's values come from, "curve" (the GRAT points) or "reported" (the lab's GRAG percentages, with no curve)
+    type: text
+    ags: ["derived: docs/data/datasets.md §6.13"]
+    used_by: []
   fines_content:
     description: Percentage of the sample that is finer than 0.075 mm (USCS)
     type: number
     quantity: percent
     scale: ratio
     label: Fines content
-    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5", GRAG.GRAG_FINE]
     used_by: [plot.grain_size]
   sand_content:
     description: Percentage of the sample that is sand, by the row's fraction_system
@@ -1032,7 +1037,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Sand content
-    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5", GRAG.GRAG_SAND]
     used_by: [plot.grain_size]
   gravel_content:
     description: Percentage of the sample that is gravel, by the row's fraction_system
@@ -1040,7 +1045,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Gravel content
-    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5", GRAG.GRAG_GRAV]
     used_by: [plot.grain_size]
   cobbles_content:
     description: Percentage of the sample that is cobbles, by the row's fraction_system
@@ -1048,7 +1053,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Cobbles content
-    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5", GRAG.GRAG_VCRE]
     used_by: [plot.grain_size]
   boulders_content:
     description: Percentage of the sample that is boulders, by the row's fraction_system
@@ -1056,7 +1061,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Boulders content
-    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5", GRAG.GRAG_VCRE]
     used_by: [plot.grain_size]
   silt_content:
     description: Percentage of the sample that is silt, by the row's fraction_system (ISO 14688)
@@ -1064,7 +1069,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Silt content
-    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5", GRAG.GRAG_SILT]
     used_by: [plot.grain_size]
   clay_content:
     description: Percentage of the sample that is clay, by the row's fraction_system (ISO 14688)
@@ -1072,7 +1077,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Clay content
-    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5", GRAG.GRAG_CLAY]
     used_by: [plot.grain_size]
   silt_clay_content:
     description: Percentage of the sample that is finer than 0.075 mm (AASHTO silt-clay)
@@ -1080,7 +1085,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Silt-clay content
-    ags: ["derived: docs/analysis/index-and-spt.md §3.5"]
+    ags: ["derived: docs/analysis/index-and-spt.md §3.5", GRAG.GRAG_FINE]
     used_by: [plot.grain_size]
   fine_sand_content:
     description: Percentage of the sample that is fine sand, 0.075 to 0.425 mm (AASHTO)

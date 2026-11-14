@@ -304,6 +304,14 @@ A review of the whole package asked one question: if an AI agent does the work a
 - `failure_envelope()` with two units on shared equal axes crams the clay circles near the origin.
 - `fit(group_by=[...])` returns count-0 rows for groups with nothing to fit.
 
+### 70. QC: `GRAG` against its own curve · Claude · `docs/data/qc.md` §4.9, `docs/data/datasets.md` §6.13 · the next file with both
+- **Problem:** a specimen with a `GRAT` curve is read from the curve and its `GRAG` percentages aren't used, so a lab's percentages that disagree with its own curve go unseen.
+- **Idea:** a QC rule comparing `GRAG_FINE`, `GRAG_SAND` and `GRAG_GRAV` with the curve's passing at the stated system's boundaries, with a tolerance like P003's. Needs `grag_fraction_system` in QC, which takes QC settings, not project ones.
+
+### 71. `uscs()` with cobbles or boulders blank · You + Claude · `docs/analysis/index-and-spt.md` §3, `src/hangtu/analysis/_classification.py` · before M8's classification is next changed, or the next file with oversize
+- **Found (grag-fractions):** `uscs()` leaves the symbol blank ("no fractions") where a `cobbles_content` or `boulders_content` column is present but blank, and counts them as 0 only where the columns are absent. So a hand-built frame without the columns is classified on the whole sample even when it has oversize. `p.index_properties()` gives `uscs()` the reported `GRAG_VCRE` as the oversize, so it isn't affected.
+- **Open:** whether an absent oversize column should also leave the symbol blank, or warn, rather than count as 0.
+
 ---
 
 ## Later / far future (also on the Roadmap)

@@ -1789,6 +1789,101 @@ def joins_groups():
     ]
 
 
+def grag_groups():
+    """Gradings reported only as GRAG fractions (datasets.md §6.13), in SI.
+
+    One hole, one sample per golden value G1 to G8 (docs/work/grag-fractions.md);
+    the values are invented. G1 to G7 have GRAG and no GRAT, G8 has both.
+    """
+    loca = group(
+        "LOCA",
+        [
+            ("LOCA_ID", "ID", ""),
+            ("LOCA_TYPE", "PA", ""),
+            ("LOCA_GL", "2DP", "m"),
+            ("LOCA_FDEP", "2DP", "m"),
+        ],
+        [["GH1", "CP", 20.00, 10.00]],
+    )
+    geol = group(
+        "GEOL",
+        [
+            ("LOCA_ID", "ID", ""),
+            ("GEOL_TOP", "2DP", "m"),
+            ("GEOL_BASE", "2DP", "m"),
+            ("GEOL_DESC", "X", ""),
+            ("GEOL_GEOL", "X", ""),
+        ],
+        [["GH1", 0.00, 10.00, "Medium dense brown clayey SAND", "TRC"]],
+    )
+    names = [f"G{i}" for i in range(1, 9)]
+    samp = group(
+        "SAMP",
+        [
+            ("LOCA_ID", "ID", ""),
+            ("SAMP_TOP", "2DP", "m"),
+            ("SAMP_REF", "X", ""),
+            ("SAMP_TYPE", "PA", ""),
+            ("SAMP_ID", "ID", ""),
+            ("SAMP_BASE", "2DP", "m"),
+        ],
+        [
+            ["GH1", float(i), str(i), "B", name, i + 0.50]
+            for i, name in enumerate(names, start=1)
+        ],
+    )
+    spec = {
+        name: ["GH1", float(i), str(i), "B", name, "1", float(i)]
+        for i, name in enumerate(names, start=1)
+    }
+    llpl = group(
+        "LLPL",
+        [*SPECIMEN, ("LLPL_LL", "0DP", "%"), ("LLPL_PL", "XN", "%")],
+        [[*spec["G1"], 32, "20"], [*spec["G2"], 30, "18"], [*spec["G4"], 40, "28"]],
+    )
+    astm, iso = "ASTM D6913", "BS EN ISO 17892-4:2016"
+    grag = group(
+        "GRAG",
+        [
+            *SPECIMEN,  # in the dictionary's order (AGS Rule 7)
+            ("GRAG_UC", "2SF", ""),
+            ("GRAG_VCRE", "1DP", "%"),
+            ("GRAG_GRAV", "1DP", "%"),
+            ("GRAG_SAND", "1DP", "%"),
+            ("GRAG_SILT", "1DP", "%"),
+            ("GRAG_CLAY", "1DP", "%"),
+            ("GRAG_FINE", "1DP", "%"),
+            ("GRAG_METH", "X", ""),
+            ("GRAG_CC", "2SF", ""),
+        ],
+        [
+            # VCRE blank, 22 + 45 + 33 = 100: cobbles and boulders 0.
+            [*spec["G1"], None, None, 22.0, 45.0, None, None, 33.0, astm, None],
+            [*spec["G2"], None, 10.0, 40.0, 39.0, None, None, 11.0, astm, None],
+            [*spec["G3"], 8.0, None, 10.0, 87.0, None, None, 3.0, astm, 1.5],
+            [*spec["G4"], None, 0.0, 32.0, 40.0, 20.0, 8.0, None, iso, None],
+            # FINE blank: SILT + CLAY = 33.
+            [*spec["G5"], None, None, 22.0, 45.0, 25.0, 8.0, None, astm, None],
+            # VCRE blank: 98.5 is within 2 of 100, 95 isn't.
+            [*spec["G6"], None, None, 22.0, 45.0, None, None, 31.5, astm, None],
+            [*spec["G7"], None, None, 20.0, 45.0, None, None, 30.0, astm, None],
+            # G8 has a curve, which is read instead.
+            [*spec["G8"], None, 0.0, 12.0, 80.0, None, None, 8.0, astm, None],
+        ],
+    )
+    grat = group(
+        "GRAT",
+        [*SPECIMEN, ("GRAT_SIZE", "3SF", "mm"), ("GRAT_PERP", "0DP", "%")],
+        [
+            [*spec["G8"], 20.0, 100],
+            [*spec["G8"], 2.00, 88],
+            [*spec["G8"], 0.425, 40],
+            [*spec["G8"], 0.0630, 8],
+        ],
+    )
+    return [loca, geol, samp, llpl, grag, grat]
+
+
 #: Geology map for the test files (datasets.md §5.2). BED is left out on purpose.
 STRATA = """code,geology_unit,soil_class,order,color
 FILL,Fill,fill,1,#a0a0a0
@@ -1838,6 +1933,7 @@ def main(out=HERE):
     )
     write_file(out / "qc_defects.ags", "4.2", qc_defects_groups())
     write_file(out / "joins.ags", "4.2", joins_groups())
+    write_file(out / "grag.ags", "4.2", grag_groups())
     (out / "strata.csv").write_text(STRATA, encoding="utf-8", newline="")
 
 

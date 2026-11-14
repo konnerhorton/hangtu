@@ -185,6 +185,22 @@ def _water_unit_weight(value: Any) -> str:
     return value.strip()
 
 
+def _grag_fraction_system(value: Any) -> str | None:
+    if value is None:
+        return None
+    names = list(_config.load("config/fraction_systems.yaml"))
+    if not isinstance(value, str) or value not in names:
+        quoted = ", ".join(f'"{name}"' for name in names)
+        raise HangtuError(
+            "settings.grag_fraction_system must be the fraction system the lab "
+            f"reported GRAG in, one of {quoted}, or None, not {value!r}. A "
+            "user's own fraction system can't be used for GRAG, because its "
+            "headings are read as the built-in systems' size ranges. "
+            'Example: p.settings.grag_fraction_system = "astm_uscs"'
+        )
+    return value
+
+
 def _is_number(value: Any) -> bool:
     return isinstance(value, Real) and not isinstance(value, bool)
 
@@ -201,6 +217,7 @@ _VALIDATORS: dict[str, Callable[[Any], Any]] = {
     "summary_min_count": _summary_min_count,
     "geology_key": _geology_key,
     "water_unit_weight": _water_unit_weight,
+    "grag_fraction_system": _grag_fraction_system,
 }
 
 

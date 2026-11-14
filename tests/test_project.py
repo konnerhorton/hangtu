@@ -170,6 +170,21 @@ def test_geology_key_is_a_project_setting(site):
         p.settings.geology_key = "GEOL_DESC"
 
 
+def test_grag_fraction_system_is_a_project_setting(site):
+    # grag-fractions AC 17: stored at ingest, read by the next dataset build.
+    from hangtu.datasets._frame import Build
+
+    p = ht.Project.from_ags(site, grag_fraction_system="astm_uscs")
+    assert p.settings.grag_fraction_system == "astm_uscs"
+    assert Build(p.path, noun=("row", "rows")).grag_fraction_system == "astm_uscs"
+    p.settings.grag_fraction_system = "iso14688"
+    assert Build(p.path, noun=("row", "rows")).grag_fraction_system == "iso14688"
+    with pytest.raises(ht.HangtuError, match="own fraction system"):
+        p.settings.grag_fraction_system = "unified"
+    default = ht.Project.from_ags(site, overwrite=True)
+    assert default.settings.grag_fraction_system is None
+
+
 def test_unknown_setting(site):
     with pytest.raises(ht.HangtuError, match="no setting 'colour'"):
         ht.Project.from_ags(site, colour="red")
@@ -346,6 +361,7 @@ def test_every_dataset_carries_the_judgments_file(project, tmp_path):
     project.set_judgments(path)
     expected = str(path.resolve())
     project.set_geology_map(DATA / "strata.csv")
+    project.settings.grag_fraction_system = "astm_uscs"  # BH2-D1 is reported
     for name in (
         "spt",
         "atterberg",

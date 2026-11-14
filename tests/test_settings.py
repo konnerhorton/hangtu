@@ -20,6 +20,7 @@ def test_defaults():
     assert ht.settings.summary_min_count == 5
     assert ht.settings.geology_key == "GEOL_GEOL"
     assert ht.settings.water_unit_weight == "9.81 kN/m3"
+    assert ht.settings.grag_fraction_system is None
 
 
 def test_the_shipped_water_unit_weight_is_valid():
@@ -41,6 +42,10 @@ def test_the_shipped_water_unit_weight_is_valid():
         ("geology_key", "GEOL_FORM"),
         ("water_unit_weight", "62.4 pcf"),
         ("water_unit_weight", "10.05 kN/m3"),
+        ("grag_fraction_system", "astm_uscs"),
+        ("grag_fraction_system", "aashto"),
+        ("grag_fraction_system", "iso14688"),
+        ("grag_fraction_system", None),
     ],
 )
 def test_valid_values_are_stored(name, value):
@@ -77,6 +82,17 @@ def test_figure_sizes_are_stored_as_float_pairs():
         ("water_unit_weight", 9.81, "unit weight with its unit"),
         ("water_unit_weight", "9.81 kPa", "unit weight with its unit"),
         ("water_unit_weight", "0 kN/m3", "must be positive"),
+        (
+            "grag_fraction_system",
+            "unified",
+            r'"astm_uscs", "aashto", "iso14688", or None.*own fraction system',
+        ),
+        (
+            "grag_fraction_system",
+            {"name": "mine", "fractions": []},
+            "user's own fraction system can't be used for GRAG",
+        ),
+        ("grag_fraction_system", "systems/mine.yaml", "one of"),
     ],
 )
 def test_invalid_values_raise_and_keep_the_old_value(name, value, message):

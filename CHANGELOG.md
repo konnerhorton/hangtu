@@ -38,6 +38,10 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
 - `legend=` on every plot with a legend; legends sit in a clear corner inside the axes.
 - `spt()` records the cap and, by hole, each energy ratio and where it came from (the data, the argument or
   the setting) in `attrs["spt"]`.
+- `p.grain_size_summary()` and `p.index_properties()` read gradings reported only as percentages (`GRAG`
+  with no `GRAT` curve), in the fraction system the new project setting `grag_fraction_system` names
+  (`"astm_uscs"`, `"aashto"` or `"iso14688"`). Without the setting their fractions are blank, with a warning.
+  A new column, `grading_source`, says whether each grading is a `"curve"` or `"reported"`.
 - `read_csv()` reads a bound written into a value cell (`<5`, `> 200`, `<1e-9`) as the number, with `<` or
   `>` in the value's qualifier column, as an AGS file's `LT` and `GT` flags are read.
 - `spt_profile(n="spt_n1_60")` plots (N1)60 from `spt_n1_60()`, with refusals drawn at the cap as for N60.
@@ -45,6 +49,8 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
 - The documentation site, with a page and example for each plot and parameter, and the API reference.
 
 ### Changed
+- With neither `GRAT` nor `GRAG` in the file, the warning from `p.grain_size_summary()` and
+  `p.index_properties()` names both groups.
 - SPT: `ISPT_REP` is read as AGS defines it, and a refusal with a blank N is kept as a refusal.
 - `profile()` draws text values (such as a classification) in its value column.
 - A plot counts a row beyond an axis limit once, however many of its values are beyond it.

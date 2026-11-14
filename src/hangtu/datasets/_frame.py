@@ -58,6 +58,7 @@ class Build:
         self.overrides = stored.get("display_overrides", {})
         self.geology_key = stored.get("geology_key", "GEOL_GEOL")
         self.datum = stored.get("vertical_datum")
+        self.grag_fraction_system = stored.get("grag_fraction_system")
         judgments = stored.get(_judgments.STORED_KEY)
         self.judgments_file = (
             None
@@ -430,6 +431,14 @@ class Build:
                 found |= text.str.contains(str(word).lower(), regex=False)
             keep &= found
         return frame[keep]
+
+    def filter_geology(self, frame: pd.DataFrame, geology) -> pd.DataFrame:
+        """Apply ``geology=`` alone to a finished frame, checked against its units.
+
+        For a dataset finished in parts (§6.5), so a unit in any part is known.
+        """
+        kept = self._filter(frame, None, geology, None, None, None, None)
+        return kept.reset_index(drop=True)
 
     def _between(self, values: pd.Series, pair: Pair, name: str) -> pd.Series:
         example = f'{name}=(0, 30) or {name}=("0 ft", "30 ft")'

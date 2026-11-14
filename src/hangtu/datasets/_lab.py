@@ -11,6 +11,12 @@ from hangtu.analysis._fractions import content_column, fraction_system
 from hangtu.analysis._gradation import _check_d_values
 from hangtu.datasets import _joins
 from hangtu.datasets._frame import Build
+from hangtu.datasets._reported import (
+    no_system_message,
+    other_boundaries_message,
+    reported_fractions,
+    reported_specimens,
+)
 from hangtu.errors import warn
 
 #: Columns every lab dataset starts with.
@@ -293,16 +299,125 @@ def grain_size_summary(
     """Build the grading summary; see ``Project.grain_size_summary``.
 
     ``gradation()`` on the finished ``grain_size()`` dataset (§6.5), so the
-    filters, units and warnings are those of the curves.
+    filters, units and warnings are those of the curves, then one row per
+    reported grading (§6.13), filtered the same way.
     """
-    curves = grain_size(
+    wanted = _check_d_values(d_values)
+    system, system_fractions = fraction_system(fractions)
+    build = Build(
         path,
+        noun=("grading", "gradings"),
         display_units=display_units,
         include_incomplete=include_incomplete,
-        **common,
     )
-    geology = list(curves.columns[curves.columns.get_loc("qualifier") + 1 : -1])
-    return summarize_curves(curves, SPECIMEN_COLUMNS, geology, fractions, d_values)
+    computed = [
+        *(f"d{percent}" for percent in wanted),
+        "uniformity_coefficient",
+        "curvature_coefficient",
+        *(content_column(fraction["name"]) for fraction in system_fractions),
+    ]
+    columns = [*SPECIMEN_COLUMNS, *computed, "fraction_system", "grading_source"]
+    if not build.has("GRAT") and not build.has("GRAG"):
+        empty = build.finish(pd.DataFrame(), columns, group="GRAT or GRAG", **common)
+        empty = empty.drop(columns="source_line")
+        empty[computed] = empty[computed].astype(float)
+        return empty
+    # geology= is checked against the units of curves and reported gradings
+    # together, so it is applied once both are built.
+    geology_filter = common.pop("geology", None)
+    parts = []
+    if build.has("GRAT"):
+        curves = grain_size(
+            path,
+            display_units=display_units,
+            include_incomplete=include_incomplete,
+            **common,
+        )
+        geology = list(curves.columns[curves.columns.get_loc("qualifier") + 1 : -1])
+        summary = summarize_curves(
+            curves, SPECIMEN_COLUMNS, geology, fractions, d_values
+        )
+        at = summary.columns.get_loc("fraction_system") + 1
+        summary.insert(at, "grading_source", "curve")
+        parts.append(summary)
+    if build.has("GRAG"):
+        reported = _reported_summary(build, system, system_fractions, wanted, common)
+        if reported is not None:
+            parts.append(reported)
+    found = [part for part in parts if not part.empty]
+    result = (
+        parts[0]
+        if not found
+        else found[0]
+        if len(found) == 1
+        else pd.concat(found, ignore_index=True)
+    )
+    attrs = {
+        **parts[0].attrs,
+        "units": {k: v for part in parts for k, v in part.attrs["units"].items()},
+    }
+    if geology_filter is not None:
+        result = build.filter_geology(result, geology_filter)
+    result.attrs = attrs
+    return result
+
+
+#: ``grain_size()``'s point columns, blank on a reported grading so that the
+#: common arguments act on it as on a curve, then dropped.
+_POINT_COLUMNS = ["particle_size", "percent_passing", "qualifier"]
+
+
+def _reported_summary(
+    build: Build,
+    system: str,
+    system_fractions: list[dict],
+    wanted: tuple[int, ...],
+    common: dict,
+) -> pd.DataFrame | None:
+    """Return the summary rows of the reported gradings (§6.5, §6.13)."""
+    frame = reported_specimens(build)
+    if frame.empty:
+        return None
+    stated = build.grag_fraction_system
+    read = reported_fractions(frame, system_fractions, stated)
+    for percent in wanted:
+        frame[f"d{percent}"] = np.nan
+    frame[list(read.contents.columns)] = read.contents
+    frame["fraction_system"] = system
+    frame["grading_source"] = "reported"
+    for column in _POINT_COLUMNS:
+        frame[column] = np.nan if column != "qualifier" else None
+    computed = [
+        *(f"d{percent}" for percent in wanted),
+        "uniformity_coefficient",
+        "curvature_coefficient",
+        *read.contents.columns,
+    ]
+    columns = [
+        *SPECIMEN_COLUMNS,
+        *_POINT_COLUMNS,
+        *computed,
+        "fraction_system",
+        "grading_source",
+    ]
+    out = build.finish(frame, columns, **common)
+    out = out.drop(columns=[*_POINT_COLUMNS, "source_line"])
+    units = out.attrs["units"]
+    out.attrs["units"] = {
+        **units,
+        **{f"d{percent}": "mm" for percent in wanted},
+        **dict.fromkeys(read.contents.columns, "%"),
+    }
+    if out.empty:
+        return out
+    if stated is None:
+        warn(no_system_message(len(out)))
+    elif read.other_boundaries:
+        blank = out[[content_column(name) for name in read.other_boundaries]]
+        count = int(blank.isna().any(axis=1).sum())
+        if count:
+            warn(other_boundaries_message(count, stated, system, read.other_boundaries))
+    return out
 
 
 def summarize_curves(
