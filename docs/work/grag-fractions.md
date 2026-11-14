@@ -206,3 +206,85 @@ blank, with the second warning naming those three.
     with `LLPL` where the table has limits; the site docs page on grain size gets a short paragraph on the setting.
 12. **QC isn't changed.** A rule comparing `GRAG` with the curve on G8-like specimens goes to `docs/TODO.md`,
     triggered by the next file that has both.
+13. **The good files already hold a reported grading** (found while planning, 2026-11-14): BH2-D1 has `GRAG` and no
+    `GRAT`. Decision 11's reason holds for the examples (all their `GRAG` rows have curves) but not for the good
+    files. So the good-file tests that build `grain_size_summary()` or `index_properties()` ingest with
+    `grag_fraction_system="astm_uscs"`, BH2-D1 gets golden values (AC 24), and one test without the setting expects
+    the warning. The twin files then check a reported grading in SI and US.
+
+## Plan
+
+Six build steps, each green. Steps 1, 2 and 6 on Sonnet; 3 to 5 on Opus (the rule, the classification inputs). Order:
+1–2 (Sonnet), 3–5 (Opus), 6 (Sonnet), so each model's steps run in one session.
+
+### 1. `settings: add grag_fraction_system` (Sonnet)
+- `src/hangtu/_settings.py`: `_grag_fraction_system` validator, `None` or a name in `config/fraction_systems.yaml`;
+  anything else (a dict, a path, an unknown name) is a `HangtuError` listing the three names and saying a user's own
+  system can't be used for `GRAG`. Add it to `_VALIDATORS`.
+- `src/hangtu/config/defaults.yaml`: `grag_fraction_system: null` with a comment.
+- `src/hangtu/datasets/_frame.py` `Build.__init__`: `self.grag_fraction_system = stored.get("grag_fraction_system")`.
+- `docs/plots/P00-framework.md` §3 settings table: the row.
+- Tests: `tests/test_settings.py` (default `None`, each valid name, the error for `"unified"` and for a dict);
+  `tests/test_project.py` (stored by `from_ags(..., grag_fraction_system=...)`; changed on `p.settings` and read by
+  the next `Build` with no re-ingest). AC 17.
+
+### 2. `tests: add grag.ags with reported gradings` (Sonnet)
+- `tests/data/ags/_make_files.py`: `grag_groups()` writing `grag.ags` (4.2, SI): one hole, `LOCA`, `GEOL`, `SAMP`,
+  `LLPL` on G1, G2 and G4, `GRAG` with G1–G8 exactly as the golden table, `GRAT` on G8 only (a four-point curve, as
+  BH3-B1's). `GRAG_VCRE`, `GRAG_SILT`, `GRAG_CLAY`, `GRAG_UC`, `GRAG_CC` as headings. Invented values only.
+- `tests/data/ags/README.md`: its row.
+- Tests: the existing generator check (`tests/ags/test_files.py`) and the python-ags4 check cover the file; add it to
+  their lists if they're explicit.
+
+### 3. `grag-fractions: read GRAG headings as a stated system's ranges` (Opus)
+- `src/hangtu/config/fraction_systems.yaml`: a `grag:` map per built-in system, heading → the fractions it spans
+  (datasets §6.13 table), so the boundaries come from the systems' own entries and the config test checks them.
+- `src/hangtu/datasets/_reported.py` (new):
+  - `reported_specimens(build)`: the `GRAG` rows whose specimen has no `GRAT` row (before §7's filter), as specimen
+    rows (`specimens(build, "GRAG", rows)`), with `GRAG_UC`, `GRAG_CC` and the headings as numbers.
+  - `reported_fractions(frame, requested, stated)`: rules 1–3 and the blank-`VCRE` rule; returns the requested
+    system's `<fraction>_content` columns and the names left blank because a boundary differs (for the warning).
+  - The warning texts of §6.13 as functions, so steps 4 and 5 share them.
+- Tests: `tests/datasets/test_reported.py`, on hand-built frames: G1, G3, G5, G6, G7 in `astm_uscs`; G1 asked as
+  `aashto` (silt_clay 33, boulders 0, three blank and named); G4 in `iso14688`, and asked as `astm_uscs` (all blank
+  but cobbles and boulders 0); `stated=None` gives all blank. Part of AC 18, 19.
+
+### 4. `grag-fractions: reported gradings in grain_size_summary` (Opus)
+- `src/hangtu/datasets/_lab.py` `grain_size_summary`: build from `GRAT` and `GRAG`; append one row per reported
+  specimen after the curves, with blank D-values, Cu and Cc from `GRAG_UC`/`GRAG_CC`, fractions by step 3,
+  `fraction_system` = the requested name, `grading_source`; the common filters act on them as on curves. With `GRAG`
+  only, `p.grain_size()`'s "No GRAT group" warning isn't passed on; with neither, the warning names both.
+- `src/hangtu/columns.yaml`: `grading_source` (text, `"curve"` or `"reported"`, checked against the registry);
+  `GRAG.GRAG_FINE`, `GRAG_SAND`, `GRAG_GRAV`, `GRAG_VCRE`, `GRAG_SILT`, `GRAG_CLAY` in the fraction columns' `ags:`.
+- `src/hangtu/project.py` `grain_size_summary` docstring: reported gradings, the setting, `grading_source`.
+- Good-file fixtures: `tests/datasets/conftest.py` `fresh` and `tests/datasets/test_datasets_acceptance.py`
+  `projects` ingest the good files with `grag_fraction_system="astm_uscs"` (decision 13); any other good-file caller
+  of the two datasets that fails on the new warning does the same.
+- Tests in `tests/datasets/test_grain_size_summary.py` on `grag.ags`: AC 18 (summary half), 19, 21, 22 (G8, and
+  with its `GRAT` rows incomplete), 23; on the good files, BH2-D1's fractions and the no-system warning (AC 24,
+  summary half); AC 15 still holds for the curves.
+
+### 5. `grag-fractions: classify samples from reported gradings` (Opus)
+- `src/hangtu/datasets/_index.py`: reported `GRAG` specimens join the grading candidates (one test with `GRAT` for
+  rules 1–4, listed after `GRAT` in sample order); `_classify` takes the curves and the reported rows: `astm_uscs`
+  fractions returned, `aashto` for `aashto()`, `iso14688` clay for `clay_activity()`, oversize = `GRAG_VCRE` for
+  `uscs()` where cobbles and boulders are blank and `GRAG_VCRE` > 0; `grading_source`; the ISO warning; the
+  missing-group message with `GRAG`.
+- `src/hangtu/project.py` `index_properties` docstring.
+- Tests in `tests/datasets/test_index_properties.py`: AC 20 (G1 SC A-2-6 0, G2 GC A-2-6 0, G3 SW, G4 blank with
+  the warning and activity 1.5), 21, 22, 23; the good files' BH2-D1 ML, A-4, GI 0 (AC 24); the twin test (AC 2)
+  passes with it. A test fixture with the classification inputs (oversize) is checked through the result, not
+  internals.
+
+### 6. `grag-fractions: document reported gradings; close out` (Sonnet)
+- Site: `docs/site/guides/datasets.md` (a paragraph: gradings reported only as fractions, the setting, what stays
+  blank), `docs/site/guides/ags-and-qc.md` (the setting among the project settings), and the grain size plot page
+  if it describes `grain_size_summary()`. No internal references (the docs tests check).
+- `CHANGELOG.md` Unreleased: reported gradings in `grain_size_summary()` and `index_properties()`, the setting, the
+  `grading_source` column.
+- `docs/TODO.md`: a QC rule comparing `GRAG` with the curve (trigger: the next file with both); whether `uscs()`
+  should leave the symbol blank when cobbles or boulders are blank rather than count them as 0 (trigger: before M8's
+  classification is next changed, or the next file with oversize).
+- `STATUS.md`: the unit done; LDEN unit weight (item 2 of the file review) is next to decide.
+- Whole suite (`uv run pytest -n 2 --dist loadfile`), ruff, mypy, `docs/prepare_site.py` and the strict site build.
+
