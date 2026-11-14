@@ -577,7 +577,7 @@ A new `grag.ags` (4.2, SI, passes python-ags4) holds reported gradings with inve
 20. **Classification:** in `index_properties()`, G1 is SC and A-2-6 (GI 0), G2 is GC and A-2-6 (GI 0), G3 is SW; G4 has blank fines and USCS symbol with the ISO warning, and clay activity 1.5.
 21. **No system:** with the setting `None`, every reported grading keeps its row in both datasets, with blank fractions, symbols and `fraction_system` still naming the requested system, and the no-system warning counts them.
 22. **Curve wins:** G8's row has the curve's values and `grading_source = "curve"`; with its `GRAT` rows incomplete and left out (§7), it doesn't become a reported grading.
-23. **Source column:** `grading_source` is `"curve"` on every good-file row, `"reported"` on G1–G7, and blank on an `index_properties()` row with no grading.
+23. **Source column:** `grading_source` is `"curve"` on every row from a curve (the good files' BH3-B1, `grag.ags`'s G8), `"reported"` on G1–G7 and the good files' BH2-D1, and blank on an `index_properties()` row with no grading.
 24. **Good files:** with `grag_fraction_system="astm_uscs"`, BH2-D1 is a reported grading: fines 65, sand 35, gravel 0, cobbles and boulders 0; NP with LL 31 → **ML**; AASHTO F = 65, LL 31, NP → **A-4**, GI = 30 × (0.2 + 0.005 × (31 − 40)) + 0.01 × 50 × (0 − 10) = 4.65 − 5.00 < 0 → **0**. The SI and US twins agree. Without the setting, the good files give the no-system warning counting 1, and otherwise the same rows as before plus `grading_source`.
 
 ## 14. Decisions in review

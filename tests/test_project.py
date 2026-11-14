@@ -361,6 +361,7 @@ def test_every_dataset_carries_the_judgments_file(project, tmp_path):
     project.set_judgments(path)
     expected = str(path.resolve())
     project.set_geology_map(DATA / "strata.csv")
+    project.settings.grag_fraction_system = "astm_uscs"  # BH2-D1 is reported
     for name in (
         "spt",
         "atterberg",

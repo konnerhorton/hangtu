@@ -501,7 +501,7 @@ class Project:
         include_incomplete: bool = False,
         display_units: str | None = None,
     ) -> pd.DataFrame:
-        """Return one row per grading curve: D-values, Cu, Cc and size fractions.
+        """Return one row per grading: D-values, Cu, Cc and size fractions.
 
         ``ht.analysis.gradation()`` on ``p.grain_size()``, so each specimen
         keeps its depth and geology unit, and the filters act on the curves'
@@ -509,6 +509,18 @@ class Project:
         in mm in US and SI output alike. A curve that doesn't reach a
         percentage or a fraction's sizes gets a blank, with a warning; nothing
         is extrapolated.
+
+        Gradings reported only as the lab's percentages (``GRAG`` with no
+        ``GRAT`` curve) follow the curves, filtered the same way, with blank
+        D-values and Cu and Cc as the lab reported them. Their fractions need
+        the project setting ``grag_fraction_system``, the system the lab
+        reported in (``"astm_uscs"``, ``"aashto"`` or ``"iso14688"``), since
+        the headings alone don't say: ``p.settings.grag_fraction_system =
+        "astm_uscs"``. Without it they're blank, with a warning. A fraction is
+        filled only where the lab's size ranges make it up exactly, so asking
+        for another system leaves the fractions with other boundaries blank,
+        with a warning naming them. ``grading_source`` says ``"curve"`` or
+        ``"reported"``.
 
         Parameters
         ----------

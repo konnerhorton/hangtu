@@ -27,12 +27,18 @@ DATASETS = (
 
 @pytest.fixture(scope="module")
 def projects(tmp_path_factory):
-    """The good files with the geology map, display units SI. Don't modify them."""
+    """The good files with the geology map, display units SI. Don't modify them.
+
+    BH2-D1 is a reported grading, read as astm_uscs (datasets.md §12).
+    """
     folder = tmp_path_factory.mktemp("acceptance")
     built = {}
     for name in ("site_si", "site_us", "site_v404"):
         p = ht.Project.from_ags(
-            DATA / f"{name}.ags", db=folder / f"{name}.sqlite", display_units="SI"
+            DATA / f"{name}.ags",
+            db=folder / f"{name}.sqlite",
+            display_units="SI",
+            grag_fraction_system="astm_uscs",
         )
         p.set_geology_map(STRATA)
         built[name] = p
@@ -324,6 +330,7 @@ def test_14_m8_datasets_feed_the_plots(projects, name, system):
 def test_15_summary(projects, name):
     p = projects[name]
     summary = _quiet(p.grain_size_summary)
+    summary = summary[summary["grading_source"] == "curve"]
     curves = _quiet(p.grain_size)
     assert len(summary) == curves["specimen_id"].nunique()
     expected = _quiet(ht.analysis.gradation, curves)
