@@ -1590,6 +1590,56 @@ def qc_defects_groups():
             ]
         ],
     )
+    # Oedometer (M19 a, qc.md §4.15), four specimens on BH2-U1:
+    # - E1, E001: increment 1 ends at 0.700, increment 2 starts at 0.690;
+    # - E2, E002: 100 to 200 kPa with e 0.776 to 0.781 (up 0.005);
+    # - E4, E004: CONS_INCN 1, 2, 4, 3 in file order;
+    # - E5, E005: CONG_IVR 0.650 with ρd 1.50 and ρs 2.70 (0.800 expected).
+    bh2_u1 = ["BH2", 1.00, "1", "U", "BH2-U1"]
+    cong = group(
+        "CONG",
+        [
+            *SPECIMEN,
+            ("CONG_TYPE", "PA", ""),
+            ("CONG_COND", "PA", ""),
+            ("CONG_HIGT", "2DP", "mm"),
+            ("CONG_DDEN", "2DP", "Mg/m3"),
+            ("CONG_PDEN", "XN", "Mg/m3"),
+            ("CONG_IVR", "3DP", ""),
+        ],
+        [
+            [*bh2_u1, ref, depth, "OEDOMETER", "UNDISTURBED", 20.00, dry, pden, ivr]
+            for ref, depth, dry, pden, ivr in [
+                ("E1", 1.10, None, None, 0.720),
+                ("E2", 1.20, None, None, 0.780),
+                ("E4", 1.30, None, None, 0.800),
+                ("E5", 1.40, 1.50, "2.70", 0.650),
+            ]
+        ],
+    )
+    cons = group(
+        "CONS",
+        [
+            *SPECIMEN,
+            ("CONS_INCN", "X", ""),
+            ("CONS_IVR", "3DP", ""),
+            ("CONS_INCF", "0DP", "kPa"),
+            ("CONS_INCE", "3DP", ""),
+        ],
+        [
+            [*bh2_u1, ref, depth, incn, start, stress, end]
+            for ref, depth, incn, start, stress, end in [
+                ("E1", 1.10, "1", 0.720, 50, 0.700),
+                ("E1", 1.10, "2", 0.690, 100, 0.680),
+                ("E2", 1.20, "1", 0.780, 100, 0.776),
+                ("E2", 1.20, "2", 0.776, 200, 0.781),
+                ("E4", 1.30, "1", 0.800, 25, 0.795),
+                ("E4", 1.30, "2", 0.795, 50, 0.788),
+                ("E4", 1.30, "4", 0.788, 100, 0.776),
+                ("E4", 1.30, "3", 0.776, 200, 0.748),
+            ]
+        ],
+    )
     return [
         loca,
         horn,
@@ -1611,6 +1661,8 @@ def qc_defects_groups():
         lvan,
         shbg,
         shbt,
+        cong,
+        cons,
     ]
 
 

@@ -255,6 +255,25 @@ rules:
     title: Normal stress 0 or less in a shear box stage
     severity: error
 
+  # Oedometer (§4.15, M19 a). The tolerances are rounding bounds, not cited values:
+  # 0.002 clears two 3DP void ratios, 0.02 two 2DP densities in ρs / ρd - 1.
+  E001:
+    title: Void ratios don't chain from one increment to the next
+    severity: warning
+    thresholds:
+      void_ratio_chain_tolerance: 0.002
+  E002:  # E001's tolerance
+    title: Void ratio rose over an increment whose stress went up
+    severity: warning
+  E004:
+    title: Oedometer increments not in increasing order
+    severity: warning
+  E005:
+    title: Initial void ratio differs from the particle and dry densities
+    severity: warning
+    thresholds:
+      initial_void_ratio_tolerance: 0.02
+
   # Minimally useful fields (§4.10); the fields are in min_fields.yaml.
   C001:
     title: Required field is missing

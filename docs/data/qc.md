@@ -315,6 +315,23 @@ From `docs/work/m17a-strength-data.md`. Checks within one stage. `S` (SPT) is ta
 - H002: the stage can't give a point for either fit.
 - Not rules, for want of a threshold a source supports: `SHBT_PVST` or `SHBT_RVST` far from `SHBT_NORM` (they differ where the lab corrects for the contact area; the dictionary's example is 100, 100 and 125 kPa), and a residual reached at a small displacement.
 
+### 4.15 Oedometer (E) (M19 a)
+From `docs/work/m19a-oedometer-data.md`. Each checks a specimen against itself, its `CONS` rows in file order: a record whose numbers can't all be right. Ranges for C_c or σ′p are level 2.
+
+| ID | Rule | Severity | Thresholds |
+|---|---|---|---|
+| E001 | Void ratios don't chain: an increment's `CONS_IVR` differs from the previous increment's `CONS_INCE` | warning | `void_ratio_chain_tolerance: 0.002` |
+| E002 | The void ratio rose over an increment whose `CONS_INCF` is above the previous increment's | warning | E001's |
+| E004 | Numeric `CONS_INCN` values aren't increasing in file order | warning | |
+| E005 | `CONG_IVR` differs from ρs / ρd − 1 (`CONG_PDEN`, `CONG_DDEN`) | warning | `initial_void_ratio_tolerance: 0.02` |
+
+- **E001 and E002's tolerance** clears the 3DP rounding of two void ratios (at most 0.001). Where the file's `TYPE`s are coarser it widens to the two roundings, half a unit in each heading's last place: AGS 4.0.4 types `CONS_INCE` 2DP and `CONS_IVR` 3DP, so 0.0055. One finding per increment, at the later row. The first increment isn't chained to `CONG_IVR`, since flooding or seating can change the void ratio between them.
+- **E002** compares the increment's own `CONS_IVR` and `CONS_INCE` (the previous `CONS_INCE` where `CONS_IVR` is blank), on increments whose stress is above the previous one's. It is a warning, not an error: a swelling soil or rock can still swell under a small load increase, and the message says so.
+- **E004** reads `CONS_INCN` as written (`"3"`, `"3.5"`); text such as `"3a"` or `"Flood"` is skipped. One finding for each number at or below the largest before it, naming that one. The dataset never reorders rows, so a resorted file is caught here rather than reordered by a guess.
+- **E005** only where all three are given. 2DP densities move ρs / ρd − 1 by at most 0.010 (ρs 2.70, ρd 1.50); 0.02 clears it. An assumed `CONG_PDEN` (`#`) is checked like a measured one, and the message says it is assumed. The dictionary's own example (ρd 1.75, ρs 2.65, e0 0.800) raises it: 2.65 / 1.75 − 1 = 0.514. Its values are illustrative and not one specimen.
+- **E003** (the lab's m_v against the void ratios) is §4.15's last rule, added with its definition checked against the test standards.
+- **Not a rule:** a consolidation stress far above the overburden (TODO #67). An oedometer is loaded far past σ′v0 by design, often 10–30 times, so the check fits the triaxial's `TRET_CONP`, not this test.
+
 ## 5. The report
 ### 5.1 `report.findings`
 | Column | Content |
@@ -436,6 +453,7 @@ Synthetic, written by `tests/data/ags/_make_files.py` (SPEC §12.3).
 | X001–X006 | `TRET_BVAL` 0.90; a `CU` stage with `TRET_PWPF` blank; `TRET_DEVF` −20 in a `CU` stage; `TRET_PWPF` 410 with `TRET_CELL` 400; a `CU` test with two stages, and a `TRIG` with none; `TRET_CONP` 150 with `TRET_CELL` 400 and `TRET_BACK` 300 (M11 a) |
 | Q001–Q003 | `TRIT_CU` 70 with `TRIT_DEVF` 120; `LVAN_VNPK` 20 with `LVAN_VNRM` 25; `LUCT_UCS` 0 (M17 a) |
 | H001–H003 | `SHBT_PEAK` 50 with `SHBT_RES` 60; a stage with both blank; `SHBT_NORM` 0 (M17 a) |
+| E001, E002, E004, E005 | An increment ending at 0.700 followed by one starting at 0.690; 100 → 200 kPa with e 0.776 → 0.781; `CONS_INCN` 1, 2, 4, 3; `CONG_IVR` 0.650 with ρd 1.50, ρs 2.70 (M19 a) |
 | C001, C002 | `GEOL_DESC` blank on one row; `LOCA_TYPE` absent |
 
 - The good files (`site_si.ags`, `site_us.ags` and `site_v404.ags`) must stay QC-clean (§9, #2). They have `LOCA_DATM` `NAVD88` in every hole, so they raise no L006.
