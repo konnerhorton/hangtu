@@ -100,11 +100,17 @@ def test_ac3_older_version_gives_the_same_tables_for_shared_groups(projects):
         "LPEN",
         "IVAN",
         "IPEN",
+        "CONG",
+        "CONS",
         "ABBR",
     ]
+    # The oedometer groups come after LUCT and LFCN, which 4.0.4 doesn't have,
+    # so their specimens are numbered differently.
+    renumbered = {"CONG", "CONS"}
     for group in shared:
         a, b = si.table(group), old.table(group)
-        columns = [c for c in b.columns if c in a.columns and c != "_line"]
+        skip = {"_line", "specimen_id"} if group in renumbered else {"_line"}
+        columns = [c for c in b.columns if c in a.columns and c not in skip]
         assert_same_table(a[columns], b[columns], group)
 
 

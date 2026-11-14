@@ -133,4 +133,10 @@
 "DATA","SHBG_TYPE","SMALL RSHEAR","Small Ring shear"
 "DATA","SHBG_COND","RECOMPACTED","Recompacted"
 "DATA","SHBG_COND","UNDISTURBED","Undisturbed"
+"DATA","CONG_TYPE","OEDOMETER","Oedometer"
+"DATA","CONG_TYPE","SWELLPRESS","Measurement of swelling pressure"
+"DATA","CONG_TYPE","SETTLESAT","Settlement on saturation"
+"DATA","CONG_TYPE","LOW STRESS","Low stress oedometer (not a dictionary code)"
+"DATA","CONG_COND","UNDISTURBED","Undisturbed"
+"DATA","CONG_COND","REMOULDED","Remoulded"
 

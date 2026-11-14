@@ -249,6 +249,8 @@ IVAN: {required: [LOCA_ID, IVAN_DPTH, IVAN_IVAN], recommended: [IVAN_TYPE, IVAN_
 IPEN: {required: [LOCA_ID, IPEN_DPTH, IPEN_IPEN]}                                                  # M17 a
 SHBG: {required: [<SPEC_KEY>], recommended: [SHBG_TYPE, SHBG_COND]}                                # M17 a
 SHBT: {required: [<SPEC_KEY>, SHBT_TESN, SHBT_NORM], recommended: [SHBT_PEAK, SHBT_RES, SHBT_DISP]}  # M17 a
+CONG: {required: [<SPEC_KEY>], recommended: [CONG_TYPE, CONG_COND, CONG_IVR, CONG_HIGT]}          # M19 a
+CONS: {required: [<SPEC_KEY>, CONS_INCN, CONS_INCF, CONS_INCE], recommended: [CONS_IVR]}           # M19 a
 # <SPEC_KEY> = LOCA_ID, SAMP_TOP, SAMP_REF, SAMP_TYPE, SAMP_ID (the sample key); SPEC_REF and SPEC_DPTH lead each lab group's recommended list (M7)
 ```
 In the shipped file the lists are written out in full; `<SPEC_KEY>` is a YAML anchor.
