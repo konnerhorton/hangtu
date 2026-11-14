@@ -56,17 +56,28 @@ def reported_specimens(build: Build) -> pd.DataFrame:
 
     if not build.has("GRAG"):
         return pd.DataFrame()
+    rows = reported_rows(build)
+    frame = specimens(build, "GRAG", rows)
+    add_values(build, frame, rows)
+    frame["_sample_id"] = rows["sample_id"]
+    return frame
+
+
+def reported_rows(build: Build) -> pd.DataFrame:
+    """Return the ``GRAG`` rows whose specimen has no ``GRAT`` row in the file."""
     rows = build.rows("GRAG")
     if build.has("GRAT"):
         curves = build.data.table("GRAT")["specimen_id"].dropna()
         rows = rows[~rows["specimen_id"].isin(curves)]
-    frame = specimens(build, "GRAG", rows)
+    return rows
+
+
+def add_values(build: Build, frame: pd.DataFrame, rows: pd.DataFrame) -> None:
+    """Add Cu, Cc and the percentage headings of ``rows`` to ``frame``."""
     frame["uniformity_coefficient"] = build.numbers(rows, "GRAG_UC")
     frame["curvature_coefficient"] = build.numbers(rows, "GRAG_CC")
     for heading in HEADINGS:
         frame[heading] = build.numbers(rows, heading)
-    frame["_sample_id"] = rows["sample_id"]
-    return frame
 
 
 def heading_ranges(stated: str) -> dict[str, tuple[float, float]]:

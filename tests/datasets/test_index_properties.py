@@ -143,6 +143,7 @@ def test_columns_and_units(joins):
         "cobbles_content",
         "boulders_content",
         "fraction_system",
+        "grading_source",
         "uscs_symbol",
         "aashto_group",
         "aashto_group_index",
@@ -243,7 +244,7 @@ def test_no_lab_groups_is_empty_with_one_warning(tmp_path):
     path = tmp_path / "no_lab.ags"
     make_files.write_file(path, "4.2", [make_files.LOCA, make_files.SAMP])
     p = ht.Project.from_ags(path, db=tmp_path / "no_lab.sqlite", display_units="SI")
-    with pytest.warns(UserWarning, match="No LNMC, LLPL or GRAT group") as caught:
+    with pytest.warns(UserWarning, match="No LNMC, LLPL, GRAT or GRAG group") as caught:
         df = p.index_properties()
     assert len(caught) == 1
     assert df.empty
@@ -344,3 +345,167 @@ def test_clay_activity(index):
     assert index.loc["J2-U1", "uscs_symbol"] == "CL"
     assert pd.isna(index.loc["J1-B4", "clay_activity"])
     assert index["clay_activity"].notna().sum() == 1
+
+
+# --- Reported gradings (datasets.md §6.6, §6.13; golden values in the
+# grag-fractions work file) -------------------------------------------------------
+
+
+def test_classified_from_reported_gradings(fresh):
+    # AC 20, 23. Samples in order of LLPL (G1, G2, G4), GRAT (G8), then GRAG.
+    df, messages = _with_warnings(fresh("grag").index_properties)
+    assert df["sample_reference"].tolist() == [
+        "G1",
+        "G2",
+        "G4",
+        "G8",
+        "G3",
+        "G5",
+        "G6",
+        "G7",
+    ]
+    df = df.set_index("sample_reference")
+    # G1: fines 33 > 12 %, sand 45 > gravel 22, CL fines: SC. A-2-6, GI 0.36: 0.
+    assert df.loc["G1", ["uscs_symbol", "aashto_group"]].tolist() == ["SC", "A-2-6"]
+    assert df.loc["G1", "aashto_group_index"] == 0
+    # G2: GRAG_VCRE 10 is the oversize, so fines are 11 / 90 = 12.2 %, gravel
+    # 44.4 % over sand 43.3 %: GC (ignoring it, 11 % fines would need Cu).
+    assert df.loc["G2", ["uscs_symbol", "aashto_group"]].tolist() == ["GC", "A-2-6"]
+    assert df.loc["G2", "aashto_group_index"] == 0
+    assert df.loc["G2", ["cobbles_content", "boulders_content"]].isna().all()
+    # G3: fines 3 %, Cu 8, Cc 1.5: SW, with blank D-values.
+    assert df.loc["G3", "uscs_symbol"] == "SW"
+    assert df.loc["G3", ["d10", "d30", "d60"]].isna().all()
+    assert df.loc["G1", "fines_content"] == 33.0
+    assert (df["fraction_system"] == "astm_uscs").all()
+    assert df.loc["G8", "grading_source"] == "curve"
+    assert (df.drop(index="G8")["grading_source"] == "reported").all()
+    assert not any("reported" in m for m in messages)
+
+
+def test_iso14688_reported_grading(fresh):
+    # AC 20: G4 as the lab reported it.
+    df, messages = _with_warnings(
+        fresh("grag", grag_fraction_system="iso14688").index_properties
+    )
+    row = df.set_index("sample_reference").loc["G4"]
+    assert row[["fines_content", "sand_content", "gravel_content"]].isna().all()
+    assert row[["cobbles_content", "boulders_content"]].tolist() == [0.0, 0.0]
+    assert row["uscs_symbol"] is None and row["aashto_group"] is None
+    assert row["clay_activity"] == pytest.approx(12 / 8)
+    assert (
+        "7 samples' gradings are reported as iso14688 fractions (GRAG), so their "
+        "USCS fractions with other boundaries (fines, sand, gravel) and symbols "
+        "are blank."
+    ) in messages
+    # uscs()'s own count is G8's (no limits) alone.
+    assert any(
+        m.startswith("uscs_symbol is blank for 1 of 1 specimens") for m in messages
+    )
+
+
+def test_no_stated_system_keeps_the_rows_blank(fresh):
+    # AC 21 (index half).
+    df, messages = _with_warnings(
+        fresh("grag", grag_fraction_system=None).index_properties
+    )
+    reported = df[df["grading_source"] == "reported"]
+    assert len(reported) == 7
+    assert reported["fines_content"].isna().all()
+    assert (
+        reported["uscs_symbol"].isna().all() and reported["aashto_group"].isna().all()
+    )
+    assert (reported["fraction_system"] == "astm_uscs").all()
+    assert (
+        sum(m.startswith("7 gradings are reported only as fractions") for m in messages)
+        == 1
+    )
+    assert not any("no fractions" in m for m in messages)
+
+
+def test_an_incomplete_curve_is_no_grading(tmp_path):
+    # AC 22: G8's GRAT rows left out; its GRAG row doesn't take their place.
+    groups = make_files.grag_groups()
+    groups[-1]["rows"] = [[*row[:-1], None] for row in groups[-1]["rows"]]
+    path = tmp_path / "grag_incomplete.ags"
+    make_files.write_file(path, "4.2", groups)
+    p = ht.Project.from_ags(
+        path, db=tmp_path / "g.sqlite", grag_fraction_system="astm_uscs"
+    )
+    df, _ = _with_warnings(p.index_properties)
+    assert "G8" not in df["sample_reference"].tolist()
+
+
+def test_a_row_with_no_grading_has_no_source(index):
+    # AC 23: J1-D2 has only limits.
+    assert index.loc["J1-D2", "grading_source"] is None
+    assert index.loc["J1-B4", "grading_source"] == "curve"
+
+
+def test_a_reported_grading_is_a_candidate_with_the_curves(tmp_path):
+    # §6.6 rules 1 to 4 choose between a curve (specimen 1, 0.30 m from the
+    # water content's 1.60) and a reported grading (specimen 2, 0.02 m away).
+    spec = {
+        ref: [*SAMPLE, ref, depth]
+        for ref, depth in (("1", 1.90), ("2", 1.62), ("3", 1.60))
+    }
+    lnmc = make_files.group(
+        "LNMC", [*make_files.SPECIMEN, ("LNMC_MC", "0DP", "%")], [[*spec["3"], 20]]
+    )
+    grag = make_files.group(
+        "GRAG",
+        [
+            *make_files.SPECIMEN,
+            ("GRAG_GRAV", "1DP", "%"),
+            ("GRAG_SAND", "1DP", "%"),
+            ("GRAG_FINE", "1DP", "%"),
+        ],
+        [[*spec["1"], None, None, None], [*spec["2"], 10.0, 87.0, 3.0]],
+    )
+    grat = make_files.group(
+        "GRAT",
+        [*make_files.SPECIMEN, ("GRAT_SIZE", "3SF", "mm"), ("GRAT_PERP", "0DP", "%")],
+        [[*spec["1"], 20.0, 100], [*spec["1"], 0.063, 50]],
+    )
+    path = tmp_path / "lab.ags"
+    make_files.write_file(
+        path, "4.2", [make_files.LOCA, make_files.SAMP, lnmc, grag, grat]
+    )
+    p = ht.Project.from_ags(
+        path,
+        db=tmp_path / "lab.sqlite",
+        display_units="SI",
+        grag_fraction_system="astm_uscs",
+    )
+    df, messages = _with_warnings(p.index_properties)
+    row = df.iloc[0]
+    assert len(df) == 1
+    assert row["grading_source"] == "reported"
+    assert row["fines_content"] == 3.0
+    assert any(m.startswith("1 sample had more than one specimen") for m in messages)
+
+
+def test_good_files_reported_grading(fresh):
+    # AC 24: BH2-D1, fines 65, NP, LL 31: ML; A-4, GI 4.65 - 5.00 < 0: 0.
+    for name in ("site_si", "site_us"):
+        row = (
+            _quiet(fresh(name).index_properties)
+            .set_index("sample_reference")
+            .loc["BH2-D1"]
+        )
+        assert row["fines_content"] == 65.0
+        assert (row["uscs_symbol"], row["aashto_group"]) == ("ML", "A-4")
+        assert row["aashto_group_index"] == 0
+        assert row["grading_source"] == "reported"
+
+
+def test_good_files_without_the_setting(fresh):
+    # AC 24: the no-system warning counts BH2-D1.
+    df, messages = _with_warnings(
+        fresh("site_si", grag_fraction_system=None).index_properties
+    )
+    assert messages == [
+        m for m in messages if m.startswith("1 grading is reported only as fractions")
+    ]
+    assert len(messages) == 1
+    assert df["uscs_symbol"].dropna().tolist() == ["SP-SM"]

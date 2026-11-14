@@ -319,7 +319,8 @@ def test_14_m8_datasets_feed_the_plots(projects, name, system):
         fig, _ax = _quiet(plot, *args)
         plt.close(fig)
     index = _quiet(p.index_properties, display_units=system)
-    assert index["uscs_symbol"].dropna().tolist() == ["SP-SM"]
+    # BH2-D1 is a reported grading (AC 24).
+    assert index["uscs_symbol"].dropna().tolist() == ["SP-SM", "ML"]
     fig, _ax = _quiet(ht.plot.water_content_profile, index, display_units=system)
     plt.close(fig)
 

@@ -1,7 +1,8 @@
 """``p.index_properties()``: one row per sample, its tests combined (datasets.md §6.6).
 
 A sample's water content (``LNMC``), Atterberg limits (``LLPL``) and grading
-(``GRAT``) can be on different specimens. For each test, the specimen nearest
+(a ``GRAT`` curve, or a reported grading: ``GRAG`` with no curve, §6.13) can
+be on different specimens. For each test, the specimen nearest
 the sample's reference depth is used, so no row is multiplied and no other
 specimen's values are mixed in.
 """
@@ -14,6 +15,7 @@ import numpy as np
 import pandas as pd
 
 from hangtu.analysis import aashto, clay_activity, uscs
+from hangtu.analysis._fractions import fraction_system
 from hangtu.datasets._frame import Build
 from hangtu.datasets._lab import (
     classify_plasticity,
@@ -21,6 +23,13 @@ from hangtu.datasets._lab import (
     specimen_names,
     specimens,
     summarize_curves,
+)
+from hangtu.datasets._reported import (
+    add_values,
+    no_system_message,
+    reported_fractions,
+    reported_rows,
+    uscs_blank_message,
 )
 from hangtu.errors import warn
 
@@ -51,6 +60,7 @@ COLUMNS = [
     "cobbles_content",
     "boulders_content",
     "fraction_system",
+    "grading_source",
     "uscs_symbol",
     "aashto_group",
     "aashto_group_index",
@@ -69,13 +79,15 @@ AASHTO_FRACTIONS = [
     "gravel_content",
     "boulders_content",
 ]
-#: The test groups, in the order samples are listed (decision 3), and the
-#: column naming each one's chosen specimen.
+#: The tests, and the column naming each one's chosen specimen.
 TESTS = {
     "LNMC": "water_content_specimen_id",
     "LLPL": "atterberg_specimen_id",
     "GRAT": "grain_size_specimen_id",
 }
+#: The groups, in the order samples are listed (decision 3). Reported
+#: gradings (GRAG with no GRAT, §6.13) are grading candidates with the curves.
+GROUPS = {"LNMC": "LNMC", "LLPL": "LLPL", "GRAT": "GRAT", "GRAG": "GRAT"}
 #: The columns of a combined row, before ``finish()``.
 ROW_COLUMNS = [
     "location_id",
@@ -90,6 +102,7 @@ ROW_COLUMNS = [
     "plasticity_index",
     "non_plastic",
     *TESTS.values(),
+    "grading_source",
     "_grading",
 ]
 #: The AGS key fields of a sample, which every lab row carries.
@@ -121,13 +134,14 @@ def index_properties(
         display_units=display_units,
         include_incomplete=include_incomplete,
     )
-    if not any(build.has(group) for group in TESTS):
+    if not any(build.has(group) for group in GROUPS):
         return build.finish(
-            pd.DataFrame(), COLUMNS, group="LNMC, LLPL or GRAT", **common
+            pd.DataFrame(), COLUMNS, group="LNMC, LLPL, GRAT or GRAG", **common
         )
-    tables = {group: _specimens(build, group) for group in TESTS if build.has(group)}
+    tables = {g: _specimens(build, g) for g in GROUPS if build.has(g)}
     points = tables.get("GRAT")
     tables = {g: table.drop_duplicates("_specimen") for g, table in tables.items()}
+    reported = Reported(tables.get("GRAG"), build.grag_fraction_system)
     samples = _samples(tables)
     rows, chosen = [], []
     for sample in samples.values():
@@ -141,10 +155,10 @@ def index_properties(
     # warnings are given for the rows the filters return, like the others.
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        classified = _classify(frame, points)
+        classified = _classify(frame, points, reported)
     classified["_row"] = np.arange(len(frame))
     result = build.finish(classified, [*COLUMNS, "_row"], **common)
-    _classify(frame.iloc[result.pop("_row").to_numpy()], points)
+    _classify(frame.iloc[result.pop("_row").to_numpy()], points, reported)
     _warn_chosen(result, chosen)
     return result
 
@@ -155,7 +169,7 @@ def _specimens(build: Build, group: str) -> pd.DataFrame:
     ``_specimen`` tells the specimens apart: the specimen key, or for a sample
     with no ``SAMP`` row (no key), its sample, ``SPEC_REF`` and ``SPEC_DPTH``.
     """
-    rows = build.rows(group)
+    rows = reported_rows(build) if group == "GRAG" else build.rows(group)
     frame = specimens(build, group, rows)
     frame["sample_id"] = rows.get("sample_id", pd.NA)
     frame["_sample"] = _sample_keys(build, rows)
@@ -175,6 +189,9 @@ def _specimens(build: Build, group: str) -> pd.DataFrame:
     if group == "GRAT":
         frame["particle_size"] = build.numbers(rows, "GRAT_SIZE")
         frame["percent_passing"] = build.numbers(rows, "GRAT_PERP")
+    if group == "GRAG":
+        add_values(build, frame, rows)
+    frame["_source"] = "reported" if group == "GRAG" else "curve"
     return frame
 
 
@@ -210,12 +227,16 @@ def _one_water_content(frame: pd.DataFrame) -> pd.DataFrame:
 
 
 def _samples(tables: dict[str, pd.DataFrame]) -> dict[tuple, Sample]:
-    """Return the samples, in order of their first LNMC, then LLPL, then GRAT row."""
+    """Return the samples, in order of their first LNMC, LLPL, GRAT, then GRAG row.
+
+    A reported grading (``GRAG``) is listed with the sample's curves, as one
+    test.
+    """
     samples: dict[tuple, Sample] = {}
     for group, table in tables.items():
         for _, row in table.iterrows():
             sample = samples.setdefault(row["_sample"], Sample(first=row))
-            sample.tests.setdefault(group, []).append(row)
+            sample.tests.setdefault(GROUPS[group], []).append(row)
     return samples
 
 
@@ -253,6 +274,7 @@ def _combine(sample: Sample) -> tuple[dict, bool]:
         row[column] = None if pick is None else pick["specimen_id"]
     grading = picked["GRAT"]
     row["_grading"] = None if grading is None else grading["_specimen"]
+    row["grading_source"] = None if grading is None else grading["_source"]
     several = any(len(found) > 1 for found in sample.tests.values())
     return row, several
 
@@ -304,7 +326,17 @@ def _warn_chosen(result: pd.DataFrame, chosen: list[tuple]) -> None:
         )
 
 
-def _classify(frame: pd.DataFrame, points: pd.DataFrame | None) -> pd.DataFrame:
+@dataclass
+class Reported:
+    """The reported gradings a call can choose, and the project's stated system."""
+
+    table: pd.DataFrame | None
+    stated: str | None
+
+
+def _classify(
+    frame: pd.DataFrame, points: pd.DataFrame | None, reported: Reported
+) -> pd.DataFrame:
     """Add the plasticity columns, gradings, USCS symbol, AASHTO group and activity.
 
     Plasticity as ``p.atterberg()`` (§6.2), on the combined row. Only rows
@@ -314,7 +346,8 @@ def _classify(frame: pd.DataFrame, points: pd.DataFrame | None) -> pd.DataFrame:
     the astm_uscs fractions (returned) and the aashto and iso14688 ones (not
     returned); the later runs' warnings would repeat the first's, so they
     aren't shown. Activity is blank where a curve doesn't reach 0.002 mm, as
-    on a sieve-only grading, without a warning (M14 b, Decision 7).
+    on a sieve-only grading, without a warning (M14 b, Decision 7). A
+    reported grading gives the same three systems' fractions by §6.13.
     """
     labels = frame["loca_id"].astype(str) + " " + frame["sample_reference"].astype(str)
     frame = classify_plasticity(frame, labels)
@@ -323,9 +356,95 @@ def _classify(frame: pd.DataFrame, points: pd.DataFrame | None) -> pd.DataFrame:
     for column in ("fraction_system", "uscs_symbol", "aashto_group"):
         frame[column] = None
     graded = frame["_grading"].notna()
-    if points is None or not graded.any():
+    if not graded.any():
         return frame
-    chosen = points[points["_specimen"].isin(frame.loc[graded, "_grading"])]
+    grading, fractions, clay = _curve_values(frame, points)
+    oversize = pd.Series(dtype=float)
+    unclassified: pd.Index = pd.Index([])
+    blank_names: list[str] = []
+    if reported.table is not None and not reported.table.empty:
+        found = _reported_values(frame, reported)
+        grading = pd.concat([grading, found.grading])
+        fractions = pd.concat([fractions, found.fractions])
+        clay = pd.concat([clay, found.clay])
+        oversize, unclassified = found.oversize, found.unclassified
+        blank_names = found.blank_names
+    on = frame.loc[graded, "_grading"]
+    for column in GRADATION_COLUMNS:
+        frame.loc[graded, column] = on.map(grading[column]).to_numpy()
+    frame.loc[graded, "fraction_system"] = "astm_uscs"
+
+    soils = frame.loc[graded].copy()
+    # A reported GRAG_VCRE above 0 is the oversize, though cobbles and
+    # boulders are blank (§6.6, uscs_symbol); the returned columns stay blank.
+    extra = on.map(oversize).astype(float)
+    known = extra.notna().to_numpy()
+    soils.loc[known, "cobbles_content"] = extra[known].to_numpy()
+    soils.loc[known, "boulders_content"] = 0.0
+    skip = on.isin(unclassified).to_numpy()
+    symbols = pd.Series(None, index=soils.index, dtype=object)
+    if (~skip).any():
+        symbols[~skip] = uscs(soils[~skip])["uscs_symbol"].to_numpy()
+    frame.loc[graded, "uscs_symbol"] = symbols.to_numpy()
+    frame["uscs_symbol"] = frame["uscs_symbol"].astype(object)
+    frame["uscs_symbol"] = frame["uscs_symbol"].where(
+        frame["uscs_symbol"].notna(), None
+    )
+    if reported.stated is None:
+        count = int((frame.loc[graded, "grading_source"] == "reported").sum())
+        if count:
+            warn(no_system_message(count))
+    elif skip.any():
+        warn(uscs_blank_message(int(skip.sum()), reported.stated, blank_names))
+
+    soils = soils[["liquid_limit", "plasticity_index", "non_plastic"]].copy()
+    for column in AASHTO_FRACTIONS:
+        soils[column] = on.map(fractions[column]).to_numpy()
+    soils["fraction_system"] = "aashto"
+    no_system = (
+        (frame.loc[graded, "grading_source"] == "reported").to_numpy()
+        if reported.stated is None
+        else np.zeros(len(soils), dtype=bool)
+    )
+    groups = pd.DataFrame(
+        {"aashto_group": None, "aashto_group_index": np.nan}, index=soils.index
+    )
+    if (~no_system).any():
+        with warnings.catch_warnings():
+            # plasticity()'s PI above LL, already warned about on these rows.
+            warnings.filterwarnings(
+                "ignore", message=r"Rows .* have a plasticity_index"
+            )
+            found_groups = aashto(soils[~no_system])
+        groups.loc[~no_system, "aashto_group"] = found_groups["aashto_group"].to_numpy()
+        groups.loc[~no_system, "aashto_group_index"] = found_groups[
+            "aashto_group_index"
+        ].to_numpy()
+    frame.loc[graded, "aashto_group"] = groups["aashto_group"].to_numpy()
+    frame.loc[graded, "aashto_group_index"] = groups["aashto_group_index"].to_numpy()
+
+    soils = soils[["plasticity_index", "non_plastic"]].copy()
+    soils["clay_content"] = on.map(clay).to_numpy()
+    soils["fraction_system"] = "iso14688"
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")  # blanks are expected on sieve-only curves
+        activity = clay_activity(soils)
+    frame.loc[graded, "clay_activity"] = activity["clay_activity"].to_numpy()
+    return frame
+
+
+def _curve_values(
+    frame: pd.DataFrame, points: pd.DataFrame | None
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
+    """Return the chosen curves' gradation, aashto fractions and clay, by specimen."""
+    empty = pd.DataFrame(columns=GRADATION_COLUMNS, dtype=float)
+    if points is None:
+        return (
+            empty,
+            pd.DataFrame(columns=AASHTO_FRACTIONS, dtype=float),
+            (pd.Series(dtype=float)),
+        )
+    chosen = points[points["_specimen"].isin(frame["_grading"].dropna())]
     curves = pd.DataFrame(
         {
             "loca_id": chosen["loca_id"],
@@ -342,31 +461,56 @@ def _classify(frame: pd.DataFrame, points: pd.DataFrame | None) -> pd.DataFrame:
         warnings.simplefilter("ignore")
         fractions = summarize_curves(curves, ["specimen_id"], [], "aashto")
         clay = summarize_curves(curves, ["specimen_id"], [], "iso14688")
-    fractions = fractions.set_index("specimen_id")
-    clay = clay.set_index("specimen_id")["clay_content"]
-    on = frame.loc[graded, "_grading"]
-    for column in GRADATION_COLUMNS:
-        frame.loc[graded, column] = on.map(grading[column]).to_numpy()
-    frame.loc[graded, "fraction_system"] = "astm_uscs"
+    return (
+        grading,
+        fractions.set_index("specimen_id"),
+        clay.set_index("specimen_id")["clay_content"],
+    )
 
-    soils = frame.loc[graded].copy()
-    frame.loc[graded, "uscs_symbol"] = uscs(soils)["uscs_symbol"].to_numpy()
-    soils = soils[["liquid_limit", "plasticity_index", "non_plastic"]].copy()
-    for column in AASHTO_FRACTIONS:
-        soils[column] = on.map(fractions[column]).to_numpy()
-    soils["fraction_system"] = "aashto"
-    with warnings.catch_warnings():
-        # plasticity()'s PI above LL, already warned about on these rows.
-        warnings.filterwarnings("ignore", message=r"Rows .* have a plasticity_index")
-        groups = aashto(soils)
-    frame.loc[graded, "aashto_group"] = groups["aashto_group"].to_numpy()
-    frame.loc[graded, "aashto_group_index"] = groups["aashto_group_index"].to_numpy()
 
-    soils = soils[["plasticity_index", "non_plastic"]].copy()
-    soils["clay_content"] = on.map(clay).to_numpy()
-    soils["fraction_system"] = "iso14688"
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")  # blanks are expected on sieve-only curves
-        activity = clay_activity(soils)
-    frame.loc[graded, "clay_activity"] = activity["clay_activity"].to_numpy()
-    return frame
+@dataclass
+class ReportedValues:
+    """A call's chosen reported gradings, read for classification (§6.13)."""
+
+    grading: pd.DataFrame  # GRADATION_COLUMNS, by specimen
+    fractions: pd.DataFrame  # AASHTO_FRACTIONS
+    clay: pd.Series  # iso14688 clay
+    oversize: pd.Series  # GRAG_VCRE where it is above 0 and cobbles are blank
+    unclassified: pd.Index  # specimens whose USCS fractions have other boundaries
+    blank_names: list[str]  # those fractions
+
+
+def _reported_values(frame: pd.DataFrame, reported: Reported) -> ReportedValues:
+    assert reported.table is not None  # the caller checks
+    table = reported.table[reported.table["_specimen"].isin(frame["_grading"])]
+    table = table.set_index("_specimen")
+    stated = reported.stated
+
+    def read(system: str) -> tuple[pd.DataFrame, list[str]]:
+        found = reported_fractions(table, fraction_system(system)[1], stated)
+        return found.contents, found.other_boundaries
+
+    astm, other = read("astm_uscs")
+    grading = astm.copy()
+    for column in ("d10", "d30", "d60"):
+        grading[column] = np.nan
+    grading["uniformity_coefficient"] = table["uniformity_coefficient"]
+    grading["curvature_coefficient"] = table["curvature_coefficient"]
+    # uscs() needs these three; cobbles and boulders only rescale them.
+    other = [name for name in other if name in ("fines", "sand", "gravel")]
+    blank = astm[[f"{name}_content" for name in other]].isna().any(axis=1)
+    vcre = table["GRAG_VCRE"]
+    over = (
+        astm["cobbles_content"].isna()
+        & astm["boulders_content"].isna()
+        & (vcre > 0)
+        & (stated is not None)
+    )
+    return ReportedValues(
+        grading=grading[GRADATION_COLUMNS],
+        fractions=read("aashto")[0][AASHTO_FRACTIONS],
+        clay=read("iso14688")[0]["clay_content"],
+        oversize=vcre[over],
+        unclassified=astm.index[blank] if stated is not None else table.index,
+        blank_names=other,
+    )

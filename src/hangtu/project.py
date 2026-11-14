@@ -585,7 +585,8 @@ class Project:
         """Return one row per sample, with its water content, limits and grading.
 
         A sample with a water content (``LNMC``), an Atterberg test (``LLPL``)
-        or a grading (``GRAT``) gets one row that combines them. Where a test
+        or a grading (a ``GRAT`` curve, or ``GRAG`` percentages with no curve)
+        gets one row that combines them. Where a test
         was run on several specimens of the sample, the one nearest the
         sample's reference depth is used: the water content specimen's depth
         when there is one, else the sample's. Ties go to the water content's
@@ -600,6 +601,15 @@ class Project:
         (``gradation()``), USCS symbol (``uscs()``) and AASHTO group
         (``aashto()``). A symbol the data can't decide is left blank, with a
         warning that counts it.
+
+        A grading reported only as the lab's percentages is read in the
+        system the project setting ``grag_fraction_system`` names, as in
+        ``p.grain_size_summary()``: its D-values are blank, and a fraction the
+        lab's size ranges don't make up exactly is blank, so ISO 14688
+        percentages give no USCS symbol (with a warning) but can give the clay
+        activity. Where the lab reports material over 75 mm, the fractions
+        are classified on the part finer than 75 mm. ``grading_source`` says
+        ``"curve"`` or ``"reported"``.
 
         Parameters
         ----------
