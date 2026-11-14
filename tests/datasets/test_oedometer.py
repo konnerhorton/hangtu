@@ -53,6 +53,18 @@ def site(fresh):
     return project
 
 
+@pytest.fixture
+def joins(fresh):
+    return fresh("joins")
+
+
+def _joins(project, **kwargs):
+    with pytest.warns(UserWarning, match="Left out 1 of 2 CONS records") as caught:
+        df = project.oedometer(**kwargs)
+    assert len(caught) == 1, [str(w.message) for w in caught]
+    return df
+
+
 def test_ac1_one_row_per_increment_with_the_specimen(site):
     df = _quiet(site.oedometer)
     assert len(df) == 12
@@ -139,6 +151,82 @@ def test_the_404_file_gives_the_same_increments(fresh):
     assert df["void_ratio_at_increment_end"].tolist() == ENDS
     assert df["load_branch"].tolist() == BRANCHES
     assert df["equipment_deformation_corrected"].isna().all()  # 4.1's heading
+
+
+def test_ac6_a_specimen_with_no_increments_is_one_row(joins):
+    df = _joins(joins)
+    swell = df[df["specimen_reference"] == "SW1"]
+    assert len(swell) == 1
+    row = swell.iloc[0]
+    assert row["swelling_pressure"] == 150
+    assert row["test_type"] == "SWELLPRESS"
+    assert row["test_stage"] is None and row["load_branch"] is None
+    assert np.isnan(row["applied_vertical_stress"])
+    assert np.isnan(row["void_ratio_at_increment_end"])
+    assert row["void_ratio"] == 0.700
+
+
+def test_ac7_every_type_is_kept_as_written(joins):
+    df = _joins(joins).set_index("specimen_reference")
+    assert df.loc["SS1", "test_type"] == "SETTLESAT"
+    assert df.loc["SS1", "height_change_on_saturation"] == -1.1
+    assert df.loc["L1", "test_type"] == "LOW STRESS"
+
+
+def test_ac8_an_assumed_particle_density_is_kept_and_flagged(joins):
+    df = _joins(joins).set_index("specimen_reference")
+    assert df.loc["SS1", "particle_density"] == 2.65
+    assert df.loc["SS1", "particle_density_assumed"]
+    assert not df.loc["L1", "particle_density_assumed"]
+
+
+def test_ac9_an_increment_with_no_end_void_ratio_is_incomplete(joins):
+    df = _joins(joins)
+    assert df[df["specimen_reference"] == "L1"]["test_stage"].tolist() == ["1"]
+    kept = _quiet(joins.oedometer, include_incomplete=True)
+    rows = kept[kept["specimen_reference"] == "L1"]
+    assert rows["test_stage"].tolist() == ["1", "2"]
+    assert rows["applied_vertical_stress"].tolist() == [5, 10]
+    assert np.isnan(rows["void_ratio_at_increment_end"].iloc[1])
+    assert rows["load_branch"].tolist() == ["loading", "loading"]
+
+
+def test_a_specimen_whose_increments_are_all_left_out_gives_no_row(fresh, tmp_path):
+    # Its increments exist; leaving them out mustn't make it look like a
+    # swelling test with none.
+    rows = [list(row) for row in make_files.CONS["rows"][:1]]
+    ince = [h for h, _, _ in make_files.CONS_HEADINGS].index("CONS_INCE")
+    rows[0][ince] = None
+    cons = {**make_files.CONS, "rows": rows}
+    path = tmp_path / "blank.ags"
+    groups = [make_files.LOCA, make_files.SAMP, make_files.CONG, cons]
+    make_files.write_file(path, "4.2", groups)
+    project = ht.Project.from_ags(path, db=tmp_path / "blank.sqlite")
+    with pytest.warns(UserWarning, match="Left out 1 of 1 CONS records"):
+        df = project.oedometer(display_units="SI")
+    assert df.empty
+    assert "applied_vertical_stress" in df.columns
+
+
+def test_ac12_no_cong_gives_an_empty_frame(fresh):
+    with pytest.warns(UserWarning, match="No CONG group"):
+        df = fresh("defects").oedometer()
+    assert df.empty
+    assert set(INCREMENT_COLUMNS) <= set(df.columns)
+
+
+def test_ac12_an_increment_with_no_cong_row_is_kept(tmp_path):
+    # A CONS row with no CONG row breaks AGS Rule 10c, so the file is built
+    # here (tests/data/ags/README.md).
+    cons = {**make_files.CONS, "rows": make_files.CONS["rows"][:2]}
+    path = tmp_path / "orphan.ags"
+    make_files.write_file(path, "4.2", [make_files.LOCA, make_files.SAMP, cons])
+    project = ht.Project.from_ags(path, db=tmp_path / "orphan.sqlite")
+    df = _quiet(project.oedometer, display_units="SI")
+    assert df["applied_vertical_stress"].tolist() == [25, 50]
+    assert df["load_branch"].tolist() == ["loading", "loading"]
+    assert df["test_type"].isna().all() and df["void_ratio"].isna().all()
+    assert df["particle_density_assumed"].isna().all()
 
 
 def test_ac13_feeds_the_plots(site):

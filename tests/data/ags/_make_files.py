@@ -1888,6 +1888,78 @@ def joins_groups():
             [*j1_d2, "R2", 3.20, "1", 0.10, None, 0.021, None, None],
         ],
     )
+    # Oedometer cases (M19 a, datasets.md §6.14):
+    # - J1-U1 SW1: a swelling pressure test, CONG_SPRS 150 kPa, with no CONS rows;
+    # - J1-U1 SS1: a settlement on saturation test, CONG_SATH -1.1 %, with an
+    #   assumed particle density (#2.65);
+    # - J2-U1 L1: a type the dictionary doesn't list, with two increments, the
+    #   second with CONS_INCE blank (incomplete, §7).
+    j2_u1 = ["J2", 2.00, "1", "U", "J2-U1"]
+    cong = group(
+        "CONG",
+        [
+            *SPECIMEN,
+            ("CONG_TYPE", "PA", ""),
+            ("CONG_COND", "PA", ""),
+            ("CONG_HIGT", "2DP", "mm"),
+            ("CONG_PDEN", "XN", "Mg/m3"),
+            ("CONG_SPRS", "2SF", "kPa"),
+            ("CONG_SATH", "1DP", "%"),
+            ("CONG_IVR", "3DP", ""),
+        ],
+        [
+            [
+                *j1_u1,
+                "SW1",
+                1.10,
+                "SWELLPRESS",
+                "UNDISTURBED",
+                20.00,
+                None,
+                150,
+                None,
+                0.700,
+            ],
+            [
+                *j1_u1,
+                "SS1",
+                1.20,
+                "SETTLESAT",
+                "UNDISTURBED",
+                20.00,
+                "#2.65",
+                None,
+                -1.1,
+                0.720,
+            ],
+            [
+                *j2_u1,
+                "L1",
+                2.10,
+                "LOW STRESS",
+                "REMOULDED",
+                19.00,
+                "2.68",
+                None,
+                None,
+                0.900,
+            ],
+        ],
+    )
+    cons = group(
+        "CONS",
+        [
+            *SPECIMEN,
+            ("CONS_INCN", "X", ""),
+            ("CONS_IVR", "3DP", ""),
+            ("CONS_INCF", "0DP", "kPa"),
+            ("CONS_INCE", "3DP", ""),
+        ],
+        [
+            [*j2_u1, "L1", 2.10, "1", 0.900, 5, 0.897],
+            [*j2_u1, "L1", 2.10, "2", 0.897, 10, None],
+        ],
+    )
     return [
         loca,
         geol,
@@ -1904,6 +1976,8 @@ def joins_groups():
         ivan,
         shbg,
         shbt,
+        cong,
+        cons,
     ]
 
 
