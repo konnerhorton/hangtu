@@ -7,7 +7,7 @@ import pytest
 from python_ags4 import AGS4
 
 DATA = Path(__file__).parents[1] / "data" / "ags"
-GOOD = ["site_si.ags", "site_us.ags", "site_v404.ags", "joins.ags"]
+GOOD = ["site_si.ags", "site_us.ags", "site_v404.ags", "joins.ags", "grag.ags"]
 NOT_FINDINGS = {"Metadata", "Summary of data"}
 
 
