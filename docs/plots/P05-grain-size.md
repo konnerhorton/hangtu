@@ -111,7 +111,7 @@ More than 20 curves with `color_by="specimen_id"`: the README legend rules apply
 **`envelopes=` format** (`ht.template("envelopes")`): one row per size: `label, particle_size, low, high`, with `low` and `high` the percent passing at that size. Rows sharing a `label` make one band, sorted by size as rows. `particle_size` needs units, from the table's own `attrs` (as P01's overlays). `label`, `low` and `high` are the existing overlay fields.
 
 ## 9. Units behavior
-- Particle size is converted to mm on input and shown in mm in both systems (P00 §4.1, TODO #17).
+- Particle size is converted to mm on input and shown in mm in both systems (P00 §4.1).
 - Only the sieve labels change with the display system, and only with `sieves="auto"`. The curves and the band are the same, so by default a US and an SI figure are the same figure, and with `sieves="auto"` they differ only in those labels.
 
 ## 10. API

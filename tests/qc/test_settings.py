@@ -77,7 +77,7 @@ def test_sample_key_anchor_is_written_out():
 
 
 def test_specimen_reference_and_depth_are_recommended():
-    # datasets.md §14: a lab result without them falls back to its sample.
+    # datasets.md §7: a lab result without them falls back to its sample.
     for group in ("LLPL", "LNMC", "GRAG", "GRAT", "PTST"):
         fields = load().min_fields[group]
         assert {"SPEC_REF", "SPEC_DPTH"} <= set(fields["recommended"])

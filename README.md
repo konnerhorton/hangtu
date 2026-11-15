@@ -84,8 +84,8 @@ The work comes in waves, each built around a shared piece of engineering:
 
 | | What it covers |
 |---|---|
-| Built | Plots, AGS4 ingest and checks, the datasets and classification; vertical stress, phase relations and SPT correlations with (N1)60; the clogging diagram; statistics; triaxial, undrained strength and shear box data with the Mohr–Coulomb, shear box and intact Hoek–Brown fits; and selection: comparing sources, Eurocode 7 characteristic values, design lines and the Mohr–Coulomb parameter set |
-| Planned | Test curves (triaxial, swelling, shear box) carried in the AGS file; oedometer and swelling, with the Soft Soil set; rock mass (Hoek–Brown, modulus, in situ stress), with the generalized Hoek–Brown set; soil stiffness, with the Hardening Soil sets; field permeability |
+| Built | Plots, AGS4 ingest and checks, the datasets and classification; vertical stress, phase relations and SPT correlations with (N1)60; the clogging diagram; statistics; triaxial, undrained strength, shear box and oedometer data, with the Mohr–Coulomb, shear box and intact Hoek–Brown fits; and selection: comparing sources, Eurocode 7 characteristic values, design lines and the Mohr–Coulomb parameter set |
+| Planned | Test curves (triaxial, swelling, shear box) carried in the AGS file; compressibility and consolidation from the oedometer, rock swelling, with the Soft Soil set; rock mass (Hoek–Brown, modulus, in situ stress), with the generalized Hoek–Brown set; soil stiffness, with the Hardening Soil sets; field permeability |
 
 Releases follow when a piece is ready to use; they aren't tied to the waves. What each release holds, and what is on `main` but not yet released, is in the [changelog](https://github.com/konnerhorton/hangtu/blob/main/CHANGELOG.md).
 

@@ -115,7 +115,7 @@ The quantity kind of a column comes from the registry, or from a plot preset for
   - number columns must have `quantity`, `scale` and `label`;
   - a plot spec that needs a new column adds it here in the same change;
   - any unregistered numeric column can still be plotted as a `value`, with units from `units=`/`df.attrs` and a label from the column name or `label=`.
-- **`statistics:`** (M15 (a), `docs/work/m15a-describe.md`) marks a flag or source column for the statistics functions, so `describe()`, `fit()` and `compare()` read one list and a new one is added here, not in code:
+- **`statistics:`** marks a flag or source column for the statistics functions, so `describe()`, `fit()` and `compare()` read one list and a new one is added here, not in code:
   - `role`: `at_least` (the value is a lower bound), `qualifier` (`<` or `>` on the row's value), `non_plastic`, `assumed`, or `source` (rows with different values come from different sources);
   - `values`: the value columns a flag applies to (all, if omitted; never on `qualifier` or `source`);
   - `when`: on a text flag, the values that set it (`specific_gravity_source`: `assumed`, `judgment`). A bool flag is set by True.
@@ -171,7 +171,7 @@ Helpers: `nice_limits(vmin, vmax, *, start_at_zero)`, `log_limits(vmin, vmax, mi
 
 ## 11. Legends and hints
 - **Legend:** 8 pt. Sections in order: units (colors), then marker groups, then special markers (qualifiers, edge markers) with counts. More than 12 entries → columns of up to 12; more than 30 → no legend, and a note saying "n units: see ht.plot.legend_handles()".
-- **Placement** (`docs/work/p00-layout-defaults.md`): `add_legend(..., where=)` takes `"auto"` (the default), `"inside"`, `"bottom"` or `"right"`, and returns the legend and the placement it chose.
+- **Placement**: `add_legend(..., where=)` takes `"auto"` (the default), `"inside"`, `"bottom"` or `"right"`, and returns the legend and the placement it chose.
   - `"auto"`: inside the axes, in the first clear corner in the order upper right, upper left, lower right, lower left; if none is clear, below the x label, as `"bottom"`. One order for every plot.
   - **Clear** means the legend's box, padded by 4 pt, overlaps no marker (padded by its radius), no line segment (one crossing the box counts, not just its vertices), no data patch, and no text, annotation or text box. Artists below `_layers.LINES` (strata bands, user regions, range bands, P05 envelopes) and the axes background don't count. The test runs after the layout engine, so the axes have their final size.
   - `"inside"`: the same corners with no fallback; if none is clear, the corner with the fewest obstacles, ties to the earlier corner.

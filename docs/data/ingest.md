@@ -2,18 +2,17 @@
 
 | | |
 |---|---|
-| **Status** | done (M5) |
-| **Intent** | [`docs/work/m5-ingest.md`](../work/m5-ingest.md#intent) |
+| **Status** | Living spec. How an AGS4 file becomes a project database: the raw and canonical layers, units and quantity kinds, value flags, and the findings raised while reading |
 | **Parent** | SPEC §2.2 (units), §6 (ingestion), §7 (data model), §11 (errors) |
-| **Related** | [`docs/work/file-units.md`](../work/file-units.md) (file-defined units), [`docs/work/vertical-datum.md`](../work/vertical-datum.md) (`LOCA_DATM`). P00 §4 (quantity kinds, aliases, pcf). [`qc.md`](qc.md) (M6) reports these findings; [`datasets.md`](datasets.md) (M7) reads the canonical layer |
+| **Related** | P00 §4 (quantity kinds, aliases, pcf). [`qc.md`](qc.md) reports these findings; [`datasets.md`](datasets.md) reads the canonical layer. History: [`m5-ingest.md`](../work/m5-ingest.md), [`file-units.md`](../work/file-units.md) (file-defined units), [`vertical-datum.md`](../work/vertical-datum.md) (`LOCA_DATM`) |
 
 ## 1. Purpose and scope
 Read one AGS4 file (4.0.3 to 4.2) into a project SQLite database, and open that database again later:
 - a **raw layer**, exactly as in the file;
 - a **canonical layer**: AGS 4.2-shaped, typed, in SI, with value flags and surrogate keys (SPEC §7);
-- the **findings** raised while reading, stored for the QC report (M6).
+- the **findings** raised while reading, stored for the QC report ([`qc.md`](qc.md)).
 
-**Not in scope:** the QC report, rules beyond ingest and `diff()` (M6, [`qc.md`](qc.md)); `p.locations`, the geology map, joins, datasets and mid-drive SPT depth (M7, [`datasets.md`](datasets.md)); DIGGS, AGS3 and more than one file per project; writing AGS (SPEC §1.4).
+**Not in scope:** the QC report, rules beyond ingest and `diff()` ([`qc.md`](qc.md)); `p.locations`, the geology map, joins, datasets and mid-drive SPT depth ([`datasets.md`](datasets.md)); DIGGS, AGS3 and more than one file per project; writing AGS (SPEC §1.4).
 
 ## 2. Public API
 ```python
@@ -29,7 +28,7 @@ p.table("ISPT", raw=True)          # raw: text exactly as in the file, plus _lin
 p.sql("select * from ISPT where ISPT_NVAL > 50")   # read-only query, returns a DataFrame
 ```
 - `db=None` puts the database next to the file, with the suffix `.sqlite`.
-- **Project settings:** `from_ags` takes the session settings as keywords (`display_units="US"`, `vertical_datum="NAVD88"`, …; P00 §3) and stores them in `meta_project`; anything not given comes from `ht.settings` at the time of ingest. `p.settings` reads and changes them, and shows where the vertical datum came from. **The vertical datum**, in order: `vertical_datum=` (or `p.settings.vertical_datum` later); else the file's `LOCA_DATM`, where §7 allows it; else `ht.settings.vertical_datum`. The file comes before the session setting, because a session's datum is often left over from another project. Export and import (`to_yaml()`/`load_yaml()`) wait for M7.
+- **Project settings:** `from_ags` takes the session settings as keywords (`display_units="US"`, `vertical_datum="NAVD88"`, …; P00 §3) and stores them in `meta_project`; anything not given comes from `ht.settings` at the time of ingest. `p.settings` reads and changes them, and shows where the vertical datum came from. **The vertical datum**, in order: `vertical_datum=` (or `p.settings.vertical_datum` later); else the file's `LOCA_DATM`, where §7 allows it; else `ht.settings.vertical_datum`. The file comes before the session setting, because a session's datum is often left over from another project. Export and import (`to_yaml()`/`load_yaml()`) aren't built.
 - **`from_ags` on an existing database** raises an error unless `overwrite=True`; the message names `Project.open` and `overwrite=True`.
 - **The database is self-contained.** `open` works without the AGS file. If the file is still at its stored path and its SHA-256 has changed, `open` warns that the database is out of date and shows the `from_ags(..., overwrite=True)` call.
 - **Schema version:** if the database was written by an incompatible hangtu version, `open` raises an error saying to re-ingest. The version goes up whenever what ingest stores changes, including a new quantity kind, since `meta_heading.quantity` records each heading's kind: version 3 (M19 a) adds `volume_compressibility` and `consolidation_coefficient`.
@@ -83,8 +82,8 @@ AGS file
   2. the **file's own version's dictionary**, for groups and headings that 4.2 removed;
   3. the file's **`DICT` group**, for user-defined groups and headings.
 - **Removed by 4.2**, and kept under their own names with finding `M001` (info): the groups `IPRG`, `IPRT` (in-situ permeability, deprecated in 4.1, where `FGHG`/`FGHS`/`FGHT` were added alongside) and `ERES` (deprecated in 4.1, no 4.2 replacement); the headings `RUCS_E`, `RUCS_ESTR`, `RUCS_ETYP`, `RUCS_MU`, `PMTD_ARM1`–`3` (4.0.3–4.1.1), `PMTL.PMTD_SEQ` (4.0.3–4.1), and `GCHM_RDEV`, `WGPG_LIM`, `WGPG_ULIM` (4.1 only).
-- **`IPRG` isn't turned into `FGHG`**. `IPRG` has a row per stage where `FGHG` has a row per test, and `FGHT` needs keys `IPRT` doesn't have (`FGHT_TIME`, `FGHI_INST`, `FGHT_TYPE`), so a mapping would invent data (SPEC §7, "only what the file says"). The permeability dataset (M7) reads `IPRG_IPRM` next to `FGHG_IPRM`.
-- Headings that exist only from 4.1 (`ISPT_N60`, `SPEC_BASE`, `GRAG_CC`) are simply absent in older files; the datasets (M7) treat them as blank.
+- **`IPRG` isn't turned into `FGHG`**. `IPRG` has a row per stage where `FGHG` has a row per test, and `FGHT` needs keys `IPRT` doesn't have (`FGHT_TIME`, `FGHI_INST`, `FGHT_TYPE`), so a mapping would invent data (SPEC §7, "only what the file says"). The permeability dataset (`datasets.md` §6.4) reads `IPRG_IPRM` next to `FGHG_IPRM`.
+- Headings that exist only from 4.1 (`ISPT_N60`, `SPEC_BASE`, `GRAG_CC`) are simply absent in older files; the datasets treat them as blank.
 - Unit spellings that changed between versions (`degC` → `DegC`, `Bar` → `bar`, `µS/cm` → `uS/cm`) are handled by the unit aliases (§7). A few headings had no unit before 4.2 (`ISAG_SI`, `SCPT_MAGX`/`Y`/`Z`/`T`); in an older file with the unit blank they raise `U003` like any other, since the unit isn't declared.
 
 ## 7. Typing and units
@@ -104,7 +103,7 @@ AGS file
 **Units** from the file's `UNIT` row, per column (mixed units in one file are fine):
 1. **Parse** the unit string with the hangtu alias table, then pint (P00 §4.2), case-sensitively. AGS spellings (`DegC`, `degC`, `Bar`, `ohm m`, `uS/cm`, `Mg/m3`, `kN/m3`) are added to `aliases.yaml`. A string pint reads without an alias is accepted with finding `U002` instead of a `UserWarning`.
 2. **Expected dimension:** for a heading in a standard dictionary (4.2, or the file's version for headings 4.2 removed; §6), the dimension of its dictionary unit; for a user-defined heading, the dimension of its own unit.
-3. **Quantity kind:** the P00 kind the unit implies, except particle sizes (`GRAT_SIZE`, `LLPL_SIZE`, `PTST_SZUN`), which are `particle_size` so US output keeps mm (M7, TODO #17; `datasets.md` §10).
+3. **Quantity kind:** the P00 kind the unit implies, except particle sizes (`GRAT_SIZE`, `LLPL_SIZE`, `PTST_SZUN`), which are `particle_size` so US output keeps mm.
 4. **Canonical unit:** the dictionary unit for a heading in a standard dictionary. They're all SI and match the P00 canonical units (m, mm, kPa, kN/m³, Mg/m³, m/s, %, deg). For a user-defined heading, the P00 canonical unit with the same dimension; where no P00 kind has that dimension, the file's unit as written (`kN/mm` stays `kN/mm`, not `kg/s²`): the column is `converted` with a factor of 1, and `quantity` is blank.
 5. **Conversion:**
    - file unit understood, dimension matches → converted, `status = converted`;
@@ -127,7 +126,7 @@ As SPEC §6.2 sets out:
 - `NP` → NULL + `NP`; `Dry` → NULL + `DRY`; refusal text in `ISPT_NVAL`/`ISPT_REP` → value kept + `REFUSAL`; `<x` / `>x` → `x` kept + `LT` / `GT` (with `bound`); `#x` (`GRAG_PDEN` "assumed") → `x` kept + `ASSUMED`.
 - Anything else in a numeric column → NULL + `OTHER` + `T001` (info), with the text kept in `value_flag.text`.
 - The recognized strings live in `src/hangtu/ags/value_flags.yaml`, matched case-sensitively after trimming spaces.
-- **Refusal** comes from `ISPT_REP` only, read in one of these forms (one parser, shared with QC S001; `docs/work/spt-report.md`):
+- **Refusal** comes from `ISPT_REP` only, read in one of these forms (one parser, shared with QC S001):
   - **complete test:** an optional blow list, then `N=<n>` (spaces around `=` allowed). The blow list is numbers separated by `,`, `/`, `-` or spaces, and a penetration in it may carry a unit (below): `N=12`, `5,6,6 N=12`, `5-6-6 N=12`, `6,8/8,9,9,9 N=35` (AGS's example), `41,81,57,75/113 N=126`. **Never a refusal.**
   - **incomplete drive:** blows and blows/penetration pairs separated by `,`, `-` or spaces, ending in a pair, with no `N=`: `25/75 50/75` (AGS style), `22/150 30/150 50/57`, `22-30-50/3"` (US log style), `50/76mm`. `ISPT_NVAL` on that row gets `REFUSAL`, with its value as given, **or blank**: a refusal on a blank `ISPT_NVAL` is a value, not a blank (qc.md §4.10).
   - **a unit after a penetration** is accepted, with or without a space: `mm`, `cm`, `in` or `"`. Penetrations in `ISPT_REP` are never converted or used as numbers (AGS gives the heading no unit); the penetration hangtu uses is `ISPT_NPEN`, with its declared unit. So the form decides, not the numbers: `22/150 30/150 50/150` reads as an incomplete drive.
@@ -161,12 +160,7 @@ Written for engineers (SPEC §11):
 - Schema version mismatch: the hangtu version that wrote it, and the re-ingest call.
 
 ## 11. Test files
-Synthetic, in `tests/data/ags/` (SPEC §12.3), written by a script there from hand-typed SI data. Small: 3 locations, enough rows to hit every rule.
-- `site_si.ags` (4.2, SI): PROJ, TRAN, UNIT, TYPE, ABBR, DICT (one user-defined group), LOCA, GEOL, SAMP, ISPT, LLPL, LNMC, GRAG, GRAT, PTST, FGHG, FGHS. Includes `NP`, `Dry`, a refusal, `<0.1`, `#2.65`, blanks, and two lab groups on one specimen.
-- `site_us.ags`: the same data in US units (ft, in, psf, tsf, pcf in a density and a unit-weight heading, cm/s), with values hand-converted.
-- `site_v404.ags` (4.0.4): the same locations, with `IPRG`/`IPRT` in place of `FGHG`/`FGHS`, a removed `RUCS` heading, and the old unit spellings (`degC`, `Bar`).
-- `defects.ags`: one case per ingest rule in §9 except `M001`, plus an orphan sample. Its user-defined group has a heading in `%/log cycle`, defined in the `UNIT` group (`U005`); one in an unknown unit left out of the `UNIT` group (`U001`); and ones in `kN/mm` and `um` (converted, no `U002`).
-All but `defects.ags` pass python-ags4 validation with no errors.
+Synthetic, written by `tests/data/ags/_make_files.py` from hand-typed SI data (SPEC §12.3): SI and US twins of one small site, the same site in 4.0.4, and `defects.ags`, with one case per rule in §9 but `M001`, which `site_v404.ags` raises. All but `defects.ags` pass python-ags4. What each file holds: `tests/data/ags/README.md`.
 
 ## 12. Acceptance criteria
 1. **Twin files:** `site_si.ags` and `site_us.ags` give identical canonical tables (values to 1e-9 relative), identical flags and identical keys. Not compared: `_line`, and the `UNIT`, `TYPE` and `DICT` groups, which describe the file rather than the data.

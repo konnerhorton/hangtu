@@ -3,7 +3,7 @@
 **Next:** M19 (b), compressibility (σ′p, Cc, Cs, OCR, Eoed, Eur,oed) and P13; wave 0 (M16) once TODO #31 is
 settled. M20's Soft Soil set is built on M18's model-set base. Then waves 4–6.
 
-Last checkpoint: 2, after `cleanup`, 2026-11-09, 1e39bac.
+Last checkpoint: 3, after M19 (a), 2026-11-15, 4f03bfd.
 
 ## Open
 Each milestone names its wave (SPEC §1.3). A unit's close-out records its status here; a finished milestone

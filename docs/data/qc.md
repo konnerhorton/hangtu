@@ -2,17 +2,16 @@
 
 | | |
 |---|---|
-| **Status** | done (M6); §4.11 (density, M14) done; §4.12 (triaxial, M11 a) done; §4.13–4.14 (undrained strength and shear box, M17 a) done; §4.15 (oedometer, M19 a) done but E003, which waits on TODO #73 |
-| **Intent** | [`docs/work/m6-qc.md`](../work/m6-qc.md#intent) |
+| **Status** | Living spec. The level 1 rules, the report and the diff. E003 isn't built yet (TODO #73) |
 | **Parent** | SPEC §2.6 (units), §7 (data model), §8 (depth and geology), §9 (data quality), §11 (errors) |
-| **Related** | [`ingest.md`](ingest.md) §8–§9 (value flags, findings raised at ingest). [`docs/work/qc-review.md`](../work/qc-review.md) (accepted findings, D008), [`docs/work/vertical-datum.md`](../work/vertical-datum.md) (L006, L007). TODO #6 (P001/P003 tolerances), #7 (minimally useful fields) |
+| **Related** | [`ingest.md`](ingest.md) §8–§9 (value flags, findings raised at ingest). [`docs/work/qc-review.md`](../work/qc-review.md) (accepted findings, D008), [`docs/work/vertical-datum.md`](../work/vertical-datum.md) (L006, L007). TODO #6 (P001/P003 tolerances), #7 (minimally useful fields). History: [`m6-qc.md`](../work/m6-qc.md), [`m14a-density-data.md`](../work/m14a-density-data.md), [`m11a-triaxial-data.md`](../work/m11a-triaxial-data.md), [`m17a-strength-data.md`](../work/m17a-strength-data.md), [`m19a-oedometer-data.md`](../work/m19a-oedometer-data.md) |
 
 ## 1. Purpose and scope
 Check a project's data for integrity problems (SPEC §9.1, level 1) and report them to the engineer, and show what ingest did to each value:
 - `p.qc()` runs the level 1 rules over the canonical layer, adds the findings ingest stored, and returns a **report** that prints a summary and exports to CSV;
 - `p.diff(group)` compares the file's text with the canonical value, cell by cell.
 
-**Not in scope:** level 2 rules (not yet placed, SPEC §1.3); the geology map, `p.locations`, joins, datasets and excluding incomplete records (M7, [`datasets.md`](datasets.md)); storing rule overrides in the project (M7, with `to_yaml()`); HTML or Excel reports; changing data (SPEC §1.4).
+**Not in scope:** level 2 rules (not yet placed, SPEC §1.3); the geology map, `p.locations`, joins, datasets and excluding incomplete records ([`datasets.md`](datasets.md)); storing rule overrides in the project (with `to_yaml()`, not built); HTML or Excel reports; changing data (SPEC §1.4).
 
 ## 2. Public API
 ```python
@@ -77,7 +76,7 @@ rules:
 - **Merged rule by rule, key by key:** an override of one threshold keeps the rule's other thresholds and its severity. `min_fields` overrides replace a group's `required` or `recommended` list as a whole.
 - **Ingest rules** (V, M, U, T; §4.1) take `severity` and `enabled` only, applied when the report is built. The stored findings don't change. In `rules.yaml`, `V*` and `VLOG` have `severity: null`, meaning the severity stored at ingest, since python-ags4's rules differ.
 - **`V*`** sets every python-ags4 rule at once; a single V rule ID given alongside it wins.
-- Overrides are passed to each call and not stored with the project (M7).
+- Overrides are passed to each call and not stored with the project.
 
 ### 3.4 Accepted findings
 A reviewer records findings they have checked and accept, so the report shows what is still open. `accepted=` takes a path to a YAML file or a list of dicts: a list of entries, under a top-level `accepted:` key or not.
@@ -137,7 +136,7 @@ As in `ingest.md` §9, read back from the `finding` table: `V<rule>`, `VLOG`, `V
 | G001 | A location with records in other groups has no `GEOL` rows | warning | |
 | G002 | Gap in a hole's geology: between consecutive intervals, above the first interval (top > 0), or below the last (base < `LOCA_FDEP`) | warning | `depth_tolerance: 0.01 m` |
 | G003 | Overlapping geology intervals in a hole | error | `depth_tolerance: 0.01 m` |
-| G004 | A geology code isn't in the project's geology map (M7) | warning | |
+| G004 | A geology code isn't in the project's geology map (`datasets.md` §5.2) | warning | |
 
 - Intervals sorted by top. A gap or overlap is reported when it exceeds `depth_tolerance`.
 - G001 is a warning, not the draft's error: CPT soundings and probe holes often have no geology log, and that isn't wrong.
@@ -158,7 +157,7 @@ As in `ingest.md` §9, read back from the `finding` table: `V<rule>`, `VLOG`, `V
 - D003 compares with `LOCA_FDEP + final_depth_tolerance`. Skipped where `LOCA_FDEP` is blank (L003).
 - D007 and D008 give one finding per specimen, at its first row in file order, even when several tests (`LLPL`, `GRAG`, …) share it. Which rule depends on the offset; within `depth_tolerance` neither fires. D008 is the lower band of D007's check, so its bounds are D007's thresholds; each rule can be disabled or have its severity changed on its own, and disabling D007 doesn't change D008's band. `rounding_tolerance` below `depth_tolerance` is an error naming both. A ft→m rounding offset in a lab table is usually 2 to 8 cm; a linking error is meters.
 - D004 and D005 use `GEOL` as written, and are skipped for holes with no geology (G001). D004 checks the top depth of each record; GEOL itself is not checked against itself.
-- SPT depth is `ISPT_TOP` here. The mid-drive depth (SPEC §8.2) is M7's, and doesn't change which hole or interval a test is in except within 0.45 m of a boundary.
+- SPT depth is `ISPT_TOP` here. The mid-drive depth (SPEC §8.2) is the datasets', and doesn't change which hole or interval a test is in except within 0.45 m of a boundary.
 - **D006 (duplicate) is dropped from the draft.** Two records with the same keys are already python-ags4's Rule 10a (`V10a`); two records at the same depth with different keys (two samples, two specimens) are legitimate.
 
 ### 4.5 SPT (S)
@@ -215,9 +214,9 @@ As in `ingest.md` §9, read back from the `finding` table: `V<rule>`, `VLOG`, `V
 | C002 | A `recommended` field is missing | info |
 
 - **Missing** means the heading isn't in the group, or the cell is blank. A flagged value (`NP`, `Dry`, `<x`) is not missing, and neither is a blank `ISPT_NVAL` that ingest flagged `REFUSAL` from its report (ingest.md §8).
-- **C001:** one finding per record with a blank required field (these are the records M7 leaves out unless `include_incomplete=True`), or one per group when the heading is absent.
+- **C001:** one finding per record with a blank required field (these are the records the datasets leave out unless `include_incomplete=True`), or one per group when the heading is absent.
 - **C002:** one finding per group and heading, with the count of blank records ("ISPT_ERAT is blank in 1 of 5 records"), so recommended fields don't flood the report.
-- Groups not in the file aren't checked. The default list, from the draft (TODO #7), with `SPEC_REF`/`SPEC_DPTH` recommended (M7, so a lab result without a specimen depth is placed at its sample; `datasets.md` §14), `IPRG` added for 4.0.x files, and `GRAT`'s point count moved to P004:
+- Groups not in the file aren't checked. The default list, from the draft (TODO #7), with `SPEC_REF`/`SPEC_DPTH` recommended (so a lab result without a specimen depth is placed at its sample; `datasets.md` §7), `IPRG` added for 4.0.x files, and `GRAT`'s point count moved to P004:
 
 ```yaml
 LOCA: {required: [LOCA_ID, LOCA_GL, LOCA_FDEP], recommended: [LOCA_TYPE, LOCA_NATE, LOCA_NATN, LOCA_GREF, LOCA_STAR]}
@@ -233,30 +232,30 @@ GRAT: {required: [<SPEC_KEY>, GRAT_SIZE, GRAT_PERP]}
 PTST: {required: [<SPEC_KEY>, PTST_K], recommended: [PTST_TYPE, PTST_COND, PTST_TSTR]}
 FGHG: {required: [LOCA_ID, FGHG_TOP, FGHG_BASE, FGHG_IPRM], recommended: [FGHG_TYPE]}
 IPRG: {required: [LOCA_ID, IPRG_TOP, IPRG_BASE, IPRG_IPRM], recommended: [IPRG_TYPE]}
-LDEN: {required: [<SPEC_KEY>, LDEN_BDEN], recommended: [LDEN_DDEN, LDEN_MC, LDEN_TYPE, LDEN_COND]}   # M14
-LPDN: {required: [<SPEC_KEY>, LPDN_PDEN], recommended: [LPDN_TYPE]}                                # M14
-IDEN: {required: [LOCA_ID, IDEN_DPTH, IDEN_IDEN], recommended: [IDEN_MC, IDEN_TYPE]}               # M14
-TREG: {required: [<SPEC_KEY>, TREG_TYPE], recommended: [TREG_FCR, TREG_COND]}                     # M11 a
+LDEN: {required: [<SPEC_KEY>, LDEN_BDEN], recommended: [LDEN_DDEN, LDEN_MC, LDEN_TYPE, LDEN_COND]}
+LPDN: {required: [<SPEC_KEY>, LPDN_PDEN], recommended: [LPDN_TYPE]}
+IDEN: {required: [LOCA_ID, IDEN_DPTH, IDEN_IDEN], recommended: [IDEN_MC, IDEN_TYPE]}
+TREG: {required: [<SPEC_KEY>, TREG_TYPE], recommended: [TREG_FCR, TREG_COND]}
 TRET: {required: [<SPEC_KEY>, TRET_TESN, TRET_CELL, TRET_DEVF],
-       recommended: [TRET_PWPF, TRET_CONP, TRET_BACK, TRET_BVAL, TRET_STRN]}                       # M11 a
-TRIG: {required: [<SPEC_KEY>, TRIG_TYPE], recommended: [TRIG_COND]}                               # M11 a
-TRIT: {required: [<SPEC_KEY>, TRIT_TESN, TRIT_CELL, TRIT_DEVF], recommended: [TRIT_STRN]}          # M11 a
-LUCT: {required: [<SPEC_KEY>, LUCT_UCS], recommended: [LUCT_STRA]}                                 # M17 a
-LVAN: {required: [<SPEC_KEY>, LVAN_VNPK], recommended: [LVAN_TYPE, LVAN_VNRM]}                     # M17 a
-LPEN: {required: [<SPEC_KEY>, LPEN_PPEN]}                                                          # M17 a
-LFCN: {required: [<SPEC_KEY>, LFCN_FCPK], recommended: [LFCN_FCRM]}                                # M17 a
-IVAN: {required: [LOCA_ID, IVAN_DPTH, IVAN_IVAN], recommended: [IVAN_TYPE, IVAN_IVAR]}             # M17 a
-IPEN: {required: [LOCA_ID, IPEN_DPTH, IPEN_IPEN]}                                                  # M17 a
-SHBG: {required: [<SPEC_KEY>], recommended: [SHBG_TYPE, SHBG_COND]}                                # M17 a
-SHBT: {required: [<SPEC_KEY>, SHBT_TESN, SHBT_NORM], recommended: [SHBT_PEAK, SHBT_RES, SHBT_DISP]}  # M17 a
-CONG: {required: [<SPEC_KEY>], recommended: [CONG_TYPE, CONG_COND, CONG_IVR, CONG_HIGT]}          # M19 a
-CONS: {required: [<SPEC_KEY>, CONS_INCN, CONS_INCF, CONS_INCE], recommended: [CONS_IVR]}           # M19 a
-# <SPEC_KEY> = LOCA_ID, SAMP_TOP, SAMP_REF, SAMP_TYPE, SAMP_ID (the sample key); SPEC_REF and SPEC_DPTH lead each lab group's recommended list (M7)
+       recommended: [TRET_PWPF, TRET_CONP, TRET_BACK, TRET_BVAL, TRET_STRN]}
+TRIG: {required: [<SPEC_KEY>, TRIG_TYPE], recommended: [TRIG_COND]}
+TRIT: {required: [<SPEC_KEY>, TRIT_TESN, TRIT_CELL, TRIT_DEVF], recommended: [TRIT_STRN]}
+LUCT: {required: [<SPEC_KEY>, LUCT_UCS], recommended: [LUCT_STRA]}
+LVAN: {required: [<SPEC_KEY>, LVAN_VNPK], recommended: [LVAN_TYPE, LVAN_VNRM]}
+LPEN: {required: [<SPEC_KEY>, LPEN_PPEN]}
+LFCN: {required: [<SPEC_KEY>, LFCN_FCPK], recommended: [LFCN_FCRM]}
+IVAN: {required: [LOCA_ID, IVAN_DPTH, IVAN_IVAN], recommended: [IVAN_TYPE, IVAN_IVAR]}
+IPEN: {required: [LOCA_ID, IPEN_DPTH, IPEN_IPEN]}
+SHBG: {required: [<SPEC_KEY>], recommended: [SHBG_TYPE, SHBG_COND]}
+SHBT: {required: [<SPEC_KEY>, SHBT_TESN, SHBT_NORM], recommended: [SHBT_PEAK, SHBT_RES, SHBT_DISP]}
+CONG: {required: [<SPEC_KEY>], recommended: [CONG_TYPE, CONG_COND, CONG_IVR, CONG_HIGT]}
+CONS: {required: [<SPEC_KEY>, CONS_INCN, CONS_INCF, CONS_INCE], recommended: [CONS_IVR]}
+# <SPEC_KEY> = LOCA_ID, SAMP_TOP, SAMP_REF, SAMP_TYPE, SAMP_ID (the sample key); SPEC_REF and SPEC_DPTH lead each lab group's recommended list
 ```
 In the shipped file the lists are written out in full; `<SPEC_KEY>` is a YAML anchor.
 
-### 4.11 Density (B) (M14)
-From `docs/work/m14a-density-data.md`. Checks within one record, plus wide ranges that catch a value in the wrong unit, as A003 and K001 do. Checks across tests (saturation, ρs against ρd) are phase relations, M14 (b).
+### 4.11 Density (B)
+Checks within one record, plus wide ranges that catch a value in the wrong unit, as A003 and K001 do. Checks across tests (saturation, ρs against ρd) are phase relations (`ht.analysis`), not QC.
 
 | ID | Rule | Severity | Thresholds |
 |---|---|---|---|
@@ -270,8 +269,8 @@ From `docs/work/m14a-density-data.md`. Checks within one record, plus wide range
 - B003's message names what lies outside the range (peat and organic soils below, ores and some rock above), so the engineer checks the material as well as the unit. An assumed value is checked like a measured one.
 - B004 is one finding per record, so the engineer sees which particle densities are assumed; it's info, not a defect.
 
-### 4.12 Triaxial (X) (M11 a)
-From `docs/work/m11a-triaxial-data.md`. Each rule checks one stage, or one test against its own stages: a record that can't give a valid failure state, or doesn't meet its test standard's own requirement. Plausible ranges for strength are level 2.
+### 4.12 Triaxial (X)
+Each rule checks one stage, or one test against its own stages: a record that can't give a valid failure state, or doesn't meet its test standard's own requirement. Plausible ranges for strength are level 2.
 
 | ID | Rule | Severity | Thresholds |
 |---|---|---|---|
@@ -289,8 +288,8 @@ From `docs/work/m11a-triaxial-data.md`. Each rule checks one stage, or one test 
 - X005: a multistage type is `CDM`, `CUM`, `CIUCM` or `UUM`. A type the dictionary doesn't list is checked only for "no stage rows".
 - X006: only where all three are given, and only for single-stage tests and the first stage of a multistage test, since later stages change the cell pressure after consolidation. The tolerance clears 0DP rounding of the three values (at most 1.5 kPa).
 
-### 4.13 Undrained strength (Q) (M17 a)
-From `docs/work/m17a-strength-data.md`. Checks within one record. Plausible ranges for s_u are level 2. `Q` is for `TRIG_TYPE`'s "quick undrained"; `U` (units) is taken.
+### 4.13 Undrained strength (Q)
+Checks within one record. Plausible ranges for s_u are level 2. `Q` is for `TRIG_TYPE`'s "quick undrained"; `U` (units) is taken.
 
 | ID | Rule | Severity | Thresholds |
 |---|---|---|---|
@@ -302,8 +301,8 @@ From `docs/work/m17a-strength-data.md`. Checks within one record. Plausible rang
 - Q002: only where both are unflagged. A remolded value above the peak usually means the two were swapped.
 - Q003 is an error: a strength can't be 0 or less. A flagged value (`<5`) isn't checked.
 
-### 4.14 Shear box (H) (M17 a)
-From `docs/work/m17a-strength-data.md`. Checks within one stage. `S` (SPT) is taken.
+### 4.14 Shear box (H)
+Checks within one stage. `S` (SPT) is taken.
 
 | ID | Rule | Severity | Thresholds |
 |---|---|---|---|
@@ -315,8 +314,8 @@ From `docs/work/m17a-strength-data.md`. Checks within one stage. `S` (SPT) is ta
 - H002: the stage can't give a point for either fit.
 - Not rules, for want of a threshold a source supports: `SHBT_PVST` or `SHBT_RVST` far from `SHBT_NORM` (they differ where the lab corrects for the contact area; the dictionary's example is 100, 100 and 125 kPa), and a residual reached at a small displacement.
 
-### 4.15 Oedometer (E) (M19 a)
-From `docs/work/m19a-oedometer-data.md`. Each checks a specimen against itself, its `CONS` rows in file order: a record whose numbers can't all be right. Ranges for C_c or σ′p are level 2.
+### 4.15 Oedometer (E)
+Each checks a specimen against itself, its `CONS` rows in file order: a record whose numbers can't all be right. Ranges for C_c or σ′p are level 2.
 
 | ID | Rule | Severity | Thresholds |
 |---|---|---|---|
@@ -388,7 +387,7 @@ One row per accepted entry, in file order: `rule_id`, `loca_id`, `group`, `headi
 - `C001` split into `C001` (required, warning) and `C002` (recommended, info, one per heading).
 - `D006` dropped (§4.4); `D007` added (specimen outside its sample).
 - `G001` is a warning, not an error (§4.3); `G002` also covers gaps at the top and bottom of the log.
-- `G004` deferred to M7.
+- `G004` is raised by the datasets, where the geology map is (`datasets.md` §5.2).
 - `S003` is one finding per hole.
 - `GRAT`'s `min_rows_per_specimen` is now P004's `fewest_points`.
 - `V000`, `VLOG`, `M001` and `U004` added from ingest.
@@ -422,42 +421,7 @@ One row per cell of the group, in file order:
 `heading=` takes a heading or a list, and only those headings are shown: key headings are included only if named. An unknown heading lists the group's headings. `changed_only=True` keeps `flagged`, `not_converted`, `converted` and `reformatted`. Display values use `units.to_display` with the heading's quantity kind; a heading with no kind is shown as stored.
 
 ## 8. Test files
-Synthetic, written by `tests/data/ags/_make_files.py` (SPEC §12.3).
-- **`qc_defects.ags`** (4.2, SI): five holes, one case per rule in §4.2–§4.10, each at a known line. Ingest findings (§4.1) keep their cases in `defects.ags` and `site_v404.ags`. Cases:
-
-| Rule | Case |
-|---|---|
-| L001, L003 | BH5 with `LOCA_GL` and `LOCA_FDEP` blank |
-| L002 | BH5 with no coordinates |
-| L004 | `HORN` row for BH2 with `HORN_INCL` 80 |
-| L005 | BH4 with ground level 8 m above its neighbors |
-| L006, L007 | BH1–BH3 `LOCA_DATM` `NAVD88`, BH4 `NGVD29` (BH5 has no `LOCA_GL`): one L007, and L006 with "holes name different datums" |
-| G001 | BH5 has `ISPT` and no `GEOL` |
-| G002 | BH1: 2.50–3.00 missing; BH2: log stops 0.50 m above `LOCA_FDEP` |
-| G003 | BH3: 2.00–4.00 and 3.50–6.00 |
-| D001 | `SAMP` with base above top |
-| D002 | `ISPT_TOP` −0.50 |
-| D003 | `ISPT_TOP` 1.00 m below `LOCA_FDEP` |
-| D004 | covered by the G002 gap in BH1: an `ISPT` at 2.75 |
-| D005 | `SAMP` 2.30–2.80 across a 2.50 boundary |
-| D007, D008 | `SPEC_DPTH` 0.30 m below its sample's base (D007); 0.05 m below another's (D008) |
-| S001 | `ISPT_REP` "hard", and "50/76 ft" (a unit that isn't accepted). Accepted, raising nothing: `5,6,6 N=12`, `6,8/8,9,9,9 N=35`, `50/3"` and `22-30-50/3in` with `ISPT_NVAL` blank (no C001) |
-| S002 | `ISPT_NVAL` 150; and `ISPT_NVAL` 126 with report `41,81,57,75/113 N=126` (a complete test, not a refusal) |
-| S003 | BH4 with `ISPT_ERAT` blank on 2 tests |
-| S004 | `ISPT_NVAL` 20, `ISPT_INC3`–`6` 4, 5, 5, 5 |
-| S005 | N 20, `ISPT_ERAT` 75, `ISPT_N60` 30 (computed 25) |
-| A001, A002, A003, A004 | LL 30 PL 35; LL 50 PL 20 PI 25; LL 8; PL `NP` |
-| P001, P002, P003, P004 | a curve that rises at 0.425 mm; `GRAT_PERP` 104; fractions summing to 94; a curve with 3 points |
-| K001 | `PTST_K` 0, `FGHG_IPRM` 5 m/s |
-| B001, B002, B003, B004 | `LDEN` ρ 2.00, w 20, ρd 1.80 (expected 1.667); ρ 1.80, ρd 1.90, w blank; `LDEN_BDEN` 19.5 and `LPDN_PDEN` 26.5; `LPDN_PDEN` `#2.65` (M14) |
-| X001–X006 | `TRET_BVAL` 0.90; a `CU` stage with `TRET_PWPF` blank; `TRET_DEVF` −20 in a `CU` stage; `TRET_PWPF` 410 with `TRET_CELL` 400; a `CU` test with two stages, and a `TRIG` with none; `TRET_CONP` 150 with `TRET_CELL` 400 and `TRET_BACK` 300 (M11 a) |
-| Q001–Q003 | `TRIT_CU` 70 with `TRIT_DEVF` 120; `LVAN_VNPK` 20 with `LVAN_VNRM` 25; `LUCT_UCS` 0 (M17 a) |
-| H001–H003 | `SHBT_PEAK` 50 with `SHBT_RES` 60; a stage with both blank; `SHBT_NORM` 0 (M17 a) |
-| E001, E002, E004, E005 | An increment ending at 0.700 followed by one starting at 0.690; 100 → 200 kPa with e 0.776 → 0.781; `CONS_INCN` 1, 2, 4, 3; `CONG_IVR` 0.650 with ρd 1.50, ρs 2.70 (M19 a) |
-| C001, C002 | `GEOL_DESC` blank on one row; `LOCA_TYPE` absent |
-
-- The good files (`site_si.ags`, `site_us.ags` and `site_v404.ags`) must stay QC-clean (§9, #2). They have `LOCA_DATM` `NAVD88` in every hole, so they raise no L006.
-- Accepted entries are written in the tests (a YAML file in `tmp_path` and the same entries as a list), against `qc_defects.ags`.
+Synthetic, written by `tests/data/ags/_make_files.py` (SPEC §12.3). `qc_defects.ags` holds one case per computed rule, each at a known line; ingest findings (§4.1) keep their cases in `defects.ags` and `site_v404.ags`. The good files stay QC-clean (§9 #2). Each case and its line: `tests/data/ags/README.md`, `qc_defects.ags`.
 
 ## 9. Acceptance criteria
 1. **One test per rule:** on `qc_defects.ags`, each rule in §4.2–§4.12 raises exactly the findings its case seeds, with the right `group`, `loca_id`, `heading` and `source_line`; no other errors or warnings. Each ingest rule (§4.1) appears in the report of `defects.ags` or `site_v404.ags` with `loca_id` and `depth` filled where the line has a row.

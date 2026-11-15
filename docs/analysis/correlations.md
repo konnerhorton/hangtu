@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Living spec. Built for the SPT correlations (M13 b1–b3), with statistics (M15 b) and refusal bounds (M18 a) |
+| **Status** | Living spec. Built for the SPT correlations, with their statistics and refusal bounds |
 | **Parent** | SPEC §4 (correlations are stage C of every parameter, §1.3) |
 | **Related** | [`docs/work/m13b1-spt-framework.md`](../work/m13b1-spt-framework.md) (framework, (N1)60), [`m13b2-spt-strength-history.md`](../work/m13b2-spt-strength-history.md) (bands, chaining, USCS map), [`m13b3-spt-stiffness.md`](../work/m13b3-spt-stiffness.md) (`soil=`), [`m15b-correlation-statistics.md`](../work/m15b-correlation-statistics.md), [`m18a-refusals.md`](../work/m18a-refusals.md). The built set: `src/hangtu/config/correlations.yaml` |
 
