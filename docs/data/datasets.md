@@ -200,7 +200,7 @@ Long format: one row per `GRAT` row, in file order, so each specimen's points st
 | `percent_passing` | `GRAT_PERP` |
 | `qualifier` | `<`/`>` from an `LT`/`GT` flag on `GRAT_PERP` |
 
-`particle_size` shows in mm in US output too, because `GRAT_SIZE` gets the `particle_size` quantity kind at ingest (§10, TODO #17).
+`particle_size` shows in mm in US output too, because `GRAT_SIZE` gets the `particle_size` quantity kind at ingest (`ingest.md` §7).
 
 ### 6.4 `p.permeability()`
 One row per hydraulic conductivity result, from three groups:
@@ -533,7 +533,7 @@ One row per `CONS` increment, in file order, with its `CONG` specimen's values o
 - No `CONG` or `CONS` group: an empty frame with every column and the warning "No CONG group".
 
 ## 7. Incomplete records
-- A record is **incomplete** when QC C001 says so (with `SPEC_REF` and `SPEC_DPTH` recommended, §14): a `required` field of its own group in `qc/min_fields.yaml` is blank (qc.md §4.10). Only the dataset's source group is checked, not its parents: a hole with no `LOCA_GL` keeps its tests, with a blank elevation.
+- A record is **incomplete** when QC C001 says so: a `required` field of its own group in `qc/min_fields.yaml` is blank (qc.md §4.10). `SPEC_REF` and `SPEC_DPTH` are `recommended`, not required: required, they would leave out every lab result without a specimen depth, so the lab depth fallback (`sample_mid`, `sample_top`, SPEC §8.2) could never run by default. A blank one is still reported, by C002. Only the dataset's source group is checked, not its parents: a hole with no `LOCA_GL` keeps its tests, with a blank elevation.
 - **Left out by default**, with one warning per call: "Left out 2 of 5 ISPT records with a blank required field (ISPT_NVAL on lines 98, 103). p.qc() lists them; include them with include_incomplete=True."
 - `include_incomplete=True` keeps them, with their blanks.
 
@@ -549,20 +549,11 @@ Each dataset call gives at most one warning per kind (`UserWarning`, as the rest
 - One finding per code, at its first GEOL row, with the count: "GEOL_GEOL 'ALV' (12 layers, first in BH3) isn't in the geology map, so its tests are kept under the code. Add it to the map." A blank code isn't a finding.
 - Added to `qc/rules.yaml` and qc.md §4.3.
 
-## 10. Ingest change (TODO #17)
-- `GRAT_SIZE`, `LLPL_SIZE` and `PTST_SZUN` (particle sizes, unit mm in the dictionary) get the `particle_size` quantity kind instead of `small_length`, so US output keeps mm as US practice does (P00 §4.1). Other headings keep the kind their unit implies.
-- The schema version goes up (the stored kinds change and `meta_geology_map` is new), so an M6 database asks to be re-ingested (ingest.md §2).
+## 10. Ingest change
+The `particle_size` quantity kind and the schema version are in `ingest.md` §7 and §2.
 
 ## 11. Registry
-New columns, each checked against the whole registry (CLAUDE.md, "Naming"): `location_type`, `final_depth`, `easting`, `northing`, `latitude`, `longitude`, `remarks`, `source_line`, `energy_source`, `sample_reference`, `specimen_reference`, `geology_description`, `geology_code`, `geology_code_secondary`, `legend_code`, `geology_formation`, `bgs_lexicon_code`.
-- Changed: `specimen_id` (the project's specimen key, as text, since the registry type is text and CSV users type their own IDs); `depth_top`/`depth_base`, `hydraulic_conductivity` and `test_type` get their new AGS sources (`SPEC_DPTH`/`SPEC_BASE`, `IPRG_*`).
-- The CSV templates (`ht.template()`) don't change: they describe what a user types in, and a dataset is a superset of its template.
-- M13 (`docs/work/m13a-judgments.md`): `total_vertical_stress`, `pore_pressure`, `effective_vertical_stress` and `saturated_unit_weight`; `depth_top`/`depth_base` describe any interval, a tested zone or a layer, and add `GEOL_TOP`/`GEOL_BASE`; the `stratigraphy` template (§6.7).
-- M14 (`docs/work/m14a-density-data.md`): `dry_unit_weight`, `particle_density`, `particle_density_assumed`, `particle_density_specimen_id`, `sample_condition`, `stabilizer_content`; new AGS sources for `bulk_unit_weight` (`LDEN_BDEN`, `IDEN_IDEN` × g, replacing `RDEN_BDEN` until M21 reads RDEN), `water_content` (`LDEN_MC`, `IDEN_MC`) and `test_type`; `depth_basis` gains `test_depth`; the `density` and `particle_density` templates.
-- M11 a (`docs/work/m11a-triaxial-data.md`): `test_stage`, `multistage_test`, `failure_criterion`, `effective_consolidation_stress`, `back_pressure`, `pore_pressure_parameter_b`, `cell_pressure`, `deviator_stress_at_failure`, `pore_pressure_at_failure`, `axial_strain_at_failure`, `volumetric_strain_at_failure`, the four principal stresses at failure, `effective_stress_basis`, `reported_effective_friction_angle`, `reported_effective_cohesion`, `test_remarks`; new AGS sources for `test_type`, `sample_condition`, `water_content`, `bulk_unit_weight`, `dry_unit_weight`, `void_ratio` and `remarks`; the `triaxial` template.
-- M17 a (`docs/work/m17a-strength-data.md`, Changes): the undrained strength and shear box columns; `undrained_shear_strength`'s sources (`TRIT_CU` moves to `reported_undrained_shear_strength`); `axial_strain_at_failure` gains `LUCT_STRA`; the quantity kind `displacement_rate`; the `strength` template reshaped and `shear_box` new.
-- M19 a (`docs/work/m19a-oedometer-data.md`, Changes): the oedometer columns (`applied_vertical_stress`, the void ratios at an increment's start and end, `load_branch`, the lab's m_v and c_v, `swelling_pressure`, `height_change_on_saturation`, `specimen_diameter`, `equipment_deformation_corrected`); the `CONG` and `CONS` sources of the specimen columns and `test_stage`; the quantity kinds `volume_compressibility` and `consolidation_coefficient`; the `oedometer` template.
-- M17 c (`docs/work/m17c-hoek-brown-fit.md`, Changes): `failure_mode` (`TRET_MODE`, `TRIT_MODE`), `reported_intact_compressive_strength` and `reported_intact_hoek_brown_constant` in the `triaxial` template and `p.triaxial()`; the fitted `intact_compressive_strength` and `intact_hoek_brown_constant`.
+Every column, its type, quantity and AGS sources are in `src/hangtu/columns.yaml`. New names are checked against the whole registry (CLAUDE.md, "Naming"). `specimen_id` is the project's specimen key, as text, since CSV users type their own IDs. A CSV template (`ht.template()`) describes what a user types in, so a dataset is a superset of its template (§11.1).
 
 ### 11.1 CSV templates
 Each template (`ht.template(<name>)`) is its dataset's columns in the same order, without those only hangtu produces, so CSV and AGS data reach the plots in the same shape (SPEC §2.6). What each leaves out:
@@ -570,13 +561,13 @@ Each template (`ht.template(<name>)`) is its dataset's columns in the same order
 | Template | Dataset | Left out |
 |---|---|---|
 | `spt`, `atterberg`, `grain_size`, `permeability` | `p.spt()`, `p.atterberg()`, `p.grain_size()`, `p.permeability()` | `source_line`, `energy_source`, `spt_n_capped`, `liquidity_index`, `consistency_index` |
-| `stratigraphy` (M13) | `p.stratigraphy()` | `source_line` |
-| `density`, `particle_density` (M14, `docs/work/m14a-density-data.md`) | `p.density()`, `p.particle_density()` | `source_line`, `particle_density_specimen_id` |
-| `triaxial` (M11 a, `docs/work/m11a-triaxial-data.md`; rock rows M17 c) | `p.triaxial()` | `source_line`, the four principal stresses at failure and `effective_stress_basis`, which `ht.analysis.triaxial_failure_stresses()` adds |
-| `triaxial_readings` (M11 c, `docs/work/m11c-triaxial-shearing.md`) | none | One row per reading during shearing, for `ht.analysis.triaxial_failure_from_readings()` and P12 |
-| `strength` (M17 a, `docs/work/m17a-strength-data.md`) | `p.undrained_strength()` | `source_line`, `undrained_shear_strength_basis` and `strength_sensitivity`, which `ht.analysis.undrained_shear_strength_from_tests()` adds |
-| `shear_box` (M17 a) | `p.shear_box()` | `source_line` |
-| `oedometer` (M19 a) | `p.oedometer()` | `source_line`, `load_branch`, which `ht.analysis.oedometer_load_branch()` adds |
+| `stratigraphy` | `p.stratigraphy()` | `source_line` |
+| `density`, `particle_density` | `p.density()`, `p.particle_density()` | `source_line`, `particle_density_specimen_id` |
+| `triaxial` | `p.triaxial()` | `source_line`, the four principal stresses at failure and `effective_stress_basis`, which `ht.analysis.triaxial_failure_stresses()` adds |
+| `triaxial_readings` | none | One row per reading during shearing, for `ht.analysis.triaxial_failure_from_readings()` and P12 |
+| `strength` | `p.undrained_strength()` | `source_line`, `undrained_shear_strength_basis` and `strength_sensitivity`, which `ht.analysis.undrained_shear_strength_from_tests()` adds |
+| `shear_box` | `p.shear_box()` | `source_line` |
+| `oedometer` | `p.oedometer()` | `source_line`, `load_branch`, which `ht.analysis.oedometer_load_branch()` adds |
 
 ## 12. Test files
 The good files (`site_si.ags`, `site_us.ags`, `site_v404.ags`) get, through the generator script and in all three so the twin tests still hold:
@@ -609,7 +600,7 @@ M19 (a) adds `CONG`/`CONS` to the three good files, after every other group so n
 11. **N60 provenance:** `energy_source` is right for a file N60, a file ER, `hammer_efficiency=` and none.
 12. **Units:** `df.attrs["units"]` covers every numeric column, and US output shows `particle_size` in mm.
 13. **Empty:** a project with no `ISPT` gives an empty `p.spt()` with every column and the warning.
-14. **M8 datasets feed the plots:** `ht.plot.plasticity_chart(p.atterberg())`, `ht.plot.grain_size(p.grain_size())` and `ht.plot.water_content_profile(p.index_properties())` run on the good files with no error, warning or hint. The P06 call is tested with P06.
+14. **Classification datasets feed the plots:** `ht.plot.plasticity_chart(p.atterberg())`, `ht.plot.grain_size(p.grain_size())` and `ht.plot.water_content_profile(p.index_properties())` run on the good files with no error, warning or hint. The P06 call is tested with P06.
 15. **Summary:** `p.grain_size_summary()` gives one row per GRAT specimen, with the D-values and fractions `gradation()` gives on `p.grain_size()`, and the same on the SI and US twins.
 16. **Combining:** on a test sample with two Atterberg specimens and one water content specimen, the Atterberg specimen nearest the water content specimen is used, named in `atterberg_specimen_id`, with the warning; a tie goes to the lower `SPEC_REF`; a sample with only a grading gets a row with blank limits; a specimen with both tests keeps its own water content and limits together.
 17. **Setting:** `grag_fraction_system` takes `None` and the three built-in names, at `from_ags` and on `p.settings`; anything else is an error listing them. Changing it on `p.settings` changes the next dataset without a re-ingest.
@@ -620,6 +611,3 @@ M19 (a) adds `CONG`/`CONS` to the three good files, after every other group so n
 22. **Curve wins:** G8's row has the curve's values and `grading_source = "curve"`; with its `GRAT` rows incomplete and left out (§7), it doesn't become a reported grading.
 23. **Source column:** `grading_source` is `"curve"` on every row from a curve (the good files' BH3-B1, `grag.ags`'s G8), `"reported"` on G1–G7 and the good files' BH2-D1, and blank on an `index_properties()` row with no grading.
 24. **Good files:** with `grag_fraction_system="astm_uscs"`, BH2-D1 is a reported grading: fines 65, sand 35, gravel 0, cobbles and boulders 0; NP with LL 31 → **ML**; AASHTO F = 65, LL 31, NP → **A-4**, GI = 30 × (0.2 + 0.005 × (31 − 40)) + 0.01 × 50 × (0 − 10) = 4.65 − 5.00 < 0 → **0**. The SI and US twins agree. Without the setting, the good files give the no-system warning counting 1, and otherwise the same rows as before plus `grading_source`.
-
-## 14. Decisions in review
-1. **`SPEC_REF` and `SPEC_DPTH` move to `recommended`** in `qc/min_fields.yaml`. Required, they made §7 leave out every lab result without a specimen depth, so the lab depth fallback (`sample_mid`, `sample_top`, SPEC §8.2) could never run by default. A blank one is still reported, by C002.

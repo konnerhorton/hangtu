@@ -43,7 +43,7 @@ CONVERTED, AS_IS, FILE_UNIT, RAW_ONLY, NOT_NUMERIC = (
 )
 
 #: Particle sizes: mm like a small length, but kept in mm in US output too, as
-#: US practice does (datasets.md §10, P00 §4.1).
+#: US practice does (ingest.md §7, P00 §4.1).
 PARTICLE_SIZE_HEADINGS = frozenset({"GRAT_SIZE", "LLPL_SIZE", "PTST_SZUN"})
 
 _NUMERIC_TYPE = re.compile(r"\d+(DP|SF|SCI)")

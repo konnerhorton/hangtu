@@ -103,7 +103,7 @@ AGS file
 **Units** from the file's `UNIT` row, per column (mixed units in one file are fine):
 1. **Parse** the unit string with the hangtu alias table, then pint (P00 §4.2), case-sensitively. AGS spellings (`DegC`, `degC`, `Bar`, `ohm m`, `uS/cm`, `Mg/m3`, `kN/m3`) are added to `aliases.yaml`. A string pint reads without an alias is accepted with finding `U002` instead of a `UserWarning`.
 2. **Expected dimension:** for a heading in a standard dictionary (4.2, or the file's version for headings 4.2 removed; §6), the dimension of its dictionary unit; for a user-defined heading, the dimension of its own unit.
-3. **Quantity kind:** the P00 kind the unit implies, except particle sizes (`GRAT_SIZE`, `LLPL_SIZE`, `PTST_SZUN`), which are `particle_size` so US output keeps mm (M7, TODO #17; `datasets.md` §10).
+3. **Quantity kind:** the P00 kind the unit implies, except particle sizes (`GRAT_SIZE`, `LLPL_SIZE`, `PTST_SZUN`), which are `particle_size` so US output keeps mm.
 4. **Canonical unit:** the dictionary unit for a heading in a standard dictionary. They're all SI and match the P00 canonical units (m, mm, kPa, kN/m³, Mg/m³, m/s, %, deg). For a user-defined heading, the P00 canonical unit with the same dimension; where no P00 kind has that dimension, the file's unit as written (`kN/mm` stays `kN/mm`, not `kg/s²`): the column is `converted` with a factor of 1, and `quantity` is blank.
 5. **Conversion:**
    - file unit understood, dimension matches → converted, `status = converted`;

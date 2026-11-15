@@ -38,7 +38,7 @@ def test_converted_on_the_us_file(projects):
 
 
 def test_particle_size_shows_in_mm_in_us(projects):
-    # datasets.md §10: GRAT_SIZE is a particle size, kept in mm (TODO #17).
+    # ingest.md §7: GRAT_SIZE is a particle size, kept in mm.
     df = projects["site_us"].diff("GRAT", heading="GRAT_SIZE")
     assert set(df["display_unit"]) == {"mm"}
     assert list(df["display_value"]) == pytest.approx(list(df["value"]))

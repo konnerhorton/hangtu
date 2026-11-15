@@ -216,7 +216,7 @@ As in `ingest.md` §9, read back from the `finding` table: `V<rule>`, `VLOG`, `V
 - **Missing** means the heading isn't in the group, or the cell is blank. A flagged value (`NP`, `Dry`, `<x`) is not missing, and neither is a blank `ISPT_NVAL` that ingest flagged `REFUSAL` from its report (ingest.md §8).
 - **C001:** one finding per record with a blank required field (these are the records M7 leaves out unless `include_incomplete=True`), or one per group when the heading is absent.
 - **C002:** one finding per group and heading, with the count of blank records ("ISPT_ERAT is blank in 1 of 5 records"), so recommended fields don't flood the report.
-- Groups not in the file aren't checked. The default list, from the draft (TODO #7), with `SPEC_REF`/`SPEC_DPTH` recommended (M7, so a lab result without a specimen depth is placed at its sample; `datasets.md` §14), `IPRG` added for 4.0.x files, and `GRAT`'s point count moved to P004:
+- Groups not in the file aren't checked. The default list, from the draft (TODO #7), with `SPEC_REF`/`SPEC_DPTH` recommended (so a lab result without a specimen depth is placed at its sample; `datasets.md` §7), `IPRG` added for 4.0.x files, and `GRAT`'s point count moved to P004:
 
 ```yaml
 LOCA: {required: [LOCA_ID, LOCA_GL, LOCA_FDEP], recommended: [LOCA_TYPE, LOCA_NATE, LOCA_NATN, LOCA_GREF, LOCA_STAR]}

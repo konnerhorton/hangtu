@@ -59,7 +59,7 @@ def test_quantity_kind_of_the_canonical_unit():
     [("GRAT", "GRAT_SIZE"), ("LLPL", "LLPL_SIZE"), ("PTST", "PTST_SZUN")],
 )
 def test_particle_sizes_are_the_particle_size_kind(group, heading):
-    # datasets.md §10: mm in US output too, not inches (TODO #17).
+    # ingest.md §7: mm in US output too, not inches.
     entry = Heading(group, heading, "OTHER", "3SF", "mm", "4.2")
     result, finding = u.resolve_heading(group, heading, "in", "3SF", entry, "US", 7)
     assert (result.quantity, result.unit, finding) == ("particle_size", "mm", None)
