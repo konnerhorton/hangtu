@@ -127,7 +127,7 @@ As SPEC §6.2 sets out:
 - `NP` → NULL + `NP`; `Dry` → NULL + `DRY`; refusal text in `ISPT_NVAL`/`ISPT_REP` → value kept + `REFUSAL`; `<x` / `>x` → `x` kept + `LT` / `GT` (with `bound`); `#x` (`GRAG_PDEN` "assumed") → `x` kept + `ASSUMED`.
 - Anything else in a numeric column → NULL + `OTHER` + `T001` (info), with the text kept in `value_flag.text`.
 - The recognized strings live in `src/hangtu/ags/value_flags.yaml`, matched case-sensitively after trimming spaces.
-- **Refusal** comes from `ISPT_REP` only, read in one of these forms (one parser, shared with QC S001; `docs/work/spt-report.md`):
+- **Refusal** comes from `ISPT_REP` only, read in one of these forms (one parser, shared with QC S001):
   - **complete test:** an optional blow list, then `N=<n>` (spaces around `=` allowed). The blow list is numbers separated by `,`, `/`, `-` or spaces, and a penetration in it may carry a unit (below): `N=12`, `5,6,6 N=12`, `5-6-6 N=12`, `6,8/8,9,9,9 N=35` (AGS's example), `41,81,57,75/113 N=126`. **Never a refusal.**
   - **incomplete drive:** blows and blows/penetration pairs separated by `,`, `-` or spaces, ending in a pair, with no `N=`: `25/75 50/75` (AGS style), `22/150 30/150 50/57`, `22-30-50/3"` (US log style), `50/76mm`. `ISPT_NVAL` on that row gets `REFUSAL`, with its value as given, **or blank**: a refusal on a blank `ISPT_NVAL` is a value, not a blank (qc.md §4.10).
   - **a unit after a penetration** is accepted, with or without a space: `mm`, `cm`, `in` or `"`. Penetrations in `ISPT_REP` are never converted or used as numbers (AGS gives the heading no unit); the penetration hangtu uses is `ISPT_NPEN`, with its declared unit. So the form decides, not the numbers: `22/150 30/150 50/150` reads as an incomplete drive.

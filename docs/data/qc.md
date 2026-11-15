@@ -256,7 +256,7 @@ CONS: {required: [<SPEC_KEY>, CONS_INCN, CONS_INCF, CONS_INCE], recommended: [CO
 In the shipped file the lists are written out in full; `<SPEC_KEY>` is a YAML anchor.
 
 ### 4.11 Density (B) (M14)
-From `docs/work/m14a-density-data.md`. Checks within one record, plus wide ranges that catch a value in the wrong unit, as A003 and K001 do. Checks across tests (saturation, ρs against ρd) are phase relations, M14 (b).
+Checks within one record, plus wide ranges that catch a value in the wrong unit, as A003 and K001 do. Checks across tests (saturation, ρs against ρd) are phase relations, M14 (b).
 
 | ID | Rule | Severity | Thresholds |
 |---|---|---|---|
@@ -271,7 +271,7 @@ From `docs/work/m14a-density-data.md`. Checks within one record, plus wide range
 - B004 is one finding per record, so the engineer sees which particle densities are assumed; it's info, not a defect.
 
 ### 4.12 Triaxial (X) (M11 a)
-From `docs/work/m11a-triaxial-data.md`. Each rule checks one stage, or one test against its own stages: a record that can't give a valid failure state, or doesn't meet its test standard's own requirement. Plausible ranges for strength are level 2.
+Each rule checks one stage, or one test against its own stages: a record that can't give a valid failure state, or doesn't meet its test standard's own requirement. Plausible ranges for strength are level 2.
 
 | ID | Rule | Severity | Thresholds |
 |---|---|---|---|
@@ -290,7 +290,7 @@ From `docs/work/m11a-triaxial-data.md`. Each rule checks one stage, or one test 
 - X006: only where all three are given, and only for single-stage tests and the first stage of a multistage test, since later stages change the cell pressure after consolidation. The tolerance clears 0DP rounding of the three values (at most 1.5 kPa).
 
 ### 4.13 Undrained strength (Q) (M17 a)
-From `docs/work/m17a-strength-data.md`. Checks within one record. Plausible ranges for s_u are level 2. `Q` is for `TRIG_TYPE`'s "quick undrained"; `U` (units) is taken.
+Checks within one record. Plausible ranges for s_u are level 2. `Q` is for `TRIG_TYPE`'s "quick undrained"; `U` (units) is taken.
 
 | ID | Rule | Severity | Thresholds |
 |---|---|---|---|
@@ -303,7 +303,7 @@ From `docs/work/m17a-strength-data.md`. Checks within one record. Plausible rang
 - Q003 is an error: a strength can't be 0 or less. A flagged value (`<5`) isn't checked.
 
 ### 4.14 Shear box (H) (M17 a)
-From `docs/work/m17a-strength-data.md`. Checks within one stage. `S` (SPT) is taken.
+Checks within one stage. `S` (SPT) is taken.
 
 | ID | Rule | Severity | Thresholds |
 |---|---|---|---|
@@ -316,7 +316,7 @@ From `docs/work/m17a-strength-data.md`. Checks within one stage. `S` (SPT) is ta
 - Not rules, for want of a threshold a source supports: `SHBT_PVST` or `SHBT_RVST` far from `SHBT_NORM` (they differ where the lab corrects for the contact area; the dictionary's example is 100, 100 and 125 kPa), and a residual reached at a small displacement.
 
 ### 4.15 Oedometer (E) (M19 a)
-From `docs/work/m19a-oedometer-data.md`. Each checks a specimen against itself, its `CONS` rows in file order: a record whose numbers can't all be right. Ranges for C_c or σ′p are level 2.
+Each checks a specimen against itself, its `CONS` rows in file order: a record whose numbers can't all be right. Ranges for C_c or σ′p are level 2.
 
 | ID | Rule | Severity | Thresholds |
 |---|---|---|---|

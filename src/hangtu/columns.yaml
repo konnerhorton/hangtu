@@ -632,7 +632,7 @@ columns:
     ags: ["derived: docs/analysis/correlations.md"]
     used_by: [plot.profile]
 
-  # --- Stress history (correlations from M13; oedometer values from W2) ---------------
+  # --- Stress history (correlations from M13; oedometer values from M19) ---------------
   preconsolidation_stress:
     description: Preconsolidation stress, the largest effective vertical stress the soil behaves as having carried
     type: number

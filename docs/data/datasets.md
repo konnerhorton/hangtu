@@ -271,7 +271,7 @@ One row per **sample** (`SAMP`) that has a water content, an Atterberg test or a
 p.stratigraphy(holes=None, geology=None, where=None, contains=None, geology_fields=None,
                include_incomplete=False, display_units=None)
 ```
-One row per `GEOL` layer, the per-hole log that `ht.analysis.vertical_stress()` integrates through (`docs/work/m13a-judgments.md`). It has the shape of `ht.template("stratigraphy")` plus `source_line` (SPEC §2.6), so a user can inspect it, export it, edit it (reclass the layers by USCS, say) and pass it back.
+One row per `GEOL` layer, the per-hole log that `ht.analysis.vertical_stress()` integrates through. It has the shape of `ht.template("stratigraphy")` plus `source_line` (SPEC §2.6), so a user can inspect it, export it, edit it (reclass the layers by USCS, say) and pass it back.
 
 | Column | From |
 |---|---|
@@ -290,7 +290,7 @@ One row per `GEOL` layer, the per-hole log that `ht.analysis.vertical_stress()` 
 ```python
 p.density(**common)
 ```
-One row per density result, from two groups (`docs/work/m14a-density-data.md`). Rows follow the file order of `LDEN`, then `IDEN`.
+One row per density result, from two groups. Rows follow the file order of `LDEN`, then `IDEN`.
 
 | Source group | `source` | `test_type` | Depth (`depth_basis`) | Bulk unit weight | Water content |
 |---|---|---|---|---|---|
@@ -312,7 +312,7 @@ One row per density result, from two groups (`docs/work/m14a-density-data.md`). 
 | `source`, `test_type` | The table above |
 
 - **Unit weights, not densities.** The file's densities (Mg/m³) are given as unit weights, which is what P01, P07 and the `unit_weight` judgment take. In US display both read as pcf with the same number (P00 §4.3 #1). `p.diff()` and QC show the densities as written.
-- **Only `LDEN_BDEN` and `IDEN_IDEN` give the bulk unit weight.** A unit weight in a user-defined heading (such as `LDEN_UWT`, kN/m³) isn't read, since hangtu never guesses what a user-defined heading means (SPEC §2.6): the row has a blank `bulk_unit_weight` and `C001` flags the missing `LDEN_BDEN`. A file that holds only unit weights needs `LDEN_BDEN` = γ / g, marked as derived in `LDEN_REM` (`docs/work/lden-unit-weight.md`; a heading map is TODO #72).
+- **Only `LDEN_BDEN` and `IDEN_IDEN` give the bulk unit weight.** A unit weight in a user-defined heading (such as `LDEN_UWT`, kN/m³) isn't read, since hangtu never guesses what a user-defined heading means (SPEC §2.6): the row has a blank `bulk_unit_weight` and `C001` flags the missing `LDEN_BDEN`. A file that holds only unit weights needs `LDEN_BDEN` = γ / g, marked as derived in `LDEN_REM` (a heading map is TODO #72).
 - **The density specimen's own water content** is used, since phase relations need γ and w from one specimen (sheet 03 §7). `p.index_properties()` (§6.6) still carries the `LNMC` water content.
 - **Particle density, by sample:** a lab row gets `LPDN_PDEN` from the same sample (its AGS key fields, as §6.6), from the specimen nearest in depth to the density specimen. A specimen with no depth counts as at the sample's lab depth; ties go to the lowest `SPEC_REF` (as text), then the lowest specimen key. One warning per call counts the samples where a choice was made: "2 samples had more than one particle density specimen; the one nearest in depth was used. particle_density_specimen_id says which." A sample with no `LPDN` gets a blank, and nothing is taken from another sample.
 - **Recompacted and stabilized records are kept**, labeled by `sample_condition` and `stabilizer_content`. They aren't in situ values: leave them out with a pandas filter (`gamma[gamma["sample_condition"] != "RECOMPACTED"]`, or on `stabilizer_content`). `where=` compares for equality, so `where={"sample_condition": "UNDISTURBED"}` would drop the field rows, whose condition is blank.
@@ -340,7 +340,7 @@ One row per `LPDN` row: the particle density results, reviewed by geology unit w
 ```python
 p.triaxial(**common)
 ```
-One row per triaxial stage at failure: each `TRET` row (effective stress, parent `TREG`), then each `TRIT` row (total stress, parent `TRIG`), in file order (`docs/work/m11a-triaxial-data.md`). A single-stage test is one specimen with one stage; a multistage test is one specimen with several. The principal stresses come from `ht.analysis.triaxial_failure_stresses()`, so CSV and AGS rows follow the same rules (as `p.spt()` passes through `ht.analysis.spt()`).
+One row per triaxial stage at failure: each `TRET` row (effective stress, parent `TREG`), then each `TRIT` row (total stress, parent `TRIG`), in file order. A single-stage test is one specimen with one stage; a multistage test is one specimen with several. The principal stresses come from `ht.analysis.triaxial_failure_stresses()`, so CSV and AGS rows follow the same rules (as `p.spt()` passes through `ht.analysis.spt()`).
 
 | Column | `TRET` row | `TRIT` row |
 |---|---|---|
@@ -382,7 +382,7 @@ One row per triaxial stage at failure: each `TRET` row (effective stress, parent
 ```python
 p.undrained_strength(hand_penetrometer_scale=None, **common)
 ```
-One row per undrained strength result, from seven groups (`docs/work/m17a-strength-data.md`): `TRIT` (UU stages, through §6.10's build), `LUCT`, `LVAN`, `LPEN` and `LFCN` (lab), then `IVAN` and `IPEN` (field), each in file order. The tests are side by side, never combined or converted between: each measures its own s_u (page 05), and `test_type` and `source` keep them apart in the statistics (SPEC §5). s_u comes from `ht.analysis.undrained_shear_strength_from_tests()`, so CSV and AGS rows follow the same rules.
+One row per undrained strength result, from seven groups: `TRIT` (UU stages, through §6.10's build), `LUCT`, `LVAN`, `LPEN` and `LFCN` (lab), then `IVAN` and `IPEN` (field), each in file order. The tests are side by side, never combined or converted between: each measures its own s_u (page 05), and `test_type` and `source` keep them apart in the statistics (SPEC §5). s_u comes from `ht.analysis.undrained_shear_strength_from_tests()`, so CSV and AGS rows follow the same rules.
 
 | Group | `source` | `test_type` | Depth (`depth_basis`) | Input to s_u | Remolded |
 |---|---|---|---|---|---|
@@ -431,7 +431,7 @@ A blank type code gives `"total stress triaxial, type not given"`, `"laboratory 
 ```python
 p.shear_box(**common)
 ```
-One row per `SHBT` stage, in file order, with its `SHBG` test's values on each: shear box and ring shear, soil and rock joint tests alike (`docs/work/m17a-strength-data.md`). An `SHBG` with no stage rows gives no row.
+One row per `SHBT` stage, in file order, with its `SHBG` test's values on each: shear box and ring shear, soil and rock joint tests alike. An `SHBG` with no stage rows gives no row.
 
 | Column | From |
 |---|---|
@@ -466,7 +466,7 @@ One row per `SHBT` stage, in file order, with its `SHBG` test's values on each: 
 - No `SHBT` group: an empty frame with every column and the warning "No SHBT group".
 
 ### 6.13 Reported gradings (`GRAG`)
-A **reported grading** is a `GRAG` row whose specimen (the `GRAG` keys, which `GRAT` shares as its parent) has no `GRAT` row in the file: the lab's percentages without the curve. It is counted before §7 leaves any record out, so a curve whose points are incomplete never turns into a reported grading. §6.5 and §6.6 read reported gradings by these rules (`docs/work/grag-fractions.md`); a specimen with a curve is read from the curve and its `GRAG` row isn't used.
+A **reported grading** is a `GRAG` row whose specimen (the `GRAG` keys, which `GRAT` shares as its parent) has no `GRAT` row in the file: the lab's percentages without the curve. It is counted before §7 leaves any record out, so a curve whose points are incomplete never turns into a reported grading. §6.5 and §6.6 read reported gradings by these rules; a specimen with a curve is read from the curve and its `GRAG` row isn't used.
 
 **The fraction system is stated, never assumed.** AGS 4 defines the `GRAG` headings with ISO 14688 boundaries (2 mm, 0.063 mm), but labs reporting by ASTM D2487 put their 4.75 mm and 0.075 mm fractions in the same headings, and `GRAG_METH` names a test method, which doesn't fix the reporting boundaries. So the setting `grag_fraction_system` says which system the lab used: `None` (default), `"astm_uscs"`, `"aashto"` or `"iso14688"`. It is a session setting stored with the project like the others (`from_ags(..., grag_fraction_system="astm_uscs")`, `p.settings.grag_fraction_system = ...`) and read when a dataset is built, so changing it needs no re-ingest. Any other value is a `HangtuError` listing the three names and saying a user's own system can't be used for `GRAG`. It is a setting, not a judgment: it says how the data was reported.
 
@@ -503,7 +503,7 @@ Boundaries are compared exactly, as the config writes them. `astm_uscs` and `aas
 ```python
 p.oedometer(**common)
 ```
-One row per `CONS` increment, in file order, with its `CONG` specimen's values on each (`docs/work/m19a-oedometer-data.md`). Incremental-load tests only: the CRS and Rowe cell groups (`ESCG`, `ESCT`) aren't read.
+One row per `CONS` increment, in file order, with its `CONG` specimen's values on each. Incremental-load tests only: the CRS and Rowe cell groups (`ESCG`, `ESCT`) aren't read.
 
 | Column | From |
 |---|---|
