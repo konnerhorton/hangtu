@@ -2,10 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | done (M6); §4.11 (density, M14) done; §4.12 (triaxial, M11 a) done; §4.13–4.14 (undrained strength and shear box, M17 a) done; §4.15 (oedometer, M19 a) done but E003, which waits on TODO #73 |
-| **Intent** | [`docs/work/m6-qc.md`](../work/m6-qc.md#intent) |
+| **Status** | Living spec. The level 1 rules, the report and the diff. E003 isn't built yet (TODO #73) |
 | **Parent** | SPEC §2.6 (units), §7 (data model), §8 (depth and geology), §9 (data quality), §11 (errors) |
-| **Related** | [`ingest.md`](ingest.md) §8–§9 (value flags, findings raised at ingest). [`docs/work/qc-review.md`](../work/qc-review.md) (accepted findings, D008), [`docs/work/vertical-datum.md`](../work/vertical-datum.md) (L006, L007). TODO #6 (P001/P003 tolerances), #7 (minimally useful fields) |
+| **Related** | [`ingest.md`](ingest.md) §8–§9 (value flags, findings raised at ingest). [`docs/work/qc-review.md`](../work/qc-review.md) (accepted findings, D008), [`docs/work/vertical-datum.md`](../work/vertical-datum.md) (L006, L007). TODO #6 (P001/P003 tolerances), #7 (minimally useful fields). History: [`m6-qc.md`](../work/m6-qc.md), [`m14a-density-data.md`](../work/m14a-density-data.md), [`m11a-triaxial-data.md`](../work/m11a-triaxial-data.md), [`m17a-strength-data.md`](../work/m17a-strength-data.md), [`m19a-oedometer-data.md`](../work/m19a-oedometer-data.md) |
 
 ## 1. Purpose and scope
 Check a project's data for integrity problems (SPEC §9.1, level 1) and report them to the engineer, and show what ingest did to each value:
@@ -233,29 +232,29 @@ GRAT: {required: [<SPEC_KEY>, GRAT_SIZE, GRAT_PERP]}
 PTST: {required: [<SPEC_KEY>, PTST_K], recommended: [PTST_TYPE, PTST_COND, PTST_TSTR]}
 FGHG: {required: [LOCA_ID, FGHG_TOP, FGHG_BASE, FGHG_IPRM], recommended: [FGHG_TYPE]}
 IPRG: {required: [LOCA_ID, IPRG_TOP, IPRG_BASE, IPRG_IPRM], recommended: [IPRG_TYPE]}
-LDEN: {required: [<SPEC_KEY>, LDEN_BDEN], recommended: [LDEN_DDEN, LDEN_MC, LDEN_TYPE, LDEN_COND]}   # M14
-LPDN: {required: [<SPEC_KEY>, LPDN_PDEN], recommended: [LPDN_TYPE]}                                # M14
-IDEN: {required: [LOCA_ID, IDEN_DPTH, IDEN_IDEN], recommended: [IDEN_MC, IDEN_TYPE]}               # M14
-TREG: {required: [<SPEC_KEY>, TREG_TYPE], recommended: [TREG_FCR, TREG_COND]}                     # M11 a
+LDEN: {required: [<SPEC_KEY>, LDEN_BDEN], recommended: [LDEN_DDEN, LDEN_MC, LDEN_TYPE, LDEN_COND]}
+LPDN: {required: [<SPEC_KEY>, LPDN_PDEN], recommended: [LPDN_TYPE]}
+IDEN: {required: [LOCA_ID, IDEN_DPTH, IDEN_IDEN], recommended: [IDEN_MC, IDEN_TYPE]}
+TREG: {required: [<SPEC_KEY>, TREG_TYPE], recommended: [TREG_FCR, TREG_COND]}
 TRET: {required: [<SPEC_KEY>, TRET_TESN, TRET_CELL, TRET_DEVF],
-       recommended: [TRET_PWPF, TRET_CONP, TRET_BACK, TRET_BVAL, TRET_STRN]}                       # M11 a
-TRIG: {required: [<SPEC_KEY>, TRIG_TYPE], recommended: [TRIG_COND]}                               # M11 a
-TRIT: {required: [<SPEC_KEY>, TRIT_TESN, TRIT_CELL, TRIT_DEVF], recommended: [TRIT_STRN]}          # M11 a
-LUCT: {required: [<SPEC_KEY>, LUCT_UCS], recommended: [LUCT_STRA]}                                 # M17 a
-LVAN: {required: [<SPEC_KEY>, LVAN_VNPK], recommended: [LVAN_TYPE, LVAN_VNRM]}                     # M17 a
-LPEN: {required: [<SPEC_KEY>, LPEN_PPEN]}                                                          # M17 a
-LFCN: {required: [<SPEC_KEY>, LFCN_FCPK], recommended: [LFCN_FCRM]}                                # M17 a
-IVAN: {required: [LOCA_ID, IVAN_DPTH, IVAN_IVAN], recommended: [IVAN_TYPE, IVAN_IVAR]}             # M17 a
-IPEN: {required: [LOCA_ID, IPEN_DPTH, IPEN_IPEN]}                                                  # M17 a
-SHBG: {required: [<SPEC_KEY>], recommended: [SHBG_TYPE, SHBG_COND]}                                # M17 a
-SHBT: {required: [<SPEC_KEY>, SHBT_TESN, SHBT_NORM], recommended: [SHBT_PEAK, SHBT_RES, SHBT_DISP]}  # M17 a
-CONG: {required: [<SPEC_KEY>], recommended: [CONG_TYPE, CONG_COND, CONG_IVR, CONG_HIGT]}          # M19 a
-CONS: {required: [<SPEC_KEY>, CONS_INCN, CONS_INCF, CONS_INCE], recommended: [CONS_IVR]}           # M19 a
-# <SPEC_KEY> = LOCA_ID, SAMP_TOP, SAMP_REF, SAMP_TYPE, SAMP_ID (the sample key); SPEC_REF and SPEC_DPTH lead each lab group's recommended list (M7)
+       recommended: [TRET_PWPF, TRET_CONP, TRET_BACK, TRET_BVAL, TRET_STRN]}
+TRIG: {required: [<SPEC_KEY>, TRIG_TYPE], recommended: [TRIG_COND]}
+TRIT: {required: [<SPEC_KEY>, TRIT_TESN, TRIT_CELL, TRIT_DEVF], recommended: [TRIT_STRN]}
+LUCT: {required: [<SPEC_KEY>, LUCT_UCS], recommended: [LUCT_STRA]}
+LVAN: {required: [<SPEC_KEY>, LVAN_VNPK], recommended: [LVAN_TYPE, LVAN_VNRM]}
+LPEN: {required: [<SPEC_KEY>, LPEN_PPEN]}
+LFCN: {required: [<SPEC_KEY>, LFCN_FCPK], recommended: [LFCN_FCRM]}
+IVAN: {required: [LOCA_ID, IVAN_DPTH, IVAN_IVAN], recommended: [IVAN_TYPE, IVAN_IVAR]}
+IPEN: {required: [LOCA_ID, IPEN_DPTH, IPEN_IPEN]}
+SHBG: {required: [<SPEC_KEY>], recommended: [SHBG_TYPE, SHBG_COND]}
+SHBT: {required: [<SPEC_KEY>, SHBT_TESN, SHBT_NORM], recommended: [SHBT_PEAK, SHBT_RES, SHBT_DISP]}
+CONG: {required: [<SPEC_KEY>], recommended: [CONG_TYPE, CONG_COND, CONG_IVR, CONG_HIGT]}
+CONS: {required: [<SPEC_KEY>, CONS_INCN, CONS_INCF, CONS_INCE], recommended: [CONS_IVR]}
+# <SPEC_KEY> = LOCA_ID, SAMP_TOP, SAMP_REF, SAMP_TYPE, SAMP_ID (the sample key); SPEC_REF and SPEC_DPTH lead each lab group's recommended list
 ```
 In the shipped file the lists are written out in full; `<SPEC_KEY>` is a YAML anchor.
 
-### 4.11 Density (B) (M14)
+### 4.11 Density (B)
 Checks within one record, plus wide ranges that catch a value in the wrong unit, as A003 and K001 do. Checks across tests (saturation, ρs against ρd) are phase relations, M14 (b).
 
 | ID | Rule | Severity | Thresholds |
@@ -270,7 +269,7 @@ Checks within one record, plus wide ranges that catch a value in the wrong unit,
 - B003's message names what lies outside the range (peat and organic soils below, ores and some rock above), so the engineer checks the material as well as the unit. An assumed value is checked like a measured one.
 - B004 is one finding per record, so the engineer sees which particle densities are assumed; it's info, not a defect.
 
-### 4.12 Triaxial (X) (M11 a)
+### 4.12 Triaxial (X)
 Each rule checks one stage, or one test against its own stages: a record that can't give a valid failure state, or doesn't meet its test standard's own requirement. Plausible ranges for strength are level 2.
 
 | ID | Rule | Severity | Thresholds |
@@ -289,7 +288,7 @@ Each rule checks one stage, or one test against its own stages: a record that ca
 - X005: a multistage type is `CDM`, `CUM`, `CIUCM` or `UUM`. A type the dictionary doesn't list is checked only for "no stage rows".
 - X006: only where all three are given, and only for single-stage tests and the first stage of a multistage test, since later stages change the cell pressure after consolidation. The tolerance clears 0DP rounding of the three values (at most 1.5 kPa).
 
-### 4.13 Undrained strength (Q) (M17 a)
+### 4.13 Undrained strength (Q)
 Checks within one record. Plausible ranges for s_u are level 2. `Q` is for `TRIG_TYPE`'s "quick undrained"; `U` (units) is taken.
 
 | ID | Rule | Severity | Thresholds |
@@ -302,7 +301,7 @@ Checks within one record. Plausible ranges for s_u are level 2. `Q` is for `TRIG
 - Q002: only where both are unflagged. A remolded value above the peak usually means the two were swapped.
 - Q003 is an error: a strength can't be 0 or less. A flagged value (`<5`) isn't checked.
 
-### 4.14 Shear box (H) (M17 a)
+### 4.14 Shear box (H)
 Checks within one stage. `S` (SPT) is taken.
 
 | ID | Rule | Severity | Thresholds |
@@ -315,7 +314,7 @@ Checks within one stage. `S` (SPT) is taken.
 - H002: the stage can't give a point for either fit.
 - Not rules, for want of a threshold a source supports: `SHBT_PVST` or `SHBT_RVST` far from `SHBT_NORM` (they differ where the lab corrects for the contact area; the dictionary's example is 100, 100 and 125 kPa), and a residual reached at a small displacement.
 
-### 4.15 Oedometer (E) (M19 a)
+### 4.15 Oedometer (E)
 Each checks a specimen against itself, its `CONS` rows in file order: a record whose numbers can't all be right. Ranges for C_c or σ′p are level 2.
 
 | ID | Rule | Severity | Thresholds |

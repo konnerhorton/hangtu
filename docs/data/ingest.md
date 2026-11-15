@@ -2,10 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | done (M5) |
-| **Intent** | [`docs/work/m5-ingest.md`](../work/m5-ingest.md#intent) |
+| **Status** | Living spec. How an AGS4 file becomes a project database: the raw and canonical layers, units and quantity kinds, value flags, and the findings raised while reading |
 | **Parent** | SPEC §2.2 (units), §6 (ingestion), §7 (data model), §11 (errors) |
-| **Related** | [`docs/work/file-units.md`](../work/file-units.md) (file-defined units), [`docs/work/vertical-datum.md`](../work/vertical-datum.md) (`LOCA_DATM`). P00 §4 (quantity kinds, aliases, pcf). [`qc.md`](qc.md) (M6) reports these findings; [`datasets.md`](datasets.md) (M7) reads the canonical layer |
+| **Related** | P00 §4 (quantity kinds, aliases, pcf). [`qc.md`](qc.md) reports these findings; [`datasets.md`](datasets.md) reads the canonical layer. History: [`m5-ingest.md`](../work/m5-ingest.md), [`file-units.md`](../work/file-units.md) (file-defined units), [`vertical-datum.md`](../work/vertical-datum.md) (`LOCA_DATM`) |
 
 ## 1. Purpose and scope
 Read one AGS4 file (4.0.3 to 4.2) into a project SQLite database, and open that database again later:

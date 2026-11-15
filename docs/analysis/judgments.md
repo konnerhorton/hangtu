@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Living spec. The file and `vertical_stress()` (M13 a); `plasticity_index` (M13 b2), `specific_gravity` (M14 b), `significance_level` (M15 d), `fixed_intact_compressive_strength` (M17 c), `spt_refusal_upper_limit` (M18 a), `critical_state_friction_angle` (M18 d) and `selection` (M18 e) built |
+| **Status** | Living spec. The judgments file, how a value resolves, and each judgment (§5) |
 | **Parent** | SPEC §4, "Judgment inputs": judgments have no defaults, the resolution order, keys and the project-wide value, recording, and the two optional judgments |
 | **Related** | [`m13a-judgments.md`](../work/m13a-judgments.md) (the file, resolution, `vertical_stress()`), [`m13b2-spt-strength-history.md`](../work/m13b2-spt-strength-history.md) (decision 11), [`m14b-phase-relations.md`](../work/m14b-phase-relations.md) (decision 4), [`m15d-compare.md`](../work/m15d-compare.md) (decision 8), [`m17c-hoek-brown-fit.md`](../work/m17c-hoek-brown-fit.md) (decision 8), [`m18a-refusals.md`](../work/m18a-refusals.md) (decisions 1–3), [`m18d-sources-compared.md`](../work/m18d-sources-compared.md) (decisions 5, 17), [`m18e-selection.md`](../work/m18e-selection.md) (decisions 6–12). The code: `src/hangtu/_judgments.py` (`KINDS`, the checks) and `src/hangtu/analysis/_judgment_values.py` (lookup and record). The user's guide: [`docs/site/guides/judgments.md`](../site/guides/judgments.md) |
 

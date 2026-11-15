@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Living spec. Stresses at failure (M11 a), envelope fits (M11 b, M17 b–c), failure from readings (M11 c), undrained strength from tests (M17 a) and the shear box conversion (M18 d) built |
+| **Status** | Living spec. Stresses at failure, envelope fits, failure from readings, undrained strength from tests and the shear box conversion |
 | **Parent** | SPEC §4 (triaxial stresses at failure, envelope fits, undrained strength) and §5 (derived results) |
 | **Related** | [`m11a-triaxial-data.md`](../work/m11a-triaxial-data.md), [`m11b-envelope-fit.md`](../work/m11b-envelope-fit.md), [`m11c-triaxial-shearing.md`](../work/m11c-triaxial-shearing.md), [`m17a-strength-data.md`](../work/m17a-strength-data.md), [`m17b-shear-box-fit.md`](../work/m17b-shear-box-fit.md), [`m17c-hoek-brown-fit.md`](../work/m17c-hoek-brown-fit.md), [`m18d-sources-compared.md`](../work/m18d-sources-compared.md). The datasets: [`docs/data/datasets.md`](../data/datasets.md) §6.10–6.12. The figures: P11, P12, P31, P32 in [`docs/plots/`](../plots/README.md). The judgments: [`judgments.md`](judgments.md) |
 
