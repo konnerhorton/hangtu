@@ -145,7 +145,7 @@ Gives each specimen its plasticity index, liquidity and consistency indices, and
 | `water_content` | – | LI, Ic |
 | others | – | Passed through unchanged |
 
-`uscs()` and `aashto()` take one row per specimen with the Atterberg columns above **and** the gradation columns from `gradation()` (§3.4), as `p.index_properties()` gives them (M8, data for P06). A CSV user with lab-reported fractions types them in the same columns.
+`uscs()` and `aashto()` take one row per specimen with the Atterberg columns above **and** the gradation columns from `gradation()` (§3.4), as `p.index_properties()` gives them (the data for P06). A CSV user with lab-reported fractions types them in the same columns.
 
 ### 2.3 Config: plasticity systems
 Lines and bands live in `config/plasticity_systems.yaml`, each system with its citation. `plasticity()`, `uscs()` and P04 all read it.
@@ -173,7 +173,7 @@ Returns a copy of `df` with these columns added, or their blanks filled. It neve
 | `plasticity_class_uscs` | §2.5 |
 | `plasticity_class_bs5930` | §2.5 |
 
-`p.atterberg()` computes its LI and Ic with this function from M8 on, so they're defined once.
+`p.atterberg()` computes its LI and Ic with this function, so they're defined once.
 
 ### 2.5 Plasticity classes
 A point is **on or above** the A-line when PI ≥ 0.73 (LL − 20) − 1e-9. The slack keeps a point exactly on the line on the clay side, as both standards put it.
@@ -191,7 +191,7 @@ A point is **on or above** the A-line when PI ≥ 0.73 (LL − 20) − 1e-9. The
 **BS 5930** (`plasticity_class_bs5930`): C (above or on the A-line) or M (below), then the plasticity term from LL: `CL`, `CI`, `CH`, `CV`, `CE`, `ML`, `MI`, … .
 
 - **NP** is classified as PI = 0 for the class only (D2487 puts non-plastic fines with ML or MH). `plasticity_index` stays blank, so NP stays distinct everywhere else. An NP specimen with no LL is `ML` in USCS and blank in BS 5930 (the term needs LL).
-- **OL and OH are never given** (M8 intent, decision 3; TODO #22). The docstring says the USCS class is the inorganic one, and that an organic soil must be identified by the user.
+- **OL and OH are never given** (TODO #22). The docstring says the USCS class is the inorganic one, and that an organic soil must be identified by the user.
 - **Blank** LL, or a blank PI on a plastic specimen, gives a blank class.
 
 ### 2.6 `ht.analysis.uscs()`
@@ -336,10 +336,10 @@ gradation(df, *, fractions="astm_uscs", d_values=(10, 30, 60), units=None) -> pa
 ```
 Returns **one row per curve**, in order of first appearance: the identity columns; every other input column that is constant within each curve (depth, elevation, geology unit, …); the `d<x>` columns; `uniformity_coefficient`; `curvature_coefficient`; one `<fraction>_content` column per fraction of the system; and `fraction_system`. Columns that vary within a curve (`particle_size`, `percent_passing`, `qualifier`, `source_line`) aren't carried, which the docstring says. D-values are in mm (`attrs["units"]`). Curves with fewer than two points get a row with blanks, counted in a warning.
 
-USCS gradation (W or P) depends on whether the soil is a gravel or a sand, so it is part of `uscs_symbol` (§2.6) rather than a column of its own (the `gradation_uscs` column in the M7 notes is dropped).
+USCS gradation (W or P) depends on whether the soil is a gravel or a sand, so it is part of `uscs_symbol` (§2.6) rather than a column of its own.
 
 ### 3.5 Fraction systems
-A **fraction system** is one data structure (M8 intent, decision 5): a name, a citation, and an ordered list of fractions, each with lower and upper sizes in mm and optional named parts (fine, medium, coarse) for the P05 header band. Columns are made from the main fractions only.
+A **fraction system** is one data structure: a name, a citation, and an ordered list of fractions, each with lower and upper sizes in mm and optional named parts (fine, medium, coarse) for the P05 header band. Columns are made from the main fractions only.
 
 - **Built in** (`config/fraction_systems.yaml`) 🔬:
 
@@ -349,7 +349,7 @@ A **fraction system** is one data structure (M8 intent, decision 5): a name, a c
 | `aashto` (AASHTO M 145) | silt_clay < 0.075; fine_sand 0.075–0.425; coarse_sand 0.425–2.0; gravel 2.0–75; boulders ≥ 75 | – |
 | `iso14688` (ISO 14688-1:2017) | clay < 0.002; silt 0.002–0.063; sand 0.063–2.0; gravel 2.0–63; cobbles 63–200; boulders ≥ 200 | silt, sand and gravel: fine, medium, coarse at 0.0063/0.02, 0.2/0.63, 6.3/20 |
 
-  USCS has no clay–silt boundary, so `astm_uscs` has one fines fraction (M8 intent, decision 5).
+  USCS has no clay–silt boundary, so `astm_uscs` has one fines fraction.
 - **The user's own:** `fractions=` takes a dict in the same structure, or the path to a YAML file holding one, with a `name` that goes in `fraction_system` and isn't one of the built-in names (so `uscs()` can't mistake it for `astm_uscs`). It is checked (sizes increasing, no gaps or overlaps, names unique) and errors say which fraction is wrong. Its fraction names make columns `<name>_content`, which must not collide with an existing registry column.
 
 **A fraction's percentage** = P(upper) − P(lower), where P(size) is the passing at that size:

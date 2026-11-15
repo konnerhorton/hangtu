@@ -81,7 +81,7 @@ It's a property, takes no filters, and has `df.attrs["units"]` like a dataset (�
 
 ## 4. Values, units and columns
 - **Units:** values come back in the display units, `display_units=` if given, else the project's `p.settings.display_units` (and its `display_overrides`), converted from SI by each column's quantity kind in the registry. `df.attrs["units"]` names the unit of every numeric column, so the plots and `ht.units_of` read them (SPEC §2.6). The SI and US twin files give the same dataset for the same `display_units=`.
-- **Judgments file:** when the project has one (`p.set_judgments`, SPEC §4), `df.attrs["judgments_file"]` holds its resolved path, so an analysis that needs a judgment finds it without `judgments=` (M13).
+- **Judgments file:** when the project has one (`p.set_judgments`, SPEC §4), `df.attrs["judgments_file"]` holds its resolved path, so an analysis that needs a judgment finds it without `judgments=`.
 - **Vertical datum:** when the project has one (`p.settings.vertical_datum`), `df.attrs["vertical_datum"]` holds it, and the plots put it on elevation labels ahead of `ht.settings.vertical_datum` (P00 §7). Added in M9, when the examples showed a project's datum missing from its figures.
 - **Columns** are registry names (SPEC §10.3), in the order of the tables in §6. New columns are added to `columns.yaml` (§11).
 - **Rows** are in file order of the dataset's source group, then by group for `p.permeability()` (PTST, FGHG, IPRG). Nothing is sorted by depth; the plots don't need it.
@@ -109,7 +109,7 @@ It's a property, takes no filters, and has `df.attrs["units"]` like a dataset (�
 - The header is `geology_unit`, not SPEC §8.3's `unit`, by the naming rules (CLAUDE.md). SPEC §8.3 changes with this spec.
 - **Errors:** a missing required column, or a column hangtu doesn't read (such as SPEC §8.3's old `unit`); a blank `code` or `geology_unit`; a duplicate `code` (which covers a code mapped to two units); one unit with two colors, two soil classes or two orders; an `order` that isn't a number; a color matplotlib doesn't know. Each names the codes and the line of the CSV (or the row of a DataFrame). Nothing is stored when the map has an error.
 - **In the datasets:** `geology_unit` is an ordered pandas categorical in the map's order, so tables and plots list the units top to bottom. `df.attrs["palette"]` holds the map's colors.
-- **Plots:** read `df.attrs["palette"]` after `ht.settings.palette`, so a color set in the session still wins, and honor a categorical `geology_unit`'s order where they list units. This is the one plot change in M7: P00 §10's resolution becomes `palette=` argument → `ht.settings.palette` → `df.attrs["palette"]` → automatic, applied to every plot through the shared palette helper.
+- **Plots:** read `df.attrs["palette"]` after `ht.settings.palette`, so a color set in the session still wins, and honor a categorical `geology_unit`'s order where they list units. P00 §10's resolution is `palette=` argument → `ht.settings.palette` → `df.attrs["palette"]` → automatic, applied to every plot through the shared palette helper.
 - **Unmapped codes:** a code that isn't in the map keeps its code as `geology_unit`, after the mapped units in the order, with one warning per call that lists the codes and their counts: "GEOL_GEOL codes not in the geology map: 'ALV' (12 rows), 'MG' (3 rows). They're kept as their own units. Add them to strata.csv." QC reports them as `G004` (§9).
 
 ### 5.3 Columns from GEOL
@@ -181,9 +181,9 @@ One row per `LLPL` row.
 | `water_content` | `LNMC_MC` of the same specimen (`specimen_id`), where there is exactly one; a specimen with several `LNMC` rows gets a blank and one warning per call that names them |
 | `liquidity_index` | `(w − PL) / PI` |
 | `consistency_index` | `(LL − w) / PI` |
-| `plasticity_class_uscs`, `plasticity_class_bs5930` | `ht.analysis.plasticity()` (analysis §2.5), M8 |
+| `plasticity_class_uscs`, `plasticity_class_bs5930` | `ht.analysis.plasticity()` (analysis §2.5) |
 
-- PI (where blank), LI, Ic and the two classes come from `ht.analysis.plasticity()` (from M8), so they are computed in one place. LI and Ic are blank when a value they need is blank, when the specimen is NP, or when PI ≤ 0.
+- PI (where blank), LI, Ic and the two classes come from `ht.analysis.plasticity()`, so they are computed in one place. LI and Ic are blank when a value they need is blank, when the specimen is NP, or when PI ≤ 0.
 - `plasticity()` stops on a plastic specimen with PL above LL, or an NP one with a PI (analysis §2.8), which is right for a table a user typed in. A dataset doesn't stop on the file's data, which QC checks (A001), so those rows keep LL and PL as the file gives them, with PI, LI, Ic and the classes blank, and one warning per call names them. A PI given more than 1 point from LL − PL is used as given, without a warning: QC reports it (A002), and a dataset doesn't repeat QC's findings (as §5.4). `plasticity()`'s other warning, a PI above LL, passes through, naming the specimens.
 - An NP specimen has `non_plastic = True` and blanks where the file wrote `NP` (ingest.md §8); a liquid limit the file gives is kept, and its PI isn't filled in. P07 counts it as NP, not as a blank (SPEC §4).
 
@@ -230,7 +230,7 @@ Columns: `loca_id`, `specimen_id`, `sample_reference`, `specimen_reference`, `gr
 ```python
 p.index_properties(**common)
 ```
-One row per **sample** (`SAMP`) that has a water content, an Atterberg test or a grading, combining them so that each sample can be classified. Settles SPEC §13 #2 (M8 intent, decision 7). A sample is told apart by its AGS key fields (`LOCA_ID`, `SAMP_TOP`, `SAMP_TYPE`, `SAMP_REF`, `SAMP_ID`), which every test row carries, so a sample with no `SAMP` row is still one. Samples are listed in order of their first test row: `LNMC`, then `LLPL`, then `GRAT`, then `GRAG` (reported gradings, §6.13). A sample's grading candidates are its `GRAT` specimens and its reported `GRAG` specimens, chosen by the rules below as one test.
+One row per **sample** (`SAMP`) that has a water content, an Atterberg test or a grading, combining them so that each sample can be classified. A sample is told apart by its AGS key fields (`LOCA_ID`, `SAMP_TOP`, `SAMP_TYPE`, `SAMP_REF`, `SAMP_ID`), which every test row carries, so a sample with no `SAMP` row is still one. Samples are listed in order of their first test row: `LNMC`, then `LLPL`, then `GRAT`, then `GRAG` (reported gradings, §6.13). A sample's grading candidates are its `GRAT` specimens and its reported `GRAG` specimens, chosen by the rules below as one test.
 
 **Which specimen** of each test, where a sample has several:
 1. The **reference depth** is the water content specimen's depth (§6.2) when the sample has exactly one, else the sample's lab depth (§6.2, without `SPEC_DPTH`). A specimen with several `LNMC` rows is one specimen, with a blank water content (§6.2).
@@ -251,7 +251,7 @@ One row per **sample** (`SAMP`) that has a water content, an Atterberg test or a
 | `grading_source` | `"curve"` or `"reported"` (§6.13), blank without a grading |
 | `uscs_symbol` | `ht.analysis.uscs()` on the combined row. For a reported grading whose `GRAG_VCRE` is above 0, cobbles and boulders are blank in `astm_uscs` but their sum is known, so `uscs()` is given `GRAG_VCRE` as the oversize (the returned columns stay blank); otherwise it would classify the whole sample rather than the part finer than 75 mm |
 | `aashto_group`, `aashto_group_index` | `ht.analysis.aashto()` on the `aashto` fractions of the same specimen, which aren't returned (from a reported grading by §6.13, so the group is blank where the missing sand split could decide it) |
-| `clay_activity` | `ht.analysis.clay_activity()` on the row's PI and the `iso14688` clay content (< 0.002 mm) of the same specimen, which isn't returned (from a reported grading only where it is `iso14688` with `GRAG_CLAY`); blank, without a warning, where the curve doesn't reach 0.002 mm (M14 b) |
+| `clay_activity` | `ht.analysis.clay_activity()` on the row's PI and the `iso14688` clay content (< 0.002 mm) of the same specimen, which isn't returned (from a reported grading only where it is `iso14688` with `GRAG_CLAY`); blank, without a warning, where the curve doesn't reach 0.002 mm |
 | `water_content_specimen_id`, `atterberg_specimen_id`, `grain_size_specimen_id` | The specimen key (`specimen_id`) used for each test, blank where the sample has none |
 | geology columns | The geology at the reference depth (§5.4) |
 | `source_line` | The line of the sample's `SAMP` row, the one record all of the row's tests share; blank when the file has none |
@@ -317,7 +317,7 @@ One row per density result, from two groups. Rows follow the file order of `LDEN
 ```python
 p.particle_density(**common)
 ```
-One row per `LPDN` row: the particle density results, reviewed by geology unit when choosing a Gs judgment (M14 b).
+One row per `LPDN` row: the particle density results, reviewed by geology unit when choosing a Gs judgment (`docs/analysis/judgments.md`, `specific_gravity`).
 
 | Column | From |
 |---|---|
@@ -346,7 +346,7 @@ One row per triaxial stage at failure: each `TRET` row (effective stress, parent
 | `multistage_test` | True when the type is multistage (`CDM`, `CUM`, `CIUCM`) or the specimen has more than one stage | As `TRET`, with `UUM` |
 | `sample_condition` | `TREG_COND` | `TRIG_COND` |
 | `failure_criterion` | `TREG_FCR`, as written | blank (no heading) |
-| `failure_mode` (M17 c) | `TRET_MODE`, as written | `TRIT_MODE`, as written |
+| `failure_mode` | `TRET_MODE`, as written | `TRIT_MODE`, as written |
 | `water_content` | `TRET_IMC` (initial) | `TRIT_IMC` (initial) |
 | `bulk_unit_weight`, `dry_unit_weight` | `TRET_BDEN`, `TRET_DDEN` × g (initial) | `TRIT_BDEN`, `TRIT_DDEN` × g (initial) |
 | `void_ratio` | `TRET_IVR` (initial) | blank |
@@ -362,14 +362,14 @@ One row per triaxial stage at failure: each `TRET` row (effective stress, parent
 | `effective_minor_principal_stress_at_failure`, `effective_major_principal_stress_at_failure` | σ′3 = σ3 − u_f, σ′1 = σ′3 + q_f, below | blank |
 | `effective_stress_basis` | Where u_f came from: `pore_pressure_at_failure` or `back_pressure`, below; blank where σ′ is blank | blank |
 | `reported_effective_friction_angle`, `reported_effective_cohesion` | `TREG_PHI`, `TREG_COH`: the lab's own fit, repeated on each stage of the specimen | blank |
-| `reported_intact_compressive_strength`, `reported_intact_hoek_brown_constant` (M17 c) | blank: the lab's Hoek–Brown σci and mi have no AGS heading, so they come from a CSV | blank |
+| `reported_intact_compressive_strength`, `reported_intact_hoek_brown_constant` | blank: the lab's Hoek–Brown σci and mi have no AGS heading, so they come from a CSV | blank |
 | `test_remarks`, `remarks` | `TREG_REM`, `TRET_REM` | `TRIG_REM`, `TRIT_REM` |
 
 - **The pore pressure at failure** is `TRET_PWPF`. Where it is blank, and the test type is drained (`CD`, `CDM`, `CIDC`, `CADC`), u_f is the back pressure `TRET_BACK`: a drained test keeps the pore pressure at the back pressure. `effective_stress_basis` says which was used, and one warning per call counts the stages that used the back pressure. Otherwise, including an undrained test without a pore pressure and a type the dictionary doesn't list, σ′3 and σ′1 are blank and nothing is guessed. QC X002 lists the undrained ones.
 - **Extension tests** (`CIDE`, `CADE`, `CAUE`) are kept, with every principal stress blank and one warning per call naming them: the dictionary doesn't give the sign of `TRET_DEVF` in extension, and in extension the axial stress is the minor one, so the compression formulas would be wrong.
 - **A deviator stress of 0 or less** in a compression test gives blank principal stresses, and one warning per call names the stages and points to `p.qc()` (X003). A dataset doesn't stop on the file's data (as §6.2).
 - **The lab's fit is repeated on each stage** of its specimen, and often on every specimen of a set, so a summary of it counts one value many times. Summarize it on one row per specimen (`drop_duplicates("specimen_id")`); (b) compares it with hangtu's fit per test.
-- **Initial state, not in situ:** the unit weights, water content and void ratio are the specimen's as set up for the test (for a recompacted specimen, as made). They are carried so a fit can be read against density, not pooled with `p.density()` (M14 a, decision 2).
+- **Initial state, not in situ:** the unit weights, water content and void ratio are the specimen's as set up for the test (for a recompacted specimen, as made). They are carried so a fit can be read against density, not pooled with `p.density()`.
 - **No `TREG`/`TRIG` row** above a stage (a broken parent link, which python-ags4 reports as Rule 10): the stage is kept, with blank test type, criterion and the lab's fit.
 - With neither `TRET` nor `TRIT`, it is an empty frame with every column and the warning "No TRET or TRIT group". A `TREG` or `TRIG` with no stage rows gives no row; QC X005 reports it.
 
@@ -416,7 +416,7 @@ A blank type code gives `"total stress triaxial, type not given"`, `"laboratory 
 - **s_u:** q_f / 2 for UU and q_u / 2 for unconfined compression (with φu = 0 the envelope touches each Mohr circle at its top, τ = t); as reported for the vanes, the fall cone and `LPEN_PPEN`, which the dictionary defines as an undrained shear strength. The basis column says which on every row.
 - **The hand penetrometer in situ (`IPEN_IPEN`)** is a "hand penetrometer result", and instruments read s_u or q_u, a factor of 2 apart. `hand_penetrometer_scale=` (`"undrained_shear_strength"` or `"unconfined_compressive_strength"`) says which; it has no default. Without it, `IPEN` rows are left out and counted in one warning: "Left out 4 IPEN results: IPEN_IPEN doesn't say whether the instrument read s_u or q_u. Check IPEN_METH and IPEN_REM, then pass hand_penetrometer_scale="undrained_shear_strength" or "unconfined_compressive_strength"."
 - **The lab's s_u** (`TRIT_CU`) is kept as `reported_undrained_shear_strength` and never used in place of q_f / 2; QC Q001 compares them.
-- **Field vane values are as measured:** Bjerrum's correction μ isn't applied (it is a judgment, applied in selection, M18).
+- **Field vane values are as measured:** Bjerrum's correction μ isn't applied (it is a judgment, applied in selection).
 - **Sensitivity** is the peak over the remolded value of one test, where both are unflagged and the remolded value is above 0; otherwise it is blank, with one warning counting the rows. Both values stay.
 - **Two flags on one row:** `qualifier` is s_u's and `remolded_qualifier` the remolded value's, so the statistics read each value's own (SPEC §5).
 - **UU deviator stress of 0 or less** gives a blank s_u, with the warning of §6.10. `TRET_CU` (CU stages, s_u at the consolidation stress) isn't read: it is the SHANSEP input of wave 3.
@@ -453,8 +453,8 @@ One row per `SHBT` stage, in file order, with its `SHBG` test's values on each: 
 | `reported_residual_cohesion`, `reported_residual_friction_angle` | `SHBG_RCOH`, `SHBG_RPHI` |
 | `test_remarks`, `remarks` | `SHBG_REM`, `SHBT_REM` |
 
-- **All three normal stresses are kept** and none is chosen: `SHBT_NORM` is the stress applied, `SHBT_PVST` and `SHBT_RVST` the stress at peak and at residual, which differ where the lab corrects for the contact area. The fit (M17 b) chooses, and records its choice.
-- **Stages, not multistage tests.** `SHBT_TESN` is a "stage/specimen reference": a soil test's specimens are often entered as stages of one `SPEC_REF`, so the file doesn't say whether a set of rows is one specimen sheared several times. There is no `multistage_test` column; a user who knows can add one and fit with `group_by="multistage_test"` or `where=`; the fit doesn't read it (M17 (b), decision 12).
+- **All three normal stresses are kept** and none is chosen: `SHBT_NORM` is the stress applied, `SHBT_PVST` and `SHBT_RVST` the stress at peak and at residual, which differ where the lab corrects for the contact area. The fit (`docs/analysis/strength.md`) chooses, and records its choice.
+- **Stages, not multistage tests.** `SHBT_TESN` is a "stage/specimen reference": a soil test's specimens are often entered as stages of one `SPEC_REF`, so the file doesn't say whether a set of rows is one specimen sheared several times. There is no `multistage_test` column; a user who knows can add one and fit with `group_by="multistage_test"` or `where=`; the fit doesn't read it.
 - **No soil or rock joint label.** No heading says which a test is; `encapsulation` and the diameters suggest a rock joint but aren't markers. Tell them apart with `where=`, `geology=` or a pandas filter.
 - **No effective or total label.** A shear box measures no pore pressure; its stresses are effective only if it drained, which the rates suggest but don't prove. The names say what was measured.
 - **The lab's fit is repeated on each stage**, as §6.10's: summarize it on one row per specimen.

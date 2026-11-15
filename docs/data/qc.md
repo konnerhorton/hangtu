@@ -11,7 +11,7 @@ Check a project's data for integrity problems (SPEC §9.1, level 1) and report t
 - `p.qc()` runs the level 1 rules over the canonical layer, adds the findings ingest stored, and returns a **report** that prints a summary and exports to CSV;
 - `p.diff(group)` compares the file's text with the canonical value, cell by cell.
 
-**Not in scope:** level 2 rules (not yet placed, SPEC §1.3); the geology map, `p.locations`, joins, datasets and excluding incomplete records (M7, [`datasets.md`](datasets.md)); storing rule overrides in the project (M7, with `to_yaml()`); HTML or Excel reports; changing data (SPEC §1.4).
+**Not in scope:** level 2 rules (not yet placed, SPEC §1.3); the geology map, `p.locations`, joins, datasets and excluding incomplete records ([`datasets.md`](datasets.md)); storing rule overrides in the project (with `to_yaml()`, not built); HTML or Excel reports; changing data (SPEC §1.4).
 
 ## 2. Public API
 ```python
@@ -76,7 +76,7 @@ rules:
 - **Merged rule by rule, key by key:** an override of one threshold keeps the rule's other thresholds and its severity. `min_fields` overrides replace a group's `required` or `recommended` list as a whole.
 - **Ingest rules** (V, M, U, T; §4.1) take `severity` and `enabled` only, applied when the report is built. The stored findings don't change. In `rules.yaml`, `V*` and `VLOG` have `severity: null`, meaning the severity stored at ingest, since python-ags4's rules differ.
 - **`V*`** sets every python-ags4 rule at once; a single V rule ID given alongside it wins.
-- Overrides are passed to each call and not stored with the project (M7).
+- Overrides are passed to each call and not stored with the project.
 
 ### 3.4 Accepted findings
 A reviewer records findings they have checked and accept, so the report shows what is still open. `accepted=` takes a path to a YAML file or a list of dicts: a list of entries, under a top-level `accepted:` key or not.
@@ -136,7 +136,7 @@ As in `ingest.md` §9, read back from the `finding` table: `V<rule>`, `VLOG`, `V
 | G001 | A location with records in other groups has no `GEOL` rows | warning | |
 | G002 | Gap in a hole's geology: between consecutive intervals, above the first interval (top > 0), or below the last (base < `LOCA_FDEP`) | warning | `depth_tolerance: 0.01 m` |
 | G003 | Overlapping geology intervals in a hole | error | `depth_tolerance: 0.01 m` |
-| G004 | A geology code isn't in the project's geology map (M7) | warning | |
+| G004 | A geology code isn't in the project's geology map (`datasets.md` §5.2) | warning | |
 
 - Intervals sorted by top. A gap or overlap is reported when it exceeds `depth_tolerance`.
 - G001 is a warning, not the draft's error: CPT soundings and probe holes often have no geology log, and that isn't wrong.
@@ -157,7 +157,7 @@ As in `ingest.md` §9, read back from the `finding` table: `V<rule>`, `VLOG`, `V
 - D003 compares with `LOCA_FDEP + final_depth_tolerance`. Skipped where `LOCA_FDEP` is blank (L003).
 - D007 and D008 give one finding per specimen, at its first row in file order, even when several tests (`LLPL`, `GRAG`, …) share it. Which rule depends on the offset; within `depth_tolerance` neither fires. D008 is the lower band of D007's check, so its bounds are D007's thresholds; each rule can be disabled or have its severity changed on its own, and disabling D007 doesn't change D008's band. `rounding_tolerance` below `depth_tolerance` is an error naming both. A ft→m rounding offset in a lab table is usually 2 to 8 cm; a linking error is meters.
 - D004 and D005 use `GEOL` as written, and are skipped for holes with no geology (G001). D004 checks the top depth of each record; GEOL itself is not checked against itself.
-- SPT depth is `ISPT_TOP` here. The mid-drive depth (SPEC §8.2) is M7's, and doesn't change which hole or interval a test is in except within 0.45 m of a boundary.
+- SPT depth is `ISPT_TOP` here. The mid-drive depth (SPEC §8.2) is the datasets', and doesn't change which hole or interval a test is in except within 0.45 m of a boundary.
 - **D006 (duplicate) is dropped from the draft.** Two records with the same keys are already python-ags4's Rule 10a (`V10a`); two records at the same depth with different keys (two samples, two specimens) are legitimate.
 
 ### 4.5 SPT (S)
@@ -214,7 +214,7 @@ As in `ingest.md` §9, read back from the `finding` table: `V<rule>`, `VLOG`, `V
 | C002 | A `recommended` field is missing | info |
 
 - **Missing** means the heading isn't in the group, or the cell is blank. A flagged value (`NP`, `Dry`, `<x`) is not missing, and neither is a blank `ISPT_NVAL` that ingest flagged `REFUSAL` from its report (ingest.md §8).
-- **C001:** one finding per record with a blank required field (these are the records M7 leaves out unless `include_incomplete=True`), or one per group when the heading is absent.
+- **C001:** one finding per record with a blank required field (these are the records the datasets leave out unless `include_incomplete=True`), or one per group when the heading is absent.
 - **C002:** one finding per group and heading, with the count of blank records ("ISPT_ERAT is blank in 1 of 5 records"), so recommended fields don't flood the report.
 - Groups not in the file aren't checked. The default list, from the draft (TODO #7), with `SPEC_REF`/`SPEC_DPTH` recommended (so a lab result without a specimen depth is placed at its sample; `datasets.md` §7), `IPRG` added for 4.0.x files, and `GRAT`'s point count moved to P004:
 
@@ -255,7 +255,7 @@ CONS: {required: [<SPEC_KEY>, CONS_INCN, CONS_INCF, CONS_INCE], recommended: [CO
 In the shipped file the lists are written out in full; `<SPEC_KEY>` is a YAML anchor.
 
 ### 4.11 Density (B)
-Checks within one record, plus wide ranges that catch a value in the wrong unit, as A003 and K001 do. Checks across tests (saturation, ρs against ρd) are phase relations, M14 (b).
+Checks within one record, plus wide ranges that catch a value in the wrong unit, as A003 and K001 do. Checks across tests (saturation, ρs against ρd) are phase relations (`ht.analysis`), not QC.
 
 | ID | Rule | Severity | Thresholds |
 |---|---|---|---|
@@ -387,7 +387,7 @@ One row per accepted entry, in file order: `rule_id`, `loca_id`, `group`, `headi
 - `C001` split into `C001` (required, warning) and `C002` (recommended, info, one per heading).
 - `D006` dropped (§4.4); `D007` added (specimen outside its sample).
 - `G001` is a warning, not an error (§4.3); `G002` also covers gaps at the top and bottom of the log.
-- `G004` deferred to M7.
+- `G004` is raised by the datasets, where the geology map is (`datasets.md` §5.2).
 - `S003` is one finding per hole.
 - `GRAT`'s `min_rows_per_specimen` is now P004's `fewest_points`.
 - `V000`, `VLOG`, `M001` and `U004` added from ingest.

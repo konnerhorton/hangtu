@@ -14,7 +14,7 @@ Update this file in the same commit as any change to a function's behavior, and 
 - Checks each with an Anderson–Darling p-value by seeded parametric bootstrap: none when a value is censored, and with a note that ties read as misfit when a group has fewer distinct values than half its count.
 - Reports each fit's probability beyond the physical bounds.
 - A group needs 4 uncensored values.
-- It never chooses the distribution: selection (M18) records that choice.
+- It never chooses the distribution: selection (`select()`) records that choice.
 - Takes no `log=True`: a normal fit to the logs is its lognormal fit.
 
 **Refusals:**
@@ -32,7 +32,7 @@ Update this file in the same commit as any change to a function's behavior, and 
 - Type C's Γ² is θ/L, capped at 1, as the JRC gives it.
 - A lognormal view works on ln x.
 - A constant takes censored values through the censored maximum-likelihood fit; a trend (Bond & Harris 2008's confidence and prediction intervals) leaves them out and counts them.
-- The result gives P01's `design_lines` frame, and P09 (`ht.plot.representative_profile()`, `RepresentativeResult.plot()`) draws it with the mean and the view ([`P09`](../plots/P09-representative-profile.md), M18 (c)).
+- The result gives P01's `design_lines` frame, and P09 (`ht.plot.representative_profile()`, `RepresentativeResult.plot()`) draws it with the mean and the view ([`P09`](../plots/P09-representative-profile.md)).
 
 ## 3. `compare()` and `compare_groups()`
 - **No pre-tests:** no statistics function tests normality or equal variances to choose a method. Each reports a parametric and a rank-based result together, and a plain-English note on whether they agree. The note never says groups "are the same", only that the data don't show a difference at α, with the interval for scale.
@@ -66,7 +66,7 @@ Update this file in the same commit as any change to a function's behavior, and 
 - **Descriptive, no tests:** a selected constant is placed among each other source's values in the unit, as `compare_sources()` places a fit (`position`, and `percentile_rank` within the range from 4 values); against a fit's one value, `difference` (selected − fit). A line has no position.
 - c′ and φ′ stay on one line only when both are `fitted` from one fit; separate views aren't a joint fractile, and no joint value is computed.
 - Views: `.to_frame()`, `.positions()`, `.comparison`, `.representative(geology_unit)`, `.design_lines()` (a view's own line; a fitted value over its points' depths; a given value over the depths of every source's rows in the unit), `.profile()` (the comparison's P01 of one unit with the selected line, against depth) and `.to_dict()`.
-- **With no source** (M18 (f), decision 20): allowed when every entry is `value` or `none`, for a parameter nothing measures yet (ψ, E′, ν′). Any other method is an error saying no source carries the parameter. `.comparison` is None, `.positions()` is empty, `.design_lines()` and `.profile()` say there is nothing to draw, and the unit is `display_units`' for the quantity, else the first `value` entry's, with the others converted to it.
+- **With no source**: allowed when every entry is `value` or `none`, for a parameter nothing measures yet (ψ, E′, ν′). Any other method is an error saying no source carries the parameter. `.comparison` is None, `.positions()` is empty, `.design_lines()` and `.profile()` say there is nothing to draw, and the unit is `display_units`' for the quantity, else the first `value` entry's, with the others converted to it.
 
 ## 7. Model sets and `mohr_coulomb_set()`
 - **The base** (`hangtu/stats/_model_set.py`, private): a result of kind *parameter* with the model's name and citation, its parameters in order (registry names), and one record per geology unit and parameter: a constant `value` and `unit`, its `origin` (`selection`, `rule`, `judgment` or `blank`), the selection's source, method and reason, or the rule's name, citation and inputs (each with value, unit and origin), or the judgment's name, key and source, a `no_value_reason`, and notes. A set defines its parameters and how each is reached; the base knows no model. `judgment` is unused by Mohr–Coulomb and is there for GSI and D (M22).

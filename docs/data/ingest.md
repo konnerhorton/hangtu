@@ -10,9 +10,9 @@
 Read one AGS4 file (4.0.3 to 4.2) into a project SQLite database, and open that database again later:
 - a **raw layer**, exactly as in the file;
 - a **canonical layer**: AGS 4.2-shaped, typed, in SI, with value flags and surrogate keys (SPEC §7);
-- the **findings** raised while reading, stored for the QC report (M6).
+- the **findings** raised while reading, stored for the QC report ([`qc.md`](qc.md)).
 
-**Not in scope:** the QC report, rules beyond ingest and `diff()` (M6, [`qc.md`](qc.md)); `p.locations`, the geology map, joins, datasets and mid-drive SPT depth (M7, [`datasets.md`](datasets.md)); DIGGS, AGS3 and more than one file per project; writing AGS (SPEC §1.4).
+**Not in scope:** the QC report, rules beyond ingest and `diff()` ([`qc.md`](qc.md)); `p.locations`, the geology map, joins, datasets and mid-drive SPT depth ([`datasets.md`](datasets.md)); DIGGS, AGS3 and more than one file per project; writing AGS (SPEC §1.4).
 
 ## 2. Public API
 ```python
@@ -28,7 +28,7 @@ p.table("ISPT", raw=True)          # raw: text exactly as in the file, plus _lin
 p.sql("select * from ISPT where ISPT_NVAL > 50")   # read-only query, returns a DataFrame
 ```
 - `db=None` puts the database next to the file, with the suffix `.sqlite`.
-- **Project settings:** `from_ags` takes the session settings as keywords (`display_units="US"`, `vertical_datum="NAVD88"`, …; P00 §3) and stores them in `meta_project`; anything not given comes from `ht.settings` at the time of ingest. `p.settings` reads and changes them, and shows where the vertical datum came from. **The vertical datum**, in order: `vertical_datum=` (or `p.settings.vertical_datum` later); else the file's `LOCA_DATM`, where §7 allows it; else `ht.settings.vertical_datum`. The file comes before the session setting, because a session's datum is often left over from another project. Export and import (`to_yaml()`/`load_yaml()`) wait for M7.
+- **Project settings:** `from_ags` takes the session settings as keywords (`display_units="US"`, `vertical_datum="NAVD88"`, …; P00 §3) and stores them in `meta_project`; anything not given comes from `ht.settings` at the time of ingest. `p.settings` reads and changes them, and shows where the vertical datum came from. **The vertical datum**, in order: `vertical_datum=` (or `p.settings.vertical_datum` later); else the file's `LOCA_DATM`, where §7 allows it; else `ht.settings.vertical_datum`. The file comes before the session setting, because a session's datum is often left over from another project. Export and import (`to_yaml()`/`load_yaml()`) aren't built.
 - **`from_ags` on an existing database** raises an error unless `overwrite=True`; the message names `Project.open` and `overwrite=True`.
 - **The database is self-contained.** `open` works without the AGS file. If the file is still at its stored path and its SHA-256 has changed, `open` warns that the database is out of date and shows the `from_ags(..., overwrite=True)` call.
 - **Schema version:** if the database was written by an incompatible hangtu version, `open` raises an error saying to re-ingest. The version goes up whenever what ingest stores changes, including a new quantity kind, since `meta_heading.quantity` records each heading's kind: version 3 (M19 a) adds `volume_compressibility` and `consolidation_coefficient`.
@@ -82,8 +82,8 @@ AGS file
   2. the **file's own version's dictionary**, for groups and headings that 4.2 removed;
   3. the file's **`DICT` group**, for user-defined groups and headings.
 - **Removed by 4.2**, and kept under their own names with finding `M001` (info): the groups `IPRG`, `IPRT` (in-situ permeability, deprecated in 4.1, where `FGHG`/`FGHS`/`FGHT` were added alongside) and `ERES` (deprecated in 4.1, no 4.2 replacement); the headings `RUCS_E`, `RUCS_ESTR`, `RUCS_ETYP`, `RUCS_MU`, `PMTD_ARM1`–`3` (4.0.3–4.1.1), `PMTL.PMTD_SEQ` (4.0.3–4.1), and `GCHM_RDEV`, `WGPG_LIM`, `WGPG_ULIM` (4.1 only).
-- **`IPRG` isn't turned into `FGHG`**. `IPRG` has a row per stage where `FGHG` has a row per test, and `FGHT` needs keys `IPRT` doesn't have (`FGHT_TIME`, `FGHI_INST`, `FGHT_TYPE`), so a mapping would invent data (SPEC §7, "only what the file says"). The permeability dataset (M7) reads `IPRG_IPRM` next to `FGHG_IPRM`.
-- Headings that exist only from 4.1 (`ISPT_N60`, `SPEC_BASE`, `GRAG_CC`) are simply absent in older files; the datasets (M7) treat them as blank.
+- **`IPRG` isn't turned into `FGHG`**. `IPRG` has a row per stage where `FGHG` has a row per test, and `FGHT` needs keys `IPRT` doesn't have (`FGHT_TIME`, `FGHI_INST`, `FGHT_TYPE`), so a mapping would invent data (SPEC §7, "only what the file says"). The permeability dataset (`datasets.md` §6.4) reads `IPRG_IPRM` next to `FGHG_IPRM`.
+- Headings that exist only from 4.1 (`ISPT_N60`, `SPEC_BASE`, `GRAG_CC`) are simply absent in older files; the datasets treat them as blank.
 - Unit spellings that changed between versions (`degC` → `DegC`, `Bar` → `bar`, `µS/cm` → `uS/cm`) are handled by the unit aliases (§7). A few headings had no unit before 4.2 (`ISAG_SI`, `SCPT_MAGX`/`Y`/`Z`/`T`); in an older file with the unit blank they raise `U003` like any other, since the unit isn't declared.
 
 ## 7. Typing and units
