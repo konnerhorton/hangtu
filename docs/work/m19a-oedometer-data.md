@@ -322,6 +322,11 @@ E003's source, close-out). Start a new session at step 5.
 - **Test files:** `group()` and the SI/US twins of `tests/data/ags/_make_files.py`; the example generator
   `tests/data/_make_examples.py`.
 
+*Changed in the build (2026-11-14):* every step ran on Opus, at the user's request. Step 3 split into
+`M19: add p.oedometer()` and `M19: test p.oedometer() edge cases in joins.ags`. E001 and E002's tolerance widens
+to the file's own rounding where its void ratios are coarser than 3DP (AGS 4.0.4 types `CONS_INCE` 2DP), and E002
+takes E001's threshold, as D008 takes D007's.
+
 ### 1. `M19: add quantity kinds for mv and cv` (Sonnet)
 - `src/hangtu/config/defaults.yaml`: `volume_compressibility` (meter² / meganewton; US foot² / kip, "ft²/kip"; SI
   m²/MN) and `consolidation_coefficient` (meter² / year; US foot² / year; SI m²/yr), placed so no existing unit
@@ -380,6 +385,8 @@ E003's source, close-out). Start a new session at step 5.
   and `test_examples.py` keep the good files and the example clean (AC 11, 16).
 
 ### 6. `M19: check the lab's mv against the void ratios (E003)` (Opus)
+*Changed in the build (2026-11-14):* not run. Neither standard was at hand, so E003 is TODO #73, with what the
+build learned about its rounding (take the interval from the file's own text and unit).
 - **Before it:** the mv definition checked against BS 1377-5 and ISO 17892-5 (spec decision 7, 🔬), with the clause
   in `qc.md` §4.15 and the rule's docstring. If neither standard is at hand, the step doesn't run: E003 goes to
   `docs/TODO.md` with the trigger "when BS 1377-5 or ISO 17892-5 is at hand, or before (c) recomputes mv", and

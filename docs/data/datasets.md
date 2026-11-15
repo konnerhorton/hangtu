@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | done (M7); the M8 additions (classification columns in §6.2, §6.5 and §6.6) done; M14 (a)'s §6.8–6.9 done; M11 (a)'s §6.10 done; M17 (a)'s §6.11–6.12 done |
-| **Intent** | [`docs/work/m7-datasets.md`](../work/m7-datasets.md#intent); M8: [`docs/work/m8-index-plots.md`](../work/m8-index-plots.md#intent); M14 (a): [`docs/work/m14a-density-data.md`](../work/m14a-density-data.md) (decisions and acceptance criteria); M11 (a): [`docs/work/m11a-triaxial-data.md`](../work/m11a-triaxial-data.md); M17 (a): [`docs/work/m17a-strength-data.md`](../work/m17a-strength-data.md) |
+| **Status** | done (M7); the M8 additions (classification columns in §6.2, §6.5 and §6.6) done; M14 (a)'s §6.8–6.9 done; M11 (a)'s §6.10 done; M17 (a)'s §6.11–6.12 done; M19 (a)'s §6.14 done |
+| **Intent** | [`docs/work/m7-datasets.md`](../work/m7-datasets.md#intent); M8: [`docs/work/m8-index-plots.md`](../work/m8-index-plots.md#intent); M14 (a): [`docs/work/m14a-density-data.md`](../work/m14a-density-data.md) (decisions and acceptance criteria); M11 (a): [`docs/work/m11a-triaxial-data.md`](../work/m11a-triaxial-data.md); M17 (a): [`docs/work/m17a-strength-data.md`](../work/m17a-strength-data.md); M19 (a): [`docs/work/m19a-oedometer-data.md`](../work/m19a-oedometer-data.md) |
 | **Parent** | SPEC §2.6 (units), §7 (data model), §8 (depth, elevation, geology), §10 (datasets, registry), §11 (errors) |
 | **Related** | [`ingest.md`](ingest.md) (canonical layer, value flags), [`qc.md`](qc.md) (C001, G004, D004/D005). `docs/analysis/index-and-spt.md` §1 (SPT), §2–3 (classification, gradation). P01–P07 (the plots these feed) |
 
@@ -16,7 +16,9 @@ Turn a project's canonical tables into the DataFrames the plots take:
 
 **Added in M8:** the plasticity class columns in `p.atterberg()` (§6.2), `p.grain_size_summary()` (§6.5) and `p.index_properties()` (§6.6), built on the analyses in `docs/analysis/index-and-spt.md` §2–3.
 
-**Not in scope:** settings export (`to_yaml()`) and stored QC overrides; datasets for other tests (consolidation); inclined holes (QC L004); changing the data (SPEC §1.4).
+**Added in M19 (a):** consolidation tests, `p.oedometer()` (§6.14), incremental-load only (`CONG`, `CONS`).
+
+**Not in scope:** settings export (`to_yaml()`) and stored QC overrides; CRS and Rowe cell tests (`ESCG`, `ESCT`); inclined holes (QC L004); changing the data (SPEC §1.4).
 
 ## 2. Public API
 ```python
@@ -564,6 +566,7 @@ New columns, each checked against the whole registry (CLAUDE.md, "Naming"): `loc
 - M14 (`docs/work/m14a-density-data.md`): `dry_unit_weight`, `particle_density`, `particle_density_assumed`, `particle_density_specimen_id`, `sample_condition`, `stabilizer_content`; new AGS sources for `bulk_unit_weight` (`LDEN_BDEN`, `IDEN_IDEN` × g, replacing `RDEN_BDEN` until M21 reads RDEN), `water_content` (`LDEN_MC`, `IDEN_MC`) and `test_type`; `depth_basis` gains `test_depth`; the `density` and `particle_density` templates.
 - M11 a (`docs/work/m11a-triaxial-data.md`): `test_stage`, `multistage_test`, `failure_criterion`, `effective_consolidation_stress`, `back_pressure`, `pore_pressure_parameter_b`, `cell_pressure`, `deviator_stress_at_failure`, `pore_pressure_at_failure`, `axial_strain_at_failure`, `volumetric_strain_at_failure`, the four principal stresses at failure, `effective_stress_basis`, `reported_effective_friction_angle`, `reported_effective_cohesion`, `test_remarks`; new AGS sources for `test_type`, `sample_condition`, `water_content`, `bulk_unit_weight`, `dry_unit_weight`, `void_ratio` and `remarks`; the `triaxial` template.
 - M17 a (`docs/work/m17a-strength-data.md`, Changes): the undrained strength and shear box columns; `undrained_shear_strength`'s sources (`TRIT_CU` moves to `reported_undrained_shear_strength`); `axial_strain_at_failure` gains `LUCT_STRA`; the quantity kind `displacement_rate`; the `strength` template reshaped and `shear_box` new.
+- M19 a (`docs/work/m19a-oedometer-data.md`, Changes): the oedometer columns (`applied_vertical_stress`, the void ratios at an increment's start and end, `load_branch`, the lab's m_v and c_v, `swelling_pressure`, `height_change_on_saturation`, `specimen_diameter`, `equipment_deformation_corrected`); the `CONG` and `CONS` sources of the specimen columns and `test_stage`; the quantity kinds `volume_compressibility` and `consolidation_coefficient`; the `oedometer` template.
 - M17 c (`docs/work/m17c-hoek-brown-fit.md`, Changes): `failure_mode` (`TRET_MODE`, `TRIT_MODE`), `reported_intact_compressive_strength` and `reported_intact_hoek_brown_constant` in the `triaxial` template and `p.triaxial()`; the fitted `intact_compressive_strength` and `intact_hoek_brown_constant`.
 
 ### 11.1 CSV templates
