@@ -34,6 +34,8 @@ US = {
     "Mg/m3": ("pcf", POUND / CUBIC_FOOT / 1000),  # density: lb/ft³
     "kN/m3": ("pcf", LBF / CUBIC_FOOT / 1000),  # unit weight: lbf/ft³
     "m/s": ("cm/s", 0.01),
+    "m2/MN": ("ft2/kip", SQUARE_FOOT / (LBF / 1000)),  # kip = 1000 lbf, in MN
+    "m2/yr": ("ft2/yr", SQUARE_FOOT),
 }
 
 UNIT_DESCRIPTIONS = {
@@ -66,6 +68,10 @@ UNIT_DESCRIPTIONS = {
     "mm/min": "millimetres per minute",
     "deg": "degree",
     "GPa": "gigapascal",
+    "m2/MN": "square metres per meganewton",
+    "m2/yr": "square metres per year",
+    "ft2/kip": "square feet per kip",
+    "ft2/yr": "square feet per year",
     "Ft": "foot (wrong case)",
     "feet": "foot (not an AGS spelling)",
 }
@@ -121,6 +127,12 @@ ABBR = [
     ("SHBG_TYPE", "SMALL RSHEAR", "Small Ring shear"),
     ("SHBG_COND", "RECOMPACTED", "Recompacted"),
     ("SHBG_COND", "UNDISTURBED", "Undisturbed"),
+    ("CONG_TYPE", "OEDOMETER", "Oedometer"),
+    ("CONG_TYPE", "SWELLPRESS", "Measurement of swelling pressure"),
+    ("CONG_TYPE", "SETTLESAT", "Settlement on saturation"),
+    ("CONG_TYPE", "LOW STRESS", "Low stress oedometer (not a dictionary code)"),
+    ("CONG_COND", "UNDISTURBED", "Undisturbed"),
+    ("CONG_COND", "REMOULDED", "Remoulded"),
 ]
 
 
@@ -856,6 +868,109 @@ SHBT = group(
     us=SHBT_US,
 )
 
+
+# Oedometer (M19 a, docs/data/datasets.md §6.14): BH1-U3 specimen OED1 is the
+# spec's table. ρ 1.92, ρd 1.50, ρs 2.70 Mg/m3, so e0 = 2.70 / 1.50 - 1 =
+# 0.800; w 28.0 %, S 95 %; unit weights 1.92 × 9.80665 = 18.828768 and
+# 1.50 × 9.80665 = 14.709975 kN/m3. Twelve increments with one unload-reload
+# loop: 800 kPa is reached again at increment 10 (reloading) before 1600
+# (loading). The mv values are the lab's, 2SF, against
+# Δe / (1 + e_start) / Δσ′: 0.156, 0.134, 0.158, 0.166, 0.115, 0.0684.
+BH1_U3_OED = ["BH1", 5.00, "3", "U", "BH1-U3", "OED1", 5.20]
+CONG_HEADINGS = [
+    *SPECIMEN,
+    ("CONG_TYPE", "PA", ""),
+    ("CONG_COND", "PA", ""),
+    ("CONG_SDIA", "2DP", "mm"),
+    ("CONG_HIGT", "2DP", "mm"),
+    ("CONG_MCI", "X", "%"),
+    ("CONG_MCF", "X", "%"),
+    ("CONG_BDEN", "2DP", "Mg/m3"),
+    ("CONG_DDEN", "2DP", "Mg/m3"),
+    ("CONG_PDEN", "XN", "Mg/m3"),
+    ("CONG_SATR", "0DP", "%"),
+    ("CONG_IVR", "3DP", ""),
+    ("CONG_REM", "X", ""),
+    ("CONG_CORR", "YN", ""),
+]
+CONG_US = [
+    *SPECIMEN_US,
+    "CONG_SDIA",
+    "CONG_HIGT",
+    "CONG_BDEN",
+    "CONG_DDEN",
+    "CONG_PDEN",
+]
+CONG = group(
+    "CONG",
+    CONG_HEADINGS,
+    [
+        [
+            *BH1_U3_OED,
+            "OEDOMETER",
+            "UNDISTURBED",
+            75.00,
+            20.00,
+            "28.0",
+            "22.1",
+            1.92,
+            1.50,
+            "2.70",
+            95,
+            0.800,
+            None,
+            "Y",
+        ]
+    ],
+    us=CONG_US,
+)
+CONS_HEADINGS = [
+    *SPECIMEN,
+    ("CONS_INCN", "X", ""),
+    ("CONS_IVR", "3DP", ""),
+    ("CONS_INCF", "0DP", "kPa"),
+    ("CONS_INCE", "3DP", ""),
+    ("CONS_INMV", "2SF", "m2/MN"),
+    ("CONS_CVRT", "2SF", "m2/yr"),
+    ("CONS_CVLG", "2SF", "m2/yr"),
+    ("CONS_REM", "X", ""),
+]
+CONS_US = [*SPECIMEN_US, "CONS_INCF", "CONS_INMV", "CONS_CVRT", "CONS_CVLG"]
+#: The spec's table: increment, stress (kPa), e start, e end, mv (m2/MN).
+OED1_INCREMENTS = [
+    ("1", 25, 0.800, 0.795, None),
+    ("2", 50, 0.795, 0.788, 0.16),
+    ("3", 100, 0.788, 0.776, 0.13),
+    ("4", 200, 0.776, 0.748, 0.16),
+    ("5", 400, 0.748, 0.690, 0.17),
+    ("6", 800, 0.690, 0.612, 0.12),
+    ("7", 200, 0.612, 0.625, None),
+    ("8", 50, 0.625, 0.638, None),
+    ("9", 200, 0.638, 0.630, None),
+    ("10", 800, 0.630, 0.608, None),
+    ("11", 1600, 0.608, 0.520, 0.068),
+    ("12", 400, 0.520, 0.538, None),
+]
+CONS = group(
+    "CONS",
+    CONS_HEADINGS,
+    [
+        [
+            *BH1_U3_OED,
+            incn,
+            start,
+            stress,
+            end,
+            mv,
+            2.1 if incn == "4" else None,
+            1.8 if incn == "4" else None,
+            None,
+        ]
+        for incn, stress, start, end, mv in OED1_INCREMENTS
+    ],
+    us=CONS_US,
+)
+
 CPTP = group(
     "CPTP",
     [("LOCA_ID", "ID", ""), ("CPTP_DPTH", "2DP", "m"), ("CPTP_SUW1", "1DP", "kN/m3")],
@@ -1101,6 +1216,9 @@ def site_groups(us=False):
         SHBG,
         SHBT,
         *UNDRAINED,
+        # Last, so the specimen keys and lines of the groups before don't move.
+        CONG,
+        CONS,
     ]
 
 
@@ -1472,6 +1590,56 @@ def qc_defects_groups():
             ]
         ],
     )
+    # Oedometer (M19 a, qc.md §4.15), four specimens on BH2-U1:
+    # - E1, E001: increment 1 ends at 0.700, increment 2 starts at 0.690;
+    # - E2, E002: 100 to 200 kPa with e 0.776 to 0.781 (up 0.005);
+    # - E4, E004: CONS_INCN 1, 2, 4, 3 in file order;
+    # - E5, E005: CONG_IVR 0.650 with ρd 1.50 and ρs 2.70 (0.800 expected).
+    bh2_u1 = ["BH2", 1.00, "1", "U", "BH2-U1"]
+    cong = group(
+        "CONG",
+        [
+            *SPECIMEN,
+            ("CONG_TYPE", "PA", ""),
+            ("CONG_COND", "PA", ""),
+            ("CONG_HIGT", "2DP", "mm"),
+            ("CONG_DDEN", "2DP", "Mg/m3"),
+            ("CONG_PDEN", "XN", "Mg/m3"),
+            ("CONG_IVR", "3DP", ""),
+        ],
+        [
+            [*bh2_u1, ref, depth, "OEDOMETER", "UNDISTURBED", 20.00, dry, pden, ivr]
+            for ref, depth, dry, pden, ivr in [
+                ("E1", 1.10, None, None, 0.720),
+                ("E2", 1.20, None, None, 0.780),
+                ("E4", 1.30, None, None, 0.800),
+                ("E5", 1.40, 1.50, "2.70", 0.650),
+            ]
+        ],
+    )
+    cons = group(
+        "CONS",
+        [
+            *SPECIMEN,
+            ("CONS_INCN", "X", ""),
+            ("CONS_IVR", "3DP", ""),
+            ("CONS_INCF", "0DP", "kPa"),
+            ("CONS_INCE", "3DP", ""),
+        ],
+        [
+            [*bh2_u1, ref, depth, incn, start, stress, end]
+            for ref, depth, incn, start, stress, end in [
+                ("E1", 1.10, "1", 0.720, 50, 0.700),
+                ("E1", 1.10, "2", 0.690, 100, 0.680),
+                ("E2", 1.20, "1", 0.780, 100, 0.776),
+                ("E2", 1.20, "2", 0.776, 200, 0.781),
+                ("E4", 1.30, "1", 0.800, 25, 0.795),
+                ("E4", 1.30, "2", 0.795, 50, 0.788),
+                ("E4", 1.30, "4", 0.788, 100, 0.776),
+                ("E4", 1.30, "3", 0.776, 200, 0.748),
+            ]
+        ],
+    )
     return [
         loca,
         horn,
@@ -1493,6 +1661,8 @@ def qc_defects_groups():
         lvan,
         shbg,
         shbt,
+        cong,
+        cons,
     ]
 
 
@@ -1770,6 +1940,78 @@ def joins_groups():
             [*j1_d2, "R2", 3.20, "1", 0.10, None, 0.021, None, None],
         ],
     )
+    # Oedometer cases (M19 a, datasets.md §6.14):
+    # - J1-U1 SW1: a swelling pressure test, CONG_SPRS 150 kPa, with no CONS rows;
+    # - J1-U1 SS1: a settlement on saturation test, CONG_SATH -1.1 %, with an
+    #   assumed particle density (#2.65);
+    # - J2-U1 L1: a type the dictionary doesn't list, with two increments, the
+    #   second with CONS_INCE blank (incomplete, §7).
+    j2_u1 = ["J2", 2.00, "1", "U", "J2-U1"]
+    cong = group(
+        "CONG",
+        [
+            *SPECIMEN,
+            ("CONG_TYPE", "PA", ""),
+            ("CONG_COND", "PA", ""),
+            ("CONG_HIGT", "2DP", "mm"),
+            ("CONG_PDEN", "XN", "Mg/m3"),
+            ("CONG_SPRS", "2SF", "kPa"),
+            ("CONG_SATH", "1DP", "%"),
+            ("CONG_IVR", "3DP", ""),
+        ],
+        [
+            [
+                *j1_u1,
+                "SW1",
+                1.10,
+                "SWELLPRESS",
+                "UNDISTURBED",
+                20.00,
+                None,
+                150,
+                None,
+                0.700,
+            ],
+            [
+                *j1_u1,
+                "SS1",
+                1.20,
+                "SETTLESAT",
+                "UNDISTURBED",
+                20.00,
+                "#2.65",
+                None,
+                -1.1,
+                0.720,
+            ],
+            [
+                *j2_u1,
+                "L1",
+                2.10,
+                "LOW STRESS",
+                "REMOULDED",
+                19.00,
+                "2.68",
+                None,
+                None,
+                0.900,
+            ],
+        ],
+    )
+    cons = group(
+        "CONS",
+        [
+            *SPECIMEN,
+            ("CONS_INCN", "X", ""),
+            ("CONS_IVR", "3DP", ""),
+            ("CONS_INCF", "0DP", "kPa"),
+            ("CONS_INCE", "3DP", ""),
+        ],
+        [
+            [*j2_u1, "L1", 2.10, "1", 0.900, 5, 0.897],
+            [*j2_u1, "L1", 2.10, "2", 0.897, 10, None],
+        ],
+    )
     return [
         loca,
         geol,
@@ -1786,6 +2028,8 @@ def joins_groups():
         ivan,
         shbg,
         shbt,
+        cong,
+        cons,
     ]
 
 
@@ -1925,6 +2169,8 @@ def main(out=HERE):
         LPEN,
         IVAN,
         IPEN,
+        without(CONG, "CONG_CORR"),  # 4.1's
+        CONS,
     ]
     write_file(out / "site_v404.ags", "4.0.4", v404)
     # V000: unknown version

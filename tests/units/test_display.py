@@ -118,8 +118,32 @@ def test_a_velocity_displays_in_m_per_s_or_ft_per_s(system, expected, text):
 
 
 @pytest.mark.parametrize(
-    ("unit", "kind"), [("kPa", "stress"), ("m/s", "hydraulic_conductivity")]
+    ("unit", "kind"),
+    [
+        ("kPa", "stress"),
+        ("m/s", "hydraulic_conductivity"),
+        ("m2/MN", "volume_compressibility"),
+        ("m2/yr", "consolidation_coefficient"),
+    ],
 )
 def test_new_kinds_leave_the_first_match_of_a_unit_unchanged(unit, kind):
     # AGS ingest canonicalizes a heading by its unit's first kind (_kind_of).
     assert units._kind_of(units.parse_unit(unit)) == kind
+
+
+# M19 (a): 1 m²/MN = 10.7639104 ft² / 224.808943 kip = 0.04788026 ft²/kip;
+# 1 m²/yr = 10.7639104 ft²/yr.
+_FT2_PER_KIP = 10.7639104 / 224.808943
+
+
+@pytest.mark.parametrize(
+    ("value", "unit", "quantity", "expected", "text"),
+    [
+        (0.16, "m2/MN", "volume_compressibility", 0.16 * _FT2_PER_KIP, "ft²/kip"),
+        (2.1, "m2/yr", "consolidation_coefficient", 22.60421, "ft²/yr"),
+    ],
+)
+def test_golden_values_oedometer_kinds_si_to_us(value, unit, quantity, expected, text):
+    magnitudes, label = to_display([value], unit, quantity, "US")
+    assert magnitudes[0] == pytest.approx(expected, rel=1e-6)
+    assert label == text

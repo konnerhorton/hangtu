@@ -33,6 +33,9 @@ has its own seeded sequence and its rows follow every other row of their
 groups, so nothing written before changed. ``triaxial.csv``, ``shear_box.csv``
 and ``strength.csv`` are the project's datasets in their templates' columns.
 
+``oedometer.csv`` is the project's oedometer tests in their template's columns
+(M19 a), with their own seeded sequence like the M18 (d) sets.
+
 Two QC findings are planted, so the QC example has something to report:
 - G002, a gap in the geology log of B-4 from 9.0 to 10.0 ft;
 - A002, a plasticity index in B-3 that doesn't match LL - PL (an arithmetic slip).
@@ -98,6 +101,9 @@ ABBR = [
     ("SHBG_COND", "UNDISTURBED", "Undisturbed"),
     ("SHBG_COND", "RECOMPACTED", "Recompacted"),
     ("IVAN_TYPE", "BOREHOLE", "Borehole vane"),
+    ("CONG_TYPE", "OEDOMETER", "Oedometer"),
+    ("CONG_TYPE", "SWELLPRESS", "Measurement of swelling pressure"),
+    ("CONG_COND", "UNDISTURBED", "Undisturbed"),
 ]
 
 # Hole, easting, northing (ft), ground level, final depth, fill base and
@@ -924,6 +930,162 @@ def shbt():
     return group("SHBT", headings, rows)
 
 
+# --- Oedometer (M19 a) ---------------------------------------------------------------
+
+# Oedometer tests (docs/work/m19a-oedometer-data.md, spec decision 10): two
+# incremental-load tests on Alluvium tubes and a swelling pressure test with no
+# increments. The values are invented. B-4-U1 is lightly overconsolidated
+# (σ′p about 1.5 × σ′v0), B-5-U2 stiffer, each with one unload-reload loop.
+# The curve is bilinear in log σ′ (C_r to σ′p, C_c beyond; C_s on unloading
+# and reloading) with scatter on each void ratio. The void ratios chain (each
+# increment starts at the previous one's end), CONG_IVR is CONG_PDEN /
+# CONG_DDEN - 1 from the values as written, and the lab's m_v is
+# Δe / (1 + e_start) / Δσ′ from the void ratios as written, so QC finds
+# nothing. Stresses in psf, m_v in ft²/kip, c_v in ft²/yr.
+OEDOMETER_STRESSES = [250, 500, 1000, 2000, 4000, 8000, 2000, 500, 2000, 8000]
+OEDOMETER_STRESSES += [16000, 4000]
+OEDOMETER_TESTS = [
+    # Specimen, then w (%), Gs, S and σ′p (psf).
+    (["B-4", 12.5, "1", "U", "B-4-U1", "C1", 13.0], (39.0, 2.72, 0.98, 1500)),
+    (["B-5", 17.5, "2", "U", "B-5-U2", "C1", 18.0], (31.0, 2.71, 0.99, 4200)),
+]
+#: Each test's C_r, C_c, C_s and c_v (ft²/yr).
+OEDOMETER_SLOPES = [(0.045, 0.38, 0.06, 28.0), (0.030, 0.26, 0.04, 45.0)]
+SWELLING_TEST = (["B-1", 12.5, "2", "U", "B-1-U2", "SW1", 13.0], (36.0, 2.72, 0.97))
+SWELLING_PRESSURE = 420  # psf
+
+
+def oedometer_specimen(w, gs, saturation):
+    """The written w, ρs (Mg/m³), ρ and ρd (pcf), S (%) and e0 of a specimen.
+
+    e = w Gs / S, ρd = Gs ρw / (1 + e) and ρ = ρd (1 + w); e0 is then
+    ρs / ρd - 1 from ρd as written, so it agrees with QC E005.
+    """
+    e = w / 100 * gs / saturation
+    dry = round(gs * WATER_UNIT_WEIGHT / (1 + e), 1)
+    bulk = round(dry * (1 + w / 100), 1)
+    e0 = round(gs * WATER_UNIT_WEIGHT / dry - 1, 3)
+    return f"{w:.1f}", f"{gs:.2f}", bulk, dry, round(100 * saturation), e0
+
+
+def oedometer_curve(e0, preconsolidation, slopes, draw):
+    """Each increment's (σ′, e start, e end, m_v, c_v root, c_v log), as written.
+
+    Loading follows C_r up to σ′p and C_c beyond it; unloading and reloading
+    follow C_s from the largest stress so far, and a reloading curve past it
+    rejoins the virgin line. Each end void ratio scatters by 0.002.
+    """
+    cr, cc, cs, cv = slopes
+    seated = e0 - draw.uniform(0.001, 0.004)
+    virgin = seated - cr * math.log10(preconsolidation / OEDOMETER_STRESSES[0])
+
+    def on_virgin(stress):
+        if stress <= preconsolidation:
+            return seated - cr * math.log10(stress / OEDOMETER_STRESSES[0])
+        return virgin - cc * math.log10(stress / preconsolidation)
+
+    rows, start, previous, largest, e_at_largest = [], e0, None, 0.0, e0
+    for stress in OEDOMETER_STRESSES:
+        if stress > largest:
+            ideal = on_virgin(stress)
+        else:
+            ideal = e_at_largest + cs * math.log10(largest / stress)
+        end = round(ideal + draw.gauss(0, 0.002), 3)
+        if previous is not None and stress > previous:
+            end = min(end, round(start - 0.002, 3))  # compresses under a load
+        elif previous is not None and stress < previous:
+            end = max(end, round(start + 0.002, 3))  # swells as it unloads
+        mv = cv_root = cv_log = None
+        if previous is not None and stress > largest:
+            ksf = (stress - previous) / 1000
+            mv = (start - end) / (1 + start) / ksf
+            root = cv * draw.lognormvariate(0, 0.25) * (1 if stress <= 2000 else 0.6)
+            cv_root, cv_log = root, root * draw.uniform(0.7, 0.9)
+        rows.append((stress, start, end, mv, cv_root, cv_log))
+        if stress > largest:
+            largest, e_at_largest = stress, end
+        start, previous = end, stress
+    return rows
+
+
+def oedometer_tests():
+    """Each specimen's CONG values and its increments; the swelling test has none."""
+    draw = random.Random(2032)
+    tests = []
+    for (specimen_row, state), slopes in zip(
+        OEDOMETER_TESTS, OEDOMETER_SLOPES, strict=True
+    ):
+        w, gs, saturation, preconsolidation = state
+        values = oedometer_specimen(w, gs, saturation)
+        curve = oedometer_curve(values[-1], preconsolidation, slopes, draw)
+        final = f"{w - draw.uniform(6, 9):.1f}"
+        tests.append((specimen_row, "OEDOMETER", values, final, None, curve))
+    specimen_row, (w, gs, saturation) = SWELLING_TEST
+    values = oedometer_specimen(w, gs, saturation)
+    tests.append((specimen_row, "SWELLPRESS", values, None, SWELLING_PRESSURE, []))
+    return tests
+
+
+def cong():
+    headings = [
+        *SPECIMEN_HEADINGS,
+        ("CONG_TYPE", "PA", ""),
+        ("CONG_COND", "PA", ""),
+        ("CONG_SDIA", "2DP", "in"),
+        ("CONG_HIGT", "2DP", "in"),
+        ("CONG_MCI", "X", "%"),
+        ("CONG_MCF", "X", "%"),
+        ("CONG_BDEN", "1DP", "pcf"),
+        ("CONG_DDEN", "1DP", "pcf"),
+        ("CONG_PDEN", "XN", "Mg/m3"),
+        ("CONG_SATR", "0DP", "%"),
+        ("CONG_SPRS", "2SF", "psf"),
+        ("CONG_IVR", "3DP", ""),
+        ("CONG_CORR", "YN", ""),
+    ]
+    rows = []
+    for specimen_row, kind, values, final, swelling, _ in oedometer_tests():
+        w, gs, bulk, dry, saturation, e0 = values
+        rows.append(
+            [
+                *specimen_row,
+                kind,
+                "UNDISTURBED",
+                2.50,
+                0.75,
+                w,
+                final,
+                bulk,
+                dry,
+                gs,
+                saturation,
+                swelling,
+                e0,
+                "Y",
+            ]
+        )
+    return group("CONG", headings, rows)
+
+
+def cons():
+    headings = [
+        *SPECIMEN_HEADINGS,
+        ("CONS_INCN", "X", ""),
+        ("CONS_IVR", "3DP", ""),
+        ("CONS_INCF", "0DP", "psf"),
+        ("CONS_INCE", "3DP", ""),
+        ("CONS_INMV", "2SF", "ft2/kip"),
+        ("CONS_CVRT", "2SF", "ft2/yr"),
+        ("CONS_CVLG", "2SF", "ft2/yr"),
+    ]
+    rows = [
+        [*specimen_row, str(i), start, stress, end, mv, cv_root, cv_log]
+        for specimen_row, *_, curve in oedometer_tests()
+        for i, (stress, start, end, mv, cv_root, cv_log) in enumerate(curve, 1)
+    ]
+    return group("CONS", headings, rows)
+
+
 # --- Sources compared (M18 d) ---------------------------------------------------------
 
 # docs/work/m18d-sources-compared.md, decision 20: enough Terrace φ′ tests and
@@ -1235,7 +1397,17 @@ def site_groups():
     groups = [loca(), geol(), samp(), ispt(), llpl, lnmc, grag, grat, ptst(), fghg()]
     undrained = [trig(), trit(), lvan(), lpen(), ivan()]
     shear_box = [shbg(), shbt()]
-    return [*groups, lden(lnmc), lpdn(), treg(), tret(), *undrained, *shear_box]
+    oedometer = [cong(), cons()]
+    return [
+        *groups,
+        lden(lnmc),
+        lpdn(),
+        treg(),
+        tret(),
+        *undrained,
+        *shear_box,
+        *oedometer,
+    ]
 
 
 def write_site(path):
@@ -1308,6 +1480,7 @@ def write_csvs(out):
             ("triaxial", p.triaxial()),
             ("shear_box", p.shear_box()),
             ("strength", p.undrained_strength()),
+            ("oedometer", p.oedometer()),
         ):
             sample = dataset["sample_reference"]
             named = sample + "-" + dataset["specimen_reference"].astype(str)

@@ -159,9 +159,9 @@ def test_min_fields_override_replaces_a_list():
 
 
 def test_min_fields_override_adds_a_group():
-    settings = load(min_fields={"CONG": {"required": ["CONG_TYPE"]}})
-    assert settings.min_fields["CONG"] == {
-        "required": ("CONG_TYPE",),
+    settings = load(min_fields={"RDEN": {"required": ["RDEN_BDEN"]}})
+    assert settings.min_fields["RDEN"] == {
+        "required": ("RDEN_BDEN",),
         "recommended": (),
     }
 

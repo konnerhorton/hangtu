@@ -52,6 +52,8 @@
 "MPa/m": "megapascal / meter"
 "m2/MN": "meter**2 / meganewton"         # coefficient of volume compressibility, m_v
 "m2/yr": "meter**2 / year"               # coefficient of consolidation, c_v
+"ft2/kip": "foot**2 / kip"               # m_v in US units
+"ft2/yr": "foot**2 / year"                # c_v in US units
 "cm3/MPa": "centimeter**3 / megapascal"
 "MJ/m3": "megajoule / meter**3"
 "mm2": "millimeter**2"

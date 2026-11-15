@@ -13,7 +13,11 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
   `distribution_fit()`, `representative_profile()`, `failure_envelope()`, `triaxial_shearing()`,
   `shear_box_envelope()` and `hoek_brown_envelope()`.
 - **Datasets:** `p.grain_size_summary()`, `p.index_properties()`, `p.density()`, `p.particle_density()`,
-  `p.triaxial()`, `p.undrained_strength()`, `p.shear_box()` and `p.stratigraphy()`.
+  `p.triaxial()`, `p.undrained_strength()`, `p.shear_box()`, `p.oedometer()` and `p.stratigraphy()`.
+  `p.oedometer()` gives one row per oedometer load increment, with the void ratios, the lab's m_v and c_v,
+  and the specimen's initial state; swelling tests are kept too, including one with no increments.
+- `oedometer_load_branch()` marks each oedometer increment as loading, unloading, reloading or held at a
+  constant stress, and `ht.template("oedometer")` lays out oedometer tests for a CSV.
 - **Classification and index analyses:** `plasticity()`, `uscs()`, `aashto()`, `gradation()`,
   `clay_activity()` and `clogging_potential()`.
 - **Stresses and phase relations:** `vertical_stress()`, `spt_n1_60()` and `phase_relations()`.
@@ -31,6 +35,9 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
   values), `representative()` (Eurocode 7 characteristic values and US views), `compare()`,
   `compare_groups()`, `crosstab()`, `compare_sources()`, `select()` and the Mohr–Coulomb parameter set,
   `mohr_coulomb_set()`.
+- **QC:** oedometer checks (E001, E002, E004, E005): void ratios that don't follow on from one increment
+  to the next, a void ratio that rises under a larger load, increments out of order, and an initial void
+  ratio that disagrees with the densities.
 - **QC:** `p.qc(accepted=...)` takes findings a reviewer has checked and accepted, each with a reason. They
   stay in the report, marked accepted, so it shows what is still open.
 - The project's vertical datum is read from the file's `LOCA_DATM` and shown on elevation axes.
@@ -49,6 +56,8 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
 - The documentation site, with a page and example for each plot and parameter, and the API reference.
 
 ### Changed
+- A project database made by an earlier version needs ingesting again (`ht.Project.from_ags(...,
+  overwrite=True)`): it now records the units of the oedometer's m_v and c_v. Opening an old one says so.
 - With neither `GRAT` nor `GRAG` in the file, the warning from `p.grain_size_summary()` and
   `p.index_properties()` names both groups.
 - SPT: `ISPT_REP` is read as AGS defines it, and a refusal with a blank N is kept as a refusal.

@@ -18,6 +18,12 @@ like ``ht.template()`` (stresses in psf), for comparing a parameter's sources:
 the Terrace's φ′ from CD triaxial and shear box tests, and the Alluvium's s_u
 from UU, laboratory vane, hand penetrometer and borehole vane tests.
 
+``oedometer.csv`` is the site's oedometer tests from ``site.ags``, one row
+per load increment, laid out like ``ht.template("oedometer")`` (stresses in
+psf, m_v in ft²/kip, c_v in ft²/yr): two incremental-load tests on Alluvium
+tubes, each with an unload-reload loop, and a swelling pressure test with no
+increments.
+
 ``rock_triaxial.csv`` has UCS and triaxial tests on the sandstone cored in
 B-3, in MPa (depths in ft), laid out like ``ht.template("triaxial")`` with
 ``failure_mode`` filled, for ``ht.analysis.hoek_brown_fit()``. They aren't

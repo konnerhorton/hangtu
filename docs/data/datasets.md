@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | done (M7); the M8 additions (classification columns in §6.2, §6.5 and §6.6) done; M14 (a)'s §6.8–6.9 done; M11 (a)'s §6.10 done; M17 (a)'s §6.11–6.12 done |
-| **Intent** | [`docs/work/m7-datasets.md`](../work/m7-datasets.md#intent); M8: [`docs/work/m8-index-plots.md`](../work/m8-index-plots.md#intent); M14 (a): [`docs/work/m14a-density-data.md`](../work/m14a-density-data.md) (decisions and acceptance criteria); M11 (a): [`docs/work/m11a-triaxial-data.md`](../work/m11a-triaxial-data.md); M17 (a): [`docs/work/m17a-strength-data.md`](../work/m17a-strength-data.md) |
+| **Status** | done (M7); the M8 additions (classification columns in §6.2, §6.5 and §6.6) done; M14 (a)'s §6.8–6.9 done; M11 (a)'s §6.10 done; M17 (a)'s §6.11–6.12 done; M19 (a)'s §6.14 done |
+| **Intent** | [`docs/work/m7-datasets.md`](../work/m7-datasets.md#intent); M8: [`docs/work/m8-index-plots.md`](../work/m8-index-plots.md#intent); M14 (a): [`docs/work/m14a-density-data.md`](../work/m14a-density-data.md) (decisions and acceptance criteria); M11 (a): [`docs/work/m11a-triaxial-data.md`](../work/m11a-triaxial-data.md); M17 (a): [`docs/work/m17a-strength-data.md`](../work/m17a-strength-data.md); M19 (a): [`docs/work/m19a-oedometer-data.md`](../work/m19a-oedometer-data.md) |
 | **Parent** | SPEC §2.6 (units), §7 (data model), §8 (depth, elevation, geology), §10 (datasets, registry), §11 (errors) |
 | **Related** | [`ingest.md`](ingest.md) (canonical layer, value flags), [`qc.md`](qc.md) (C001, G004, D004/D005). `docs/analysis/index-and-spt.md` §1 (SPT), §2–3 (classification, gradation). P01–P07 (the plots these feed) |
 
@@ -16,7 +16,9 @@ Turn a project's canonical tables into the DataFrames the plots take:
 
 **Added in M8:** the plasticity class columns in `p.atterberg()` (§6.2), `p.grain_size_summary()` (§6.5) and `p.index_properties()` (§6.6), built on the analyses in `docs/analysis/index-and-spt.md` §2–3.
 
-**Not in scope:** settings export (`to_yaml()`) and stored QC overrides; datasets for other tests (consolidation); inclined holes (QC L004); changing the data (SPEC §1.4).
+**Added in M19 (a):** consolidation tests, `p.oedometer()` (§6.14), incremental-load only (`CONG`, `CONS`).
+
+**Not in scope:** settings export (`to_yaml()`) and stored QC overrides; CRS and Rowe cell tests (`ESCG`, `ESCT`); inclined holes (QC L004); changing the data (SPEC §1.4).
 
 ## 2. Public API
 ```python
@@ -40,6 +42,7 @@ rho_s = p.particle_density()             # §6.9 (M14)
 triaxial = p.triaxial()                  # §6.10, one row per stage at failure (M11 a)
 su = p.undrained_strength(hand_penetrometer_scale="unconfined_compressive_strength")  # §6.11 (M17 a)
 shear = p.shear_box()                    # §6.12, one row per stage (M17 a)
+oedometer = p.oedometer()                # §6.14, one row per increment (M19 a)
 
 p.set_judgments("judgments.yaml")        # the project's judgments file (SPEC §4)
 p.judgments                              # a Judgments, or None; datasets carry its path
@@ -496,6 +499,44 @@ Boundaries are compared exactly, as the config writes them. `astm_uscs` and `aas
 - The requested system differs from the stated one (§6.5's `fractions=`): "3 gradings are reported as astm_uscs fractions (GRAG), so the aashto fractions with other boundaries are blank: fine_sand, coarse_sand, gravel." It lists only the fractions blank for that reason.
 - §6.6 with a reported grading whose system doesn't give the USCS fractions (`iso14688`; or `aashto`, which has no 4.75 mm boundary): "3 samples' gradings are reported as iso14688 fractions (GRAG), so their USCS fractions with other boundaries (fines, sand, gravel) and symbols are blank." It names only those of fines, sand and gravel that are blank for that reason. `uscs()`'s own count of rows with no fractions doesn't repeat them, and with no system set the no-system warning stands for both.
 
+### 6.14 `p.oedometer()` (M19 a)
+```python
+p.oedometer(**common)
+```
+One row per `CONS` increment, in file order, with its `CONG` specimen's values on each (`docs/work/m19a-oedometer-data.md`). Incremental-load tests only: the CRS and Rowe cell groups (`ESCG`, `ESCT`) aren't read.
+
+| Column | From |
+|---|---|
+| `loca_id`, `specimen_id`, `sample_reference`, `specimen_reference` | As §6.2 |
+| `ground_level`, `depth`, `depth_basis`, `elevation` | Lab depth (§6.2) |
+| `test_type` | `CONG_TYPE` as written (`OEDOMETER`, `HYDRAULIC CELL`, `SETTLESAT`, `SWELL`, `SWELLPRESS`, `EXPANDABILITY`, or any other text) |
+| `sample_condition` | `CONG_COND` |
+| `test_stage` | `CONS_INCN`, as text (`"3"`, `"3a"`, `"Flood"`) |
+| `load_branch` | `ht.analysis.oedometer_load_branch()` |
+| `applied_vertical_stress` | `CONS_INCF`, the stress at the end of the increment |
+| `void_ratio_at_increment_start`, `void_ratio_at_increment_end` | `CONS_IVR`, `CONS_INCE` |
+| `reported_coefficient_of_volume_compressibility` | `CONS_INMV`, the lab's m_v (`volume_compressibility`) |
+| `reported_coefficient_of_consolidation_root_time`, `reported_coefficient_of_consolidation_log_time` | `CONS_CVRT`, `CONS_CVLG`, the lab's c_v (`consolidation_coefficient`) |
+| `specimen_height`, `specimen_diameter` | `CONG_HIGT`, `CONG_SDIA` |
+| `water_content`, `final_water_content` | `CONG_MCI`, `CONG_MCF` |
+| `bulk_unit_weight`, `dry_unit_weight` | `CONG_BDEN`, `CONG_DDEN` × g (initial) |
+| `particle_density`, `particle_density_assumed` | `CONG_PDEN`, with its `#` flag; never borrowed from `LPDN` |
+| `degree_of_saturation`, `void_ratio` | `CONG_SATR`, `CONG_IVR` (initial) |
+| `swelling_pressure` | `CONG_SPRS` |
+| `height_change_on_saturation` | `CONG_SATH`, with the file's sign: the dictionary doesn't say whether swelling is positive |
+| `equipment_deformation_corrected` | `CONG_CORR` (`Y`/`N`, blank where not given) |
+| `test_remarks`, `remarks` | `CONG_REM`, `CONS_REM` |
+
+- **Increment order is file order.** `CONS_INCN` is free text, so rows aren't sorted by it; QC E004 flags numeric increments that aren't increasing.
+- **The branch** comes from the stress sequence, per `specimen_id` in row order, comparing each `applied_vertical_stress` with the previous one and with the largest so far: `loading` for the first increment or a stress above every earlier one; `unloading` for a stress below the previous one; `reloading` for a stress above the previous one but not above the largest (equal to it counts as reloading); `constant_stress` for a stress equal to the previous one (flooding, creep). A blank stress gives a blank branch, and the next row is compared with the last stress given. The rule reads only the order, so it needs no units. On a CSV frame the function raises an error naming `specimen_id` or `applied_vertical_stress` if either is missing.
+- **A `CONG` row with no `CONS` rows is one row** with blank increment columns and a blank branch: a swelling pressure test often reports only `CONG_SPRS`, a settlement on saturation test only `CONG_SATH`. A `CONG` whose increments are all left out as incomplete (§7) gives no row, since its increments exist. This differs from §6.10, where a test with no stage gives no row.
+- **Every `CONG_TYPE` is kept**; filter with `where={"test_type": "OEDOMETER"}`.
+- **The specimen's values are its initial state** (and `final_water_content`), repeated on each increment: summarize them on one row per specimen (`drop_duplicates("specimen_id")`). `applied_vertical_stress` isn't `effective_vertical_stress`, the in situ σ′v0 that `vertical_stress()` writes.
+- **An increment with no `CONS_INCF` or no `CONS_INCE`** is incomplete (§7).
+- **A `CONS` row with no `CONG` row** (AGS Rule 10c) is kept with blank specimen columns.
+- `CONS_INSC` and `CONS_TEMP` aren't read.
+- No `CONG` or `CONS` group: an empty frame with every column and the warning "No CONG group".
+
 ## 7. Incomplete records
 - A record is **incomplete** when QC C001 says so (with `SPEC_REF` and `SPEC_DPTH` recommended, §14): a `required` field of its own group in `qc/min_fields.yaml` is blank (qc.md §4.10). Only the dataset's source group is checked, not its parents: a hole with no `LOCA_GL` keeps its tests, with a blank elevation.
 - **Left out by default**, with one warning per call: "Left out 2 of 5 ISPT records with a blank required field (ISPT_NVAL on lines 98, 103). p.qc() lists them; include them with include_incomplete=True."
@@ -525,6 +566,7 @@ New columns, each checked against the whole registry (CLAUDE.md, "Naming"): `loc
 - M14 (`docs/work/m14a-density-data.md`): `dry_unit_weight`, `particle_density`, `particle_density_assumed`, `particle_density_specimen_id`, `sample_condition`, `stabilizer_content`; new AGS sources for `bulk_unit_weight` (`LDEN_BDEN`, `IDEN_IDEN` × g, replacing `RDEN_BDEN` until M21 reads RDEN), `water_content` (`LDEN_MC`, `IDEN_MC`) and `test_type`; `depth_basis` gains `test_depth`; the `density` and `particle_density` templates.
 - M11 a (`docs/work/m11a-triaxial-data.md`): `test_stage`, `multistage_test`, `failure_criterion`, `effective_consolidation_stress`, `back_pressure`, `pore_pressure_parameter_b`, `cell_pressure`, `deviator_stress_at_failure`, `pore_pressure_at_failure`, `axial_strain_at_failure`, `volumetric_strain_at_failure`, the four principal stresses at failure, `effective_stress_basis`, `reported_effective_friction_angle`, `reported_effective_cohesion`, `test_remarks`; new AGS sources for `test_type`, `sample_condition`, `water_content`, `bulk_unit_weight`, `dry_unit_weight`, `void_ratio` and `remarks`; the `triaxial` template.
 - M17 a (`docs/work/m17a-strength-data.md`, Changes): the undrained strength and shear box columns; `undrained_shear_strength`'s sources (`TRIT_CU` moves to `reported_undrained_shear_strength`); `axial_strain_at_failure` gains `LUCT_STRA`; the quantity kind `displacement_rate`; the `strength` template reshaped and `shear_box` new.
+- M19 a (`docs/work/m19a-oedometer-data.md`, Changes): the oedometer columns (`applied_vertical_stress`, the void ratios at an increment's start and end, `load_branch`, the lab's m_v and c_v, `swelling_pressure`, `height_change_on_saturation`, `specimen_diameter`, `equipment_deformation_corrected`); the `CONG` and `CONS` sources of the specimen columns and `test_stage`; the quantity kinds `volume_compressibility` and `consolidation_coefficient`; the `oedometer` template.
 - M17 c (`docs/work/m17c-hoek-brown-fit.md`, Changes): `failure_mode` (`TRET_MODE`, `TRIT_MODE`), `reported_intact_compressive_strength` and `reported_intact_hoek_brown_constant` in the `triaxial` template and `p.triaxial()`; the fitted `intact_compressive_strength` and `intact_hoek_brown_constant`.
 
 ### 11.1 CSV templates
@@ -539,6 +581,7 @@ Each template (`ht.template(<name>)`) is its dataset's columns in the same order
 | `triaxial_readings` (M11 c, `docs/work/m11c-triaxial-shearing.md`) | none | One row per reading during shearing, for `ht.analysis.triaxial_failure_from_readings()` and P12 |
 | `strength` (M17 a, `docs/work/m17a-strength-data.md`) | `p.undrained_strength()` | `source_line`, `undrained_shear_strength_basis` and `strength_sensitivity`, which `ht.analysis.undrained_shear_strength_from_tests()` adds |
 | `shear_box` (M17 a) | `p.shear_box()` | `source_line` |
+| `oedometer` (M19 a) | `p.oedometer()` | `source_line`, `load_branch`, which `ht.analysis.oedometer_load_branch()` adds |
 
 ## 12. Test files
 The good files (`site_si.ags`, `site_us.ags`, `site_v404.ags`) get, through the generator script and in all three so the twin tests still hold:
@@ -554,6 +597,8 @@ M11 (a) adds `TREG`/`TRET` and `TRIG`/`TRIT` to the three good files: a set of t
 M17 (a) adds `TRIT_CU` to the UU stages, `LUCT`, `LVAN`, `LPEN` and `LFCN` on existing samples, `IVAN` (two borehole vanes) and `IPEN` (one reading beyond the instrument's range, `>200`), and `SHBG`/`SHBT` (a recompacted small shear box set of three stages), to the three good files. `joins.ags` gains a vane with a flagged peak, a vane with a remolded value of 0, an `IVAN` with no type, an `IVAN` with `IVAN_IVAN` blank (incomplete, §7), a rock joint test in MPa with encapsulation and diameters, and a ring shear test with only a residual stress.
 
 A new `grag.ags` (4.2, SI, passes python-ags4) holds reported gradings with invented values (`docs/work/grag-fractions.md`, golden values G1–G8): `GRAG` with no `GRAT` on seven samples, some with `LLPL`; a blank `GRAG_VCRE` with fractions adding to 100, to 98.5 and to 95; `GRAG_FINE` blank with silt and clay given; `GRAG_UC` and `GRAG_CC` on a clean sand; an ISO 14688 row with clay; and one specimen with both `GRAG` and a `GRAT` curve. The good files are unchanged, and their BH2-D1 (`GRAG` 0, 35, 65 %, no `GRAT`) is already a reported grading, so their tests that build §6.5 or §6.6 ingest with `grag_fraction_system="astm_uscs"`, and the twin test covers a reported grading in SI and US.
+
+M19 (a) adds `CONG`/`CONS` to the three good files, after every other group so no earlier specimen key or line moves: BH1-U3's `OED1`, an undisturbed oedometer specimen with twelve increments and one unload–reload loop (the 4.0.4 file without `CONG_CORR`, a 4.1 heading). `joins.ags` gains a `SWELLPRESS` specimen with `CONG_SPRS` and no `CONS`, a `SETTLESAT` specimen with `CONG_SATH` and an assumed `CONG_PDEN`, a type the dictionary doesn't list, and a `CONS` row with `CONS_INCE` blank (incomplete, §7). A `CONS` row with no `CONG` breaks Rule 10c, so it is built in `tests/datasets/test_oedometer.py`.
 
 ## 13. Acceptance criteria
 1. **Feeds the plots unchanged:** `ht.plot.spt_profile(p.spt())`, `ht.plot.spt_histogram(p.spt())`, `ht.plot.profile(p.permeability(), "hydraulic_conductivity")`, `ht.plot.profile(p.atterberg(), "liquid_limit")` and `ht.plot.geology_unit_comparison(p.atterberg(), "plasticity_index")` run on the good files with no error, no warning and no hint, and with the map's colors and order.

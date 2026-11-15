@@ -298,6 +298,7 @@ A review of the whole package asked one question: if an AI agent does the work a
 ### 67. Stress units declared wrong · You · SPEC §2.2, §2.6
 - **Problem:** the triaxial CSV in psf declared as kPa gives c′ = 104 kPa and σ′n up to 3,680 kPa at 18 ft, with no check. The summary prints the unit, so a reviewer could catch it; an agent won't. Typical ranges are never used for QC (P00), by design.
 - **Idea:** a physical check rather than a typical range, for example a consolidation stress more than about 10× the overburden at the sample depth warns.
+- **Not the oedometer (M19 a):** an oedometer is loaded far past σ′v0 by design, often 10–30 times, so the check fits the triaxial's `TRET_CONP`, not `CONS_INCF`.
 
 ### 69. Friction from the agent trials · Claude · plots, `src/hangtu/units/`
 - A long `note=` collapses the axes, and the only sign is matplotlib's warning.
@@ -315,6 +316,11 @@ A review of the whole package asked one question: if an AI agent does the work a
 ### 72. Standard quantities in user-defined headings · You + Claude · SPEC §2.6, §7, `docs/data/datasets.md` §6.8 · with M16's readings map, once a second file needs it
 - **Found (lden-unit-weight):** a real file gave its lab unit weights only in a user-defined `LDEN_UWT` (kN/m³), with no `LDEN_BDEN`, so `C001` flagged every `LDEN` row and `p.density()` had none. The same file had `LPEN_QU` and `ISPT_B150`. For now the extractor writes `LDEN_BDEN` = γ / g and hangtu reads only the standard heading.
 - **Decided:** if a heading map is needed, it is part of M16's readings map (for example `LDEN_UWT` → `bulk_unit_weight`, with hangtu deriving the density), not a separate project setting. M16's draft maps user-defined groups, so its map then has to cover a user-defined heading inside a standard group too.
+
+### 73. QC E003: the lab's m_v against the void ratios · You + Claude · `docs/data/qc.md` §4.15, `src/hangtu/qc/_oedometer.py` · when BS 1377-5 or ISO 17892-5 is at hand, or before M19 (c) recomputes m_v
+- **Waits on (You):** the definition of m_v in BS 1377-5 and ISO 17892-5, with the clause: Δe / ((1 + e_start) Δσ′) with e at the start of the increment, or on the specimen's e0. A lab dividing by 1 + e0 gives values 5–20 % apart at later increments, so the rule takes the standard's definition and names it.
+- **Designed (M19 a spec, decision 7):** warning when `CONS_INMV` differs from the recomputed value by more than rounding allows: e ± half a unit in its last place, the stresses as written, the reported m_v ± half a unit in its second significant figure; a finding when the two intervals don't overlap. Skip the first increment (its start stress, the seating load, isn't in the file) and any Δσ′ of 0 or less. The cases are in the M19 (a) work file's acceptance criteria (increment 2 with `CONS_INMV` 0.32; the table's own values raise nothing).
+- **Learned in the build:** take the reported m_v's rounding from the file's text in the file's own unit (`p.table("CONS", raw=True)` and the heading's unit), not from the SI value: a US file's 2SF in ft²/kip isn't 2SF in m²/MN, and rounding again in SI can make the interval narrower than the lab's. The example `site.ags` writes m_v in ft²/kip from its void ratios by this formula, so it should raise nothing.
 
 ---
 

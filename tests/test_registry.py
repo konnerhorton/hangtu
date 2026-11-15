@@ -33,6 +33,8 @@ def test_quantity_kinds_match_p00_table():
         "modulus",
         "velocity",
         "displacement_rate",
+        "volume_compressibility",
+        "consolidation_coefficient",
         "percent",
         "dimensionless",
         "count",
@@ -230,6 +232,7 @@ DATASETS = (
     "triaxial",
     "undrained_strength",
     "shear_box",
+    "oedometer",
 )
 #: Arguments a dataset needs to give every row of the good files.
 ARGUMENTS = {
@@ -254,6 +257,7 @@ ONLY_HANGTU = {
     "effective_stress_basis",
     "undrained_shear_strength_basis",
     "strength_sensitivity",
+    "load_branch",
 }
 #: The one warning a good file's dataset gives: BH2-U2's CDM stage 2 takes its
 #: back pressure (datasets.md §6.10).

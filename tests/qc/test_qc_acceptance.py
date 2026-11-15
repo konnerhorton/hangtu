@@ -65,6 +65,10 @@ EXPECTED = {
     ("H001", 200),  # SHBT_RES 60 above SHBT_PEAK 50 (M17 a)
     ("H002", 201),  # a stage with SHBT_PEAK and SHBT_RES blank
     ("H003", 202),  # SHBT_NORM 0
+    ("E001", 218),  # CONS_IVR 0.690 after CONS_INCE 0.700 (M19 a)
+    ("E002", 220),  # e 0.776 to 0.781 from 100 to 200 kPa
+    ("E004", 224),  # CONS_INCN 3 after 4
+    ("E005", 211),  # CONG_IVR 0.650, rho_s / rho_d - 1 = 0.800
 }
 # Info findings seeded on qc_defects.ags (C002 also lists absent headings).
 EXPECTED_INFO = {
@@ -113,7 +117,7 @@ def test_1_every_computed_rule_has_a_case(defects_report):
     computed = {
         rule_id
         for rule_id in defects_report.rules["rule_id"]
-        if rule_id[0] in "LGDSAPKBXC"
+        if rule_id[0] in "LGDSAPKBXCQHE"
     }
     # G004 needs a geology map, so its case is joins.ags with strata.csv
     # (tests/qc/test_geology.py), not the defects file.

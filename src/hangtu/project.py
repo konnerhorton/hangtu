@@ -1109,6 +1109,83 @@ class Project:
             display_units=display_units,
         )
 
+    def oedometer(
+        self,
+        *,
+        holes: "str | list[str] | None" = None,
+        geology: "str | list[str] | None" = None,
+        depth: "tuple | None" = None,
+        elevation: "tuple | None" = None,
+        where: dict | None = None,
+        contains: "str | list[str] | None" = None,
+        geology_fields: "str | list[str] | None" = None,
+        include_incomplete: bool = False,
+        display_units: str | None = None,
+    ) -> pd.DataFrame:
+        """Return each oedometer increment, for the compression curve and m_v and c_v.
+
+        One row per ``CONS`` increment, in file order, at the specimen's
+        depth, with its ``CONG`` specimen's values on each. Each increment
+        has the stress at its end (``applied_vertical_stress``, the effective
+        stress in a drained oedometer), the void ratio at its start and end,
+        and the lab's own m_v and c_v (``reported_`` columns, as written).
+
+        **Every test type is kept** (``test_type`` is ``CONG_TYPE`` as
+        written: ``OEDOMETER``, ``SWELLPRESS``, ``SETTLESAT`` and the others),
+        so filter with ``where={"test_type": "OEDOMETER"}``. A specimen with no
+        increments, such as a swelling pressure test that reports only
+        ``swelling_pressure``, is one row with blank increment columns.
+
+        **The branch** of each increment, ``load_branch`` (``loading``,
+        ``unloading``, ``reloading`` or ``constant_stress``), comes from the
+        order of the stresses, as ``ht.analysis.oedometer_load_branch()``
+        gives it. The specimen's water content, densities, void ratio and
+        height are its initial state, repeated on every increment: summarize
+        them on one row per specimen.
+
+        Parameters
+        ----------
+        holes, geology
+            Keep these holes (``LOCA_ID``) or geology units.
+        depth, elevation
+            Keep ``low <= value <= high``, given in the dataset's units
+            (``(0, 30)``) or as quantity strings (``("0 ft", "30 ft")``).
+            Either end may be None.
+        where
+            Keep rows matching ``{column: value or list of values}``, e.g.
+            ``{"test_type": "OEDOMETER"}``.
+        contains
+            Keep rows whose geology description contains this text (any
+            case), or any of a list.
+        geology_fields
+            GEOL headings to add as columns, e.g. ``["GEOL_FORM"]``.
+        include_incomplete
+            Keep records with a blank required field (QC C001), such as an
+            increment with no stress or no end void ratio. By default they're
+            left out, with a warning that counts them.
+        display_units
+            ``"US"`` or ``"SI"``; by default the project's. Stresses are in
+            kPa (SI) or psf (US); m_v in m²/MN or ft²/kip; c_v in m²/yr or
+            ft²/yr; heights and diameters in mm or in.
+
+        Examples
+        --------
+        >>> increments = p.oedometer(where={"test_type": "OEDOMETER"})
+        >>> increments[["test_stage", "applied_vertical_stress", "load_branch"]]
+        """
+        return datasets.oedometer(
+            self._path,
+            holes=holes,
+            geology=geology,
+            depth=depth,
+            elevation=elevation,
+            where=where,
+            contains=contains,
+            geology_fields=geology_fields,
+            include_incomplete=include_incomplete,
+            display_units=display_units,
+        )
+
     # --- Geology map (datasets.md §5.2) -----------------------------------------
 
     def stratigraphy(

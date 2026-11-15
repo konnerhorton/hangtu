@@ -33,7 +33,8 @@ def test_from_ags_puts_the_database_next_to_the_file_by_default(site):
 def test_groups_in_file_order(project):
     assert project.groups[:3] == ["PROJ", "TRAN", "DICT"]
     last = ["SHBG", "SHBT", "LUCT", "LVAN", "LPEN", "LFCN", "IVAN", "IPEN"]
-    assert project.groups[-11:] == [*last, "UNIT", "TYPE", "ABBR"]
+    last += ["CONG", "CONS"]  # oedometer (M19 a)
+    assert project.groups[-13:] == [*last, "UNIT", "TYPE", "ABBR"]
 
 
 def test_canonical_table(project):

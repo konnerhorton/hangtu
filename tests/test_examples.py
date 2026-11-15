@@ -4,6 +4,7 @@ import importlib.util
 import os
 import subprocess
 import sys
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -20,6 +21,7 @@ DATA = Path(ht.examples.__file__).parent / "data"
 FILES = [
     "atterberg.csv",
     "judgments.yaml",
+    "oedometer.csv",
     "permeability.csv",
     "rock_triaxial.csv",
     "shear_box.csv",
@@ -32,6 +34,7 @@ FILES = [
 ]
 CSVS = [
     "atterberg.csv",
+    "oedometer.csv",
     "permeability.csv",
     "rock_triaxial.csv",
     "shear_box.csv",
@@ -114,7 +117,8 @@ def test_unknown_name_lists_the_files():
         ht.examples.path("site.csv")
     assert str(caught.value) == (
         "No example file 'site.csv'. Files: atterberg.csv, judgments.yaml, "
-        "permeability.csv, rock_triaxial.csv, shear_box.csv, site.ags, spt.csv, "
+        "oedometer.csv, permeability.csv, rock_triaxial.csv, shear_box.csv, "
+        "site.ags, spt.csv, "
         "strata.csv, strength.csv, triaxial.csv, triaxial_readings.csv."
     )
 
@@ -139,6 +143,7 @@ def test_csv_and_ags_hold_the_same_tests(site, name, value):
         # The CSV keeps only the s_u that is an input; the next test checks
         # the s_u worked out from it against the project's.
         ("strength", "undrained_strength", "deviator_stress_at_failure"),
+        ("oedometer", "oedometer", "void_ratio_at_increment_end"),
     ],
 )
 def test_test_csvs_hold_the_projects_tests(site, name, dataset, value):
@@ -231,6 +236,10 @@ EXAMPLE_ANALYSES = {
     "strength.csv": (
         dict.fromkeys(STRENGTH_STRESSES, "psf"),
         ht.analysis.undrained_shear_strength_from_tests,
+    ),
+    "oedometer.csv": (
+        {"applied_vertical_stress": "psf"},
+        ht.analysis.oedometer_load_branch,
     ),
 }
 
@@ -359,3 +368,48 @@ def test_readings_end_at_the_example_stages(site, criterion):
             check_dtype=False,
             obj=column,
         )
+
+
+# --- Oedometer (M19 a) ------------------------------------------------------------
+
+
+def test_oedometer_tests_in_the_example_site(site):
+    # AC 16: two incremental-load tests and a swelling pressure test.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        df = site.oedometer()
+    specimens = df.drop_duplicates("specimen_id")
+    assert specimens["sample_reference"].tolist() == ["B-1-U2", "B-4-U1", "B-5-U2"]
+    assert specimens["test_type"].tolist() == ["SWELLPRESS", "OEDOMETER", "OEDOMETER"]
+    assert set(df["geology_unit"]) == {"Alluvium"}
+    tests = df[df["test_type"] == "OEDOMETER"]
+    assert tests.groupby("specimen_id")["test_stage"].count().tolist() == [12, 12]
+    for _, test in tests.groupby("specimen_id"):
+        assert set(test["load_branch"]) == {"loading", "unloading", "reloading"}
+    swelling = df.loc[df["test_type"] == "SWELLPRESS", "swelling_pressure"]
+    assert swelling.tolist() == [pytest.approx(420, rel=1e-9)]  # psf, through kPa
+
+
+def test_oedometer_csv_is_the_datasets_template_columns(site):
+    # AC 16: oedometer.csv read back equals the dataset in its template columns.
+    columns = list(ht.template("oedometer").columns)
+    text = {"specimen_reference": str, "test_stage": str}
+    from_csv = ht.read_csv(ht.examples.path("oedometer.csv"), dtype=text)
+    assert list(from_csv.columns) == columns
+    from_ags = site.oedometer()
+    key = [
+        "loca_id",
+        "depth",
+        "test_stage",
+        "applied_vertical_stress",
+        "void_ratio_at_increment_start",
+        "void_ratio_at_increment_end",
+        "reported_coefficient_of_volume_compressibility",
+        "swelling_pressure",
+    ]
+    pd.testing.assert_frame_equal(
+        from_csv[key],
+        from_ags[key].mask(from_ags[key].isna(), np.nan),
+        check_dtype=False,
+        check_exact=False,
+    )

@@ -59,11 +59,13 @@ THRESHOLDS: dict[str, dict[str, str]] = {
     "X001": {"lowest_pore_pressure_parameter_b": "dimensionless"},
     "X006": {"consolidation_stress_tolerance": "stress"},
     "Q001": {"undrained_strength_tolerance": "stress"},
+    "E001": {"void_ratio_chain_tolerance": "dimensionless"},
+    "E005": {"initial_void_ratio_tolerance": "dimensionless"},
 }
 
 #: Rules that run with another rule's thresholds: D008 is the lower band of
 #: D007's check, so its bounds are D007's (qc.md §4.4).
-THRESHOLDS_FROM: dict[str, str] = {"D008": "D007"}
+THRESHOLDS_FROM: dict[str, str] = {"D008": "D007", "E002": "E001"}
 
 
 @dataclass(frozen=True)

@@ -77,6 +77,8 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 | `modulus` | kPa | ksf | MPa | ksf / MPa | Young's and other moduli (M13 b3); kept after `stress`, which a kPa unit matches first |
 | `velocity` | m/s | ft/s | m/s | ft/s / m/s | wave velocities (M13 b3); kept after `hydraulic_conductivity`, which an m/s unit matches first |
 | `displacement_rate` | mm/min | in/min | mm/min | in/min / mm/min | shear box displacement rates (M17 a); kept after `velocity`, so an m/s heading stays a velocity |
+| `volume_compressibility` | m²/MN | ft²/kip | m²/MN | ft²/kip / m²/MN | oedometer m_v (M19 a); ft²/kip is the inverse of ksf, so m_v and 1/m_v read in matching units |
+| `consolidation_coefficient` | m²/yr | ft²/yr | m²/yr | ft²/yr / m²/yr | oedometer c_v (M19 a) |
 | `percent` | % | % | % | % | water content, LL, PL, % passing, ER |
 | `dimensionless` | — | — | — | (none) | PI, LI, Ic, Cu, Cc |
 | `count` | — | — | — | (none) | SPT N; never converted |
