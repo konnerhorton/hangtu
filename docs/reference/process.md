@@ -36,7 +36,7 @@ A wave's units add three things to the loop:
 A unit of work is a milestone, a plot, a fix or a decision. Keep it small enough to review in one sitting.
 
 1. **Intent**: create the unit's branch, then create `docs/work/<id>.md` with a short `## Intent` section covering goal, why, constraints, what's out of scope, and the SPEC sections it touches. Brainstorm it with Claude and review it yourself before committing.
-2. **Spec**: write or update the feature spec (or add the `## Spec` section when there is no other home for it). Check it against `SPEC.md`. If it needs a cross-cutting decision changed, change `SPEC.md` now, deliberately, rather than letting the code drift from it.
+2. **Spec**: write or update the feature spec (or add the `## Spec` section when there is no other home for it). Check it against `SPEC.md`. If it needs a cross-cutting decision changed, change `SPEC.md` now, deliberately, rather than letting the code drift from it. A living spec (`docs/data/`, `docs/analysis/`, a plot spec) holds rules, so a unit changes its rules in place, with no milestone tags, status or work-file citations. The unit's acceptance criteria, its decisions in review and notes on its test files stay in its work file, and what a test file holds goes in `tests/data/ags/README.md`.
 3. **Plan**: Claude Code plan mode, then add the `## Plan` section and commit it. It names the files, the order, and the tests that prove each acceptance criterion.
 4. **Build**: implement the plan. If the plan has to change, update the `## Plan` section in the same commit.
 5. **Test**: check against the acceptance criteria and golden values, and look at the figure yourself.
