@@ -421,42 +421,7 @@ One row per cell of the group, in file order:
 `heading=` takes a heading or a list, and only those headings are shown: key headings are included only if named. An unknown heading lists the group's headings. `changed_only=True` keeps `flagged`, `not_converted`, `converted` and `reformatted`. Display values use `units.to_display` with the heading's quantity kind; a heading with no kind is shown as stored.
 
 ## 8. Test files
-Synthetic, written by `tests/data/ags/_make_files.py` (SPEC §12.3).
-- **`qc_defects.ags`** (4.2, SI): five holes, one case per rule in §4.2–§4.10, each at a known line. Ingest findings (§4.1) keep their cases in `defects.ags` and `site_v404.ags`. Cases:
-
-| Rule | Case |
-|---|---|
-| L001, L003 | BH5 with `LOCA_GL` and `LOCA_FDEP` blank |
-| L002 | BH5 with no coordinates |
-| L004 | `HORN` row for BH2 with `HORN_INCL` 80 |
-| L005 | BH4 with ground level 8 m above its neighbors |
-| L006, L007 | BH1–BH3 `LOCA_DATM` `NAVD88`, BH4 `NGVD29` (BH5 has no `LOCA_GL`): one L007, and L006 with "holes name different datums" |
-| G001 | BH5 has `ISPT` and no `GEOL` |
-| G002 | BH1: 2.50–3.00 missing; BH2: log stops 0.50 m above `LOCA_FDEP` |
-| G003 | BH3: 2.00–4.00 and 3.50–6.00 |
-| D001 | `SAMP` with base above top |
-| D002 | `ISPT_TOP` −0.50 |
-| D003 | `ISPT_TOP` 1.00 m below `LOCA_FDEP` |
-| D004 | covered by the G002 gap in BH1: an `ISPT` at 2.75 |
-| D005 | `SAMP` 2.30–2.80 across a 2.50 boundary |
-| D007, D008 | `SPEC_DPTH` 0.30 m below its sample's base (D007); 0.05 m below another's (D008) |
-| S001 | `ISPT_REP` "hard", and "50/76 ft" (a unit that isn't accepted). Accepted, raising nothing: `5,6,6 N=12`, `6,8/8,9,9,9 N=35`, `50/3"` and `22-30-50/3in` with `ISPT_NVAL` blank (no C001) |
-| S002 | `ISPT_NVAL` 150; and `ISPT_NVAL` 126 with report `41,81,57,75/113 N=126` (a complete test, not a refusal) |
-| S003 | BH4 with `ISPT_ERAT` blank on 2 tests |
-| S004 | `ISPT_NVAL` 20, `ISPT_INC3`–`6` 4, 5, 5, 5 |
-| S005 | N 20, `ISPT_ERAT` 75, `ISPT_N60` 30 (computed 25) |
-| A001, A002, A003, A004 | LL 30 PL 35; LL 50 PL 20 PI 25; LL 8; PL `NP` |
-| P001, P002, P003, P004 | a curve that rises at 0.425 mm; `GRAT_PERP` 104; fractions summing to 94; a curve with 3 points |
-| K001 | `PTST_K` 0, `FGHG_IPRM` 5 m/s |
-| B001, B002, B003, B004 | `LDEN` ρ 2.00, w 20, ρd 1.80 (expected 1.667); ρ 1.80, ρd 1.90, w blank; `LDEN_BDEN` 19.5 and `LPDN_PDEN` 26.5; `LPDN_PDEN` `#2.65` (M14) |
-| X001–X006 | `TRET_BVAL` 0.90; a `CU` stage with `TRET_PWPF` blank; `TRET_DEVF` −20 in a `CU` stage; `TRET_PWPF` 410 with `TRET_CELL` 400; a `CU` test with two stages, and a `TRIG` with none; `TRET_CONP` 150 with `TRET_CELL` 400 and `TRET_BACK` 300 (M11 a) |
-| Q001–Q003 | `TRIT_CU` 70 with `TRIT_DEVF` 120; `LVAN_VNPK` 20 with `LVAN_VNRM` 25; `LUCT_UCS` 0 (M17 a) |
-| H001–H003 | `SHBT_PEAK` 50 with `SHBT_RES` 60; a stage with both blank; `SHBT_NORM` 0 (M17 a) |
-| E001, E002, E004, E005 | An increment ending at 0.700 followed by one starting at 0.690; 100 → 200 kPa with e 0.776 → 0.781; `CONS_INCN` 1, 2, 4, 3; `CONG_IVR` 0.650 with ρd 1.50, ρs 2.70 (M19 a) |
-| C001, C002 | `GEOL_DESC` blank on one row; `LOCA_TYPE` absent |
-
-- The good files (`site_si.ags`, `site_us.ags` and `site_v404.ags`) must stay QC-clean (§9, #2). They have `LOCA_DATM` `NAVD88` in every hole, so they raise no L006.
-- Accepted entries are written in the tests (a YAML file in `tmp_path` and the same entries as a list), against `qc_defects.ags`.
+Synthetic, written by `tests/data/ags/_make_files.py` (SPEC §12.3). `qc_defects.ags` holds one case per computed rule, each at a known line; ingest findings (§4.1) keep their cases in `defects.ags` and `site_v404.ags`. The good files stay QC-clean (§9 #2). Each case and its line: `tests/data/ags/README.md`, `qc_defects.ags`.
 
 ## 9. Acceptance criteria
 1. **One test per rule:** on `qc_defects.ags`, each rule in §4.2–§4.12 raises exactly the findings its case seeds, with the right `group`, `loca_id`, `heading` and `source_line`; no other errors or warnings. Each ingest rule (§4.1) appears in the report of `defects.ags` or `site_v404.ags` with `loca_id` and `depth` filled where the line has a row.

@@ -160,12 +160,7 @@ Written for engineers (SPEC §11):
 - Schema version mismatch: the hangtu version that wrote it, and the re-ingest call.
 
 ## 11. Test files
-Synthetic, in `tests/data/ags/` (SPEC §12.3), written by a script there from hand-typed SI data. Small: 3 locations, enough rows to hit every rule.
-- `site_si.ags` (4.2, SI): PROJ, TRAN, UNIT, TYPE, ABBR, DICT (one user-defined group), LOCA, GEOL, SAMP, ISPT, LLPL, LNMC, GRAG, GRAT, PTST, FGHG, FGHS. Includes `NP`, `Dry`, a refusal, `<0.1`, `#2.65`, blanks, and two lab groups on one specimen.
-- `site_us.ags`: the same data in US units (ft, in, psf, tsf, pcf in a density and a unit-weight heading, cm/s), with values hand-converted.
-- `site_v404.ags` (4.0.4): the same locations, with `IPRG`/`IPRT` in place of `FGHG`/`FGHS`, a removed `RUCS` heading, and the old unit spellings (`degC`, `Bar`).
-- `defects.ags`: one case per ingest rule in §9 except `M001`, plus an orphan sample. Its user-defined group has a heading in `%/log cycle`, defined in the `UNIT` group (`U005`); one in an unknown unit left out of the `UNIT` group (`U001`); and ones in `kN/mm` and `um` (converted, no `U002`).
-All but `defects.ags` pass python-ags4 validation with no errors.
+Synthetic, written by `tests/data/ags/_make_files.py` from hand-typed SI data (SPEC §12.3): SI and US twins of one small site, the same site in 4.0.4, and `defects.ags`, with one case per rule in §9 but `M001`, which `site_v404.ags` raises. All but `defects.ags` pass python-ags4. What each file holds: `tests/data/ags/README.md`.
 
 ## 12. Acceptance criteria
 1. **Twin files:** `site_si.ags` and `site_us.ags` give identical canonical tables (values to 1e-9 relative), identical flags and identical keys. Not compared: `_line`, and the `UNIT`, `TYPE` and `DICT` groups, which describe the file rather than the data.
