@@ -156,3 +156,14 @@ doesn't.
 - Whole suite, ruff, mypy, `docs/prepare_site.py` and `zensical build --clean --strict`.
 - Merge to `main` with `--no-ff` after approval. The message is one line: checkpoint 3 after M19 (a), with the
   kinds of change made.
+
+### Notes from the build
+- Step 2 also took milestone tags off `qc.md` §4.10's field-list comments and `datasets.md` §2's API comments, and
+  folded `datasets.md` §1's "Added in M8 / M19 (a)" notes into §1's list, which had named only four datasets.
+- Step 6 also repointed the code and test comments that cited `datasets.md` §10 (to `ingest.md` §7) and §14 (to
+  `datasets.md` §7), and dropped the references to TODO #17, which no longer exists.
+- Step 7's `qc_defects.ags` table was checked against the file's lines and gained BH4-U1's clean `LDEN` row (131)
+  and the L006/L007 lines (17–20). The README also gained M19 (a)'s oedometer cases, which only `datasets.md` §12 had.
+- The close-out's checks found about 30 more milestone references in the specs' prose, which steps 1–2 hadn't
+  listed. They went in an extra commit before the close-out (`checkpoint-3: drop the remaining milestone references
+  from living specs`), with the user's approval.
