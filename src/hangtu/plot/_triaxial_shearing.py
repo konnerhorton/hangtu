@@ -374,11 +374,21 @@ def _draw_curves(
     system: str,
     notes: Notes,
 ) -> list[Line2D]:
-    """Draw q against axial strain per stage, with its failure reading (§7)."""
+    """Draw q against axial strain per stage, with its failure reading (§7).
+
+    Each stage's q readings in row order, the unload tail included. A row
+    with only Δu or εv is the second axis's, not left out.
+    """
     readings = reduced.readings
     strain = readings.strain
     deviator = _display(readings.deviator, reduced, system)
     blank = np.isnan(strain) | np.isnan(deviator)
+    no_value = (
+        np.isnan(readings.deviator)
+        & np.isnan(readings.excess)
+        & np.isnan(readings.volumetric)
+    )
+    left_out = int((np.isnan(strain) | no_value).sum())
     drawn = set()
     for key, rows in reduced.stages.items():
         shown = rows[~blank[rows]]
@@ -405,10 +415,10 @@ def _draw_curves(
             gid="failure_point",
             zorder=_layers.MARKERS,
         )
-    if blank.any():
+    if left_out:
         notes.add_text(
-            f"Left out: {int(blank.sum())} reading{'s' if blank.sum() > 1 else ''} "
-            "without axial strain or deviator stress"
+            f"Left out: {left_out} reading{'s' if left_out > 1 else ''} without "
+            "axial strain, or without a deviator stress, Δu or ε_v"
         )
     unit = _display_stress_unit(reduced, system)
     ax.set_xlabel(axis_label(_entry("axial_strain")["label"], "%"))
@@ -503,7 +513,13 @@ def _draw_paths(
     unit: str | None,
     notes: Notes,
 ) -> list[Line2D]:
-    """Draw each stage's measured path and its failure reading (P12 §4)."""
+    """Draw each stage's measured path and its failure reading (P12 §4).
+
+    In effective stress a q reading takes its Δu as ``Readings`` fills it:
+    its own, else interpolated in the loading part. A q reading left without
+    one (outside the stage's Δu readings, or on the unload tail) is left out
+    of the path and counted.
+    """
     readings = reduced.readings
     if stress == "effective":
         minor = _display(readings.effective_minor, reduced, system)
@@ -517,7 +533,8 @@ def _draw_paths(
         x, y = (major + 2 * minor) / 3, major - minor
     usable = ~np.isnan(x) & ~np.isnan(y) & ~np.isnan(readings.strain)
     extension = readings.types.isin(EXTENSION).to_numpy()
-    counts = {"extension": 0, "no_stress": 0}
+    counts = {"extension": 0, "no_stress": 0, "no_excess": 0}
+    q_reading = ~np.isnan(readings.deviator) & ~np.isnan(readings.strain)
     drawn = set()
     xs, ys = [], []
     for key, rows in reduced.stages.items():
@@ -529,6 +546,7 @@ def _draw_paths(
             counts["no_stress"] += 1
             continue
         drawn.add(key)
+        counts["no_excess"] += int((q_reading[rows] & ~usable[rows]).sum())
         color = colors[labels[key]]
         ax.plot(
             x[shown],
@@ -559,6 +577,9 @@ def _draw_paths(
     if counts["extension"]:
         n = counts["extension"]
         parts.append(f"{n} extension stage{'s' if n > 1 else ''}")
+    if counts["no_excess"]:
+        n = counts["no_excess"]
+        parts.append(f"{n} reading{'s' if n > 1 else ''} without Δu")
     if parts:
         notes.add_text("Left out of the paths: " + ", ".join(parts))
     if xs:

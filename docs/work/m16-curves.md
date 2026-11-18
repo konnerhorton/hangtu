@@ -472,3 +472,7 @@ file and the figure). Start a new session at steps 3 and 7.
   its stresses, paths and every P12 criterion are unchanged. P12 §4's sentence says so.
 - **Step 1 took two of step 2's test changes:** `test_decreasing_strain_raises` (now `_warns`) and the R3 plot
   tests that expected the back-pressure warning, since the analysis change makes them fail.
+- **Step 2, the footnotes:** a row with only Δu or εv isn't counted as left out any more (it draws on the second
+  axis); the curve footnote now reads "without axial strain, or without a deviator stress, Δu or ε_v". In effective
+  stress, q readings left off a drawn path for want of a Δu (outside the stage's Δu readings, or on the tail) are
+  counted: "Left out of the paths: 2 readings without Δu" for BH1-U3 stage 1's tail.
