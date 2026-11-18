@@ -327,3 +327,139 @@ readings with `XTDS_TESN` "2" (no such `TRET` stage); `XTPW` (0.0, 0), (1.5, 20)
     99 `TRET` and 16 `TRIT` stages and 30 `SHBT` stages, no reading left out for a missing stage, and
     `triaxial_failure_from_readings(..., failure_criterion="max_deviator_stress")` runs with the strain warning
     naming the 4 stages of decision 6. Reported in the close-out, without the file's names or values.
+
+## Plan
+Seven build commits, each with ruff, mypy and the touched tests green, and the whole suite (`-n 2`) before each
+commit. A step past about 300 changed lines (not counting test data or the test-file generators) splits as noted.
+Steps 1–2 are Opus (the readings rules and how P12 draws them); steps 3–6 are Sonnet (registry, storage, datasets
+and example data on existing patterns, decided by the tests' golden values); step 7 is Opus (close-out, the sample
+file and the figure). Start a new session at steps 3 and 7.
+
+**Reused, not rebuilt:**
+- **Readings analysis:** `Readings` and `reduce_readings()` in `src/hangtu/analysis/_triaxial_readings.py`; P12
+  reads through `reduce_readings()`, so the rules change in one place.
+- **Map storage:** the geology map's path through `db.write_geology_map`/`read_geology_map` and
+  `Project.set_geology_map` (`project.py` ~1250), and `datasets/_geology_map.py`'s reading of a CSV or DataFrame.
+- **What the map is checked against:** the stored `DICT` table (`DICT_PGRP`), `meta_heading` (`standard`,
+  `quantity`, `file_unit`) and the stored findings (`U001`–`U005`), so nothing re-reads the AGS file.
+- **Dataset plumbing:** `Build` (`datasets/_frame.py`: `rows()`, `numbers()`, `texts()`, `flagged()`, `finish()`,
+  `_empty()`); the stage rows of `datasets/_triaxial.py` (`_stages()`) and `datasets/_shear_box.py`; `specimens()`
+  in `datasets/_lab.py` for `specimen_id` and lab depth.
+- **Test files:** `group()` and the SI/US twins of `tests/data/ags/_make_files.py`; `tests/data/_make_examples.py`.
+
+### 1. `M16: read each triaxial quantity from its own readings` (Opus)
+- `src/hangtu/analysis/_triaxial_readings.py`, per `docs/analysis/strength.md` §2:
+  - each quantity's readings are its rows with a value; the loading part and unload tail per quantity per stage;
+  - `_check_strain` becomes one warning naming the stages whose loading part decreases (not an error);
+  - Δu and εv at each q reading: own value, else linear in strain between the loading-part readings either side
+    (sorted by strain, the last of equal strains in row order), blank outside their range and on tail readings,
+    then a drained stage's blank Δu is 0; `pore`, `effective_minor` and `effective_major` use these values;
+  - failure candidates are loading-part q readings only;
+  - one warning per call naming the stages whose failure reading's Δu or εv wasn't the row's own;
+  - `source_line` added to `READING_COLUMNS` (decision 5).
+- 🟡 **The interpolation warning is the function's, not P12's:** `reduce_readings()` returns which stages were
+  interpolated at failure, and `triaxial_failure_from_readings()` warns; `ht.plot.triaxial_shearing()` doesn't, so
+  a figure of AGS-shaped readings draws without a warning on every CU stage. P12 §4's sentence is narrowed to say
+  so in this commit.
+- Docstring of `triaxial_failure_from_readings()`: the per-quantity rows, the tail, the interpolation and its
+  warning, and that readings from an AGS file need `failure_criterion=`.
+- Tests: `tests/analysis/test_triaxial_failure_from_readings.py`: AC 4, 5 and 7's analysis cases on hand-built
+  frames in the AC tables' shape (BH1-U3 stage 1, BH2-U2 stage 3, J1-U3 stage 1 with the stage-"2", blank-strain
+  and `<1` readings already removed), in kPa and in psf; AC 8 (`test_r2_decreasing_strain_raises` becomes the
+  warning naming stage A; the two-stages-one-`specimen_id` error kept); a tail reading with the largest q is not
+  picked; equal strains in the Δu readings take the last; a stage with every quantity on every row warns nothing
+  about interpolation (R1–R4 unchanged).
+
+### 2. `M16: draw partial readings and unload tails in P12` (Opus)
+- `src/hangtu/plot/_triaxial_shearing.py`: `_draw_curves` draws each stage's q rows in row order, tail included;
+  `_draw_second_axis` draws the Δu (or εv) rows in row order, tail included; `_draw_paths` uses the interpolated
+  Δu, leaving out q readings without one (undrained effective path) and tail readings without their own Δu.
+- Tests: `tests/plot/test_triaxial_shearing.py`: AC 6 on the step 1 frame (the 2.0 % reading at s′ 123.333333,
+  t 50; the tail off the effective path; the `stress_strain` curve ending at (11.6, 5); the Δu line ending at
+  (11.7, 60)); `test_decreasing_strain_raises` becomes the warning; `test_triaxial_shearing_acceptance.py` passes
+  unchanged (AC 8).
+
+### 3. `M16: add the shear box readings columns and readings templates` (Sonnet)
+- `src/hangtu/columns.yaml`: `horizontal_displacement`, `shear_stress`, `vertical_displacement` (labels, kinds
+  `small_length` and stress, descriptions; vertical keeps the file's sign); `used_by` gains the two readings
+  datasets on every column they carry; the `ags:` note of `axial_strain`, `deviator_stress`,
+  `excess_pore_pressure` and `volumetric_strain`; `triaxial_readings` template gains `ground_level`,
+  `depth_basis`, `elevation`, `soil_class`, `geology_description` (decision 5); new `shear_box_readings` template
+  in §6.17's order without `source_line`.
+- `docs/site/guides/templates.md`: the new template and the triaxial one's new optional columns.
+- Tests: `tests/test_registry.py`: the new template's columns registered (AC 14, registry half);
+  `tests/analysis/test_triaxial_failure_from_readings.py`: a CSV in the old template's columns reads and runs as
+  before (AC 14). `tests/test_examples.py` passes with the example CSV as it is (the new columns are optional).
+
+### 4. `M16: store a readings map per project` (Sonnet)
+- `src/hangtu/db.py`: `SCHEMA_VERSION` 3 → 4; `meta_readings_map` (`group`, `dataset`, `heading`, `column`, and
+  the row order); `write_readings_map`/`read_readings_map` as the geology map's.
+- `src/hangtu/datasets/_readings_map.py` (new): read a CSV or DataFrame; every check of `datasets.md` §6.15 in the
+  order listed there, each a `HangtuError` naming the map line (or DataFrame row), group or heading and what to do;
+  the mapped columns, required columns and allowed parents per dataset as constants shared with step 5.
+- `src/hangtu/project.py`: `Project.set_readings_map(source)` (store nothing on any error) and the
+  `readings_map` property; `from_ags(..., overwrite=True)` starts with none. `docs/site/reference/project.md`:
+  both entries.
+- Test files (`tests/data/ags/_make_files.py`, regenerated): `XTDS`, `XTPW`, `XTVS` and `XSBS` after every other
+  group in `site_si.ags`, `site_us.ags` (psf, in) and `joins.ags`, with their `DICT` rows (`DICT_PGRP` `TREG` and
+  `SHBG`, units `%`, `kPa`/`psf`, `mm`/`in`), keyed by the sample keys, `SPEC_REF`, a `_TESN` and a point number;
+  the AC tables' readings on BH1-U3 specimen 1 stage 1, BH2-U2 specimen 3 stage 3, BH2-D1 S1 stage 1 and J1-U3
+  stage 1; short plausible curves on the files' other `TRET` and `SHBT` stages. `tests/data/ags/readings_map.csv`
+  (thirteen rows) and `tests/data/ags/README.md` (the groups and the map).
+- Tests: `tests/datasets/test_readings_map.py` (new): AC 1, AC 2 (every §6.15 error from a DataFrame against
+  `site_si.ags`, the map unchanged after each); `tests/test_db.py`: AC 15. Existing tests that count the good
+  files' groups or QC findings updated (user-defined groups with `DICT` rows should raise none; any that do are
+  named in the commit).
+- Split if large: (4a) the test files and `README.md`, with the count updates; (4b) the map.
+
+### 5. `M16: add p.triaxial_readings() and p.shear_box_readings()` (Sonnet)
+- `src/hangtu/datasets/_readings.py` (new): for each mapped group, its rows joined to the stage rows on
+  `specimen_id` and `test_stage` (text, exact); the stage values and lab depth of §6.16/§6.17; the order (stages in
+  `p.triaxial()`'s or `p.shear_box()`'s order, groups in the map's order, rows in file order); the three left-out
+  warnings naming the group and first lines (no stage; incomplete, kept by `include_incomplete=True`; flagged, not
+  kept); the empty frame with every column and the no-map or no-group warning; then `Build.finish()` for geology,
+  display units and the common arguments.
+- `src/hangtu/project.py`: `Project.triaxial_readings()` and `Project.shear_box_readings()` with the common
+  arguments and docstrings; `docs/site/reference/project.md` entries.
+- Tests: `tests/datasets/test_readings.py` (new): AC 3, 7 (the dataset's warnings and
+  `include_incomplete=True`), 9, 10, 11, 12, 13; AC 4–7 end to end: `triaxial_failure_from_readings()` and
+  `ht.plot.triaxial_shearing()` on `p.triaxial_readings()` of `site_si.ags` and `joins.ags` give step 1's and
+  step 2's values, and AC 4's rows equal `p.triaxial()`'s for those stages.
+- Split if large: (5a) the triaxial dataset with AC 3–7, 10–13; (5b) the shear box dataset with AC 9 and its half
+  of 10–13.
+
+### 6. `M16: add readings curves to the example project` (Sonnet)
+- `tests/data/_make_examples.py`: decision 11. Each example CU, CDM and UU stage's q curve in `XTDS`, each CU
+  stage's Δu in `XTPW`, each CDM stage's εv in `XTVS`, at their own strains with site-like scatter, a Δu and εv
+  reading at the stage's failure strain equal to its `TRET` value, and an unload tail on the last stage of each
+  multistage specimen; each shear box stage's τ and vertical displacement in `XSBS` through its `SHBT` peak and
+  residual. `DICT` rows, units the file's. Regenerate `src/hangtu/examples/data/site.ags`; write
+  `readings_map.csv` beside it, and `triaxial_readings.csv` and `shear_box_readings.csv` from the project (in
+  the file's units), the CSVs in their templates' columns.
+- 🟡 **The example CSV keeps the lab's mark:** the generator sets `reported_failure_reading` True on each stage's
+  q reading at its `TRET` failure strain, as a lab's CSV would, so the docs site's P12 examples (which use the
+  mark) run unchanged. The AGS dataset itself carries no mark (§6.16).
+- `src/hangtu/examples/__init__.py`: the docstring names `readings_map.csv` and `shear_box_readings.csv`.
+- `docs/site/guides/datasets.md`: the two datasets in the table and a short section on the readings map. Run
+  `docs/prepare_site.py` and `zensical build --clean --strict`.
+- Tests: `tests/test_examples.py`: AC 16 (rows for every example triaxial and shear box stage; P12 AC 11 on the
+  regenerated `triaxial_readings.csv`, with the interpolation warning asserted where the failure reading's Δu or
+  εv is another row's); the file lists and the example's exact QC findings updated.
+
+### 7. `M16: close out` (Opus)
+- **Visual check:** regenerate `docs/plots/img/P12-us.png` from the new example readings (tails drawn), look at it.
+- **Sample file (AC 17, manual):** with a map written for it outside the repo, the counts of AC 17; reported in
+  the chat without the file's names or values.
+- SPEC §10.1's methods checked against the build; `docs/data/datasets.md` §1/§2/§8 and status lines;
+  `docs/data/ingest.md` if the schema note changed.
+- `STATUS.md`: M16 done; next M19 (b). `CHANGELOG.md` Unreleased: `p.set_readings_map()`, `p.readings_map`,
+  `p.triaxial_readings()`, `p.shear_box_readings()`, the `shear_box_readings` template and the triaxial one's new
+  columns, readings with one quantity per row, the strain-decrease warning (was an error), the unload tail, the
+  interpolation warning, and that an earlier database needs re-ingesting.
+- Parameter index (`docs/drafts/parameters/README.md`): sheet 15's stage A from W0 to M21 (decision 10); sheet
+  21's "waits for wave 0" updated.
+- `docs/TODO.md`: #31 deleted (resolved); #72 and #45 point to the readings map; new items for the curve-against-
+  reported-values QC rule (decision 12, trigger "a later QC unit") and `RUCS` into `p.triaxial()` (trigger M21).
+- What a future session would get wrong without being told, written where it will be read.
+- **Verification:** every AC reported met or not with its test; the whole suite (`-n 2`); ruff check and format
+  check; mypy; the lowest-versions run (then `git checkout uv.lock`); the strict docs build.
