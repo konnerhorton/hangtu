@@ -409,7 +409,11 @@ class Readings:
             return np.zeros(len(self.df), dtype=bool)
         # A blank column reads from a CSV as object; eq() leaves it all False
         # where fillna(False) would downcast it, with pandas' FutureWarning.
-        return self.df["reported_failure_reading"].eq(True).to_numpy(dtype=bool)
+        return (
+            self.df["reported_failure_reading"]
+            .eq(True)
+            .to_numpy(dtype=bool, na_value=False)
+        )
 
     def pick(self, stages: dict[tuple, np.ndarray], criterion: str) -> dict:
         usable = self.q_loading.copy()

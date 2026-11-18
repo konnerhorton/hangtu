@@ -1247,6 +1247,166 @@ class Project:
             display_units=display_units,
         )
 
+    def triaxial_readings(
+        self,
+        *,
+        holes: "str | list[str] | None" = None,
+        geology: "str | list[str] | None" = None,
+        depth: "tuple | None" = None,
+        elevation: "tuple | None" = None,
+        where: dict | None = None,
+        contains: "str | list[str] | None" = None,
+        geology_fields: "str | list[str] | None" = None,
+        include_incomplete: bool = False,
+        display_units: str | None = None,
+    ) -> pd.DataFrame:
+        """Return the readings taken while each triaxial stage was sheared.
+
+        One row per reading of each group the readings map sends to
+        ``triaxial_readings`` (set it with ``p.set_readings_map()``), with its
+        stage's values from ``TRET`` or ``TRIT`` on each: the shape of
+        ``ht.template("triaxial_readings")``, so
+        ``ht.analysis.triaxial_failure_from_readings()`` and
+        ``ht.plot.triaxial_shearing()`` take it as they take a CSV.
+
+        **One row per reading, never merged.** A file often gives q, Δu and
+        ε_v in groups of their own, read at their own strains, so each row
+        has only the values its group gives and the others blank. The
+        analysis reads each quantity from its own rows, interpolating Δu and
+        ε_v in strain at a q reading.
+
+        **In file order:** stages in ``p.triaxial()``'s order, then the map's
+        groups, then each group's readings as the file lists them. Nothing is
+        sorted by strain, so the unload at the end of a multistage stage stays
+        at its end.
+
+        **As the file gives them:** hangtu doesn't check the readings against
+        the stage's reported values; check them before analysis. No file
+        marks the lab's failure reading, so ``reported_failure_reading`` is
+        blank and the analysis needs ``failure_criterion=``.
+
+        **Left out, with a warning naming the group and lines:** a reading
+        whose specimen and stage match no stage row, a reading with a flagged
+        value, and (unless ``include_incomplete=True``) a reading with a
+        blank stage or strain, or none of its group's other values.
+
+        Parameters
+        ----------
+        holes, geology
+            Keep these holes (``LOCA_ID``) or geology units. A stage's readings
+            are kept or left out together, since they share its depth.
+        depth, elevation
+            Keep ``low <= value <= high``, given in the dataset's units
+            (``(0, 30)``) or as quantity strings (``("0 ft", "30 ft")``).
+            Either end may be None.
+        where
+            Keep rows matching ``{column: value or list of values}``, e.g.
+            ``{"test_stage": "3"}``.
+        contains
+            Keep rows whose geology description contains this text (any
+            case), or any of a list.
+        geology_fields
+            GEOL headings to add as columns, e.g. ``["GEOL_FORM"]``.
+        include_incomplete
+            Keep readings with a blank stage or strain, or with none of their
+            group's other values. Readings with no stage in the file, or with
+            a flagged value (``<1``, text), are left out even so.
+        display_units
+            ``"US"`` or ``"SI"``; by default the project's. Stresses are in
+            kPa (SI) or psf (US); strains in percent.
+
+        Examples
+        --------
+        >>> p.set_readings_map("readings_map.csv")
+        >>> readings = p.triaxial_readings()
+        >>> ht.analysis.triaxial_failure_from_readings(
+        ...     readings, failure_criterion="max_deviator_stress"
+        ... )
+        """
+        return datasets.triaxial_readings(
+            self._path,
+            holes=holes,
+            geology=geology,
+            depth=depth,
+            elevation=elevation,
+            where=where,
+            contains=contains,
+            geology_fields=geology_fields,
+            include_incomplete=include_incomplete,
+            display_units=display_units,
+        )
+
+    def shear_box_readings(
+        self,
+        *,
+        holes: "str | list[str] | None" = None,
+        geology: "str | list[str] | None" = None,
+        depth: "tuple | None" = None,
+        elevation: "tuple | None" = None,
+        where: dict | None = None,
+        contains: "str | list[str] | None" = None,
+        geology_fields: "str | list[str] | None" = None,
+        include_incomplete: bool = False,
+        display_units: str | None = None,
+    ) -> pd.DataFrame:
+        """Return the readings taken while each shear box stage was sheared.
+
+        One row per reading of each group the readings map sends to
+        ``shear_box_readings`` (set it with ``p.set_readings_map()``), with its
+        ``SHBT`` stage's applied normal stress and its ``SHBG`` test type on
+        each: the shape of ``ht.template("shear_box_readings")``. Shear stress
+        and vertical displacement against horizontal displacement, each row
+        with the values its group gives and the others blank; vertical
+        displacement keeps the file's sign.
+
+        Readings come in file order, stages in ``p.shear_box()``'s order, and
+        are left out as ``p.triaxial_readings()`` leaves them out. The peak and
+        residual values are ``p.shear_box()``'s, one row per stage.
+
+        Parameters
+        ----------
+        holes, geology
+            Keep these holes (``LOCA_ID``) or geology units. A stage's readings
+            are kept or left out together, since they share its depth.
+        depth, elevation
+            Keep ``low <= value <= high``, given in the dataset's units
+            (``(0, 30)``) or as quantity strings (``("0 ft", "30 ft")``).
+            Either end may be None.
+        where
+            Keep rows matching ``{column: value or list of values}``, e.g.
+            ``{"test_stage": "3"}``.
+        contains
+            Keep rows whose geology description contains this text (any
+            case), or any of a list.
+        geology_fields
+            GEOL headings to add as columns, e.g. ``["GEOL_FORM"]``.
+        include_incomplete
+            Keep readings with a blank stage or strain, or with none of their
+            group's other values. Readings with no stage in the file, or with
+            a flagged value (``<1``, text), are left out even so.
+        display_units
+            ``"US"`` or ``"SI"``; by default the project's. Stresses are in
+            kPa (SI) or psf (US); displacements in mm or in.
+
+        Examples
+        --------
+        >>> p.set_readings_map("readings_map.csv")
+        >>> readings = p.shear_box_readings(where={"test_stage": "1"})
+        >>> readings[["horizontal_displacement", "shear_stress"]]
+        """
+        return datasets.shear_box_readings(
+            self._path,
+            holes=holes,
+            geology=geology,
+            depth=depth,
+            elevation=elevation,
+            where=where,
+            contains=contains,
+            geology_fields=geology_fields,
+            include_incomplete=include_incomplete,
+            display_units=display_units,
+        )
+
     def set_geology_map(
         self, source: "str | PathLike[str] | pd.DataFrame | None"
     ) -> None:

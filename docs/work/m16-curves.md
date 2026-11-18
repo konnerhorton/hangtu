@@ -499,3 +499,15 @@ file and the figure). Start a new session at steps 3 and 7.
 - **Step 4, the map's checks:** a group is standard if the 4.2 dictionary or the file version's has it; the parent
   is read from `raw_DICT`. No good file has a U005 or raw-only curve heading, so those two errors are tested by
   editing `meta_heading`; the no-`DICT` error uses `defects.ags`' `XUND`.
+- **Step 5, AC 4's warning names six stages, not two:** a failure reading's Δu or εv counts as interpolated whenever
+  it isn't the q row's own value, even from a reading at the same strain (as AC 5 says). The good files' other
+  `TRET` stages have their Δu or εv readings at the failure strain, so the one warning names all six stages; the test
+  checks the two of AC 4 are among them.
+- **Step 5, a reading's depth and keys come from its own group:** its sample and specimen headings give the same
+  `specimen_id`, so the same lab depth as its stage; only the stage values join from `TRET`, `TRIT` or `SHBT`, which
+  are read whole (an incomplete stage still gives its readings their values).
+- **Step 5, the blank boolean mark:** the dataset's `reported_failure_reading` is a nullable boolean, all NA, and
+  `marked()` now reads NA as unmarked (`to_numpy(..., na_value=False)`).
+- **Step 5, the incomplete warning** is given only when readings are left out: with `include_incomplete=True` they're
+  kept without it.
+
