@@ -13,8 +13,12 @@ readings = ht.read_csv(
     dtype={"specimen_id": str, "test_stage": str},
 )
 
+# The CU and CDM stages: the UU stages have no effective stress path.
 fig, ax, fit = ht.plot.triaxial_shearing(
-    readings, space="s_t", group_by="geology_unit", display_units="US"
+    readings[readings["test_type"].isin(["CU", "CDM"])],
+    space="s_t",
+    group_by="geology_unit",
+    display_units="US",
 )
 fig.savefig("triaxial-shearing-paths.png")
 print(fit)

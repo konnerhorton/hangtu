@@ -877,15 +877,18 @@ SHBT = group(
 # number. BH1-U3 specimen 1 stage 1, BH2-U2 specimen 3 stage 3 and BH2-D1 S1
 # stage 1 are the readings in the M16 acceptance criteria; the other stages'
 # curves are short and pass through their TRET or SHBT values.
-def curve_group(name, columns, rows):
+def curve_group(name, columns, rows, key=None, key_us=None):
     """A curve group: the specimen key, ``<name>_TESN``, ``<name>_POIN``, then
     ``columns`` as (suffix, TYPE, unit, description, converted in the US twin).
 
     ``rows`` are (specimen key, stage, [readings]); each reading is a list of
-    ``columns``' values, numbered 1, 2, ... within its stage.
+    ``columns``' values, numbered 1, 2, ... within its stage. ``key`` is the
+    specimen key's headings (``SPECIMEN`` unless given), its parent and title
+    are ``CURVE_PARENTS[name]``.
     """
+    key_headings = SPECIMEN if key is None else key
     headings = [
-        *SPECIMEN,
+        *key_headings,
         (f"{name}_TESN", "X", ""),
         (f"{name}_POIN", "X", ""),
         *((f"{name}_{s}", t, u) for s, t, u, _, _ in columns),
@@ -895,7 +898,10 @@ def curve_group(name, columns, rows):
         for key, stage, readings in rows
         for point, reading in enumerate(readings, start=1)
     ]
-    us = [*SPECIMEN_US, *(f"{name}_{s}" for s, _, _, _, us in columns if us)]
+    us = [
+        *(SPECIMEN_US if key_us is None else key_us),
+        *(f"{name}_{s}" for s, _, _, _, us in columns if us),
+    ]
     described = {
         "LOCA_ID": ("KEY", "Location identifier"),
         "SAMP_TOP": ("KEY", "Depth to top of sample"),
@@ -1018,6 +1024,7 @@ CURVE_PARENTS = {
     "XTPW": ("TREG", "Triaxial excess pore pressure readings"),
     "XTVS": ("TREG", "Triaxial volumetric strain readings"),
     "XSBS": ("SHBG", "Shear box readings"),
+    "XUDS": ("TRIG", "Triaxial deviator stress readings, unconsolidated undrained"),
 }
 
 

@@ -7,10 +7,17 @@ Terrace's critical state friction angle), and the same tests as CSV files
 (``spt.csv``, ``atterberg.csv``, ``permeability.csv``) laid out like
 ``ht.template()``.
 
-``triaxial_readings.csv`` has readings during shearing for the site's six
-CU and CDM triaxial stages, in psf, laid out like ``ht.template("triaxial_readings")``.
-They are synthetic, made to end at each stage's failure values in
-``site.ags``, for ``ht.plot.triaxial_shearing()``.
+``site.ags`` also carries readings during shearing for every triaxial and
+shear box stage, in groups of its own (``XTDS``, ``XTPW``, ``XTVS``, ``XUDS``
+and ``XSBS``), as a lab's file often does; ``readings_map.csv`` is the
+readings map that names them, for ``p.set_readings_map()``. They are
+synthetic, made to end at each stage's failure values.
+``triaxial_readings.csv`` and ``shear_box_readings.csv`` are those readings
+from the project, laid out like ``ht.template("triaxial_readings")`` and
+``ht.template("shear_box_readings")`` (stresses in psf, displacements in
+in), one row per reading with the values its group gives. The triaxial file
+marks each stage's failure reading in ``reported_failure_reading``, as a
+lab's file would, for ``ht.plot.triaxial_shearing()``.
 
 ``triaxial.csv``, ``shear_box.csv`` and ``strength.csv`` are the site's
 triaxial, shear box and undrained strength tests from ``site.ags``, laid out

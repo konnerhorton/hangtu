@@ -1,0 +1,17 @@
+group,dataset,heading,column
+XTDS,triaxial_readings,XTDS_TESN,test_stage
+XTDS,triaxial_readings,XTDS_STRN,axial_strain
+XTDS,triaxial_readings,XTDS_DEVF,deviator_stress
+XTPW,triaxial_readings,XTPW_TESN,test_stage
+XTPW,triaxial_readings,XTPW_STRN,axial_strain
+XTPW,triaxial_readings,XTPW_PWPE,excess_pore_pressure
+XTVS,triaxial_readings,XTVS_TESN,test_stage
+XTVS,triaxial_readings,XTVS_STRN,axial_strain
+XTVS,triaxial_readings,XTVS_VOLS,volumetric_strain
+XUDS,triaxial_readings,XUDS_TESN,test_stage
+XUDS,triaxial_readings,XUDS_STRN,axial_strain
+XUDS,triaxial_readings,XUDS_DEVF,deviator_stress
+XSBS,shear_box_readings,XSBS_TESN,test_stage
+XSBS,shear_box_readings,XSBS_HDIS,horizontal_displacement
+XSBS,shear_box_readings,XSBS_SHST,shear_stress
+XSBS,shear_box_readings,XSBS_VDIS,vertical_displacement

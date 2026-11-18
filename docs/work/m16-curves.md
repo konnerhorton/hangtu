@@ -510,4 +510,16 @@ file and the figure). Start a new session at steps 3 and 7.
   `marked()` now reads NA as unmarked (`to_numpy(..., na_value=False)`).
 - **Step 5, the incomplete warning** is given only when readings are left out: with `include_incomplete=True` they're
   kept without it.
+- **Step 6, a fifth curve group, `XUDS`:** a group has one parent, and `XTDS`'s is `TREG`, so the UU stages' q curves
+  (`TRIG`/`TRIT`) are in `XUDS` under `TRIG`, as the sample file keeps its UU curves apart. The example map has
+  sixteen rows. Every example triaxial stage has readings (CU, CDM, CD and UU: 29 stages), not only the CU, CDM and UU
+  of the plan, so AC 16's "every stage" holds; CD and CDM stages have ε_v curves.
+- **Step 6, the example CSVs** name a specimen by its sample and reference, as the other example CSVs do, and
+  `triaxial_readings.csv` carries the lab's mark on each stage's q reading at its failure strain. Read with the mark
+  or with `max_deviator_stress`, the readings reproduce `p.triaxial()` for all 29 stages, with the interpolation
+  warning (18 stages: Δu and ε_v at failure are another row's, at the same strain).
+- **Step 6, the docs:** `triaxial-shearing-paths.py` now draws the CU and CDM stages only, as before, since the CSV
+  also holds CD and UU stages; so does P12's `test_example_fits_match_the_lab_marks_and_p11`. The P12 site page's "Where the readings come from" names the readings map (the note
+  for step 6 above). `site.ags` gains two `ABBR` rows for `DICT_TYPE`, so the example's group lines after `ABBR` move
+  by two; no test named them.
 

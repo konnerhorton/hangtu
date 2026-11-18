@@ -1,0 +1,401 @@
+loca_id,specimen_id,sample_reference,specimen_reference,ground_level,depth,depth_basis,elevation,test_type,test_stage,applied_normal_stress,horizontal_displacement,shear_stress,vertical_displacement,geology_unit,soil_class,geology_description
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,1,1000,0,0,0,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,1,1000,0.005,224,-0.001,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,1,1000,0.01,371,-0.001,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,1,1000,0.02,493,-0.002,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,1,1000,0.03,593,-0.003,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,1,1000,0.04,635,-0.004,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,1,1000,0.06,682,-0.006,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,1,1000,0.067,700,-0.006,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,1,1000,0.08,659,-0.006,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,1,1000,0.1,607,-0.007,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,1,1000,0.15,520,-0.008,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,1,1000,0.2,479,-0.009,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,1,1000,0.25,458,-0.009,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,1,1000,0.3,444,-0.01,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,1,1000,0.35,436,-0.01,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,1,1000,0.4,430,-0.01,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,2,2000,0,0,0,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,2,2000,0.005,328,0,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,2,2000,0.01,528,-0.001,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,2,2000,0.02,764,-0.002,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,2,2000,0.03,894,-0.003,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,2,2000,0.04,986,-0.004,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,2,2000,0.06,1029,-0.005,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,2,2000,0.078,1130,-0.006,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,2,2000,0.08,1119,-0.006,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,2,2000,0.1,1047,-0.007,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,2,2000,0.15,931,-0.009,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,2,2000,0.2,836,-0.009,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,2,2000,0.25,797,-0.009,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,2,2000,0.3,778,-0.01,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,2,2000,0.35,765,-0.01,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,2,2000,0.4,760,-0.01,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,3,4000,0,0,0,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,3,4000,0.005,458,-0.001,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,3,4000,0.01,798,-0.001,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,3,4000,0.02,1230,-0.002,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,3,4000,0.03,1476,-0.003,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,3,4000,0.04,1580,-0.003,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,3,4000,0.06,1972,-0.006,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,3,4000,0.08,2074,-0.006,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,3,4000,0.1,2193,-0.007,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,3,4000,0.119,2240,-0.008,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,3,4000,0.15,2049,-0.009,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,3,4000,0.2,1826,-0.009,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,3,4000,0.25,1710,-0.01,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,3,4000,0.3,1690,-0.01,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,3,4000,0.35,1629,-0.009,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-U3-S1,B-3-U3,S1,34.2,18,spec_depth,16.2,SMALL SBOX,3,4000,0.4,1610,-0.01,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,1,1000,0,0,0,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,1,1000,0.005,144,-0.001,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,1,1000,0.01,244,-0.001,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,1,1000,0.02,384,-0.003,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,1,1000,0.03,446,-0.003,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,1,1000,0.04,488,-0.004,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,1,1000,0.06,551,-0.005,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,1,1000,0.08,575,-0.006,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,1,1000,0.098,610,-0.007,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,1,1000,0.1,604,-0.007,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,1,1000,0.15,501,-0.009,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,1,1000,0.2,436,-0.009,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,1,1000,0.25,410,-0.01,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,1,1000,0.3,396,-0.01,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,1,1000,0.35,390,-0.01,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,1,1000,0.4,380,-0.01,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,2,2000,0,0,0,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,2,2000,0.005,390,-0.001,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,2,2000,0.01,626,-0.001,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,2,2000,0.02,875,-0.002,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,2,2000,0.03,1022,-0.003,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,2,2000,0.04,1143,-0.004,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,2,2000,0.06,1238,-0.006,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,2,2000,0.07,1250,-0.005,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,2,2000,0.08,1216,-0.006,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,2,2000,0.1,1097,-0.007,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,2,2000,0.15,986,-0.009,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,2,2000,0.2,928,-0.009,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,2,2000,0.25,894,-0.009,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,2,2000,0.3,873,-0.01,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,2,2000,0.35,857,-0.01,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,2,2000,0.4,840,-0.01,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,3,4000,0,0,0,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,3,4000,0.005,478,0,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,3,4000,0.01,813,0,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,3,4000,0.02,1200,-0.002,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,3,4000,0.03,1468,-0.003,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,3,4000,0.04,1607,-0.004,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,3,4000,0.06,1860,-0.006,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,3,4000,0.08,2056,-0.006,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,3,4000,0.1,2040,-0.007,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,3,4000,0.106,2080,-0.007,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,3,4000,0.15,1838,-0.008,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,3,4000,0.2,1672,-0.009,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,3,4000,0.25,1571,-0.009,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,3,4000,0.3,1548,-0.01,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,3,4000,0.35,1553,-0.01,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-6,B-6-U2-S1,B-6-U2,S1,33.6,18,spec_depth,15.6,SMALL SBOX,3,4000,0.4,1500,-0.01,Alluvium,fine,Soft to medium stiff gray lean CLAY (CL)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,1,1000,0,0,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,1,1000,0.005,173,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,1,1000,0.01,295,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,1,1000,0.02,434,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,1,1000,0.03,530,-0.003,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,1,1000,0.04,609,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,1,1000,0.06,695,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,1,1000,0.08,731,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,1,1000,0.1,741,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,1,1000,0.108,760,0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,1,1000,0.15,702,0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,1,1000,0.2,665,0.003,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,1,1000,0.25,634,0.005,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,1,1000,0.3,614,0.007,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,1,1000,0.35,618,0.008,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,1,1000,0.4,610,0.01,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,2,2000,0,0,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,2,2000,0.005,516,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,2,2000,0.01,773,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,2,2000,0.02,1044,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,2,2000,0.03,1204,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,2,2000,0.04,1303,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,2,2000,0.06,1382,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,2,2000,0.061,1420,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,2,2000,0.08,1373,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,2,2000,0.1,1303,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,2,2000,0.15,1249,0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,2,2000,0.2,1228,0.004,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,2,2000,0.25,1195,0.005,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,2,2000,0.3,1181,0.007,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,2,2000,0.35,1189,0.008,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,2,2000,0.4,1180,0.01,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,3,4000,0,0,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,3,4000,0.005,689,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,3,4000,0.01,1135,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,3,4000,0.02,1667,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,3,4000,0.03,1996,-0.003,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,3,4000,0.04,2255,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,3,4000,0.06,2472,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,3,4000,0.08,2581,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,3,4000,0.091,2650,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,3,4000,0.1,2586,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,3,4000,0.15,2544,0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,3,4000,0.2,2479,0.003,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,3,4000,0.25,2428,0.005,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,3,4000,0.3,2460,0.006,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,3,4000,0.35,2476,0.008,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,3,4000,0.4,2430,0.01,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,4,6000,0,0,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,4,6000,0.005,987,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,4,6000,0.01,1676,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,4,6000,0.02,2476,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,4,6000,0.03,3083,-0.003,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,4,6000,0.04,3401,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,4,6000,0.06,3828,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,4,6000,0.08,3972,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,4,6000,0.098,4120,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,4,6000,0.1,4079,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,4,6000,0.15,3907,0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,4,6000,0.2,3727,0.004,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,4,6000,0.25,3682,0.005,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,4,6000,0.3,3633,0.006,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,4,6000,0.35,3574,0.008,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-D4-S1,B-3-D4,S1,34.2,30.5,spec_depth,3.7,SMALL SBOX,4,6000,0.4,3590,0.01,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,1,10442.7,0,0,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,1,10442.7,0.005,2886,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,1,10442.7,0.01,4604,-0.001,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,1,10442.7,0.02,6966,-0.001,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,1,10442.7,0.03,8287,-0.002,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,1,10442.7,0.04,9191,-0.001,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,1,10442.7,0.06,9796,-0.001,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,1,10442.7,0.08,10742,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,1,10442.7,0.089,10860,0.001,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,1,10442.7,0.1,10398,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,1,10442.7,0.15,8619,0.002,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,1,10442.7,0.2,7871,0.004,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,1,10442.7,0.25,7397,0.005,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,1,10442.7,0.3,7281,0.007,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,1,10442.7,0.35,7021,0.008,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,1,10442.7,0.4,6892,0.01,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,2,20885.4,0,0,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,2,20885.4,0.005,4116,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,2,20885.4,0.01,6664,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,2,20885.4,0.02,10343,-0.001,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,2,20885.4,0.03,12921,-0.002,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,2,20885.4,0.04,14236,-0.001,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,2,20885.4,0.06,16190,-0.001,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,2,20885.4,0.08,17094,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,2,20885.4,0.1,16939,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,2,20885.4,0.105,17961,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,2,20885.4,0.15,15205,0.002,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,2,20885.4,0.2,13586,0.004,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,2,20885.4,0.25,13103,0.005,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,2,20885.4,0.3,12452,0.007,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,2,20885.4,0.35,12321,0.008,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,2,20885.4,0.4,11905,0.01,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,3,41770.9,0,0,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,3,41770.9,0.005,9147,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,3,41770.9,0.01,14226,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,3,41770.9,0.02,21853,-0.001,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,3,41770.9,0.03,26760,-0.002,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,3,41770.9,0.04,28210,-0.002,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,3,41770.9,0.06,31299,-0.002,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,3,41770.9,0.08,35212,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,3,41770.9,0.096,35714,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,3,41770.9,0.1,35357,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,3,41770.9,0.15,30355,0.002,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,3,41770.9,0.2,27765,0.004,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,3,41770.9,0.25,26953,0.005,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,3,41770.9,0.3,25708,0.007,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,3,41770.9,0.35,25635,0.009,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-1,B-3-C5,1,34.2,64.2,spec_depth,-30,,3,41770.9,0.4,25063,0.01,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,1,10442.7,0,0,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,1,10442.7,0.005,3213,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,1,10442.7,0.01,5031,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,1,10442.7,0.02,6891,-0.002,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,1,10442.7,0.03,8182,-0.002,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,1,10442.7,0.04,8569,-0.002,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,1,10442.7,0.06,9245,-0.001,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,1,10442.7,0.064,9398,-0.001,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,1,10442.7,0.08,8743,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,1,10442.7,0.1,8160,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,1,10442.7,0.15,7294,0.002,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,1,10442.7,0.2,6694,0.003,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,1,10442.7,0.25,6388,0.005,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,1,10442.7,0.3,6178,0.006,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,1,10442.7,0.35,6203,0.008,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,1,10442.7,0.4,6057,0.01,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,2,20885.4,0,0,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,2,20885.4,0.005,6110,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,2,20885.4,0.01,9918,-0.001,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,2,20885.4,0.02,14157,-0.002,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,2,20885.4,0.03,16311,-0.002,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,2,20885.4,0.04,17553,-0.002,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,2,20885.4,0.06,19136,-0.001,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,2,20885.4,0.07,19423,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,2,20885.4,0.08,18437,-0.001,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,2,20885.4,0.1,17194,0.001,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,2,20885.4,0.15,15197,0.002,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,2,20885.4,0.2,14201,0.004,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,2,20885.4,0.25,13592,0.005,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,2,20885.4,0.3,13404,0.007,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,2,20885.4,0.35,13235,0.009,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,2,20885.4,0.4,12949,0.01,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,3,41770.9,0,0,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,3,41770.9,0.005,8053,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,3,41770.9,0.01,13103,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,3,41770.9,0.02,20390,-0.001,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,3,41770.9,0.03,24961,-0.002,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,3,41770.9,0.04,27045,-0.001,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,3,41770.9,0.06,29112,-0.001,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,3,41770.9,0.08,32601,-0.001,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,3,41770.9,0.1,33387,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,3,41770.9,0.101,33834,0,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,3,41770.9,0.15,28960,0.002,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,3,41770.9,0.2,25589,0.003,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,3,41770.9,0.25,25204,0.005,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,3,41770.9,0.3,24472,0.007,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,3,41770.9,0.35,24014,0.008,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-3,B-3-C5-2,B-3-C5,2,34.2,64.6,spec_depth,-30.4,,3,41770.9,0.4,23601,0.01,Sandstone,rock,"Moderately strong gray fine-grained SANDSTONE, slightly weathered, thinly bedded"
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,1,1000,0,0,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,1,1000,0.005,179,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,1,1000,0.01,298,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,1,1000,0.02,466,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,1,1000,0.03,542,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,1,1000,0.04,594,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,1,1000,0.06,642,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,1,1000,0.08,704,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,1,1000,0.092,723,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,1,1000,0.1,709,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,1,1000,0.15,675,0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,1,1000,0.2,651,0.003,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,1,1000,0.25,637,0.005,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,1,1000,0.3,644,0.007,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,1,1000,0.35,627,0.008,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,1,1000,0.4,621,0.01,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,2,2000,0,0,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,2,2000,0.005,328,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,2,2000,0.01,531,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,2,2000,0.02,797,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,2,2000,0.03,914,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,2,2000,0.04,1061,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,2,2000,0.06,1172,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,2,2000,0.08,1247,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,2,2000,0.098,1301,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,2,2000,0.1,1288,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,2,2000,0.15,1231,0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,2,2000,0.2,1191,0.003,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,2,2000,0.25,1152,0.005,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,2,2000,0.3,1175,0.007,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,2,2000,0.35,1163,0.008,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,2,2000,0.4,1162,0.01,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,3,4000,0,0,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,3,4000,0.005,547,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,3,4000,0.01,983,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,3,4000,0.02,1435,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,3,4000,0.03,1764,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,3,4000,0.04,1961,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,3,4000,0.06,2289,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,3,4000,0.08,2454,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,3,4000,0.1,2463,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,3,4000,0.112,2582,0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,3,4000,0.15,2469,0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,3,4000,0.2,2418,0.003,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,3,4000,0.25,2381,0.005,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,3,4000,0.3,2298,0.007,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,3,4000,0.35,2363,0.008,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-2,B-2-D5-S1,B-2-D5,S1,35.8,30.5,spec_depth,5.3,SMALL SBOX,3,4000,0.4,2301,0.01,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,1,1000,0,0,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,1,1000,0.005,247,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,1,1000,0.01,387,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,1,1000,0.02,584,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,1,1000,0.03,649,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,1,1000,0.04,725,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,1,1000,0.06,796,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,1,1000,0.075,819,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,1,1000,0.08,809,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,1,1000,0.1,765,0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,1,1000,0.15,679,0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,1,1000,0.2,671,0.004,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,1,1000,0.25,641,0.005,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,1,1000,0.3,631,0.006,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,1,1000,0.35,625,0.008,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,1,1000,0.4,616,0.01,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,2,2000,0,0,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,2,2000,0.005,387,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,2,2000,0.01,612,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,2,2000,0.02,918,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,2,2000,0.03,1047,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,2,2000,0.04,1169,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,2,2000,0.06,1327,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,2,2000,0.08,1358,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,2,2000,0.086,1408,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,2,2000,0.1,1367,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,2,2000,0.15,1294,0.003,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,2,2000,0.2,1267,0.004,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,2,2000,0.25,1257,0.005,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,2,2000,0.3,1244,0.006,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,2,2000,0.35,1249,0.009,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,2,2000,0.4,1239,0.01,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,3,4000,0,0,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,3,4000,0.005,781,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,3,4000,0.01,1312,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,3,4000,0.02,1835,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,3,4000,0.03,2155,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,3,4000,0.04,2338,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,3,4000,0.06,2587,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,3,4000,0.079,2737,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,3,4000,0.08,2710,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,3,4000,0.1,2677,0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,3,4000,0.15,2486,0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,3,4000,0.2,2461,0.004,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,3,4000,0.25,2473,0.005,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,3,4000,0.3,2422,0.007,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,3,4000,0.35,2400,0.008,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-5,B-5-D5-S1,B-5-D5,S1,35,45.5,spec_depth,-10.5,SMALL SBOX,3,4000,0.4,2386,0.009,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,1,1000,0,0,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,1,1000,0.005,184,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,1,1000,0.01,319,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,1,1000,0.02,463,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,1,1000,0.03,558,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,1,1000,0.04,603,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,1,1000,0.06,696,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,1,1000,0.08,704,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,1,1000,0.09,726,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,1,1000,0.1,719,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,1,1000,0.15,667,0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,1,1000,0.2,666,0.004,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,1,1000,0.25,653,0.006,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,1,1000,0.3,652,0.007,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,1,1000,0.35,645,0.008,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,1,1000,0.4,644,0.01,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,2,2000,0,0,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,2,2000,0.005,303,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,2,2000,0.01,536,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,2,2000,0.02,811,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,2,2000,0.03,992,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,2,2000,0.04,1123,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,2,2000,0.06,1226,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,2,2000,0.08,1341,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,2,2000,0.1,1416,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,2,2000,0.113,1435,0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,2,2000,0.15,1375,0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,2,2000,0.2,1300,0.003,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,2,2000,0.25,1228,0.005,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,2,2000,0.3,1227,0.007,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,2,2000,0.35,1213,0.008,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,2,2000,0.4,1196,0.01,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,3,4000,0,0,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,3,4000,0.005,610,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,3,4000,0.01,1052,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,3,4000,0.02,1612,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,3,4000,0.03,1870,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,3,4000,0.04,2287,-0.002,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,3,4000,0.06,2517,-0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,3,4000,0.08,2664,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,3,4000,0.1,2859,0,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,3,4000,0.118,2888,0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,3,4000,0.15,2753,0.001,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,3,4000,0.2,2560,0.003,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,3,4000,0.25,2517,0.005,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,3,4000,0.3,2445,0.006,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,3,4000,0.35,2416,0.008,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)
+B-6,B-6-D5-S1,B-6-D5,S1,33.6,45.5,spec_depth,-11.9,SMALL SBOX,3,4000,0.4,2396,0.01,Terrace,coarse,Medium dense to very dense brown SAND with gravel (SP)

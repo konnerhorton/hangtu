@@ -24,6 +24,8 @@ A dataset is a table with one row per test, with its depth, elevation and geolog
 | `p.shear_box()` | Shear box or ring shear stage: the normal stresses, peak and residual shear stress, displacements and the lab's own fit | [Shear box envelope](../plots/shear-box-envelope.md), [property profile](../plots/profile.md) |
 | `p.oedometer()` | Oedometer increment: the stress at its end, the void ratio at its start and end, the lab's m_v and c_v, and whether it is on the loading, unloading or reloading branch; a swelling test with no increments is one row | [Property profile](../plots/profile.md), [property by geology unit](../plots/geology-unit-comparison.md) |
 | `p.triaxial()` | Triaxial stage at failure, effective stress (CU, CD) or total stress (UU): cell pressure, deviator stress and pore pressure, the principal stresses from them, the mode of failure, and the lab's own c′ and φ′ | [Failure envelope](../plots/failure-envelope.md), [Hoek–Brown envelope](../plots/hoek-brown-envelope.md), [property profile](../plots/profile.md), [property by geology unit](../plots/geology-unit-comparison.md) |
+| `p.triaxial_readings()` | Reading during a triaxial stage's shearing (q, Δu or ε_v against axial strain), from the file's own groups through the readings map, with its stage's values | [Triaxial shearing](../plots/triaxial-shearing.md) |
+| `p.shear_box_readings()` | Reading during a shear box stage (τ or vertical displacement against horizontal displacement), through the readings map | None yet |
 
 Each comes in the project's display units, or in `display_units="SI"` or `"US"` if you ask.
 
@@ -32,6 +34,19 @@ Each comes in the project's display units, or in `display_units="SI"` or `"US"` 
 - **Depth** is the depth of the test. An SPT is placed at the middle of its test drive; `depth_basis` says how each depth was found.
 - **Elevation** is the hole's ground level minus the depth.
 - **Geology unit** comes from the geology log at that depth. `p.set_geology_map("strata.csv")` maps the file's geology codes to the units you report on, with their order and colors.
+
+## Readings during a test
+
+AGS has no group for the readings taken while a specimen is sheared, so a file that carries them puts them in groups of its own, named by whoever wrote it. Tell hangtu which groups those are with a readings map, a CSV with one row per heading it reads:
+
+```
+group,dataset,heading,column
+XTDS,triaxial_readings,XTDS_TESN,test_stage
+XTDS,triaxial_readings,XTDS_STRN,axial_strain
+XTDS,triaxial_readings,XTDS_DEVF,deviator_stress
+```
+
+`p.set_readings_map("readings_map.csv")` checks it against the file and stores it with the project. Each group must be a user-defined group whose `DICT` entry gives it a triaxial or shear box test as its parent (`TREG` or `TRET`, `TRIG` or `TRIT`, `SHBG` or `SHBT`), and each mapped heading a unit hangtu converted on ingest that fits the column. Then `p.triaxial_readings()` and `p.shear_box_readings()` give one row per reading, with only the values its group gives, in the file's order. The example project's map is `ht.examples.path("readings_map.csv")`.
 
 ## Gradings reported as percentages
 
