@@ -322,7 +322,10 @@ def test_triaxial_readings_template_has_p12_columns():
         "specimen_id",
         "sample_reference",
         "specimen_reference",
+        "ground_level",
         "depth",
+        "depth_basis",
+        "elevation",
         "test_type",
         "test_stage",
         "failure_criterion",
@@ -335,6 +338,8 @@ def test_triaxial_readings_template_has_p12_columns():
         "volumetric_strain",
         "reported_failure_reading",
         "geology_unit",
+        "soil_class",
+        "geology_description",
     ]
     assert list(ht.template("triaxial_readings").columns) == expected
     table = ht.columns("triaxial_readings").set_index("name")
@@ -345,6 +350,35 @@ def test_triaxial_readings_template_has_p12_columns():
     ]
     assert table.loc["axial_strain", "quantity"] == "percent"
     assert ht.template("triaxial_readings")["reported_failure_reading"].dtype == bool
+
+
+def test_shear_box_readings_template_has_its_dataset_columns():
+    # datasets.md §6.17 without source_line (M16 AC 14, the registry half).
+    expected = [
+        "loca_id",
+        "specimen_id",
+        "sample_reference",
+        "specimen_reference",
+        "ground_level",
+        "depth",
+        "depth_basis",
+        "elevation",
+        "test_type",
+        "test_stage",
+        "applied_normal_stress",
+        "horizontal_displacement",
+        "shear_stress",
+        "vertical_displacement",
+        "geology_unit",
+        "soil_class",
+        "geology_description",
+    ]
+    assert list(ht.template("shear_box_readings").columns) == expected
+    table = ht.columns("shear_box_readings").set_index("name")
+    assert table.loc["shear_stress", ["us_unit", "si_unit"]].tolist() == ["psf", "kPa"]
+    for displacement in ("horizontal_displacement", "vertical_displacement"):
+        assert table.loc[displacement, "quantity"] == "small_length"
+    assert COLUMNS["vertical_displacement"]["scale"] == "interval"
 
 
 @pytest.mark.parametrize(

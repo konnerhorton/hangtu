@@ -50,7 +50,10 @@ templates:
   # load_branch, which ht.analysis.oedometer_load_branch() adds (M19 a).
   oedometer:      [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, test_type, sample_condition, test_stage, applied_vertical_stress, void_ratio_at_increment_start, void_ratio_at_increment_end, reported_coefficient_of_volume_compressibility, reported_coefficient_of_consolidation_root_time, reported_coefficient_of_consolidation_log_time, specimen_height, specimen_diameter, water_content, final_water_content, bulk_unit_weight, dry_unit_weight, particle_density, particle_density_assumed, degree_of_saturation, void_ratio, swelling_pressure, height_change_on_saturation, equipment_deformation_corrected, test_remarks, remarks, geology_unit, soil_class, geology_description]
   # One row per reading during shearing (M11 c, P12 §3); stage values repeat on each row.
-  triaxial_readings: [loca_id, specimen_id, sample_reference, specimen_reference, depth, test_type, test_stage, failure_criterion, effective_consolidation_stress, back_pressure, cell_pressure, axial_strain, deviator_stress, excess_pore_pressure, volumetric_strain, reported_failure_reading, geology_unit]
+  # p.triaxial_readings()'s columns without source_line (M16, datasets.md §6.16).
+  triaxial_readings: [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, test_type, test_stage, failure_criterion, effective_consolidation_stress, back_pressure, cell_pressure, axial_strain, deviator_stress, excess_pore_pressure, volumetric_strain, reported_failure_reading, geology_unit, soil_class, geology_description]
+  # One row per shear box reading, p.shear_box_readings()'s columns without source_line (M16, datasets.md §6.17).
+  shear_box_readings: [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, test_type, test_stage, applied_normal_stress, horizontal_displacement, shear_stress, vertical_displacement, geology_unit, soil_class, geology_description]
   # A log per hole (ht.analysis.vertical_stress); p.stratigraphy() adds source_line.
   stratigraphy:   [loca_id, depth_top, depth_base, geology_unit, soil_class, geology_description]
   # Overlays (P01 §8): fill in one depth or elevation pair and leave the other blank.
@@ -1339,6 +1342,30 @@ columns:
     label: Vertical displacement at residual
     ags: [SHBT.SHBT_RDIN]
     used_by: []
+  horizontal_displacement:
+    description: Horizontal (shear) displacement at a shear box reading, from the start of shearing
+    type: number
+    quantity: small_length
+    scale: ratio
+    label: Horizontal displacement, δ_h
+    ags: ["a user-defined group, through the readings map (datasets.md §6.15)"]
+    used_by: []
+  shear_stress:
+    description: Shear stress on the shear plane at a shear box reading
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Shear stress, τ
+    ags: ["a user-defined group, through the readings map (datasets.md §6.15)"]
+    used_by: []
+  vertical_displacement:
+    description: Vertical displacement at a shear box reading, from the start of shearing, sign as the file gives it
+    type: number
+    quantity: small_length
+    scale: interval
+    label: Vertical displacement, δ_v
+    ags: ["a user-defined group, through the readings map (datasets.md §6.15)"]
+    used_by: []
   peak_displacement_rate:
     description: Displacement rate of the stage sheared to its peak
     type: number
@@ -1525,7 +1552,7 @@ columns:
     quantity: percent
     scale: ratio
     label: Axial strain, ε_a
-    ags: ["none: a user CSV of readings, P12 §3"]
+    ags: ["a user-defined group, through the readings map (datasets.md §6.15)", "a user CSV of readings, P12 §3"]
     used_by: [plot.triaxial_shearing]
   deviator_stress:
     description: Deviator stress σ1 − σ3 at a reading during shearing, as the lab corrected it
@@ -1533,7 +1560,7 @@ columns:
     quantity: stress
     scale: ratio
     label: Deviator stress, q
-    ags: ["none: a user CSV of readings, P12 §3"]
+    ags: ["a user-defined group, through the readings map (datasets.md §6.15)", "a user CSV of readings, P12 §3"]
     used_by: [plot.triaxial_shearing]
   excess_pore_pressure:
     description: Change in pore pressure from the start of shearing at a reading, positive for a rise
@@ -1541,7 +1568,7 @@ columns:
     quantity: stress
     scale: interval
     label: Excess pore pressure, Δu
-    ags: ["none: a user CSV of readings, P12 §3"]
+    ags: ["a user-defined group, through the readings map (datasets.md §6.15)", "a user CSV of readings, P12 §3"]
     used_by: [plot.triaxial_shearing]
   volumetric_strain:
     description: Volumetric strain at a reading during shearing, from its start, positive in compression
@@ -1549,7 +1576,7 @@ columns:
     quantity: percent
     scale: interval
     label: Volumetric strain, ε_v
-    ags: ["none: a user CSV of readings, P12 §3"]
+    ags: ["a user-defined group, through the readings map (datasets.md §6.15)", "a user CSV of readings, P12 §3"]
     used_by: [plot.triaxial_shearing]
   reported_failure_reading:
     description: True on the reading the lab took as its stage's failure, at most one per stage

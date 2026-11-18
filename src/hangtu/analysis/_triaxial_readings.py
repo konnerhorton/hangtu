@@ -407,8 +407,9 @@ class Readings:
     def marked(self) -> np.ndarray:
         if "reported_failure_reading" not in self.df.columns:
             return np.zeros(len(self.df), dtype=bool)
-        column = self.df["reported_failure_reading"]
-        return column.fillna(False).astype(bool).to_numpy()
+        # A blank column reads from a CSV as object; eq() leaves it all False
+        # where fillna(False) would downcast it, with pandas' FutureWarning.
+        return self.df["reported_failure_reading"].eq(True).to_numpy(dtype=bool)
 
     def pick(self, stages: dict[tuple, np.ndarray], criterion: str) -> dict:
         usable = self.q_loading.copy()

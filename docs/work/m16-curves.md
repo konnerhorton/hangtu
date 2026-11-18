@@ -476,3 +476,14 @@ file and the figure). Start a new session at steps 3 and 7.
   axis); the curve footnote now reads "without axial strain, or without a deviator stress, Δu or ε_v". In effective
   stress, q readings left off a drawn path for want of a Δu (outside the stage's Δu readings, or on the tail) are
   counted: "Left out of the paths: 2 readings without Δu" for BH1-U3 stage 1's tail.
+- **Step 3, `used_by` unchanged:** the registry's `used_by` lists plot functions only (`columns.yaml`'s header,
+  and `tests/test_registry.py` checks each is a `plot.<name>`), so the readings datasets aren't added to it; the
+  plan's line was wrong. The four reading columns' `ags:` notes now name the readings map first, then the CSV.
+- **Step 3, a blank `reported_failure_reading`:** read from a CSV with every value blank, the column is `object`,
+  and `fillna(False)` in `_Readings.marked()` gave pandas' downcasting FutureWarning (an error in the suite). Now
+  `eq(True)`. The AGS dataset's column is blank too (§6.16), so step 5 would have met it.
+- **Step 3, the example CSV regenerated:** `_make_examples.py` writes `triaxial_readings.csv` in the template's
+  columns, so it now carries the five new columns, filled from the stages; `site.ags` is unchanged. Step 6
+  regenerates it again from the project.
+- **For step 6 or the close-out:** the P12 site page (`docs/site/plots/triaxial-shearing.md`, "AGS files carry
+  only the values at failure") still says the readings come only from a CSV.

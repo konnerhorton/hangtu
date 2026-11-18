@@ -484,3 +484,58 @@ def test_joins_max_stress_ratio():
 def test_rows_with_every_quantity_warn_nothing_about_interpolation():
     failure(readings(), failure_criterion="max_deviator_stress")
     failure(readings("A", "B", "C", "E"), failure_criterion="max_stress_ratio")
+
+
+# --- M16 AC 14: the template's new columns are optional ------------------------------
+
+#: ``ht.template("triaxial_readings")`` before M16 added the depth and geology columns.
+OLD_TEMPLATE = [
+    "loca_id",
+    "specimen_id",
+    "sample_reference",
+    "specimen_reference",
+    "depth",
+    "test_type",
+    "test_stage",
+    "failure_criterion",
+    "effective_consolidation_stress",
+    "back_pressure",
+    "cell_pressure",
+    "axial_strain",
+    "deviator_stress",
+    "excess_pore_pressure",
+    "volumetric_strain",
+    "reported_failure_reading",
+    "geology_unit",
+]
+#: Reading columns ``triaxial_failure_from_readings()`` turns into failure values.
+READINGS_ONLY = {
+    "axial_strain",
+    "deviator_stress",
+    "excess_pore_pressure",
+    "volumetric_strain",
+    "reported_failure_reading",
+}
+
+
+@pytest.mark.parametrize("new", [False, True], ids=["old template", "new template"])
+def test_a_csv_in_either_template_reads_and_runs(tmp_path, new):
+    columns = list(ht.template("triaxial_readings").columns) if new else OLD_TEMPLATE
+    golden = readings("A", "B")
+    df = pd.DataFrame({c: golden.get(c) for c in columns})
+    df["loca_id"] = "BH1"
+    df["depth"] = 4.5
+    path = tmp_path / "readings.csv"
+    df.to_csv(path, index=False)
+    read = ht.read_csv(path, units={**dict.fromkeys(STRESSES, "kPa"), "depth": "m"})
+    rows = failure(read, failure_criterion="max_deviator_stress")
+    expected = failure(golden, failure_criterion="max_deviator_stress")
+    assert list(rows["specimen_id"]) == ["A", "B"]
+    for column in (
+        "deviator_stress_at_failure",
+        "axial_strain_at_failure",
+        "pore_pressure_at_failure",
+    ):
+        assert list(rows[column]) == pytest.approx(list(expected[column]), rel=REL)
+    # Stage columns, the new template's depth and geology among them, carry through.
+    assert set(columns) - READINGS_ONLY <= set(rows.columns)
