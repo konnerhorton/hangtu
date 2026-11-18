@@ -185,8 +185,9 @@ def tran(version):
     )
 
 
-def dict_group(us=False):
-    """The DICT entry for XPPT, in the units and TYPEs of the file's XPPT group."""
+def dict_group(us=False, curves=(), xppt=True):
+    """The DICT entries for XPPT (if ``xppt``) and ``curves``, in the units and
+    TYPEs of the file's groups."""
     depth, res = (
         (("10SF", "ft"), ("10SF", "tsf")) if us else (("2DP", "m"), ("0DP", "kPa"))
     )
@@ -257,6 +258,7 @@ def dict_group(us=False):
             None,
         ],
     ]
+    rows = (rows if xppt else []) + curve_dict_rows(curves, us)
     return group("DICT", headings, rows)
 
 
@@ -869,6 +871,178 @@ SHBT = group(
 )
 
 
+# Readings curves in user-defined groups (M16, datasets.md §6.15 to 6.17), shaped
+# like a real file's: each quantity in its own group, read at its own strains,
+# a child of TREG or SHBG keyed by the specimen, a stage (_TESN) and a point
+# number. BH1-U3 specimen 1 stage 1, BH2-U2 specimen 3 stage 3 and BH2-D1 S1
+# stage 1 are the readings in the M16 acceptance criteria; the other stages'
+# curves are short and pass through their TRET or SHBT values.
+def curve_group(name, columns, rows):
+    """A curve group: the specimen key, ``<name>_TESN``, ``<name>_POIN``, then
+    ``columns`` as (suffix, TYPE, unit, description, converted in the US twin).
+
+    ``rows`` are (specimen key, stage, [readings]); each reading is a list of
+    ``columns``' values, numbered 1, 2, ... within its stage.
+    """
+    headings = [
+        *SPECIMEN,
+        (f"{name}_TESN", "X", ""),
+        (f"{name}_POIN", "X", ""),
+        *((f"{name}_{s}", t, u) for s, t, u, _, _ in columns),
+    ]
+    data = [
+        [*key, stage, str(point), *reading]
+        for key, stage, readings in rows
+        for point, reading in enumerate(readings, start=1)
+    ]
+    us = [*SPECIMEN_US, *(f"{name}_{s}" for s, _, _, _, us in columns if us)]
+    described = {
+        "LOCA_ID": ("KEY", "Location identifier"),
+        "SAMP_TOP": ("KEY", "Depth to top of sample"),
+        "SAMP_REF": ("KEY", "Sample reference"),
+        "SAMP_TYPE": ("KEY", "Sample type"),
+        "SAMP_ID": ("KEY", "Sample unique identifier"),
+        "SPEC_REF": ("KEY", "Specimen reference"),
+        "SPEC_DPTH": ("KEY", "Depth to top of specimen"),
+        f"{name}_TESN": ("KEY", "Test stage number"),
+        f"{name}_POIN": ("KEY", "Reading number"),
+        **{f"{name}_{s}": ("OTHER", d) for s, _, _, d, _ in columns},
+    }
+    return {**group(name, headings, data, us=us), "described": described}
+
+
+STRAIN = ("STRN", "1DP", "%", "Axial strain", False)
+DEVIATOR = ("DEVF", "0DP", "kPa", "Deviator stress", True)
+EXCESS_PORE = ("PWPE", "0DP", "kPa", "Excess pore pressure", True)
+VOLUMETRIC = ("VOLS", "2DP", "%", "Volumetric strain", False)
+SHEAR_BOX = [
+    ("HDIS", "2DP", "mm", "Horizontal displacement", True),
+    ("SHST", "0DP", "kPa", "Shear stress", True),
+    ("VDIS", "2DP", "mm", "Vertical displacement", True),
+]
+BH1_U3_1 = [*BH1_U3, "1", 5.05]
+BH1_U3_2 = [*BH1_U3, "2", 5.15]
+BH1_U3_3 = [*BH1_U3, "3", 5.25]
+XTDS = curve_group(
+    "XTDS",
+    [STRAIN, DEVIATOR],
+    [
+        (
+            BH1_U3_1,
+            "1",
+            [
+                [0.0, 0],
+                [2.0, 100],
+                [4.0, 150],
+                [6.0, 170],
+                [8.5, 180],
+                [10.0, 176],
+                [12.0, 170],
+                [11.8, 80],
+                [11.6, 5],
+            ],
+        ),
+        (BH1_U3_2, "1", [[0.0, 0], [3.0, 180], [9.0, 263], [12.0, 250]]),
+        (BH1_U3_3, "1", [[0.0, 0], [4.0, 300], [10.5, 413], [13.0, 400]]),
+        (BH2_U2_T, "1", [[0.0, 0], [2.0, 220], [4.0, 300], [5.0, 295]]),
+        (BH2_U2_T, "2", [[0.0, 0], [2.0, 420], [3.5, 520]]),
+        (BH2_U2_T, "3", [[0.0, 0], [2.0, 500], [4.0, 800], [6.0, 900], [7.0, 880]]),
+    ],
+)
+XTPW = curve_group(
+    "XTPW",
+    [STRAIN, EXCESS_PORE],
+    [
+        (
+            BH1_U3_1,
+            "1",
+            [[0.0, 0], [3.0, 40], [7.0, 56], [10.0, 64], [12.0, 66], [11.7, 60]],
+        ),
+        (BH1_U3_2, "1", [[0.0, 0], [4.0, 80], [9.0, 110], [12.0, 112]]),
+        (BH1_U3_3, "1", [[0.0, 0], [5.0, 170], [10.5, 220], [13.0, 224]]),
+    ],
+)
+XTVS = curve_group(
+    "XTVS",
+    [STRAIN, VOLUMETRIC],
+    [
+        (BH2_U2_T, "1", [[0.0, 0.0], [2.0, 0.80], [4.0, 1.20]]),
+        (BH2_U2_T, "2", [[0.0, 0.0], [3.5, 2.10]]),
+        (BH2_U2_T, "3", [[0.0, 0.0], [3.0, 2.0], [5.0, 3.0], [7.0, 3.8]]),
+    ],
+)
+XSBS = curve_group(
+    "XSBS",
+    SHEAR_BOX,
+    [
+        (
+            BH2_D1_S,
+            "1",
+            [
+                [0.00, 0, 0.00],
+                [0.50, 20, 0.05],
+                [1.00, 30, 0.15],
+                [2.10, 38, 0.30],
+                [4.00, 34, 0.25],
+                [8.00, 31, 0.10],
+                [12.00, 30, -0.40],
+            ],
+        ),
+        (
+            BH2_D1_S,
+            "2",
+            [
+                [0.00, 0, 0.00],
+                [1.00, 50, 0.05],
+                [2.60, 68, 0.10],
+                [6.00, 62, -0.20],
+                [12.40, 58, -0.60],
+            ],
+        ),
+        (
+            BH2_D1_S,
+            "3",
+            [
+                [0.00, 0, 0.00],
+                [1.50, 100, -0.05],
+                [3.40, 128, -0.15],
+                [7.00, 118, -0.50],
+                [12.80, 112, -0.90],
+            ],
+        ),
+    ],
+)
+CURVES = [XTDS, XTPW, XTVS, XSBS]
+CURVE_PARENTS = {
+    "XTDS": ("TREG", "Triaxial deviator stress readings"),
+    "XTPW": ("TREG", "Triaxial excess pore pressure readings"),
+    "XTVS": ("TREG", "Triaxial volumetric strain readings"),
+    "XSBS": ("SHBG", "Shear box readings"),
+}
+
+
+def curve_dict_rows(curves, us=False):
+    """``DICT`` rows for ``curves`` in ``dict_group``'s columns, in the units and
+    TYPEs the file writes them."""
+    rows = []
+    for g in curves:
+        written = to_us(g) if us else g
+        name = g["name"]
+        parent, description = CURVE_PARENTS[name]
+        rows.append(
+            ["GROUP", name, *[None] * 3, description, None, None, parent, None, None]
+        )
+        for heading, ags_type, unit in written["headings"]:
+            status, text_ = g["described"][heading]
+            rows.append(
+                [
+                    *("HEADING", name, heading, status, ags_type, text_, unit or None),
+                    *[None] * 4,
+                ]
+            )
+    return rows
+
+
 # Oedometer (M19 a, docs/data/datasets.md §6.14): BH1-U3 specimen OED1 is the
 # spec's table. ρ 1.92, ρd 1.50, ρs 2.70 Mg/m3, so e0 = 2.70 / 1.50 - 1 =
 # 0.800; w 28.0 %, S 95 %; unit weights 1.92 × 9.80665 = 18.828768 and
@@ -1190,7 +1364,7 @@ def _quoted(value):
 
 def site_groups(us=False):
     return [
-        dict_group(us),
+        dict_group(us, CURVES),
         LOCA,
         GEOL,
         SAMP,
@@ -1219,6 +1393,7 @@ def site_groups(us=False):
         # Last, so the specimen keys and lines of the groups before don't move.
         CONG,
         CONS,
+        *CURVES,
     ]
 
 
@@ -2012,6 +2187,49 @@ def joins_groups():
             [*j2_u1, "L1", 2.10, "2", 0.897, 10, None],
         ],
     )
+    # Readings curves (M16, datasets.md §6.16): J1-U3 T1's stage "1" (the CU
+    # stage above, TRET_PWPF blank) with a strain that falls inside the loading
+    # part (2.0 then 1.9 %), a reading with a blank strain, two readings of a
+    # stage "2" that TRET doesn't have, and a flagged excess pore pressure (<1).
+    # J1-U1 T1 gets a volumetric strain curve and J1-D2 R2 a shear box curve, so
+    # every curve group of the readings map is in the file.
+    j1_u3_t1 = [*j1_u3, "T1", 6.35]
+    xtds = curve_group(
+        "XTDS",
+        [STRAIN, DEVIATOR],
+        [
+            (
+                j1_u3_t1,
+                "1",
+                [
+                    [0.0, 0],
+                    [1.0, 50],
+                    [2.0, 80],
+                    [1.9, 85],
+                    [3.0, 90],
+                    [4.0, 88],
+                    [None, 70],
+                ],
+            ),
+            (j1_u3_t1, "2", [[0.0, 0], [1.0, 40]]),
+        ],
+    )
+    xtpw = curve_group(
+        "XTPW",
+        [STRAIN, ("PWPE", "XN", "kPa", "Excess pore pressure", True)],
+        [(j1_u3_t1, "1", [[0.0, "0"], [1.5, "20"], [2.5, "30"], [2.8, "<1"]])],
+    )
+    xtvs = curve_group(
+        "XTVS",
+        [STRAIN, VOLUMETRIC],
+        [([*j1_u1, "T1", 1.30], "1", [[0.0, 0.0], [3.0, 0.50]])],
+    )
+    xsbs = curve_group(
+        "XSBS",
+        SHEAR_BOX,
+        [([*j1_d2, "R2", 3.20], "1", [[0.00, 0, 0.00], [5.00, 18, -0.10]])],
+    )
+    curves = [xtds, xtpw, xtvs, xsbs]
     return [
         loca,
         geol,
@@ -2030,6 +2248,8 @@ def joins_groups():
         shbt,
         cong,
         cons,
+        *curves,
+        dict_group(curves=curves, xppt=False),
     ]
 
 

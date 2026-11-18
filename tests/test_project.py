@@ -34,7 +34,8 @@ def test_groups_in_file_order(project):
     assert project.groups[:3] == ["PROJ", "TRAN", "DICT"]
     last = ["SHBG", "SHBT", "LUCT", "LVAN", "LPEN", "LFCN", "IVAN", "IPEN"]
     last += ["CONG", "CONS"]  # oedometer (M19 a)
-    assert project.groups[-13:] == [*last, "UNIT", "TYPE", "ABBR"]
+    last += ["XTDS", "XTPW", "XTVS", "XSBS"]  # readings curves (M16)
+    assert project.groups[-17:] == [*last, "UNIT", "TYPE", "ABBR"]
 
 
 def test_canonical_table(project):
@@ -223,9 +224,10 @@ def test_open_warns_when_the_ags_file_changed(project, site):
         ht.Project.open(project.path)
 
 
-def test_open_a_database_from_another_schema(project):
+@pytest.mark.parametrize("version", [0, 3])  # 3: before the readings map (M16)
+def test_open_a_database_from_another_schema(project, version):
     with sqlite3.connect(project.path) as connection:
-        connection.execute("UPDATE meta_source SET schema_version = 0")
+        connection.execute(f"UPDATE meta_source SET schema_version = {version}")
     connection.close()
     with pytest.raises(
         ht.HangtuError, match=r"can't read it\. Rebuild it .*overwrite=True"

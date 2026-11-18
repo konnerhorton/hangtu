@@ -12,7 +12,7 @@ import pandas as pd
 import hangtu.db as database
 from hangtu import _judgments, ags, datasets, qc, vertical_datums
 from hangtu._settings import Settings, settings
-from hangtu.datasets import _geology_map
+from hangtu.datasets import _geology_map, _readings_map
 from hangtu.errors import HangtuError, warn
 
 _KEY_COLUMNS = ("_row", "_line", "location_id", "sample_id", "specimen_id")
@@ -1277,6 +1277,65 @@ class Project:
     def geology_map(self) -> pd.DataFrame | None:
         """The stored geology map, or None if there isn't one."""
         rows = database.read_geology_map(self._path)
+        return None if rows.empty else rows
+
+    def set_readings_map(
+        self, source: "str | PathLike[str] | pd.DataFrame | None"
+    ) -> None:
+        """Say which of the file's own groups hold test readings, and how.
+
+        AGS4 has no group for the readings taken during a test (a triaxial
+        stress-strain curve, a shear box displacement curve), so a file that
+        carries them uses groups its author named. The map names those groups,
+        the readings dataset each one feeds (``"triaxial_readings"`` or
+        ``"shear_box_readings"``) and the column each of their headings gives.
+        hangtu never guesses it from the names.
+
+        The map is checked against the file and stored with the project,
+        replacing any earlier one, until the database is rebuilt. If any check
+        fails, nothing is stored.
+
+        Parameters
+        ----------
+        source
+            A CSV file or a DataFrame with the columns ``group``, ``dataset``,
+            ``heading`` and ``column``, one row per mapped heading. None removes
+            the map.
+
+            - ``group``: a user-defined group in the file, as written. The
+              file's ``DICT`` group must give it a parent: ``TREG``, ``TRET``,
+              ``TRIG`` or ``TRIT`` for triaxial readings, ``SHBG`` or ``SHBT``
+              for shear box readings.
+            - ``dataset``: ``triaxial_readings`` or ``shear_box_readings``, the
+              same on every row of a group.
+            - ``heading``: one of the group's headings.
+            - ``column``: what it gives. Triaxial readings map ``test_stage``
+              and ``axial_strain``, and at least one of ``deviator_stress``,
+              ``excess_pore_pressure`` and ``volumetric_strain``; shear box
+              readings map ``test_stage`` and ``horizontal_displacement``, and
+              at least one of ``shear_stress`` and ``vertical_displacement``.
+
+            A numeric heading's unit must be one hangtu converted on ingest
+            and fit the column (a strain in %, a stress, a length): the map
+            never converts a number itself.
+
+        Examples
+        --------
+        >>> p.set_readings_map("readings_map.csv")
+        >>> p.readings_map
+           group            dataset    heading           column
+        0   XTDS  triaxial_readings  XTDS_TESN       test_stage
+        1   XTDS  triaxial_readings  XTDS_STRN     axial_strain
+        2   XTDS  triaxial_readings  XTDS_DEVF  deviator_stress
+        >>> p.set_readings_map(None)
+        """
+        rows = None if source is None else _readings_map.read(source, self._path)
+        database.write_readings_map(self._path, rows)
+
+    @property
+    def readings_map(self) -> pd.DataFrame | None:
+        """The stored readings map, or None if there isn't one."""
+        rows = database.read_readings_map(self._path)
         return None if rows.empty else rows
 
     def set_judgments(self, path: "str | PathLike[str] | None") -> None:

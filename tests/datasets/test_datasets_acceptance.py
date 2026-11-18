@@ -254,7 +254,7 @@ def test_8_plots_draw_a_refusal_with_a_blank_n(joins_spt):
 def test_9_filters(projects):
     p = projects["site_si"]
     spt = _quiet(p.spt, geology=["Alluvium"], holes=["BH1", "BH2"], depth=(0, 4))
-    assert list(spt["source_line"]) == [55, 57]
+    assert list(spt["source_line"]) == [104, 106]
 
 
 # 10. Incomplete records left out, or kept on request.

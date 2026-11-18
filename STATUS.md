@@ -5,9 +5,9 @@ settled. M20's Soft Soil set is built on M18's model-set base. Then waves 4–6.
 
 Last checkpoint: 3, after M19 (a), 2026-11-15, 4f03bfd.
 
-**In progress:** M16 on `m16-curves`; build steps 1–3 (the readings rules, P12, the registry) committed. Next:
-step 4 of `docs/work/m16-curves.md`, the readings map and the test files' curve groups. Read its "Notes from the
-build" first.
+**In progress:** M16 on `m16-curves`; build steps 1–4 (the readings rules, P12, the registry, the readings map)
+committed. Next: step 5 of `docs/work/m16-curves.md`, the two readings datasets. Read its "Notes from the build"
+first: displacements are stored in m.
 
 ## Open
 Each milestone names its wave (SPEC §1.3). A unit's close-out records its status here; a finished milestone
@@ -15,7 +15,7 @@ moves to Done, in one line (its unit's work file has the detail).
 
 | M | Scope | Done when | Status |
 |---|---|---|---|
-| M16 | Wave 0: user-defined groups and curves | Curves from the sample dataset reach the datasets | Building: steps 1–3 of 7 done |
+| M16 | Wave 0: user-defined groups and curves | Curves from the sample dataset reach the datasets | Building: steps 1–4 of 7 done |
 | M19 | Wave 3: oedometer (σ′p, Cc, Cs, Eoed, Eur,oed, k from cv·mv, Grob and Huder–Amberg swelling); P13–P15. Four units: (a) data, (b) compressibility and P13, (c) mv, cv, k and P14–P15, (d) rock swelling | Golden values; plot criteria | (a) done (`p.oedometer()`, QC E001–E005 but E003); (b) next |
 | M20 | Wave 3: K0 from OCR, SHANSEP; the Soft Soil set | Golden values | Not started |
 | M21 | Wave 4: rock lab datasets (UCS, tensile, point load, slake durability, intact moduli) and RQD | Datasets feed P01 and P07 | Not started |

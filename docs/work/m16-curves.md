@@ -487,3 +487,15 @@ file and the figure). Start a new session at steps 3 and 7.
   regenerates it again from the project.
 - **For step 6 or the close-out:** the P12 site page (`docs/site/plots/triaxial-shearing.md`, "AGS files carry
   only the values at failure") still says the readings come only from a CSV.
+- **Step 4, lines moved:** `DICT` is the good files' first data group, so the curve groups' `DICT` rows move every
+  later line of `site_si.ags` and `site_us.ags` by 49; the plan's "no earlier line moves" holds only for the groups
+  themselves. Three tests named those lines (`test_9_filters`, `test_ground_level_and_elevation`, the stratigraphy
+  order test). `joins.ags` had no `DICT`, so its `DICT` goes last and nothing moves. The curve groups raise no finding.
+- **Step 4, `mm` is a length, not a small length:** ingest gives a user-defined heading in `mm` the first kind of its
+  dimension, `length`, stored in m (`ingest.md` §7); standard `SHBT_PDIS` is `small_length` in mm only because the
+  dictionary says mm. So the map's unit check is by dimension (`units.check_dimension` on the stored unit; `%` only
+  for a percent column), not by equal kind names, and **step 5 must convert the displacements from the stored unit
+  (m) to mm**. kPa and % headings are stored as the columns want them.
+- **Step 4, the map's checks:** a group is standard if the 4.2 dictionary or the file version's has it; the parent
+  is read from `raw_DICT`. No good file has a U005 or raw-only curve heading, so those two errors are tested by
+  editing `meta_heading`; the no-`DICT` error uses `defects.ags`' `XUND`.
