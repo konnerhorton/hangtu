@@ -42,16 +42,16 @@ Each stage cell gives the wave (W0–W6) or milestone that builds it, and **buil
 | 12 | [Hydraulic conductivity](12-hydraulic-conductivity.md) | k (soil, rock mass) | **part built** (`p.permeability()`; the lab's cv and mv: `p.oedometer()`, M19 a); W6 | W3 (cv·mv); W6 | W6 | W6 |
 | 13 | [Intact rock strength](13-intact-rock-strength.md) | σci, σt, Is50 | W4 | W4 | — | W4 |
 | 14 | [Intact rock deformability](14-intact-rock-deformability.md) | Ei, νi | W4 | W4 | — | W4 |
-| 15 | [Hoek–Brown constant mi](15-hoek-brown-mi.md) | mi | **part built** (a CSV in the `triaxial` template, M17 c); W0 (`TRIT` and user-defined AGS groups) | **built** (`hoek_brown_fit()`, σci and mi free and with σci fixed: M17 c) | W4 | W4 (the Hoek–Brown set, M22; `select()` doesn't take a `HoekBrownFit`) |
+| 15 | [Hoek–Brown constant mi](15-hoek-brown-mi.md) | mi | **part built** (a CSV in the `triaxial` template, M17 c; triaxial tests from `TRIT`); M21 (UCS from `RUCS`) | **built** (`hoek_brown_fit()`, σci and mi free and with σci fixed: M17 c) | W4 | W4 (the Hoek–Brown set, M22; `select()` doesn't take a `HoekBrownFit`) |
 | 16 | [GSI and disturbance](16-gsi-and-disturbance.md) | GSI, D, RQD, JCond89 | W4 (RQD) | W4 | — | W4 |
 | 17 | [Rock mass strength](17-rock-mass-strength.md) | mb, s, a, σcm, σt,mass, equivalent c′, φ′ | — | W4 | — | W4 |
 | 18 | [Rock mass modulus](18-rock-mass-modulus.md) | Em | — | W4 | — | W4 |
 | 19 | [Post-peak (residual) rock mass](19-post-peak-rock-mass.md) | GSIr, mr, sr, ar | — | W4 | — | W4 |
 | 20 | [In situ stress in rock](20-in-situ-stress-rock.md) | σH, σh, kH, kh | — | W4 | — | W4 |
-| 21 | [Swelling of rock](21-swelling-rock.md) | free swell, swell pressure, Grob kq, σ0 | **part built** (`CONG_SPRS`, `CONG_SATH` and swelling increments: `p.oedometer()`, M19 a); rock free swell waits for wave 0 | W3 | — | W3 |
+| 21 | [Swelling of rock](21-swelling-rock.md) | free swell, swell pressure, Grob kq, σ0 | **part built** (`CONG_SPRS`, `CONG_SATH` and swelling increments: `p.oedometer()`, M19 a); rock free swell is M19 (d) | W3 | — | W3 |
 | 22 | [Discontinuity shear strength](22-discontinuity-shear-strength.md) | φj, cj | **built** (`p.shear_box()`, M17 a) | **built** (`shear_box_fit()`, peak and residual, free and through the origin: M17 b) | — | not yet placed (`select()` doesn't take a `ShearBoxFit`; joints aren't in a model set yet) |
 | 23 | [Slake durability](23-slake-durability.md) | Id1, Id2 | W4 | W4 | — | W4 |
 
-Curves (triaxial stress–strain, rock triaxial, swelling against time, shear box displacement) come from the AGS
-file with wave 0, after wave 2; wave 2 reads them from a CSV (SPEC §1.3). Stage D for the sheets whose derivations land in waves 1–2 was the selection milestone (M18, done); each
+Triaxial and shear box readings come from the AGS file's user-defined groups through the readings map (wave 0,
+M16), or from a CSV; rock triaxial results from `TRIG`/`TRIT` (SPEC §1.3). Stage D for the sheets whose derivations land in waves 1–2 was the selection milestone (M18, done); each
 later wave builds stage D for its own sheets, with its model set.

@@ -255,9 +255,9 @@ def _warn_interpolated(interpolated: dict[tuple, list[str]]) -> None:
     ]
     more = f", and {n - 10} more" if n > 10 else ""
     warn(
-        f"{n} stage{'s' if n > 1 else ''} had no reading of its own at the failure "
-        f"strain, so the value there was interpolated in strain between the "
-        f"readings on either side: {'; '.join(named[:10])}{more}. The failure "
+        f"In {n} stage{'s' if n > 1 else ''}, the failure reading had no value of "
+        f"its own for the quantity named, so its value was interpolated in strain "
+        f"from that quantity's readings: {'; '.join(named[:10])}{more}. The failure "
         "row's pore_pressure_at_failure or volumetric_strain_at_failure is then "
         "not a value the lab read."
     )

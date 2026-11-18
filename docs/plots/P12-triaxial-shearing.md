@@ -274,8 +274,9 @@ drawn data unless stated.
     `failure_criterion="max_deviator_stress"` gives the example project's `p.triaxial()` values exactly
     (`deviator_stress_at_failure`, `pore_pressure_at_failure`, `axial_strain_at_failure`).
 12. **Edge cases:** each row of §11 that raises raises, naming what §11 says; each that draws, draws.
-13. **Visual check:** `docs/plots/img/P12-us.png` (the example readings, `stress_strain` with Δu, US) and
-    `P12-si.png` (R1 and R3 in `s_t` with the fit, SI), 100 dpi, looked at and committed in the close-out.
+13. **Visual check:** `docs/plots/img/P12-us.png` (the example readings' CU and CDM stages, `stress_strain` with Δu,
+    US; the multistage specimen's last stage shows the unload tail) and `P12-si.png` (R1 and R3 in `s_t` with the
+    fit, SI), 100 dpi, looked at and committed in the close-out.
 
 ![P12, the example readings in stress_strain with Δu (US)](img/P12-us.png)
 

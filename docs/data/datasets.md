@@ -576,10 +576,12 @@ One row per mapped heading:
   - a group without its required columns;
   - a group with no `DICT` entry, or whose `DICT_PGRP` isn't a parent the table above allows (the message names
     the parent and the allowed ones);
-  - a numeric column whose heading ingest didn't convert to that column's quantity kind (`ingest.md` §7): a unit of
-    the wrong dimension (`kPa` mapped to `axial_strain`), a unit hangtu doesn't know (`U005`), or a column held raw
-    (`U001`, `U003`, `U004`). The message names the heading, its unit and the kind the column needs. A number is
-    never converted by the map.
+  - a numeric column whose heading ingest didn't convert to a unit of that column's dimension (`ingest.md` §7; a
+    percent column needs `%`): a unit of the wrong dimension (`kPa` mapped to `axial_strain`), a unit hangtu doesn't
+    know (`U005`), or a column held raw (`U001`, `U003`, `U004`). The message names the heading, its unit and the
+    kind the column needs. The check is by dimension, not by kind: a user-defined heading in `mm` gets the first
+    kind of its dimension, `length`, and is stored in m, so the readings datasets convert it to the column's
+    `small_length`. The map itself never converts a number.
 - **Other headings of a mapped group aren't read** (a point number, a point type). `test_stage` is read as text, as
   written.
 - **Readings join their stage** on `specimen_id` (from the group's sample and specimen keys, `ingest.md` §5) and

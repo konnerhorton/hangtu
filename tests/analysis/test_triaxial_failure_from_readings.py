@@ -407,7 +407,7 @@ def test_ags_readings_max_stress_ratio():
             failure_criterion="max_stress_ratio",
         )
     assert len(record) == 1
-    assert "1 stage had" in str(record[0].message)
+    assert "In 1 stage," in str(record[0].message)
     assert "BH1-U3 stage 1 (excess_pore_pressure)" in str(record[0].message)
     # σ′3 = 400 - 300 - 66 = 34, σ′1 = 204: ratio 6.0, above 5.5 and 5.888889.
     assert rows["axial_strain_at_failure"].item() == 12.0
@@ -466,7 +466,7 @@ def test_joins_max_stress_ratio():
     messages = [str(w.message) for w in record]
     assert len(messages) == 2
     assert "decreases" in messages[0]
-    assert "1 stage had" in messages[1] and "J1-U3 stage 1" in messages[1]
+    assert "In 1 stage," in messages[1] and "J1-U3 stage 1" in messages[1]
     with pytest.warns(UserWarning, match="decreases"):
         readings_ = reduce_readings(joins_shaped(), "max_stress_ratio", None).readings
     candidates = np.arange(4)

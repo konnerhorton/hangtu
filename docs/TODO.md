@@ -68,6 +68,11 @@ A downhole or surface velocity profile (often a user-defined group) can run belo
 - Review the default list group by group against real files.
 - **Later (Roadmap):** conditional requirements, e.g. `SPEC_*` only required when a sample has more than one specimen.
 
+### 74. QC: a readings curve against its stage's reported values · Claude · `docs/data/qc.md`, `docs/data/datasets.md` §6.16–6.17 · a later QC unit
+- **Idea:** a rule comparing each stage's readings with the values the lab reported for it: the largest q against `TRET_DEVF` or `TRIT_DEVF`, the shear box peak against `SHBT_PEAK`, with a tolerance. A file whose curves were digitized or copied from another test would show up.
+- **Evidence:** the sample dataset's curves agree (largest q over `TRET_DEVF`: median 1.000, range 0.987–1.064; UU and shear box peaks within 0.3 %), so a tolerance of a few percent separates rounding from a wrong curve.
+- **Open:** where it runs. QC reads the file, and the curves reach hangtu only through the project's readings map, so the rule needs the map in QC.
+
 ---
 
 ## Statistics (research items, with Claude's recommendations)
@@ -179,9 +184,6 @@ Each judgment declares what it is keyed by and whether one project-wide value is
 
 The built judgments and their keys are in `docs/analysis/judgments.md` §5.
 
-### 31. Curves in real files · You · input for wave 0's intent (M16)
-Which user-defined groups and headings real files use for triaxial stress–strain curves, rock triaxial, swelling against time and shear box displacement, gathered from the sample dataset being prepared from real projects. Rock triaxial and UCS rows are read into `ht.template("triaxial")`'s shape, with `failure_mode` (SPEC §2.6).
-
 ### 32. Published definitions of the model sets · You (copies) + Claude (verify) · SPEC §5 · each set with its wave
 One citation in the Mohr–Coulomb set (`docs/analysis/statistics.md` §7) is still unchecked:
 - **Bolton, M.D. (1986), The strength and dilatancy of sands, *Géotechnique* 36(1), 65–78** (paywalled, not at hand): the 0.8 relation and the stress condition it was derived for. hangtu cites Kulhawy & Mayne (1990) Eq. 4-16, p. 4-20, which writes it for triaxial compression (φ′tc = φ′cv + 0.8 ψ); the groundhog docs give it for plane strain, and Obrzud & Truty (2018, p. 86) use it for both. The hand calculation doesn't change; the docstring of `mohr_coulomb_set()`, the dilatancy site page and sheet 09 say which condition holds once the primary is read.
@@ -252,7 +254,9 @@ Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads o
   - Which values would be in the set?
   - A value carried in the AGS file: is it data, or a judgment? SPEC §4 keeps judgments in `judgments.yaml`, where they can be reviewed, so a judgment in the file would have to say where it came from.
   - How would the set be published? For example, as a `DICT` block users copy into their files.
-  - How does this fit with wave 0 (M16, user-defined groups)?
+  - Recommended groups could ship with a readings map hangtu provides (`docs/data/datasets.md` §6.15). The map's
+    check that every group it names is in the file would then be revisited, since a shipped map names groups a
+    file may not have.
 
 ### 55. The sandstone triaxial set in site.ags · Claude · `tests/data/_make_examples.py`, `src/hangtu/examples/__init__.py`
 - **Rule:** example data goes into `site.ags` first, and the example CSVs are written from that project.
@@ -261,6 +265,10 @@ Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads o
 - **Questions:**
   - Does the AGS file carry `failure_mode`, which `hoek_brown_fit()` needs, or is it added after ingest?
   - The file is in US units while the CSV is in MPa: convert on writing, or keep the CSV in the file's units?
+
+### 75. `RUCS` into `p.triaxial()` · You + Claude · `docs/data/datasets.md` §6.10, sheet 15 · M21
+- **Idea:** read `RUCS` as `p.triaxial()` rows with `cell_pressure` 0, so `hoek_brown_fit()` runs on an AGS file without a CSV. AGS 4.2's rock triaxial results already arrive through `TRIG`/`TRIT`.
+- **Open:** UCS rows in `p.triaxial()` also enter every soil envelope fit run on that dataset; decide with M21's other rock lab datasets whether rock rows join it or form their own. #55 (the sandstone set in `site.ags`) follows from it.
 
 ### 56. Named design cases as a selection key · You · SPEC §4, §5, `docs/analysis/judgments.md` §5.9 · when a project needs two selections of one unit
 One unit can need two selected values of one parameter: EC7's Type A (a mean) for a long slip surface and Type B (a fractile) for a footing, or short- and long-term cases. SPEC §4 lists a named design case among a judgment's possible keys, but the `selection` judgment is keyed by parameter and geology unit only. Until a case key exists, `select(selection=...)` or a second judgments file passed as `judgments=` gives one case at a time. Open: the key's place in the file (a `cases:` level above the parameter, or one per entry), how `select()` names the case (`case=`), and how model sets carry it (one set per case).
@@ -313,9 +321,9 @@ A review of the whole package asked one question: if an AI agent does the work a
 - **Found (grag-fractions):** `uscs()` leaves the symbol blank ("no fractions") where a `cobbles_content` or `boulders_content` column is present but blank, and counts them as 0 only where the columns are absent. So a hand-built frame without the columns is classified on the whole sample even when it has oversize. `p.index_properties()` gives `uscs()` the reported `GRAG_VCRE` as the oversize, so it isn't affected.
 - **Open:** whether an absent oversize column should also leave the symbol blank, or warn, rather than count as 0.
 
-### 72. Standard quantities in user-defined headings · You + Claude · SPEC §2.6, §7, `docs/data/datasets.md` §6.8 · with M16's readings map, once a second file needs it
+### 72. Standard quantities in user-defined headings · You + Claude · SPEC §2.6, §7, `docs/data/datasets.md` §6.8, §6.15 · once a second file needs it
 - **Found (lden-unit-weight):** a real file gave its lab unit weights only in a user-defined `LDEN_UWT` (kN/m³), with no `LDEN_BDEN`, so `C001` flagged every `LDEN` row and `p.density()` had none. The same file had `LPEN_QU` and `ISPT_B150`. For now the extractor writes `LDEN_BDEN` = γ / g and hangtu reads only the standard heading.
-- **Decided:** if a heading map is needed, it is part of M16's readings map (for example `LDEN_UWT` → `bulk_unit_weight`, with hangtu deriving the density), not a separate project setting. M16's draft maps user-defined groups, so its map then has to cover a user-defined heading inside a standard group too.
+- **Decided:** if a heading map is needed, it extends the readings map (`docs/data/datasets.md` §6.15; for example `LDEN_UWT` → `bulk_unit_weight`, with hangtu deriving the density), not a separate project setting. The map reads user-defined groups only, and a standard group in it is an error, so this item is what lets it name a user-defined heading inside a standard group.
 
 ### 73. QC E003: the lab's m_v against the void ratios · You + Claude · `docs/data/qc.md` §4.15, `src/hangtu/qc/_oedometer.py` · when BS 1377-5 or ISO 17892-5 is at hand, or before M19 (c) recomputes m_v
 - **Waits on (You):** the definition of m_v in BS 1377-5 and ISO 17892-5, with the clause: Δe / ((1 + e_start) Δσ′) with e at the start of the increment, or on the specimen's e0. A lab dividing by 1 + e0 gives values 5–20 % apart at later increments, so the rule takes the standard's definition and names it.

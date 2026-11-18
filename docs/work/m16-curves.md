@@ -523,3 +523,12 @@ file and the figure). Start a new session at steps 3 and 7.
   for step 6 above). `site.ags` gains two `ABBR` rows for `DICT_TYPE`, so the example's group lines after `ABBR` move
   by two; no test named them.
 
+- **Step 7, the figure:** `P12-us.png` draws the example's CU and CDM stages (as the old figure did, before the CSV
+  held CD and UU stages), so the multistage specimen's last stage shows its unload tail. No script writes it: it is
+  the site example `triaxial-shearing.py` with that filter, saved at 100 dpi. P12 AC 13 says which stages.
+- **Step 7, the interpolation warning reworded:** "N stages had no reading of its own" read as the stage having no
+  reading; it now says the failure reading had no value of its own for the quantity named.
+- **Step 7, §6.15's unit check** now says it is by dimension, not kind, as step 4 built it.
+- **Step 7, AC 17 on the sample file:** 99 `TRET` (57 CD, 42 CU) and 16 `TRIT` stages, 30 `SHBT` stages (of 197:
+  the others have no curve), no reading left out and no warning from either dataset; the failure analysis warns once
+  for the 4 stages whose strain falls mid-curve, and once for the 96 stages interpolated at failure. Ingest 9 s.

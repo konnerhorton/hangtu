@@ -1,13 +1,9 @@
 # Status
 
-**Next:** M19 (b), compressibility (σ′p, Cc, Cs, OCR, Eoed, Eur,oed) and P13; wave 0 (M16) once TODO #31 is
-settled. M20's Soft Soil set is built on M18's model-set base. Then waves 4–6.
+**Next:** M19 (b), compressibility (σ′p, Cc, Cs, OCR, Eoed, Eur,oed) and P13, from its intent on `m19b-compressibility`.
+M20's Soft Soil set is built on M18's model-set base. Then waves 4–6.
 
 Last checkpoint: 3, after M19 (a), 2026-11-15, 4f03bfd.
-
-**In progress:** M16 on `m16-curves`; build steps 1–6 (the readings rules, P12, the registry, the readings map, the
-readings datasets, the example curves) committed. Next: step 7 of `docs/work/m16-curves.md`, the close-out (Opus).
-Read its "Notes from the build" first.
 
 ## Open
 Each milestone names its wave (SPEC §1.3). A unit's close-out records its status here; a finished milestone
@@ -15,7 +11,6 @@ moves to Done, in one line (its unit's work file has the detail).
 
 | M | Scope | Done when | Status |
 |---|---|---|---|
-| M16 | Wave 0: user-defined groups and curves | Curves from the sample dataset reach the datasets | Building: steps 1–6 of 7 done |
 | M19 | Wave 3: oedometer (σ′p, Cc, Cs, Eoed, Eur,oed, k from cv·mv, Grob and Huder–Amberg swelling); P13–P15. Four units: (a) data, (b) compressibility and P13, (c) mv, cv, k and P14–P15, (d) rock swelling | Golden values; plot criteria | (a) done (`p.oedometer()`, QC E001–E005 but E003); (b) next |
 | M20 | Wave 3: K0 from OCR, SHANSEP; the Soft Soil set | Golden values | Not started |
 | M21 | Wave 4: rock lab datasets (UCS, tensile, point load, slake durability, intact moduli) and RQD | Datasets feed P01 and P07 | Not started |
@@ -25,7 +20,7 @@ moves to Done, in one line (its unit's work file has the detail).
 
 ## Done
 In build order. Milestones keep their numbers when the order changes, because other documents cite them, so M8
-comes after M9 and M16 after M17. M10 (a feedback round) was dropped, and its number isn't reused.
+comes after M9 and M16 after M18. M10 (a feedback round) was dropped, and its number isn't reused.
 - **M0:** scaffolding: src layout, deps, ruff, pytest, CI matrix, MIT license.
 - **M1:** **P00** framework: settings, units for DataFrames, column registry, style, palette, `Sheet`.
 - **M2, M2b:** **P01** property profile; **P07** property by geology unit.
@@ -43,6 +38,7 @@ comes after M9 and M16 after M17. M10 (a feedback round) was dropped, and its nu
 - **M11:** wave 2: `p.triaxial()`, the envelope fitting core and **P11**, **P12** from a CSV of readings.
 - **M17:** wave 2: `p.undrained_strength()`, `p.shear_box()`; the shear box fit and **P31**; the intact Hoek–Brown fit and **P32** from a CSV of rock tests.
 - **M18:** selection (stage D): SPT refusals in `fit()`; `representative()` (EC7 characteristic, JRC worked examples, and US views); **P09**; `compare_sources()` and the shear box φ′ conversion; `select()`; the model-set base and `mohr_coulomb_set()`.
+- **M16:** wave 0: the readings map, `p.triaxial_readings()` and `p.shear_box_readings()` from user-defined groups; readings with one quantity per row, unload tails and interpolation in `triaxial_failure_from_readings()` and **P12**.
 
 ## Releases
 The latest is **0.1.0** (M9). Each release and what's unreleased: [`CHANGELOG.md`](CHANGELOG.md).
