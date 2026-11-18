@@ -34,7 +34,8 @@ shearing to one failure row per stage in the `triaxial` template's shape, so P11
 about where a stage failed. It computes no principal stress: `triaxial_failure_stresses()` does.
 - **The failure reading:** `failure_criterion=` first (an engineer re-picking the lab's tests), then the lab's
   mark (`reported_failure_reading`), else an error. No default. When the argument overrides marks, a note counts
-  them.
+  them. Readings from an AGS file (`p.triaxial_readings()`) carry no mark, so they need the argument: the stage's
+  `failure_criterion` is free text as the lab wrote it, and isn't read as a rule.
 - **Two criteria:** `"max_deviator_stress"` (the largest q) and `"max_stress_ratio"` (the largest σ′1/σ′3,
   effective stress only); ties go to the lowest strain. The rows' `failure_criterion` is written "Maximum deviator
   stress" or "Maximum principal stress ratio", as AGS writes it, so rows from readings and from AGS pool, or refuse
@@ -42,7 +43,25 @@ about where a stage failed. It computes no principal stress: `triaxial_failure_s
 - **The path starts at cell − back**, with u = back + Δu per reading, so a path's last point is its failure row's.
   `effective_consolidation_stress` is carried, not used.
 - **A stage is (`specimen_id`, `test_stage`).** Other columns are stage columns, carried, and must be the same on
-  all of a stage's readings. Strain must not decrease within a stage (which also catches two stages under one ID).
+  all of a stage's readings. The reading columns are `axial_strain`, `deviator_stress`, `excess_pore_pressure`,
+  `volumetric_strain`, `reported_failure_reading` and `source_line`.
+- **Each quantity has its own readings.** The q readings of a stage are its rows with a q, the Δu readings its rows
+  with a Δu, the εv readings its rows with an εv. A row may carry all three (a CSV row usually does) or one (a
+  dataset row from a file that gives each quantity in its own group, read at its own strains).
+- **Loading part and unload tail.** For each quantity, in row order, the loading part runs to the last reading at
+  that quantity's largest strain in the stage; the readings after it are the unload tail (a multistage stage is
+  unloaded before the next one). Tail readings are never failure candidates and are never interpolated from; P12
+  draws them as given. Readings with a blank strain belong to neither.
+- **Strain that decreases within a loading part** is a warning naming the stages (a misplaced point on a curve, or
+  readings out of order), not an error: the readings are used in their order. Two stages under one `specimen_id`
+  without `test_stage` are still caught where their stage columns differ (`cell_pressure`), as above.
+- **Δu and εv at a q reading:** the row's own value where it has one; else, for a loading-part q reading, linear
+  interpolation in strain between the stage's loading-part Δu (or εv) readings on either side of its strain, sorted
+  by strain (where several share a strain, the last in row order); blank outside their range, never extrapolated,
+  and blank on an unload-tail q reading. A drained stage's blank Δu is 0
+  after this, as above. The failure row's `pore_pressure_at_failure` and `volumetric_strain_at_failure`, the
+  stress ratio and P12's paths all use these values. One warning per call counts and names the stages whose Δu or
+  εv at the failure reading was interpolated rather than read.
 
 ## 3. The line-fit core and what every fit shares
 **The core** (`hangtu.analysis._line_fit`): each fit transforms its points into x and y, fits y = a + b x by ordinary

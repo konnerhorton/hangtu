@@ -7,7 +7,7 @@
 | **Type** | plot + light analysis |
 | **Milestone** | M11 (c) (`STATUS.md`), [`docs/work/m11c-triaxial-shearing.md`](../work/m11c-triaxial-shearing.md) |
 | **Depends on** | P00; `triaxial_failure_stresses()` (M11 a); `mohr_coulomb_fit()` and P11 (M11 b) |
-| **Related** | P11 (the same failure points and fit); sheet 04; TODO #53 |
+| **Related** | P11 (the same failure points and fit); sheet 04; TODO #53; readings from the AGS file: `docs/data/datasets.md` §6.15–6.16, [`docs/work/m16-curves.md`](../work/m16-curves.md) |
 
 ---
 
@@ -22,10 +22,11 @@ Answers: did the specimens contract or dilate, how did pore pressure develop, wh
 which criterion, and does one envelope fit them. P10 (stress–strain curves) was merged in, because it draws the
 same readings.
 
-**Where the readings come from.** AGS carries only the values at failure (`TRET` and `TRIT` have one row per
-stage; checked against the 4.1–4.2 dictionaries, 2026-10-15). Readings arrive as exports from the lab's software,
-which the user shapes into a CSV in `ht.template("triaxial_readings")`'s shape. There is no
-reader for lab software formats.
+**Where the readings come from.** AGS 4.2 has no group for readings during shearing (`TRET` and `TRIT` have one
+row per stage; checked against the 4.1–4.2 dictionaries, 2026-10-15). Readings come either from user-defined groups
+in the AGS file, which the project's readings map names (`p.triaxial_readings()`, `docs/data/datasets.md` §6.15–
+6.16), or from a CSV in `ht.template("triaxial_readings")`'s shape, which the user builds from the lab's export.
+Both reach the plot in one shape. There is no reader for lab software formats.
 
 ## 2. Reference figure
 `space="s_t"`:
@@ -54,13 +55,16 @@ reader for lab software formats.
 every view and on the fit; equal aspect in s′–t and p′–q, so the paths' slopes read true.
 
 ## 3. Input data
-**Row grain:** one row per reading. The stage's values repeat on each of its rows, so the file is one sheet.
+**Row grain:** one row per reading. The stage's values repeat on each of its rows, so the file is one sheet. A
+row may carry q, Δu and εv together, or only some of them (from a file that gives each in its own group, read at
+its own strains); each quantity's readings are its rows with a value (`docs/analysis/strength.md` §2).
 `ht.template("triaxial_readings")` has these columns, ordered as `ht.template("triaxial")` orders its own, with
-the reading columns after the stage's and `geology_unit` last:
+the reading columns after the stage's and the geology columns last:
 
 | Column | Per | Quantity kind | Req.? | Notes |
 |---|---|---|---|---|
-| `loca_id`, `sample_reference`, `specimen_reference`, `depth` | stage | –, –, –, length | – | carried to the failure rows; labels |
+| `loca_id`, `sample_reference`, `specimen_reference` | stage | text | – | carried to the failure rows; labels |
+| `ground_level`, `depth`, `depth_basis`, `elevation` | stage | length, length, text, length | – | carried to the failure rows |
 | `specimen_id` | stage | text | ✔ | with `test_stage`, says which stage a reading belongs to |
 | `test_stage` | stage | text | – | blank or missing: one stage per specimen |
 | `test_type` | stage | text | ✔ | the AGS `TREG_TYPE`/`TRIG_TYPE` code, as `ht.template("triaxial")` |
@@ -68,26 +72,31 @@ the reading columns after the stage's and `geology_unit` last:
 | `effective_consolidation_stress` | stage | stress | – | carried; the path starts at `cell_pressure` − `back_pressure` (§4) |
 | `back_pressure` | stage | stress | ✔ effective | |
 | `cell_pressure` | stage | stress | ✔ | constant during the stage |
-| `axial_strain` | reading | percent | ✔ | from the start of shearing; within a stage, never decreasing |
+| `axial_strain` | reading | percent | ✔ | from the start of shearing; rising to the stage's largest, then an unload tail if any (§4) |
 | `deviator_stress` | reading | stress | ✔ | q = σ1 − σ3, as the lab corrected it (area, membrane). hangtu doesn't redo the corrections |
-| `excess_pore_pressure` | reading | stress | ✔ undrained, effective | Δu from the start of shearing, positive for a rise |
+| `excess_pore_pressure` | reading | stress | ✔ undrained, effective | Δu from the start of shearing, positive for a rise; interpolated in strain at a q reading without one (§4) |
 | `volumetric_strain` | reading | percent | – | from the start of shearing, positive in compression (dilation negative) |
 | `reported_failure_reading` | reading | bool | – | True on the lab's failure reading; at most one per stage |
 | `geology_unit` | stage | text | – | color, and a common `group_by=` |
+| `soil_class`, `geology_description` | stage | text | – | carried |
 
-Any other column the user adds is a stage column: carried to the failure rows, and checked to be the same on all
-of a stage's readings.
+`p.triaxial_readings()` adds `source_line`, a reading column. Any other column the user adds is a stage column:
+carried to the failure rows, and checked to be the same on all of a stage's readings.
 
 **Grouping columns used:** `group_by=` (one fit and one color per group); `color_by=` (paths and curves only).
 
-**Value flags handled:** none. A reading with a blank `axial_strain` or `deviator_stress` is left out of the curve
-and counted; a blank `excess_pore_pressure` leaves that reading out of the undrained effective path, counted.
+**Value flags handled:** none. A reading with a blank `axial_strain` is left out and counted; a row with no q isn't
+on the q curve or the paths (it draws on the second axis when it has a Δu or εv). A q reading whose Δu is blank and
+can't be interpolated (outside the stage's Δu readings, or none) is left out of the undrained effective path,
+counted.
 
 **Minimum data:** 1 reading to draw; 2 failure readings per group to fit (1 with `cohesion=0`), as P11.
 
 ## 4. Analysis / calculations
 **Per reading** (definitions, as `triaxial_failure_stresses()` uses at failure; derived in the M11 (b) Spec):
 - σ3 = `cell_pressure`, σ1 = σ3 + q.
+- Δu and εv at a q reading are its own, else interpolated in strain from the stage's loading-part readings, never
+  extrapolated (`docs/analysis/strength.md` §2).
 - u = `back_pressure` + Δu; σ′3 = σ3 − u, σ′1 = σ′3 + q. In a drained stage (`CD`, `CDM`, `CIDC`, `CADC`)
   with Δu blank, u = `back_pressure` (Δu = 0, the drained condition), as `triaxial_failure_stresses()` reads a
   drained stage at failure. In any other stage with Δu blank, the effective stresses are blank.
@@ -102,13 +111,15 @@ and counted; a blank `excess_pore_pressure` leaves that reading out of the undra
 2. Else the stage's `reported_failure_reading`.
 3. Else an error naming the stages and the argument.
 
-Ties go to the first reading at the maximum (the lowest strain). Readings with a blank value the criterion needs
-are not candidates. No default criterion: on a CU curve the two pick different readings, and which is right is the
+Ties go to the first reading at the maximum (the lowest strain). Candidates are the q readings of the loading part
+(`docs/analysis/strength.md` §2): unload-tail readings and readings with a blank value the criterion needs are not
+candidates. No default criterion: on a CU curve the two pick different readings, and which is right is the
 engineer's call against the standard and the lab's report (TODO #53; SPEC §4).
 
 **Failure rows.** One row per stage, in the order of the stages' first readings, in `ht.template("triaxial")`'s
 shape: the stage columns, then `deviator_stress_at_failure` = q, `pore_pressure_at_failure` = `back_pressure` +
-Δu (blank where Δu is), `axial_strain_at_failure` and `volumetric_strain_at_failure` at the failure reading,
+Δu (blank where Δu is), `axial_strain_at_failure` and `volumetric_strain_at_failure` at the failure reading (Δu
+and εv interpolated as above where the reading has none, with one warning naming those stages),
 `multistage_test` (the type is multistage, or the specimen has more than one stage, as `datasets.md` §6.10), and
 `failure_criterion`: "Maximum deviator stress" or "Maximum principal stress ratio" where hangtu picked, the
 readings' own value where the lab's mark was used. `triaxial_failure_stresses()` then adds the principal
@@ -137,8 +148,8 @@ space as P11 §4.
 ## 7. Data marks
 | Series | Mark | Color | Legend |
 |---|---|---|---|
-| Curve (`stress_strain`) or path (`s_t`, `p_q`) | solid line per stage, readings in strain order | by stage, else group or `color_by` | one entry per color |
-| Second axis (`stress_strain`) | dashed line per stage, same color | as the curve | "Δu (dashed)" or "ε_v (dashed)" |
+| Curve (`stress_strain`) or path (`s_t`, `p_q`) | solid line per stage through its q readings in row order, the unload tail included | by stage, else group or `color_by` | one entry per color |
+| Second axis (`stress_strain`) | dashed line per stage through its Δu or εv readings in row order, the tail included, same color | as the curve | "Δu (dashed)" or "ε_v (dashed)" |
 | Failure reading | filled dot, the same reading in every view | as the curve | one gray dot saying how it was picked: "Failure: maximum deviator stress", "Failure: maximum principal stress ratio" or "Failure: lab's reading" (*added in review*) |
 | Envelope (`s_t`, `p_q`) | as P11 §7 | as P11 | as P11 |
 | User envelopes | as P11 | | |
@@ -216,10 +227,13 @@ fig, ax, fit = ht.plot.failure_envelope(stages)     # P11, the same failure poin
 | Two `reported_failure_reading` True in one stage | Error naming the stage (when it's used) |
 | `failure_criterion="max_stress_ratio"` on a stage with no effective stresses (UU, CU without Δu) | Error naming the stages: the ratio is of effective stresses; use `"max_deviator_stress"` or leave them out |
 | σ′3 ≤ 0 on a reading under `"max_stress_ratio"` | Error naming the readings: the ratio has no meaning there (X004's cause in `qc.md`, a pore pressure without the back pressure taken off) |
-| Strain decreasing within a stage | Error naming the stage: readings out of order, or two stages under one `specimen_id` without `test_stage` |
+| Strain decreasing within a stage's loading part | Warning naming the stages (a misplaced point, or readings out of order); drawn as given. Two stages under one `specimen_id` without `test_stage` are an error where their stage columns differ |
+| Unload tail (strain falling after the stage's largest) | Drawn as given; not a failure candidate, not interpolated from; the effective path follows it only where its rows have their own Δu (or the stage is drained) |
+| q reading at a strain outside the stage's Δu readings | Δu blank there: off the undrained effective path, counted; at failure, a blank u_f and σ′, which the fit counts (P11) |
 | A stage column with different values on one stage's readings | Error naming the stage and column |
 | Missing required column | Error naming it and `ht.template("triaxial_readings")` |
-| Blank `axial_strain` or `deviator_stress` on a reading | Left out of the curve and the pick, counted in the footnote |
+| Blank `axial_strain` on a reading | Left out of the curve and the pick, counted in the footnote |
+| Rows with Δu or εv but no q | On the second axis only; not on the q curve or the paths |
 | Undrained stage with Δu blank on every reading | Drawn in `stress_strain`; left out of `s_t`/`p_q` in effective stress, counted; its failure row has blank σ′, which the fit counts (P11) |
 | Extension stage | Drawn in `stress_strain`; no path and no failure stresses, with `triaxial_failure_stresses()`'s warning; counted |
 | `second_axis=` in `s_t`/`p_q`, or `fit=`-only arguments in `stress_strain` changed from their defaults | Error saying which space takes it |
@@ -288,4 +302,4 @@ on it.
   `TRET_CRP`).
 - The lab's failure reading drawn beside hangtu's when they differ.
 - A two-panel layout (curves above, Δu or ε_v below) and `MohrCoulombFit.plot()`.
-- Readings from user-defined AGS groups (M16); E50 from the curves (wave 5).
+- E50 from the curves (wave 5).

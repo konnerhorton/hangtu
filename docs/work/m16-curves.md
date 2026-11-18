@@ -101,3 +101,229 @@ dataset and template. The user says which groups hold which curves, because the 
 4. **Synthetic data only in the repo,** copying the sample file's shapes. The real file stays outside it.
 5. **M16 goes now, before M19 (b).** M19 (b)'s intent stays on its own branch.
 6. **The oedometer curve groups aren't read:** `CONS` carries the same increments, and k from c_v·m_v is M19 (c)'s.
+
+## Spec
+The rules live in the topic docs: the readings map and the two datasets in `docs/data/datasets.md` §6.15–6.17, the
+readings rules in `docs/analysis/strength.md` §2, the figure's side in P12. This section lists what changes where,
+the decisions behind it and the acceptance criteria. 🟡 marks a choice proposed here, awaiting review.
+
+### Changes
+- **`docs/data/datasets.md`:** §6.15 the readings map, §6.16 `p.triaxial_readings()`, §6.17
+  `p.shear_box_readings()` (new); §1, §2, §8 and §11.1 updated for them.
+- **`docs/analysis/strength.md` §2:** each quantity read from its own rows; the loading part and the unload tail;
+  a strain decrease in the loading part is a warning, no longer an error; Δu and εv interpolated in strain at a q
+  reading; AGS readings need `failure_criterion=`.
+- **P12:** §1 (where the readings come from), §3 (rows with only some quantities; the template's new columns),
+  §4 (interpolation, candidates), §7 (curves in row order, the tail drawn), §11 (the new cases; strain decrease a
+  warning), §15 (M16's item removed). §12's criteria stand; R1–R4 have every quantity on every row, so they don't
+  change.
+- **P31 §15:** the displacement curves read `p.shear_box_readings()`.
+- **`docs/data/ingest.md`:** §4 `meta_readings_map`; §2 schema version 4, so an older database asks to be
+  re-ingested.
+- **SPEC:** §1.3 (wave 0's row: the curves it reads, rock triaxial through `TRIT`, no swelling against time; the
+  order of work), §6.2 (user-defined groups reach a dataset only through the map), §7 (the map's metadata table),
+  §10.1 (`p.set_readings_map`, `p.readings_map`). §10.2 needs no change: the readings datasets are datasets.
+- **Registry** (each name checked against `columns.yaml` and every spec on 2026-11-18; none exists as a column):
+  - new columns: `horizontal_displacement`, `shear_stress`, `vertical_displacement` (decision 7);
+  - existing columns gain the readings datasets in `used_by`, and `axial_strain`, `deviator_stress`,
+    `excess_pore_pressure` and `volumetric_strain` change their `ags:` note from "none: a user CSV" to "a
+    user-defined group, through the readings map";
+  - `ht.template("triaxial_readings")` gains `ground_level`, `depth_basis`, `elevation`, `soil_class` and
+    `geology_description` (decision 5); `ht.template("shear_box_readings")` is new.
+- **Code** (named for the plan): `Project.set_readings_map`, `Project.readings_map`, `Project.triaxial_readings`,
+  `Project.shear_box_readings`; `meta_readings_map` and `SCHEMA_VERSION = 4` in `db.py`; the readings rules in
+  `analysis/_triaxial_readings.py` and the plot.
+- **Test files:** curve groups `XTDS` (q), `XTPW` (Δu), `XTVS` (εv) and `XSBS` (shear box) in `site_si.ags`,
+  `site_us.ags` and `joins.ags`, after every other group so no earlier line moves, with their `DICT` rows, and
+  `tests/data/ags/readings_map.csv`. `site_v404.ags` doesn't get them.
+- **Example file:** `site.ags` gains the example stages' curves through `_make_examples.py` (decision 11), with
+  `readings_map.csv` beside it in `ht.examples`; `triaxial_readings.csv` and a new `shear_box_readings.csv` are
+  written from the project.
+- **Docs site:** the two datasets in the datasets guide's table, a short section on the readings map, reference
+  entries for the four new methods, and the new template in the templates guide.
+
+### Decisions
+1. **A readings map per project, stored as content** (intent 🟡; `datasets.md` §6.15). A CSV or DataFrame with
+   `group`, `dataset`, `heading`, `column`, one row per mapped heading, stored in `meta_readings_map` like the
+   geology map. Content rather than a path, unlike the judgments file: the map describes the one file a database
+   holds and doesn't change while the engineer works, where judgments are edited during design and re-read.
+   - **The parent comes from the file's `DICT`,** never from the map: the stage group follows from `DICT_PGRP`
+     (`TREG`/`TRET` → `TRET`, `TRIG`/`TRIT` → `TRIT`, `SHBG`/`SHBT` → `SHBT`). The sample's curve groups are all
+     children of the test group (`TREG`, `TRIG`, `SHBG`), keyed by the sample and specimen keys plus a stage and a
+     point number; a child of the stage group is allowed too, since its keys hold the same stage.
+   - **`dataset` names the destination,** not a "curve kind": an engineer reads it as the function they call.
+     The parent must fit it, so a map that sends a `SHBG` child to `triaxial_readings` is an error.
+   - **Checked when set, against the file;** every error stores nothing. A group the file doesn't have is an error
+     (🟡), so a typo can't give an empty dataset silently; a map hangtu ships later for TODO #45's recommended
+     groups would revisit this.
+   - **User-defined groups only.** A standard group in the map is an error; TODO #72 (a user-defined heading in a
+     standard group) extends the map when a second file needs it, as decided there.
+2. **Units come from ingest, never the map.** A mapped numeric heading must have been converted to its column's
+   quantity kind; anything else (wrong dimension, `U005`, raw only) is an error at `set_readings_map` naming the
+   heading, its unit and the kind. Every unit in the sample's curve groups (`%`, `kPa`, `mm`) converts.
+3. **One row per reading, never merged** (changes intent 🟡 "Several groups into one dataset"). The intent merged
+   readings at the same strain. In the sample, 56 of 99 q curves repeat a strain within the curve (the first,
+   vertical segment, where q rises at constant strain), so a merge by strain would pair the wrong q and Δu. Each
+   reading keeps only its group's values, and the analysis reads each quantity from its own rows
+   (`strength.md` §2). A CSV row with all three is the same rule's special case, so CSV behavior doesn't change.
+4. **Δu and εv interpolated in strain at each q reading** (intent 🟡, the spec step's call). Linear in strain
+   between the loading-part readings on either side, never extrapolated, and a row's own value always wins. The
+   alternative, only readings with both, leaves almost nothing: 7 % of the sample's Δu strains are also q strains,
+   and the q curve's peak is rarely one of them, so `pore_pressure_at_failure` would be blank on most CU stages.
+   - **It warns** (decided in spec review, 2026-11-18): one warning per call of
+     `triaxial_failure_from_readings()` counting and naming the stages whose Δu or εv at the failure reading was
+     interpolated rather than read, so the engineer knows which failure values aren't the lab's readings. Paths
+     interpolated away from failure don't warn.
+   - Linear and not a smoothed fit: the readings are dense (median 355 per q curve), so the two neighbors are
+     within a small strain step, and linear has no parameter to choose.
+5. **The readings template gains the depth and geology columns** that `ht.template("triaxial")` has
+   (`ground_level`, `depth_basis`, `elevation`, `soil_class`, `geology_description`), so the template stays its
+   dataset's columns without `source_line` (`datasets.md` §11.1). They are optional, so existing CSVs still read.
+   `source_line` becomes a reading column in `triaxial_failure_from_readings()`, or every AGS stage would fail the
+   check that stage columns don't vary.
+6. **Readings in file order; the unload tail is kept and read by rule** (intent 🟡 "Readings in reading order").
+   - **File order, not the point number:** as `p.oedometer()` reads increments (M19 (a) decision 2), and the
+     point number isn't mapped, so the map stays the columns a dataset has. In the sample, file order equals point
+     order in every curve (99/99, 57/57, 42/42, 16/16, 30/30).
+   - **The tail:** for each quantity, readings after the last one at the stage's largest strain are the unload
+     tail: drawn, never a failure candidate, never interpolated from (`strength.md` §2). In the sample, 16 q
+     curves end with one, 5 to 89 readings long. Leaving the tail out of the dataset would drop data; erroring
+     (today's rule) would refuse 16 of 99 curves.
+   - **A decrease inside the loading part is a warning, not an error** (🟡). The sample has 4 q curves with one
+     point out of place mid-curve, by up to 0.11 % strain (e.g. 4.241 then 4.135 then 4.183 %), the same point in
+     the Δu or εv curve of that stage. An error would refuse the whole call for one misplaced point; the warning
+     names the stage, and the user fixes the file or accepts it. The error's other purpose, two stages under one
+     `specimen_id`, is still caught by the stage-column check where their cell pressures differ.
+7. **Names** (🟡, checked against the registry): `horizontal_displacement`, `shear_stress` and
+   `vertical_displacement` for the shear box readings, as `horizontal_displacement_at_peak` and
+   `vertical_displacement_at_peak` name the stage's values; `vertical_displacement` keeps the file's sign, as
+   `SHBT_PDIN` does. `shear_stress` is also a key in the fit results' point records (`_shear_box_fit.py`,
+   `_mohr_coulomb.py`), with the same meaning, τ; no column is named so. `test_stage` is reused for the stage
+   heading, as the other datasets use it. The datasets are named after their templates: `p.triaxial_readings()`,
+   `p.shear_box_readings()`.
+8. **Stage values carried** are those P12 and the failure analysis read (`test_type`, `failure_criterion`,
+   `effective_consolidation_stress`, `back_pressure`, `cell_pressure`; for the shear box `test_type` and
+   `applied_normal_stress`), plus depth and geology. Specimen state (unit weights, water content) stays in
+   `p.triaxial()` and `p.shear_box()`, joined on `specimen_id` and `test_stage` by a user who wants it, so the
+   readings datasets don't repeat 40 columns on 35 000 rows.
+9. **No failure criterion read from `TREG_FCR`.** The readings carry no lab mark, so the analysis needs
+   `failure_criterion=`. Reading `TREG_FCR` as the rule would make the AGS route run without it, but the heading is
+   free text: in the sample, 37 of 44 `TREG` rows leave it blank and the rest write "Maximum Stress Ratio" and
+   "Maximum Deviator Stress", not the dictionary's wording. Matching text is guessing (SPEC §2.6; fuzzy matching
+   is "Later" in SPEC §1.3).
+10. **`RUCS` into `p.triaxial()` moves to M21** (intent 🟡; recommended). It has no curve, so it isn't wave 0's
+    engine, and M21 reads the other rock lab groups with it. Adding UCS rows (`cell_pressure` 0) to `p.triaxial()`
+    also puts rock rows in every soil envelope fit of that dataset, a choice to make with the other rock datasets.
+    Until then `hoek_brown_fit()` takes UCS rows from a CSV, as now. Sheet 15's stage A moves from W0 to M21 in the
+    parameter index at close-out.
+11. **Example data:** `site.ags` gives each example triaxial stage q, Δu (undrained) and εv (drained) curves in
+    three groups at their own strains, as the sample does, with a Δu and εv reading at each stage's failure strain
+    so P12 AC 11 (the readings reproduce `p.triaxial()` exactly) holds without interpolation; the last stage of
+    each multistage specimen has an unload tail. Each example shear box stage gets one group of τ and vertical
+    displacement. Site-like scatter on the curves; values invented, and the generator says so.
+12. **No QC rule compares a curve with its stage's reported values** in this unit. The sample's agree (largest q
+    over `TRET_DEVF`: median 1.000, range 0.987–1.064). A rule is a later QC unit's, added to `docs/TODO.md` at
+    close-out with that trigger.
+
+### Sources
+- **AGS 4.2 dictionary** (python-ags4 1.2.0): no group holds monotonic triaxial or shear box readings (`CTRD` is
+  cyclic); `TRET`, `TRIT` and `SHBT` stages keyed by `_TESN`; `TREG_FCR` free text. Checked 2026-11-18.
+- **The sample dataset** (one real project, outside the repo), for the shapes in decisions 1, 3, 4, 6 and 9.
+  Counted on 2026-11-18 from the file itself.
+- **Unit factors:** exact by definition. 1 kPa = 20.8854342 psf; 1 in = 25.4 mm.
+- No correlation or empirical source is used: interpolation, the tail and the pick are rules on the readings.
+
+### Acceptance criteria
+Golden values hand-calculated. Tolerance 1e-9 relative unless a criterion says otherwise.
+
+**The good files' curves** (`site_si.ags`; `site_us.ags` the same in psf and in):
+- **BH1-U3 specimen 1, stage 1** (`CU`; cell 400, back 300 kPa; `TRET` q_f 180 kPa at 8.5 %, u_f 360 kPa):
+
+  | Group | Readings (strain %, value) in file order |
+  |---|---|
+  | `XTDS` (q, kPa) | (0.0, 0), (2.0, 100), (4.0, 150), (6.0, 170), (8.5, 180), (10.0, 176), (12.0, 170), (11.8, 80), (11.6, 5) |
+  | `XTPW` (Δu, kPa) | (0.0, 0), (3.0, 40), (7.0, 56), (10.0, 64), (12.0, 66), (11.7, 60) |
+
+  q's loading part ends at 12.0 %, Δu's at 12.0 %; (11.8, 80), (11.6, 5) and (11.7, 60) are tails.
+  Δu at the q readings: 0; 40 × 2/3 = 26.666667; 40 + 16 × 1/4 = 44; 40 + 16 × 3/4 = 52; 56 + 8 × 1.5/3 = 60;
+  64 (own strain); 66; blank on the two tail readings.
+- **BH2-U2 specimen 3, stage 3** (`CDM`; cell 700, back 300; `TRET` q_f 900 at 6.0 %, εv 3.40 %):
+  `XTDS` (0, 0), (2, 500), (4, 800), (6, 900), (7, 880); `XTVS` (εv, %) (0, 0), (3, 2.0), (5, 3.0), (7, 3.8).
+  εv at 6.0 % = 3.0 + 0.8 × 1/2 = 3.4.
+- **BH2-D1 S1, stage 1** (`SMALL SBOX`, `SHBT_NORM` 50 kPa): `XSBS` (horizontal mm, τ kPa, vertical mm) (0.00, 0,
+  0.00), (0.50, 20, 0.05), (1.00, 30, 0.15), (2.10, 38, 0.30), (4.00, 34, 0.25), (8.00, 31, 0.10), (12.00, 30,
+  −0.40), matching the stage's peak (38 at 2.10, 0.30) and residual (30 at 12.00, −0.40).
+
+**The edge cases** (`joins.ags`): J1-U3's stage 1 (`CU`; cell 400, back 300; `TRET_PWPF` blank) has `XTDS` (0.0, 0),
+(1.0, 50), (2.0, 80), (1.9, 85), (3.0, 90), (4.0, 88), then one reading with a blank strain and q 70, and two
+readings with `XTDS_TESN` "2" (no such `TRET` stage); `XTPW` (0.0, 0), (1.5, 20), (2.5, 30), (2.8, `<1`).
+
+1. **Map stored:** `p.set_readings_map("readings_map.csv")` on the good files stores thirteen rows; `p.readings_map`
+   returns them; `Project.open` gives them back; `p.set_readings_map(None)` removes them; `from_ags(...,
+   overwrite=True)` starts with none.
+2. **Map errors:** each error in `datasets.md` §6.15 is raised, built in the tests from a DataFrame against the
+   good files, naming what it says; after any of them `p.readings_map` is what it was. Among them: `XTDS_DEVF`
+   mapped to `axial_strain` (kPa against percent) names `XTDS_DEVF`, kPa and percent; `XSBS` mapped to
+   `triaxial_readings` names its parent `SHBG` and the allowed parents; `TRET` in the map says it reads
+   user-defined groups only; `XTQQ` lists `XSBS`, `XTDS`, `XTPW`, `XTVS` (and the files' other user-defined groups).
+3. **Triaxial rows:** `p.triaxial_readings()` gives, for BH1-U3 stage 1, nine `XTDS` rows then six `XTPW` rows in
+   file order, the q rows with `excess_pore_pressure` and `volumetric_strain` blank and the Δu rows with
+   `deviator_stress` blank; each row has `test_type` `CU`, `test_stage` `"1"`, `cell_pressure` 400,
+   `back_pressure` 300, `effective_consolidation_stress` 100, `failure_criterion` "Maximum deviator stress", the
+   lab depth and geology of `p.triaxial()`'s row for that stage, blank `reported_failure_reading`, and its own
+   `source_line`. Stages come in `p.triaxial()`'s order.
+4. **Failure from AGS readings, maximum deviator stress:** `triaxial_failure_from_readings(p.triaxial_readings(),
+   failure_criterion="max_deviator_stress")` gives BH1-U3 stage 1 at 8.5 %, q 180, u_f 360 kPa (Δu 60
+   interpolated), and BH2-U2 stage 3 at 6.0 %, q 900, εv 3.4 (interpolated), u_f 300 (drained): equal to
+   `p.triaxial()`'s `axial_strain_at_failure`, `deviator_stress_at_failure`, `pore_pressure_at_failure` and
+   `volumetric_strain_at_failure` for those stages. One warning: the interpolation one, naming both stages (BH1-U3
+   stage 1's Δu, BH2-U2 stage 3's εv). The tails raise none.
+5. **Maximum stress ratio:** with `failure_criterion="max_stress_ratio"`, BH1-U3 stage 1 fails at the 12.0 %
+   reading: σ′3 = 400 − 300 − 66 = 34, σ′1 = 204, ratio 6.0 (the 8.5 % reading gives 220 / 40 = 5.5, the
+   10.0 % reading 212 / 36 = 5.888889), so u_f 366, q 170. The tail reading (11.8, 80) isn't a candidate. The
+   12.0 % q reading has no Δu of its own, so its 66 (the Δu reading at the same strain) counts as interpolated in
+   the warning.
+6. **Paths:** in P12's `s_t` (effective), BH1-U3 stage 1's 2.0 % reading is at s′ = (73.333333 + 173.333333)/2 =
+   123.333333, t = 50; the tail q readings aren't on the effective path and are on the `stress_strain` curve,
+   which ends at (11.6, 5); the Δu twin axis line ends at (11.7, 60).
+7. **Edge cases (`joins.ags`):**
+   - `p.triaxial_readings()` leaves out the two stage-"2" readings in one warning naming `XTDS` and their lines,
+     the blank-strain reading in the §7 warning (kept with `include_incomplete=True`), and the `<1` reading in the
+     flag warning naming `XTPW` and its line; `include_incomplete=True` doesn't bring back the stage-"2" or `<1`
+     readings.
+   - `triaxial_failure_from_readings(..., failure_criterion="max_deviator_stress")` warns once naming J1-U3's
+     stage 1 (strain falls from 2.0 to 1.9 % in the loading part), and fails it at 3.0 %, q 90, with u_f blank:
+     3.0 % is outside the Δu readings (0–2.5 %, the `<1` at 2.8 % left out). A blank isn't interpolated, so no
+     interpolation warning.
+   - With `"max_stress_ratio"`, the candidates are the q readings at 0, 1.0, 2.0 and 1.9 % (inside 0–2.5 %); Δu
+     there 0, 13.333333, 25 and 24; ratios 1, 136.666667 / 86.666667 = 1.576923, 155 / 75 = 2.066667 and
+     161 / 76 = 2.118421; it fails at the 1.9 % reading, q 85, u_f 324, with the interpolation warning naming
+     J1-U3 stage 1.
+8. **CSV behavior kept:** P12's criteria 1–12 pass unchanged on R1–R4, except that R1 with two of stage A's
+   readings swapped now gives the strain warning naming stage A, not an error. Two stages under one `specimen_id`
+   without `test_stage` and with different `cell_pressure` still raise the stage-column error.
+9. **Shear box rows:** `p.shear_box_readings()` gives BH2-D1 stage 1's seven rows in file order with
+   `test_type` `SMALL SBOX`, `applied_normal_stress` 50, and the table's values; with `display_units="US"` the
+   2.10 mm reading is 0.0826772 in (2.10 / 25.4) and τ 38 kPa is 793.646500 psf (38 × 20.8854342), to 1e-6
+   relative.
+10. **Twins:** `site_si.ags` and `site_us.ags` give equal `p.triaxial_readings()` and `p.shear_box_readings()`
+    (1e-9 relative) for each `display_units`.
+11. **Empty:** with no map, each readings dataset is an empty frame with every column and the no-map warning; with
+    a map that names only shear box groups, `p.triaxial_readings()` is empty with the "names no
+    triaxial_readings group" warning. A project with no curve groups and no map gives no other warning.
+12. **Common arguments:** `holes=["BH2"]`, `depth=`, `geology=` and `where={"test_stage": "3"}` keep exactly the
+    readings they should, a stage's readings together.
+13. **Units:** `df.attrs["units"]` covers every numeric column of both datasets; `axial_strain` is in percent and
+    the displacements in the `small_length` display unit.
+14. **Templates:** `ht.template("triaxial_readings")` and `ht.template("shear_box_readings")` are their datasets'
+    columns without `source_line`, in the same order (`tests/test_registry.py`); a CSV in the old template's
+    columns reads and runs through `triaxial_failure_from_readings()` as before.
+15. **Schema:** opening a version-3 database raises the re-ingest error.
+16. **Example file:** `ht.examples` with its `readings_map.csv` gives `p.triaxial_readings()` and
+    `p.shear_box_readings()` rows for every example triaxial and shear box stage; P12 AC 11 holds on
+    `triaxial_readings.csv` written from it; the docs site's P12 examples run; `P12-us.png` is regenerated and
+    looked at in the close-out.
+17. **Sample file (manual, not in the suite):** with a map written for it, the sample dataset gives readings for
+    99 `TRET` and 16 `TRIT` stages and 30 `SHBT` stages, no reading left out for a missing stage, and
+    `triaxial_failure_from_readings(..., failure_criterion="max_deviator_stress")` runs with the strain warning
+    naming the 4 stages of decision 6. Reported in the close-out, without the file's names or values.

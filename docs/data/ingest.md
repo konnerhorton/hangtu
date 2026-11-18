@@ -31,7 +31,7 @@ p.sql("select * from ISPT where ISPT_NVAL > 50")   # read-only query, returns a 
 - **Project settings:** `from_ags` takes the session settings as keywords (`display_units="US"`, `vertical_datum="NAVD88"`, …; P00 §3) and stores them in `meta_project`; anything not given comes from `ht.settings` at the time of ingest. `p.settings` reads and changes them, and shows where the vertical datum came from. **The vertical datum**, in order: `vertical_datum=` (or `p.settings.vertical_datum` later); else the file's `LOCA_DATM`, where §7 allows it; else `ht.settings.vertical_datum`. The file comes before the session setting, because a session's datum is often left over from another project. Export and import (`to_yaml()`/`load_yaml()`) aren't built.
 - **`from_ags` on an existing database** raises an error unless `overwrite=True`; the message names `Project.open` and `overwrite=True`.
 - **The database is self-contained.** `open` works without the AGS file. If the file is still at its stored path and its SHA-256 has changed, `open` warns that the database is out of date and shows the `from_ags(..., overwrite=True)` call.
-- **Schema version:** if the database was written by an incompatible hangtu version, `open` raises an error saying to re-ingest. The version goes up whenever what ingest stores changes, including a new quantity kind, since `meta_heading.quantity` records each heading's kind: version 3 (M19 a) adds `volume_compressibility` and `consolidation_coefficient`.
+- **Schema version:** if the database was written by an incompatible hangtu version, `open` raises an error saying to re-ingest. The version goes up whenever what ingest stores changes, including a new quantity kind, since `meta_heading.quantity` records each heading's kind: version 3 (M19 a) adds `volume_compressibility` and `consolidation_coefficient`. Version 4 adds the `meta_readings_map` table.
 - `p.sql(query, params=())` opens the connection read-only (`mode=ro`); `?` placeholders take `params`. `p.table()` on an unknown group lists the groups that exist; key columns and `YN` headings are nullable integers (`Int64`).
 
 ## 3. Pipeline
@@ -61,6 +61,7 @@ AGS file
 | `meta_project` | setting | `key`, `value` |
 | `meta_source` | ingest | `path`, `sha256`, `size`, `ags_version`, `ags_version_source`, `ingested_at`, `hangtu_version`, `schema_version` |
 | `meta_heading` | heading in the file | `group`, `heading`, `file_unit`, `file_type`, `unit` (canonical), `quantity`, `status`, `standard` (in the 4.2 dictionary) |
+| `meta_readings_map` | mapped heading | `group`, `dataset`, `heading`, `column` (`datasets.md` §6.15) |
 
 - The canonical table for `UNIT`, `TYPE`, `ABBR`, `DICT` and `TRAN` is written like any other group; `meta_heading` is the typed summary.
 - `meta_heading.status` is `converted` (to `unit`), `as_is` (a number with no unit, such as a count), `file_unit` (a `U005` column: numbers as written, in the file's unit), `raw_only` (a `U001`, `U003` or `U004` column, NULL in the canonical table) or `not_numeric` (text, dates, yes/no).

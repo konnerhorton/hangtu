@@ -4,13 +4,14 @@
 |---|---|
 | **Status** | Living spec. What each dataset holds, how its rows get a depth, an elevation and a geology unit, and the registry rules datasets follow |
 | **Parent** | SPEC §2.6 (units), §7 (data model), §8 (depth, elevation, geology), §10 (datasets, registry), §11 (errors) |
-| **Related** | [`ingest.md`](ingest.md) (canonical layer, value flags), [`qc.md`](qc.md) (C001, G004, D004/D005). `docs/analysis/index-and-spt.md` §1 (SPT), §2–3 (classification, gradation). P01–P07 (the plots these feed). History: [`m7-datasets.md`](../work/m7-datasets.md), [`m8-index-plots.md`](../work/m8-index-plots.md), [`m14a-density-data.md`](../work/m14a-density-data.md), [`m11a-triaxial-data.md`](../work/m11a-triaxial-data.md), [`m17a-strength-data.md`](../work/m17a-strength-data.md), [`m19a-oedometer-data.md`](../work/m19a-oedometer-data.md) |
+| **Related** | [`ingest.md`](ingest.md) (canonical layer, value flags), [`qc.md`](qc.md) (C001, G004, D004/D005). `docs/analysis/index-and-spt.md` §1 (SPT), §2–3 (classification, gradation). P01–P07 (the plots these feed). History: [`m7-datasets.md`](../work/m7-datasets.md), [`m8-index-plots.md`](../work/m8-index-plots.md), [`m14a-density-data.md`](../work/m14a-density-data.md), [`m11a-triaxial-data.md`](../work/m11a-triaxial-data.md), [`m17a-strength-data.md`](../work/m17a-strength-data.md), [`m19a-oedometer-data.md`](../work/m19a-oedometer-data.md), [`m16-curves.md`](../work/m16-curves.md) |
 
 ## 1. Purpose and scope
 Turn a project's canonical tables into the DataFrames the plots take:
 - **`p.locations`**: one row per hole;
-- **datasets**: one per kind of test (§6.1–6.14, from `p.spt()` to `p.oedometer()`), with one row per test result (or per point on a grading curve, or per increment), and the summaries `p.grain_size_summary()` and `p.index_properties()`, built on the analyses in `docs/analysis/index-and-spt.md` §2–3. Each row gets a depth, an elevation and a geology unit by the SPEC §8 conventions, and uses registry column names (SPEC §10.3) with `df.attrs["units"]` set;
+- **datasets**: one per kind of test (§6.1–6.14, from `p.spt()` to `p.oedometer()`), with one row per test result (or per point on a grading curve, or per increment), the readings datasets (§6.16–6.17, one row per reading during a test), and the summaries `p.grain_size_summary()` and `p.index_properties()`, built on the analyses in `docs/analysis/index-and-spt.md` §2–3. Each row gets a depth, an elevation and a geology unit by the SPEC §8 conventions, and uses registry column names (SPEC §10.3) with `df.attrs["units"]` set;
 - **the geology map**: `p.set_geology_map(path)` maps the codes in the file to the units an engineer reports on;
+- **the readings map**: `p.set_readings_map(path)` names the user-defined groups that hold readings during a test, and which heading gives which column (§6.15);
 - **QC G004**, unmapped geology code.
 
 **Not in scope:** settings export (`to_yaml()`) and stored QC overrides; CRS and Rowe cell tests (`ESCG`, `ESCT`); inclined holes (QC L004); changing the data (SPEC §1.4).
@@ -38,6 +39,9 @@ triaxial = p.triaxial()                  # §6.10, one row per stage at failure
 su = p.undrained_strength(hand_penetrometer_scale="unconfined_compressive_strength")  # §6.11
 shear = p.shear_box()                    # §6.12, one row per stage
 oedometer = p.oedometer()                # §6.14, one row per increment
+p.set_readings_map("readings_map.csv")   # §6.15, user-defined groups → readings datasets
+readings = p.triaxial_readings()         # §6.16, one row per reading during shearing
+shear_readings = p.shear_box_readings()  # §6.17
 
 p.set_judgments("judgments.yaml")        # the project's judgments file (SPEC §4)
 p.judgments                              # a Judgments, or None; datasets carry its path
@@ -532,13 +536,133 @@ One row per `CONS` increment, in file order, with its `CONG` specimen's values o
 - `CONS_INSC` and `CONS_TEMP` aren't read.
 - No `CONG` or `CONS` group: an empty frame with every column and the warning "No CONG group".
 
+### 6.15 The readings map
+AGS 4.2 has no group for readings during a test (a curve), so a file carries them, if at all, in user-defined
+groups whose names and headings its author chose. The **readings map** says which of a file's user-defined groups
+hold readings, for which dataset, and which heading gives which column. hangtu never infers it from a group's or
+heading's name (SPEC §2.6).
+
+```python
+p.set_readings_map("readings_map.csv")   # or a DataFrame with the same columns
+p.readings_map                           # the stored map, or None
+p.set_readings_map(None)                 # remove it
+```
+
+One row per mapped heading:
+
+| Column | Required | Meaning |
+|---|---|---|
+| `group` | ✔ | A user-defined group in the file, as written |
+| `dataset` | ✔ | `triaxial_readings` (§6.16) or `shear_box_readings` (§6.17); the same on every row of a group |
+| `heading` | ✔ | A heading of that group |
+| `column` | ✔ | The registry column it gives, one of the dataset's mapped columns below |
+
+| Dataset | Mapped columns | Required in each group | Parent group (`DICT_PGRP`) |
+|---|---|---|---|
+| `triaxial_readings` | `test_stage`, `axial_strain`, `deviator_stress`, `excess_pore_pressure`, `volumetric_strain` | `test_stage`, `axial_strain`, and at least one of the other three | `TREG` or `TRET` (stages from `TRET`), `TRIG` or `TRIT` (stages from `TRIT`) |
+| `shear_box_readings` | `test_stage`, `horizontal_displacement`, `shear_stress`, `vertical_displacement` | `test_stage`, `horizontal_displacement`, and at least one of the other two | `SHBG` or `SHBT` (stages from `SHBT`) |
+
+- **Stored with the project** in `meta_readings_map` (`ingest.md` §4), as `p.set_geology_map` stores its map: it
+  describes the file, which a database holds one of, so the content is stored rather than a path. It replaces any
+  earlier map and is kept until the database is rebuilt.
+- **Checked against the file when it is set,** so nothing is stored when any check fails. Each error names the
+  group, heading or line of the map (the row of a DataFrame) and what to do:
+  - a missing required column, or one hangtu doesn't read; a blank cell; a heading mapped twice, or a column
+    mapped twice in one group; one group with two datasets;
+  - a `dataset` other than the two, or a `column` that dataset doesn't map (the message lists them);
+  - a group the file doesn't have (the message lists the file's user-defined groups), or a standard AGS group (the
+    map reads user-defined groups only);
+  - a heading the group doesn't have (the message lists its headings);
+  - a group without its required columns;
+  - a group with no `DICT` entry, or whose `DICT_PGRP` isn't a parent the table above allows (the message names
+    the parent and the allowed ones);
+  - a numeric column whose heading ingest didn't convert to that column's quantity kind (`ingest.md` §7): a unit of
+    the wrong dimension (`kPa` mapped to `axial_strain`), a unit hangtu doesn't know (`U005`), or a column held raw
+    (`U001`, `U003`, `U004`). The message names the heading, its unit and the kind the column needs. A number is
+    never converted by the map.
+- **Other headings of a mapped group aren't read** (a point number, a point type). `test_stage` is read as text, as
+  written.
+- **Readings join their stage** on `specimen_id` (from the group's sample and specimen keys, `ingest.md` §5) and
+  `test_stage` matched exactly to the stage group's `_TESN` as text (`"1"` ≠ `"01"`), as AGS Rule 10 compares
+  keys. The stage values come from that stage's row (§6.16, §6.17).
+
+### 6.16 `p.triaxial_readings()`
+```python
+p.triaxial_readings(**common)
+```
+One row per reading of each group the readings map names for `triaxial_readings`, with its stage's values on
+each, in `ht.template("triaxial_readings")`'s shape (P12 §3), so `ht.analysis.triaxial_failure_from_readings()`
+and P12 take it as they take a CSV.
+
+| Column | From |
+|---|---|
+| `loca_id`, `specimen_id`, `sample_reference`, `specimen_reference` | As §6.2 |
+| `ground_level`, `depth`, `depth_basis`, `elevation` | The stage's lab depth (§6.2) |
+| `test_type` | `TREG_TYPE` or `TRIG_TYPE` |
+| `test_stage` | The mapped heading, as text |
+| `failure_criterion` | `TREG_FCR`, as written; blank for a `TRIT` stage |
+| `effective_consolidation_stress`, `back_pressure` | `TRET_CONP`, `TRET_BACK`; blank for a `TRIT` stage |
+| `cell_pressure` | `TRET_CELL` or `TRIT_CELL` |
+| `axial_strain`, `deviator_stress`, `excess_pore_pressure`, `volumetric_strain` | The mapped headings; blank where the reading's group doesn't map the column |
+| `reported_failure_reading` | blank: no file marks the lab's failure reading |
+| `source_line` | The reading's line in the AGS file |
+| `geology_unit`, `soil_class`, `geology_description` | As §5.3, from the stage's depth |
+
+- **One row per reading, never merged.** Each group's readings keep only the values it gives. A file that gives q,
+  Δu and εv in three groups gives three sets of rows per stage, and `docs/analysis/strength.md` §2 reads each
+  quantity from its own rows. Readings aren't merged where their strains match: one group often repeats a strain
+  (a curve's first, vertical segment), so a match by strain would pair the wrong readings.
+- **Order:** stages in `p.triaxial()`'s order (`TRET` stages, then `TRIT`, in file order); within a stage, the
+  groups in the map's order, and each group's readings in file order. Nothing is sorted by strain, so an unload at
+  the end of a multistage stage stays at the end (`docs/analysis/strength.md` §2).
+- **Readings as given:** values are the file's, in display units. hangtu doesn't check them against the stage's
+  reported values, and there is no column saying where a curve came from: the user checks the readings before
+  analysis.
+- **Left out, counted in one warning per kind naming the group and the first lines:**
+  - a reading whose stage isn't in the stage group (no `specimen_id`, or no stage with that `_TESN`): "Left out 12
+    readings of XTDS with no stage in TRET (lines 2041–2052): their specimen and stage must match a TRET row." Not
+    kept by `include_incomplete=True`: without its stage, a reading has no cell pressure to be read against;
+  - an incomplete reading: a blank `test_stage` or `axial_strain`, or none of the group's other mapped columns
+    given. Kept with `include_incomplete=True`, as §7;
+  - a reading with a flagged value (`<x`, `>x`, text) in a mapped heading: a bound can't sit on a curve. Not kept
+    by `include_incomplete=True`; `p.diff()` shows the text.
+- **Common arguments** filter readings as rows; `depth=`, `holes=` and `geology=` keep or drop a stage's readings
+  together, since they share the stage's values.
+- **No map, or no group for this dataset:** an empty frame with every column and one warning: "No readings map for
+  this project, so there are no triaxial readings. Set one with p.set_readings_map(path)." or "The readings map
+  names no triaxial_readings group."
+
+### 6.17 `p.shear_box_readings()`
+```python
+p.shear_box_readings(**common)
+```
+One row per reading of each group the readings map names for `shear_box_readings`, with its `SHBT` stage's values
+on each, in `ht.template("shear_box_readings")`'s shape.
+
+| Column | From |
+|---|---|
+| `loca_id`, `specimen_id`, `sample_reference`, `specimen_reference` | As §6.2 |
+| `ground_level`, `depth`, `depth_basis`, `elevation` | The stage's lab depth (§6.2) |
+| `test_type` | `SHBG_TYPE`, as written |
+| `test_stage` | The mapped heading, as text |
+| `applied_normal_stress` | `SHBT_NORM` |
+| `horizontal_displacement`, `shear_stress`, `vertical_displacement` | The mapped headings; blank where the reading's group doesn't map the column. Vertical displacement keeps the file's sign, as `SHBT_PDIN` |
+| `source_line` | The reading's line in the AGS file |
+| `geology_unit`, `soil_class`, `geology_description` | As §5.3 |
+
+- Rows, order, what is left out and the empty frame as §6.16, with `SHBT` for `TRET` and "shear box readings" in
+  the messages.
+- Only the stage's applied normal stress is carried: the stresses at peak and residual are `p.shear_box()`'s, one
+  row per stage.
+- No analysis reads it yet; P31 lists the displacement curves as a later figure.
+
 ## 7. Incomplete records
 - A record is **incomplete** when QC C001 says so: a `required` field of its own group in `qc/min_fields.yaml` is blank (qc.md §4.10). `SPEC_REF` and `SPEC_DPTH` are `recommended`, not required: required, they would leave out every lab result without a specimen depth, so the lab depth fallback (`sample_mid`, `sample_top`, SPEC §8.2) could never run by default. A blank one is still reported, by C002. Only the dataset's source group is checked, not its parents: a hole with no `LOCA_GL` keeps its tests, with a blank elevation.
 - **Left out by default**, with one warning per call: "Left out 2 of 5 ISPT records with a blank required field (ISPT_NVAL on lines 98, 103). p.qc() lists them; include them with include_incomplete=True."
 - `include_incomplete=True` keeps them, with their blanks.
 
 ## 8. Warnings
-Each dataset call gives at most one warning per kind (`UserWarning`, as the rest of hangtu): the missing group (§2), the missing geology key (§5.1), unmapped codes (§5.2), overlapping layers (§5.4), records left out (§7), specimens with several water contents (§6.2), samples with several particle density specimens (§6.8), triaxial stages with the back pressure as u_f, extension tests or a deviator stress of 0 or less (§6.10), and hand penetrometer results left out without a scale or sensitivities left blank (§6.11). A call on the good test files with a complete map gives none, but for `p.triaxial()`'s back pressure count: BH2-U2's stage 2 has `TRET_PWPF` blank on purpose.
+Each dataset call gives at most one warning per kind (`UserWarning`, as the rest of hangtu): the missing group (§2), the missing geology key (§5.1), unmapped codes (§5.2), overlapping layers (§5.4), records left out (§7), specimens with several water contents (§6.2), samples with several particle density specimens (§6.8), triaxial stages with the back pressure as u_f, extension tests or a deviator stress of 0 or less (§6.10), hand penetrometer results left out without a scale or sensitivities left blank (§6.11), and readings left out or no readings map (§6.16, §6.17). A call on the good test files with a complete map gives none, but for `p.triaxial()`'s back pressure count: BH2-U2's stage 2 has `TRET_PWPF` blank on purpose.
 
 ## 9. QC: G004
 | ID | Rule | Severity | Thresholds |
@@ -564,7 +688,8 @@ Each template (`ht.template(<name>)`) is its dataset's columns in the same order
 | `stratigraphy` | `p.stratigraphy()` | `source_line` |
 | `density`, `particle_density` | `p.density()`, `p.particle_density()` | `source_line`, `particle_density_specimen_id` |
 | `triaxial` | `p.triaxial()` | `source_line`, the four principal stresses at failure and `effective_stress_basis`, which `ht.analysis.triaxial_failure_stresses()` adds |
-| `triaxial_readings` | none | One row per reading during shearing, for `ht.analysis.triaxial_failure_from_readings()` and P12 |
+| `triaxial_readings` | `p.triaxial_readings()` | `source_line`. One row per reading during shearing, for `ht.analysis.triaxial_failure_from_readings()` and P12 |
+| `shear_box_readings` | `p.shear_box_readings()` | `source_line` |
 | `strength` | `p.undrained_strength()` | `source_line`, `undrained_shear_strength_basis` and `strength_sensitivity`, which `ht.analysis.undrained_shear_strength_from_tests()` adds |
 | `shear_box` | `p.shear_box()` | `source_line` |
 | `oedometer` | `p.oedometer()` | `source_line`, `load_branch`, which `ht.analysis.oedometer_load_branch()` adds |
