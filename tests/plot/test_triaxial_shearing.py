@@ -20,7 +20,6 @@ from hangtu.errors import HangtuError, UnitsError
 
 GOLDENS = Path(__file__).parents[1] / "data" / "triaxial_readings_goldens.csv"
 STRESSES = ["cell_pressure", "back_pressure", "deviator_stress", "excess_pore_pressure"]
-BACK_PRESSURE = r"1 drained stage had no pore_pressure_at_failure"
 REL = 1e-9
 
 
@@ -107,7 +106,8 @@ def test_ac4_r1_paths():
 
 
 def test_ac4_r3_drained_path_has_slope_1_and_3():
-    with pytest.warns(UserWarning, match=BACK_PRESSURE):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
         _, ax, _ = ht.plot.triaxial_shearing(
             readings("C"),
             space="s_t",
@@ -118,7 +118,8 @@ def test_ac4_r3_drained_path_has_slope_1_and_3():
     x, y = path.get_xdata(), path.get_ydata()
     assert [x[3], y[3]] == pytest.approx([225, 125])
     assert np.diff(y) / np.diff(x) == pytest.approx(np.ones(4))
-    with pytest.warns(UserWarning, match=BACK_PRESSURE):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
         _, ax, _ = ht.plot.triaxial_shearing(
             readings("C"),
             space="p_q",
@@ -189,7 +190,8 @@ def test_ac7_excess_pore_pressure_on_a_twin_axis():
 
 
 def test_ac7_volumetric_strain_shows_dilation():
-    with pytest.warns(UserWarning, match=BACK_PRESSURE):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
         _, ax, _ = ht.plot.triaxial_shearing(
             readings("C"),
             failure_criterion="max_deviator_stress",
@@ -267,9 +269,9 @@ def test_ratio_on_uu_raises():
         draw(readings("D"), failure_criterion="max_stress_ratio")
 
 
-def test_decreasing_strain_raises():
-    with pytest.raises(HangtuError, match="axial_strain decreases"):
-        draw(
+def test_decreasing_strain_warns():
+    with pytest.warns(UserWarning, match="axial_strain decreases within the loading"):
+        ht.plot.triaxial_shearing(
             readings("E", axial_strain=[0, 4, 2, 6]),
             failure_criterion="max_deviator_stress",
         )
@@ -295,7 +297,8 @@ def test_color_by_with_group_by_raises():
 
 
 def test_drained_stage_has_no_excess_line():
-    with pytest.warns(UserWarning, match=BACK_PRESSURE):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
         _, ax, _ = ht.plot.triaxial_shearing(
             readings("A", "C"),
             failure_criterion="max_deviator_stress",

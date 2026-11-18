@@ -16,11 +16,11 @@ import pandas as pd
 import pytest
 
 import hangtu as ht
+from hangtu.analysis._triaxial_readings import reduce_readings
 from hangtu.errors import ColumnError, HangtuError, UnitsError
 
 GOLDENS = Path(__file__).parents[1] / "data" / "triaxial_readings_goldens.csv"
 STRESSES = ["cell_pressure", "back_pressure", "deviator_stress", "excess_pore_pressure"]
-BACK_PRESSURE = r"1 drained stage had no pore_pressure_at_failure"
 REL = 1e-7
 #: 1 psf in kPa: 0.45359237 kg × 9.80665 m/s² / 0.3048² m² (exact).
 PSF = 0.45359237 * 9.80665 / 0.3048**2 / 1000
@@ -130,12 +130,35 @@ def test_r2_a_tie_goes_to_the_lowest_strain():
     assert rows["pore_pressure_at_failure"].item() == 250
 
 
-def test_r2_decreasing_strain_raises():
+def test_r2_decreasing_strain_warns():
     df = readings("E", axial_strain=[0, 4, 2, 6])
-    with pytest.raises(
-        HangtuError, match=r"axial_strain decreases within a stage, in E stage 1"
+    with pytest.warns(
+        UserWarning,
+        match=r"axial_strain decreases within the loading part of 1 "
+        r"stage: E stage 1",
     ):
-        failure(df, failure_criterion="max_deviator_stress")
+        rows = ht.analysis.triaxial_failure_from_readings(
+            df, failure_criterion="max_deviator_stress"
+        )
+    # Used in their order: the tie at q 150 goes to the first, at 4 %.
+    assert rows["axial_strain_at_failure"].item() == 4
+
+
+def test_r1_swapped_readings_warn_naming_stage_a():
+    a = readings("A", "B")
+    a.iloc[[2, 3]] = a.iloc[[3, 2]].to_numpy()
+    with pytest.warns(UserWarning, match=r"loading part of 1 stage: A stage 1\."):
+        ht.analysis.triaxial_failure_from_readings(
+            a, failure_criterion="max_deviator_stress"
+        )
+
+
+def test_two_stages_under_one_specimen_still_raise():
+    a = readings("A")
+    two = pd.concat([a, a.assign(cell_pressure=500)]).drop(columns="test_stage")
+    two.attrs["units"] = a.attrs["units"]
+    with pytest.raises(HangtuError, match=r"differ.*in A \(cell_pressure\)"):
+        failure(two, failure_criterion="max_deviator_stress")
 
 
 def test_r2_a_differing_stage_column_raises():
@@ -148,10 +171,10 @@ def test_r3_drained_without_excess_pore_pressure():
     for criterion in ("max_deviator_stress", "max_stress_ratio"):
         rows = failure(readings("C"), failure_criterion=criterion)
         assert rows["axial_strain_at_failure"].item() == 6
-        assert np.isnan(rows["pore_pressure_at_failure"].item())
+        # Drained: a blank Δu is 0, so u_f is the back pressure.
+        assert rows["pore_pressure_at_failure"].item() == 200
         assert rows["volumetric_strain_at_failure"].item() == -0.4
-    with pytest.warns(UserWarning, match=BACK_PRESSURE):
-        stresses = ht.analysis.triaxial_failure_stresses(rows)
+    stresses = ht.analysis.triaxial_failure_stresses(rows)
     assert stresses["effective_minor_principal_stress_at_failure"].item() == 100
     assert stresses["effective_major_principal_stress_at_failure"].item() == 350
 
@@ -257,3 +280,207 @@ def test_blank_readings_are_not_picked():
 def test_an_unknown_criterion_raises():
     with pytest.raises(HangtuError, match=r"'peak' isn't a criterion"):
         failure(readings("A"), failure_criterion="peak")
+
+
+# --- M16: one quantity per row, unload tails, interpolation -------------------------
+# The readings of docs/work/m16-curves.md's acceptance criteria, as
+# p.triaxial_readings() gives them: each quantity in its own rows, at its own
+# strains, in file order (q rows, then Δu or εv rows).
+
+INTERPOLATED = r"interpolated in strain"
+BH1_Q = [
+    (0.0, 0), (2.0, 100), (4.0, 150), (6.0, 170), (8.5, 180),
+    (10.0, 176), (12.0, 170), (11.8, 80), (11.6, 5),
+]  # fmt: skip
+BH1_DU = [(0.0, 0), (3.0, 40), (7.0, 56), (10.0, 64), (12.0, 66), (11.7, 60)]
+BH2_Q = [(0, 0), (2, 500), (4, 800), (6, 900), (7, 880)]
+BH2_EV = [(0, 0), (3, 2.0), (5, 3.0), (7, 3.8)]
+J1_Q = [(0.0, 0), (1.0, 50), (2.0, 80), (1.9, 85), (3.0, 90), (4.0, 88)]
+J1_DU = [(0.0, 0), (1.5, 20), (2.5, 30)]
+
+
+def stage_rows(specimen, test_type, cell, back, quantities, stage="1"):
+    """One stage's readings, each quantity's (strain, value) pairs in its rows."""
+    rows = []
+    for column, pairs in quantities:
+        for strain, value in pairs:
+            rows.append({"axial_strain": strain, column: value})
+    df = pd.DataFrame(rows)
+    for column in ("deviator_stress", "excess_pore_pressure", "volumetric_strain"):
+        if column not in df.columns:
+            df[column] = np.nan
+    stage_values = {
+        "specimen_id": specimen,
+        "test_stage": stage,
+        "test_type": test_type,
+        "cell_pressure": cell,
+        "back_pressure": back,
+        "effective_consolidation_stress": cell - back,
+    }
+    return df.assign(**stage_values)[
+        [*stage_values, "axial_strain", "deviator_stress", "excess_pore_pressure",
+         "volumetric_strain"]
+    ]  # fmt: skip
+
+
+def ags_shaped(scale=1.0, unit="kPa"):
+    """BH1-U3 stage 1 (CU) and BH2-U2 stage 3 (CDM), stresses times ``scale``."""
+    df = pd.concat(
+        [
+            stage_rows(
+                "BH1-U3", "CU", 400, 300,
+                [("deviator_stress", BH1_Q), ("excess_pore_pressure", BH1_DU)],
+            ),
+            stage_rows(
+                "BH2-U2", "CDM", 700, 300,
+                [("deviator_stress", BH2_Q), ("volumetric_strain", BH2_EV)],
+                stage="3",
+            ),
+        ],
+        ignore_index=True,
+    )  # fmt: skip
+    df["source_line"] = range(200, 200 + len(df))
+    stresses = [*STRESSES, "effective_consolidation_stress"]
+    df[stresses] = df[stresses] * scale
+    df.attrs["units"] = dict.fromkeys(stresses, unit)
+    return df
+
+
+def joins_shaped():
+    """J1-U3 stage 1, with the readings p.triaxial_readings() leaves out removed."""
+    df = stage_rows(
+        "J1-U3", "CU", 400, 300,
+        [("deviator_stress", J1_Q), ("excess_pore_pressure", J1_DU)],
+    )  # fmt: skip
+    df.attrs["units"] = dict.fromkeys(STRESSES, "kPa")
+    return df
+
+
+@pytest.mark.parametrize(("scale", "unit"), [(1.0, "kPa"), (1 / PSF, "psf")])
+def test_ags_readings_max_deviator_stress(scale, unit):
+    with pytest.warns(UserWarning, match=INTERPOLATED) as record:
+        rows = ht.analysis.triaxial_failure_from_readings(
+            ags_shaped(scale, unit), failure_criterion="max_deviator_stress"
+        )
+    assert len(record) == 1
+    message = str(record[0].message)
+    assert "2 stages" in message
+    assert "BH1-U3 stage 1 (excess_pore_pressure)" in message
+    assert "BH2-U2 stage 3 (volumetric_strain)" in message
+    assert list(rows["axial_strain_at_failure"]) == [8.5, 6.0]
+    assert list(rows["deviator_stress_at_failure"] / scale) == pytest.approx(
+        [180, 900], rel=1e-9
+    )
+    # BH1-U3: Δu 56 + 8 × 1.5/3 = 60; BH2-U2 drained: u_f the back pressure.
+    assert list(rows["pore_pressure_at_failure"] / scale) == pytest.approx(
+        [360, 300], rel=1e-9
+    )
+    assert np.isnan(rows["volumetric_strain_at_failure"][0])
+    assert rows["volumetric_strain_at_failure"][1] == pytest.approx(3.4, rel=1e-9)
+    assert rows.attrs["units"]["pore_pressure_at_failure"] == unit
+    assert "source_line" not in rows.columns
+
+
+def test_ags_readings_values_at_each_q_reading():
+    reduced = reduce_readings(ags_shaped(), "max_deviator_stress", None)
+    readings = reduced.readings
+    q_rows = np.arange(len(BH1_Q))
+    expected = [0, 40 * 2 / 3, 44, 52, 60, 64, 66, np.nan, np.nan]
+    assert readings.excess_at[q_rows] == pytest.approx(expected, rel=1e-9, nan_ok=True)
+    assert list(readings.q_loading[q_rows]) == [True] * 7 + [False] * 2
+    # Own value at 10.0 %, interpolated elsewhere, nothing on the tail.
+    assert list(readings.interpolated_excess[q_rows]) == [
+        True, True, True, True, True, True, True, False, False,
+    ]  # fmt: skip
+    # A Δu row keeps its own value; the q rows of BH2-U2 get εv.
+    assert readings.excess_at[len(BH1_Q) + 5] == 60
+    bh2 = len(BH1_Q) + len(BH1_DU) + np.arange(len(BH2_Q))
+    assert readings.volumetric_at[bh2] == pytest.approx(
+        [0, 2 / 3 * 2.0, 2.5, 3.4, 3.8], rel=1e-9
+    )
+
+
+def test_ags_readings_max_stress_ratio():
+    with pytest.warns(UserWarning, match=INTERPOLATED) as record:
+        rows = ht.analysis.triaxial_failure_from_readings(
+            ags_shaped().query("specimen_id == 'BH1-U3'"),
+            failure_criterion="max_stress_ratio",
+        )
+    assert len(record) == 1
+    assert "1 stage had" in str(record[0].message)
+    assert "BH1-U3 stage 1 (excess_pore_pressure)" in str(record[0].message)
+    # σ′3 = 400 - 300 - 66 = 34, σ′1 = 204: ratio 6.0, above 5.5 and 5.888889.
+    assert rows["axial_strain_at_failure"].item() == 12.0
+    assert rows["deviator_stress_at_failure"].item() == 170
+    assert rows["pore_pressure_at_failure"].item() == pytest.approx(366, rel=1e-9)
+
+
+def test_a_tail_reading_with_the_largest_q_is_not_picked():
+    df = joins_shaped()
+    tail = df.iloc[[0]].assign(axial_strain=3.5, deviator_stress=500.0)
+    df = pd.concat([df.iloc[: len(J1_Q)], tail, df.iloc[len(J1_Q) :]])
+    df.attrs["units"] = dict.fromkeys(STRESSES, "kPa")
+    with pytest.warns(UserWarning, match="decreases"):
+        rows = ht.analysis.triaxial_failure_from_readings(
+            df, failure_criterion="max_deviator_stress"
+        )
+    assert rows["deviator_stress_at_failure"].item() == 90
+
+
+def test_equal_strains_in_the_readings_take_the_last():
+    df = stage_rows(
+        "S", "CU", 400, 300,
+        [
+            ("deviator_stress", [(0.0, 0), (1.0, 50), (2.0, 80)]),
+            ("excess_pore_pressure", [(0.0, 0), (1.5, 10), (1.5, 20), (3.0, 50)]),
+        ],
+    )  # fmt: skip
+    df.attrs["units"] = dict.fromkeys(STRESSES, "kPa")
+    reduced = reduce_readings(df, "max_deviator_stress", None)
+    # At 1.0 %: 0 + 20 × 1/1.5; at 2.0 %: 20 + 30 × 0.5/1.5.
+    assert reduced.readings.excess_at[:3] == pytest.approx([0, 40 / 3, 30], rel=1e-9)
+
+
+def test_joins_max_deviator_stress():
+    with pytest.warns(UserWarning) as record:
+        rows = ht.analysis.triaxial_failure_from_readings(
+            joins_shaped(), failure_criterion="max_deviator_stress"
+        )
+    messages = [str(w.message) for w in record]
+    assert len(messages) == 1
+    assert (
+        "axial_strain decreases within the loading part of 1 stage: J1-U3 stage 1"
+        in (messages[0])
+    )
+    # 3.0 % is outside the Δu readings (0-2.5 %): u_f blank, nothing interpolated.
+    assert rows["axial_strain_at_failure"].item() == 3.0
+    assert rows["deviator_stress_at_failure"].item() == 90
+    assert np.isnan(rows["pore_pressure_at_failure"].item())
+
+
+def test_joins_max_stress_ratio():
+    with pytest.warns(UserWarning) as record:
+        rows = ht.analysis.triaxial_failure_from_readings(
+            joins_shaped(), failure_criterion="max_stress_ratio"
+        )
+    messages = [str(w.message) for w in record]
+    assert len(messages) == 2
+    assert "decreases" in messages[0]
+    assert "1 stage had" in messages[1] and "J1-U3 stage 1" in messages[1]
+    with pytest.warns(UserWarning, match="decreases"):
+        readings_ = reduce_readings(joins_shaped(), "max_stress_ratio", None).readings
+    candidates = np.arange(4)
+    ratio = readings_.effective_major / readings_.effective_minor
+    assert ratio[candidates] == pytest.approx(
+        [1, 136.666667 / 86.666667, 155 / 75, 161 / 76], rel=1e-8
+    )
+    # 3.0 and 4.0 % are outside the Δu readings: no ratio, not candidates.
+    assert np.isnan(ratio[4:6]).all()
+    assert rows["axial_strain_at_failure"].item() == 1.9
+    assert rows["deviator_stress_at_failure"].item() == 85
+    assert rows["pore_pressure_at_failure"].item() == pytest.approx(324, rel=1e-9)
+
+
+def test_rows_with_every_quantity_warn_nothing_about_interpolation():
+    failure(readings(), failure_criterion="max_deviator_stress")
+    failure(readings("A", "B", "C", "E"), failure_criterion="max_stress_ratio")

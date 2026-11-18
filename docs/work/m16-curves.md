@@ -463,3 +463,12 @@ file and the figure). Start a new session at steps 3 and 7.
 - What a future session would get wrong without being told, written where it will be read.
 - **Verification:** every AC reported met or not with its test; the whole suite (`-n 2`); ruff check and format
   check; mypy; the lowest-versions run (then `git checkout uv.lock`); the strict docs build.
+
+### Notes from the build
+- **Step 1, a drained stage's u_f:** AC 4 (BH2-U2 stage 3, u_f 300 from readings without Δu) and `strength.md` §2
+  ("a drained stage's blank Δu is 0 … the failure row's `pore_pressure_at_failure` … use these values") need the
+  failure row's u_f to be the back pressure in a drained stage with Δu blank. Until now it was blank there, and
+  `triaxial_failure_stresses()` filled it with a warning. So R3's failure row now has u_f 200 kPa and no warning;
+  its stresses, paths and every P12 criterion are unchanged. P12 §4's sentence says so.
+- **Step 1 took two of step 2's test changes:** `test_decreasing_strain_raises` (now `_warns`) and the R3 plot
+  tests that expected the back-pressure warning, since the analysis change makes them fail.

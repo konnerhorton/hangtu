@@ -118,12 +118,14 @@ engineer's call against the standard and the lab's report (TODO #53; SPEC §4).
 
 **Failure rows.** One row per stage, in the order of the stages' first readings, in `ht.template("triaxial")`'s
 shape: the stage columns, then `deviator_stress_at_failure` = q, `pore_pressure_at_failure` = `back_pressure` +
-Δu (blank where Δu is), `axial_strain_at_failure` and `volumetric_strain_at_failure` at the failure reading (Δu
-and εv interpolated as above where the reading has none, with one warning naming those stages),
-`multistage_test` (the type is multistage, or the specimen has more than one stage, as `datasets.md` §6.10), and
+Δu (Δu 0 in a drained stage where it is blank, as above; blank where an undrained stage's Δu is),
+`axial_strain_at_failure` and `volumetric_strain_at_failure` at the failure reading (Δu and εv interpolated as
+above where the reading has none; `triaxial_failure_from_readings()` warns once naming those stages, and the plot
+doesn't, so a figure of readings from an AGS file draws without a warning on every CU stage), `multistage_test`
+(the type is multistage, or the specimen has more than one stage, as `datasets.md` §6.10), and
 `failure_criterion`: "Maximum deviator stress" or "Maximum principal stress ratio" where hangtu picked, the
-readings' own value where the lab's mark was used. `triaxial_failure_stresses()` then adds the principal
-stresses, and `mohr_coulomb_fit()` fits them: the plot draws that fit, never one of its own.
+readings' own value where the lab's mark was used. `triaxial_failure_stresses()` then adds the principal stresses,
+and `mohr_coulomb_fit()` fits them: the plot draws that fit, never one of its own.
 
 **Envelope** (`s_t`, `p_q`): `mohr_coulomb_fit()` on the failure rows, with P11's arguments, transformed into the
 space as P11 §4.
