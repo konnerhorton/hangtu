@@ -349,3 +349,132 @@ Golden values hand-calculated from the Derivation (sums at 30 digits, rounded to
 16. **Result object:** `kind = "derived"`, the function, unit and notes recorded; `.to_dict()` is JSON-serializable;
     `.to_frame()` has decision 15's columns; `.specimens` holds every split's sum of squares and every point's role.
 17. **Published text** cites no internal file (the site and error tests pass).
+
+## Plan
+Draft, 2026-11-19. Six commits, each green: the tests it touches, then the CI command with `-n 3`. Steps 1–3 on Opus
+(the calculation, its validity rules, the reasons and the docstring), 4–5 on Sonnet (the plot and the docs site, with
+the spec's values and P13's criteria deciding correctness), 6 on Opus (the figure judged against P13, the sheet's
+citations, close-out): two session boundaries, after 3 and after 5. A step past about 300 changed lines without test
+data splits as noted. Reused, not rebuilt:
+- **Fit:** `line_fit()` (`analysis/_line_fit.py`, free) for every line, Oikawa's in log f–log σ′v and the indexes'
+  in e–log σ′v; `_DerivedResult`, `judgments_file()`, `soil_classes()` (`analysis/_derived.py`); `group_keys()`
+  (`stats/_rows.py`); `_plain()` (`stats/_result.py`); `oedometer_load_branch()` and its branch constants
+  (`analysis/_oedometer.py`).
+- **Units:** `resolve_units`, `parse_unit`, `check_dimension`, `convert`, `to_display` (`hangtu.units`), as
+  `_shear_box_fit.py` uses them; `numeric_column`, `rows_text` (`_data`); `ColumnError`, `HangtuError`, `warn`
+  (`errors`).
+- **Data:** `p.oedometer()`'s columns (`columns.yaml`'s `oedometer` list) for the columns read; `site_si.ags`,
+  `site_us.ags` (BH1-U3) and the example project's `site.ags` (B-4-U1-C1, B-5-U2-C1, the `SWELLPRESS` specimen) as
+  they are: no new example data (spec, Changes).
+- **Plotting:** `style.context`/`style_axes`, `figure_size`, `axis_label`, `add_legend`, `Notes`, `figure_of`,
+  `hint_missing`, `resolve_palette`, `format_number` (`plot/_overlays.py`), as `plot/_shear_box_envelope.py` uses
+  them; its `_draw_box`/`_footnote` pattern for the result box and footnote. `_envelope_drawing.py` is
+  Mohr-Coulomb-specific and isn't reused; the solid-in-range, dashed-beyond line is drawn here.
+
+Code cites `docs/analysis/compressibility.md`, which step 6 writes (spec, Changes), as it cites the other living
+docs; the registry's `ags` entries say `"derived: docs/analysis/compressibility.md"`.
+
+### 1. `M19: add oedometer_fit() with σ′p by Oikawa, Cc and Cr` (Opus)
+- `columns.yaml`: `compression_index`, `recompression_index`, `swelling_index`, `compression_ratio` (dimensionless),
+  `preconsolidation_stress_pacheco_silva` (stress), `normalized_void_ratio_change` (dimensionless),
+  `sample_quality` (text), with decision 2's labels, `used_by: [P13]`; `preconsolidation_stress` and
+  `overconsolidation_ratio` gain P13, and their `ags` the new doc beside `correlations.md`. All seven added now, so
+  steps 2–3 add no registry change. `tests/test_registry.py` stays green.
+- `src/hangtu/analysis/_oedometer_fit.py` (new), exported with `OedometerFit` in `analysis/__init__.py`:
+  - inputs (decision 1): the required columns and blank `specimen_id` errors naming `ht.template("oedometer")`
+    and the rows (`rows_text`); `load_branch` read or added with the note; one fit per specimen in `group_keys()`
+    order, rows in frame order;
+  - units (decision 17): `applied_vertical_stress` resolved and checked as a stress, converted to
+    `display_units=`'s unit when given;
+  - per specimen, each row's role and the counts of decision 3 under the first reason that applies, with
+    `count_loading_after_reload` (decision 8);
+  - the split search (decision 4): every split with at least 3 points a side, two free lines in x = log10 σ′v,
+    y = log10(1 + e), the smallest sum of squares, the lower split on a tie, every split's sum kept; σ′p from the
+    Derivation;
+  - decision 5's rules in order, each reason worded as the spec gives it, the stress ratio on the result and the
+    summary's remark below 3;
+  - Cc and Cr (decision 6) from the winning groups in e–log σ′v;
+  - `OedometerFit(_DerivedResult)`: `.specimens` (decision 15's per-specimen record), `.to_frame()` with decision
+    15's columns in order (the ones steps 2–3 fill present and blank, so the column order is fixed now) and
+    `attrs["units"]`, `__str__` as decision 16, `.to_dict()`;
+  - docstring per the sheets' `TEMPLATE.md` checklist: Oikawa's construction (p. 103) and f = 1 + e (p. 100), the
+    split search stated as hangtu's, the indexes as e–log σ′v slopes, inputs and outputs with units, validity
+    (decision 14: Oikawa's soils and range, nothing refused by water content), each reason, an example on
+    `p.oedometer()`.
+- `docs/site/reference/analysis.md`: `oedometer_fit` and `OedometerFit`.
+- Tests: `tests/analysis/test_oedometer_fit.py` (new), `site_si.ags` and `site_us.ags` loaded through
+  `Project.from_ags` as `tests/analysis/test_shear_box_fit.py` does: AC 1, 2 (Cc, Cr), 5 (the loading and reload
+  counts and the hand-built frame), 8–11 (σ′p, Cc and Cr parts), 12, 13, 16 (the fields filled so far); AC 15's σ′p,
+  Cc and Cr on the example file, and its `SWELLPRESS` specimen.
+- If past about 300 lines: (1a) inputs, roles, counts and the split search (AC 1, 5, 11–13), then (1b) the validity
+  rules, Cc, Cr and the result's text (AC 2, 8–10, 16).
+
+### 2. `M19: add Cs, CR and Pacheco Silva's check to oedometer_fit()` (Opus)
+- `_oedometer_fit.py`:
+  - Cs (decision 9): every unload run from its start point, at least 2 points, each run's Cs and start stress on
+    `.specimens`, the frame's `swelling_index` the first run's, the 2-point note, "no unloading", and
+    `count_unloading_not_used` for the later runs' rows; Cs given when σ′p is blank (decision 5);
+  - CR (decision 7) from `void_ratio`, blank with "no initial void ratio";
+  - Pacheco Silva (decision 10, Derivation): σA, e_B interpolated between the loading points either side, the
+    check's σ′p; blank e0 and the construction outside the loading stresses give their reasons; blank with σ′p's
+    reason when σ′p is blank; σA and e_B on `.specimens`;
+  - the docstring's Cs, CR and check paragraphs (Pacheco Silva 1970 via Paniagua et al. 2016, §2.4).
+- Tests, same file: AC 2 (CR), 3, 4, 5 (`count_unloading_not_used`, the row total), 8 (Cs), and AC 15's Cs, CR and
+  check on the example file.
+
+### 3. `M19: add OCR, Δe/e0 and the sample quality class` (Opus)
+- `_oedometer_fit.py`:
+  - σ′v0 (decision 11): `effective_vertical_stress` resolved and converted to the fit's unit, a column blank
+    throughout needing no unit; more than one value on a specimen an error naming it; OCR with its reasons; OCR < 1
+    kept, one warning per call naming the specimens;
+  - Δe/e0 (decision 12): e at σ′v0 interpolated on the loading points, the below/above-range reasons, blank e0, the
+    negative value's note;
+  - the class (decision 13): the two rows of limits as constants citing Lunne et al. (1997) via Krage et al. (2015),
+    Table 1, the boundaries as the spec gives them, the row named on the result, the caveat in the summary
+    wherever a class is given;
+  - the docstring's OCR, Δe/e0 and class paragraphs, with the caveat.
+- Tests, same file: AC 6, 7, 14, 17 (`tests/docs/test_site.py`, `tests/test_errors.py`), and the rest of AC 16 and
+  15. The warning asserted with `pytest.warns` wherever OCR < 1.
+
+### 4. `M19: add ht.plot.consolidation_curve() (P13)` (Sonnet)
+- `src/hangtu/plot/_consolidation_curve.py` (new), exported in `plot/__init__.py`, as P13 §10: calls
+  `oedometer_fit()` with `units=` and `display_units=` and draws its result, computing nothing of its own: the
+  points by branch (§7), loading joined in file order, the past-reload diamonds; the Cc, Cr and Cs lines solid over
+  their points and thin dashed beyond (§4); the σ′p triangles on the loading curve; the e0 tick and the σ′v0
+  line; `space="log_specific_volume"` with Oikawa's lines and no Cs; `construction=`; the result box and the
+  footnote (§8); P13 §6's limits; returns `(fig, ax, fit)`, `fit=False` returns None.
+- `docs/site/reference/plot.md`: `consolidation_curve`.
+- Tests: `tests/plot/test_consolidation_curve.py` (new), P13 AC 1–4, 6, 7 and 9 read from the drawn artists (marker
+  positions and fills, line slopes and solid/dashed extents, axis scales);
+  `tests/plot/test_consolidation_curve_acceptance.py` (new), AC 5 and 8 on the twin files and the example project.
+- If past about 300 lines: (4a) points, lines, σ′p marks, limits and returns (AC 1–3, 7), then (4b) the box, the
+  footnote, `space=`, `construction=`, units and the edge cases (AC 4–6, 8, 9).
+
+### 5. `M19: draw the oedometer curves on the docs site` (Sonnet)
+- `docs/site/examples/consolidation-curve.py` (new): the example project's two specimens with
+  `vertical_stress()`, US units. `docs/site/plots/consolidation-curve.md` (new): what it shows, the branches, the
+  fitted ranges, the two σ′p, the box, the class caveat, common options; linked in `zensical.toml`'s `nav` and
+  `docs/site/plots/index.md`.
+- `docs/site/guides/datasets.md`: `p.oedometer()`'s row points to P13 and `oedometer_fit()`.
+- Run `docs/prepare_site.py` and `zensical build --clean --strict`.
+
+### 6. `M19: close out (b)` (Opus)
+- **Visual check:** `docs/plots/img/P13-us.png` (the example's two specimens, psf) and `P13-si.png` (BH1-U3, kPa,
+  with σ′v0 and `construction=True`), 100 dpi, looked at against P13, committed (P13 AC 10).
+- **Close-out:**
+  - `docs/analysis/compressibility.md` (new): the fit's rules from this spec (decisions 1–17, the Derivation),
+    linking the API reference rather than restating the docstring; `CLAUDE.md`'s `docs/analysis/` list gains it;
+  - SPEC §4: the "Oedometer fit" bullet (spec, Changes);
+  - `docs/plots/P13-consolidation-curve.md` status `built` with its images; `docs/plots/README.md` P13 `built`;
+  - sheet 06 (`docs/drafts/parameters/`) and its site page: §5.1 Oikawa (1987) [V] with the fitting procedure,
+    §5.2 and §5.4 marked later, §5.3 Pacheco Silva via Paniagua et al. (2016), §5.8's bands [V]; Methods rows
+    linking `oedometer_fit()` and P13; Pitfalls with the class caveat. Sheet 11 and the parameter index: Eoed and
+    Eur,oed move to (c); 06's stage B built (σ′p, Cc, Cr, Cs);
+  - Umar & Sadrekarimi: the published version looked for; cited as published if found, else as the manuscript;
+  - `docs/TODO.md`: Casagrande and the work method, with a trigger (intent decision 2); TODO #73's text checked
+    against what was built (it stays open for (c));
+  - `STATUS.md`: M19 "(a), (b) done; (c) next", the Next line; `CHANGELOG.md` Unreleased: `oedometer_fit()` and
+    `consolidation_curve()`, in the user's words;
+  - what a future session would get wrong without being told, written where it will be read.
+- **Verification:** every AC of the Spec and of P13 §12 reported as met or not, with its test; the whole suite with
+  `-n 3`; ruff; mypy; the lowest-versions run (then `git checkout uv.lock`); the strict docs build.
