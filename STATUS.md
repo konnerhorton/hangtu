@@ -1,7 +1,7 @@
 # Status
 
-**Next:** M19 (b), compressibility (σ′p, Cc, Cs, OCR, Eoed, Eur,oed) and P13, from its intent on `m19b-compressibility`.
-M20's Soft Soil set is built on M18's model-set base. Then waves 4–6.
+**Next:** M19 (b), compressibility (σ′p, Cc, Cr, Cs, OCR, Δe/e0) and P13: the plan, from its spec on
+`m19b-compressibility`. M20's Soft Soil set is built on M18's model-set base. Then waves 4–6.
 
 Last checkpoint: 3, after M19 (a), 2026-11-15, 4f03bfd.
 
