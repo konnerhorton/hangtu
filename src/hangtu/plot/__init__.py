@@ -8,6 +8,7 @@ documentation lists what they share.
 
 from hangtu.plot import common, style
 from hangtu.plot._clogging_diagram import clogging_diagram
+from hangtu.plot._consolidation_curve import consolidation_curve
 from hangtu.plot._distribution_fit import distribution_fit
 from hangtu.plot._failure_envelope import failure_envelope
 from hangtu.plot._geology_units import (
@@ -29,6 +30,7 @@ from hangtu.plot._water_content_profile import water_content_profile
 __all__ = [
     "clogging_diagram",
     "common",
+    "consolidation_curve",
     "distribution_fit",
     "failure_envelope",
     "geology_unit_comparison",

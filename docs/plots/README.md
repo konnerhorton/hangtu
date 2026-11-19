@@ -93,7 +93,7 @@ Data for all of these already exists in the MVP scope. P00 is the foundation the
 | P10 | *Merged into P12* (stress–strain curves draw the same readings as measured stress paths) | — | ID not reused | — |
 | P11 | Triaxial: **failure envelope** with Mohr-Coulomb fit, drawn as Mohr circles, s′–t or p′–q (`space=`); optional idealized drained paths | `failure_envelope` | **Equal aspect required** in all spaces; total vs effective; M11 (b) | [built](P11-failure-envelope.md) |
 | P12 | Triaxial shearing: stress–strain curves and measured stress paths (s′–t, p′–q) with P11's envelope (`space=`) | `triaxial_shearing` | plot + light analysis; readings from a user CSV (`ht.template("triaxial_readings")`), which AGS doesn't carry | [built](P12-triaxial-shearing.md) |
-| P13 | Consolidation: e (or strain) against log σ′v, with σ′p by Casagrande and/or other methods, Cc/Cr | `consolidation_curve` | | idea |
+| P13 | Consolidation: e against log σ′v, with σ′p (Oikawa, Pacheco Silva as the check), Cc, Cr and Cs, σ′v0 and Δe/e0 | `consolidation_curve` | plot + analysis; `oedometer_fit()`, M19 (b) | [built](P13-consolidation-curve.md) |
 | P14 | Consolidation: c_v and m_v against log σ′v | `consolidation_coefficients` | | idea |
 | P15 | Consolidation: settlement against √t and log t per load increment (Taylor / Casagrande fitting) | `time_settlement` | | idea |
 | P16 | Compaction curve: dry density against moisture content, zero-air-voids lines | `compaction_curve` | Common in US practice; AGS CMPG/CMPT | idea |

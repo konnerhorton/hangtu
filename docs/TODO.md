@@ -277,6 +277,11 @@ One unit can need two selected values of one parameter: EC7's Type A (a mean) fo
 - **Problem:** seven `ht.stats` modules each write their own `_notes()` (`_compare`, `_crosstab`, `_describe`, `_fit`, `_refusal_limit`, `_representative`, `_select`), and the count lines are built in `_fit._count()` and twice in `_result.py`. A new result type would add another copy. `_select.py`, `_result.py`, `_compare_sources.py` and `project.py` are each over 1,100 lines.
 - **Open:** whether the notes and counts share one helper, and whether the four modules split, as a refactor unit of its own before that unit.
 
+### 76. σ′p by Casagrande and by the work method · You + Claude · `docs/analysis/compressibility.md` §5, sheet 06 §5.2, §5.4 · when an engineer asks to compare a lab's Casagrande σ′p, or M19 (c) settles the strain definition (#73)
+- **Built (M19 b):** σ′p by Oikawa (1987), with Pacheco Silva's construction as the check; both deterministic.
+- **Casagrande (1936):** the point of maximum curvature needs a smoothing choice (a spline, a window), a judgment the fit would hide. Open: which smoothing, stated and fixed, or a judgment input; and a verified citation (sheet 06 [4] is [U]).
+- **Work method (Becker et al. 1987):** W = Σ σ′v Δε_v needs the strain per increment, which hangs on #73's definition; the two lines are in arithmetic W–σ′v, each fitted over a stress range the engineer chooses. Open: whether the split is searched as Oikawa's is, and the equation's form from the paper (sheet 06 [6] is [U] for it).
+
 ## Agent-use review (2026-11-09)
 A review of the whole package asked one question: if an AI agent does the work and an engineer signs it off, how likely is a wrong answer, and how easy is it to catch? It used probe scripts plus two agent trials (an SPT correlation task and a lab strength task, from the public docs only). Items 60–61 can give a plausible wrong number with nothing to flag it; 62–67 lead an agent to misuse; 68–69 are friction.
 

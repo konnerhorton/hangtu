@@ -11,7 +11,7 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
 ### Added
 - **Plots:** `plasticity_chart()`, `grain_size()`, `water_content_profile()`, `clogging_diagram()`,
   `distribution_fit()`, `representative_profile()`, `failure_envelope()`, `triaxial_shearing()`,
-  `shear_box_envelope()` and `hoek_brown_envelope()`.
+  `shear_box_envelope()`, `hoek_brown_envelope()` and `consolidation_curve()`.
 - **Datasets:** `p.grain_size_summary()`, `p.index_properties()`, `p.density()`, `p.particle_density()`,
   `p.triaxial()`, `p.undrained_strength()`, `p.shear_box()`, `p.oedometer()` and `p.stratigraphy()`.
   `p.oedometer()` gives one row per oedometer load increment, with the void ratios, the lab's m_v and c_v,
@@ -22,6 +22,11 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
   reading, with its stage's cell, back and normal stresses, depth and geology. `ht.template("shear_box_readings")`
   is new, and `ht.template("triaxial_readings")` gains the depth and geology columns (optional, so existing CSVs
   still read). The example project carries readings for every triaxial and shear box stage.
+- **Oedometer curves:** `oedometer_fit()` gives each specimen's preconsolidation stress σ′p, by Oikawa's two
+  lines in log(1 + e) with Pacheco Silva's construction as a check, and Cc, Cr, Cs and CR; with σ′v0 from
+  `vertical_stress()`, OCR and the sample quality Δe/e0 graded by Lunne et al. (1997). A curve with no clear break,
+  too few points or too short a virgin line gets a reason instead of a value. `consolidation_curve()` draws the
+  increments by branch with the fitted lines and both σ′p, so you can judge the fit before using it.
 - `oedometer_load_branch()` marks each oedometer increment as loading, unloading, reloading or held at a
   constant stress, and `ht.template("oedometer")` lays out oedometer tests for a CSV.
 - **Classification and index analyses:** `plasticity()`, `uscs()`, `aashto()`, `gradation()`,

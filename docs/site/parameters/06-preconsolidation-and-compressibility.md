@@ -59,7 +59,7 @@ mineralogy, water content and structure.
 |---|---|---|---|
 | σ′p, Mayne & Kemper (1988), as given by Kulhawy & Mayne (1990) | field N | clays; 0.5 ≤ N ≤ 200 | [`ht.analysis.correlations.preconsolidation_stress_mayne_kemper_1988()`](../reference/correlations.md#hangtu.analysis.correlations.preconsolidation_stress_mayne_kemper_1988) |
 | OCR, Mayne & Kemper (1988), as given by Kulhawy & Mayne (1990) | field N, σ′v0 | clays; 1 ≤ N pa/σ′v0 ≤ 100 | [`ht.analysis.correlations.overconsolidation_ratio_mayne_kemper_1988()`](../reference/correlations.md#hangtu.analysis.correlations.overconsolidation_ratio_mayne_kemper_1988) |
-| σ′p, Cc and Cs from an oedometer curve | e and σ′v of each increment | specimens of known quality, with points on both sides of σ′p | W3 |
+| σ′p by Oikawa (1987), Cc, Cr, Cs and CR from an oedometer curve; σ′p by Pacheco Silva (1970) as the check; OCR and Δe/e0 with Lunne et al.'s (1997) class | e and σ′v of each increment; e0; σ′v0 for OCR and Δe/e0 | at least 3 loading points either side of σ′p, a clear break, a test to at least 2 σ′p; tested on soft soils | [`ht.analysis.oedometer_fit()`](../reference/analysis.md#hangtu.analysis.oedometer_fit), drawn by [`ht.plot.consolidation_curve()`](../plots/consolidation-curve.md) |
 | Cc from LL, Cc = 0.009 (LL − 10) (Kulhawy & Mayne 1990, Eq. 6-5, after Terzaghi & Peck 1967) | LL | normally consolidated clays | W3 |
 | CPTu, σ′p ≈ 0.33 (q_t − σv0) (Mayne et al. 2009, Eq. 4.15, p. 2832) | q_t, σv0 | intact clays; low in fissured clays | later |
 
@@ -68,6 +68,14 @@ other: at the same test they differ (0.58 against 0.47). Both read field N, as m
 energy correction; the OCR correlation also reads σ′v0, from `ht.analysis.vertical_stress()`. The equations, ranges
 and sources are in each function's reference entry, and [(N1)60 and correlations](../guides/correlations.md) shows
 the correlations on the example project.
+
+The oedometer fit finds σ′p where two least-squares lines in log(1 + e) against log σ′v cross (Oikawa 1987), the
+split between them searched, so the same increments always give the same σ′p. It ranked first of eleven methods in
+one comparison on 30 tests (Umar & Sadrekarimi 2017). Pacheco Silva's construction on the Cc line and e0 is
+reported beside it as a check. A curve with no clear break, too few points or too short a virgin line gets a reason,
+not a value: look at the [consolidation curve](../plots/consolidation-curve.md) before using either. Casagrande's
+construction and the work method aren't built: both need a choice (a smoothing for the maximum curvature, a strain
+definition) that the fit would have to hide.
 
 ## How the methods compare
 
@@ -87,8 +95,11 @@ Choosing a design value is selection: [`ht.stats.select()`](../guides/selection.
 ## Pitfalls
 
 - Grade each specimen before using its σ′p. By Δe/e0 = (e0 − e at σ′v0) / e0, for OCR 1 to 2, below 0.04 is very
-  good to excellent and above 0.14 very poor; for OCR 2 to 4, below 0.03 and above 0.10 (Lunne et al. 1997, as
-  given by Amundsen et al. 2016, Table 1). Poor samples give σ′p too low and Cr too high.
+  good to excellent, 0.04 to 0.07 good to fair, 0.07 to 0.14 poor and above 0.14 very poor; for OCR 2 to 4, the
+  limits are 0.03, 0.05 and 0.10 (Lunne et al. 1997, as given by Krage et al. 2015, Table 1, and Amundsen et al.
+  2016, Table 1). Poor samples give σ′p too low and Cr too high.
+- The class's OCR row is chosen by the same test's OCR, and disturbance lowers σ′p and so that OCR. A poor sample can
+  land in the more lenient OCR 1 to 2 row and grade better than it is: read the class with the curve.
 - Read σ′p and Cc from the loading branch, and Cs from a clear unload–reload loop; a reload slope isn't Cc.
 - Check σ′v0 at the specimen depth (water level, unit weight): an OCR is often wrong through σ′v0, not σ′p.
 - An OCR below 1 means disturbance, a wrong σ′v0 or an underconsolidated deposit: flag it, don't clip it.
@@ -104,6 +115,8 @@ Choosing a design value is selection: [`ht.stats.select()`](../guides/selection.
 
 - Amundsen, H.A., Thakur, V. and Emdal, A. (2016). Sample disturbances in block samples on low plastic soft clays.
   *Proc. 17th Nordic Geotechnical Meeting (NGM 2016)*, Reykjavik.
+- Krage, C.P., DeJong, J.T., DeGroot, D.J., Dyer, M. and Lukas, W. (2015). *Proc. 6th International Conference
+  on Earthquake Geotechnical Engineering*, Christchurch.
 - Kulhawy, F.H. and Mayne, P.W. (1990). *Manual on Estimating Soil Properties for Foundation Design.* EPRI EL-6800,
   Electric Power Research Institute. <https://restservice.epri.com/publicdownload/EL-6800/0/Product>
 - Lunne, T., Berre, T. and Strandvik, S. (1997). Sample disturbance effects in soft low plastic Norwegian clay.
@@ -111,5 +124,13 @@ Choosing a design value is selection: [`ht.stats.select()`](../guides/selection.
 - Mayne, P.W., Coop, M.R., Springman, S.M., Huang, A.-B. and Zornberg, J.G. (2009). Geomaterial behavior and
   testing. *Proc. 17th ICSMGE*, Alexandria, 2777–2872. <https://doi.org/10.3233/978-1-60750-031-5-2777>
 - Mayne, P.W. and Kemper, J.B. (1988). *Geotechnical Testing Journal* 11(2), 139–147.
+- Oikawa, H. (1987). Compression curve of soft soils. *Soils and Foundations* 27(3), 99–104.
+  <https://doi.org/10.3208/sandf1972.27.3_99>
+- Pacheco Silva, F. (1970). Uma nova construção gráfica para a determinação da pressão de pré-adensamento de uma
+  amostra de solo. *Proc. 4th Brazilian Conference on Soil Mechanics and Foundation Engineering*, Rio de Janeiro;
+  as given by Paniagua, P., L'Heureux, J.-S., Yang, S. and Lunne, T. (2016), *Proc. 17th Nordic Geotechnical
+  Meeting (NGM 2016)*, Reykjavik, §2.4.
 - Robertson, P.K. and Cabal, K.L. (2022). *Guide to Cone Penetration Testing*, 7th ed. Gregg Drilling.
 - Terzaghi, K. and Peck, R.B. (1967). *Soil Mechanics in Engineering Practice*, 2nd ed. Wiley.
+- Umar, M. and Sadrekarimi, A. (2017). Accuracy of determining pre-consolidation pressure from laboratory tests.
+  *Canadian Geotechnical Journal* 54(3), 441–450.
