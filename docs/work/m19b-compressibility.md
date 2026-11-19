@@ -29,24 +29,38 @@ believable before using it.
   reload is used too, in the spec step).
 - **CR = Cc / (1 + e0)** on the result (decision 4).
 - **σ′p by Pacheco Silva (1970) as the check:** the virgin line (Cc's) meets the horizontal through e0; down to the
-  curve; across to the virgin line; σ′p is that point's stress (decision 2).
+  curve; across to the virgin line; σ′p is that point's stress (decision 2). 🟡 In the spec step: what the check
+  gives when e0 is blank or differs from the first increment's starting e (seating, flooding), and when the
+  construction misses the measured curve.
 - **OCR = σ′p / σ′v0,** reading `effective_vertical_stress` from `ht.analysis.vertical_stress()` on the
   `p.oedometer()` rows, as the SPT OCR correlation does. Without the column, OCR is blank with a reason, never
   filled from an assumed σ′v0. An OCR below 1 is kept and flagged, not clipped (sheet 06 §7).
 - **Δe/e0 = (e0 − e at σ′v0) / e0,** e at σ′v0 interpolated in log σ′v on the loading branch, graded by Lunne et al.
-  (1997) into its four classes for OCR 1–2 and 2–4. Outside OCR 1–4 the value is given without a class.
+  (1997) into its four classes for OCR 1–2 and 2–4. Outside OCR 1–4 the value is given without a class. 🟡 In the
+  spec step: σ′v0 below the first increment's stress (extrapolate, or blank with a reason); whether Δe counts from e0
+  or from after a `constant_stress` increment (flooding, swelling at the seating load); and which OCR picks the band,
+  since disturbance lowers this test's σ′p and so can move a specimen into the more lenient OCR 1–2 band (said on the
+  result or under Pitfalls).
 - **The result** is a derived result (SPEC §5) like the envelope fits: one row per specimen, the points each line
   used, and the rows left out counted by reason. 🟡 One function, `compressibility_fit()` or similar, named in the
   spec step against the registry.
 
 **Constraints:**
 - The fit reads only the loading branch for σ′p, Cc and Cr; a reload slope is never Cc (sheet 06 §7).
-- A specimen that can't give a value has a reason, not an error: too few points on either side of σ′p (sheet 06 §7,
-  maximum stress below 2–3 σ′p), no unload, no loading branch.
+- A specimen that can't give a value has a reason, not an error: too few points on either side of σ′p, a maximum
+  stress too low to define the virgin line (sheet 06 §7 says 2–3 σ′p), no clear break, no unload, no loading branch.
+  The spec fixes each as a number (a minimum count of points per line, a stress ratio), not a range.
+- **No clear break is a result.** Oikawa's split search always returns two lines that cross somewhere, so the spec
+  states when the crossing isn't a σ′p (for example, slopes too close to tell apart, or a crossing outside the
+  measured stresses or not between the points either side of the split), and σ′p is then blank with that reason.
+- **The first points past a reload aren't yet on the virgin line.** `load_branch` calls a point `loading` once its
+  stress exceeds the previous maximum, but the curve takes an increment or two to rejoin the virgin line after an
+  unload–reload loop. The spec decides whether those points are kept in the fit or left out with a counted reason,
+  since they flatten Cc.
 - Points outside the method's reach are counted and reported, never dropped to make a fit work (SPEC §4,
   "Validity is reported").
 - Golden values hand-calculated on the M19 (a) specimen BH1 U3 (twelve increments, one unload–reload loop, a second
-  unload), and on one curve with no clear break.
+  unload), and on one curve with no clear break, whose expected result is a blank σ′p with the no-break reason.
 - Every method cites a verified source, or it is cut rather than shipped unverified.
 
 **SPEC and docs touched:**
