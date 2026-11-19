@@ -643,7 +643,7 @@ columns:
     scale: ratio
     label: Preconsolidation stress, σ′p
     ags: ["derived: docs/analysis/correlations.md", "derived: docs/analysis/compressibility.md"]
-    used_by: [plot.profile]
+    used_by: [plot.profile, plot.consolidation_curve]
   overconsolidation_ratio:
     description: Overconsolidation ratio, preconsolidation stress over effective vertical stress
     type: number
@@ -651,7 +651,7 @@ columns:
     scale: ratio
     label: Overconsolidation ratio, OCR
     ags: ["derived: docs/analysis/correlations.md", "derived: docs/analysis/compressibility.md"]
-    used_by: [plot.profile]
+    used_by: [plot.profile, plot.consolidation_curve]
   preconsolidation_stress_pacheco_silva:
     description: Preconsolidation stress by Pacheco Silva's construction on an oedometer curve, the check on the fitted one
     type: number
@@ -659,7 +659,7 @@ columns:
     scale: ratio
     label: Preconsolidation stress, σ′p by Pacheco Silva
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_curve]
   compression_index:
     description: Compression index, the slope of the virgin loading line of e against log10 effective vertical stress (positive)
     type: number
@@ -667,7 +667,7 @@ columns:
     scale: ratio
     label: Compression index, Cc
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_curve]
   recompression_index:
     description: Recompression index, the slope of e against log10 effective vertical stress on first loading below the preconsolidation stress (positive)
     type: number
@@ -675,7 +675,7 @@ columns:
     scale: ratio
     label: Recompression index, Cr
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_curve]
   swelling_index:
     description: Swelling index, the slope of e against log10 effective vertical stress on an unload (positive)
     type: number
@@ -683,7 +683,7 @@ columns:
     scale: ratio
     label: Swelling index, Cs
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_curve]
   compression_ratio:
     description: Compression ratio, the compression index over 1 + the initial void ratio
     type: number
@@ -691,7 +691,7 @@ columns:
     scale: ratio
     label: Compression ratio, CR = Cc/(1 + e0)
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_curve]
   normalized_void_ratio_change:
     description: Change in void ratio from the initial state to reloading at the in situ effective vertical stress, over the initial void ratio (sample quality)
     type: number
@@ -699,12 +699,12 @@ columns:
     scale: ratio
     label: Normalized change in void ratio, Δe/e0
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_curve]
   sample_quality:
     description: Sample quality class by the normalized change in void ratio (Lunne et al. 1997), e.g. very good to excellent
     type: text
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_curve]
   at_rest_earth_pressure_coefficient:
     description: At-rest earth pressure coefficient, horizontal over vertical effective stress
     type: number

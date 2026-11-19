@@ -501,3 +501,9 @@ docs; the registry's `ags` entries say `"derived: docs/analysis/compressibility.
   it. Stresses in reasons are written to 3 significant figures without a trailing `.0` ("σ′v0 = 20 kPa", "10 to
   320 kPa"), with a thousands comma ("2,000 kPa"). The class's limits and boundaries are tested on the private
   `_sample_quality()` (AC 7), since hitting each limit exactly through a curve isn't practical.
+- **Step 4:** built on Opus, not Sonnet, at the user's request (steps 4-6 in one Opus session). P13 AC 2 said the Cc
+  line is solid "from 200 to 1600 kPa"; BH1-U3's winning split is 4 | 3, so Cc's points are 400-1600 kPa (its
+  intercept 1.42706111 and slope check from those three points). Corrected in P13. The legend has one "Cc and Cr"
+  entry (both are drawn alike); a frame without `effective_vertical_stress` is said once in the footnote, not in each
+  box entry. The dashed parts, the σ′v0 line and the construction sit under `_layers.LINES`, so the legend may cover
+  them: they cross the axes and would otherwise push it below the plot every time.

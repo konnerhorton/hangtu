@@ -96,7 +96,7 @@ from there across the axes.
 | Reloading points | open diamond | as loading | "Reloading" |
 | Constant stress points | small cross | as loading | "Constant stress" |
 | Points left out (no e, stress ≤ 0) | not drawn | — | counted in the footnote |
-| Cc and Cr lines | solid over their points, thin dashed beyond | black with one specimen, else the specimen's | "Cc", "Cr" |
+| Cc and Cr lines | solid over their points, thin dashed beyond | black with one specimen, else the specimen's | one entry, "Cc and Cr (dashed beyond their points)" |
 | Cs line (the first run) | solid over its run | as above, lighter | "Cs" |
 | σ′p (Oikawa) | filled down-triangle on the curve at σ′p | as the specimen | "σ′p (Oikawa)" |
 | σ′p (Pacheco Silva) | open down-triangle on the curve | as the specimen | "σ′p (Pacheco Silva)" |
@@ -112,7 +112,7 @@ log σ′v).
 | Fit lines and σ′p | `fit=` | `True` | `oedometer_fit()` | §7 | `False` draws points only, and the result is None |
 | Pacheco Silva construction | `construction=` | `False` | the fit's σA, e_B | thin gray lines | the three steps of the check, for a report |
 | Result box | `result_box=` | on with the fit | the fit | upper right | per specimen: σ′p (both), Cc, Cr, Cs, CR; OCR and Δe/e0 with the class and "(OCR 1–2 row)"; a value that is blank gives its reason |
-| Footnote | — | when anything is left out | the fit's counts | README | "Left out of BH1-U3: 2 reloading, 1 unloading after the first run"; "Δe/e0 class uses this test's OCR" whenever a class is shown |
+| Footnote | — | when anything is left out | the fit's counts | README | "Left out of BH1-U3: 2 reloading, 1 unloading after the first run"; "The Δe/e0 class uses this test's OCR: …" whenever a class is shown; a frame without `effective_vertical_stress` once, "No OCR or Δe/e0: run ht.analysis.vertical_stress() on the rows for σ′v0", rather than in each specimen's box entry |
 | `note` | as README | off | | | |
 
 ## 9. Units behavior
@@ -138,7 +138,8 @@ def consolidation_curve(
 ```
 - `units=` and `display_units=` go to `oedometer_fit()` as they are.
 - `space="log_specific_volume"` draws log(1 + e) against log σ′v with Oikawa's two lines instead of Cc and Cr, so
-  the engineer sees the fit σ′p came from; Cs isn't drawn there.
+  the engineer sees the fit σ′p came from; Cs and the construction aren't drawn there, and the lines only where σ′p
+  is given.
 
 **Examples:**
 ```python
@@ -167,7 +168,8 @@ stated.
 1. **Points:** BH1-U3 (`site_si.ags`) draws 7 loading points (one, at 1600 kPa, as a diamond), 3 unloading and 2
    reloading points at their (σ′v, e), the loading points joined in file order.
 2. **Lines:** the Cc line passes through e = 1.42706111 at σ′v = 1 kPa with slope −0.282363888 per log cycle, solid
-   from 200 to 1600 kPa; the Cr line solid from 25 to 200 kPa; the Cs line solid from 50 to 800 kPa.
+   from 400 to 1600 kPa (the upper group of the 4 | 3 split); the Cr line solid from 25 to 200 kPa; the Cs line
+   solid from 50 to 800 kPa.
 3. **σ′p marks:** the Oikawa triangle at σ′v = 264.401656 kPa on the loading curve, the Pacheco Silva one at
    239.040472 kPa; `construction=True` adds the three steps through σA = 166.247579 kPa and e_B = 0.755466667.
 4. **`space="log_specific_volume"`:** log y axis, Oikawa's two lines crossing at 264.401656 kPa, no Cs line.
