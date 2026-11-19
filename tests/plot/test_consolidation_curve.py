@@ -190,7 +190,10 @@ def test_preconsolidation_marks(bh1):
         on_curve = np.interp(math.log10(x), loading_x, loading_e)
         assert y == pytest.approx(on_curve, rel=REL)
         assert line.get_marker() == "v"
-        assert (line.get_markerfacecolor() == "white") is not filled
+        assert (line.get_markerfacecolor() == "none") is not filled
+    # The open one is larger and under, so a filled one at the same σ′p shows.
+    assert check.get_markersize() > oikawa.get_markersize()
+    assert check.get_zorder() < oikawa.get_zorder()
     assert not _lines(ax, "construction")
 
 

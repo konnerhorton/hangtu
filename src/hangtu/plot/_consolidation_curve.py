@@ -36,6 +36,9 @@ CONSTRUCTION_COLOR = "0.55"
 MARKER_SIZE = 5.0
 CROSS_SIZE = 4.0
 TRIANGLE_SIZE = 7.0
+#: Pacheco Silva's open triangle is larger and under Oikawa's, so where the two
+#: σ′p nearly agree the filled one shows inside its outline.
+CHECK_SIZE = 10.0
 CURVE_WIDTH = 0.7
 LINE_WIDTH = 1.2
 BEYOND_WIDTH = 0.7
@@ -455,9 +458,14 @@ def _draw_marks(
 ) -> set[str]:
     """Draw σ′p by Oikawa (filled) and by Pacheco Silva (open) on the curve."""
     drawn = set()
-    for name, filled in (
-        ("preconsolidation_stress", True),
-        ("preconsolidation_stress_pacheco_silva", False),
+    for name, filled, size, layer in (
+        ("preconsolidation_stress", True, TRIANGLE_SIZE, _layers.MARKERS + 0.06),
+        (
+            "preconsolidation_stress_pacheco_silva",
+            False,
+            CHECK_SIZE,
+            _layers.MARKERS + 0.05,
+        ),
     ):
         stress = record[name]
         on_curve = record[
@@ -471,13 +479,13 @@ def _draw_marks(
             [stress],
             [_y(on_curve, log_space)],
             marker="v",
-            markersize=TRIANGLE_SIZE,
+            markersize=size,
             color=color,
-            markerfacecolor=color if filled else "white",
+            markerfacecolor=color if filled else "none",
             markeredgewidth=1.0,
             linestyle="none",
             gid=name,
-            zorder=_layers.MARKERS + 0.05,
+            zorder=layer,
         )
         drawn.add(name)
     return drawn
@@ -578,7 +586,13 @@ def _mark_handles(marks: set[str]) -> list[Line2D]:
     ):
         if name in marks:
             handles.append(
-                _values.legend_marker("v", LEGEND_COLOR, text, TRIANGLE_SIZE, filled)
+                _values.legend_marker(
+                    "v",
+                    LEGEND_COLOR,
+                    text,
+                    TRIANGLE_SIZE if filled else CHECK_SIZE,
+                    filled,
+                )
             )
     if "effective_vertical_stress" in marks:
         handles.append(

@@ -510,3 +510,8 @@ docs; the registry's `ags` entries say `"derived: docs/analysis/compressibility.
 - **Step 5:** the site example draws B-5-U2-C1 only, with `vertical_stress()`: B-4's log has a gap from 9 to 10 ft
   (QC G002), so `vertical_stress()` refuses the B-4 rows, as on the correlations pages. One specimen with σ′v0 shows
   the class and its caveat; P13-us.png (step 6) still draws both specimens, without σ′v0.
+- **Step 6:** the visual check found B-4-U1-C1's Oikawa triangle (1,624 psf) hidden under Pacheco Silva's (1,615
+  psf); the check's open triangle is now larger and drawn under the filled one. Umar & Sadrekarimi's published
+  version is CGJ 54(3), 441–450 (2017), from the author's publications page; its tables weren't checked, so sheet 06
+  cites the ranking as read in the accepted manuscript. Casagrande and the work method are TODO #76. P00's legend
+  rule now says a line across the whole axes goes below `_layers.LINES`.

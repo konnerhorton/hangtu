@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **ID / function** | P13 · `ht.plot.consolidation_curve()` (+ `ht.analysis.oedometer_fit()`) |
-| **Status** | draft |
+| **Status** | built (M19 (b)); images: [`img/P13-us.png`](img/P13-us.png), [`img/P13-si.png`](img/P13-si.png) |
 | **Type** | plot + analysis |
 | **Milestone** | M19 (b) (`STATUS.md`), [`docs/work/m19b-compressibility.md`](../work/m19b-compressibility.md) |
 | **Depends on** | P00; `p.oedometer()` (M19 a); `oedometer_fit()` (M19 (b) Spec) |
@@ -204,6 +204,6 @@ stated.
 
 ## 15. Future enhancements
 - Strain (ε) instead of e on the y axis, once (c) settles the strain definition (TODO #73).
-- Casagrande's and the work method's σ′p beside Oikawa's (TODO, M19 (b) close-out).
+- Casagrande's and the work method's σ′p beside Oikawa's (TODO #76).
 - `OedometerFit.plot()` to draw a result without refitting.
 - σ′p and OCR by depth with the SPT correlations: P01 with the fit's frame, a docs example rather than a new plot.

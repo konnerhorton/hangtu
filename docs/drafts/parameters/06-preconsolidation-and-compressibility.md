@@ -50,24 +50,35 @@ ASTM designations without year — confirm the current edition before citing.
 
 ## 5. Derivations and correlations
 
-### 5.1 Bilinear e–log σ′v fit
-$$e = \begin{cases} e_1 - C_r\log\sigma'_v & \sigma'_v<\sigma'_p\\ e_2 - C_c\log\sigma'_v & \sigma'_v\ge\sigma'_p\end{cases},\qquad \log\sigma'_p = \frac{e_2-e_1}{C_c-C_r}$$
-- **Inputs:** CONS_INCF (σ′v, kPa), CONS_INCE (e at end of increment); loading branch only. Breakpoint searched
-  by least squares (two lines). Cs = slope of the unload branch. OCR = σ′p/σ′v0 at specimen depth.
-- **Valid for:** curves with ≥ 2–3 points on each branch; deterministic and reproducible (unlike 5.2).
-- **Source:** standard construction (e.g. [1] Section 6) [U].
+### 5.1 Oikawa (1987): two lines in log(1 + e)–log σ′v — built (`ht.analysis.oedometer_fit()`)
+$$\log_{10}(1+e) = a_i + b_i\log_{10}\sigma'_v\ (i = 1, 2),\qquad \sigma'_p = 10^{(a_2-a_1)/(b_1-b_2)}$$
+- **Inputs:** CONS_INCF (σ′v), CONS_INCE (e at the increment's end); loading branch only. Every split of the loading
+  points into a lower and upper group of ≥ 3 points is fitted by least squares; the smallest total sum of squares
+  wins. The search is hangtu's: Oikawa gives the construction (the intersection of the two straight segments,
+  p. 103), not a fitting procedure. Cc and Cr are the e–log σ′v slopes of the same two groups; Cs the slope of the
+  first unload; CR = Cc/(1 + e0).
+- **No σ′p** (with a reason) for < 6 loading points, an upper line < 2 times as steep as the lower, a crossing
+  outside the loading stresses, or a highest stress < 2 σ′p.
+- **Valid for:** Oikawa's data are soft soils of the Akita plain, w_n 25–941 %, e0 0.7–17 (p. 100); the agreement
+  with Casagrande's σ′p is shown for w_n > 200 % (Figs. 9–10, p. 103). Ranked first of eleven methods by RMSE on a
+  database of 30 tests in [14] (Table 7).
+- **Source:** [11] [V]; the ranking [14] [V, accepted manuscript].
 
-### 5.2 Casagrande (1936) graphical construction
+### 5.2 Casagrande (1936) graphical construction — later
 - Point of maximum curvature → horizontal, tangent, bisector; σ′p where bisector meets the virgin line.
-- Operator-dependent; listed for comparison only. **Source:** [4] [U].
+- Operator-dependent (the maximum curvature needs a smoothing choice); not built, TODO with a trigger. **Source:**
+  [4] [U].
 
-### 5.3 Pacheco Silva (1970)
-- Horizontal through e0 meets virgin line; vertical down to curve, horizontal back to virgin line → σ′p. More
-  reproducible than Casagrande; used as a check. **Source:** [5] [U].
+### 5.3 Pacheco Silva (1970) — built, as the check
+- (i) The virgin line meets the horizontal through e0 ("the specimen void ratio before any load has been applied");
+  (ii) vertical down to the curve; (iii) horizontal across to the virgin line; σ′p is that point's stress. Reuses the
+  Cc line and e0, so it is deterministic; reported beside Oikawa's σ′p, never compared. **Source:** [5] via [12]
+  §2.4, p. 548 [V].
 
-### 5.4 Work (strain-energy) method — Becker et al. (1987)
+### 5.4 Work (strain-energy) method — Becker et al. (1987) — later
 $$W = \sum \sigma'_v\,\Delta\varepsilon_v\ \text{(per unit volume)};\ \ \sigma'_p = \text{intersection of the two straight lines in } W\text{–}\sigma'_v\ (\text{arithmetic})$$
-- Avoids log-scale judgement; sensitive to the stress range chosen for each line.
+- Avoids log-scale judgement; sensitive to the stress range chosen for each line, and needs a strain definition
+  (TODO #73). Not built, TODO with a trigger.
 - **Source:** [6] (method per abstract) [V bibliographic; equation form U].
 
 ### 5.5 SPT — Mayne & Kemper (1988), in Kulhawy & Mayne (1990)
@@ -94,7 +105,9 @@ $$\Delta e/e_0 = (e_0 - e_{\sigma'_{v0}})/e_0$$
 | 1–2 | < 0.04 | 0.04–0.07 | 0.07–0.14 | > 0.14 |
 | 2–4 | < 0.03 | 0.03–0.05 | 0.05–0.10 | > 0.10 |
 
-- **Source:** [7]; outer bands [V] via Amundsen et al. (2016) Table 1 [8]; intermediate bands [U]. Alternative
+- Δe is the change in void ratio on reconsolidation from the specimen's initial state to σ′v0 [13]. Built in
+  `oedometer_fit()`, the row chosen by this test's OCR (which disturbance lowers: see §7).
+- **Source:** [7]; all bands [V] via Krage et al. (2015) Table 1 [13] and Amundsen et al. (2016) Table 1 [8]. Alternative
   SQD by εv0 at σ′v0 (< 1 % very good; > 8 % very poor; Terzaghi et al. 1996) [V] via [8].
 
 ## 6. Sensitivity in models
@@ -112,7 +125,8 @@ large transformation uncertainty (5.5: S.D. of OCR = 3.82 for n = 112). Method c
 moves σ′p by 10–20 % _[Judgment — for review]_.
 
 ## 7. Pitfalls and QA checks
-- Grade every specimen by Δe/e0 (5.8) before using σ′p; poor samples bias σ′p low and Cr high.
+- Grade every specimen by Δe/e0 (5.8) before using σ′p; poor samples bias σ′p low and Cr high. The class uses this
+  test's OCR, which disturbance lowers, so a poor sample can land in the more lenient OCR 1–2 row.
 - Use the loading branch for σ′p and Cc; Cs from a clear unload–reload loop; do not use reload slope as Cc.
 - Check σ′v0 at specimen depth (water table, unit weight) — OCR errors often come from σ′v0, not σ′p.
 - OCR < 1 means disturbance, wrong σ′v0 or underconsolidation — flag, don't clip.
@@ -143,3 +157,13 @@ https://www.issmge.org/publications/online-library — [V] Table 1 (p. 160–161
 [9] Duncan, J.M. (2000). Factors of safety and reliability in geotechnical engineering. J. Geotech. Geoenviron.
 Eng. 126(4), 307–316. https://doi.org/10.1061/(ASCE)1090-0241(2000)126:4(307) — [U]
 [10] Terzaghi, K. & Peck, R.B. (1967). Soil Mechanics in Engineering Practice, 2nd ed. Wiley. — [V] via [1] Eq. 6-5.
+[11] Oikawa, H. (1987). Compression curve of soft soils. Soils and Foundations 27(3), 99–104.
+https://doi.org/10.3208/sandf1972.27.3_99 — [V] f = 1 + e (p. 100), data (p. 100), intersection p_y′ and agreement with
+Casagrande (p. 103, Figs. 9–10), conclusions 1–5 (p. 104).
+[12] Paniagua, P., L'Heureux, J.-S., Yang, S. & Lunne, T. (2016). Proc. 17th Nordic Geotech. Meeting (NGM 2016),
+Reykjavik. — [V] §2.4, p. 548 (Pacheco Silva's construction, five methods within 14 % on good samples).
+[13] Krage, C.P., DeJong, J.T., DeGroot, D.J., Dyer, M. & Lukas, W. (2015). Proc. 6th Int. Conf. Earthquake
+Geotech. Eng. (6ICEGE), Christchurch. — [V] Table 1 (Lunne et al. 1997 classes; Δe from the initial state).
+[14] Umar, M. & Sadrekarimi, A. (2017). Accuracy of determining pre-consolidation pressure from laboratory tests.
+Can. Geotech. J. 54(3), 441–450. — [V] bibliographic (the author's publications page); Tables 1 and 7 read in the
+accepted manuscript (cgj-2016-0203.R1), the published version not checked.
