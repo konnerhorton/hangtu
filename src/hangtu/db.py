@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from hangtu.ags import Ingest
 
 # Raise whenever the layout changes; open() compares it for equality.
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 # STRICT tables need SQLite 3.37 (2021).
 MINIMUM_SQLITE = (3, 37, 0)
 
@@ -57,6 +57,12 @@ _META_TABLES = {
         ("soil_class", "TEXT"),
         ("order", "REAL"),
         ("color", "TEXT"),
+    ],
+    "meta_readings_map": [
+        ("group", "TEXT"),
+        ("dataset", "TEXT"),
+        ("heading", "TEXT"),
+        ("column", "TEXT"),
     ],
     "meta_source": [
         ("path", "TEXT"),
@@ -251,6 +257,20 @@ def write_geology_map(path: str | os.PathLike[str], rows: pd.DataFrame | None) -
             )
 
 
+def write_readings_map(path: str | os.PathLike[str], rows: pd.DataFrame | None) -> None:
+    """Replace the stored readings map with ``rows``, or remove it for None."""
+    with closing(sqlite3.connect(path)) as connection, connection:
+        connection.execute("DELETE FROM meta_readings_map")
+        if rows is not None:
+            names = [c for c, _ in _META_TABLES["meta_readings_map"]]
+            _insert(
+                connection,
+                "meta_readings_map",
+                names,
+                rows[names].itertuples(index=False),
+            )
+
+
 # --- Reading ---------------------------------------------------------------------
 
 
@@ -310,3 +330,8 @@ def read_headings(path: str | os.PathLike[str]) -> pd.DataFrame:
 def read_geology_map(path: str | os.PathLike[str]) -> pd.DataFrame:
     """Return the stored geology map, in the order it was given (may be empty)."""
     return read_table(path, "meta_geology_map")
+
+
+def read_readings_map(path: str | os.PathLike[str]) -> pd.DataFrame:
+    """Return the stored readings map, in the order it was given (may be empty)."""
+    return read_table(path, "meta_readings_map")

@@ -63,6 +63,9 @@ def test_ac10_us_and_si_agree():
 
 def test_example_fits_match_the_lab_marks_and_p11(tmp_path):
     readings = example_readings()
+    # The CU and CDM stages, as the docs example draws them (M16 added the CD
+    # and UU stages' readings to the example file).
+    readings = readings[readings["test_type"].isin(["CU", "CDM"])]
     _, _, from_readings = ht.plot.triaxial_shearing(
         readings, space="s_t", group_by="geology_unit", display_units="US"
     )
@@ -72,7 +75,6 @@ def test_example_fits_match_the_lab_marks_and_p11(tmp_path):
     p.set_geology_map(ht.examples.path("strata.csv"))
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        # The readings are the CU and CDM stages'; the UU and CD have none.
         _, _, from_ags = ht.plot.failure_envelope(
             p.triaxial(where={"test_type": ["CU", "CDM"]}),
             space="s_t",

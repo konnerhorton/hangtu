@@ -16,6 +16,12 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
   `p.triaxial()`, `p.undrained_strength()`, `p.shear_box()`, `p.oedometer()` and `p.stratigraphy()`.
   `p.oedometer()` gives one row per oedometer load increment, with the void ratios, the lab's m_v and c_v,
   and the specimen's initial state; swelling tests are kept too, including one with no increments.
+- **Readings during a test from the AGS file:** many labs put the triaxial and shear box curves in groups of
+  their own, since AGS has none for them. `p.set_readings_map()` names those groups and which heading holds which
+  value (`p.readings_map` shows it), and `p.triaxial_readings()` and `p.shear_box_readings()` then give one row per
+  reading, with its stage's cell, back and normal stresses, depth and geology. `ht.template("shear_box_readings")`
+  is new, and `ht.template("triaxial_readings")` gains the depth and geology columns (optional, so existing CSVs
+  still read). The example project carries readings for every triaxial and shear box stage.
 - `oedometer_load_branch()` marks each oedometer increment as loading, unloading, reloading or held at a
   constant stress, and `ht.template("oedometer")` lays out oedometer tests for a CSV.
 - **Classification and index analyses:** `plasticity()`, `uscs()`, `aashto()`, `gradation()`,
@@ -57,7 +63,15 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
 
 ### Changed
 - A project database made by an earlier version needs ingesting again (`ht.Project.from_ags(...,
-  overwrite=True)`): it now records the units of the oedometer's m_v and c_v. Opening an old one says so.
+  overwrite=True)`): it now records the units of the oedometer's m_v and c_v, and the readings map. Opening an old
+  one says so.
+- `triaxial_failure_from_readings()` and `triaxial_shearing()` take readings with only some of q, Δu and ε_v on a
+  row, as an AGS file gives them. Where the failure reading has no Δu or ε_v of its own, it is interpolated in
+  strain from that quantity's readings, and a warning names the stages. Readings from an AGS file carry no lab
+  mark, so they need `failure_criterion=`.
+- The readings after a stage's largest strain (the unload before the next stage) are drawn and never taken as
+  the failure reading. A strain that falls before then is a warning naming the stage, no longer an error.
+- A drained stage's pore pressure at failure, read from readings without Δu, is the back pressure, with no warning.
 - With neither `GRAT` nor `GRAG` in the file, the warning from `p.grain_size_summary()` and
   `p.index_properties()` names both groups.
 - SPT: `ISPT_REP` is read as AGS defines it, and a refusal with a blank N is kept as a refusal.

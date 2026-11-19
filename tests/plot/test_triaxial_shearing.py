@@ -20,7 +20,6 @@ from hangtu.errors import HangtuError, UnitsError
 
 GOLDENS = Path(__file__).parents[1] / "data" / "triaxial_readings_goldens.csv"
 STRESSES = ["cell_pressure", "back_pressure", "deviator_stress", "excess_pore_pressure"]
-BACK_PRESSURE = r"1 drained stage had no pore_pressure_at_failure"
 REL = 1e-9
 
 
@@ -107,7 +106,8 @@ def test_ac4_r1_paths():
 
 
 def test_ac4_r3_drained_path_has_slope_1_and_3():
-    with pytest.warns(UserWarning, match=BACK_PRESSURE):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
         _, ax, _ = ht.plot.triaxial_shearing(
             readings("C"),
             space="s_t",
@@ -118,7 +118,8 @@ def test_ac4_r3_drained_path_has_slope_1_and_3():
     x, y = path.get_xdata(), path.get_ydata()
     assert [x[3], y[3]] == pytest.approx([225, 125])
     assert np.diff(y) / np.diff(x) == pytest.approx(np.ones(4))
-    with pytest.warns(UserWarning, match=BACK_PRESSURE):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
         _, ax, _ = ht.plot.triaxial_shearing(
             readings("C"),
             space="p_q",
@@ -189,7 +190,8 @@ def test_ac7_excess_pore_pressure_on_a_twin_axis():
 
 
 def test_ac7_volumetric_strain_shows_dilation():
-    with pytest.warns(UserWarning, match=BACK_PRESSURE):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
         _, ax, _ = ht.plot.triaxial_shearing(
             readings("C"),
             failure_criterion="max_deviator_stress",
@@ -267,9 +269,9 @@ def test_ratio_on_uu_raises():
         draw(readings("D"), failure_criterion="max_stress_ratio")
 
 
-def test_decreasing_strain_raises():
-    with pytest.raises(HangtuError, match="axial_strain decreases"):
-        draw(
+def test_decreasing_strain_warns():
+    with pytest.warns(UserWarning, match="axial_strain decreases within the loading"):
+        ht.plot.triaxial_shearing(
             readings("E", axial_strain=[0, 4, 2, 6]),
             failure_criterion="max_deviator_stress",
         )
@@ -295,7 +297,8 @@ def test_color_by_with_group_by_raises():
 
 
 def test_drained_stage_has_no_excess_line():
-    with pytest.warns(UserWarning, match=BACK_PRESSURE):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
         _, ax, _ = ht.plot.triaxial_shearing(
             readings("A", "C"),
             failure_criterion="max_deviator_stress",
@@ -313,11 +316,74 @@ def test_drained_stage_has_no_excess_line():
 
 
 def test_blank_readings_are_counted():
-    df = readings("A", deviator_stress=[0, 100, 180, None, 195, 190])
+    df = readings("A", axial_strain=[0, 1, 4, None, 12, 15])
     _, ax, _ = draw(df, failure_criterion="max_deviator_stress")
     (curve,) = lines(ax, "reading_curve")
     assert len(curve.get_xdata()) == 5
-    assert "1 reading without axial strain or deviator stress" in footnote(ax)
+    assert "Left out: 1 reading without axial strain" in footnote(ax)
+
+
+def test_a_row_with_only_excess_pore_pressure_is_on_the_second_axis():
+    df = readings("A", deviator_stress=[0, 100, 180, None, 195, 190])
+    _, ax, _ = draw(
+        df, failure_criterion="max_deviator_stress", second_axis="excess_pore_pressure"
+    )
+    (curve,) = lines(ax, "reading_curve")
+    assert list(curve.get_xdata()) == [0, 1, 4, 12, 15]
+    (line,) = lines(twin_of(ax), "second_axis_line")
+    assert list(line.get_xdata()) == [0, 1, 4, 8, 12, 15]
+    assert footnote(ax) == ""
+
+
+# --- M16: one quantity per row and unload tails (AC 6 of docs/work/m16-curves.md) ---
+
+BH1_Q = [
+    (0.0, 0), (2.0, 100), (4.0, 150), (6.0, 170), (8.5, 180),
+    (10.0, 176), (12.0, 170), (11.8, 80), (11.6, 5),
+]  # fmt: skip
+BH1_DU = [(0.0, 0), (3.0, 40), (7.0, 56), (10.0, 64), (12.0, 66), (11.7, 60)]
+
+
+def bh1_stage_1():
+    """BH1-U3 stage 1 (CU) as p.triaxial_readings() gives it: q rows, then Δu rows."""
+    q = pd.DataFrame(BH1_Q, columns=["axial_strain", "deviator_stress"])
+    du = pd.DataFrame(BH1_DU, columns=["axial_strain", "excess_pore_pressure"])
+    df = pd.concat([q, du], ignore_index=True).assign(
+        specimen_id="BH1-U3",
+        test_stage="1",
+        test_type="CU",
+        cell_pressure=400.0,
+        back_pressure=300.0,
+    )
+    df.attrs["units"] = dict.fromkeys(STRESSES, "kPa")
+    return df
+
+
+def test_ac6_partial_readings_on_the_effective_path():
+    _, ax, _ = draw(bh1_stage_1(), space="s_t", failure_criterion="max_deviator_stress")
+    (path,) = lines(ax, "stress_path")
+    x, y = path.get_xdata(), path.get_ydata()
+    # Seven loading-part q readings; the tail ones have no Δu of their own.
+    assert len(x) == 7
+    # 2.0 %: Δu 26.666667, σ′3 73.333333, σ′1 173.333333.
+    assert [x[1], y[1]] == pytest.approx([123.333333333, 50], rel=REL)
+    # 12.0 %: Δu 66 from the Δu reading at the same strain.
+    assert [x[6], y[6]] == pytest.approx([34 + 85, 85], rel=REL)
+    assert "Left out of the paths: 2 readings without Δu" in footnote(ax)
+
+
+def test_ac6_tails_on_the_stress_strain_curve():
+    _, ax, _ = draw(
+        bh1_stage_1(),
+        failure_criterion="max_deviator_stress",
+        second_axis="excess_pore_pressure",
+    )
+    (curve,) = lines(ax, "reading_curve")
+    assert list(zip(curve.get_xdata(), curve.get_ydata(), strict=True)) == BH1_Q
+    (line,) = lines(twin_of(ax), "second_axis_line")
+    assert list(zip(line.get_xdata(), line.get_ydata(), strict=True)) == BH1_DU
+    assert dots(ax) == [(8.5, 180)]
+    assert footnote(ax) == ""
 
 
 def test_negative_deviator_stress_is_drawn():

@@ -23,8 +23,10 @@ FILES = [
     "judgments.yaml",
     "oedometer.csv",
     "permeability.csv",
+    "readings_map.csv",
     "rock_triaxial.csv",
     "shear_box.csv",
+    "shear_box_readings.csv",
     "site.ags",
     "spt.csv",
     "strata.csv",
@@ -38,12 +40,14 @@ CSVS = [
     "permeability.csv",
     "rock_triaxial.csv",
     "shear_box.csv",
+    "shear_box_readings.csv",
     "spt.csv",
     "strength.csv",
     "triaxial.csv",
     "triaxial_readings.csv",
 ]
 NOT_FINDINGS = {"Metadata", "Summary of data"}
+INTERPOLATED = r"interpolated in strain"
 READING_UNITS = dict.fromkeys(
     [
         "effective_consolidation_stress",
@@ -93,7 +97,7 @@ def test_qc_finds_only_the_planted_defects(site):
 def test_generator_reproduces_the_shipped_files(tmp_path):
     _load_generator().main(tmp_path)
     assert sorted(path.name for path in tmp_path.iterdir()) == FILES
-    for name in ("site.ags", "strata.csv", "judgments.yaml"):
+    for name in ("site.ags", "strata.csv", "judgments.yaml", "readings_map.csv"):
         assert (tmp_path / name).read_bytes() == (DATA / name).read_bytes(), name
     # The CSV files go through pandas' writer, so compare what they hold.
     for name in CSVS:
@@ -117,8 +121,8 @@ def test_unknown_name_lists_the_files():
         ht.examples.path("site.csv")
     assert str(caught.value) == (
         "No example file 'site.csv'. Files: atterberg.csv, judgments.yaml, "
-        "oedometer.csv, permeability.csv, rock_triaxial.csv, shear_box.csv, "
-        "site.ags, spt.csv, "
+        "oedometer.csv, permeability.csv, readings_map.csv, rock_triaxial.csv, "
+        "shear_box.csv, shear_box_readings.csv, site.ags, spt.csv, "
         "strata.csv, strength.csv, triaxial.csv, triaxial_readings.csv."
     )
 
@@ -253,7 +257,9 @@ def read_example(name, units):
 
 
 def test_every_test_csv_has_its_analysis():
-    assert set(EXAMPLE_ANALYSES) == set(CSVS) - {"permeability.csv"}
+    # The shear box readings feed no analysis yet.
+    plots_only = {"permeability.csv", "shear_box_readings.csv"}
+    assert set(EXAMPLE_ANALYSES) == set(CSVS) - plots_only
 
 
 @pytest.mark.parametrize("name", sorted(EXAMPLE_ANALYSES))
@@ -263,6 +269,10 @@ def test_example_csv_passes_its_analysis(name):
     if name == "atterberg.csv":
         # The PI planted for the QC example (A002) is warned about, not refused.
         with pytest.warns(UserWarning, match=r"Rows 7 have a plasticity_index"):
+            result = analysis(df)
+    elif name == "triaxial_readings.csv":
+        # Δu and ε_v at failure come from their own readings (M16).
+        with pytest.warns(UserWarning, match=INTERPOLATED):
             result = analysis(df)
     else:
         result = analysis(df)
@@ -336,7 +346,7 @@ def test_example_runs_clean(tmp_path, script, outputs):
     assert "Wrote" in done.stdout
 
 
-# --- Triaxial readings (M11 c, spec AC 11) -----------------------------------------
+# --- Triaxial readings (M11 c, spec AC 11; M16, AC 16) ----------------------------
 
 AT_FAILURE = [
     "deviator_stress_at_failure",
@@ -356,11 +366,16 @@ def test_readings_end_at_the_example_stages(site, criterion):
     if criterion is not None:
         # Picked by the criterion, not by the lab's mark the file carries.
         readings = readings.drop(columns="reported_failure_reading")
-    rows = ht.analysis.triaxial_failure_from_readings(
-        readings, failure_criterion=criterion
-    )
-    # The readings are the CU and CDM tests'; the UU stages (M17 a) have none.
-    stages = site.triaxial(where={"test_type": ["CU", "CDM"]})
+    # Each quantity has rows of its own, so Δu and ε_v at failure are another
+    # row's: the same value, at the same strain.
+    with pytest.warns(UserWarning, match=INTERPOLATED):
+        rows = ht.analysis.triaxial_failure_from_readings(
+            readings, failure_criterion=criterion
+        )
+    stages = site.triaxial()
+    # The CSV names a specimen by its sample and reference.
+    named = stages["sample_reference"] + "-" + stages["specimen_reference"]
+    stages = stages.assign(specimen_id=named)
     for column in ["specimen_id", "test_stage", "multistage_test", *AT_FAILURE]:
         pd.testing.assert_series_equal(
             rows[column].reset_index(drop=True),
@@ -368,6 +383,28 @@ def test_readings_end_at_the_example_stages(site, criterion):
             check_dtype=False,
             obj=column,
         )
+
+
+def test_the_example_site_has_readings_for_every_stage(tmp_path):
+    # M16 AC 16: through the example's readings map.
+    p = ht.Project.from_ags(
+        DATA / "site.ags", db=tmp_path / "site.sqlite", display_units="US"
+    )
+    p.set_readings_map(ht.examples.path("readings_map.csv"))
+    for readings, stages in (
+        (p.triaxial_readings(), p.triaxial()),
+        (p.shear_box_readings(), p.shear_box()),
+    ):
+        key = ["specimen_id", "test_stage"]
+        assert readings[key].drop_duplicates().values.tolist() == (
+            stages[key].values.tolist()
+        )
+
+
+@pytest.mark.parametrize("name", ["triaxial_readings", "shear_box_readings"])
+def test_readings_csvs_are_the_datasets_template_columns(name):
+    from_csv = pd.read_csv(DATA / f"{name}.csv", nrows=0)
+    assert list(from_csv.columns) == list(ht.template(name).columns)
 
 
 # --- Oedometer (M19 a) ------------------------------------------------------------

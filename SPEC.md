@@ -55,7 +55,7 @@
 
 | Wave | Engine | Moves |
 |---|---|---|
-| 0 | User-defined groups and curves | Curves (triaxial q–ε and εv, rock triaxial, swelling against time, shear box displacement) carried in the AGS file, read robustly; built against a sample dataset from real projects. Waves 4 and 5 need it. Wave 2 reads its curves and rock triaxial results from a CSV until then |
+| 0 | User-defined groups and curves | Readings curves carried in user-defined AGS groups (triaxial q, Δu and εv against axial strain; shear box τ and vertical displacement against horizontal displacement), read through a readings map the user writes; built against a sample dataset from a real project. Rock triaxial results are read from `TRIG`/`TRIT`, which AGS 4.2 has, not from a user-defined group. Waves 4 and 5 need it |
 | 1 | Stress and state | 01 and 03 A–B (vertical stress, phase relations), 02 B (activity; LI and Ic as analyses); SPT correlations and (N1)60, stage C for 04–08 and 10; P17 (drawn from Ic) |
 | 2 | Strength envelopes | One fitting core for 04 A–B, 05 A–B, 22 A–B and 15 B (intact Hoek–Brown fit); P11–P12 |
 | 3 | Oedometer | 06 A–B, 11 (Eoed, Eur,oed), 12 B (k from cv·mv), 21 A–B (Grob, Huder–Amberg); then 07 B (K0 from OCR) and 05 B (SHANSEP); P13–P15 |
@@ -63,7 +63,7 @@
 | 5 | Stiffness | 08, 10 and 11 (the full set), 09 (soil); P19, P20 |
 | 6 | Hydraulic | 12 A–C (field permeability tests) |
 
-**Order of work:** wave 1, statistics, wave 2, wave 0, selection (stage D, starting with the Mohr–Coulomb set), then waves 3–6, each adding stage D and the model sets its sheets complete. Statistics come ahead of waves 2 and 0 because by then there are measured properties, derived values with depth trends and several correlations per property to compare, so they are designed against real uses. Wave 0 is built against a sample dataset of real files (TODO #31), so it waits on that. The milestones: [`STATUS.md`](STATUS.md).
+**Order of work:** wave 1, statistics, wave 2, wave 0, selection (stage D, starting with the Mohr–Coulomb set), then waves 3–6, each adding stage D and the model sets its sheets complete. Statistics come ahead of waves 2 and 0 because by then there are measured properties, derived values with depth trends and several correlations per property to compare, so they are designed against real uses. Wave 0 waited on a sample dataset of real files, and goes before the rest of wave 3. The milestones: [`STATUS.md`](STATUS.md).
 
 **Releases** are cut when a milestone leaves something usable, and aren't tied to waves or planned ahead. The releases so far: [`CHANGELOG.md`](CHANGELOG.md).
 
@@ -225,7 +225,7 @@ Decided constraints only. The pipeline, database layout, keys, version mapping, 
 - **Validation:** *ingest with warnings*. Each python-ags4 finding becomes a QC finding `V<rule>`. Ingest fails only if the file can't be parsed.
 - **Versions:** 4.0.3, 4.0.4, 4.1, 4.1.1 and 4.2. **The reference version is 4.2.** No group or heading was renamed from 4.0.3 to 4.2, only removed, so older files need no mapping: groups and headings that 4.2 removed (`IPRG`, `IPRT`, `ERES`, a few headings) are kept under their own names and read through their own version's dictionary.
 - **One file per project.** The file's SHA-256 is stored and checked on open.
-- **User-defined groups and headings** are kept in the raw layer, and typed where the unit is known.
+- **User-defined groups and headings** are kept in the raw layer, and typed where the unit is known. They reach a dataset only through a map the user sets per project (the readings map, [`docs/data/datasets.md`](docs/data/datasets.md) §6.15), which names the group, its dataset and each heading's column. hangtu never infers a mapping from a group's or heading's name (§2.6).
 - **Blank vs flagged:** blank → NULL, no flag. Recognized text (`NP`, `Dry`, an incomplete drive in `ISPT_REP` (refusal), `<x`, `>x`) → NULL or bound + a value flag. Unrecognized text → flag `OTHER` + QC `T001`. NP is never the same as blank.
 
 ---
@@ -247,7 +247,7 @@ Decided constraints only. The pipeline, database layout, keys, version mapping, 
 - **Only what the file says.** Values hangtu calculates (N60, classifications, Dx) are not stored; the datasets and analyses compute them. A value given in the file (e.g. `ISPT_N60`) is stored as given.
 - **Provenance:** every canonical row keeps its source file and `_line`, for `diff()` and QC messages.
 - **Schema version** is stored in the metadata. If it doesn't match the installed hangtu on open, the user is told to re-ingest.
-- **Metadata tables** (`meta_*`) for settings, source files, heading units, value flags and the geology map.
+- **Metadata tables** (`meta_*`) for settings, source files, heading units, value flags, the geology map and the readings map.
 - **Extension tables** for things AGS lacks: the project's vertical datum and where it came from (a setting, or the file's `LOCA_DATM` where that is unambiguous; [`docs/data/ingest.md`](docs/data/ingest.md) §7), horizontal CRS, flags, provenance.
 - **The public API never depends on the canonical layout.** Users see the column registry (§10.3), datasets and functions. Only `sql()` and `table()` expose internal names.
 
@@ -304,7 +304,7 @@ Apply in both phases. In Phase 1 they are applied by the analysis functions to t
 ## 10. Datasets and column registry
 
 ### 10.1 Project access (Phase 2)
-`p.groups`, `p.table(group, raw=False)`, `p.locations`, `p.set_geology_map(path)`, `p.geology_map`, `p.set_judgments(path)`, `p.judgments`, `p.diff(group, heading=None, changed_only=False)`, `p.sql(...)` (read-only, SI).
+`p.groups`, `p.table(group, raw=False)`, `p.locations`, `p.set_geology_map(path)`, `p.geology_map`, `p.set_readings_map(path)`, `p.readings_map`, `p.set_judgments(path)`, `p.judgments`, `p.diff(group, heading=None, changed_only=False)`, `p.sql(...)` (read-only, SI).
 
 ### 10.2 Ready-made datasets (Phase 2)
 - **One dataset per kind of test**, each one test's rows as one frame with the registry's columns. What each holds: [`docs/data/datasets.md`](docs/data/datasets.md) §6.

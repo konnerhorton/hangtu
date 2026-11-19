@@ -104,6 +104,8 @@ ABBR = [
     ("CONG_TYPE", "OEDOMETER", "Oedometer"),
     ("CONG_TYPE", "SWELLPRESS", "Measurement of swelling pressure"),
     ("CONG_COND", "UNDISTURBED", "Undisturbed"),
+    ("DICT_TYPE", "GROUP", "Flag to indicate definition is a GROUP"),
+    ("DICT_TYPE", "HEADING", "Flag to indicate definition is a HEADING"),
 ]
 
 # Hole, easting, northing (ft), ground level, final depth, fill base and
@@ -1388,6 +1390,237 @@ def write_rock_triaxial(out):
     )
 
 
+# --- Readings curves (M16) -----------------------------------------------------------
+
+# Readings during shearing in user-defined groups (M16, datasets.md §6.15 to
+# §6.17), shaped like a real file's: q, Δu and ε_v each in a group of their own
+# (XTDS, XTPW, XTVS under TREG; XUDS for the UU stages under TRIG), read at
+# their own strains, and τ and vertical displacement against horizontal
+# displacement in XSBS under SHBG. The values are invented and have their own
+# seeded sequence. Each q curve rises on a hyperbola q = ε / (a + ε) to the
+# stage's TRET_DEVF at TRET_STRN, with scatter below it; Δu rises and flattens
+# to TRET_PWPF - TRET_BACK; ε_v contracts to a peak at 0.75 ε_f and turns
+# toward dilation, through TRET_STV. Each Δu and ε_v curve has a reading at the
+# failure strain equal to the stage's value. The last stage of each test runs
+# past failure, and the last stage of the multistage test ends with the unload
+# before the specimen comes out (strain falling). Each shear box curve rises to
+# SHBT_PEAK and falls to SHBT_RES at its last reading. The hyperbola and the
+# exponentials only shape the curves; they aren't methods hangtu offers.
+CURVE_STRAIN = ("STRN", "2DP", "%", "Axial strain", False)
+CURVE_DEVIATOR = ("DEVF", "0DP", "psf", "Deviator stress", False)
+CURVE_EXCESS = ("PWPE", "0DP", "psf", "Excess pore pressure", False)
+CURVE_VOLUMETRIC = ("VOLS", "2DP", "%", "Volumetric strain", False)
+CURVE_SHEAR_BOX = [
+    ("HDIS", "3DP", "in", "Horizontal displacement", False),
+    ("SHST", "0DP", "psf", "Shear stress", False),
+    ("VDIS", "3DP", "in", "Vertical displacement", False),
+]
+#: Strains (%) of the q readings below failure, and the q readings past it on a
+#: test's last stage: (strain beyond ε_f, fraction of q_f).
+READING_STRAINS = [0, 0.25, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15]
+PAST_FAILURE = [(1.5, 0.98), (3.0, 0.96)]
+#: Strains (%) of the Δu and ε_v readings, offset from READING_STRAINS.
+OTHER_STRAINS = [0, 0.4, 0.8, 1.3, 1.8, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 9, 11, 13.5]
+PAST_FAILURE_OTHER = [1.0, 2.5]  # strain beyond ε_f of the Δu and ε_v readings
+UNLOAD = [(0.05, 0.6), (0.10, 0.25), (0.15, 0.02)]  # strain back, fraction of q
+DISPLACEMENTS = [0, 0.005, 0.01, 0.02, 0.03, 0.04, 0.06, 0.08, 0.1, 0.15, 0.2, 0.25]
+DISPLACEMENTS += [0.3, 0.35, 0.4]  # in
+
+
+def records(g):
+    """A group's rows as dicts by heading."""
+    names = [h for h, _, _ in g["headings"]]
+    return [dict(zip(names, row, strict=True)) for row in g["rows"]]
+
+
+def specimen_key(row):
+    return tuple(row[h] for h, _, _ in TRIAXIAL_SPECIMEN_HEADINGS)
+
+
+def triaxial_curves(stages, draw):
+    """Each stage's q, Δu and ε_v readings: three lists of (key, stage, rows)."""
+    q_rows, excess_rows, volumetric_rows = [], [], []
+    keys = [specimen_key(s) for s in stages]
+    for i, stage in enumerate(stages):
+        key, tesn = keys[i], stage["tesn"]
+        last = key not in keys[i + 1 :]
+        multistage = keys.count(key) > 1
+        strain_f, q_f = stage["strain"], stage["deviator"]
+        a = strain_f / 10
+
+        def q(strain, strain_f=strain_f, q_f=q_f, a=a):
+            return q_f * (strain / (a + strain)) / (strain_f / (a + strain_f))
+
+        q_curve = [
+            [s, round(min(q(s) * (1 + draw.gauss(0, 0.015)), 0.99 * q_f))]
+            for s in READING_STRAINS
+            if s < strain_f
+        ]
+        q_curve.append([strain_f, q_f])
+        if last:
+            for extra, fraction in PAST_FAILURE:
+                value = q_f * fraction * (1 + draw.gauss(0, 0.005))
+                q_curve.append([strain_f + extra, round(min(value, 0.995 * q_f))])
+        if last and multistage:
+            end_strain, end_q = q_curve[-1]
+            for back, fraction in UNLOAD:
+                q_curve.append([round(end_strain - back, 2), round(end_q * fraction)])
+        q_rows.append((key, tesn, q_curve))
+        others = [s for s in OTHER_STRAINS if s < strain_f] + [strain_f]
+        if last:
+            others += [strain_f + extra for extra in PAST_FAILURE_OTHER]
+        if stage["type"] == "CU":
+            excess_f = stage["excess"]
+            b = strain_f / 4
+
+            def excess(strain, excess_f=excess_f, b=b, strain_f=strain_f):
+                rise = 1 - math.exp(-strain / b)
+                return excess_f * rise / (1 - math.exp(-strain_f / b))
+
+            curve = [
+                [
+                    s,
+                    excess_f
+                    if s == strain_f
+                    else round(excess(s) * (1 + draw.gauss(0, 0.02))),
+                ]
+                for s in others
+            ]
+            excess_rows.append((key, tesn, curve))
+        elif stage["type"] in ("CD", "CDM"):
+            c2 = 2 * stage["volumetric"] / strain_f**2
+
+            def volumetric(strain, c2=c2, strain_f=strain_f):
+                return 1.5 * strain_f * c2 * strain - c2 * strain**2
+
+            curve = [
+                [
+                    s,
+                    stage["volumetric"]
+                    if s == strain_f
+                    else round(volumetric(s) + draw.gauss(0, 0.02) * (s > 0), 2),
+                ]
+                for s in others
+            ]
+            if last and multistage:
+                end_strain, end_value = curve[-1]
+                curve.append([round(end_strain - 0.10, 2), round(end_value - 0.03, 2)])
+            volumetric_rows.append((key, tesn, curve))
+    return q_rows, excess_rows, volumetric_rows
+
+
+def triaxial_stages():
+    """TRET's stages and TRIT's, each a dict of the values the curves need."""
+    types = {specimen_key(r): r["TREG_TYPE"] for r in records(treg())}
+    tret_stages = [
+        {
+            **r,
+            "tesn": r["TRET_TESN"],
+            "type": types[specimen_key(r)],
+            "strain": r["TRET_STRN"],
+            "deviator": r["TRET_DEVF"],
+            "excess": r["TRET_PWPF"] - r["TRET_BACK"],
+            "volumetric": r["TRET_STV"],
+        }
+        for r in records(tret())
+    ]
+    trit_stages = [
+        {
+            **r,
+            "tesn": r["TRIT_TESN"],
+            "type": "UU",
+            "strain": r["TRIT_STRN"],
+            "deviator": r["TRIT_DEVF"],
+        }
+        for r in records(trit())
+    ]
+    return tret_stages, trit_stages
+
+
+def shear_box_curves(draw):
+    """Each SHBT stage's (key, stage, [[δh, τ, δv], ...]), in in and psf.
+
+    Recompacted specimens and rock joints dilate after a little contraction;
+    undisturbed clay contracts throughout.
+    """
+    conditions = {
+        specimen_key(r): (r["SHBG_COND"], r["SHBG_ENCA"]) for r in records(shbg())
+    }
+    found = []
+    for stage in records(shbt()):
+        key = specimen_key(stage)
+        condition, encapsulation = conditions[key]
+        dilates = condition == "RECOMPACTED" or encapsulation is not None
+        peak, residual = stage["SHBT_PEAK"], stage["SHBT_RES"]
+        at_peak = round(draw.uniform(0.06, 0.12), 3)
+        a = at_peak / 5
+        points = sorted({*DISPLACEMENTS, at_peak})
+        curve = []
+        for d in points:
+            if d == at_peak:
+                tau = peak
+            elif d == points[-1]:
+                tau = residual
+            elif d < at_peak:
+                rise = (d / (a + d)) / (at_peak / (a + at_peak))
+                tau = min(peak * rise * (1 + draw.gauss(0, 0.02)), 0.99 * peak)
+            else:
+                fall = math.exp(-(d - at_peak) / 0.08)
+                tau = residual + (peak - residual) * fall
+                tau = min(tau * (1 + draw.gauss(0, 0.01)), 0.99 * peak)
+            if dilates:
+                vertical = (
+                    -0.002 * min(d, 0.03) / 0.03 + 0.012 * max(0, d - 0.03) / 0.37
+                )
+            else:
+                vertical = -0.010 * (1 - math.exp(-d / 0.08))
+            if d > 0:
+                vertical += draw.gauss(0, 0.0003)
+            curve.append([d, round(tau), round(vertical, 3)])
+        found.append((key, stage["SHBT_TESN"], curve))
+    return found
+
+
+def curve_groups():
+    """The curve groups and their DICT group, after every other group."""
+    draw = random.Random(2031)
+    tret_stages, trit_stages = triaxial_stages()
+    q_rows, excess_rows, volumetric_rows = triaxial_curves(tret_stages, draw)
+    uu_rows, _, _ = triaxial_curves(trit_stages, draw)
+    key = TRIAXIAL_SPECIMEN_HEADINGS
+    curves = [
+        _files.curve_group("XTDS", [CURVE_STRAIN, CURVE_DEVIATOR], q_rows, key, []),
+        _files.curve_group("XTPW", [CURVE_STRAIN, CURVE_EXCESS], excess_rows, key, []),
+        _files.curve_group(
+            "XTVS", [CURVE_STRAIN, CURVE_VOLUMETRIC], volumetric_rows, key, []
+        ),
+        _files.curve_group("XUDS", [CURVE_STRAIN, CURVE_DEVIATOR], uu_rows, key, []),
+        _files.curve_group("XSBS", CURVE_SHEAR_BOX, shear_box_curves(draw), key, []),
+    ]
+    return [*curves, _files.dict_group(curves=curves, xppt=False)]
+
+
+READINGS_MAP = """\
+group,dataset,heading,column
+XTDS,triaxial_readings,XTDS_TESN,test_stage
+XTDS,triaxial_readings,XTDS_STRN,axial_strain
+XTDS,triaxial_readings,XTDS_DEVF,deviator_stress
+XTPW,triaxial_readings,XTPW_TESN,test_stage
+XTPW,triaxial_readings,XTPW_STRN,axial_strain
+XTPW,triaxial_readings,XTPW_PWPE,excess_pore_pressure
+XTVS,triaxial_readings,XTVS_TESN,test_stage
+XTVS,triaxial_readings,XTVS_STRN,axial_strain
+XTVS,triaxial_readings,XTVS_VOLS,volumetric_strain
+XUDS,triaxial_readings,XUDS_TESN,test_stage
+XUDS,triaxial_readings,XUDS_STRN,axial_strain
+XUDS,triaxial_readings,XUDS_DEVF,deviator_stress
+XSBS,shear_box_readings,XSBS_TESN,test_stage
+XSBS,shear_box_readings,XSBS_HDIS,horizontal_displacement
+XSBS,shear_box_readings,XSBS_SHST,shear_stress
+XSBS,shear_box_readings,XSBS_VDIS,vertical_displacement
+"""
+
+
 # --- Writing --------------------------------------------------------------------------
 
 
@@ -1407,6 +1640,7 @@ def site_groups():
         *undrained,
         *shear_box,
         *oedometer,
+        *curve_groups(),  # last, so nothing written before moves
     ]
 
 
@@ -1498,93 +1732,53 @@ def write_csvs(out):
                 float_format="%.6g",
                 lineterminator="\n",
             )
-        # The readings are treg()/tret()'s; the UU and CD stages have none.
-        write_readings(out, p.triaxial(where={"test_type": ["CU", "CDM"]}))
+        # The readings curves (M16), read through the example's readings map.
+        p.set_readings_map(out / "readings_map.csv")
+        write_readings(out, p)
     write_rock_triaxial(out)
 
 
-# Readings during shearing (M11 c, docs/work/m11c-triaxial-shearing.md, spec
-# decision 10): synthetic, not a test hangtu reads anything from. Each stage of
-# treg()/tret() gets readings at fixed strains, the deviator stress on a
-# hyperbola q = ε / (a + ε) scaled so its largest value is TRET_DEVF at
-# TRET_STRN. The hyperbola only shapes the curves; it isn't a method hangtu
-# offers. CU: Δu rises and flattens to TRET_PWPF - back pressure. CDM: Δu is
-# 0 (drained), and ε_v contracts to a peak at 0.75 ε_f, then turns toward
-# dilation, passing TRET_STV at failure. Each stage's failure reading is the
-# lab's mark; the last stage of each test runs on past failure, with q falling.
-READING_STRAINS = [0, 0.25, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15]
-PAST_FAILURE = [(1.5, 0.98), (3.0, 0.96)]  # strain beyond ε_f, fraction of q_f
+def write_readings(out, p):
+    """Write ``triaxial_readings.csv`` and ``shear_box_readings.csv`` from the
+    project's readings datasets, in psf and in, in their templates' columns.
 
-
-def readings_of(stage, last):
-    """One stage's readings, as (ε_a, q, Δu, ε_v, failure) tuples."""
-    strain_f = stage["axial_strain_at_failure"]
-    q_f = stage["deviator_stress_at_failure"]
-    excess_f = stage["pore_pressure_at_failure"] - stage["back_pressure"]
-    drained = stage["test_type"] == "CDM"
-    a = strain_f / 10
-
-    def q(strain):
-        return q_f * (strain / (a + strain)) / (strain_f / (a + strain_f))
-
-    def excess(strain):
-        if drained:
-            return 0.0
-        b = strain_f / 4
-        return excess_f * (1 - math.exp(-strain / b)) / (1 - math.exp(-strain_f / b))
-
-    def volumetric(strain):
-        if not drained:
-            return None
-        c2 = 2 * stage["volumetric_strain_at_failure"] / strain_f**2
-        return round(1.5 * strain_f * c2 * strain - c2 * strain**2, 2)
-
-    rows = [
-        (strain, round(q(strain)), round(excess(strain)), volumetric(strain), False)
-        for strain in READING_STRAINS
-        if strain < strain_f
-    ]
-    rows.append((strain_f, q_f, excess_f, volumetric(strain_f), True))
-    if last:
-        for extra, fraction in PAST_FAILURE:
-            strain = strain_f + extra
-            rows.append(
-                (
-                    strain,
-                    round(q_f * fraction),
-                    round(excess_f * (1 + extra / 100)),
-                    volumetric(strain),
-                    False,
+    A specimen is named by its sample and reference, as the other CSVs name
+    them. The triaxial file keeps the lab's mark, as a lab's CSV would: each
+    stage's q reading at its failure strain, so the readings run without a
+    failure criterion.
+    """
+    stages = p.triaxial()
+    failure = {
+        (specimen, stage): strain
+        for specimen, stage, strain in zip(
+            stages["specimen_id"],
+            stages["test_stage"],
+            stages["axial_strain_at_failure"],
+            strict=True,
+        )
+    }
+    for name in ("triaxial_readings", "shear_box_readings"):
+        dataset = getattr(p, name)()
+        if name == "triaxial_readings":
+            at_failure = [
+                failure[(specimen, stage)] == strain and q == q
+                for specimen, stage, strain, q in zip(
+                    dataset["specimen_id"],
+                    dataset["test_stage"],
+                    dataset["axial_strain"],
+                    dataset["deviator_stress"],
+                    strict=True,
                 )
-            )
-    return rows
-
-
-def write_readings(out, stages):
-    """Write ``triaxial_readings.csv``: the example stages' readings, in psf."""
-    columns = list(ht.template("triaxial_readings").columns)
-    stage_columns = [c for c in columns if c in stages.columns]
-    rows = []
-    for position, (_, stage) in enumerate(stages.iterrows()):
-        following = stages.iloc[position + 1 :]
-        last = not (following["specimen_id"] == stage["specimen_id"]).any()
-        for strain, q, excess, volumetric, failure in readings_of(stage, last):
-            rows.append(
-                {
-                    **stage[stage_columns].to_dict(),
-                    "axial_strain": strain,
-                    "deviator_stress": q,
-                    "excess_pore_pressure": excess,
-                    "volumetric_strain": volumetric,
-                    "reported_failure_reading": failure,
-                }
-            )
-    pd.DataFrame(rows, columns=columns).to_csv(
-        out / "triaxial_readings.csv",
-        index=False,
-        float_format="%.6g",
-        lineterminator="\n",
-    )
+            ]
+            dataset = dataset.assign(reported_failure_reading=at_failure)
+        named = dataset["sample_reference"] + "-" + dataset["specimen_reference"]
+        dataset = dataset.assign(specimen_id=named)
+        dataset[list(ht.template(name).columns)].to_csv(
+            out / f"{name}.csv",
+            index=False,
+            float_format="%.6g",
+            lineterminator="\n",
+        )
 
 
 def main(out=OUT):
@@ -1596,6 +1790,7 @@ def main(out=OUT):
     write_site(out / "site.ags")
     (out / "strata.csv").write_text(STRATA, encoding="utf-8", newline="")
     (out / "judgments.yaml").write_text(JUDGMENTS, encoding="utf-8", newline="")
+    (out / "readings_map.csv").write_text(READINGS_MAP, encoding="utf-8", newline="")
     write_csvs(out)
 
 

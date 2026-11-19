@@ -19,6 +19,7 @@ READING_COLUMNS = (
     "excess_pore_pressure",
     "volumetric_strain",
     "reported_failure_reading",
+    "source_line",
 )
 REQUIRED = (
     "specimen_id",
@@ -49,8 +50,9 @@ def triaxial_failure_from_readings(
 ) -> pd.DataFrame:
     r"""Pick each triaxial stage's failure reading and return it as a stage row.
 
-    Reads the readings taken during shearing, one row per strain step, as
-    ``ht.template("triaxial_readings")`` lays them out, and returns one row
+    Reads the readings taken during shearing, as
+    ``ht.template("triaxial_readings")`` or ``p.triaxial_readings()`` lays
+    them out, and returns one row
     per stage at failure in ``ht.template("triaxial")``'s shape, ready for
     ``ht.analysis.triaxial_failure_stresses()`` and then
     ``ht.analysis.mohr_coulomb_fit()`` or ``ht.plot.failure_envelope()``.
@@ -71,6 +73,25 @@ def triaxial_failure_from_readings(
     uses them at failure. In a drained stage (``CD``, ``CDM``, ``CIDC``,
     ``CADC``) a blank $\Delta u$ is read as 0, the drained condition.
 
+    **Each quantity has its own readings:** the rows with a $q$, the rows
+    with a $\Delta u$ and the rows with an $\varepsilon_v$. A row may carry
+    all three (a lab's export usually does) or one (``p.triaxial_readings()``
+    from a file that gives each in its own group, at its own strains). For
+    each quantity, the stage's **loading part** runs, in row order, to the
+    last reading at its largest strain; the readings after it are the
+    **unload tail** before the next stage of a multistage test, never a
+    failure candidate and never interpolated from. Strain that decreases
+    within a loading part (a reading out of place) gives a warning naming the
+    stages, and the readings are used in their order.
+
+    **$\Delta u$ and $\varepsilon_v$ at a $q$ reading** are the row's own
+    where it has one. Otherwise, on a loading-part $q$ reading, they are
+    interpolated linearly in strain between the stage's loading-part readings
+    on either side (where several share a strain, the last in row order is
+    used); outside those readings, and on a tail reading, they stay blank,
+    never extrapolated. A warning names the stages whose value at the failure
+    reading was interpolated rather than read.
+
     **The failure reading**, one per stage, by the first rule that applies:
 
     1. ``failure_criterion="max_deviator_stress"``: the reading with the
@@ -83,9 +104,11 @@ def triaxial_failure_from_readings(
        the test standard and the lab's report, not yet checked against the
        standards.
 
-    Ties go to the first reading at the maximum, the lowest strain. A reading
-    with a blank strain or deviator stress, or (for the ratio) a blank
-    effective stress, is never picked.
+    Ties go to the first reading at the maximum, the lowest strain. Only
+    loading-part $q$ readings are candidates: a tail reading, a reading with
+    a blank strain or deviator stress, or (for the ratio) one with a blank
+    effective stress, is never picked. Readings from a project's AGS file
+    carry no lab mark, so they need ``failure_criterion=``.
 
     **Valid for:** triaxial compression, effective-stress stages (``CU``,
     ``CD`` and their variants) and total-stress ones (``UU``, with
@@ -106,9 +129,9 @@ def triaxial_failure_from_readings(
         multistage tests), ``test_type``, ``cell_pressure``, ``axial_strain``
         and ``deviator_stress``; for effective stresses ``back_pressure`` and,
         in undrained stages, ``excess_pore_pressure``; optionally
-        ``volumetric_strain`` and ``reported_failure_reading``. Every other
-        column is the stage's, the same on each of its readings. Stresses need
-        declared units.
+        ``volumetric_strain``, ``reported_failure_reading`` and
+        ``source_line``. Every other column is the stage's, the same on each
+        of its readings. Stresses need declared units.
     failure_criterion : {"max_deviator_stress", "max_stress_ratio"}, optional
         How to pick each stage's failure reading. Without it, the lab's
         ``reported_failure_reading`` is used.
@@ -120,8 +143,9 @@ def triaxial_failure_from_readings(
     pandas.DataFrame
         One row per stage, in order of its first reading: the stage's columns,
         then ``deviator_stress_at_failure`` and ``pore_pressure_at_failure``
-        ($u_b + \Delta u$, blank where $\Delta u$ is; in ``cell_pressure``'s
-        unit), ``axial_strain_at_failure``, ``volumetric_strain_at_failure``,
+        ($u_b + \Delta u$, with $\Delta u$ 0 in a drained stage where it is
+        blank, else blank where $\Delta u$ is; in ``cell_pressure``'s unit),
+        ``axial_strain_at_failure``, ``volumetric_strain_at_failure``,
         ``multistage_test`` (a multistage type, or a specimen with more than
         one stage) and ``failure_criterion`` ("Maximum deviator stress" or
         "Maximum principal stress ratio" where a criterion was given, else the
@@ -131,10 +155,10 @@ def triaxial_failure_from_readings(
     ------
     HangtuError
         For a missing column; a stage column that differs between a stage's
-        readings; strain that decreases within a stage; a stage with no
-        failure reading, or two marked; ``"max_stress_ratio"`` on a stage
-        without effective stresses or a reading with $\sigma'_3 \le 0$; a
-        stress column without units or in a unit that isn't a stress.
+        readings; a stage with no failure reading, or two marked;
+        ``"max_stress_ratio"`` on a stage without effective stresses or a
+        reading with $\sigma'_3 \le 0$; a stress column without units or in a
+        unit that isn't a stress.
 
     Examples
     --------
@@ -155,22 +179,33 @@ def triaxial_failure_from_readings(
     ...     ht.analysis.triaxial_failure_stresses(stages)
     ... )
     """
-    return reduce_readings(df, failure_criterion, units).rows
+    reduced = reduce_readings(df, failure_criterion, units)
+    _warn_interpolated(reduced.interpolated)
+    return reduced.rows
 
 
 class Reduced(NamedTuple):
-    """The readings, their stages, each stage's failure reading and the rows."""
+    """The readings, their stages, each stage's failure reading and the rows.
+
+    ``interpolated`` names, per stage, the columns whose value at the failure
+    reading was interpolated in strain rather than read (``strength.md`` §2).
+    """
 
     readings: "Readings"
     stages: dict[tuple, np.ndarray]
     picks: dict[tuple, int]
     rows: pd.DataFrame
+    interpolated: dict[tuple, list[str]]
 
 
 def reduce_readings(
     df: pd.DataFrame, failure_criterion: str | None, units: Mapping[str, str] | None
 ) -> Reduced:
-    """``triaxial_failure_from_readings()``, keeping what P12 draws from."""
+    """``triaxial_failure_from_readings()``, keeping what P12 draws from.
+
+    Warns where strain decreases in a loading part, but not about
+    interpolation at failure: the caller does (P12 draws without it).
+    """
     if not isinstance(df, pd.DataFrame):
         raise HangtuError(f"df must be a pandas DataFrame, not {type(df).__name__}.")
     if failure_criterion is not None and failure_criterion not in CRITERIA:
@@ -202,7 +237,30 @@ def reduce_readings(
     else:
         picks = readings.marks(stages, marked)
     rows = readings.failure_rows(stages, picks, failure_criterion)
-    return Reduced(readings, stages, picks, rows)
+    interpolated = {
+        key: names
+        for key, pick in picks.items()
+        if (names := readings.interpolated_at(pick))
+    }
+    return Reduced(readings, stages, picks, rows, interpolated)
+
+
+def _warn_interpolated(interpolated: dict[tuple, list[str]]) -> None:
+    """Name the stages whose Δu or εv at failure is another reading's (§2)."""
+    if not interpolated:
+        return
+    n = len(interpolated)
+    named = [
+        f"{_name(key)} ({', '.join(names)})" for key, names in interpolated.items()
+    ]
+    more = f", and {n - 10} more" if n > 10 else ""
+    warn(
+        f"In {n} stage{'s' if n > 1 else ''}, the failure reading had no value of "
+        f"its own for the quantity named, so its value was interpolated in strain "
+        f"from that quantity's readings: {'; '.join(named[:10])}{more}. The failure "
+        "row's pore_pressure_at_failure or volumetric_strain_at_failure is then "
+        "not a value the lab read."
+    )
 
 
 class Readings:
@@ -247,8 +305,19 @@ class Readings:
         self.volumetric = values("volumetric_strain")
         types = df["test_type"].astype(object).where(df["test_type"].notna(), None)
         self.types = types
-        drained = types.isin(DRAINED).to_numpy()
-        excess = np.where(drained & np.isnan(self.excess), 0.0, self.excess)
+        self.drained = types.isin(DRAINED).to_numpy()
+        # Set per stage by stages(): Δu and εv at each reading (own, or
+        # interpolated at a loading-part q reading), which were interpolated,
+        # and the loading-part q readings, the failure candidates.
+        self.excess_at = self.excess.copy()
+        self.volumetric_at = self.volumetric.copy()
+        self.interpolated_excess = np.zeros(len(df), dtype=bool)
+        self.interpolated_volumetric = np.zeros(len(df), dtype=bool)
+        self.q_loading = np.zeros(len(df), dtype=bool)
+        self._stresses()
+
+    def _stresses(self) -> None:
+        excess = np.where(self.drained & np.isnan(self.excess_at), 0.0, self.excess_at)
         self.pore = self.back + excess
         self.effective_minor = self.cell - self.pore
         self.effective_major = self.effective_minor + self.deviator
@@ -268,7 +337,18 @@ class Readings:
             stages.setdefault(_key(key), []).append(position)
         result = {key: np.array(rows) for key, rows in stages.items()}
         self._check_stage_columns(result)
-        self._check_strain(result)
+        decreasing = [key for key, rows in result.items() if self._read_stage(rows)]
+        self._stresses()
+        if decreasing:
+            n = len(decreasing)
+            more = f", and {n - 10} more" if n > 10 else ""
+            warn(
+                f"axial_strain decreases within the loading part of {n} "
+                f"stage{'s' if n > 1 else ''}: "
+                f"{', '.join(_name(key) for key in decreasing[:10])}{more}. The "
+                "readings are used in their order; check the file for a reading "
+                "out of place."
+            )
         return result
 
     def _check_stage_columns(self, stages: dict[tuple, np.ndarray]) -> None:
@@ -287,29 +367,56 @@ class Readings:
                 "check the file, or give each stage its own test_stage."
             )
 
-    def _check_strain(self, stages: dict[tuple, np.ndarray]) -> None:
-        bad = []
-        for key, rows in stages.items():
-            strain = self.strain[rows]
-            strain = strain[~np.isnan(strain)]
-            if (np.diff(strain) < 0).any():
-                bad.append(_name(key))
-        if bad:
-            raise HangtuError(
-                "axial_strain decreases within a stage, in "
-                f"{', '.join(bad[:5])}. Readings go in strain order within a "
-                "stage: sort them, or give two stages under one specimen_id their "
-                "own test_stage."
+    def _read_stage(self, rows: np.ndarray) -> bool:
+        """Find one stage's loading parts and fill Δu and εv at its q readings.
+
+        Returns whether strain decreases within a loading part.
+        """
+        strain = self.strain
+        has_strain = ~np.isnan(strain[rows])
+        q_loading, _ = _loading_part(
+            strain, rows[has_strain & ~np.isnan(self.deviator[rows])]
+        )
+        self.q_loading[q_loading] = True
+        decreasing = _decreases(strain, q_loading)
+        for values, filled, flags in (
+            (self.excess, self.excess_at, self.interpolated_excess),
+            (self.volumetric, self.volumetric_at, self.interpolated_volumetric),
+        ):
+            loading, _ = _loading_part(
+                strain, rows[has_strain & ~np.isnan(values[rows])]
             )
+            decreasing = decreasing or _decreases(strain, loading)
+            targets = q_loading[np.isnan(values[q_loading])]
+            if not len(loading) or not len(targets):
+                continue
+            at = _interpolate(strain[loading], values[loading], strain[targets])
+            filled[targets] = at
+            flags[targets] = ~np.isnan(at)
+        return decreasing
+
+    def interpolated_at(self, row: int) -> list[str]:
+        """Return the columns whose value at ``row`` was interpolated."""
+        names = []
+        if self.interpolated_excess[row]:
+            names.append("excess_pore_pressure")
+        if self.interpolated_volumetric[row]:
+            names.append("volumetric_strain")
+        return names
 
     def marked(self) -> np.ndarray:
         if "reported_failure_reading" not in self.df.columns:
             return np.zeros(len(self.df), dtype=bool)
-        column = self.df["reported_failure_reading"]
-        return column.fillna(False).astype(bool).to_numpy()
+        # A blank column reads from a CSV as object; eq() leaves it all False
+        # where fillna(False) would downcast it, with pandas' FutureWarning.
+        return (
+            self.df["reported_failure_reading"]
+            .eq(True)
+            .to_numpy(dtype=bool, na_value=False)
+        )
 
     def pick(self, stages: dict[tuple, np.ndarray], criterion: str) -> dict:
-        usable = ~np.isnan(self.strain) & ~np.isnan(self.deviator)
+        usable = self.q_loading.copy()
         if criterion == "max_deviator_stress":
             score = self.deviator
         else:
@@ -386,10 +493,9 @@ class Readings:
         carried = [c for c in df.columns if c not in READING_COLUMNS]
         result = df.iloc[first][carried].reset_index(drop=True)
         result["deviator_stress_at_failure"] = self.deviator[chosen]
-        pore = self.back[chosen] + self.excess[chosen]
-        result["pore_pressure_at_failure"] = pore
+        result["pore_pressure_at_failure"] = self.pore[chosen]
         result["axial_strain_at_failure"] = self.strain[chosen]
-        result["volumetric_strain_at_failure"] = self.volumetric[chosen]
+        result["volumetric_strain_at_failure"] = self.volumetric_at[chosen]
         specimens = pd.Series([key[0] for key in stages])
         counts = specimens.map(specimens.value_counts())
         result["multistage_test"] = is_multistage(
@@ -420,6 +526,36 @@ class Readings:
                 units[failure] = declared[reading]
         result.attrs["units"] = units
         return result
+
+
+def _loading_part(
+    strain: np.ndarray, rows: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
+    """Split one quantity's readings, in row order, into loading part and tail.
+
+    The loading part runs to the last reading at the largest strain; the
+    readings after it are the unload tail (``strength.md`` §2).
+    """
+    if not len(rows):
+        return rows, rows
+    values = strain[rows]
+    last = int(np.flatnonzero(values == values.max())[-1])
+    return rows[: last + 1], rows[last + 1 :]
+
+
+def _decreases(strain: np.ndarray, rows: np.ndarray) -> bool:
+    return bool((np.diff(strain[rows]) < 0).any())
+
+
+def _interpolate(strains: np.ndarray, values: np.ndarray, at: np.ndarray) -> np.ndarray:
+    """Linear in strain, the last of equal strains in row order; blank outside."""
+    order = np.argsort(strains, kind="stable")
+    strains, values = strains[order], values[order]
+    last = np.append(strains[1:] != strains[:-1], True)
+    strains, values = strains[last], values[last]
+    result = np.interp(at, strains, values)
+    result[(at < strains[0]) | (at > strains[-1])] = np.nan
+    return result
 
 
 def _key(key: tuple) -> tuple:

@@ -216,4 +216,5 @@ stated.
 - `ShearBoxFit.plot()` to draw a result without refitting (as `FitResult.plot()`).
 - The secant angle against σn as a second panel, to show a curved envelope (sheet 22 §5.2).
 - Curved (power-law) and Barton–Bandis envelopes (wave 4), and the tangent at a design σn.
-- Displacement curves (τ and dilation against displacement, wave 0).
+- Displacement curves (τ and vertical displacement against horizontal displacement), drawn from
+  `p.shear_box_readings()` (`docs/data/datasets.md` §6.17) or its template.
