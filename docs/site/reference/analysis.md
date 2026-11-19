@@ -30,6 +30,10 @@ Each analysis is a plain function on a DataFrame. It returns a new DataFrame or 
 
 ::: hangtu.analysis.oedometer_load_branch
 
+::: hangtu.analysis.oedometer_fit
+
+::: hangtu.analysis.OedometerFit
+
 ::: hangtu.analysis.triaxial_failure_from_readings
 
 ::: hangtu.analysis.undrained_shear_strength_from_tests

@@ -478,3 +478,16 @@ docs; the registry's `ags` entries say `"derived: docs/analysis/compressibility.
   - what a future session would get wrong without being told, written where it will be read.
 - **Verification:** every AC of the Spec and of P13 §12 reported as met or not, with its test; the whole suite with
   `-n 3`; ruff; mypy; the lowest-versions run (then `git checkout uv.lock`); the strict docs build.
+
+### Notes from the build
+- **Step 1:** `used_by: [plot.consolidation_curve]` can't go in the registry until the function exists
+  (`tests/test_registry.py` checks each entry is callable in `ht.plot`), so step 4 adds it to the seven new columns
+  and to `preconsolidation_stress` and `overconsolidation_ratio`. `sample_quality` is text, so it has no `label`
+  (the registry allows none on text columns).
+- **Step 1:** `to_frame()` also keeps `sample_reference` and `specimen_reference` where present (the AGS
+  `specimen_id` is a number), and has a `compression_ratio_reason` column (decision 15 asks for one reason column per
+  value that can be blank, and CR can be). A specimen's label is its sample and specimen references
+  (`BH1-U3-OED1`, `B-4-U1-C1`), else its `specimen_id`.
+- **Step 1:** `.specimens` also gives `void_ratio_at_preconsolidation_stress` (e on the loading curve at σ′p, as the
+  fit interpolates), so P13 draws the σ′p mark without computing it.
+- **Step 1:** a negative `void_ratio_at_increment_end` and an unknown `load_branch` value are errors naming the rows.
