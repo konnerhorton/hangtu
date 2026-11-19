@@ -491,3 +491,13 @@ docs; the registry's `ags` entries say `"derived: docs/analysis/compressibility.
 - **Step 1:** `.specimens` also gives `void_ratio_at_preconsolidation_stress` (e on the loading curve at σ′p, as the
   fit interpolates), so P13 draws the σ′p mark without computing it.
 - **Step 1:** a negative `void_ratio_at_increment_end` and an unknown `load_branch` value are errors naming the rows.
+- **Step 2:** a specimen with more than one non-blank `void_ratio` is an error naming it, as decision 11 has for
+  σ′v0. `.specimens` gives each unload run (`unload_runs`: `run`, `start_stress`, `swelling_index`, `swelling_line`,
+  `reason`, `notes`), the check's `pacheco_silva` (`stress_a`, `void_ratio_b`) and
+  `void_ratio_at_preconsolidation_stress_pacheco_silva` for P13's marks. The Pacheco Silva citation in the docstring
+  keeps only what the spec and sheet 06 verified (no title for Paniagua et al.).
+- **Step 3:** the class's row is written `"OCR 1-2"` and `"OCR 2-4"` with a hyphen (`sample_quality_row`, the
+  summary, the caveat): ruff's RUF001 refuses an en dash in a string. P13's box can print the row as the fit gives
+  it. Stresses in reasons are written to 3 significant figures without a trailing `.0` ("σ′v0 = 20 kPa", "10 to
+  320 kPa"), with a thousands comma ("2,000 kPa"). The class's limits and boundaries are tested on the private
+  `_sample_quality()` (AC 7), since hitting each limit exactly through a curve isn't practical.

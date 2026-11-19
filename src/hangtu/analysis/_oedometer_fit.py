@@ -21,7 +21,7 @@ from hangtu.analysis._oedometer import (
     UNLOADING,
     oedometer_load_branch,
 )
-from hangtu.errors import ColumnError, HangtuError
+from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.stats._rows import group_keys
 
 _FUNCTION = "oedometer_fit()"
@@ -31,6 +31,19 @@ _REQUIRED = ("specimen_id", _STRESS, _VOID_RATIO)
 #: The specimen's initial void ratio, e0, before any load (CONG_IVR).
 _INITIAL = "void_ratio"
 _NO_INITIAL = "no initial void ratio"
+_IN_SITU = "effective_vertical_stress"
+#: Lunne et al.'s (1997) limits of Δe/e0 (l1, l2, l3) per OCR row, as Krage et
+#: al. (2015, Table 1) give them: below l1 "very good to excellent", l1 to l2
+#: "good to fair", l2 to l3 "poor", above l3 "very poor" (decision 13).
+SAMPLE_QUALITY_LIMITS = {
+    "OCR 1-2": (0.04, 0.07, 0.14),
+    "OCR 2-4": (0.03, 0.05, 0.10),
+}
+SAMPLE_QUALITY_CLASSES = ("very good to excellent", "good to fair", "poor", "very poor")
+_CAVEAT = (
+    "The class uses this test's OCR: disturbance lowers σ′p and so the OCR, which "
+    "can move a poor sample into the more lenient OCR 1-2 row."
+)
 _TEMPLATE = 'ht.template("oedometer") has the columns it reads.'
 #: The columns that identify a specimen, kept on its row where the frame has them.
 _IDENTIFIERS = (
@@ -146,6 +159,37 @@ def oedometer_fit(
     stresses, the check is blank with the reason: nothing is extrapolated.
     Both values are on the result, and neither is preferred by a warning.
 
+    **OCR and sample quality,** where the rows give the specimen's
+    ``effective_vertical_stress`` ($\sigma'_{v0}$, from
+    ``ht.analysis.vertical_stress()`` run on the rows first):
+    $OCR = \sigma'_p / \sigma'_{v0}$, kept and warned about below 1
+    (disturbance, a wrong $\sigma'_{v0}$ or underconsolidation), never
+    clipped. Without the column, or with it blank, OCR is blank with the
+    reason; $\sigma'_{v0}$ is never assumed. The sample quality is Lunne et
+    al.'s (1997) normalized change in void ratio on reconsolidation,
+
+    $$
+    \frac{\Delta e}{e_0} = \frac{e_0 - e(\sigma'_{v0})}{e_0}
+    $$
+
+    with $e(\sigma'_{v0})$ interpolated linearly in $e$ against
+    $\log_{10}\sigma'_v$ between the loading points either side, and
+    counted from $e_0$, so a swell on flooding counts. A $\sigma'_{v0}$
+    below the first loading stress or above the highest gives a blank, not
+    an extrapolation. Its class is read in the row of this test's OCR:
+
+    | OCR | very good to excellent | good to fair | poor | very poor |
+    |---|---|---|---|---|
+    | 1 to < 2 | < 0.04 | 0.04 to < 0.07 | 0.07 to 0.14 | > 0.14 |
+    | 2 to 4 | < 0.03 | 0.03 to < 0.05 | 0.05 to 0.10 | > 0.10 |
+
+    Outside OCR 1-4, without an OCR, or below 0 (the specimen swelled past
+    $e_0$), $\Delta e/e_0$ is given without a class, with the reason.
+    **Caveat:** the OCR is this test's, the only one at hand, and
+    disturbance lowers $\sigma'_p$ and so the OCR, which can move a poor
+    sample into the more lenient OCR 1-2 row. The summary says so wherever
+    a class is given.
+
     **The rows each value reads.** Each increment's branch comes from
     ``load_branch`` (added by ``ht.analysis.oedometer_load_branch()`` when
     the frame doesn't have it, with a note). Only ``loading`` rows give
@@ -191,7 +235,12 @@ def oedometer_fit(
     pressão de pré-adensamento de uma amostra de solo. Proc. 4th Brazilian
     Conference on Soil Mechanics and Foundation Engineering, Rio de Janeiro,
     225-232; read in Paniagua, L'Heureux, Yang & Lunne (2016), Proc. 17th
-    Nordic Geotechnical Meeting (NGM 2016), Reykjavik, §2.4, p. 548.
+    Nordic Geotechnical Meeting (NGM 2016), Reykjavik, §2.4, p. 548. Lunne,
+    T., Berre, T. & Strandvik, S. (1997). Sample disturbance effects in soft
+    low plastic Norwegian clay. Proc. Symposium on Recent Developments in
+    Soil and Pavement Mechanics, Rio de Janeiro, 81-102; the classes as Krage,
+    DeJong, DeGroot, Dyer & Lukas (2015) give them, Proc. 6th International
+    Conference on Earthquake Geotechnical Engineering, Table 1.
 
     Parameters
     ----------
@@ -200,8 +249,9 @@ def oedometer_fit(
         ``ht.template("oedometer")``'s shape): ``specimen_id``,
         ``applied_vertical_stress`` and ``void_ratio_at_increment_end``, in
         the order the increments were applied. ``load_branch`` and
-        ``void_ratio`` (the specimen's initial $e_0$, one value per
-        specimen) are read where present. One fit per ``specimen_id``, in
+        ``void_ratio`` (the specimen's initial $e_0$) and
+        ``effective_vertical_stress`` ($\sigma'_{v0}$ at its depth), one
+        value per specimen, are read where present. One fit per ``specimen_id``, in
         sorted order.
     units : dict, optional
         ``{column: unit}`` for ``df``, overriding ``df.attrs["units"]``.
@@ -216,12 +266,18 @@ def oedometer_fit(
         ``.to_frame()`` has one row per specimen; ``print()`` reads it;
         ``.specimens`` holds each point's role, every split and every line.
 
+    Warns
+    -----
+    UserWarning
+        For an OCR below 1, naming the specimens.
+
     Raises
     ------
     HangtuError
         For a frame without ``specimen_id``, ``applied_vertical_stress`` or
         ``void_ratio_at_increment_end``, a row with a blank ``specimen_id``, a
-        negative void ratio, a specimen with more than one ``void_ratio``, a
+        negative void ratio, a specimen with more than one ``void_ratio`` or
+        ``effective_vertical_stress``, a
         ``load_branch`` value the fit doesn't know, a stress column without
         units or in a unit that isn't a stress, or an argument out of its
         range.
@@ -278,6 +334,7 @@ def oedometer_fit(
         if _INITIAL in df.columns
         else np.full(len(df), np.nan)
     )
+    in_situ = _in_situ(df, units, display_units, unit)
     text = f" {unit}" if unit else ""
     specimens = []
     for _, rows in group_keys(df, ["specimen_id"]):
@@ -286,8 +343,21 @@ def oedometer_fit(
         record["void_ratio"] = _one_value(df, positions, initial, _INITIAL, record)
         record |= _compression_ratio(record)
         record |= _pacheco_silva(record, text)
+        record["effective_vertical_stress"] = (
+            np.nan
+            if in_situ is None
+            else _one_value(df, positions, in_situ, _IN_SITU, record)
+        )
+        record |= _stress_history(record, in_situ is not None, text)
         del record["_loading"]
         specimens.append(record)
+    below = [r["label"] for r in specimens if r["overconsolidation_ratio"] < 1]
+    if below:
+        warn(
+            f"{_FUNCTION}: OCR below 1 in {', '.join(below)}. It is kept as "
+            "computed, not clipped: check for sample disturbance (which lowers "
+            "σ′p), a wrong σ′v0, or an underconsolidated layer."
+        )
     return OedometerFit(
         function="oedometer_fit",
         unit=unit,
@@ -401,6 +471,132 @@ def _one_value(
     return float(distinct[0]) if len(distinct) else np.nan
 
 
+def _in_situ(
+    df: pd.DataFrame,
+    units: Mapping[str, str] | None,
+    display_units: str | None,
+    unit: str | None,
+) -> np.ndarray | None:
+    """Return σ′v0 in the fit's unit, None without the column (decision 11).
+
+    A column blank throughout needs no unit.
+    """
+    if _IN_SITU not in df.columns:
+        return None
+    if df[_IN_SITU].isna().all():
+        return np.full(len(df), np.nan)
+    declared = _units.resolve_units(df, [_IN_SITU], units, analysis=True)[_IN_SITU]
+    parsed = _units.parse_unit(declared, _IN_SITU)
+    _units.check_dimension(parsed, "stress", _IN_SITU)
+    values = numeric_column(df, _IN_SITU)
+    if display_units is not None:
+        return _units.to_display(values, declared, "stress", display_units)[0]
+    if unit is None:
+        return values
+    return _units.convert(values, parsed, "stress", _units.parse_unit(unit))
+
+
+def _stress_history(
+    record: dict[str, Any], has_column: bool, unit: str
+) -> dict[str, Any]:
+    """OCR, Δe/e0 and Lunne et al.'s class (decisions 11-13), or why not."""
+    in_situ = record["effective_vertical_stress"]
+    stress = record["preconsolidation_stress"]
+    e0 = record["void_ratio"]
+    x, e = record["_loading"]
+    if not has_column:
+        no_in_situ = (
+            "no effective_vertical_stress: run ht.analysis.vertical_stress() on "
+            "the rows first"
+        )
+    else:
+        no_in_situ = "no effective vertical stress at the specimen's depth"
+    result: dict[str, Any] = {
+        "overconsolidation_ratio": np.nan,
+        "overconsolidation_ratio_reason": None,
+        "void_ratio_at_effective_vertical_stress": np.nan,
+        "normalized_void_ratio_change": np.nan,
+        "normalized_void_ratio_change_reason": None,
+        "sample_quality": None,
+        "sample_quality_row": None,
+        "sample_quality_reason": None,
+    }
+    if math.isnan(in_situ):
+        result["overconsolidation_ratio_reason"] = no_in_situ
+    elif math.isnan(stress):
+        result["overconsolidation_ratio_reason"] = (
+            f"no σ′p: {record['preconsolidation_stress_reason']}"
+        )
+    else:
+        result["overconsolidation_ratio"] = stress / in_situ
+
+    if math.isnan(e0) or e0 == 0:
+        result["normalized_void_ratio_change_reason"] = _NO_INITIAL
+    elif math.isnan(in_situ):
+        result["normalized_void_ratio_change_reason"] = no_in_situ
+    elif not len(x):
+        result["normalized_void_ratio_change_reason"] = "no loading branch"
+    elif in_situ < x[0]:
+        result["normalized_void_ratio_change_reason"] = (
+            f"σ′v0 = {_stress_text(in_situ)}{unit} is below the first loading "
+            f"stress ({_stress_text(x[0])}{unit})"
+        )
+    elif in_situ > x[-1]:
+        result["normalized_void_ratio_change_reason"] = (
+            f"σ′v0 = {_stress_text(in_situ)}{unit} is above the highest loading "
+            f"stress ({_stress_text(x[-1])}{unit})"
+        )
+    else:
+        at = _on_curve(x, e, in_situ)
+        result["void_ratio_at_effective_vertical_stress"] = at
+        result["normalized_void_ratio_change"] = (e0 - at) / e0
+    return result | _sample_quality(result, record)
+
+
+def _sample_quality(result: dict[str, Any], record: dict[str, Any]) -> dict[str, Any]:
+    """Grade Δe/e0 by Lunne et al. (1997) in this test's OCR row (decision 13)."""
+    change = result["normalized_void_ratio_change"]
+    ocr = result["overconsolidation_ratio"]
+    if math.isnan(change):
+        return {
+            "sample_quality_reason": (
+                f"no Δe/e0: {result['normalized_void_ratio_change_reason']}"
+            )
+        }
+    if change < 0:
+        record["notes"].append(
+            "Δe/e0 is below 0: the specimen swelled past e0 by σ′v0 (on flooding, "
+            "or a seating error), so it has no class."
+        )
+        return {"sample_quality_reason": "Δe/e0 below 0 has no class"}
+    if math.isnan(ocr):
+        reason = result["overconsolidation_ratio_reason"]
+        return {"sample_quality_reason": f"no OCR: {reason}"}
+    if 1 <= ocr < 2:
+        row = "OCR 1-2"
+    elif 2 <= ocr <= 4:
+        row = "OCR 2-4"
+    else:
+        return {
+            "sample_quality_reason": (
+                f"OCR = {ocr:.3g} is outside the classes' range (1 to 4)"
+            )
+        }
+    first, second, third = SAMPLE_QUALITY_LIMITS[row]
+    if change < first:
+        grade = 0
+    elif change < second:
+        grade = 1
+    elif change <= third:
+        grade = 2
+    else:
+        grade = 3
+    return {
+        "sample_quality": SAMPLE_QUALITY_CLASSES[grade],
+        "sample_quality_row": row,
+    }
+
+
 def _swelling(points: list[dict[str, Any]]) -> dict[str, Any]:
     """Cs of every unload run; the specimen's is the first run's (decision 9).
 
@@ -474,8 +670,6 @@ def _pacheco_silva(record: dict[str, Any], unit: str) -> dict[str, Any]:
     the loading curve's e at σA; (iii) the horizontal through e_B meets the
     virgin line at the check's σ′p.
     """
-    from hangtu.plot._overlays import format_number  # plot imports analysis
-
     result: dict[str, Any] = {
         "preconsolidation_stress_pacheco_silva": np.nan,
         "pacheco_silva_reason": None,
@@ -497,13 +691,13 @@ def _pacheco_silva(record: dict[str, Any], unit: str) -> dict[str, Any]:
     stress_a = 10 ** ((c - e0) / index)
     if not x[0] <= stress_a <= x[-1]:
         where = (
-            f"loading from {format_number(x[0])}{unit}"
+            f"loading from {_stress_text(x[0])}{unit}"
             if stress_a < x[0]
-            else f"loading to {format_number(x[-1])}{unit}"
+            else f"loading to {_stress_text(x[-1])}{unit}"
         )
         result["pacheco_silva_reason"] = (
             "the construction falls outside the measured curve "
-            f"(σA = {format_number(stress_a)}{unit}, {where})"
+            f"(σA = {_stress_text(stress_a)}{unit}, {where})"
         )
         result["pacheco_silva"] = {"stress_a": stress_a, "void_ratio_b": np.nan}
         return result
@@ -671,12 +865,20 @@ def _oikawa(x: np.ndarray, e: np.ndarray, unit: str) -> dict[str, Any]:
 
 
 def _outside(crossing: float, x: np.ndarray, unit: str) -> str:
+    return (
+        f"the lines cross at {_stress_text(crossing)}{unit}, outside the loading "
+        f"stresses ({_stress_text(x[0])} to {_stress_text(x[-1])}{unit})"
+    )
+
+
+def _stress_text(value: float) -> str:
+    """Write a stress in a reason to 3 significant figures: ``20``, ``7.94``."""
     from hangtu.plot._overlays import format_number  # plot imports analysis
 
-    return (
-        f"the lines cross at {format_number(crossing)}{unit}, outside the loading "
-        f"stresses ({format_number(x[0])} to {format_number(x[-1])}{unit})"
-    )
+    text = format_number(value)
+    if "." in text and "e" not in text:
+        text = text.rstrip("0").rstrip(".")
+    return text
 
 
 def _log_line(line: Line) -> dict[str, Any]:
@@ -893,6 +1095,7 @@ def _specimen_text(record: dict[str, Any], unit: str, format_number: Any) -> lis
     ]
     if left_out:
         lines.append(f"  left out: {', '.join(left_out)}")
+    lines.extend(_stress_history_text(record, unit, format_number))
     for run in record["unload_runs"]:
         text = f"Cs = {_index_text(run['swelling_index'])}"
         if run["reason"] is not None:
@@ -905,4 +1108,33 @@ def _specimen_text(record: dict[str, Any], unit: str, format_number: Any) -> lis
             f", {used}: {text}"
         )
     lines.extend(f"  {note}" for note in record["notes"])
+    return lines
+
+
+def _stress_history_text(
+    record: dict[str, Any], unit: str, format_number: Any
+) -> list[str]:
+    """Write OCR, Δe/e0 and the class, each or why it isn't given."""
+    lines = []
+    ocr = record["overconsolidation_ratio"]
+    in_situ = record["effective_vertical_stress"]
+    if math.isnan(ocr):
+        lines.append(f"  OCR not given: {record['overconsolidation_ratio_reason']}")
+    else:
+        below = " (< 1)" if ocr < 1 else ""
+        lines.append(
+            f"  OCR = {ocr:.3g}{below} at σ′v0 = {format_number(in_situ)}{unit}"
+        )
+    change = record["normalized_void_ratio_change"]
+    if math.isnan(change):
+        reason = record["normalized_void_ratio_change_reason"]
+        if reason != record["overconsolidation_ratio_reason"]:
+            lines.append(f"  Δe/e0 not given: {reason}")
+        return lines
+    text = f"  Δe/e0 = {_index_text(change)}"
+    if record["sample_quality"] is not None:
+        text += f", {record['sample_quality']} ({record['sample_quality_row']} row)"
+        lines += [text, f"  {_CAVEAT}"]
+    else:
+        lines.append(f"{text}, no class: {record['sample_quality_reason']}")
     return lines

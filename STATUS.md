@@ -1,7 +1,11 @@
 # Status
 
-**Next:** M19 (b), compressibility (σ′p, Cc, Cr, Cs, OCR, Δe/e0) and P13: the build, step 1, from its plan
+**Next:** M19 (b), compressibility (σ′p, Cc, Cr, Cs, OCR, Δe/e0) and P13: the build, step 4, from its plan
 on `m19b-compressibility`. M20's Soft Soil set is built on M18's model-set base. Then waves 4–6.
+
+**In progress:** `m19b-compressibility`, steps 1–3 committed (`oedometer_fit()` done, all its criteria green). Next:
+step 4, `ht.plot.consolidation_curve()` (P13), on Sonnet in a new session; read the work file's "Notes from the
+build" first (the registry's `used_by` for P13 is added in step 4).
 
 Last checkpoint: 3, after M19 (a), 2026-11-15, 4f03bfd.
 

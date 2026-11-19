@@ -236,7 +236,7 @@ def test_ac4_construction_outside_the_curve():
     assert record["pacheco_silva_reason"].startswith(
         "the construction falls outside the measured curve (σA = "
     )
-    assert record["pacheco_silva_reason"].endswith("kPa, loading from 25.0 kPa)")
+    assert record["pacheco_silva_reason"].endswith("kPa, loading from 25 kPa)")
     assert record["pacheco_silva"]["stress_a"] < 25
 
 
@@ -252,6 +252,148 @@ def test_more_than_one_initial_void_ratio_is_an_error():
     df.loc[4, "void_ratio"] = 0.81
     with pytest.raises(HangtuError, match="more than one void_ratio"):
         _fit(df)
+
+
+# --- AC 6 and 7: OCR, Δe/e0 and the class -------------------------------------
+
+
+def _with_in_situ(df, value, unit="kPa"):
+    out = df.assign(effective_vertical_stress=value)
+    out.attrs = {
+        **df.attrs,
+        "units": {**df.attrs["units"], "effective_vertical_stress": unit},
+    }
+    return out
+
+
+@pytest.mark.parametrize(
+    ("in_situ", "ocr", "at", "change", "grade", "row"),
+    [
+        (
+            80,
+            3.30502070,
+            0.779863137,
+            0.0251710786,
+            "very good to excellent",
+            "OCR 2-4",
+        ),
+        (150, 1.76267771, 0.759621050, 0.0504736875, "good to fair", "OCR 1-2"),
+    ],
+)
+def test_ac6_ocr_and_sample_quality(site_si, in_situ, ocr, at, change, grade, row):
+    fit = _fit(_with_in_situ(site_si, float(in_situ)))
+    record = fit.specimens[0]
+    assert record["effective_vertical_stress"] == in_situ
+    assert record["overconsolidation_ratio"] == pytest.approx(ocr, rel=REL)
+    assert record["void_ratio_at_effective_vertical_stress"] == pytest.approx(
+        at, rel=REL
+    )
+    assert record["normalized_void_ratio_change"] == pytest.approx(change, rel=REL)
+    assert record["sample_quality"] == grade
+    assert record["sample_quality_row"] == row
+    text = str(fit)
+    assert f"{grade} ({row} row)" in text
+    assert "The class uses this test's OCR" in text
+
+
+def test_ac6_in_situ_stress_below_the_first_loading_stress(site_si):
+    record = _one(_with_in_situ(site_si, 20.0))
+    assert record["overconsolidation_ratio"] == pytest.approx(13.2200828, rel=REL)
+    assert np.isnan(record["normalized_void_ratio_change"])
+    assert record["normalized_void_ratio_change_reason"] == (
+        "σ′v0 = 20 kPa is below the first loading stress (25 kPa)"
+    )
+    assert record["sample_quality"] is None
+
+
+def test_ac6_in_situ_stress_above_the_highest_loading_stress(site_si):
+    with pytest.warns(UserWarning, match="OCR below 1"):
+        record = _one(_with_in_situ(site_si, 2000.0))
+    assert record["normalized_void_ratio_change_reason"] == (
+        "σ′v0 = 2,000 kPa is above the highest loading stress (1,600 kPa)"
+    )
+
+
+def test_ac6_ocr_below_1_is_kept_with_a_warning(site_si):
+    with pytest.warns(UserWarning, match="OCR below 1 in BH1-U3-OED1"):
+        fit = _fit(_with_in_situ(site_si, 300.0))
+    record = fit.specimens[0]
+    assert record["overconsolidation_ratio"] == pytest.approx(0.881338853, rel=REL)
+    assert record["sample_quality"] is None
+    assert record["sample_quality_reason"] == (
+        "OCR = 0.881 is outside the classes' range (1 to 4)"
+    )
+    assert "OCR = 0.881 (< 1)" in str(fit)
+
+
+def test_ac6_no_effective_vertical_stress_column(bh1_u3):
+    assert np.isnan(bh1_u3["overconsolidation_ratio"])
+    assert np.isnan(bh1_u3["normalized_void_ratio_change"])
+    assert bh1_u3["sample_quality"] is None
+    assert bh1_u3["overconsolidation_ratio_reason"].startswith(
+        "no effective_vertical_stress: run ht.analysis.vertical_stress()"
+    )
+    assert bh1_u3["sample_quality_reason"].startswith("no Δe/e0: no effective")
+
+
+def test_ac6_blank_effective_vertical_stress_needs_no_unit(site_si):
+    df = site_si.assign(effective_vertical_stress=np.nan)
+    record = _one(df)
+    assert record["overconsolidation_ratio_reason"] == (
+        "no effective vertical stress at the specimen's depth"
+    )
+
+
+def test_ac6_two_in_situ_stresses_on_one_specimen(site_si):
+    df = _with_in_situ(site_si, 80.0)
+    df.loc[df.index[3], "effective_vertical_stress"] = 81.0
+    with pytest.raises(HangtuError, match="BH1-U3-OED1 has more than one"):
+        _fit(df)
+
+
+def test_ac6_negative_change_has_no_class(site_si):
+    # e0 below the curve's e at σ′v0: the specimen swelled past it.
+    df = _with_in_situ(site_si.assign(void_ratio=0.77), 80.0)
+    record = _one(df)
+    assert record["normalized_void_ratio_change"] < 0
+    assert record["sample_quality"] is None
+    assert record["sample_quality_reason"] == "Δe/e0 below 0 has no class"
+    assert any("swelled past e0" in note for note in record["notes"])
+
+
+@pytest.mark.parametrize(
+    ("ocr", "change", "grade"),
+    [
+        (1.5, 0.0399, "very good to excellent"),
+        (1.5, 0.04, "good to fair"),
+        (1.5, 0.07, "poor"),
+        (1.5, 0.14, "poor"),
+        (1.5, 0.1401, "very poor"),
+        (3.0, 0.0299, "very good to excellent"),
+        (3.0, 0.03, "good to fair"),
+        (3.0, 0.05, "poor"),
+        (3.0, 0.10, "poor"),
+        (3.0, 0.1001, "very poor"),
+        (2.0, 0.035, "good to fair"),  # OCR 2 reads the 2-4 row
+        (4.0, 0.035, "good to fair"),
+        (1.0, 0.035, "very good to excellent"),
+    ],
+)
+def test_ac7_class_limits(ocr, change, grade):
+    from hangtu.analysis._oedometer_fit import _sample_quality
+
+    result = {"normalized_void_ratio_change": change, "overconsolidation_ratio": ocr}
+    assert _sample_quality(result, {"notes": []})["sample_quality"] == grade
+
+
+@pytest.mark.parametrize("ocr", [4.0001, 0.9999])
+def test_ac7_no_class_outside_ocr_1_to_4(ocr):
+    from hangtu.analysis._oedometer_fit import _sample_quality
+
+    result = {"normalized_void_ratio_change": 0.02, "overconsolidation_ratio": ocr}
+    graded = _sample_quality(result, {"notes": []})
+    assert "sample_quality" not in graded
+    assert "outside the classes' range" in graded["sample_quality_reason"]
 
 
 # --- AC 5: counts ---------------------------------------------------------------
@@ -349,7 +491,7 @@ def test_ac9_crossing_outside_the_loading_stresses():
     assert record["crossing_stress"] == pytest.approx(7.93570770, rel=REL)
     _blank_preconsolidation(record)
     assert record["preconsolidation_stress_reason"] == (
-        "the lines cross at 7.94 kPa, outside the loading stresses (10.0 to 320 kPa)"
+        "the lines cross at 7.94 kPa, outside the loading stresses (10 to 320 kPa)"
     )
 
 
@@ -497,6 +639,20 @@ def test_ac14_psf_file_gives_the_same_indexes_and_scaled_stress(site_si, site_us
         assert us[name] == pytest.approx(si[name], rel=1e-9)
 
 
+def test_ac14_ocr_and_change_dont_depend_on_the_unit(site_si, site_us):
+    si = _one(_with_in_situ(site_si, 80.0))
+    us = _one(_with_in_situ(site_us, 80.0 / PSF, unit="psf"))
+    for name in ("overconsolidation_ratio", "normalized_void_ratio_change"):
+        assert us[name] == pytest.approx(si[name], rel=1e-9)
+    assert us["sample_quality"] == si["sample_quality"]
+    # σ′v0 in kPa on a psf fit is converted to psf.
+    mixed = _one(_with_in_situ(site_us, 80.0))
+    assert mixed["effective_vertical_stress"] == pytest.approx(80.0 / PSF, rel=1e-9)
+    assert mixed["overconsolidation_ratio"] == pytest.approx(
+        si["overconsolidation_ratio"], rel=1e-9
+    )
+
+
 def test_ac14_display_units_si_on_the_psf_file(site_si, site_us):
     fit = _fit(site_us, display_units="SI")
     assert fit.unit == "kPa"
@@ -525,6 +681,22 @@ def test_ac15_example_file(example):
     assert round(b5["swelling_index"], 4) == 0.0399
     assert round(b5["compression_ratio"], 3) == 0.137
     assert round(b5["preconsolidation_stress_pacheco_silva"]) == 3943
+
+
+def test_ac15_swelling_pressure_specimen_every_value_blank(example):
+    record = next(r for r in _fit(example).specimens if r["label"] == "B-1-U2-SW1")
+    for name in (
+        "preconsolidation_stress",
+        "preconsolidation_stress_pacheco_silva",
+        "compression_index",
+        "recompression_index",
+        "swelling_index",
+        "compression_ratio",
+        "overconsolidation_ratio",
+        "normalized_void_ratio_change",
+    ):
+        assert np.isnan(record[name]), name
+    assert record["sample_quality"] is None
 
 
 def test_ac15_swelling_pressure_specimen_has_no_loading_branch(example):
