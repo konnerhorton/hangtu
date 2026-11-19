@@ -507,3 +507,6 @@ docs; the registry's `ags` entries say `"derived: docs/analysis/compressibility.
   entry (both are drawn alike); a frame without `effective_vertical_stress` is said once in the footnote, not in each
   box entry. The dashed parts, the σ′v0 line and the construction sit under `_layers.LINES`, so the legend may cover
   them: they cross the axes and would otherwise push it below the plot every time.
+- **Step 5:** the site example draws B-5-U2-C1 only, with `vertical_stress()`: B-4's log has a gap from 9 to 10 ft
+  (QC G002), so `vertical_stress()` refuses the B-4 rows, as on the correlations pages. One specimen with σ′v0 shows
+  the class and its caveat; P13-us.png (step 6) still draws both specimens, without σ′v0.

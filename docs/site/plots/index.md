@@ -38,6 +38,7 @@ Every plot takes a DataFrame and returns an ordinary matplotlib figure and axes.
 | [Triaxial shearing](triaxial-shearing.md) | Readings during shearing: stress–strain curves, or measured stress paths with the fitted envelope |
 | [Shear box envelope](shear-box-envelope.md) | Shear box stages in τ–σn, peak and residual, with the fitted c and φ, free and through the origin |
 | [Hoek–Brown envelope](hoek-brown-envelope.md) | Intact rock UCS and triaxial tests in σ1–σ3, with the fitted σci and mi, free and with σci fixed |
+| [Consolidation curve](consolidation-curve.md) | Oedometer increments as e against log σ′v, with σ′p, Cc, Cr and Cs, OCR and the sample quality |
 
 ## See also
 

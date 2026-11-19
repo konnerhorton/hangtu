@@ -47,6 +47,7 @@ nav = [
     "plots/triaxial-shearing.md",
     "plots/shear-box-envelope.md",
     "plots/hoek-brown-envelope.md",
+    "plots/consolidation-curve.md",
   ] },
   { "Parameters" = [
     "parameters/01-unit-weight-and-vertical-stress.md",
