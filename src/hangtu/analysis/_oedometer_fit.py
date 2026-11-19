@@ -28,6 +28,9 @@ _FUNCTION = "oedometer_fit()"
 _STRESS = "applied_vertical_stress"
 _VOID_RATIO = "void_ratio_at_increment_end"
 _REQUIRED = ("specimen_id", _STRESS, _VOID_RATIO)
+#: The specimen's initial void ratio, e0, before any load (CONG_IVR).
+_INITIAL = "void_ratio"
+_NO_INITIAL = "no initial void ratio"
 _TEMPLATE = 'ht.template("oedometer") has the columns it reads.'
 #: The columns that identify a specimen, kept on its row where the frame has them.
 _IDENTIFIERS = (
@@ -84,7 +87,7 @@ def oedometer_fit(
     units: Mapping[str, str] | None = None,
     display_units: str | None = None,
 ) -> "OedometerFit":
-    r"""Fit each oedometer specimen's curve: σ′p by Oikawa (1987), Cc and Cr.
+    r"""Fit each oedometer specimen's curve: σ′p by Oikawa (1987), Cc, Cr and Cs.
 
     **The preconsolidation stress** is found as Oikawa (1987) finds it: in a
     plot of $\log f$ against $\log \sigma'_v$, with $f = 1 + e$ the specific
@@ -114,7 +117,34 @@ def oedometer_fit(
     squares to the same two groups of points: $C_c$ from the upper group
     (the virgin line), $C_r$ from the lower. Both are positive (the negated
     slopes). Their lines are fitted in another space than Oikawa's, so they
-    don't cross exactly at $\sigma'_p$.
+    don't cross exactly at $\sigma'_p$. The compression ratio, for comparing
+    with a lab's $C_R$ from a strain plot, is $CR = C_c / (1 + e_0)$, with
+    $e_0$ the specimen's initial ``void_ratio``.
+
+    **The swelling index** $C_s$ is the slope of $e$ against
+    $\log_{10}\sigma'_v$ (positive) over an unload: the point the unload
+    starts from and the consecutive ``unloading`` rows after it, at least 2
+    points, by least squares. The specimen's $C_s$ is the first unload's,
+    the loop the lab ran on purpose, rather than the final unload, often cut
+    short; every unload's $C_s$ is on the result with the stress it starts
+    from. A reload is never used: it is a different branch, with hysteresis.
+    $C_s$ doesn't depend on $\sigma'_p$, so it is given when $\sigma'_p$
+    isn't. $C_r$ and $C_s$ are kept apart because disturbance raises $C_r$.
+
+    **The check on σ′p** is Pacheco Silva's (1970) construction, as
+    Paniagua et al. (2016, §2.4) give it: (i) the virgin line
+    $e = c - C_c\log_{10}\sigma'_v$ meets the horizontal $e = e_0$ at
+    $\sigma_A$, $\log_{10}\sigma_A = (c - e_0)/C_c$; (ii) $e_B$ is the
+    loading curve's void ratio at $\sigma_A$, interpolated linearly in $e$
+    against $\log_{10}\sigma'_v$ between the loading points either side;
+    (iii) the horizontal through $e_B$ meets the virgin line at the check's
+    $\log_{10}\sigma'_p = (c - e_B)/C_c$. It reuses the fitted virgin line,
+    so it is deterministic too. $e_0$ is the specimen's ``void_ratio``, "the
+    specimen void ratio before any load has been applied", never the first
+    increment's starting $e$, which already holds the seating load or a
+    swell on flooding. With $e_0$ blank, or $\sigma_A$ outside the loading
+    stresses, the check is blank with the reason: nothing is extrapolated.
+    Both values are on the result, and neither is preferred by a warning.
 
     **The rows each value reads.** Each increment's branch comes from
     ``load_branch`` (added by ``ht.analysis.oedometer_load_branch()`` when
@@ -155,8 +185,13 @@ def oedometer_fit(
     $\log f$-$\log\sigma'_v$; the void ratios as the lab reports them, at the
     end of each increment. **Judgments taken:** none.
 
-    Source: Oikawa, H. (1987). Compression curve of soft soils. *Soils and
-    Foundations* 27(3), 99-104, doi:10.3208/sandf1972.27.3_99.
+    Sources: Oikawa, H. (1987). Compression curve of soft soils. *Soils and
+    Foundations* 27(3), 99-104, doi:10.3208/sandf1972.27.3_99. Pacheco
+    Silva, F. (1970). Uma nova construção gráfica para a determinação da
+    pressão de pré-adensamento de uma amostra de solo. Proc. 4th Brazilian
+    Conference on Soil Mechanics and Foundation Engineering, Rio de Janeiro,
+    225-232; read in Paniagua, L'Heureux, Yang & Lunne (2016), Proc. 17th
+    Nordic Geotechnical Meeting (NGM 2016), Reykjavik, §2.4, p. 548.
 
     Parameters
     ----------
@@ -164,8 +199,10 @@ def oedometer_fit(
         One row per increment, as ``p.oedometer()`` gives (or a CSV in
         ``ht.template("oedometer")``'s shape): ``specimen_id``,
         ``applied_vertical_stress`` and ``void_ratio_at_increment_end``, in
-        the order the increments were applied. ``load_branch`` is read where
-        present. One fit per ``specimen_id``, in sorted order.
+        the order the increments were applied. ``load_branch`` and
+        ``void_ratio`` (the specimen's initial $e_0$, one value per
+        specimen) are read where present. One fit per ``specimen_id``, in
+        sorted order.
     units : dict, optional
         ``{column: unit}`` for ``df``, overriding ``df.attrs["units"]``.
     display_units : {"SI", "US"}, optional
@@ -184,9 +221,10 @@ def oedometer_fit(
     HangtuError
         For a frame without ``specimen_id``, ``applied_vertical_stress`` or
         ``void_ratio_at_increment_end``, a row with a blank ``specimen_id``, a
-        negative void ratio, a ``load_branch`` value the fit doesn't know, a
-        stress column without units or in a unit that isn't a stress, or an
-        argument out of its range.
+        negative void ratio, a specimen with more than one ``void_ratio``, a
+        ``load_branch`` value the fit doesn't know, a stress column without
+        units or in a unit that isn't a stress, or an argument out of its
+        range.
 
     Examples
     --------
@@ -235,13 +273,21 @@ def oedometer_fit(
             f"{_VOID_RATIO}, which a soil can't have. Check those rows."
         )
     identifiers = tuple(column for column in _IDENTIFIERS if column in df.columns)
-    text = f" {unit}" if unit else ""
-    specimens = tuple(
-        _specimen(
-            df, np.flatnonzero(rows), stress, void_ratio, branch, identifiers, text
-        )
-        for _, rows in group_keys(df, ["specimen_id"])
+    initial = (
+        numeric_column(df, _INITIAL)
+        if _INITIAL in df.columns
+        else np.full(len(df), np.nan)
     )
+    text = f" {unit}" if unit else ""
+    specimens = []
+    for _, rows in group_keys(df, ["specimen_id"]):
+        positions = np.flatnonzero(rows)
+        record = _specimen(df, positions, stress, void_ratio, branch, identifiers, text)
+        record["void_ratio"] = _one_value(df, positions, initial, _INITIAL, record)
+        record |= _compression_ratio(record)
+        record |= _pacheco_silva(record, text)
+        del record["_loading"]
+        specimens.append(record)
     return OedometerFit(
         function="oedometer_fit",
         unit=unit,
@@ -253,7 +299,7 @@ def oedometer_fit(
         display_units=display_units,
         depth_units=_place_units(df, units),
         identifiers=identifiers,
-        specimens=specimens,
+        specimens=tuple(specimens),
     )
 
 
@@ -330,7 +376,145 @@ def _specimen(
     record["void_ratio_at_preconsolidation_stress"] = (
         _on_curve(x, e, record["preconsolidation_stress"]) if given else np.nan
     )
+    record |= _swelling(points)
+    record["_loading"] = (x, e)
     return record
+
+
+def _one_value(
+    df: pd.DataFrame,
+    positions: np.ndarray,
+    values: np.ndarray,
+    column: str,
+    record: dict[str, Any],
+) -> float:
+    """Return a specimen's one value of ``column``, NaN if blank on every row."""
+    given = values[positions][~np.isnan(values[positions])]
+    distinct = np.unique(given)
+    if len(distinct) > 1:
+        listed = ", ".join(f"{value:g}" for value in distinct)
+        raise HangtuError(
+            f"Specimen {record['label']} has more than one {column} on its rows "
+            f"({listed}), in rows {rows_text(df.index[positions])}. A specimen has "
+            f"one; correct {column} on those rows."
+        )
+    return float(distinct[0]) if len(distinct) else np.nan
+
+
+def _swelling(points: list[dict[str, Any]]) -> dict[str, Any]:
+    """Cs of every unload run; the specimen's is the first run's (decision 9).
+
+    A run's points are the point it starts from and its unloading rows, each
+    with a stress above 0 and a void ratio; reloading is never used.
+    """
+    numbers = sorted({p["unload_run"] for p in points} - {None})
+    runs = []
+    for number in numbers:
+        members = [
+            p
+            for p in points
+            if p["unload_run"] == number
+            and not math.isnan(p["void_ratio"])
+            and p["applied_vertical_stress"] > 0
+        ]
+        start = next(p for p in points if p["unload_run"] == number)
+        run: dict[str, Any] = {
+            "run": number,
+            "start_stress": start["applied_vertical_stress"],
+            "swelling_index": np.nan,
+            "swelling_line": None,
+            "reason": None,
+            "notes": [],
+        }
+        if len(members) < 2:
+            run["reason"] = (
+                f"{len(members)} point{'' if len(members) == 1 else 's'} in the "
+                "unload: a line needs at least 2"
+            )
+        else:
+            x = np.array([p["applied_vertical_stress"] for p in members])
+            e = np.array([p["void_ratio"] for p in members])
+            line = _index_line(x, e)
+            run["swelling_index"] = line["index"]
+            run["swelling_line"] = line
+            if len(members) == 2:
+                run["notes"].append("2 points: the line passes through both.")
+        runs.append(run)
+    if not runs:
+        return {
+            "swelling_index": np.nan,
+            "swelling_index_reason": "no unloading",
+            "unload_runs": [],
+        }
+    first = runs[0]
+    return {
+        "swelling_index": first["swelling_index"],
+        "swelling_index_reason": first["reason"],
+        "unload_runs": runs,
+    }
+
+
+def _compression_ratio(record: dict[str, Any]) -> dict[str, Any]:
+    """CR = Cc / (1 + e0) (decision 7), or blank with the reason."""
+    if math.isnan(record["compression_index"]):
+        reason = f"no Cc: {record['preconsolidation_stress_reason']}"
+        return {"compression_ratio": np.nan, "compression_ratio_reason": reason}
+    if math.isnan(record["void_ratio"]):
+        return {"compression_ratio": np.nan, "compression_ratio_reason": _NO_INITIAL}
+    return {
+        "compression_ratio": record["compression_index"] / (1 + record["void_ratio"]),
+        "compression_ratio_reason": None,
+    }
+
+
+def _pacheco_silva(record: dict[str, Any], unit: str) -> dict[str, Any]:
+    """Check σ′p by Pacheco Silva (1970), decision 10, or give why it can't.
+
+    (i) The virgin line e = c - Cc log10 σ′v meets e = e0 at σA; (ii) e_B is
+    the loading curve's e at σA; (iii) the horizontal through e_B meets the
+    virgin line at the check's σ′p.
+    """
+    from hangtu.plot._overlays import format_number  # plot imports analysis
+
+    result: dict[str, Any] = {
+        "preconsolidation_stress_pacheco_silva": np.nan,
+        "pacheco_silva_reason": None,
+        "pacheco_silva": None,
+        "void_ratio_at_preconsolidation_stress_pacheco_silva": np.nan,
+    }
+    line = record["compression_line"]
+    e0 = record["void_ratio"]
+    if line is None:
+        result["pacheco_silva_reason"] = (
+            f"no σ′p: {record['preconsolidation_stress_reason']}"
+        )
+        return result
+    if math.isnan(e0):
+        result["pacheco_silva_reason"] = _NO_INITIAL
+        return result
+    x, e = record["_loading"]
+    c, index = line["intercept"], line["index"]
+    stress_a = 10 ** ((c - e0) / index)
+    if not x[0] <= stress_a <= x[-1]:
+        where = (
+            f"loading from {format_number(x[0])}{unit}"
+            if stress_a < x[0]
+            else f"loading to {format_number(x[-1])}{unit}"
+        )
+        result["pacheco_silva_reason"] = (
+            "the construction falls outside the measured curve "
+            f"(σA = {format_number(stress_a)}{unit}, {where})"
+        )
+        result["pacheco_silva"] = {"stress_a": stress_a, "void_ratio_b": np.nan}
+        return result
+    void_ratio_b = _on_curve(x, e, stress_a)
+    stress = 10 ** ((c - void_ratio_b) / index)
+    result |= {
+        "preconsolidation_stress_pacheco_silva": stress,
+        "pacheco_silva": {"stress_a": stress_a, "void_ratio_b": void_ratio_b},
+        "void_ratio_at_preconsolidation_stress_pacheco_silva": _on_curve(x, e, stress),
+    }
+    return result
 
 
 def _points(
@@ -660,14 +844,37 @@ def _specimen_text(record: dict[str, Any], unit: str, format_number: Any) -> lis
     """Write the summary of one specimen (decision 16)."""
     label = record["label"]
     stress = record["preconsolidation_stress"]
+    check = record["preconsolidation_stress_pacheco_silva"]
+    values = []
+    if not math.isnan(stress):
+        checked = (
+            f"Pacheco Silva {format_number(check)}{unit}"
+            if not math.isnan(check)
+            else "Pacheco Silva not given"
+        )
+        values += [
+            f"σ′p = {format_number(stress)}{unit} (Oikawa; {checked})",
+            f"Cc = {_index_text(record['compression_index'])}",
+            f"Cr = {_index_text(record['recompression_index'])}",
+        ]
+    if not math.isnan(record["swelling_index"]):
+        values.append(f"Cs = {_index_text(record['swelling_index'])}")
+    if not math.isnan(record["compression_ratio"]):
+        values.append(f"CR = {_index_text(record['compression_ratio'])}")
     if math.isnan(stress):
         lines = [f"{label}: σ′p not given: {record['preconsolidation_stress_reason']}"]
+        if values:
+            lines.append(f"  {', '.join(values)}")
     else:
-        lines = [
-            f"{label}: σ′p = {format_number(stress)}{unit} (Oikawa), "
-            f"Cc = {_index_text(record['compression_index'])}, "
-            f"Cr = {_index_text(record['recompression_index'])}"
-        ]
+        lines = [f"{label}: {', '.join(values)}"]
+        for name, reason in (
+            ("Pacheco Silva", record["pacheco_silva_reason"]),
+            ("CR", record["compression_ratio_reason"]),
+        ):
+            if reason:
+                lines.append(f"  {name} not given: {reason}")
+    if record["swelling_index_reason"]:
+        lines.append(f"  Cs not given: {record['swelling_index_reason']}")
     count = record["count_loading_points"]
     if count:
         text = f"  {count} loading point{'s' if count != 1 else ''}"
@@ -686,5 +893,16 @@ def _specimen_text(record: dict[str, Any], unit: str, format_number: Any) -> lis
     ]
     if left_out:
         lines.append(f"  left out: {', '.join(left_out)}")
+    for run in record["unload_runs"]:
+        text = f"Cs = {_index_text(run['swelling_index'])}"
+        if run["reason"] is not None:
+            text = f"no Cs: {run['reason']}"
+        if run["notes"]:
+            text += f" ({' '.join(run['notes']).rstrip('.')})"
+        used = "used" if run["run"] == 1 else "not used"
+        lines.append(
+            f"  unload {run['run']} from {format_number(run['start_stress'])}{unit}"
+            f", {used}: {text}"
+        )
     lines.extend(f"  {note}" for note in record["notes"])
     return lines

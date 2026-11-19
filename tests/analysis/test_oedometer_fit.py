@@ -170,6 +170,90 @@ def test_ac2_roles_of_the_loading_points(bh1_u3):
     }
 
 
+# --- AC 2 (CR), 3 and 4: CR, Cs and Pacheco Silva's check -----------------------
+
+
+def test_ac2_compression_ratio(bh1_u3):
+    assert bh1_u3["void_ratio"] == 0.8
+    assert bh1_u3["compression_ratio"] == pytest.approx(0.156868827, rel=REL)
+    assert bh1_u3["compression_ratio_reason"] is None
+
+
+def test_ac3_swelling_index_from_the_first_unload(bh1_u3):
+    assert bh1_u3["swelling_index"] == pytest.approx(0.0215925326, rel=REL)
+    assert bh1_u3["swelling_index_reason"] is None
+    first, second = bh1_u3["unload_runs"]
+    assert first["start_stress"] == 800
+    assert first["swelling_line"]["count"] == 3
+    assert first["notes"] == []
+    assert second["start_stress"] == 1600
+    assert second["swelling_index"] == pytest.approx(0.0298973529, rel=REL)
+    assert second["notes"] == ["2 points: the line passes through both."]
+    points = bh1_u3["points"]
+    swelling = [p["applied_vertical_stress"] for p in points if p["role"] == "swelling"]
+    assert swelling == [200, 50]
+
+
+def test_ac3_no_unloading():
+    record = _one(_frame(BH1_U3[:6]))
+    assert np.isnan(record["swelling_index"])
+    assert record["swelling_index_reason"] == "no unloading"
+    assert record["unload_runs"] == []
+
+
+def test_ac3_cs_never_reads_a_reload():
+    # The second unload starts from a reloading point (800 again): it is the
+    # run's start point, while the reload's own slope is never fitted.
+    record = _one(_frame([*BH1_U3[:9], (800, 0.608), (400, 0.615), (200, 0.622)]))
+    assert record["swelling_index"] == pytest.approx(0.0215925326, rel=REL)
+    second = record["unload_runs"][1]
+    assert second["start_stress"] == 800
+    assert second["swelling_line"]["count"] == 3
+
+
+def test_ac4_pacheco_silva(bh1_u3):
+    construction = bh1_u3["pacheco_silva"]
+    assert construction["stress_a"] == pytest.approx(166.247579, rel=REL)
+    assert construction["void_ratio_b"] == pytest.approx(0.755466667, rel=REL)
+    assert bh1_u3["preconsolidation_stress_pacheco_silva"] == pytest.approx(
+        239.040472, rel=REL
+    )
+    assert bh1_u3["pacheco_silva_reason"] is None
+
+
+def test_ac4_no_initial_void_ratio(site_si):
+    record = _one(site_si.assign(void_ratio=np.nan))
+    assert np.isnan(record["preconsolidation_stress_pacheco_silva"])
+    assert record["pacheco_silva_reason"] == "no initial void ratio"
+    assert np.isnan(record["compression_ratio"])
+    assert record["compression_ratio_reason"] == "no initial void ratio"
+    assert record["preconsolidation_stress"] == pytest.approx(264.401656, rel=REL)
+
+
+def test_ac4_construction_outside_the_curve():
+    record = _one(_frame(BH1_U3, void_ratio=1.2))
+    assert np.isnan(record["preconsolidation_stress_pacheco_silva"])
+    assert record["pacheco_silva_reason"].startswith(
+        "the construction falls outside the measured curve (σA = "
+    )
+    assert record["pacheco_silva_reason"].endswith("kPa, loading from 25.0 kPa)")
+    assert record["pacheco_silva"]["stress_a"] < 25
+
+
+def test_ac4_check_blank_with_the_reason_of_a_blank_preconsolidation():
+    record = _one(_frame(NO_BREAK, void_ratio=1.25))
+    assert np.isnan(record["preconsolidation_stress_pacheco_silva"])
+    assert record["pacheco_silva_reason"].startswith("no σ′p: no clear break")
+    assert record["compression_ratio_reason"].startswith("no Cc: no clear break")
+
+
+def test_more_than_one_initial_void_ratio_is_an_error():
+    df = _frame(BH1_U3, void_ratio=0.8)
+    df.loc[4, "void_ratio"] = 0.81
+    with pytest.raises(HangtuError, match="more than one void_ratio"):
+        _fit(df)
+
+
 # --- AC 5: counts ---------------------------------------------------------------
 
 
@@ -245,6 +329,7 @@ def test_ac8_no_clear_break():
         "no clear break: the upper line is 1.17 times as steep as the lower, "
         "at least 2 is needed"
     )
+    assert record["swelling_index"] == pytest.approx(0.0282363888, rel=REL)
 
 
 def test_ac8_upper_line_not_falling():
@@ -408,7 +493,7 @@ def test_ac14_psf_file_gives_the_same_indexes_and_scaled_stress(site_si, site_us
     assert us["preconsolidation_stress"] * PSF == pytest.approx(
         si["preconsolidation_stress"], rel=1e-9
     )
-    for name in ("compression_index", "recompression_index"):
+    for name in ("compression_index", "recompression_index", "swelling_index"):
         assert us[name] == pytest.approx(si[name], rel=1e-9)
 
 
@@ -430,10 +515,16 @@ def test_ac15_example_file(example):
     assert round(b4["compression_index"], 3) == 0.388
     assert round(b4["recompression_index"], 4) == 0.0382
     assert round(b4["highest_stress_over_preconsolidation_stress"], 2) == 9.85
+    assert round(b4["swelling_index"], 4) == 0.0590
+    assert round(b4["compression_ratio"], 3) == 0.186
+    assert round(b4["preconsolidation_stress_pacheco_silva"]) == 1615
     assert round(b5["preconsolidation_stress"]) == 4232
     assert round(b5["compression_index"], 3) == 0.254
     assert round(b5["recompression_index"], 4) == 0.0326
     assert round(b5["highest_stress_over_preconsolidation_stress"], 2) == 3.78
+    assert round(b5["swelling_index"], 4) == 0.0399
+    assert round(b5["compression_ratio"], 3) == 0.137
+    assert round(b5["preconsolidation_stress_pacheco_silva"]) == 3943
 
 
 def test_ac15_swelling_pressure_specimen_has_no_loading_branch(example):
@@ -493,7 +584,10 @@ def test_ac16_result_object(site_si):
 
 def test_ac16_summary(example):
     text = str(_fit(example))
-    assert "B-4-U1-C1: σ′p = 1,620 psf (Oikawa)" in text
-    assert "Cc = 0.388, Cr = 0.0382" in text
+    assert (
+        "B-4-U1-C1: σ′p = 1,620 psf (Oikawa; Pacheco Silva 1,620 psf), Cc = 0.388, "
+        "Cr = 0.0382, Cs = 0.0590, CR = 0.186"
+    ) in text
+    assert "unload 1 from 8,000 psf, used: Cs = 0.0590" in text
     assert "7 loading points, 4 on the virgin line, highest stress 9.85 σ′p" in text
     assert "B-1-U2-SW1: σ′p not given: no loading branch" in text
