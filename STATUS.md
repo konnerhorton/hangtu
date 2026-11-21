@@ -6,6 +6,10 @@
 
 Last checkpoint: 3, after M19 (a), 2026-11-15, 4f03bfd.
 
+**In progress:** M19 (c1) on `m19c-consolidation`, build steps 1–4 of its plan committed (the shared readers,
+`oedometer_increments()` with m_v, the moduli and k, QC E003). Next: step 5, `ht.plot.consolidation_coefficients()`
+(P14), on Sonnet, from the work file's `## Plan` and its `### Notes from the build`.
+
 ## Open
 Each milestone names its wave (SPEC §1.3). A unit's close-out records its status here; a finished milestone
 moves to Done, in one line (its unit's work file has the detail).

@@ -481,3 +481,11 @@ sections; the registry's `ags` entries for the new columns say `"derived: docs/a
 - **Step 2, reasons not in the spec:** "no void ratio at the increment's start" and "… at the increment's end" for
   m_v; for the moduli, "constant stress increment" and "no load branch" where m_v is given but the branch takes
   neither modulus (only from a user's own `load_branch`).
+- **Step 4, `qc_defects.ags`:** a `CONS` row needs a `CONG` parent, and new `CONG` rows would move the `CONS` lines of
+  E001–E005's cases, so E003's cases reuse specimens that have one. E4's increment 2 (25 → 50 kPa, 0.795 → 0.788) is
+  AC 8's first case as it stands, with `CONS_INMV` 0.32, and its first increment takes the 9.9. E5 (whose `CONG_IVR`
+  is E005's case) takes the "divided by 1 + e0" increments, appended last (CONS 225–236; the finding at 235). The
+  unload with 9.9 is E5's increment 7. E001, E002 and E004 count E5's increments in `records_checked`.
+- **Step 4, the twin tests:** the ingest twin test (`tests/ags/test_ingest_acceptance.py`) needed the same exception
+  as the dataset's: `CONS_INMV` is compared to the US 2SF values, not to the SI file. The dataset test's US m_v at
+  line 128 reads `site_si.ags` in US display, so it didn't change.

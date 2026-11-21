@@ -28,6 +28,13 @@ STARTS += [0.608, 0.520]
 ENDS = [0.795, 0.788, 0.776, 0.748, 0.690, 0.612, 0.625, 0.638, 0.630, 0.608]
 ENDS += [0.520, 0.538]
 MV = [np.nan, 0.16, 0.13, 0.16, 0.17, 0.12] + [np.nan] * 4 + [0.068, np.nan]
+#: site_us.ags's CONS_INMV, as a US lab writes it: m_v from the void ratios in
+#: ft2/kip to 2SF (M19 c1 spec, decision 10 and its AC table), not the SI
+#: lab's 2SF converted. 1 m2/MN is 0.0478802590 ft2/kip.
+US_MV_2SF = [None, 0.0075, 0.0064, 0.0075, 0.0079, 0.0055] + [None] * 4
+US_MV_2SF += [0.0033, None]
+M2_PER_MN_IN_FT2_PER_KIP = 0.0478802590
+
 BRANCHES = ["loading"] * 6 + ["unloading"] * 2 + ["reloading"] * 2
 BRANCHES += ["loading", "unloading"]
 INCREMENT_COLUMNS = [
@@ -136,10 +143,15 @@ def test_ac4_us_display(fresh):
 def test_ac5_twins_agree(fresh, display_units):
     si = _quiet(fresh("site_si", display_units=display_units).oedometer)
     us = _quiet(fresh("site_us", display_units=display_units).oedometer)
-    numeric = si.select_dtypes("number").columns.drop("source_line")
+    reported = "reported_coefficient_of_volume_compressibility"
+    numeric = si.select_dtypes("number").columns.drop(["source_line", reported])
     np.testing.assert_allclose(
         si[numeric].to_numpy(float), us[numeric].to_numpy(float), rtol=1e-9
     )
+    # The US lab's own 2SF in ft2/kip, not the SI lab's converted.
+    factor = 1 if display_units == "US" else 1 / M2_PER_MN_IN_FT2_PER_KIP
+    expected = [np.nan if mv is None else mv * factor for mv in US_MV_2SF]
+    np.testing.assert_allclose(us[reported], expected, rtol=1e-9)
     texts = ["test_type", "test_stage", "load_branch", "particle_density_assumed"]
     pd.testing.assert_frame_equal(si[texts], us[texts])
     assert si.attrs["units"] == us.attrs["units"]

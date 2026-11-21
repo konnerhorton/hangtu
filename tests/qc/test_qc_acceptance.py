@@ -67,6 +67,8 @@ EXPECTED = {
     ("H003", 202),  # SHBT_NORM 0
     ("E001", 218),  # CONS_IVR 0.690 after CONS_INCE 0.700 (M19 a)
     ("E002", 220),  # e 0.776 to 0.781 from 100 to 200 kPa
+    ("E003", 222),  # CONS_INMV 0.32, the void ratios give 0.134 to 0.178 (M19 c1)
+    ("E003", 235),  # CONS_INMV 0.061 from 1 + e0, the void ratios 0.0677 to 0.0692
     ("E004", 224),  # CONS_INCN 3 after 4
     ("E005", 211),  # CONG_IVR 0.650, rho_s / rho_d - 1 = 0.800
 }

@@ -16,9 +16,8 @@ from hangtu.errors import ColumnError, HangtuError
 
 DATA = Path(__file__).parents[1] / "data" / "ags"
 REL = 1e-9
-#: 1 m²/MN in ft²/kip, and 1 kPa in psf, from 1 ft = 0.3048 m and
+#: 1 psf in kPa, from 1 ft = 0.3048 m and
 #: 1 lbf = 4.4482216152605 N (exact).
-FT2_PER_KIP = 0.3048**2 / (1000 * 4.4482216152605) * 1e6
 PSF = 4.4482216152605 / 0.3048**2 / 1000
 
 FIRST = "first increment: its start stress isn't given"
@@ -401,6 +400,18 @@ def test_ac10_twins_agree(site_si, site_us, system):
     for column in _TWIN_COLUMNS:
         np.testing.assert_allclose(si[column], us[column], rtol=REL, err_msg=column)
         assert si.attrs["units"][column] == us.attrs["units"][column]
+    # The US lab's m_v is its own 2SF in ft2/kip (spec decision 10).
+    # oedometer_increments() leaves the lab's columns in their own units.
+    reported = "reported_coefficient_of_volume_compressibility"
+    assert us.attrs["units"][reported] == "ft2/kip"
+    assert [f"{v:.2g}" for v in us[reported].dropna()] == [
+        "0.0075",
+        "0.0064",
+        "0.0075",
+        "0.0079",
+        "0.0055",
+        "0.0033",
+    ]
     for column in (
         "coefficient_of_volume_compressibility_reason",
         "constrained_modulus_reason",

@@ -18,6 +18,12 @@ import hangtu as ht
 DATA = Path(__file__).parents[1] / "data" / "ags"
 # Groups that describe the file rather than the data: they differ between twins.
 FILE_GROUPS = {"UNIT", "TYPE", "DICT"}
+#: site_us.ags's CONS_INMV, as a US lab writes it: m_v from the void ratios in
+#: ft2/kip to 2SF (M19 c1 spec, decision 10 and its AC table), not the SI
+#: lab's 2SF converted. 1 m2/MN is 0.0478802590 ft2/kip.
+US_MV_2SF = [None, 0.0075, 0.0064, 0.0075, 0.0079, 0.0055] + [None] * 4
+US_MV_2SF += [0.0033, None]
+M2_PER_MN_IN_FT2_PER_KIP = 0.0478802590
 
 
 @pytest.fixture(scope="module")
@@ -55,7 +61,21 @@ def test_ac1_twin_files_give_identical_canonical_tables(projects):
         if group not in FILE_GROUPS:
             # _line is provenance: the twins' UNIT groups differ in length.
             a, b = (p.table(group).drop(columns="_line") for p in (si, us))
+            if group == "CONS":
+                # Not a conversion of the SI file's: compared on its own below.
+                us_mv = b.pop("CONS_INMV")
+                a = a.drop(columns="CONS_INMV")
             assert_same_table(a, b, group)
+    expected = [
+        float("nan") if mv is None else mv / M2_PER_MN_IN_FT2_PER_KIP
+        for mv in US_MV_2SF
+    ]
+    pd.testing.assert_series_equal(
+        us_mv.reset_index(drop=True),
+        pd.Series(expected, name="CONS_INMV"),
+        rtol=1e-9,
+        check_dtype=False,
+    )
     assert_same_table(flags(si), flags(us), "value_flag")
     assert_same_table(
         si.sql("SELECT * FROM specimen"), us.sql("SELECT * FROM specimen"), "specimen"
