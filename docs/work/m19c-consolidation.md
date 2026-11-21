@@ -106,3 +106,216 @@ BS 1377-5:1990 (incorporating Amendment 1), clauses 3.6.1–3.7, printed pp. 6�
 - Casagrande's σ′p and the work method (TODO #76).
 - Settlement-against-time readings from AGS (wave 0); CRS and Rowe cell tests (`ESCG`, `ESCT`).
 - Stage D for m_v, c_v and k (`representative()`, `select()`), and the field permeability tests (M24).
+
+## Spec
+(c1) only (intent decision 4): m_v, Eoed, Eur,oed and k per increment from `p.oedometer()`, with k from the lab's
+c_v; QC E003; P14. The rules go to their topic docs at close-out (`compressibility.md` §8, `qc.md` §4.15); the
+figure's spec is [`P14-consolidation-coefficients.md`](../plots/P14-consolidation-coefficients.md), promoted in this
+commit. Its choices were agreed in review on 2026-11-21.
+
+### Changes
+- **`ht.analysis.oedometer_increments()`** (new, decisions 1–8), with its reference entry. Returns a copy of the frame
+  with the columns of decision 6 added.
+- **`ht.plot.consolidation_coefficients()`** (new, P14), with its spec, reference entry, site page and example.
+  `docs/plots/README.md`: P14's row becomes `draft` in this commit. P00's `figure_sizes` gains a `stacked` kind
+  (P14 §5).
+- **QC E003** (decision 9) in `src/hangtu/qc/_oedometer.py`, on the raw `CONS` rows as E001–E005 are.
+- **Registry** (decision 6; each name checked on 2026-11-21 against `columns.yaml`, `src/`, `docs/`, `tests/` and
+  `SPEC.md`, outside `docs/work/`: none exists; `consolidation_coefficients` appears only in P14's README row):
+  `applied_vertical_stress_at_increment_start`, `coefficient_of_volume_compressibility`, `constrained_modulus`,
+  `unload_reload_constrained_modulus`, `hydraulic_conductivity_root_time`, `hydraulic_conductivity_log_time`,
+  `spans_effective_vertical_stress`, and the four `…_reason` columns. `used_by: [plot.consolidation_coefficients]`
+  on these and on the three `reported_` columns. No new quantity kind, so `db.SCHEMA_VERSION` doesn't change (the
+  `time` kind is (c2)'s).
+- **SPEC §4** (close-out): an "Oedometer increments" bullet after "Oedometer fit", linking `compressibility.md` §8:
+  m_v per increment from the void ratio at its start (BS 1377-5:1990, 3.6.2.2.4), Eoed and Eur,oed as 1/m_v by
+  branch, k = c_v·m_v·γw from the lab's c_v; each a value over its increment, never interpolated across increments;
+  an increment that can't give a value gets a reason. §10.3 doesn't change: it lists no columns.
+- **`docs/analysis/compressibility.md`** (close-out): the title and status widen to the oedometer analyses; new §8
+  "Increments: m_v, the moduli and k" with decisions 1–8; the header's Related gains P14.
+- **`docs/data/qc.md` §4.15** (close-out): E003's row and bullet replace "built in M19 (c)"; the status line drops
+  "E003 isn't built yet".
+- **Test files** (decision 10): `_make_files.py` writes `site_us.ags`'s `CONS_INMV` as a US lab would (2SF in
+  ft²/kip); `qc_defects.ags` gains the E003 cases; `tests/data/ags/README.md` says both, and drops "but E003".
+- **Example file:** none new. `site.ags`'s two oedometer specimens already carry m_v (2SF ft²/kip, written from
+  their void ratios) and both c_v; they draw P14 and raise no E003.
+- **Sheets** (close-out): 11 §5.3 and 12 §5.4 rewritten to what is built (decisions 4, 5, 7) with the k source
+  (Sources); the parameter index: 11's stage B "part built (Eoed, Eur,oed: `oedometer_increments()`, M19 c1)", 12's
+  "part built (k from the lab's c_v·m_v, M19 c1)". Their site pages wait for W5 (sheet 11) and W6 (sheet 12),
+  when most of each sheet is built: promoting a sheet means verifying every [U] it publishes, nearly all for methods
+  this unit doesn't touch. Until then the reference entry and `compressibility.md` carry the rules. The alternative,
+  site pages now with only §5.3 and §5.4 and the rest marked later, is a smaller page per sheet.
+- **`docs/TODO.md`** (close-out): #73 deleted; #76 loses its line on the strain (settled in the intent).
+- **Docs site:** the P14 page and example, `reference/plot.md` and `reference/analysis.md` entries, the E003 line where
+  the AGS and QC guide lists rules.
+
+### Decisions
+1. **m_v per increment** = (e1 − e2) / ((1 + e1)(σ′2 − σ′1)) (BS 1377-5:1990, 3.6.2.2.4, in void ratios; intent
+   decision 1), per `specimen_id` in row order:
+   - **σ′2** is the row's `applied_vertical_stress`; **σ′1** is the previous row's, in the same specimen, written to
+     `applied_vertical_stress_at_increment_start`. The first increment's σ′1 is the seating load, which neither AGS
+     nor the template gives: blank, with the reason.
+   - **e1** is the row's `void_ratio_at_increment_start`, else the previous row's `void_ratio_at_increment_end`
+     (with a note naming the rows); **e2** is the row's `void_ratio_at_increment_end`. The row's own start comes
+     first: it is the lab's statement of this increment, and E001 reports where it differs from the previous end.
+   - Computed in 1/kPa, written in the `volume_compressibility` kind (m²/MN; 1/kPa = 1000 m²/MN).
+   - A blank σ′1, σ′2, e1 or e2, or σ′2 = σ′1, gives a blank m_v with the reason. **An m_v of 0 or less is kept** as
+     computed (the void ratio moved against the stress change, which E002 flags on loading); the moduli of that row
+     are blank with the reason. It is data, and dropping it would hide what E002 reports.
+2. **Unloading and reloading use the same formula** (intent decision 2): Δe and Δσ′ are both negative on an
+   unload, so m_v is positive. The docstring and `compressibility.md` say BS defines m_v on loading increments only,
+   and that the unload and reload values are hangtu's extension.
+3. **The branch** is read from `load_branch`, else added by `oedometer_load_branch()` with a note, as
+   `oedometer_fit()` does.
+4. **Eoed and Eur,oed** = 1/m_v, in the `modulus` kind:
+   - `constrained_modulus` on `loading` rows only; `unload_reload_constrained_modulus` on `unloading` and
+     `reloading` rows only; each is blank on the other's rows, and both on `constant_stress` rows. Two columns, not
+     one with the branch beside it: sheet 11 treats them as two parameters, and stage D selects each on its own.
+   - Each is the secant over its increment, the value BS 1377-5 gives m_v as. **No stress is chosen to report it
+     at:** the row gives σ′1 and σ′2, and P14 draws the segment between them (P14 §7). A representative stress (the
+     end, the mean, the geometric mean) would be a choice the value doesn't carry; a user who needs one computes it
+     from the two columns.
+   - Sheet 11's Cc and Cs forms (ln 10 (1 + e0) σ′v / Cc) aren't built: they are the tangent of a fitted line, a
+     different value, and W5's HS reference moduli are where they belong.
+5. **At σ′v0** (sheets 11 §5.3, 12 §5.4): **the increment spanning it, never an interpolation.**
+   - `spans_effective_vertical_stress` (nullable boolean) is True on the first `loading` row with σ′1 < σ′v0 ≤ σ′2,
+     and on the first `unloading` or `reloading` row in row order whose range (min, max] of σ′1 and σ′2 holds σ′v0;
+     False on the others; blank on every row of a specimen with no σ′v0.
+   - σ′v0 is `effective_vertical_stress`, one value per specimen (more than one is an error naming it), converted to
+     the stress unit, as `oedometer_fit()` reads it. Without the column, the flag is blank and one note says to run
+     `vertical_stress()`.
+   - **No increment spans σ′v0** (below the first increment's end, above the last): all False, and one note per call
+     naming the specimens. Nothing is extrapolated.
+   - Reason: m_v, and so Eoed and k, are secants over an increment; interpolating between two increments' secants
+     gives a value no increment had. Sheet 12 already says "the increment spanning σ′v0"; sheet 11's "interpolate
+     between the two increments that bracket σ′v0" gives that same increment's secant when it is read as
+     interpolating e, so the two agree. The docstring says that in an overconsolidated specimen the loading increment
+     at σ′v0 is on recompression (sheet 11 §7).
+6. **Names** (checked as under Changes):
+
+   | Column | Kind | Rows | Label |
+   |---|---|---|---|
+   | `applied_vertical_stress_at_increment_start` | stress | all but each specimen's first | Applied vertical stress at increment start, σ′1 |
+   | `coefficient_of_volume_compressibility` | volume_compressibility | decision 1 | Coefficient of volume compressibility, m_v |
+   | `constrained_modulus` | modulus | loading | Constrained modulus on loading, Eoed |
+   | `unload_reload_constrained_modulus` | modulus | unloading, reloading | Constrained modulus on unloading or reloading, Eur,oed |
+   | `hydraulic_conductivity_root_time`, `hydraulic_conductivity_log_time` | hydraulic_conductivity | decision 7 | Hydraulic conductivity from c_v (root time), k |
+   | `spans_effective_vertical_stress` | bool | decision 5 | |
+   | `coefficient_of_volume_compressibility_reason`, `constrained_modulus_reason` (for whichever modulus the row's branch takes), `hydraulic_conductivity_root_time_reason`, `hydraulic_conductivity_log_time_reason` | text | blank values | |
+
+   - `coefficient_of_volume_compressibility` is the recomputed value; the lab's stays
+     `reported_coefficient_of_volume_compressibility` (M19 (a) decision 4). "Constrained modulus" is the standard
+     term for the oedometer's M; the description says "Eoed, 1/m_v".
+   - **Two k columns, not `hydraulic_conductivity`:** that name holds the permeameter and field values
+     (`PTST_K`, `FGHG_IPRM`), and sheet 12 §7 says not to pool lab and field k. The two are named by the c_v they
+     come from, as the `reported_` c_v columns are, so no choice between the methods is made.
+7. **k = c_v·m_v·γw** per increment, for each reported c_v:
+   - c_v the lab's (`reported_coefficient_of_consolidation_root_time`, `…_log_time`; intent decision 4), m_v the
+     recomputed one (decision 1), γw `ht.settings.water_unit_weight` (SPEC §4: a setting, not a judgment), recorded
+     in `attrs`. Computed in canonical units through pint: m²/yr × m²/MN × kN/m³ = 10⁻³ m/yr, a year of 365.25 days,
+     as the registry's m²/yr and BS 1377-5's 0.026 and 0.111 coefficients use (525 960 min/year).
+   - Blank, with the reason, where m_v is blank or 0 or less, or the c_v is blank or 0 or less. On every branch:
+     the unload and reload values are hangtu's extension, as m_v's are.
+   - The docstring states the relation's validity as the source gives it: one-dimensional, saturated, with the
+     pore fluid's compressibility neglected. It says a lab k from an oedometer is a vertical k of a small specimen,
+     usually below the field value (BS 1377-5:1990, 3.1.1, note 3, on fabric), and is a check, not a design
+     value on its own.
+8. **Units** resolve as SPEC §2.6; the stresses are read in `applied_vertical_stress`'s unit, or `display_units=`'s
+   after conversion, as `oedometer_fit()`. m_v, the moduli and k are written in the display system's units (or
+   canonical without it), with `attrs["units"]` naming each. Errors as `oedometer_fit()`: a missing
+   `specimen_id`, `applied_vertical_stress` or `void_ratio_at_increment_end` names the column and the template.
+9. **QC E003** (M19 (a) decision 7, as TODO #73's notes complete it):
+   - **Rule:** `CONS_INMV` differs from (e1 − e2) / ((1 + e1)(σ′2 − σ′1)) by more than the rounding of the values
+     allows. Warning. One finding per increment. The message gives both values in the file's unit, names BS
+     1377-5:1990, 3.6.2.2.4, and says a lab dividing by 1 + e0 of the specimen gives values that grow apart at later
+     increments.
+   - **Skipped:** each specimen's first increment; any Δσ′ of 0 or less (so never an unload: intent decision 2); a
+     blank or flagged `CONS_INMV`, stress or void ratio.
+   - **e1** is `CONS_IVR`, else the previous `CONS_INCE` (as E002 reads it); **σ′1** the previous `CONS_INCF`.
+   - **"Allows"** is interval arithmetic in the file's own units, from the raw text (`p.table("CONS", raw=True)` and
+     each heading's unit): each e ± half a unit in its heading's last decimal place, by its `TYPE` (E001's rounding);
+     the stresses as written; the reported m_v ± half a unit in the last place of its text, but never narrower than
+     half a unit in its second significant figure. A finding means the intervals don't overlap. The recomputed
+     interval is converted to `CONS_INMV`'s unit through pint before comparing.
+   - **The 2SF floor** follows BS 1377-5:1990, 3.7, item (i) (m_v reported to two significant figures): a value
+     written to more figures is usually a conversion, whose precision is its source's. `qc.md` records that a file
+     converted from 2SF values in another unit can still be flagged where the two roundings fall apart, and that
+     ISO 17892-5 wasn't checked.
+10. **The US twin's m_v.** `site_us.ags` writes `CONS_INMV` as the SI value converted, to 10SF. That is the SI lab's
+    2SF, not a US lab's, and E003 flags increments 5 and 6 on it (increment 5: the recomputed 0.0078088–0.0080782
+    ft²/kip against 0.0081396 ± 0.00005). It becomes what a US lab reports: the recomputed m_v in ft²/kip to 2SF,
+    `TYPE` `2SF` (table in AC 1). The twin test leaves `reported_coefficient_of_volume_compressibility` out of its
+    1e-9 comparison and compares it to 2SF in ft²/kip instead; the recomputed m_v is compared with the rest. M19 (a)'s
+    AC 4 reads `site_si.ags` and doesn't change.
+11. **P14** as its spec: the recomputed m_v and the lab's c_v as segments from σ′1 to σ′2 on log axes, the lab's m_v
+    as a mark, σ′v0 and the increments spanning it. It calls `oedometer_increments()` and returns `(fig, axs)`.
+
+### Sources
+- **BS 1377-5:1990** (incorporating Amendment 1): 3.6.2.2.4 (m_v), 3.7 item (i) (2SF), 3.1.1 note 3 (specimen
+  fabric and the rate of settlement in situ). Read 2026-11-21 (the intent's Evidence; note 3 for k's
+  caveat).
+- **k = c_v·m_v·γw:** Freeze, R.A. & Cherry, J.A. (1979). *Groundwater*. Prentice-Hall. §8.3, Eq. (8.22),
+  c_v = K′/(ρgα′), Terzaghi's coefficient of consolidation, α′ the aquitard's vertical compressibility (§2.9: "The
+  parameter α is a vertical compressibility", Eq. 2.53 α = −de/(1 + e0)/dσe), with n′β neglected for clays
+  ("for clays n′β ≪ α′"); after Terzaghi (1925). Verified 2026-11-21 in the free online edition (The Groundwater
+  Project), chapters 2 and 8. α is m_v and ρg is γw; k = c_v·m_v·γw is the equation rearranged. Sheet 12's [6]
+  is already this book, so §5.4's [U] becomes [V] via [6].
+- **Unit factors:** exact by definition (1 ft = 0.3048 m, 1 lbf = 4.4482216152605 N): 1 m²/MN = 0.0478802590
+  ft²/kip; 1 ksf = 47.8802590 kPa; 1 m²/yr = 10.7639104 ft²/yr; a year of 365.25 × 86 400 s.
+
+### Acceptance criteria
+Golden values hand-calculated from the M19 (a) specimen BH1-U3 (its table: the M19 (a) Spec's acceptance criteria),
+σ in kPa, m_v = 1000 Δe / ((1 + e1) Δσ′) m²/MN, E = (1 + e1) Δσ′ / Δe kPa. Tolerance 1e-9 relative unless stated.
+
+| # | Branch | σ′1 → σ′2 | e1 → e2 | m_v (m²/MN) | Eoed or Eur,oed (kPa) | US m_v, 2SF (ft²/kip) |
+|---|---|---|---|---|---|---|
+| 1 | loading | (blank) → 25 | 0.800 → 0.795 | blank: "first increment: its start stress isn't given" | blank | |
+| 2 | loading | 25 → 50 | 0.795 → 0.788 | 0.007 / (1.795 × 25) = 0.155988858 | Eoed 44.875 / 0.007 = 6410.71429 | 0.0075 |
+| 3 | loading | 50 → 100 | 0.788 → 0.776 | 0.012 / 89.4 = 0.134228188 | Eoed 7450 | 0.0064 |
+| 4 | loading | 100 → 200 | 0.776 → 0.748 | 0.028 / 177.6 = 0.157657658 | Eoed 6342.85714 | 0.0075 |
+| 5 | loading | 200 → 400 | 0.748 → 0.690 | 0.058 / 349.6 = 0.165903890 | Eoed 6027.58621 | 0.0079 |
+| 6 | loading | 400 → 800 | 0.690 → 0.612 | 0.078 / 676 = 0.115384615 | Eoed 8666.66667 | 0.0055 |
+| 7 | unloading | 800 → 200 | 0.612 → 0.625 | −0.013 / (1.612 × −600) = 0.0134408602 | Eur,oed 74 400 | |
+| 8 | unloading | 200 → 50 | 0.625 → 0.638 | 0.013 / 243.75 = 0.0533333333 | Eur,oed 18 750 | |
+| 9 | reloading | 50 → 200 | 0.638 → 0.630 | 0.008 / 245.7 = 0.0325600326 | Eur,oed 30 712.5 | |
+| 10 | reloading | 200 → 800 | 0.630 → 0.608 | 0.022 / 978 = 0.0224948875 | Eur,oed 44 454.5455 | |
+| 11 | loading | 800 → 1600 | 0.608 → 0.520 | 0.088 / 1286.4 = 0.0684079602 | Eoed 14 618.1818 | 0.0033 |
+| 12 | unloading | 1600 → 400 | 0.520 → 0.538 | 0.018 / 1824 = 0.00986842105 | Eur,oed 101 333.333 | |
+
+1. **Increments:** `oedometer_increments(p.oedometer())` on `site_si.ags` gives the table's σ′1, m_v and moduli for
+   BH1-U3, each modulus only in its branch's column, and the reasons where blank.
+2. **k:** increment 4 (c_v 2.1 root time, 1.8 log time; γw 9.81 kN/m³): k = 2.1 × 0.157657658 × 9.81 × 10⁻³ /
+   31 557 600 = 1.02919912e-10 m/s (root time) and 8.82170672e-11 m/s (log time). Every other increment: blank,
+   "no c_v reported". With `ht.settings.water_unit_weight` set to 10 kN/m³, root time gives 1.04913264e-10 m/s (the
+   ratio 10 / 9.81).
+3. **US display:** `display_units="US"` gives increment 4's m_v 0.00754868948 ft²/kip, Eoed 132.473326 ksf and
+   k 1.02919912e-8 cm/s; σ′1 2088.54342 psf. To 1e-6 relative, the precision of the factors as written here.
+4. **σ′v0:** with `effective_vertical_stress` 80 kPa, `spans_effective_vertical_stress` is True on increments 3
+   (loading, 50 < 80 ≤ 100) and 8 (the first unload or reload holding 80: 50 < 80 ≤ 200), False elsewhere; with
+   150 kPa, on 4 and 8; with 20 kPa, all False and the note naming BH1-U3; without the column, blank and the
+   `vertical_stress()` note.
+5. **Start void ratio:** a CSV frame with `void_ratio_at_increment_start` blank on increment 4 takes 0.776 from
+   increment 3's end, with the note naming the row, and gives the table's m_v.
+6. **Blank and odd rows** (hand-built frames, one specimen each): stresses 100, 100 gives the second row
+   `constant_stress`, blank m_v, "no stress change"; 100, 200 with e 0.776 → 0.781 gives m_v −0.0281531532
+   (−0.005 / 177.6 × 1000), kept, Eoed blank with "m_v is not positive"; a blank stress on increment 2 gives
+   increments 2 and 3 a blank m_v with "no stress" and "the previous increment has no stress"; two specimens in one
+   frame start each with a blank σ′1.
+7. **Errors:** a frame without `void_ratio_at_increment_end` raises naming it and `ht.template("oedometer")`; two
+   σ′v0 values in one specimen raise naming it.
+8. **E003 cases** (`qc_defects.ags`):
+   - increment 2 with `CONS_INMV` 0.32 raises one finding (recomputed 0.134–0.178 m²/MN; reported 0.315–0.325);
+   - a specimen whose lab divided by 1 + e0 (e0 0.800) reports increment 6 as 0.11 and 11 as 0.061: only 11 raises
+     (6: 0.1139–0.1168 against 0.105–0.115, overlapping; 11: 0.06765–0.06916 against 0.0605–0.0615);
+   - an unload with `CONS_INMV` 9.9 raises nothing (skipped, Δσ′ < 0); a first increment with `CONS_INMV` 9.9 raises
+     nothing.
+   - Each E003 finding's message gives both values, the clause and the 1 + e0 hint.
+9. **Good files stay clean:** `site_si.ags`, the rewritten `site_us.ags` (its intervals in ft²/kip, e.g. increment
+   5: 0.0078088–0.0080782 against 0.00785–0.00795) and `site_v404.ags` (2DP void ratios: wider intervals) raise no
+   E003; nor does the example `site.ags`.
+10. **Twins:** `oedometer_increments(p.oedometer())` on `site_si.ags` and `site_us.ags` agree to 1e-9 for each
+    `display_units`; `reported_coefficient_of_volume_compressibility` agrees to 2SF in ft²/kip (decision 10).
+11. **Registry and reference:** the new columns are in `columns.yaml` with their kinds; `oedometer_increments` and
+    `consolidation_coefficients` have reference entries (`tests/docs/test_site.py`); their docstrings give the
+    equations, the BS clause, the k source, the validity and each reason's wording, and cite no internal file.
+12. **P14:** its acceptance criteria (P14 §12).
