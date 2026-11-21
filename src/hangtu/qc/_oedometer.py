@@ -1,16 +1,19 @@
-"""Oedometer rules E (qc.md §4.15, M19 a).
+"""Oedometer rules E (qc.md §4.15, M19 a and c1).
 
 Each checks one specimen against itself: a record whose numbers can't all be
 right. Plausible ranges for C_c or σ′p are level 2. A specimen's increments
 are its ``CONS`` rows in file order, by ``specimen_id``.
 """
 
+import math
 import re
 from collections.abc import Iterator
+from decimal import Decimal
 from itertools import pairwise
 
 import pandas as pd
 
+from hangtu import units as _units
 from hangtu.qc import _text
 from hangtu.qc._data import Data
 from hangtu.qc._registry import Finding, RuleResult, rule
@@ -133,6 +136,103 @@ def void_ratio_rose_under_load(data: Data, settings: RuleSettings) -> RuleResult
                     "the void ratios, the stress and the order of the rows.",
                     group="CONS",
                     heading="CONS_INCE",
+                    line=row["_line"],
+                )
+            )
+    return RuleResult(findings, checked)
+
+
+def _half_place(text: str) -> float:
+    """Return half a unit in the last place written in ``text``: ``0.32`` -> 0.005."""
+    exponent = Decimal(text.strip()).as_tuple().exponent
+    assert isinstance(exponent, int)  # a number's text, read by _number already
+    return 0.5 * 10.0**exponent
+
+
+def _reported_interval(text: str) -> tuple[float, float]:
+    """Return the reported m_v ± its rounding, never under 2 significant figures.
+
+    BS 1377-5:1990, 3.7, item (i) reports m_v to two significant figures, so a
+    value written to more is usually a conversion with its source's precision.
+    """
+    value = float(text)
+    second_figure = math.floor(math.log10(abs(value))) - 1 if value else 0
+    half = max(_half_place(text), 0.5 * 10.0**second_figure)
+    return value - half, value + half
+
+
+def _recomputed_interval(
+    e1: float, h1: float, e2: float, h2: float, change: float
+) -> tuple[float, float]:
+    """Return the range of (e1 - e2) / ((1 + e1) Δσ′) over e1 ± h1, e2 ± h2."""
+    corners = [
+        (a - b) / ((1 + a) * change)
+        for a in (e1 - h1, e1 + h1)
+        for b in (e2 - h2, e2 + h2)
+    ]
+    return min(corners), max(corners)
+
+
+@rule("E003")
+def volume_compressibility_mismatch(data: Data, settings: RuleSettings) -> RuleResult:
+    if not data.has("CONS", "CONS_INMV", "CONS_INCF", "CONS_INCE"):
+        return RuleResult()
+    stress_unit = data.heading_info("CONS", "CONS_INCF")["file_unit"]
+    mv_unit = data.heading_info("CONS", "CONS_INMV")["file_unit"]
+    if not stress_unit or not mv_unit:
+        return RuleResult()
+    # 1 per (file stress unit), in the file's m_v unit.
+    factor = float(
+        (1 / _units.ureg.Quantity(1.0, _units.parse_unit(stress_unit)))
+        .to(_units.parse_unit(mv_unit))
+        .magnitude
+    )
+    rounding = {h: _rounding(data, "CONS", h) for h in ("CONS_IVR", "CONS_INCE")}
+    findings, checked = [], 0
+    for rows in _specimens(data):
+        for previous, row in pairwise(rows):
+            reported = _number(data, "CONS", row, "CONS_INMV")
+            stress = _number(data, "CONS", row, "CONS_INCF")
+            before = _number(data, "CONS", previous, "CONS_INCF")
+            end = _number(data, "CONS", row, "CONS_INCE")
+            start, start_heading = _number(data, "CONS", row, "CONS_IVR"), "CONS_IVR"
+            if start is None:
+                start = _number(data, "CONS", previous, "CONS_INCE")
+                start_heading = "CONS_INCE"
+            if None in (reported, stress, before, end, start):
+                continue
+            assert stress is not None and before is not None  # checked above
+            assert end is not None and start is not None
+            # The file's own text and unit, not the SI table.
+            text = data.text_at("CONS", row["_line"], "CONS_INMV")
+            stress_text = data.text_at("CONS", row["_line"], "CONS_INCF")
+            before_text = data.text_at("CONS", previous["_line"], "CONS_INCF")
+            assert text and stress_text and before_text  # not blank: read above
+            change = float(stress_text) - float(before_text)
+            if change <= 0:
+                continue
+            checked += 1
+            low, high = _recomputed_interval(
+                start, rounding[start_heading], end, rounding["CONS_INCE"], change
+            )
+            low, high = low * factor, high * factor
+            reported_low, reported_high = _reported_interval(text)
+            if low <= reported_high + SLACK and reported_low <= high + SLACK:
+                continue
+            unit = f" {mv_unit}"
+            findings.append(
+                Finding(
+                    "E003",
+                    f"CONS_INMV {text}{unit} {_at(row, data)} doesn't follow from "
+                    "the increment's void ratios and stresses: "
+                    "(e1 - e2) / ((1 + e1)(σ′2 - σ′1)), with e1 at the increment's "
+                    "start (BS 1377-5:1990, 3.6.2.2.4), gives "
+                    f"{_text.number(low)} to {_text.number(high)}{unit} within the "
+                    "rounding of the values. A lab dividing by 1 + e0 of the "
+                    "specimen instead gives values that grow apart at later "
+                    "increments; check the m_v, the void ratios and the stresses.",
+                    group="CONS",
+                    heading="CONS_INMV",
                     line=row["_line"],
                 )
             )

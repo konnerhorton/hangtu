@@ -11,6 +11,7 @@ settings:
     profile: [4.5, 6.0]
     chart: [6.5, 3.5]            # bar charts (P03)
     grid: [3.75, 2.75]         # per panel (P07 grid)
+    stacked: [6.5, 6.0]        # two panels sharing x (P14)
   hints: true                  # one HangtuHint per plot call for missing optional columns
   hammer_efficiency: null      # SPT energy ratio in %, used from M3
   spt_cap: 100                 # SPT N cap, used from M3

@@ -12,6 +12,7 @@ from hangtu.analysis._hoek_brown_fit import HoekBrownFit, hoek_brown_fit
 from hangtu.analysis._mohr_coulomb import MohrCoulombFit, mohr_coulomb_fit
 from hangtu.analysis._oedometer import oedometer_load_branch
 from hangtu.analysis._oedometer_fit import OedometerFit, oedometer_fit
+from hangtu.analysis._oedometer_increments import oedometer_increments
 from hangtu.analysis._overburden import spt_n1_60
 from hangtu.analysis._phase_relations import phase_relations
 from hangtu.analysis._plasticity import plasticity
@@ -42,6 +43,7 @@ __all__ = [
     "hoek_brown_fit",
     "mohr_coulomb_fit",
     "oedometer_fit",
+    "oedometer_increments",
     "oedometer_load_branch",
     "phase_relations",
     "plasticity",

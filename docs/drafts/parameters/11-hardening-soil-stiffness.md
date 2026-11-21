@@ -67,13 +67,18 @@ $$-\varepsilon_1 = \frac{1}{E_i}\frac{q}{1-q/q_a},\quad E_i = \frac{2E_{50}}{2-R
   fit when c′ = 0) _[Judgment — for review]_
 - **Source:** [1] Eqs. 6–3, 6–4, 6–6, Fig. 6–5, pp. 66–73 [V]
 
-### 5.3 Eoed and Eur,oed at σ′v0 from the oedometer — M19 (c)
-- **Planned in M19 (c),** with mv per increment (its definition is TODO #73); M19 (b) built Cc and Cs, not these.
-$$E_{oed} = \frac{\Delta\sigma_v'}{\Delta\varepsilon_v} = \frac{1}{m_v},\qquad E_{oed} = \frac{\ln 10\,(1+e_0)\,\sigma_v'}{C_c}\ \text{(virgin)},\qquad E_{ur,oed} = \frac{\ln 10\,(1+e_0)\,\sigma_v'}{C_s}\ \text{(unload-reload)}$$
-- **Procedure:** tangent at σ′v0: interpolate between the two CONS increments that bracket σ′v0 on the loading
-  branch; Eur,oed from the unload (or reload) stage at the same σ′v
-- **Valid for:** e–log σ′ linear branches; ln 10 = 2.303 (computed); e at the stress level is better than e0
-- **Source:** standard 1-D compression; PLAXIS uses the same form at pref (5.4) [1] [V]
+### 5.3 Eoed and Eur,oed at σ′v0 from the oedometer — built (`ht.analysis.oedometer_increments()`)
+$$m_v = \frac{e_1 - e_2}{(1 + e_1)(\sigma'_2 - \sigma'_1)},\qquad E_{oed} = \frac{1}{m_v}\ \text{(loading)},\qquad E_{ur,oed} = \frac{1}{m_v}\ \text{(unloading or reloading)}$$
+- **Built (M19 c1):** m_v per increment from the void ratio at its start, e1, not e0 (BS 1377-5:1990, 3.6.2.2.4,
+  defined on loading increments; the unload and reload values are hangtu's extension) [V]. Eoed and Eur,oed are each
+  a secant over one increment, in two columns by branch, with no stress chosen to report them at.
+- **At σ′v0:** the increment spanning it (`spans_effective_vertical_stress`): the first loading increment with
+  σ′1 < σ′v0 ≤ σ′2 and the first unloading or reloading increment holding σ′v0. Never interpolated between
+  increments: each value is a secant over its own range (interpolating e between the bracketing points gives the same
+  increment's secant). In an overconsolidated specimen the loading increment at σ′v0 is on recompression.
+- **Not built here:** the tangent forms ln 10 (1 + e0) σ′v / Cc and / Cs, a different value from a fitted line, which
+  belong with the HS reference moduli (5.4, W5).
+- **Source:** BS 1377-5:1990, 3.6.2.2.4 [V]; Eoed = 1/m_v is the definition of the constrained modulus.
 
 ### 5.4 HS reference moduli from Cc, Cs — PLAXIS "alternative parameters"
 $$C_c = \frac{2.3(1+e_{init})\,p^{ref}}{E_{oed}^{ref}},\qquad C_s \approx \frac{2.3(1+e_{init})(1+\nu_{ur})(1-2\nu_{ur})\,p^{ref}}{(1-\nu_{ur})\,E_{ur}^{ref}\,K_0},\qquad E_{50}^{ref} = 1.25\,E_{oed}^{ref}$$

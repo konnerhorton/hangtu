@@ -58,7 +58,7 @@ Each figure is a separate feature with its own spec file in this folder, written
 - Overlays come from data and are never hard-coded: published zones (A-line, classification bands, etc.) live in `config/defaults.yaml` or in the plot module, with their source cited.
 
 ### Output
-- **Default sizes are global settings**, by plot kind: `ht.settings.figure_sizes = {"default": (6.5, 4.5), "profile": (4.5, 6.0), "chart": (6.5, 3.5)}` (inches; `default` fits a Letter or A4 page with margins, `profile` is portrait, `chart` is a shorter one for bar charts). Each size is the whole figure, including any legend and footnote. A kind missing from the dict falls back to `default`. Each spec says which kind it uses. `figsize=` overrides the size for one call. With `ax=`, the size comes from the axes.
+- **Default sizes are global settings**, by plot kind: `ht.settings.figure_sizes = {"default": (6.5, 4.5), "profile": (4.5, 6.0), "chart": (6.5, 3.5), "grid": (3.75, 2.75), "stacked": (6.5, 6.0)}` (inches; `default` fits a Letter or A4 page with margins, `profile` is portrait, `chart` is a shorter one for bar charts, `grid` is one panel of P07's grid, `stacked` is two panels sharing an x axis). Each size is the whole figure, including any legend and footnote. A kind missing from the dict falls back to `default`. Each spec says which kind it uses. `figsize=` overrides the size for one call. With `ax=`, the size comes from the axes.
 - `fig.savefig` is left to the user. The examples show PDF and PNG at 300 dpi.
 
 ---
@@ -94,7 +94,7 @@ Data for all of these already exists in the MVP scope. P00 is the foundation the
 | P11 | Triaxial: **failure envelope** with Mohr-Coulomb fit, drawn as Mohr circles, s′–t or p′–q (`space=`); optional idealized drained paths | `failure_envelope` | **Equal aspect required** in all spaces; total vs effective; M11 (b) | [built](P11-failure-envelope.md) |
 | P12 | Triaxial shearing: stress–strain curves and measured stress paths (s′–t, p′–q) with P11's envelope (`space=`) | `triaxial_shearing` | plot + light analysis; readings from a user CSV (`ht.template("triaxial_readings")`), which AGS doesn't carry | [built](P12-triaxial-shearing.md) |
 | P13 | Consolidation: e against log σ′v, with σ′p (Oikawa, Pacheco Silva as the check), Cc, Cr and Cs, σ′v0 and Δe/e0 | `consolidation_curve` | plot + analysis; `oedometer_fit()`, M19 (b) | [built](P13-consolidation-curve.md) |
-| P14 | Consolidation: c_v and m_v against log σ′v | `consolidation_coefficients` | | idea |
+| P14 | Consolidation: m_v and c_v of each increment against log σ′v, the lab's m_v beside the recomputed one, σ′v0 | `consolidation_coefficients` | plot + light analysis; `oedometer_increments()`, M19 (c1) | [built](P14-consolidation-coefficients.md) |
 | P15 | Consolidation: settlement against √t and log t per load increment (Taylor / Casagrande fitting) | `time_settlement` | | idea |
 | P16 | Compaction curve: dry density against moisture content, zero-air-voids lines | `compaction_curve` | Common in US practice; AGS CMPG/CMPT | idea |
 | P31 | Shear box: **envelope** τ against σn, peak and residual points, free and through-origin fits | `shear_box_envelope` | plot + analysis; **equal aspect**; `shear_box_fit()`, M17 (b) | [built](P31-shear-box-envelope.md) |

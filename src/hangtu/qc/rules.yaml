@@ -265,6 +265,9 @@ rules:
   E002:  # E001's tolerance
     title: Void ratio rose over an increment whose stress went up
     severity: warning
+  E003:  # no thresholds: the bounds are the values' own rounding
+    title: Reported m_v doesn't follow from the increment's void ratios
+    severity: warning
   E004:
     title: Oedometer increments not in increasing order
     severity: warning

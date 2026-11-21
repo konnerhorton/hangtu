@@ -78,12 +78,17 @@ $$Lu = \frac{Q}{L}\cdot\frac{P_0}{P},\quad P_0 = 1\ \text{MPa (10 bar)};\qquad k
 - **Source:** Lu formula and five-stage procedure [V] via [9] (NGI slides); Houlsby summary [V] abstract [4];
   representative-value rules and 1.3×10⁻⁷ conversion [U] (seen only in secondary summaries).
 
-### 5.4 Oedometer-derived k — Terzaghi consolidation theory
+### 5.4 Oedometer-derived k — Terzaghi consolidation theory — built (`ht.analysis.oedometer_increments()`)
 $$k = c_v\, m_v\, \gamma_w$$
-- **Inputs:** cv (CONS_CVRT or CONS_CVLG, m²/yr), mv (CONS_INMV, m²/MN), γw. Use the increment spanning σ′v0.
-- **Valid for:** saturated fine soil, increment in the primary-consolidation range. Typically lower than in situ k
-  (fabric, fissures and silt partings not captured) _[Judgment — for review]_.
-- **Source:** definitional relation (cv = k/(mv γw)) [U] — no locator checked.
+- **Built (M19 c1):** per increment, one k for each of the lab's c_v (CONS_CVRT, CONS_CVLG), so neither method is
+  preferred, with m_v recomputed from the void ratios (sheet 11 §5.3) and γw from `ht.settings.water_unit_weight`. The
+  increment spanning σ′v0 is marked, never interpolated. Unload and reload values are an extension, as their m_v is.
+- **Valid for:** one-dimensional consolidation of a saturated soil, the pore fluid's compressibility neglected beside
+  the soil's. A vertical k of a small specimen, usually below the field value, since the specimen can miss the fabric
+  that drains the ground (BS 1377-5:1990, 3.1.1, note 3) [V]: a check, not a design value on its own. Not pooled
+  with permeameter or field k (§7).
+- **Source:** Terzaghi's coefficient of consolidation, c_v = K′/(ρgα′), α′ the vertical compressibility (m_v) and ρg
+  = γw, with n′β neglected for clays: [6] §8.3, Eq. (8.22), and §2.9, Eq. (2.53) [V].
 
 ### 5.5 Cooper-Jacob straight line — Cooper & Jacob (1946)
 $$T = \frac{2.30\,Q}{4\pi\,\Delta s}\ \ (\text{SI}),\qquad T\,[\text{gpd/ft}] = \frac{264\,Q\,[\text{gpm}]}{\Delta s\,[\text{ft/log cycle}]},\qquad k = T/b$$
@@ -136,7 +141,7 @@ _[Judgment — for review]_.
 [3] Bouwer, H. & Rice, R.C. (1976). A slug test for determining hydraulic conductivity of unconfined aquifers with completely or partially penetrating wells. Water Resources Research 12(3), 423–428. https://doi.org/10.1029/WR012i003p00423 — [V] citation; equation [U]
 [4] Houlsby, A.C. (1976). Routine interpretation of the Lugeon water-test. Q. J. Eng. Geol. 9(4), 303–313. https://doi.org/10.1144/GSL.QJEG.1976.009.04.03 — [V] abstract (five runs, pattern interpretation, 811 tests)
 [5] Cooper, H.H. & Jacob, C.E. (1946). A generalized graphical method for evaluating formation constants and summarizing well-field history. Trans. AGU 27(4), 526–534. https://doi.org/10.1029/TR027i004p00526 — [V] via an extract of the source
-[6] Freeze, R.A. & Cherry, J.A. (1979). Groundwater. Prentice-Hall (free online edition, The Groundwater Project). https://fc79.gw-project.org/ — [V] §8.5 eq. 8.34 and Table 2.3; Table 2.2 values [U] (image)
+[6] Freeze, R.A. & Cherry, J.A. (1979). Groundwater. Prentice-Hall (free online edition, The Groundwater Project). https://fc79.gw-project.org/ — [V] §8.3 eq. 8.22, §2.9 eq. 2.53, §8.5 eq. 8.34 and Table 2.3; Table 2.2 values [U] (image)
 [7] Chapuis, R.P. (2004). Predicting the saturated hydraulic conductivity of sand and gravel using effective diameter and void ratio. Can. Geotech. J. 41(5), 787–795. https://doi.org/10.1139/t04-022 — [V] abstract (ranges, error statistics)
 [8] Hazen, A. (1892). Some physical properties of sands and gravels… 24th Annual Report, Massachusetts State Board of Health, 539–556. — [V] form and C range via MnDOT NRRA (2020) permeability literature review table, https://www.dot.state.mn.us/mnroad/nrra/structure-teams/geotechnical/files/permeability-base-task-2-lit-review-final-2020-08-24.pdf
 [9] Tunbridge, L. (2017). Hydraulic conductivity determination by Lugeon test – testing in practice. NGI workshop slides, Oslo. https://www.nve.no/Media/5313/lloydt-lugeon-test.pdf — [V] Lu formula, five-stage procedure; cites Quiñones-Rozo (2010) table (image, not read)

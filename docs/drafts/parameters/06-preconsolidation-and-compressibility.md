@@ -77,8 +77,8 @@ $$\log_{10}(1+e) = a_i + b_i\log_{10}\sigma'_v\ (i = 1, 2),\qquad \sigma'_p = 10
 
 ### 5.4 Work (strain-energy) method — Becker et al. (1987) — later
 $$W = \sum \sigma'_v\,\Delta\varepsilon_v\ \text{(per unit volume)};\ \ \sigma'_p = \text{intersection of the two straight lines in } W\text{–}\sigma'_v\ (\text{arithmetic})$$
-- Avoids log-scale judgement; sensitive to the stress range chosen for each line, and needs a strain definition
-  (TODO #73). Not built, TODO with a trigger.
+- Avoids log-scale judgement; sensitive to the stress range chosen for each line, and needs a strain:
+  ε = (e0 − e)/(1 + e0), referred to the initial thickness (BS 1377-5:1990, 3.6.2.1). Not built, TODO with a trigger.
 - **Source:** [6] (method per abstract) [V bibliographic; equation form U].
 
 ### 5.5 SPT — Mayne & Kemper (1988), in Kulhawy & Mayne (1990)

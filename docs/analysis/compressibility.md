@@ -1,14 +1,15 @@
-# Compressibility: the oedometer fit
+# Compressibility: the oedometer fit and increments
 
 | | |
 |---|---|
-| **Status** | Living spec. The oedometer fit: σ′p, Cc, Cr, Cs, CR, OCR and the sample quality. mv, cv, k and Eoed, and rock swelling, extend it later |
+| **Status** | Living spec. The oedometer fit: σ′p, Cc, Cr, Cs, CR, OCR and the sample quality (§1–7). The increments: m_v, Eoed, Eur,oed and k (§8). c_v from time readings and rock swelling extend it later |
 | **Parent** | SPEC §4 (the oedometer fit) and §5 (derived results) |
-| **Related** | [`m19a-oedometer-data.md`](../work/m19a-oedometer-data.md), [`m19b-compressibility.md`](../work/m19b-compressibility.md). The dataset: [`docs/data/datasets.md`](../data/datasets.md) (`p.oedometer()`). The figure: [P13](../plots/P13-consolidation-curve.md). Sheet 06 in [`docs/drafts/parameters/`](../drafts/parameters/README.md) |
+| **Related** | [`m19a-oedometer-data.md`](../work/m19a-oedometer-data.md), [`m19b-compressibility.md`](../work/m19b-compressibility.md), [`m19c-consolidation.md`](../work/m19c-consolidation.md). The dataset: [`docs/data/datasets.md`](../data/datasets.md) (`p.oedometer()`). The figures: [P13](../plots/P13-consolidation-curve.md), [P14](../plots/P14-consolidation-coefficients.md). Sheet 06 in [`docs/drafts/parameters/`](../drafts/parameters/README.md) |
 
-Update this file in the same commit as any change to `oedometer_fit()`'s behavior, and SPEC §4 or §5 if the change
-alters a rule there. The equations, sources, validity and each reason's wording are in the docstring, the published
-reference ([`ht.analysis.oedometer_fit`](../site/reference/analysis.md)); they aren't repeated here.
+Update this file in the same commit as any change to `oedometer_fit()`'s or `oedometer_increments()`'s behavior, and
+SPEC §4 or §5 if the change alters a rule there. The equations, sources, validity and each reason's wording are in the
+docstrings, the published reference ([`ht.analysis.oedometer_fit`](../site/reference/analysis.md),
+[`ht.analysis.oedometer_increments`](../site/reference/analysis.md)); they aren't repeated here.
 
 ## 1. Input and grouping
 - `oedometer_fit(df, *, units=None, display_units=None) -> OedometerFit` reads `p.oedometer()`'s columns or a CSV in
@@ -80,3 +81,36 @@ reference ([`ht.analysis.oedometer_fit`](../site/reference/analysis.md)); they a
   every split's sum of squares, every line and the check's σA and e_B, so P13 draws without computing.
 - The fitted σ′p takes the parameter's name, `preconsolidation_stress`, as the SPT correlation's estimate does; the
   two keep apart by `correlation_name` (SPEC §5).
+
+## 8. Increments: m_v, the moduli and k
+`oedometer_increments()` adds columns to the rows it is given (a copy, no row dropped or reordered); it is not a
+derived result, since each value belongs to one increment.
+- **m_v per increment** from the void ratio at the increment's start, e1, not the specimen's e0 (BS 1377-5:1990,
+  3.6.2.2.4, in void ratios). Per `specimen_id` in row order, σ′1 is the previous row's stress, written to
+  `applied_vertical_stress_at_increment_start`; e1 is the row's `void_ratio_at_increment_start`, else the previous
+  row's end, with a note. The first increment's start is the seating load, which no file gives: blank, with the
+  reason. The recomputed value and the lab's (`reported_coefficient_of_volume_compressibility`) stay apart.
+- **Unloading and reloading** use the same formula, as hangtu's extension: BS 1377-5 defines m_v on loading
+  increments only, and the docstring says so.
+- **An m_v of 0 or less is kept** as computed (E002 reports the loading case); the moduli and k of that row are blank
+  with the reason.
+- **Eoed and Eur,oed** = 1/m_v, in two columns by branch (`constrained_modulus` on loading rows,
+  `unload_reload_constrained_modulus` on unloading and reloading rows), since stage D selects each on its own. Each is
+  a secant over its increment, so no stress is chosen to report it at: the row gives σ′1 and σ′2, and P14 draws the
+  segment. Sheet 11's Cc and Cs forms are a tangent of a fitted line, a different value, left to the Hardening Soil
+  reference moduli.
+- **At σ′v0**, the increment spanning it, never an interpolation: `spans_effective_vertical_stress` is True on the
+  first loading row with σ′1 < σ′v0 ≤ σ′2 and on the first unloading or reloading row whose range holds σ′v0. A σ′v0
+  no increment spans gives all False and a note; nothing is extrapolated. Values of two increments aren't
+  interpolated because each is a secant over its own range.
+- **k = c_v·m_v·γw** per increment, one column for each of the lab's c_v (`hydraulic_conductivity_root_time`,
+  `…_log_time`), so neither method is preferred; m_v the recomputed one, γw `ht.settings.water_unit_weight` (a setting,
+  not a judgment), recorded in `attrs`. The relation is Terzaghi's definition of c_v rearranged (Freeze & Cherry 1979,
+  §8.3, Eq. 8.22). Not under `hydraulic_conductivity`, which holds permeameter and field values: lab and field k aren't
+  pooled. c_v from time readings is M19 (c2)'s.
+- **Notes** (the branch added, a start void ratio borrowed, no σ′v0 column, no increment spanning σ′v0) go to
+  `attrs["oedometer_increments"]["notes"]`, not warnings: the σ′v0 note would fire on every call on `p.oedometer()`.
+- **Strain**, for a plot's ε axis and the work method (TODO #76), is ε = (H0 − H)/H0 = (e0 − e)/(1 + e0), referred to
+  the initial thickness (BS 1377-5:1990, 3.6.2.1). The strain on H1, the increment's start, belongs to m_v only.
+- **Units:** with `display_units=`, `applied_vertical_stress` and `effective_vertical_stress` are written converted
+  too, so a row's σ′1 and σ′2 share a unit. The `reported_` columns are never converted; P14 converts them to draw.

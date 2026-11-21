@@ -1152,6 +1152,28 @@ CONS = group(
     us=CONS_US,
 )
 
+
+def _us_volume_compressibility(increments):
+    """m_v as a US lab reports it: from the void ratios, in ft2/kip, where the SI
+    lab gave one (TYPE 2SF, written by the heading's TYPE).
+
+    Converting the SI lab's 2SF to 10SF would carry m2/MN's rounding into
+    ft2/kip, which QC E003 flags on increments 5 and 6.
+    """
+    values, before = [], None
+    for _, stress, start, end, mv in increments:
+        if mv is None or before is None:
+            values.append(None)
+        else:
+            per_kpa = (start - end) / ((1 + start) * (stress - before))
+            values.append(1000 * per_kpa / US["m2/MN"][1])
+        before = stress
+    return values
+
+
+#: Headings the US twin writes as values of their own, with their TYPE.
+CONS["us_values"] = {"CONS_INMV": ("2SF", _us_volume_compressibility(OED1_INCREMENTS))}
+
 CPTP = group(
     "CPTP",
     [("LOCA_ID", "ID", ""), ("CPTP_DPTH", "2DP", "m"), ("CPTP_SUW1", "1DP", "kN/m3")],
@@ -1284,8 +1306,12 @@ def text(value, ags_type):
 def to_us(g):
     """The group in US units: converted headings get the US unit and TYPE 10SF."""
     headings, convert = [], []
+    own = g.get("us_values", {})
     for h, t, u in g["headings"]:
-        if h in g["us"]:
+        if h in own:
+            headings.append((h, own[h][0], US[u][0]))
+            convert.append(None)
+        elif h in g["us"]:
             unit, factor = US_OVERRIDE.get(h) or US[u]
             us_type = "XN" if t == "XN" else "9SCI" if t.endswith("SCI") else "10SF"
             headings.append((h, us_type, unit))
@@ -1294,7 +1320,11 @@ def to_us(g):
             headings.append((h, t, u))
             convert.append(None)
     rows = []
-    for row in g["rows"]:
+    for i, row in enumerate(g["rows"]):
+        row = [
+            own[h][1][i] if h in own else value
+            for (h, _, _), value in zip(g["headings"], row, strict=True)
+        ]
         new = []
         for value, factor in zip(row, convert, strict=True):
             if factor is None or value is None:
@@ -1401,6 +1431,22 @@ def site_groups(us=False):
         CONG,
         CONS,
         *CURVES,
+    ]
+
+
+def _divided_by_initial_void_ratio():
+    """E5's increments: BH1-U3's void ratios, with m_v from a lab that divided
+    by 1 + e0 (0.800), to 2SF, not by 1 + e at each increment's start.
+
+    Only increment 11 raises E003 (0.061 against 0.0677 to 0.0692); increment 6
+    (0.11 against 0.114 to 0.117) still overlaps. Increment 7, an unload, has
+    9.9 and is skipped. The reloads have no m_v.
+    """
+    mv = {"2": 0.16, "3": 0.13, "4": 0.16, "5": 0.16, "6": 0.11, "7": 9.9}
+    mv["11"] = 0.061
+    return [
+        ("E5", 1.40, incn, start, stress, end, mv.get(incn))
+        for incn, stress, start, end, _ in OED1_INCREMENTS
     ]
 
 
@@ -1807,18 +1853,23 @@ def qc_defects_groups():
             ("CONS_IVR", "3DP", ""),
             ("CONS_INCF", "0DP", "kPa"),
             ("CONS_INCE", "3DP", ""),
+            ("CONS_INMV", "2SF", "m2/MN"),
         ],
         [
-            [*bh2_u1, ref, depth, incn, start, stress, end]
-            for ref, depth, incn, start, stress, end in [
-                ("E1", 1.10, "1", 0.720, 50, 0.700),
-                ("E1", 1.10, "2", 0.690, 100, 0.680),
-                ("E2", 1.20, "1", 0.780, 100, 0.776),
-                ("E2", 1.20, "2", 0.776, 200, 0.781),
-                ("E4", 1.30, "1", 0.800, 25, 0.795),
-                ("E4", 1.30, "2", 0.795, 50, 0.788),
-                ("E4", 1.30, "4", 0.788, 100, 0.776),
-                ("E4", 1.30, "3", 0.776, 200, 0.748),
+            [*bh2_u1, ref, depth, incn, start, stress, end, mv]
+            for ref, depth, incn, start, stress, end, mv in [
+                ("E1", 1.10, "1", 0.720, 50, 0.700, None),
+                ("E1", 1.10, "2", 0.690, 100, 0.680, None),
+                ("E2", 1.20, "1", 0.780, 100, 0.776, None),
+                ("E2", 1.20, "2", 0.776, 200, 0.781, None),
+                # E003: a first increment's 9.9 is skipped; 0.32 against the
+                # void ratios' 0.134 to 0.178 raises.
+                ("E4", 1.30, "1", 0.800, 25, 0.795, 9.9),
+                ("E4", 1.30, "2", 0.795, 50, 0.788, 0.32),
+                ("E4", 1.30, "4", 0.788, 100, 0.776, None),
+                ("E4", 1.30, "3", 0.776, 200, 0.748, None),
+                # Appended (M19 c1), so the lines above don't move.
+                *_divided_by_initial_void_ratio(),
             ]
         ],
     )
