@@ -68,7 +68,8 @@ $$-\varepsilon_1 = \frac{1}{E_i}\frac{q}{1-q/q_a},\quad E_i = \frac{2E_{50}}{2-R
 - **Source:** [1] Eqs. 6–3, 6–4, 6–6, Fig. 6–5, pp. 66–73 [V]
 
 ### 5.3 Eoed and Eur,oed at σ′v0 from the oedometer — M19 (c)
-- **Planned in M19 (c),** with mv per increment (its definition is TODO #73); M19 (b) built Cc and Cs, not these.
+- **Planned in M19 (c),** with mv per increment, Δe / ((1 + e_start) Δσ′v) (BS 1377-5:1990, 3.6.2.2.4, loading
+  increments only; Eur,oed uses the same formula on unloading, hangtu's extension); M19 (b) built Cc and Cs, not these.
 $$E_{oed} = \frac{\Delta\sigma_v'}{\Delta\varepsilon_v} = \frac{1}{m_v},\qquad E_{oed} = \frac{\ln 10\,(1+e_0)\,\sigma_v'}{C_c}\ \text{(virgin)},\qquad E_{ur,oed} = \frac{\ln 10\,(1+e_0)\,\sigma_v'}{C_s}\ \text{(unload-reload)}$$
 - **Procedure:** tangent at σ′v0: interpolate between the two CONS increments that bracket σ′v0 on the loading
   branch; Eur,oed from the unload (or reload) stage at the same σ′v

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Living spec. The level 1 rules, the report and the diff. E003 isn't built yet (TODO #73) |
+| **Status** | Living spec. The level 1 rules, the report and the diff. E003 isn't built yet (M19 (c)) |
 | **Parent** | SPEC §2.6 (units), §7 (data model), §8 (depth and geology), §9 (data quality), §11 (errors) |
 | **Related** | [`ingest.md`](ingest.md) §8–§9 (value flags, findings raised at ingest). [`docs/work/qc-review.md`](../work/qc-review.md) (accepted findings, D008), [`docs/work/vertical-datum.md`](../work/vertical-datum.md) (L006, L007). TODO #6 (P001/P003 tolerances), #7 (minimally useful fields). History: [`m6-qc.md`](../work/m6-qc.md), [`m14a-density-data.md`](../work/m14a-density-data.md), [`m11a-triaxial-data.md`](../work/m11a-triaxial-data.md), [`m17a-strength-data.md`](../work/m17a-strength-data.md), [`m19a-oedometer-data.md`](../work/m19a-oedometer-data.md) |
 
@@ -328,7 +328,7 @@ Each checks a specimen against itself, its `CONS` rows in file order: a record w
 - **E002** compares the increment's own `CONS_IVR` and `CONS_INCE` (the previous `CONS_INCE` where `CONS_IVR` is blank), on increments whose stress is above the previous one's. It is a warning, not an error: a swelling soil or rock can still swell under a small load increase, and the message says so.
 - **E004** reads `CONS_INCN` as written (`"3"`, `"3.5"`); text such as `"3a"` or `"Flood"` is skipped. One finding for each number at or below the largest before it, naming that one. The dataset never reorders rows, so a resorted file is caught here rather than reordered by a guess.
 - **E005** only where all three are given. 2DP densities move ρs / ρd − 1 by at most 0.010 (ρs 2.70, ρd 1.50); 0.02 clears it. An assumed `CONG_PDEN` (`#`) is checked like a measured one, and the message says it is assumed. The dictionary's own example (ρd 1.75, ρs 2.65, e0 0.800) raises it: 2.65 / 1.75 − 1 = 0.514. Its values are illustrative and not one specimen.
-- **E003** (the lab's m_v against the void ratios) waits until its definition of m_v is checked against BS 1377-5 and ISO 17892-5 (TODO #73).
+- **E003** (the lab's m_v against the void ratios) is built in M19 (c), with m_v = Δe / ((1 + e_start) Δσ′), e at the start of the increment, per BS 1377-5:1990, 3.6.2.2.4. ISO 17892-5 hasn't been checked.
 - **Not a rule:** a consolidation stress far above the overburden (TODO #67). An oedometer is loaded far past σ′v0 by design, often 10–30 times, so the check fits the triaxial's `TRET_CONP`, not this test.
 
 ## 5. The report

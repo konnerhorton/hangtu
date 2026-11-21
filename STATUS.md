@@ -1,7 +1,8 @@
 # Status
 
-**Next:** M19 (c), mv, cv and k from the oedometer increments and P14–P15, from its intent; TODO #73 (m_v's
-definition) first. M20's Soft Soil set is built on M18's model-set base. Then waves 4–6.
+**Next:** M19 (c), mv, cv and k from the oedometer increments and P14–P15: its intent is on `m19c-consolidation`
+(`docs/work/m19c-consolidation.md`), the spec next. M20's Soft Soil set is built on M18's model-set base. Then waves
+4–6.
 
 Last checkpoint: 3, after M19 (a), 2026-11-15, 4f03bfd.
 
@@ -11,7 +12,7 @@ moves to Done, in one line (its unit's work file has the detail).
 
 | M | Scope | Done when | Status |
 |---|---|---|---|
-| M19 | Wave 3: oedometer (σ′p, Cc, Cs, Eoed, Eur,oed, k from cv·mv, Grob and Huder–Amberg swelling); P13–P15. Four units: (a) data, (b) compressibility and P13, (c) mv, cv, k and P14–P15, (d) rock swelling | Golden values; plot criteria | (a) done (`p.oedometer()`, QC E001–E005 but E003); (b) done (`oedometer_fit()`, **P13**); (c) next |
+| M19 | Wave 3: oedometer (σ′p, Cc, Cs, Eoed, Eur,oed, k from cv·mv, Grob and Huder–Amberg swelling); P13–P15. Five units: (a) data, (b) compressibility and P13, (c1) mv, Eoed, Eur,oed, k and P14, (c2) cv from readings and P15, (d) rock swelling | Golden values; plot criteria | (a) done (`p.oedometer()`, QC E001–E005 but E003); (b) done (`oedometer_fit()`, **P13**); (c1) intent on `m19c-consolidation` |
 | M20 | Wave 3: K0 from OCR, SHANSEP; the Soft Soil set | Golden values | Not started |
 | M21 | Wave 4: rock lab datasets (UCS, tensile, point load, slake durability, intact moduli) and RQD | Datasets feed P01 and P07 | Not started |
 | M22 | Wave 4: the Hoek–Brown chain, rock dilatancy, in situ stress; the generalized Hoek–Brown set with residual values | Published worked examples reproduced | Not started |

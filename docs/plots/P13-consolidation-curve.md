@@ -203,7 +203,8 @@ stated.
 - Rounding σ′p or the indexes inside the analysis; round only for display.
 
 ## 15. Future enhancements
-- Strain (ε) instead of e on the y axis, once (c) settles the strain definition (TODO #73).
+- Strain instead of e on the y axis: ε = (H0 − H)/H0 = (e0 − e)/(1 + e0), the reduction in thickness referred to the
+  initial thickness (BS 1377-5:1990, 3.6.2.1).
 - Casagrande's and the work method's σ′p beside Oikawa's (TODO #76).
 - `OedometerFit.plot()` to draw a result without refitting.
 - σ′p and OCR by depth with the SPT correlations: P01 with the fit's frame, a docs example rather than a new plot.
