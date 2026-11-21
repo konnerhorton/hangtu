@@ -9,7 +9,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from hangtu import units as _units
 from hangtu._data import numeric_column, rows_text
 from hangtu.analysis._derived import _DerivedResult, judgments_file, soil_classes
 from hangtu.analysis._fit_groups import _cell, _place_units
@@ -19,7 +18,13 @@ from hangtu.analysis._oedometer import (
     LOADING,
     RELOADING,
     UNLOADING,
+    branches,
+    in_situ,
     oedometer_load_branch,
+    one_value,
+    specimen_label,
+    stress_text,
+    stresses,
 )
 from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.stats._rows import group_keys
@@ -319,8 +324,8 @@ def oedometer_fit(
             "load_branch added by ht.analysis.oedometer_load_branch(), reading the "
             "rows in the order the increments were applied."
         )
-    branch = _branches(df)
-    stress, unit = _stresses(df, units, display_units)
+    branch = branches(df, _FUNCTION)
+    stress, unit = stresses(df, units, display_units)
     void_ratio = numeric_column(df, _VOID_RATIO)
     negative = void_ratio < 0
     if negative.any():
@@ -334,21 +339,21 @@ def oedometer_fit(
         if _INITIAL in df.columns
         else np.full(len(df), np.nan)
     )
-    in_situ = _in_situ(df, units, display_units, unit)
+    in_situ_stress = in_situ(df, units, display_units, unit)
     text = f" {unit}" if unit else ""
     specimens = []
     for _, rows in group_keys(df, ["specimen_id"]):
         positions = np.flatnonzero(rows)
         record = _specimen(df, positions, stress, void_ratio, branch, identifiers, text)
-        record["void_ratio"] = _one_value(df, positions, initial, _INITIAL, record)
+        record["void_ratio"] = one_value(df, positions, initial, _INITIAL, record)
         record |= _compression_ratio(record)
         record |= _pacheco_silva(record, text)
         record["effective_vertical_stress"] = (
             np.nan
-            if in_situ is None
-            else _one_value(df, positions, in_situ, _IN_SITU, record)
+            if in_situ_stress is None
+            else one_value(df, positions, in_situ_stress, _IN_SITU, record)
         )
-        record |= _stress_history(record, in_situ is not None, text)
+        record |= _stress_history(record, in_situ_stress is not None, text)
         del record["_loading"]
         specimens.append(record)
     below = [r["label"] for r in specimens if r["overconsolidation_ratio"] < 1]
@@ -373,39 +378,6 @@ def oedometer_fit(
     )
 
 
-def _branches(df: pd.DataFrame) -> np.ndarray:
-    """Return each row's ``load_branch``, None where blank, after checking them."""
-    branch = df["load_branch"].astype(object).to_numpy()
-    branch = np.array([None if pd.isna(b) else b for b in branch], dtype=object)
-    known = (LOADING, UNLOADING, RELOADING, CONSTANT_STRESS, None)
-    wrong = np.array([b not in known for b in branch], dtype=bool)
-    if wrong.any():
-        values = ", ".join(dict.fromkeys(map(repr, branch[wrong])))
-        raise HangtuError(
-            f"Rows {rows_text(df.index[wrong])} have load_branch {values}, which "
-            f"{_FUNCTION} doesn't know: it reads {', '.join(map(repr, known[:-1]))}. "
-            "Drop the column to have it worked out from the stresses."
-        )
-    return branch
-
-
-def _stresses(
-    df: pd.DataFrame, units: Mapping[str, str] | None, display_units: str | None
-) -> tuple[np.ndarray, str | None]:
-    """Return ``applied_vertical_stress`` in the fit's unit, and its name.
-
-    A column blank throughout needs no unit (a template's CSV has every column).
-    """
-    if df[_STRESS].isna().all():
-        return np.full(len(df), np.nan), None
-    declared = _units.resolve_units(df, [_STRESS], units, analysis=True)[_STRESS]
-    _units.check_dimension(_units.parse_unit(declared, _STRESS), "stress", _STRESS)
-    values = numeric_column(df, _STRESS)
-    if display_units is None:
-        return values, declared
-    return _units.to_display(values, declared, "stress", display_units)
-
-
 def _specimen(
     df: pd.DataFrame,
     positions: np.ndarray,
@@ -425,7 +397,7 @@ def _specimen(
     e = np.array([p["void_ratio"] for p in loading])
     record: dict[str, Any] = {
         "key": key,
-        "label": _specimen_label(key),
+        "label": specimen_label(key),
         **_oikawa(x, e, unit),
         "count_rows": len(positions),
         "count_loading_points": len(loading),
@@ -449,51 +421,6 @@ def _specimen(
     record |= _swelling(points)
     record["_loading"] = (x, e)
     return record
-
-
-def _one_value(
-    df: pd.DataFrame,
-    positions: np.ndarray,
-    values: np.ndarray,
-    column: str,
-    record: dict[str, Any],
-) -> float:
-    """Return a specimen's one value of ``column``, NaN if blank on every row."""
-    given = values[positions][~np.isnan(values[positions])]
-    distinct = np.unique(given)
-    if len(distinct) > 1:
-        listed = ", ".join(f"{value:g}" for value in distinct)
-        raise HangtuError(
-            f"Specimen {record['label']} has more than one {column} on its rows "
-            f"({listed}), in rows {rows_text(df.index[positions])}. A specimen has "
-            f"one; correct {column} on those rows."
-        )
-    return float(distinct[0]) if len(distinct) else np.nan
-
-
-def _in_situ(
-    df: pd.DataFrame,
-    units: Mapping[str, str] | None,
-    display_units: str | None,
-    unit: str | None,
-) -> np.ndarray | None:
-    """Return σ′v0 in the fit's unit, None without the column (decision 11).
-
-    A column blank throughout needs no unit.
-    """
-    if _IN_SITU not in df.columns:
-        return None
-    if df[_IN_SITU].isna().all():
-        return np.full(len(df), np.nan)
-    declared = _units.resolve_units(df, [_IN_SITU], units, analysis=True)[_IN_SITU]
-    parsed = _units.parse_unit(declared, _IN_SITU)
-    _units.check_dimension(parsed, "stress", _IN_SITU)
-    values = numeric_column(df, _IN_SITU)
-    if display_units is not None:
-        return _units.to_display(values, declared, "stress", display_units)[0]
-    if unit is None:
-        return values
-    return _units.convert(values, parsed, "stress", _units.parse_unit(unit))
 
 
 def _stress_history(
@@ -538,13 +465,13 @@ def _stress_history(
         result["normalized_void_ratio_change_reason"] = "no loading branch"
     elif in_situ < x[0]:
         result["normalized_void_ratio_change_reason"] = (
-            f"σ′v0 = {_stress_text(in_situ)}{unit} is below the first loading "
-            f"stress ({_stress_text(x[0])}{unit})"
+            f"σ′v0 = {stress_text(in_situ)}{unit} is below the first loading "
+            f"stress ({stress_text(x[0])}{unit})"
         )
     elif in_situ > x[-1]:
         result["normalized_void_ratio_change_reason"] = (
-            f"σ′v0 = {_stress_text(in_situ)}{unit} is above the highest loading "
-            f"stress ({_stress_text(x[-1])}{unit})"
+            f"σ′v0 = {stress_text(in_situ)}{unit} is above the highest loading "
+            f"stress ({stress_text(x[-1])}{unit})"
         )
     else:
         at = _on_curve(x, e, in_situ)
@@ -691,13 +618,13 @@ def _pacheco_silva(record: dict[str, Any], unit: str) -> dict[str, Any]:
     stress_a = 10 ** ((c - e0) / index)
     if not x[0] <= stress_a <= x[-1]:
         where = (
-            f"loading from {_stress_text(x[0])}{unit}"
+            f"loading from {stress_text(x[0])}{unit}"
             if stress_a < x[0]
-            else f"loading to {_stress_text(x[-1])}{unit}"
+            else f"loading to {stress_text(x[-1])}{unit}"
         )
         result["pacheco_silva_reason"] = (
             "the construction falls outside the measured curve "
-            f"(σA = {_stress_text(stress_a)}{unit}, {where})"
+            f"(σA = {stress_text(stress_a)}{unit}, {where})"
         )
         result["pacheco_silva"] = {"stress_a": stress_a, "void_ratio_b": np.nan}
         return result
@@ -775,13 +702,6 @@ def _points(
             }
         )
     return points
-
-
-def _specimen_label(key: dict[str, Any]) -> str:
-    """Name a specimen as the lab does: its sample and specimen references."""
-    parts = [key.get("sample_reference"), key.get("specimen_reference")]
-    named = [str(part) for part in parts if part is not None and str(part).strip()]
-    return "-".join(named) if named else str(key["specimen_id"])
 
 
 def _oikawa(x: np.ndarray, e: np.ndarray, unit: str) -> dict[str, Any]:
@@ -866,19 +786,9 @@ def _oikawa(x: np.ndarray, e: np.ndarray, unit: str) -> dict[str, Any]:
 
 def _outside(crossing: float, x: np.ndarray, unit: str) -> str:
     return (
-        f"the lines cross at {_stress_text(crossing)}{unit}, outside the loading "
-        f"stresses ({_stress_text(x[0])} to {_stress_text(x[-1])}{unit})"
+        f"the lines cross at {stress_text(crossing)}{unit}, outside the loading "
+        f"stresses ({stress_text(x[0])} to {stress_text(x[-1])}{unit})"
     )
-
-
-def _stress_text(value: float) -> str:
-    """Write a stress in a reason to 3 significant figures: ``20``, ``7.94``."""
-    from hangtu.plot._overlays import format_number  # plot imports analysis
-
-    text = format_number(value)
-    if "." in text and "e" not in text:
-        text = text.rstrip("0").rstrip(".")
-    return text
 
 
 def _log_line(line: Line) -> dict[str, Any]:

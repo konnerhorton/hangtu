@@ -1,9 +1,16 @@
-"""Oedometer load branches (datasets.md §6.14; M19 a)."""
+"""Oedometer load branches and the frame readers the oedometer analyses share.
+
+Specs: datasets.md §6.14 (the branches), docs/analysis/compressibility.md.
+"""
+
+from collections.abc import Mapping
+from typing import Any
 
 import numpy as np
 import pandas as pd
 
-from hangtu._data import numeric_column
+from hangtu import units as _units
+from hangtu._data import numeric_column, rows_text
 from hangtu.errors import ColumnError, HangtuError
 
 REQUIRED = ("specimen_id", "applied_vertical_stress")
@@ -12,6 +19,9 @@ LOADING = "loading"
 UNLOADING = "unloading"
 RELOADING = "reloading"
 CONSTANT_STRESS = "constant_stress"
+
+_STRESS = "applied_vertical_stress"
+_IN_SITU = "effective_vertical_stress"
 
 
 def oedometer_load_branch(df: pd.DataFrame) -> pd.DataFrame:
@@ -104,3 +114,98 @@ def oedometer_load_branch(df: pd.DataFrame) -> pd.DataFrame:
     result = df.copy()
     result["load_branch"] = pd.Series(branch, index=df.index, dtype=object)
     return result
+
+
+def branches(df: pd.DataFrame, function: str) -> np.ndarray:
+    """Return each row's ``load_branch``, None where blank, after checking them."""
+    branch = df["load_branch"].astype(object).to_numpy()
+    branch = np.array([None if pd.isna(b) else b for b in branch], dtype=object)
+    known = (LOADING, UNLOADING, RELOADING, CONSTANT_STRESS, None)
+    wrong = np.array([b not in known for b in branch], dtype=bool)
+    if wrong.any():
+        values = ", ".join(dict.fromkeys(map(repr, branch[wrong])))
+        raise HangtuError(
+            f"Rows {rows_text(df.index[wrong])} have load_branch {values}, which "
+            f"{function} doesn't know: it reads {', '.join(map(repr, known[:-1]))}. "
+            "Drop the column to have it worked out from the stresses."
+        )
+    return branch
+
+
+def stresses(
+    df: pd.DataFrame, units: Mapping[str, str] | None, display_units: str | None
+) -> tuple[np.ndarray, str | None]:
+    """Return ``applied_vertical_stress`` in the analysis' unit, and its name.
+
+    A column blank throughout needs no unit (a template's CSV has every column).
+    """
+    if df[_STRESS].isna().all():
+        return np.full(len(df), np.nan), None
+    declared = _units.resolve_units(df, [_STRESS], units, analysis=True)[_STRESS]
+    _units.check_dimension(_units.parse_unit(declared, _STRESS), "stress", _STRESS)
+    values = numeric_column(df, _STRESS)
+    if display_units is None:
+        return values, declared
+    return _units.to_display(values, declared, "stress", display_units)
+
+
+def one_value(
+    df: pd.DataFrame,
+    positions: np.ndarray,
+    values: np.ndarray,
+    column: str,
+    record: dict[str, Any],
+) -> float:
+    """Return a specimen's one value of ``column``, NaN if blank on every row."""
+    given = values[positions][~np.isnan(values[positions])]
+    distinct = np.unique(given)
+    if len(distinct) > 1:
+        listed = ", ".join(f"{value:g}" for value in distinct)
+        raise HangtuError(
+            f"Specimen {record['label']} has more than one {column} on its rows "
+            f"({listed}), in rows {rows_text(df.index[positions])}. A specimen has "
+            f"one; correct {column} on those rows."
+        )
+    return float(distinct[0]) if len(distinct) else np.nan
+
+
+def in_situ(
+    df: pd.DataFrame,
+    units: Mapping[str, str] | None,
+    display_units: str | None,
+    unit: str | None,
+) -> np.ndarray | None:
+    """Return σ′v0 in the analysis' unit (``unit``), None without the column.
+
+    A column blank throughout needs no unit.
+    """
+    if _IN_SITU not in df.columns:
+        return None
+    if df[_IN_SITU].isna().all():
+        return np.full(len(df), np.nan)
+    declared = _units.resolve_units(df, [_IN_SITU], units, analysis=True)[_IN_SITU]
+    parsed = _units.parse_unit(declared, _IN_SITU)
+    _units.check_dimension(parsed, "stress", _IN_SITU)
+    values = numeric_column(df, _IN_SITU)
+    if display_units is not None:
+        return _units.to_display(values, declared, "stress", display_units)[0]
+    if unit is None:
+        return values
+    return _units.convert(values, parsed, "stress", _units.parse_unit(unit))
+
+
+def specimen_label(key: dict[str, Any]) -> str:
+    """Name a specimen as the lab does: its sample and specimen references."""
+    parts = [key.get("sample_reference"), key.get("specimen_reference")]
+    named = [str(part) for part in parts if part is not None and str(part).strip()]
+    return "-".join(named) if named else str(key["specimen_id"])
+
+
+def stress_text(value: float) -> str:
+    """Write a stress in a reason to 3 significant figures: ``20``, ``7.94``."""
+    from hangtu.plot._overlays import format_number  # plot imports analysis
+
+    text = format_number(value)
+    if "." in text and "e" not in text:
+        text = text.rstrip("0").rstrip(".")
+    return text
