@@ -469,3 +469,15 @@ sections; the registry's `ags` entries for the new columns say `"derived: docs/a
   - what a future session would get wrong without being told, written where it will be read.
 - **Verification:** every AC of the Spec and of P14 §12 reported as met or not, with its test; the whole suite with
   `-n 3`; ruff; mypy; the lowest-versions run (then `git checkout uv.lock`); the strict docs build.
+
+### Notes from the build
+- **Step 2, where the notes go:** `oedometer_increments()` returns a frame, so its notes (the load branch added, a
+  start void ratio taken from the previous end, no σ′v0 column, no increment spanning σ′v0) are in
+  `attrs["oedometer_increments"]["notes"]`, not warnings: the σ′v0 note would otherwise fire on every call on
+  `p.oedometer()`. P14's footnote can read them.
+- **Step 2, display units:** with `display_units=`, `applied_vertical_stress` (and `effective_vertical_stress`, where
+  given) are written converted too, with `attrs["units"]` updated, so a row's σ′1 and σ′2 share a unit, as
+  `phase_relations()` does for `dry_unit_weight`. Without it, every column keeps its unit.
+- **Step 2, reasons not in the spec:** "no void ratio at the increment's start" and "… at the increment's end" for
+  m_v; for the moduli, "constant stress increment" and "no load branch" where m_v is given but the branch takes
+  neither modulus (only from a user's own `load_branch`).
