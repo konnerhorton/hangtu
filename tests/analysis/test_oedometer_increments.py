@@ -146,6 +146,67 @@ def test_ac1_keeps_rows_and_columns(site_si, bh1_u3):
     assert "coefficient_of_volume_compressibility" not in site_si.columns
 
 
+# --- AC 2: k -----------------------------------------------------------------
+
+#: A year of 365.25 days, in seconds.
+YEAR = 365.25 * 86400
+
+
+def test_ac2_conductivity(bh1_u3):
+    root = bh1_u3["hydraulic_conductivity_root_time"]
+    log = bh1_u3["hydraulic_conductivity_log_time"]
+    assert root.iloc[3] == pytest.approx(1.02919912e-10, rel=TABLE_REL)
+    assert log.iloc[3] == pytest.approx(8.82170672e-11, rel=TABLE_REL)
+    # From the inputs: c_v 2.1 m²/yr × m_v (m²/MN) × 9.81 kN/m³ × 10⁻³ m/yr.
+    mv = bh1_u3["coefficient_of_volume_compressibility"].iloc[3]
+    assert root.iloc[3] == pytest.approx(2.1 * mv * 9.81e-3 / YEAR, rel=REL)
+    assert bh1_u3.attrs["units"]["hydraulic_conductivity_root_time"] == "m/s"
+    assert bh1_u3.attrs["oedometer_increments"]["water_unit_weight"] == "9.81 kN/m3"
+    for method in ("root_time", "log_time"):
+        column = f"hydraulic_conductivity_{method}"
+        others = bh1_u3[column].drop(index=bh1_u3.index[3])
+        assert others.isna().all()
+        reasons = bh1_u3[f"{column}_reason"]
+        assert reasons.iloc[3] is None
+        assert set(reasons.drop(index=bh1_u3.index[3])) == {"no c_v reported"}
+
+
+def test_ac2_water_unit_weight_setting(site_si):
+    ht.settings.water_unit_weight = "10 kN/m3"
+    result = ht.analysis.oedometer_increments(site_si)
+    assert result["hydraulic_conductivity_root_time"].iloc[3] == pytest.approx(
+        1.04913264e-10, rel=TABLE_REL
+    )
+    assert result.attrs["oedometer_increments"]["water_unit_weight"] == "10 kN/m3"
+
+
+def test_ac2_conductivity_reasons():
+    df = _frame([25, 50, 100, 200], [0.795, 0.788, 0.788, 0.790])
+    df["reported_coefficient_of_consolidation_root_time"] = [2.0, 2.0, 0.0, 2.0]
+    df.attrs["units"]["reported_coefficient_of_consolidation_root_time"] = "m2/yr"
+    result = ht.analysis.oedometer_increments(df)
+    reasons = result["hydraulic_conductivity_root_time_reason"].tolist()
+    assert reasons == [FIRST, None, "c_v is not positive", "m_v is not positive"]
+    assert result["hydraulic_conductivity_root_time"].notna().tolist() == [
+        False,
+        True,
+        False,
+        False,
+    ]
+    # No log time column at all: every row says so.
+    assert set(result["hydraulic_conductivity_log_time_reason"]) == {"no c_v reported"}
+
+
+def test_ac2_conductivity_from_us_consolidation_units():
+    df = _frame([100, 200], [0.776, 0.748])
+    df["reported_coefficient_of_consolidation_root_time"] = [None, 2.1 * 10.7639104]
+    df.attrs["units"]["reported_coefficient_of_consolidation_root_time"] = "ft2/yr"
+    result = ht.analysis.oedometer_increments(df)
+    assert result["hydraulic_conductivity_root_time"].iloc[1] == pytest.approx(
+        1.02919912e-10, rel=1e-8
+    )
+
+
 # --- AC 3: US display ---------------------------------------------------------
 
 
@@ -160,6 +221,10 @@ def test_ac3_us_display(site_si):
         2088.54342, rel=1e-6
     )
     assert row["applied_vertical_stress"] == pytest.approx(200 / PSF, rel=REL)
+    assert row["hydraulic_conductivity_root_time"] == pytest.approx(
+        1.02919912e-8, rel=1e-6
+    )
+    assert us.attrs["units"]["hydraulic_conductivity_root_time"] == "cm/s"
     units = us.attrs["units"]
     assert units["coefficient_of_volume_compressibility"] == "ft²/kip"
     assert units["constrained_modulus"] == "ksf"
@@ -324,6 +389,8 @@ _TWIN_COLUMNS = [
     "coefficient_of_volume_compressibility",
     "constrained_modulus",
     "unload_reload_constrained_modulus",
+    "hydraulic_conductivity_root_time",
+    "hydraulic_conductivity_log_time",
 ]
 
 
@@ -337,6 +404,8 @@ def test_ac10_twins_agree(site_si, site_us, system):
     for column in (
         "coefficient_of_volume_compressibility_reason",
         "constrained_modulus_reason",
+        "hydraulic_conductivity_root_time_reason",
+        "hydraulic_conductivity_log_time_reason",
     ):
         assert si[column].equals(us[column])
 
@@ -347,6 +416,8 @@ def test_ac10_twins_agree(site_si, site_us, system):
 def test_ac11_docstring():
     doc = ht.analysis.oedometer_increments.__doc__
     assert "BS 1377-5:1990, 3.6.2.2.4" in doc
+    assert "Freeze" in doc and "Eq. (8.22)" in doc
+    assert "3.1.1, note 3" in doc
     for reason in (
         FIRST,
         "no stress change",

@@ -1,4 +1,4 @@
-"""Per increment: m_v, Eoed and Eur,oed (docs/analysis/compressibility.md §8)."""
+"""Per increment: m_v, Eoed, Eur,oed and k (docs/analysis/compressibility.md §8)."""
 
 from collections.abc import Mapping
 from typing import Any
@@ -8,6 +8,7 @@ import pandas as pd
 
 from hangtu import units as _units
 from hangtu._data import numeric_column, rows_text
+from hangtu._settings import settings
 from hangtu.analysis._oedometer import (
     CONSTANT_STRESS,
     LOADING,
@@ -36,6 +37,12 @@ VOLUME_COMPRESSIBILITY = "coefficient_of_volume_compressibility"
 CONSTRAINED_MODULUS = "constrained_modulus"
 UNLOAD_RELOAD_MODULUS = "unload_reload_constrained_modulus"
 SPANS = "spans_effective_vertical_stress"
+#: Each k column and the lab's c_v it comes from.
+_REPORTED = "reported_coefficient_of_consolidation"
+CONDUCTIVITY = {
+    "hydraulic_conductivity_root_time": f"{_REPORTED}_root_time",
+    "hydraulic_conductivity_log_time": f"{_REPORTED}_log_time",
+}
 
 #: The reasons a value is blank, worded as the result gives them.
 FIRST_INCREMENT = "first increment: its start stress isn't given"
@@ -47,12 +54,15 @@ NO_END_VOID_RATIO = "no void ratio at the increment's end"
 NOT_POSITIVE = "m_v is not positive"
 NO_BRANCH = "no load branch"
 CONSTANT = "constant stress increment"
+NO_CONSOLIDATION = "no c_v reported"
+CONSOLIDATION_NOT_POSITIVE = "c_v is not positive"
 
 #: The specimen's identifiers, read for its name in messages.
 _IDENTIFIERS = ("specimen_id", "sample_reference", "specimen_reference")
 #: Canonical units the values are computed in (1/kPa is 1000 m²/MN).
 _KPA = "kPa"
 _VOLUME_UNIT = "m2/MN"
+_CONDUCTIVITY_UNIT = "m/s"
 
 
 def oedometer_increments(
@@ -61,7 +71,7 @@ def oedometer_increments(
     units: Mapping[str, str] | None = None,
     display_units: str | None = None,
 ) -> pd.DataFrame:
-    r"""Recompute m_v over each oedometer increment, with Eoed and Eur,oed.
+    r"""Recompute m_v over each oedometer increment, with Eoed, Eur,oed and k.
 
     **The coefficient of volume compressibility** over an increment is the
     void-ratio form of BS 1377-5:1990, 3.6.2.2.4, which gives
@@ -113,6 +123,34 @@ def oedometer_increments(
     False and a note naming the specimens: nothing is extrapolated.
     Without the column, or with it blank, the flag is blank.
 
+    **The hydraulic conductivity** over an increment follows from
+    Terzaghi's coefficient of consolidation, $c_v = k/(m_v\gamma_w)$
+    (Freeze & Cherry 1979, Eq. 8.22, there with the hydraulic conductivity
+    $K'$, the vertical compressibility $\alpha'$ for $m_v$ and $\rho g$ for
+    $\gamma_w$), rearranged:
+
+    $$
+    k = c_v\, m_v\, \gamma_w
+    $$
+
+    with $c_v$ the lab's (``reported_coefficient_of_consolidation_root_time``
+    and ``reported_coefficient_of_consolidation_log_time``, each giving its
+    own column, ``hydraulic_conductivity_root_time`` and
+    ``hydraulic_conductivity_log_time``, so neither method is preferred),
+    $m_v$ the recomputed one, and $\gamma_w$
+    ``ht.settings.water_unit_weight`` (9.81 kN/m³ by default), recorded in
+    ``attrs["oedometer_increments"]``. The units are converted exactly, with
+    a year of 365.25 days. The relation holds for one-dimensional
+    consolidation of a saturated soil, with the compressibility of the pore
+    water neglected beside the soil's, as it is for clays. A $k$ from an
+    oedometer is a vertical $k$ of a small specimen, which can miss the
+    fabric (laminations, fissures, root holes) that drains the soil in situ
+    (BS 1377-5:1990, 3.1.1, note 3), so it is usually below the field value:
+    a check on other measurements, not a design value on its own. Unload and
+    reload values are an extension, as their $m_v$ is. It is blank with
+    ``"no c_v reported"`` or ``"c_v is not positive"``, else with $m_v$'s
+    reason or ``"m_v is not positive"``, in its ``_reason`` column.
+
     **When an increment gives no value,** it is blank with the first
     reason that applies, in ``coefficient_of_volume_compressibility_reason``:
 
@@ -132,12 +170,14 @@ def oedometer_increments(
 
     **Valid for:** incremental-load oedometer tests, rows in the order the
     increments were applied, void ratios as the lab reports them at each
-    increment's start and end. **Assumptions:** one-dimensional compression.
-    **Judgments taken:** none.
+    increment's start and end. **Assumptions:** one-dimensional compression;
+    for $k$, a saturated specimen and the lab's $c_v$ as reported.
+    **Judgments taken:** none ($\gamma_w$ is a setting).
 
-    Source: BS 1377-5:1990, Methods of test for soils for civil engineering
+    Sources: BS 1377-5:1990, Methods of test for soils for civil engineering
     purposes, Part 5: Compressibility, permeability and durability tests,
-    3.6.2.2.4.
+    3.6.2.2.4 and 3.1.1, note 3. Freeze, R.A. & Cherry, J.A. (1979).
+    *Groundwater*. Prentice-Hall, §8.3, Eq. (8.22), after Terzaghi (1925).
 
     Parameters
     ----------
@@ -146,18 +186,19 @@ def oedometer_increments(
         ``ht.template("oedometer")``'s shape): ``specimen_id``,
         ``applied_vertical_stress`` and ``void_ratio_at_increment_end``, in
         the order the increments were applied.
-        ``void_ratio_at_increment_start``, ``load_branch`` and
-        ``effective_vertical_stress`` (one value per specimen) are read
-        where present.
+        ``void_ratio_at_increment_start``, ``load_branch``,
+        ``effective_vertical_stress`` (one value per specimen) and the two
+        ``reported_coefficient_of_consolidation_`` columns are read where
+        present.
     units : dict, optional
         ``{column: unit}`` for ``df``, overriding ``df.attrs["units"]``.
     display_units : {"SI", "US"}, optional
-        Write the stresses in kPa or psf, $m_v$ in m²/MN or ft²/kip and the
-        moduli in MPa or ksf (or the units the settings' display overrides
-        name); ``applied_vertical_stress`` is converted too, so a row's two
-        stresses share a unit. None keeps the stresses in
-        ``applied_vertical_stress``'s unit and writes $m_v$ in m²/MN and the
-        moduli in kPa.
+        Write the stresses in kPa or psf, $m_v$ in m²/MN or ft²/kip, the
+        moduli in MPa or ksf and $k$ in m/s or cm/s (or the units the
+        settings' display overrides name); ``applied_vertical_stress`` is
+        converted too, so a row's two stresses share a unit. None keeps the
+        stresses in ``applied_vertical_stress``'s unit and writes $m_v$ in
+        m²/MN, the moduli in kPa and $k$ in m/s.
 
     Returns
     -------
@@ -165,11 +206,12 @@ def oedometer_increments(
         A copy of ``df``, no row dropped or reordered, with
         ``applied_vertical_stress_at_increment_start``,
         ``coefficient_of_volume_compressibility``, ``constrained_modulus``,
+        the two ``hydraulic_conductivity_`` columns,
         ``unload_reload_constrained_modulus``,
         ``spans_effective_vertical_stress`` and the ``_reason`` columns
         added (or replaced), ``load_branch`` where it was missing, and
         ``attrs["units"]`` naming each unit. ``attrs["oedometer_increments"]``
-        holds the notes.
+        holds the notes and the water unit weight.
 
     Raises
     ------
@@ -298,7 +340,17 @@ def oedometer_increments(
     if unit and in_situ_stress is not None and display_units is not None:
         result[_IN_SITU] = in_situ_stress
         result.attrs["units"][_IN_SITU] = unit
-    result.attrs["oedometer_increments"] = {"notes": notes}
+    for column, consolidation in CONDUCTIVITY.items():
+        values, why = _conductivity(df, consolidation, units, compressibility, reason)
+        result[column], conductivity_unit = _written(
+            values, _CONDUCTIVITY_UNIT, system, "hydraulic_conductivity"
+        )
+        result[f"{column}_reason"] = pd.Series(why, index=df.index, dtype=object)
+        result.attrs["units"][column] = conductivity_unit
+    result.attrs["oedometer_increments"] = {
+        "notes": notes,
+        "water_unit_weight": settings.water_unit_weight,
+    }
     return result
 
 
@@ -400,6 +452,52 @@ def _spans(
         elif branch[row] in (UNLOADING, RELOADING) and not found_unload_reload:
             flags[j] = found_unload_reload = True
     return flags
+
+
+def _conductivity(
+    df: pd.DataFrame,
+    column: str,
+    units: Mapping[str, str] | None,
+    compressibility: np.ndarray,
+    reason: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return k = c_v m_v γw in m/s from the lab's c_v in ``column``, and why blank.
+
+    ``compressibility`` is m_v in 1/kPa. A column absent or blank throughout
+    needs no unit.
+    """
+    n = len(df)
+    if column not in df.columns or df[column].isna().all():
+        return np.full(n, np.nan), np.full(n, NO_CONSOLIDATION, dtype=object)
+    declared = _units.resolve_units(df, [column], units, analysis=True)[column]
+    parsed = _units.parse_unit(declared, column)
+    _units.check_dimension(parsed, "consolidation_coefficient", column)
+    consolidation = _units.convert(
+        numeric_column(df, column),
+        parsed,
+        "consolidation_coefficient",
+        _units.ureg.Unit("meter**2 / year"),
+    )
+    value, unit = _units.parse_quantity(settings.water_unit_weight, "unit_weight")
+    gamma_w = _units.convert(
+        [value], _units.parse_unit(unit), "unit_weight", _units.ureg.Unit("kN/m^3")
+    )[0]
+    # m²/yr × 1/kPa × kN/m³ = 10⁻³ m/yr; a year of 365.25 days in pint.
+    per_year = _units.ureg.Quantity(1.0, "meter**2 / year / kilopascal * kN / m**3")
+    factor = float(per_year.to("meter / second").magnitude)
+    conductivity = consolidation * compressibility * gamma_w * factor
+    why = np.full(n, None, dtype=object)
+    for row in range(n):
+        if np.isnan(consolidation[row]):
+            why[row] = NO_CONSOLIDATION
+        elif consolidation[row] <= 0:
+            why[row] = CONSOLIDATION_NOT_POSITIVE
+        elif np.isnan(compressibility[row]):
+            why[row] = reason[row]
+        elif compressibility[row] <= 0:
+            why[row] = NOT_POSITIVE
+    conductivity[why != None] = np.nan  # noqa: E711 (an object array's None)
+    return conductivity, why
 
 
 def _label(df: pd.DataFrame, positions: np.ndarray) -> str:
