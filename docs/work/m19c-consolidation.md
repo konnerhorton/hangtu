@@ -319,3 +319,153 @@ Golden values hand-calculated from the M19 (a) specimen BH1-U3 (its table: the M
     `consolidation_coefficients` have reference entries (`tests/docs/test_site.py`); their docstrings give the
     equations, the BS clause, the k source, the validity and each reason's wording, and cite no internal file.
 12. **P14:** its acceptance criteria (P14 §12).
+
+## Plan
+Draft, 2026-11-21. Seven commits, each green: the tests it touches, then the CI command with `-n 3`. Steps 1–4 on
+Opus (a refactor that the calculation then builds on, the calculation, k's citation and validity, E003's interval
+arithmetic), 5–6 on Sonnet (the plot and the docs site, with the spec's values and P14 §12 deciding correctness),
+7 on Opus (the figure judged against P14, the sheets, close-out): two session boundaries, after 4 and after 6. A
+step past about 300 changed lines without test data splits as noted. Reused, not rebuilt:
+- **Oedometer:** `oedometer_load_branch()` and the branch constants (`analysis/_oedometer.py`); from
+  `analysis/_oedometer_fit.py`, `_branches()`, `_stresses()`, `_one_value()`, `_in_situ()`, `_specimen_label()` and
+  `_stress_text()`, which step 1 moves to `_oedometer.py` so both functions read the frame alike.
+- **Units:** `resolve_units`, `parse_unit`, `check_dimension`, `convert`, `to_display` (`hangtu.units`), as
+  `oedometer_fit()` uses them; `numeric_column`, `rows_text` (`_data`); `ColumnError`, `HangtuError`, `warn`
+  (`errors`); `group_keys()` (`stats/_rows.py`).
+- **QC:** `_number()`, `_rounding()`, `_specimens()`, `_void_ratio()`, `_at()` (`qc/_oedometer.py`), as E001 and E002
+  read the raw `CONS` rows; `Finding`, `rule` (`qc/_registry.py`).
+- **Plotting:** `style.context`/`style_axes`, `figure_size`, `axis_label`, `add_legend`, `Notes`, `figure_of`,
+  `hint_missing`, `resolve_palette`, `format_number`, `_layers`, as `plot/_consolidation_curve.py` uses them.
+- **Data:** `site_si.ags` (BH1-U3) as it is; `site_us.ags` and `qc_defects.ags` changed in step 4 only; the example
+  project's `site.ags` as it is (spec, Changes).
+
+Code cites `docs/analysis/compressibility.md` §8, which step 7 writes, as `oedometer_fit()` cites the earlier
+sections; the registry's `ags` entries for the new columns say `"derived: docs/analysis/compressibility.md"`.
+
+### 1. `M19: share the oedometer frame readers between the analyses` (Opus)
+- Refactor only, no behavior change: `_branches()`, `_stresses()`, `_one_value()`, `_in_situ()`,
+  `_specimen_label()` and `_stress_text()` move from `analysis/_oedometer_fit.py` to `analysis/_oedometer.py`
+  and lose their leading underscore, since another module now imports them; `_in_situ()`'s docstring loses its
+  reference to the fit's decision 11. `_stress_text()`'s lazy import of `format_number` moves with it.
+- Tests: `tests/analysis/test_oedometer_fit.py`, `tests/analysis/test_oedometer_load_branch.py`,
+  `tests/plot/test_consolidation_curve*.py` unchanged and green.
+
+### 2. `M19: add oedometer_increments() with m_v and the moduli` (Opus)
+- `columns.yaml`: all of decision 6's columns now, with their kinds and labels (text and bool columns without a
+  label, as the registry allows), the `ags` entry above; no `used_by` yet (step 5 adds it, since
+  `tests/test_registry.py` checks each `used_by` is callable; the M19 (b) build's note). The k columns too, so step 3
+  adds no registry change. `tests/test_registry.py` stays green.
+- `src/hangtu/analysis/_oedometer_increments.py` (new), exported in `analysis/__init__.py`:
+  - inputs (decision 8): the required columns, each missing one an error naming it and `ht.template("oedometer")`;
+    `load_branch` read or added with the note (decision 3); per `specimen_id` in `group_keys()` order, rows in frame
+    order; a copy of the frame returned with the new columns appended, `attrs["units"]` naming each;
+  - σ′1 from the previous row of the specimen; e1 from `void_ratio_at_increment_start`, else the previous end, with
+    one note naming the rows (`rows_text`); m_v (decision 1) computed in 1/kPa, written in m²/MN or ft²/kip;
+  - the reasons, worded as AC 1 and 6 give them: "first increment: its start stress isn't given", "no stress
+    change", "no stress", "the previous increment has no stress", "no void ratio …", "m_v is not positive"; an m_v of
+    0 or less kept;
+  - Eoed and Eur,oed (decision 4) as 1/m_v in the branch's column, blank on the other's rows and on
+    `constant_stress`; one `constrained_modulus_reason` for whichever the row takes;
+  - `spans_effective_vertical_stress` (decision 5): σ′v0 through `in_situ()`, the first loading row and the first
+    unload or reload row holding it, all False with one note naming the specimens when none does, blank with the
+    `vertical_stress()` note without the column; two σ′v0 in a specimen an error naming it;
+  - units (decision 8): stresses in `applied_vertical_stress`'s unit or `display_units=`'s; m_v and the moduli in
+    the display system's units, else canonical;
+  - docstring per the sheets' `TEMPLATE.md` checklist: the m_v equation and BS 1377-5:1990, 3.6.2.2.4; the unload
+    and reload values as hangtu's extension (decision 2); the moduli as secants with no stress chosen; σ′v0's
+    increment and the recompression remark; inputs and outputs with units; each reason's wording; an example on
+    `p.oedometer()`. k's parts are left to step 3.
+- `docs/site/reference/analysis.md`: `oedometer_increments`.
+- Tests: `tests/analysis/test_oedometer_increments.py` (new), `site_si.ags` and `site_us.ags` through
+  `Project.from_ags` as `test_oedometer_fit.py` does: AC 1, 3 (m_v, Eoed, σ′1), 4, 5, 6, 7; AC 10 for the columns
+  built so far (both twins, each `display_units`, `reported_coefficient_of_volume_compressibility` left out until
+  step 4); AC 11's docstring and reference checks (`tests/docs/test_site.py`, `tests/test_errors.py`).
+- If past about 300 lines: (2a) inputs, σ′1, e1, m_v and its reasons (AC 1, 5, 6, 7), then (2b) the moduli, σ′v0 and
+  units (AC 3, 4).
+
+### 3. `M19: add k from the lab's c_v to oedometer_increments()` (Opus)
+- `_oedometer_increments.py`: decision 7: `hydraulic_conductivity_root_time` and `…_log_time` from each reported
+  c_v, the recomputed m_v and `ht.settings.water_unit_weight`, through pint in canonical units (m/s), written in
+  the display system's unit (cm/s for US, as AC 3); γw recorded in `attrs`; the reasons "no c_v reported", "c_v is
+  not positive" and m_v's own reason where m_v is blank or not positive.
+- The docstring's k paragraph: the relation as Terzaghi's c_v rearranged, cited to Freeze & Cherry (1979), §8.3,
+  Eq. (8.22) (Sources); validity (one-dimensional, saturated, pore fluid compressibility neglected); the vertical
+  small-specimen caveat (BS 1377-5:1990, 3.1.1, note 3); the unload and reload values as hangtu's extension.
+- Tests, same file: AC 2 (with the setting changed and restored in a fixture), AC 3's k, AC 10 for the k columns.
+
+### 4. `M19: add QC E003, m_v against the lab's void ratios` (Opus)
+- `src/hangtu/qc/_oedometer.py`: `@rule("E003")` (decision 9): each specimen's rows from `_specimens()`; e1 as E002
+  reads it, σ′1 the previous `CONS_INCF`; the skips; the intervals from the raw text (each e ± half its last place
+  by `TYPE`, the stresses as written, the reported m_v ± half its last place but never narrower than half a unit in
+  its second significant figure); the recomputed interval converted to `CONS_INMV`'s unit through pint; one
+  warning per increment whose intervals don't overlap, the message giving both values in the file's unit, BS
+  1377-5:1990, 3.6.2.2.4, and the 1 + e0 hint. Interval ends of a quotient taken from the four corner values, so
+  the sign of Δσ′ needn't be special-cased beyond the skip.
+- `src/hangtu/qc/rules.yaml`: E003 between E002 and E004, warning, no thresholds (the comment says the bounds are the
+  values' rounding).
+- `tests/data/ags/_make_files.py`:
+  - `site_us.ags`'s `CONS_INMV` (decision 10): the recomputed m_v in ft²/kip to 2SF with `TYPE` `2SF` (the AC
+    table's US column), not `to_us()`'s 10SF conversion; the other converted headings unchanged;
+  - `qc_defects.ags`: AC 8's cases on a new specimen (or two) appended after the existing `CONS` rows, so the lines
+    of E001–E005's cases don't move; the file regenerated with `_make_files.py`, and every other file checked
+    unchanged (`git diff --stat tests/data/ags`).
+- `tests/data/ags/README.md`: `site_us.ags`'s m_v as a US lab writes it; `qc_defects.ags`'s E003 cases with their
+  lines in the case table; "but E003, which isn't built" dropped.
+- Tests: `tests/qc/test_oedometer.py`: AC 8 (each case, the interval ends quoted in the spec, the message's parts);
+  `tests/qc/test_qc_acceptance.py`: E003's lines in the case list, and AC 9 on `site_si.ags`, `site_us.ags`,
+  `site_v404.ags` and the example `site.ags`; `tests/datasets/test_oedometer.py`: the twin test compares
+  `reported_coefficient_of_volume_compressibility` to 2SF in ft²/kip (decision 10, AC 10), and its US m_v at line
+  128 to the new value; `tests/analysis/test_oedometer_increments.py`: AC 10's reported column.
+- `docs/site/guides/ags-and-qc.md`: no per-rule list exists (it says "about 60 rules" and names the groups); the
+  count is checked against `rules.yaml` and changed only if it no longer holds.
+
+### 5. `M19: add ht.plot.consolidation_coefficients() (P14)` (Sonnet)
+- `src/hangtu/_settings.py`: `figure_sizes` gains `"stacked": (6.5, 6.0)` in the default; `docs/plots/P00-framework.md`
+  and `docs/plots/README.md`'s `figure_sizes` lines list it (P14 §5).
+- `src/hangtu/plot/_consolidation_coefficients.py` (new), exported in `plot/__init__.py`, as P14 §10: calls
+  `oedometer_increments()` with `units=` and `display_units=` and draws its columns, computing nothing of its own:
+  two stacked panels sharing a log x; m_v segments from σ′1 to σ′2, loading solid, unload and reload thin dashed
+  and lighter (§7); the lab's m_v as × at √(σ′1 σ′2); c_v root time solid and log time dotted, the first increment's
+  c_v as × at its end stress; σ′v0's dotted line through both panels and the spanning increments thicker; §6's
+  limits; §8's `reported=`, `branches=` and the footnote from the reasons; §11's edge cases; returns `(fig, axs)`.
+- `columns.yaml`: `used_by: [plot.consolidation_coefficients]` on decision 6's columns and the three `reported_`
+  columns.
+- `docs/site/reference/plot.md`: `consolidation_coefficients`.
+- Tests: `tests/plot/test_consolidation_coefficients.py` (new), P14 AC 1–4, 6, 8 and 9 read from the drawn artists
+  (segment ends and y values, line styles and widths, axis scales and sharing);
+  `tests/plot/test_consolidation_coefficients_acceptance.py` (new), AC 5 and 7 on the twin files and the example
+  project; `tests/test_settings.py` for the `stacked` default.
+- If past about 300 lines: (5a) the panels, segments, marks, limits and returns (AC 1–3, 6, 8), then (5b) σ′v0, the
+  footnote, units and the edge cases (AC 4, 5, 7, 9).
+
+### 6. `M19: draw the consolidation coefficients on the docs site` (Sonnet)
+- `docs/site/examples/consolidation-coefficients.py` (new): the example project's oedometer specimens with
+  `vertical_stress()` where the log allows it (B-5-U2-C1, as P13's page found), US units, and
+  `oedometer_increments()`'s columns printed for one specimen. `docs/site/plots/consolidation-coefficients.md`
+  (new): what it shows, segments rather than points, the branches, the lab's marks, σ′v0's increments, k as a check
+  and not a design value, common options; linked in `zensical.toml`'s `nav` and `docs/site/plots/index.md`.
+- `docs/site/guides/datasets.md`: `p.oedometer()`'s row points to P14 and `oedometer_increments()` beside P13.
+- Run `docs/prepare_site.py` and `zensical build --clean --strict`.
+
+### 7. `M19: close out (c1)` (Opus)
+- **Visual check:** `docs/plots/img/P14-us.png` (the example's specimens, psf) and `P14-si.png` (BH1-U3, kPa, σ′v0
+  = 80 kPa), 100 dpi, looked at against P14, committed (P14 AC 10).
+- **Close-out:**
+  - `docs/analysis/compressibility.md`: title and status widened to the oedometer analyses; §8 "Increments: m_v, the
+    moduli and k" with decisions 1–8 and the k source, linking the API reference rather than restating the
+    docstring; Related gains P14. `CLAUDE.md`'s `docs/analysis/` list: `compressibility.md` becomes "the oedometer
+    fit and increments";
+  - `docs/data/qc.md` §4.15: E003's row and bullet (decision 9, the 2SF floor, the converted-file caveat, ISO
+    17892-5 not checked); the status line drops "E003 isn't built yet";
+  - SPEC §4: the "Oedometer increments" bullet (spec, Changes);
+  - `docs/plots/P14-consolidation-coefficients.md` status `built` with its images; `docs/plots/README.md` P14
+    `built`;
+  - sheets 11 §5.3 and 12 §5.4 (`docs/drafts/parameters/`) rewritten to what is built, 12's k source [V] via [6];
+    sheet 06 §5.4's strain (intent decision 3); the parameter index's stage B entries for 11 and 12 (spec,
+    Changes); no site pages (they wait for W5 and W6);
+  - `docs/TODO.md`: #73 deleted; #76 loses its line on the strain; anything deferred here with its trigger;
+  - `STATUS.md`: M19 "(a), (b), (c1) done; (c2) next", the Next line; `CHANGELOG.md` Unreleased:
+    `oedometer_increments()`, `consolidation_coefficients()` and QC E003, in the user's words;
+  - what a future session would get wrong without being told, written where it will be read.
+- **Verification:** every AC of the Spec and of P14 §12 reported as met or not, with its test; the whole suite with
+  `-n 3`; ruff; mypy; the lowest-versions run (then `git checkout uv.lock`); the strict docs build.
