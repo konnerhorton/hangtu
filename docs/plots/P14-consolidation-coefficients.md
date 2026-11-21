@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **ID / function** | P14 · `ht.plot.consolidation_coefficients()` (+ `ht.analysis.oedometer_increments()`) |
-| **Status** | draft (M19 (c1) spec, agreed 2026-11-21) |
+| **Status** | built (M19 (c1)); images: [`img/P14-us.png`](img/P14-us.png), [`img/P14-si.png`](img/P14-si.png) |
 | **Type** | plot + light analysis |
 | **Milestone** | M19 (c1) (`STATUS.md`), [`docs/work/m19c-consolidation.md`](../work/m19c-consolidation.md) |
 | **Depends on** | P00; `p.oedometer()` (M19 a); `oedometer_increments()` (M19 (c1) Spec) |
@@ -66,7 +66,9 @@ from time readings.
 - **Panels:** two, stacked, sharing the x axis: m_v above, c_v below.
 - **Default size:** a new `stacked` kind in P00's `figure_sizes`, (6.5, 6.0) in: `default`'s width, two panels high.
 - **Legend:** README's rule, in the upper panel: the branch styles and the lab's mark once each, colors per specimen.
-  The lower panel's legend names root time and log time.
+  The lower panel's legend names root time and log time. When no corner of the upper panel is clear, its entries
+  join the lower panel's legend, which goes below the x label if that panel has no clear corner either: below the
+  upper panel's x axis is the lower panel.
 
 ## 6. Axes
 | X axis (shared) | Y axis, upper | Y axis, lower |

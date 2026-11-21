@@ -1,14 +1,10 @@
 # Status
 
-**Next:** M19 (c), mv, cv and k from the oedometer increments and P14–P15: its intent is on `m19c-consolidation`
-(`docs/work/m19c-consolidation.md`), the spec next. M20's Soft Soil set is built on M18's model-set base. Then waves
-4–6.
+**Next:** M19 (c2), c_v from settlement–time readings by both constructions and P15: its intent starts from the c_v
+parts of `docs/work/m19c-consolidation.md`. Then M19 (d), rock swelling; M20's Soft Soil set on M18's model-set base.
+Then waves 4–6.
 
 Last checkpoint: 3, after M19 (a), 2026-11-15, 4f03bfd.
-
-**In progress:** M19 (c1) on `m19c-consolidation`, build steps 1–4 of its plan committed (the shared readers,
-`oedometer_increments()` with m_v, the moduli and k, QC E003). Next: step 5, `ht.plot.consolidation_coefficients()`
-(P14), on Sonnet, from the work file's `## Plan` and its `### Notes from the build`.
 
 ## Open
 Each milestone names its wave (SPEC §1.3). A unit's close-out records its status here; a finished milestone
@@ -16,7 +12,7 @@ moves to Done, in one line (its unit's work file has the detail).
 
 | M | Scope | Done when | Status |
 |---|---|---|---|
-| M19 | Wave 3: oedometer (σ′p, Cc, Cs, Eoed, Eur,oed, k from cv·mv, Grob and Huder–Amberg swelling); P13–P15. Five units: (a) data, (b) compressibility and P13, (c1) mv, Eoed, Eur,oed, k and P14, (c2) cv from readings and P15, (d) rock swelling | Golden values; plot criteria | (a) done (`p.oedometer()`, QC E001–E005 but E003); (b) done (`oedometer_fit()`, **P13**); (c1) intent on `m19c-consolidation` |
+| M19 | Wave 3: oedometer (σ′p, Cc, Cs, Eoed, Eur,oed, k from cv·mv, Grob and Huder–Amberg swelling); P13–P15. Five units: (a) data, (b) compressibility and P13, (c1) mv, Eoed, Eur,oed, k and P14, (c2) cv from readings and P15, (d) rock swelling | Golden values; plot criteria | (a) done (`p.oedometer()`, QC E001–E005); (b) done (`oedometer_fit()`, **P13**); (c1) done (`oedometer_increments()`, QC E003, **P14**); (c2) next |
 | M20 | Wave 3: K0 from OCR, SHANSEP; the Soft Soil set | Golden values | Not started |
 | M21 | Wave 4: rock lab datasets (UCS, tensile, point load, slake durability, intact moduli) and RQD | Datasets feed P01 and P07 | Not started |
 | M22 | Wave 4: the Hoek–Brown chain, rock dilatancy, in situ stress; the generalized Hoek–Brown set with residual values | Published worked examples reproduced | Not started |

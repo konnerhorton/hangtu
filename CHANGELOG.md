@@ -11,7 +11,7 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
 ### Added
 - **Plots:** `plasticity_chart()`, `grain_size()`, `water_content_profile()`, `clogging_diagram()`,
   `distribution_fit()`, `representative_profile()`, `failure_envelope()`, `triaxial_shearing()`,
-  `shear_box_envelope()`, `hoek_brown_envelope()` and `consolidation_curve()`.
+  `shear_box_envelope()`, `hoek_brown_envelope()`, `consolidation_curve()` and `consolidation_coefficients()`.
 - **Datasets:** `p.grain_size_summary()`, `p.index_properties()`, `p.density()`, `p.particle_density()`,
   `p.triaxial()`, `p.undrained_strength()`, `p.shear_box()`, `p.oedometer()` and `p.stratigraphy()`.
   `p.oedometer()` gives one row per oedometer load increment, with the void ratios, the lab's m_v and c_v,
@@ -27,6 +27,11 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
   `vertical_stress()`, OCR and the sample quality Δe/e0 graded by Lunne et al. (1997). A curve with no clear break,
   too few points or too short a virgin line gets a reason instead of a value. `consolidation_curve()` draws the
   increments by branch with the fitted lines and both σ′p, so you can judge the fit before using it.
+- **Oedometer increments:** `oedometer_increments()` recomputes m_v for each increment from its void ratios,
+  beside the lab's, and gives the constrained modulus on loading (Eoed) and on unloading or reloading (Eur,oed),
+  and k = c_v·m_v·γw from each of the lab's c_v. Each value belongs to its increment, and the increment spanning
+  σ′v0 is marked rather than interpolated. `consolidation_coefficients()` draws m_v and c_v as segments over each
+  increment's stress range, with the lab's m_v as a mark.
 - `oedometer_load_branch()` marks each oedometer increment as loading, unloading, reloading or held at a
   constant stress, and `ht.template("oedometer")` lays out oedometer tests for a CSV.
 - **Classification and index analyses:** `plasticity()`, `uscs()`, `aashto()`, `gradation()`,
@@ -46,9 +51,9 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
   values), `representative()` (Eurocode 7 characteristic values and US views), `compare()`,
   `compare_groups()`, `crosstab()`, `compare_sources()`, `select()` and the Mohr–Coulomb parameter set,
   `mohr_coulomb_set()`.
-- **QC:** oedometer checks (E001, E002, E004, E005): void ratios that don't follow on from one increment
-  to the next, a void ratio that rises under a larger load, increments out of order, and an initial void
-  ratio that disagrees with the densities.
+- **QC:** oedometer checks (E001 to E005): void ratios that don't follow on from one increment to the next,
+  a void ratio that rises under a larger load, a lab's m_v that doesn't follow from its own void ratios,
+  increments out of order, and an initial void ratio that disagrees with the densities.
 - **QC:** `p.qc(accepted=...)` takes findings a reviewer has checked and accepted, each with a reason. They
   stay in the report, marked accepted, so it shows what is still open.
 - The project's vertical datum is read from the file's `LOCA_DATM` and shown on elevation axes.

@@ -489,3 +489,15 @@ sections; the registry's `ags` entries for the new columns say `"derived: docs/a
 - **Step 4, the twin tests:** the ingest twin test (`tests/ags/test_ingest_acceptance.py`) needed the same exception
   as the dataset's: `CONS_INMV` is compared to the US 2SF values, not to the SI file. The dataset test's US m_v at
   line 128 reads `site_si.ags` in US display, so it didn't change.
+- **Steps 5–7 on Opus,** at the user's request, in one session (the plan had 5–6 on Sonnet).
+- **Step 5, the lab's columns:** `oedometer_increments()` converts only the stresses with `display_units=`, so P14
+  converts `reported_coefficient_of_volume_compressibility` and both `reported_` c_v to the display system itself. A
+  `reported_` column with no unit isn't drawn, and the footnote says so.
+- **Step 5, the spec's wording:** the specimen is named as P13 names it, `BH1-U3-OED1` (sample and specimen
+  references), not `BH1-U3`; P14 §8 and AC 5 now say so. "No c_v reported" is written in the lower panel only, not
+  in the footnote too (§11 over §8's footnote row). A `constant_stress` increment is named in the footnote whatever
+  `branches=` holds, since it has no branch to choose.
+- **Step 7, the legend:** on BH1-U3 with σ′v0 = 80 kPa no corner of the m_v panel is clear before the footnote is
+  laid out. When none is, the upper entries join the lower panel's legend (P14 §5 updated), since README's "below the
+  x label" would put them between the panels. In the committed image a corner was clear and the legend sits in the
+  lower right, just under the 400–1600 kPa unload segment, which stays visible.

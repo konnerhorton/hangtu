@@ -344,3 +344,22 @@ def test_hint_without_in_situ_stress(site_si):
     with pytest.warns(ht.HangtuHint, match="effective_vertical_stress"):
         ht.plot.consolidation_coefficients(site_si, display_units="SI")
     plt.close("all")
+
+
+def test_legend_without_a_clear_corner():
+    """§5: with no clear corner in the m_v panel, its entries leave it."""
+    from matplotlib.lines import Line2D
+
+    from hangtu.plot import _layers
+    from hangtu.plot._consolidation_coefficients import _legend_in_a_clear_corner
+
+    _, ax = plt.subplots()
+    for ys in ((0, 1), (1, 0)):
+        ax.plot([0, 1], ys, zorder=_layers.LINES)
+    assert not _legend_in_a_clear_corner(ax, [[Line2D([], [], label="m_v")]])
+    assert ax.get_legend() is None
+    _, ax2 = plt.subplots()
+    ax2.plot([0, 1], [0, 0.1], zorder=_layers.LINES)
+    assert _legend_in_a_clear_corner(ax2, [[Line2D([], [], label="m_v")]])
+    assert ax2.get_legend() is not None
+    plt.close("all")

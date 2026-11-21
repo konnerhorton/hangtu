@@ -30,7 +30,7 @@ from hangtu.errors import HangtuError
 from hangtu.plot import _layers, _values, style
 from hangtu.plot._hints import hint_missing
 from hangtu.plot._labels import axis_label
-from hangtu.plot._legend import add_legend
+from hangtu.plot._legend import CORNERS, _corner_obstacles, add_legend
 from hangtu.plot._limits import log_limits, set_log_axis
 from hangtu.plot._notes import Notes
 from hangtu.plot._palette import resolve_palette
@@ -257,10 +257,31 @@ def consolidation_coefficients(
             if len(drawn) > 1
             else []
         )
-        add_legend(upper, [handles, _volume_handles(marks)], Notes(), where="inside")
-        placed = add_legend(lower, [[], _consolidation_handles(marks)], notes)
+        lower_sections = [[], _consolidation_handles(marks)]
+        if not _legend_in_a_clear_corner(upper, [handles, _volume_handles(marks)]):
+            lower_sections = [handles, _volume_handles(marks) + lower_sections[1]]
+        placed = add_legend(lower, lower_sections, notes)
         notes.render(lower, where=placed.where, below=placed.legend)
     return fig, np.asarray(axs)
+
+
+def _legend_in_a_clear_corner(ax: Axes, sections: list[list[Line2D]]) -> bool:
+    """Put the m_v panel's legend in a clear corner of it, or draw none (P14 §5).
+
+    Returns False when no corner is clear: the entries then join the c_v
+    panel's legend, which goes below the x label if that panel has no clear
+    corner either, so no legend covers a segment.
+    """
+    legend = add_legend(ax, sections, Notes(), where="inside").legend
+    if legend is None:
+        return True
+    counts = _corner_obstacles(ax, legend)
+    clear = [corner for corner in CORNERS if counts[corner] == 0]
+    if clear:
+        legend.set_loc(clear[0])
+        return True
+    legend.remove()
+    return False
 
 
 def _check_branches(branches: Sequence[str] | str) -> tuple[str, ...]:
