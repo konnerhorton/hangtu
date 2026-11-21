@@ -58,7 +58,7 @@ Each figure is a separate feature with its own spec file in this folder, written
 - Overlays come from data and are never hard-coded: published zones (A-line, classification bands, etc.) live in `config/defaults.yaml` or in the plot module, with their source cited.
 
 ### Output
-- **Default sizes are global settings**, by plot kind: `ht.settings.figure_sizes = {"default": (6.5, 4.5), "profile": (4.5, 6.0), "chart": (6.5, 3.5)}` (inches; `default` fits a Letter or A4 page with margins, `profile` is portrait, `chart` is a shorter one for bar charts). Each size is the whole figure, including any legend and footnote. A kind missing from the dict falls back to `default`. Each spec says which kind it uses. `figsize=` overrides the size for one call. With `ax=`, the size comes from the axes.
+- **Default sizes are global settings**, by plot kind: `ht.settings.figure_sizes = {"default": (6.5, 4.5), "profile": (4.5, 6.0), "chart": (6.5, 3.5), "grid": (3.75, 2.75), "stacked": (6.5, 6.0)}` (inches; `default` fits a Letter or A4 page with margins, `profile` is portrait, `chart` is a shorter one for bar charts, `grid` is one panel of P07's grid, `stacked` is two panels sharing an x axis). Each size is the whole figure, including any legend and footnote. A kind missing from the dict falls back to `default`. Each spec says which kind it uses. `figsize=` overrides the size for one call. With `ax=`, the size comes from the axes.
 - `fig.savefig` is left to the user. The examples show PDF and PNG at 300 dpi.
 
 ---

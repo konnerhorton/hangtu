@@ -1,6 +1,6 @@
 # Plots
 
-Every plot takes a DataFrame and returns `(fig, ax)`, an ordinary matplotlib figure and axes. Pass `ax=` to draw on an axes you already have, such as a panel of an `ht.Sheet`. A plot that runs an analysis returns its result too: `distribution_fit` returns `(fig, axs, result)`, `representative_profile` returns `(fig, ax, result)`, and `failure_envelope`, `triaxial_shearing`, `shear_box_envelope`, `hoek_brown_envelope` and `consolidation_curve` return `(fig, ax, fit)`.
+Every plot takes a DataFrame and returns `(fig, ax)`, an ordinary matplotlib figure and axes. Pass `ax=` to draw on an axes you already have, such as a panel of an `ht.Sheet`. A plot that runs an analysis returns its result too: `distribution_fit` returns `(fig, axs, result)`, `representative_profile` returns `(fig, ax, result)`, and `failure_envelope`, `triaxial_shearing`, `shear_box_envelope`, `hoek_brown_envelope` and `consolidation_curve` return `(fig, ax, fit)`. `consolidation_coefficients` draws two panels sharing an axis and returns `(fig, axs)`.
 
 ::: hangtu.plot.profile
 
@@ -33,6 +33,8 @@ Every plot takes a DataFrame and returns `(fig, ax)`, an ordinary matplotlib fig
 ::: hangtu.plot.hoek_brown_envelope
 
 ::: hangtu.plot.consolidation_curve
+
+::: hangtu.plot.consolidation_coefficients
 
 ## Colors
 

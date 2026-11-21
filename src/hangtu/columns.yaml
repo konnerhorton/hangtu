@@ -1544,7 +1544,7 @@ columns:
     scale: ratio
     label: Coefficient of volume compressibility (reported), m_v
     ags: [CONS.CONS_INMV]
-    used_by: []
+    used_by: [plot.consolidation_coefficients]
   reported_coefficient_of_consolidation_root_time:
     description: The lab's coefficient of consolidation over an oedometer increment, by the root time method
     type: number
@@ -1552,7 +1552,7 @@ columns:
     scale: ratio
     label: Coefficient of consolidation, root time (reported), c_v
     ags: [CONS.CONS_CVRT]
-    used_by: []
+    used_by: [plot.consolidation_coefficients]
   reported_coefficient_of_consolidation_log_time:
     description: The lab's coefficient of consolidation over an oedometer increment, by the log time method
     type: number
@@ -1560,7 +1560,7 @@ columns:
     scale: ratio
     label: Coefficient of consolidation, log time (reported), c_v
     ags: [CONS.CONS_CVLG]
-    used_by: []
+    used_by: [plot.consolidation_coefficients]
   swelling_pressure:
     description: Swelling pressure of a consolidation specimen, as the lab reports it
     type: number
@@ -1604,7 +1604,7 @@ columns:
     scale: ratio
     label: Applied vertical stress at increment start, σ′1
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_coefficients]
   coefficient_of_volume_compressibility:
     description: Coefficient of volume compressibility over an oedometer increment, recomputed from its void ratios and stresses
     type: number
@@ -1612,12 +1612,12 @@ columns:
     scale: ratio
     label: Coefficient of volume compressibility, m_v
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_coefficients]
   coefficient_of_volume_compressibility_reason:
     description: Why an increment's coefficient of volume compressibility is blank
     type: text
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_coefficients]
   constrained_modulus:
     description: Constrained (oedometer) modulus over a loading increment, Eoed, 1/m_v
     type: number
@@ -1625,7 +1625,7 @@ columns:
     scale: ratio
     label: Constrained modulus on loading, Eoed
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_coefficients]
   unload_reload_constrained_modulus:
     description: Constrained (oedometer) modulus over an unloading or reloading increment, Eur,oed, 1/m_v
     type: number
@@ -1633,12 +1633,12 @@ columns:
     scale: ratio
     label: Constrained modulus on unloading or reloading, Eur,oed
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_coefficients]
   constrained_modulus_reason:
     description: Why an increment's constrained modulus (on loading, or on unloading or reloading, by its branch) is blank
     type: text
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_coefficients]
   hydraulic_conductivity_root_time:
     description: Vertical hydraulic conductivity over an oedometer increment, from the lab's root time c_v and the recomputed m_v
     type: number
@@ -1646,12 +1646,12 @@ columns:
     scale: ratio
     label: Hydraulic conductivity from c_v (root time), k
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_coefficients]
   hydraulic_conductivity_root_time_reason:
     description: Why an increment's hydraulic conductivity from the root time c_v is blank
     type: text
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_coefficients]
   hydraulic_conductivity_log_time:
     description: Vertical hydraulic conductivity over an oedometer increment, from the lab's log time c_v and the recomputed m_v
     type: number
@@ -1659,17 +1659,17 @@ columns:
     scale: ratio
     label: Hydraulic conductivity from c_v (log time), k
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_coefficients]
   hydraulic_conductivity_log_time_reason:
     description: Why an increment's hydraulic conductivity from the log time c_v is blank
     type: text
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_coefficients]
   spans_effective_vertical_stress:
     description: True on the increment whose stress range holds the specimen's in situ effective vertical stress (the first such loading increment, and the first such unloading or reloading one)
     type: bool
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_coefficients]
   # Readings during shearing (M11 c, docs/analysis/strength.md §2): one
   # row per strain step, from a CSV the user shapes. Bare names, against the
   # _at_failure values of a stage; ht.analysis.triaxial_failure_from_readings()

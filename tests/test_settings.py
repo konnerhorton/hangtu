@@ -13,6 +13,7 @@ def test_defaults():
         "profile": (4.5, 6.0),
         "chart": (6.5, 3.5),
         "grid": (3.75, 2.75),
+        "stacked": (6.5, 6.0),
     }
     assert ht.settings.hints is True
     assert ht.settings.hammer_efficiency is None

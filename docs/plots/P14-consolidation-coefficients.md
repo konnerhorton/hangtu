@@ -101,7 +101,7 @@ whose start stress isn't known, has no m_v segment; its c_v is drawn as a × at 
 |---|---|---|---|---|---|
 | Lab's m_v | `reported=` | `True` | `reported_coefficient_of_volume_compressibility` | § 7 | `False` leaves the marks out |
 | Branches | `branches=` | `("loading", "unloading", "reloading")` | `load_branch` | § 7 | a subset draws only those; an unknown value is an error listing the three |
-| Footnote | — | when anything isn't drawn | `oedometer_increments()`'s reasons | README | "Not drawn for BH1-U3: increment 1 (start stress not given)"; "No c_v reported" when neither c_v column has a value |
+| Footnote | — | when anything isn't drawn | `oedometer_increments()`'s reasons | README | "Not drawn for BH1-U3-OED1: increment 1 (start stress not given)", the specimen named as P13 names it; "No c_v reported" is written in the lower panel instead (§11) |
 | `note` | as README | off | | | |
 
 ## 9. Units behavior
@@ -150,7 +150,7 @@ Golden values are the M19 (c1) Spec's, hand-calculated there. Tolerance 1e-9 rel
 2. **Lab's marks:** 6 × marks, increment 4's at (141.421356 kPa, 0.16 m²/MN).
 3. **c_v:** increment 4's root time segment from 100 to 200 kPa at 2.1 m²/yr and log time at 1.8.
 4. **σ′v0:** with σ′v0 = 80 kPa, the dotted line at 80 kPa and increments 3 (loading) and 8 (unloading) thicker.
-5. **Footnote:** "Not drawn for BH1-U3: increment 1 (start stress not given)".
+5. **Footnote:** "Not drawn for BH1-U3-OED1: increment 1 (start stress not given)".
 6. **Branches:** `branches=("loading",)` draws 6 m_v segments and no dashed one.
 7. **Units:** `display_units="US"` on `site_si.ags` draws increment 4 at 0.00754868948 ft²/kip and 22.6042118
    ft²/yr, x in psf.
