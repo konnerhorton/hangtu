@@ -116,7 +116,7 @@ c_v from settlement–time readings by both constructions, k from it, the `oedom
 go to their topic docs at close-out (`compressibility.md` §9, `datasets.md` §6.15 and §6.18, `ingest.md` §7); the
 figure's spec is [`P15-consolidation-time-curves.md`](../plots/P15-consolidation-time-curves.md), promoted in this
 commit. The three kinds of choice (intent decision 1) go into SPEC §4 and `judgments.md` §5.10 in this commit,
-because they bind later units too. 🟡 marks a choice proposed here, awaiting review.
+because they bind later units too. The choices this spec proposed were approved in review on 2026-11-22.
 
 ### Changes
 - **`ht.analysis.consolidation_coefficient_from_readings()`** (new, decisions 1–9), with its reference entry. Reduces
@@ -206,7 +206,7 @@ because they bind later units too. 🟡 marks a choice proposed here, awaiting r
       (3.6.3.2.3). At or past it at the first reading: "t50 before the first reading".
    7. c_v = 0.026 H̄²/t50 (3.6.3.2.4).
 5. **Interpolation is linear,** in √t for root time and log t for log time: what a hand construction on the
-   standard's own plot does when it joins the points. 🟡 A monotone cubic was checked on Terzaghi curves (AC 3's set):
+   standard's own plot does when it joins the points. A monotone cubic was checked on Terzaghi curves (AC 3's set):
    root time −6 % to +3 % against linear's −5 % to +8 %, log time −1 % to +2 % against 0 % to +5 %. Immediate and
    secondary compression move root time as much as the interpolation does, and log time's gain is a few percent on
    a method whose two constructions differ by more. It isn't worth values a reviewer can't follow by hand.
@@ -262,7 +262,7 @@ because they bind later units too. 🟡 marks a choice proposed here, awaiting r
     in minutes in both systems. No other kind has its dimension. In AGS 4.0.3–4.2, 30 standard headings have a
     time unit (`s`, `ms`, `min`, `day`: CPT and DMT dissipation, seismic arrival times, `PLTT_TIME`, `WSTD_NMIN` and
     others) and no dataset reads one; none is in `CONS` or `CONG`. They gain the kind and keep their dictionary
-    unit, as every standard heading does (`ingest.md` §7, step 4). 🟡 That step's "they all match the P00 canonical
+    unit, as every standard heading does (`ingest.md` §7, step 4). That step's "they all match the P00 canonical
     units" is no longer true for time, so `ingest.md` §7 says time is the exception; the plan checks that each
     reader converts from the column's recorded unit, not the kind's canonical one. User-defined headings in a time
     unit convert to minutes. `db.SCHEMA_VERSION` 4 → 5, since stored columns gain a kind.
@@ -287,9 +287,9 @@ because they bind later units too. 🟡 marks a choice proposed here, awaiting r
 
     - The recomputed c_v takes the plain name; the lab's stays `reported_` (M19 (a) decision 4). `percent` is spelled
       out, as `percent_passing` does.
-    - 🟡 k from readings is named `…_from_readings_…` rather than renaming c1's `hydraulic_conductivity_root_time`
-      (k from the lab's c_v) to `…_from_reported_…`, which would be clearer but renames columns c1 just added. They
-      are unreleased, so the rename is still free; the review decides.
+    - k from readings is named `…_from_readings_…`, and c1's `hydraulic_conductivity_root_time` (k from the lab's
+      c_v) keeps its name. Renaming it `…_from_reported_…` would read more clearly, but it would rename columns c1
+      just added, its tests and P14's code, for a gain the labels and descriptions already give.
     - `reason` is checked in the plan against its uses in the judgments file; if it would be read as a judgment
       field, the column is `override_reason`.
 14. **P15** as its spec: one row of panels per increment, root time left and log time right, with each

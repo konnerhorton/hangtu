@@ -62,7 +62,7 @@ calls it with `overrides=` and draws its lines and points; it computes nothing o
 
 ## 5. Figure layout
 - **Panels:** one row per increment, two columns: root time (left) and log time (right). `methods=` draws one column.
-- **Default size:** `default`'s width, 2.4 in per row. 🟡 At most 6 increments in one figure; more raise an error
+- **Default size:** `default`'s width, 2.4 in per row. At most 6 increments in one figure; more raise an error
   naming `increments=`, since a taller figure isn't readable on a page. A loop over `increments=` draws them all.
 - **Legend:** once, below the last row's x labels: readings (fitted, not fitted), the construction lines, the points.
 - **Panel title:** "Increment 4: 100 → 200 kPa" (the increment's `test_stage`, σ′1 → σ′2; "(unloading)" or
@@ -181,7 +181,7 @@ Golden values are the M19 (c2) Spec's, hand-calculated there. Tolerance 1e-9 rel
   fitting method used.
 
 ## 14. Open questions
-- 🟡 The six-increment limit (§5).
+- None open.
 
 **Pitfalls:**
 - Drawing the log time curve with the t = 0 reading at some small time: it has no place on a log axis.
