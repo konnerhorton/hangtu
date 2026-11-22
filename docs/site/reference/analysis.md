@@ -36,6 +36,8 @@ Each analysis is a plain function on a DataFrame. It returns a new DataFrame or 
 
 ::: hangtu.analysis.oedometer_increments
 
+::: hangtu.analysis.consolidation_coefficient_from_readings
+
 ::: hangtu.analysis.triaxial_failure_from_readings
 
 ::: hangtu.analysis.undrained_shear_strength_from_tests

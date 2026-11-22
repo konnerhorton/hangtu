@@ -49,6 +49,7 @@ nav = [
     "plots/hoek-brown-envelope.md",
     "plots/consolidation-curve.md",
     "plots/consolidation-coefficients.md",
+    "plots/consolidation-time-curves.md",
   ] },
   { "Parameters" = [
     "parameters/01-unit-weight-and-vertical-stress.md",

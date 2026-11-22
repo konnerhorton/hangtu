@@ -76,7 +76,7 @@ def test_ac3_triaxial_rows(mapped):
     assert (rows["failure_criterion"] == "Maximum deviator stress").all()
     assert rows["reported_failure_reading"].isna().all()
     # Each reading's own line, in file order.
-    assert list(rows["source_line"]) == [*range(313, 322), *range(347, 353)]
+    assert list(rows["source_line"]) == [*range(325, 334), *range(359, 365)]
     with pytest.warns(UserWarning, match="back pressure"):
         stage_row = stage(p.triaxial(), "7").iloc[0]
     for column in ["loca_id", "depth", "depth_basis", "elevation", "geology_unit"]:
@@ -236,7 +236,7 @@ def test_ac9_shear_box_rows(mapped):
         strict=True,
     )
     assert [tuple(map(float, r)) for r in got] == pytest.approx(BH2_D1, rel=1e-9)
-    assert list(rows["source_line"]) == list(range(380, 387))
+    assert list(rows["source_line"]) == list(range(392, 399))
     us = stage(quiet(p.shear_box_readings, display_units="US"), "14").iloc[3]
     assert us["horizontal_displacement"] == pytest.approx(2.10 / 25.4, rel=1e-6)
     assert us["shear_stress"] == pytest.approx(38 * PSF, rel=1e-6)
@@ -316,3 +316,152 @@ def test_ac13_units(mapped):
     shear = quiet(p.shear_box_readings, display_units="US").attrs["units"]
     assert shear["horizontal_displacement"] == "in"
     assert shear["vertical_displacement"] == "in"
+
+
+# --- M19 (c2): p.oedometer_readings() (datasets.md §6.18) ----------------------------
+# Increment 4's readings are the c2 spec's golden table (its AC 1 and AC 10).
+INCREMENT_4 = [
+    (0, 0.267), (0.1, 0.306), (0.25, 0.317), (0.5, 0.330), (1, 0.348),
+    (2, 0.374), (4, 0.410), (8, 0.460), (15, 0.511), (30, 0.552),
+    (60, 0.565), (120, 0.568), (240, 0.570), (480, 0.573), (1440, 0.578),
+]  # fmt: skip
+
+
+def test_oedometer_readings_carry_their_increment(mapped):
+    p = mapped()
+    df = quiet(p.oedometer_readings)
+    assert list(df.columns) == [*template("oedometer_readings").columns, "source_line"]
+    assert list(dict.fromkeys(df["test_stage"])) == ["2", "3", "4", "5", "6"]
+    assert len(df) == 5 * 15
+    rows = df[df["test_stage"] == "4"]
+    got = zip(rows["elapsed_time"], rows["vertical_displacement"], strict=True)
+    assert [tuple(map(float, r)) for r in got] == pytest.approx(INCREMENT_4, rel=1e-12)
+    increment = quiet(p.oedometer).set_index("test_stage").loc["4"]
+    for column in [
+        "loca_id",
+        "specimen_id",
+        "test_type",
+        "load_branch",
+        "applied_vertical_stress",
+        "void_ratio_at_increment_start",
+        "void_ratio_at_increment_end",
+        "specimen_height",
+        "void_ratio",
+        "reported_coefficient_of_consolidation_root_time",
+        "reported_coefficient_of_consolidation_log_time",
+        "depth",
+    ]:
+        assert (rows[column] == increment[column]).all(), column
+    first = rows.iloc[0]
+    assert (first["load_branch"], first["applied_vertical_stress"]) == ("loading", 200)
+    assert (first["void_ratio_at_increment_start"], first["specimen_height"]) == (
+        0.776,
+        20.0,
+    )
+    assert first["reported_coefficient_of_consolidation_root_time"] == 2.1
+    assert list(rows["source_line"]) == sorted(rows["source_line"])
+    assert df.attrs["units"]["elapsed_time"] == "min"
+    assert df.attrs["units"]["vertical_displacement"] == "mm"
+
+
+@pytest.mark.parametrize("units", ["SI", "US"])
+def test_oedometer_readings_twins(mapped, units):
+    si = quiet(mapped("site_si").oedometer_readings, display_units=units)
+    us = quiet(mapped("site_us").oedometer_readings, display_units=units)
+    pd.testing.assert_frame_equal(
+        si.drop(columns=["source_line", "sample_reference"]),
+        us.drop(columns=["source_line", "sample_reference"]),
+        rtol=1e-9,
+    )
+    if units == "US":
+        assert us.attrs["units"]["elapsed_time"] == "min"
+        assert us.attrs["units"]["vertical_displacement"] == "in"
+        row = us[us["test_stage"] == "4"].iloc[7]
+        assert row["vertical_displacement"] == pytest.approx(0.460 / 25.4, rel=1e-9)
+        assert row["elapsed_time"] == 8
+
+
+def test_oedometer_readings_left_out_with_no_increment(mapped):
+    # joins.ags: two readings of an increment "3" that CONS doesn't have.
+    p = mapped("joins")
+    with pytest.warns(UserWarning) as record:
+        df = p.oedometer_readings()
+    messages = [str(w.message) for w in record]
+    assert len(messages) == 1
+    assert "Left out 2 readings of XCOT with no stage in CONS" in messages[0]
+    assert messages[0].endswith(
+        "from the oedometer readings: their specimen and stage must match a row "
+        "of that group. Without its stage a reading has nothing to be read "
+        "against, so include_incomplete=True doesn't keep it."
+    )
+    assert list(df["test_stage"]) == ["1"] * 4 + ["2"] * 2
+    first = df[df["test_stage"] == "1"]
+    assert list(first["elapsed_time"]) == [0.0, 1.0, 4.0, 60.0]
+    assert (first["applied_vertical_stress"] == 5).all()
+    assert (first["void_ratio_at_increment_end"] == 0.897).all()
+    # Increment "2" is incomplete in CONS (a blank CONS_INCE), so p.oedometer()
+    # leaves it out; its readings still get its values.
+    with pytest.warns(UserWarning, match="CONS_INCE"):
+        assert "2" not in set(p.oedometer()["test_stage"])
+    second = df[df["test_stage"] == "2"]
+    assert (second["applied_vertical_stress"] == 10).all()
+    assert (second["load_branch"] == "loading").all()
+    assert second["void_ratio_at_increment_end"].isna().all()
+
+
+def test_oedometer_readings_incomplete(mapped, tmp_path):
+    # A blank time is incomplete: left out with a warning unless kept.
+    text = (DATA / "site_si.ags").read_bytes().decode("utf-8")
+    old = '"OED1","5.20","4","7","4.00","0.410"'
+    assert old in text
+    path = tmp_path / "blank.ags"
+    path.write_bytes(text.replace(old, '"OED1","5.20","4","7","","0.410"').encode())
+    p = ht.Project.from_ags(path, display_units="SI", grag_fraction_system="astm_uscs")
+    p.set_readings_map(MAP)
+    with pytest.warns(UserWarning) as record:
+        df = p.oedometer_readings()
+    assert len(record) == 1
+    assert (
+        "Left out 1 reading of XCOT with a blank increment, time or displacement"
+        in (str(record[0].message))
+    )
+    assert (df["test_stage"] == "4").sum() == 14
+    kept = quiet(p.oedometer_readings, include_incomplete=True)
+    assert (kept["test_stage"] == "4").sum() == 15
+
+
+def test_oedometer_readings_convert_from_the_stored_time_unit(tmp_path):
+    # A time heading in s is stored in minutes on ingest (ingest.md §7) and read
+    # from its stored unit, so the readings are the same as in min.
+    text = (DATA / "site_si.ags").read_bytes().decode("utf-8")
+    start = text.index('\r\n"GROUP","XCOT"') + 2
+    end = text.index("\r\n\r\n", start)
+    lines = text[start:end].split("\r\n")
+    lines[2] = lines[2].replace('"min","mm"', '"s","mm"')
+    for i in range(4, len(lines)):
+        cells = lines[i].split(",")
+        cells[-2] = f'"{float(cells[-2].strip(chr(34))) * 60:.1f}"'
+        lines[i] = ",".join(cells)
+    dict_old = (
+        '"XCOT_TIME","OTHER","2DP","Elapsed time since the load was applied","min"'
+    )
+    assert dict_old in text
+    text = text[:start] + "\r\n".join(lines) + text[end:]
+    text = text.replace(dict_old, dict_old.replace('"min"', '"s"'))
+    path = tmp_path / "seconds.ags"
+    path.write_bytes(text.encode("utf-8"))
+    p = ht.Project.from_ags(path, display_units="SI", grag_fraction_system="astm_uscs")
+    p.set_readings_map(MAP)
+    rows = quiet(p.oedometer_readings, where={"test_stage": "4"})
+    assert list(rows["elapsed_time"]) == pytest.approx([t for t, _ in INCREMENT_4])
+
+
+def test_oedometer_readings_no_map(fresh):
+    with pytest.warns(UserWarning) as record:
+        df = fresh().oedometer_readings()
+    assert [str(w.message) for w in record] == [
+        "No readings map for this project, so there are no oedometer readings. Set "
+        "one with p.set_readings_map(path)."
+    ]
+    assert df.empty
+    assert list(df.columns) == [*template("oedometer_readings").columns, "source_line"]

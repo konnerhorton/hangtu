@@ -51,6 +51,7 @@ _TEXT_TYPES = {"ID", "PA", "PT", "PU", "RL", "RECORD LINK"}
 _PERCENT = ureg.Unit("percent")
 _DENSITY = ureg.Unit("megagram / meter**3").dimensionality
 _FORCE = ureg.Unit("newton").dimensionality
+_TIME = ureg.Unit("minute").dimensionality
 # A bare "ton" or "t" depends on the file's unit system (SPEC §2.2).
 _TON = {"ton", "t"}
 _TONS = {
@@ -396,11 +397,20 @@ def _alias_for(unit: pint.Unit) -> str:
 
 
 def _quantity(unit: pint.Unit) -> str | None:
+    """Return the P00 kind whose canonical unit is ``unit``, else None.
+
+    Time is matched by dimension instead (ingest.md §7, step 3): standard
+    headings in s, ms or day keep their dictionary unit and are still times. No
+    other kind is, since a match by dimension would make MPa headings stresses
+    and mm/s headings hydraulic conductivities.
+    """
     if unit == _PERCENT:
         return "percent"
     for name, kind in _config.quantity_kinds().items():
         if kind["canonical"] and ureg.Unit(kind["canonical"]) == unit:
             return name
+    if unit.dimensionality == _TIME:
+        return "time"
     return None
 
 

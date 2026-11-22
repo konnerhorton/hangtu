@@ -147,3 +147,12 @@ def test_golden_values_oedometer_kinds_si_to_us(value, unit, quantity, expected,
     magnitudes, label = to_display([value], unit, quantity, "US")
     assert magnitudes[0] == pytest.approx(expected, rel=1e-6)
     assert label == text
+
+
+@pytest.mark.parametrize("system", ["US", "SI"])
+def test_a_time_displays_in_minutes_in_both_systems(system):
+    # M19 (c2): no other kind has time's dimension, and both systems read minutes.
+    assert units._kind_of(units.parse_unit("s")) == "time"
+    magnitudes, label = to_display([90.0], "s", "time", system)
+    assert magnitudes[0] == pytest.approx(1.5, rel=1e-12)
+    assert label == "min"

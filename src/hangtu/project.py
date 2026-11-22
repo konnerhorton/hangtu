@@ -1407,6 +1407,94 @@ class Project:
             display_units=display_units,
         )
 
+    def oedometer_readings(
+        self,
+        *,
+        holes: "str | list[str] | None" = None,
+        geology: "str | list[str] | None" = None,
+        depth: "tuple | None" = None,
+        elevation: "tuple | None" = None,
+        where: dict | None = None,
+        contains: "str | list[str] | None" = None,
+        geology_fields: "str | list[str] | None" = None,
+        include_incomplete: bool = False,
+        display_units: str | None = None,
+    ) -> pd.DataFrame:
+        """Return the settlement-time readings taken during each oedometer increment.
+
+        One row per reading of each group the readings map sends to
+        ``oedometer_readings`` (set it with ``p.set_readings_map()``), with its
+        increment's values on each: the shape of
+        ``ht.template("oedometer_readings")``, so
+        ``ht.analysis.consolidation_coefficient_from_readings()`` takes it as
+        it takes a CSV.
+
+        **Joined to its increment** on the specimen and ``test_stage``,
+        matched to ``CONS_INCN`` exactly, as text (``"4"`` is not ``"04"``).
+        Each reading carries the values ``p.oedometer()`` gives its increment:
+        the test type, the load branch, the applied vertical stress, the void
+        ratios at the increment's start and end, the specimen's initial height
+        and void ratio, and the lab's coefficients of consolidation. An
+        increment that ``p.oedometer()`` leaves out as incomplete still gives
+        its readings its values.
+
+        **As the file gives them:** readings in file order (increments in
+        ``p.oedometer()``'s order, then the map's groups, then each group's
+        readings as the file lists them), and ``vertical_displacement`` from
+        the file's datum and with its sign. The analysis sorts each
+        increment by time and orients it by its own movement.
+
+        **Left out, with a warning naming the group and lines:** a reading
+        whose specimen and increment match no ``CONS`` row, a reading with a
+        flagged value, and (unless ``include_incomplete=True``) a reading with
+        a blank increment, time or displacement.
+
+        Parameters
+        ----------
+        holes, geology
+            Keep these holes (``LOCA_ID``) or geology units. A specimen's
+            readings are kept or left out together, since they share its
+            depth.
+        depth, elevation
+            Keep ``low <= value <= high``, given in the dataset's units
+            (``(0, 30)``) or as quantity strings (``("0 ft", "30 ft")``).
+            Either end may be None.
+        where
+            Keep rows matching ``{column: value or list of values}``, e.g.
+            ``{"test_stage": "4"}``.
+        contains
+            Keep rows whose geology description contains this text (any
+            case), or any of a list.
+        geology_fields
+            GEOL headings to add as columns, e.g. ``["GEOL_FORM"]``.
+        include_incomplete
+            Keep readings with a blank increment, time or displacement.
+            Readings with no increment in the file, or with a flagged value
+            (``<1``, text), are left out even so.
+        display_units
+            ``"US"`` or ``"SI"``; by default the project's. Times are in
+            minutes in both; displacements and heights in mm or in, stresses
+            in kPa or psf, coefficients of consolidation in m²/yr or ft²/yr.
+
+        Examples
+        --------
+        >>> p.set_readings_map("readings_map.csv")
+        >>> readings = p.oedometer_readings(where={"test_stage": "4"})
+        >>> readings[["elapsed_time", "vertical_displacement"]]
+        """
+        return datasets.oedometer_readings(
+            self._path,
+            holes=holes,
+            geology=geology,
+            depth=depth,
+            elevation=elevation,
+            where=where,
+            contains=contains,
+            geology_fields=geology_fields,
+            include_incomplete=include_incomplete,
+            display_units=display_units,
+        )
+
     def set_geology_map(
         self, source: "str | PathLike[str] | pd.DataFrame | None"
     ) -> None:
@@ -1447,8 +1535,9 @@ class Project:
         AGS4 has no group for the readings taken during a test (a triaxial
         stress-strain curve, a shear box displacement curve), so a file that
         carries them uses groups its author named. The map names those groups,
-        the readings dataset each one feeds (``"triaxial_readings"`` or
-        ``"shear_box_readings"``) and the column each of their headings gives.
+        the readings dataset each one feeds (``"triaxial_readings"``,
+        ``"shear_box_readings"`` or ``"oedometer_readings"``) and the column
+        each of their headings gives.
         hangtu never guesses it from the names.
 
         The map is checked against the file and stored with the project,
@@ -1465,15 +1554,18 @@ class Project:
             - ``group``: a user-defined group in the file, as written. The
               file's ``DICT`` group must give it a parent: ``TREG``, ``TRET``,
               ``TRIG`` or ``TRIT`` for triaxial readings, ``SHBG`` or ``SHBT``
-              for shear box readings.
-            - ``dataset``: ``triaxial_readings`` or ``shear_box_readings``, the
-              same on every row of a group.
+              for shear box readings, ``CONG`` or ``CONS`` for oedometer
+              readings.
+            - ``dataset``: ``triaxial_readings``, ``shear_box_readings`` or
+              ``oedometer_readings``, the same on every row of a group.
             - ``heading``: one of the group's headings.
             - ``column``: what it gives. Triaxial readings map ``test_stage``
               and ``axial_strain``, and at least one of ``deviator_stress``,
               ``excess_pore_pressure`` and ``volumetric_strain``; shear box
               readings map ``test_stage`` and ``horizontal_displacement``, and
-              at least one of ``shear_stress`` and ``vertical_displacement``.
+              at least one of ``shear_stress`` and ``vertical_displacement``;
+              oedometer readings map ``test_stage`` (the increment, matched to
+              ``CONS_INCN``), ``elapsed_time`` and ``vertical_displacement``.
 
             A numeric heading's unit must be one hangtu converted on ingest
             and fit the column (a strain in %, a stress, a length): the map

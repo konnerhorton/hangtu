@@ -11,7 +11,8 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
 ### Added
 - **Plots:** `plasticity_chart()`, `grain_size()`, `water_content_profile()`, `clogging_diagram()`,
   `distribution_fit()`, `representative_profile()`, `failure_envelope()`, `triaxial_shearing()`,
-  `shear_box_envelope()`, `hoek_brown_envelope()`, `consolidation_curve()` and `consolidation_coefficients()`.
+  `shear_box_envelope()`, `hoek_brown_envelope()`, `consolidation_curve()`, `consolidation_coefficients()` and
+  `consolidation_time_curves()`.
 - **Datasets:** `p.grain_size_summary()`, `p.index_properties()`, `p.density()`, `p.particle_density()`,
   `p.triaxial()`, `p.undrained_strength()`, `p.shear_box()`, `p.oedometer()` and `p.stratigraphy()`.
   `p.oedometer()` gives one row per oedometer load increment, with the void ratios, the lab's m_v and c_v,
@@ -32,6 +33,18 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
   and k = c_v·m_v·γw from each of the lab's c_v. Each value belongs to its increment, and the increment spanning
   σ′v0 is marked rather than interpolated. `consolidation_coefficients()` draws m_v and c_v as segments over each
   increment's stress range, with the lab's m_v as a mark.
+- **c_v from settlement–time readings:** `consolidation_coefficient_from_readings()` reads c_v for each oedometer
+  increment from its dial gauge readings by both of BS 1377-5's constructions, root time (t90) and log time (t50),
+  beside the lab's own. The readings can come from any datum and with either sign. A curve a construction can't read
+  gets a reason instead of a value, and where the rule reads a curve badly you can override the time range of one
+  part of the construction, with a reason that is kept on the result. `consolidation_time_curves()` draws each
+  increment's curves with the constructions on them, so you can see where each t90 and t50 came from.
+  `oedometer_increments(consolidation_coefficients=...)` adds k from these c_v, beside k from the lab's.
+- **Oedometer readings from the AGS file:** the readings map takes oedometer groups too, and
+  `p.oedometer_readings()` gives one row per reading with its increment's stress, void ratios and specimen height.
+  `ht.template("oedometer_readings")` lays them out for a CSV, and `ht.template("consolidation_overrides")` the
+  overrides. The example project carries readings for its oedometer tests. Elapsed times in a file are read in any
+  unit of time and given in minutes.
 - `oedometer_load_branch()` marks each oedometer increment as loading, unloading, reloading or held at a
   constant stress, and `ht.template("oedometer")` lays out oedometer tests for a CSV.
 - **Classification and index analyses:** `plasticity()`, `uscs()`, `aashto()`, `gradation()`,
@@ -73,8 +86,8 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
 
 ### Changed
 - A project database made by an earlier version needs ingesting again (`ht.Project.from_ags(...,
-  overwrite=True)`): it now records the units of the oedometer's m_v and c_v, and the readings map. Opening an old
-  one says so.
+  overwrite=True)`): it now records the units of the oedometer's m_v and c_v, the readings map, and which headings
+  hold a time. Opening an old one says so.
 - `triaxial_failure_from_readings()` and `triaxial_shearing()` take readings with only some of q, Δu and ε_v on a
   row, as an AGS file gives them. Where the failure reading has no Δu or ε_v of its own, it is interpolated in
   strain from that quantity's readings, and a warning names the stages. Readings from an AGS file carry no lab

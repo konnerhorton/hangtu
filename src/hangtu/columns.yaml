@@ -54,6 +54,13 @@ templates:
   triaxial_readings: [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, test_type, test_stage, failure_criterion, effective_consolidation_stress, back_pressure, cell_pressure, axial_strain, deviator_stress, excess_pore_pressure, volumetric_strain, reported_failure_reading, geology_unit, soil_class, geology_description]
   # One row per shear box reading, p.shear_box_readings()'s columns without source_line (M16, datasets.md §6.17).
   shear_box_readings: [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, test_type, test_stage, applied_normal_stress, horizontal_displacement, shear_stress, vertical_displacement, geology_unit, soil_class, geology_description]
+  # One row per settlement-time reading of an oedometer increment, its increment's
+  # values on each row: p.oedometer_readings()'s columns without source_line (M19 c2,
+  # datasets.md §6.18).
+  oedometer_readings: [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, test_type, test_stage, load_branch, applied_vertical_stress, void_ratio_at_increment_start, void_ratio_at_increment_end, specimen_height, void_ratio, reported_coefficient_of_consolidation_root_time, reported_coefficient_of_consolidation_log_time, elapsed_time, vertical_displacement, geology_unit, soil_class, geology_description]
+  # One row per override of a c_v construction's time range, passed as
+  # consolidation_coefficient_from_readings(overrides=) (M19 c2, compressibility.md §9).
+  consolidation_overrides: [specimen_id, test_stage, consolidation_method, curve_portion, elapsed_time_start, elapsed_time_end, override_reason]
   # A log per hole (ht.analysis.vertical_stress); p.stratigraphy() adds source_line.
   stratigraphy:   [loca_id, depth_top, depth_base, geology_unit, soil_class, geology_description]
   # Overlays (P01 §8): fill in one depth or elevation pair and leave the other blank.
@@ -1412,12 +1419,52 @@ columns:
     ags: ["a user-defined group, through the readings map (datasets.md §6.15)"]
     used_by: []
   vertical_displacement:
-    description: Vertical displacement at a shear box reading, from the start of shearing, sign as the file gives it
+    description: Vertical displacement at a reading (shear box or oedometer), from a datum and with a sign the file gives
     type: number
     quantity: small_length
     scale: interval
     label: Vertical displacement, δ_v
-    ags: ["a user-defined group, through the readings map (datasets.md §6.15)"]
+    ags: ["a user-defined group, through the readings map (datasets.md §6.15)", "a user CSV of oedometer readings (datasets.md §6.18)"]
+    used_by: [plot.consolidation_time_curves]
+  elapsed_time:
+    description: Elapsed time at an oedometer reading since its increment's load was applied
+    type: number
+    quantity: time
+    scale: ratio
+    label: Elapsed time since the load was applied, t
+    ags: ["a user-defined group, through the readings map (datasets.md §6.15)", "a user CSV of oedometer readings (datasets.md §6.18)"]
+    used_by: [plot.consolidation_time_curves]
+  # An override of a c_v construction's time range (M19 c2, compressibility.md §9).
+  consolidation_method:
+    description: "The c_v construction an override applies to: root_time or log_time"
+    type: text
+    ags: ["a user CSV of c_v overrides (docs/analysis/compressibility.md)"]
+    used_by: []
+  curve_portion:
+    description: "The part of a c_v construction an override gives the time range of: early (either method), inflexion or secondary (log time)"
+    type: text
+    ags: ["a user CSV of c_v overrides (docs/analysis/compressibility.md)"]
+    used_by: []
+  elapsed_time_start:
+    description: Elapsed time at the start of an override's range, inclusive
+    type: number
+    quantity: time
+    scale: ratio
+    label: Start of the time range, t
+    ags: ["a user CSV of c_v overrides (docs/analysis/compressibility.md)"]
+    used_by: []
+  elapsed_time_end:
+    description: Elapsed time at the end of an override's range, inclusive
+    type: number
+    quantity: time
+    scale: ratio
+    label: End of the time range, t
+    ags: ["a user CSV of c_v overrides (docs/analysis/compressibility.md)"]
+    used_by: []
+  override_reason:
+    description: Why an engineer gave an override's time range in place of the construction's rule
+    type: text
+    ags: ["a user CSV of c_v overrides (docs/analysis/compressibility.md)"]
     used_by: []
   peak_displacement_rate:
     description: Displacement rate of the stage sheared to its peak
@@ -1520,7 +1567,7 @@ columns:
     scale: ratio
     label: Applied vertical stress, σ′_v
     ags: [CONS.CONS_INCF]
-    used_by: []
+    used_by: [plot.consolidation_time_curves]
   void_ratio_at_increment_start:
     description: Void ratio of an oedometer specimen at the start of an increment
     type: number
@@ -1552,7 +1599,7 @@ columns:
     scale: ratio
     label: Coefficient of consolidation, root time (reported), c_v
     ags: [CONS.CONS_CVRT]
-    used_by: [plot.consolidation_coefficients]
+    used_by: [plot.consolidation_coefficients, plot.consolidation_time_curves]
   reported_coefficient_of_consolidation_log_time:
     description: The lab's coefficient of consolidation over an oedometer increment, by the log time method
     type: number
@@ -1560,7 +1607,7 @@ columns:
     scale: ratio
     label: Coefficient of consolidation, log time (reported), c_v
     ags: [CONS.CONS_CVLG]
-    used_by: [plot.consolidation_coefficients]
+    used_by: [plot.consolidation_coefficients, plot.consolidation_time_curves]
   swelling_pressure:
     description: Swelling pressure of a consolidation specimen, as the lab reports it
     type: number
@@ -1665,6 +1712,133 @@ columns:
     type: text
     ags: ["derived: docs/analysis/compressibility.md"]
     used_by: [plot.consolidation_coefficients]
+  # c_v from settlement-time readings (M19 c2): hangtu's own, apart from the lab's reported_ ones.
+  average_specimen_height:
+    description: Average height of the oedometer specimen over an increment, (H1 + H2)/2, from the void ratios at its start and end
+    type: number
+    quantity: small_length
+    scale: ratio
+    label: Average specimen height over the increment, H̄
+    ags: ["derived: docs/analysis/compressibility.md"]
+    used_by: []
+  coefficient_of_consolidation_root_time:
+    description: Coefficient of consolidation over an oedometer increment, recomputed from its settlement-time readings by the root time construction
+    type: number
+    quantity: consolidation_coefficient
+    scale: ratio
+    label: Coefficient of consolidation (root time), c_v
+    ags: ["derived: docs/analysis/compressibility.md"]
+    used_by: [plot.consolidation_time_curves]
+  coefficient_of_consolidation_root_time_basis:
+    description: "Where the root time construction's lines came from: rule (the stated rule) or override (a time range given for at least one line)"
+    type: text
+    ags: ["derived: docs/analysis/compressibility.md"]
+    used_by: [plot.consolidation_time_curves]
+  coefficient_of_consolidation_root_time_reason:
+    description: Why an increment's coefficient of consolidation by root time is blank
+    type: text
+    ags: ["derived: docs/analysis/compressibility.md"]
+    used_by: [plot.consolidation_time_curves]
+  coefficient_of_consolidation_log_time:
+    description: Coefficient of consolidation over an oedometer increment, recomputed from its settlement-time readings by the log time construction
+    type: number
+    quantity: consolidation_coefficient
+    scale: ratio
+    label: Coefficient of consolidation (log time), c_v
+    ags: ["derived: docs/analysis/compressibility.md"]
+    used_by: [plot.consolidation_time_curves]
+  coefficient_of_consolidation_log_time_basis:
+    description: "Where the log time construction's lines came from: rule (the stated rule) or override (a time range given for at least one line)"
+    type: text
+    ags: ["derived: docs/analysis/compressibility.md"]
+    used_by: [plot.consolidation_time_curves]
+  coefficient_of_consolidation_log_time_reason:
+    description: Why an increment's coefficient of consolidation by log time is blank
+    type: text
+    ags: ["derived: docs/analysis/compressibility.md"]
+    used_by: [plot.consolidation_time_curves]
+  time_to_90_percent_consolidation:
+    description: Time to 90 % primary consolidation of an oedometer increment, from the root time construction
+    type: number
+    quantity: time
+    scale: ratio
+    label: Time to 90 % consolidation, t90
+    ags: ["derived: docs/analysis/compressibility.md"]
+    used_by: [plot.consolidation_time_curves]
+  time_to_50_percent_consolidation:
+    description: Time to 50 % primary consolidation of an oedometer increment, from the log time construction
+    type: number
+    quantity: time
+    scale: ratio
+    label: Time to 50 % consolidation, t50
+    ags: ["derived: docs/analysis/compressibility.md"]
+    used_by: [plot.consolidation_time_curves]
+  corrected_zero_displacement_root_time:
+    description: Corrected zero point of an oedometer increment by the root time construction, in the readings' datum and sign
+    type: number
+    quantity: small_length
+    scale: interval
+    label: Corrected zero point (root time), d0
+    ags: ["derived: docs/analysis/compressibility.md"]
+    used_by: [plot.consolidation_time_curves]
+  corrected_zero_displacement_log_time:
+    description: Corrected zero point of an oedometer increment by the log time construction, in the readings' datum and sign
+    type: number
+    quantity: small_length
+    scale: interval
+    label: Corrected zero point (log time), d0
+    ags: ["derived: docs/analysis/compressibility.md"]
+    used_by: [plot.consolidation_time_curves]
+  displacement_at_90_percent_consolidation:
+    description: Displacement at 90 % primary consolidation of an oedometer increment, from the root time construction, in the readings' datum and sign
+    type: number
+    quantity: small_length
+    scale: interval
+    label: Displacement at 90 % consolidation, d90
+    ags: ["derived: docs/analysis/compressibility.md"]
+    used_by: [plot.consolidation_time_curves]
+  displacement_at_50_percent_consolidation:
+    description: Displacement at 50 % primary consolidation of an oedometer increment, from the log time construction, in the readings' datum and sign
+    type: number
+    quantity: small_length
+    scale: interval
+    label: Displacement at 50 % consolidation, d50
+    ags: ["derived: docs/analysis/compressibility.md"]
+    used_by: [plot.consolidation_time_curves]
+  displacement_at_100_percent_primary_consolidation:
+    description: Displacement at the end of primary consolidation of an oedometer increment, from the log time construction, in the readings' datum and sign
+    type: number
+    quantity: small_length
+    scale: interval
+    label: Displacement at 100 % primary consolidation, d100
+    ags: ["derived: docs/analysis/compressibility.md"]
+    used_by: [plot.consolidation_time_curves]
+  hydraulic_conductivity_from_readings_root_time:
+    description: Vertical hydraulic conductivity over an oedometer increment, from the c_v recomputed from its readings by root time and the recomputed m_v
+    type: number
+    quantity: hydraulic_conductivity
+    scale: ratio
+    label: Hydraulic conductivity from c_v by readings (root time), k
+    ags: ["derived: docs/analysis/compressibility.md"]
+    used_by: []
+  hydraulic_conductivity_from_readings_root_time_reason:
+    description: Why an increment's hydraulic conductivity from the c_v by readings (root time) is blank
+    type: text
+    ags: ["derived: docs/analysis/compressibility.md"]
+    used_by: []
+  hydraulic_conductivity_from_readings_log_time:
+    description: Vertical hydraulic conductivity over an oedometer increment, from the c_v recomputed from its readings by log time and the recomputed m_v
+    type: number
+    quantity: hydraulic_conductivity
+    scale: ratio
+    label: Hydraulic conductivity from c_v by readings (log time), k
+    ags: ["derived: docs/analysis/compressibility.md"]
+    used_by: []
+  hydraulic_conductivity_from_readings_log_time_reason:
+    description: Why an increment's hydraulic conductivity from the c_v by readings (log time) is blank
+    type: text
+    ags: ["derived: docs/analysis/compressibility.md"]
+    used_by: []
   spans_effective_vertical_stress:
     description: True on the increment whose stress range holds the specimen's in situ effective vertical stress (the first such loading increment, and the first such unloading or reloading one)
     type: bool

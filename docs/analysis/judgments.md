@@ -198,6 +198,10 @@ quantity kind; anything else is an error naming the registry), then by geology u
 ### 5.10 Not judgments
 - **Hammer efficiency is data:** `ISPT_ERAT` (`energy_ratio`) is used first; `hammer_efficiency` is an argument and
   session setting that fills blanks, with a warning naming the holes, and takes values by hole.
+- **A test read by a stated rule isn't a judgment:** σ′p by Oikawa's searched split and the c_v constructions
+  (`docs/analysis/compressibility.md`) apply a rule the docs state, and an engineer's override of one test's points
+  is an argument recorded on the result, not an entry here. Such overrides are keyed by specimen and increment, so
+  they would bury the judgments this file holds (SPEC §4, "Three kinds of choice").
 - **γw is a setting,** `ht.settings.water_unit_weight` (default `"9.81 kN/m3"`), a quantity string converted as
   needed, so the display system never changes a result. A judgment for sites with two values (seawater and fresh)
   is in `docs/TODO.md`.

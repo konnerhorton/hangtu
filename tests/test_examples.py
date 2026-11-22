@@ -22,6 +22,7 @@ FILES = [
     "atterberg.csv",
     "judgments.yaml",
     "oedometer.csv",
+    "oedometer_readings.csv",
     "permeability.csv",
     "readings_map.csv",
     "rock_triaxial.csv",
@@ -37,6 +38,7 @@ FILES = [
 CSVS = [
     "atterberg.csv",
     "oedometer.csv",
+    "oedometer_readings.csv",
     "permeability.csv",
     "rock_triaxial.csv",
     "shear_box.csv",
@@ -121,8 +123,8 @@ def test_unknown_name_lists_the_files():
         ht.examples.path("site.csv")
     assert str(caught.value) == (
         "No example file 'site.csv'. Files: atterberg.csv, judgments.yaml, "
-        "oedometer.csv, permeability.csv, readings_map.csv, rock_triaxial.csv, "
-        "shear_box.csv, shear_box_readings.csv, site.ags, spt.csv, "
+        "oedometer.csv, oedometer_readings.csv, permeability.csv, readings_map.csv, "
+        "rock_triaxial.csv, shear_box.csv, shear_box_readings.csv, site.ags, spt.csv, "
         "strata.csv, strength.csv, triaxial.csv, triaxial_readings.csv."
     )
 
@@ -211,6 +213,14 @@ STRENGTH_STRESSES = [
     "unconfined_compressive_strength",
     "hand_penetrometer_reading",
 ]
+OEDOMETER_READING_UNITS = {
+    "applied_vertical_stress": "psf",
+    "specimen_height": "in",
+    "reported_coefficient_of_consolidation_root_time": "ft2/yr",
+    "reported_coefficient_of_consolidation_log_time": "ft2/yr",
+    "elapsed_time": "min",
+    "vertical_displacement": "in",
+}
 EXAMPLE_ANALYSES = {
     "atterberg.csv": ({}, ht.analysis.plasticity),
     "spt.csv": ({"spt_penetration": "in"}, ht.analysis.spt),
@@ -244,6 +254,10 @@ EXAMPLE_ANALYSES = {
     "oedometer.csv": (
         {"applied_vertical_stress": "psf"},
         ht.analysis.oedometer_load_branch,
+    ),
+    "oedometer_readings.csv": (
+        OEDOMETER_READING_UNITS,
+        ht.analysis.consolidation_coefficient_from_readings,
     ),
 }
 
@@ -401,7 +415,9 @@ def test_the_example_site_has_readings_for_every_stage(tmp_path):
         )
 
 
-@pytest.mark.parametrize("name", ["triaxial_readings", "shear_box_readings"])
+@pytest.mark.parametrize(
+    "name", ["triaxial_readings", "shear_box_readings", "oedometer_readings"]
+)
 def test_readings_csvs_are_the_datasets_template_columns(name):
     from_csv = pd.read_csv(DATA / f"{name}.csv", nrows=0)
     assert list(from_csv.columns) == list(ht.template(name).columns)
@@ -450,3 +466,56 @@ def test_oedometer_csv_is_the_datasets_template_columns(site):
         check_dtype=False,
         check_exact=False,
     )
+
+
+# --- Settlement-time readings (M19 c2) ----------------------------------------------
+
+#: The example's increment too fast for the standard's reading times.
+FAST = ("B-5-U2-C1", "3")
+
+
+def test_the_example_site_has_readings_for_every_loading_increment(tmp_path):
+    p = ht.Project.from_ags(
+        DATA / "site.ags", db=tmp_path / "site.sqlite", display_units="US"
+    )
+    p.set_readings_map(ht.examples.path("readings_map.csv"))
+    readings = p.oedometer_readings()
+    increments = p.oedometer()
+    with_cv = increments[
+        increments["reported_coefficient_of_consolidation_root_time"].notna()
+    ]
+    key = ["specimen_id", "test_stage"]
+    assert readings[key].drop_duplicates().values.tolist() == (
+        with_cv[key].values.tolist()
+    )
+    assert set(readings["load_branch"]) == {"loading"}
+    assert readings.groupby(key).size().tolist() == [15] * 12
+
+
+def test_oedometer_readings_csv_gives_cv_on_all_but_the_fast_increment():
+    df = read_example("oedometer_readings.csv", OEDOMETER_READING_UNITS)
+    rows = ht.analysis.consolidation_coefficient_from_readings(df)
+    assert len(rows) == 12
+    fast = (rows["specimen_id"] == FAST[0]) & (rows["test_stage"] == FAST[1])
+    for method in ("root_time", "log_time"):
+        cv = rows[f"coefficient_of_consolidation_{method}"]
+        reason = rows[f"coefficient_of_consolidation_{method}_reason"]
+        assert cv[~fast].notna().all(), method
+        assert reason[~fast].isna().all(), method
+        assert cv[fast].isna().all(), method
+    reasons = rows.loc[fast].iloc[0]
+    assert reasons["coefficient_of_consolidation_log_time_reason"] == (
+        "fewer than 3 pairs of times in the ratio 1:4 before the inflexion"
+    )
+    assert reasons["coefficient_of_consolidation_root_time_reason"] == (
+        "fewer than 3 readings in the first half of the increment's movement"
+    )
+    # Near the lab's root time c_v (it generated them), not equal to it: the
+    # readings scatter. Both in ft²/yr.
+    rows = ht.analysis.consolidation_coefficient_from_readings(df, display_units="US")
+    ratio = (
+        rows["coefficient_of_consolidation_root_time"]
+        / rows["reported_coefficient_of_consolidation_root_time"]
+    )[~fast]
+    assert ratio.between(0.5, 2.5).all()
+    assert not np.allclose(ratio, ratio.iloc[0], rtol=0.05)

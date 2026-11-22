@@ -229,6 +229,12 @@ quantity_kinds:
     canonical: meter**2 / year
     US: {unit: foot**2 / year, text: ft²/yr}
     SI: {unit: meter**2 / year, text: m²/yr}
+  # No other kind has its dimension. Standard AGS headings in s, ms or day keep
+  # their dictionary unit; user-defined ones convert to minutes (M19 c2).
+  time:
+    canonical: minute
+    US: {unit: minute, text: min}
+    SI: {unit: minute, text: min}
   percent:
     canonical: null
     US: {unit: null, text: "%"}

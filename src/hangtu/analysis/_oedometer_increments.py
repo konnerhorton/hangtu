@@ -21,7 +21,7 @@ from hangtu.analysis._oedometer import (
     specimen_label,
     stresses,
 )
-from hangtu.errors import ColumnError, HangtuError
+from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.stats._rows import group_keys
 
 _FUNCTION = "oedometer_increments()"
@@ -44,6 +44,15 @@ CONDUCTIVITY = {
     "hydraulic_conductivity_log_time": f"{_REPORTED}_log_time",
 }
 
+#: Each k from the recomputed c_v and the c_v column of
+#: consolidation_coefficient_from_readings() it comes from.
+_RECOMPUTED = "coefficient_of_consolidation"
+FROM_READINGS = {
+    "hydraulic_conductivity_from_readings_root_time": f"{_RECOMPUTED}_root_time",
+    "hydraulic_conductivity_from_readings_log_time": f"{_RECOMPUTED}_log_time",
+}
+_JOIN = ("specimen_id", "test_stage")
+
 #: The reasons a value is blank, worded as the result gives them.
 FIRST_INCREMENT = "first increment: its start stress isn't given"
 NO_STRESS = "no stress"
@@ -56,6 +65,8 @@ NO_BRANCH = "no load branch"
 CONSTANT = "constant stress increment"
 NO_CONSOLIDATION = "no c_v reported"
 CONSOLIDATION_NOT_POSITIVE = "c_v is not positive"
+NO_READINGS = "no readings"
+NO_CONSOLIDATION_FROM_READINGS = "no c_v from readings"
 
 #: The specimen's identifiers, read for its name in messages.
 _IDENTIFIERS = ("specimen_id", "sample_reference", "specimen_reference")
@@ -68,6 +79,7 @@ _CONDUCTIVITY_UNIT = "m/s"
 def oedometer_increments(
     df: pd.DataFrame,
     *,
+    consolidation_coefficients: pd.DataFrame | None = None,
     units: Mapping[str, str] | None = None,
     display_units: str | None = None,
 ) -> pd.DataFrame:
@@ -151,6 +163,20 @@ def oedometer_increments(
     ``"no c_v reported"`` or ``"c_v is not positive"``, else with $m_v$'s
     reason or ``"m_v is not positive"``, in its ``_reason`` column.
 
+    **k from the recomputed c_v.** With ``consolidation_coefficients``, the
+    rows ``ht.analysis.consolidation_coefficient_from_readings()`` returns
+    are joined to the increments on ``specimen_id`` and ``test_stage``
+    (compared as text), and each increment gains the recomputed
+    ``coefficient_of_consolidation_root_time`` and ``_log_time``, with their
+    ``_basis`` and ``_reason``, and
+    ``hydraulic_conductivity_from_readings_root_time`` and ``_log_time``, by
+    the same $k = c_v\, m_v\, \gamma_w$ with the same blanks. They sit
+    beside the k from the lab's $c_v$, not in its place, so the lab's and
+    the recomputed values stay apart. An increment with no row there is
+    blank with ``"no readings"``; one whose recomputed $c_v$ is blank gives
+    $k$ ``"no c_v from readings"``. Rows that match no increment are left
+    out with one warning naming them.
+
     **When an increment gives no value,** it is blank with the first
     reason that applies, in ``coefficient_of_volume_compressibility_reason``:
 
@@ -190,6 +216,10 @@ def oedometer_increments(
         ``effective_vertical_stress`` (one value per specimen) and the two
         ``reported_coefficient_of_consolidation_`` columns are read where
         present.
+    consolidation_coefficients : pandas.DataFrame, optional
+        The rows of ``ht.analysis.consolidation_coefficient_from_readings()``
+        for these increments, for the recomputed $c_v$ and the $k$ from it.
+        ``df`` then needs ``test_stage``.
     units : dict, optional
         ``{column: unit}`` for ``df``, overriding ``df.attrs["units"]``.
     display_units : {"SI", "US"}, optional
@@ -198,7 +228,8 @@ def oedometer_increments(
         settings' display overrides name); ``applied_vertical_stress`` is
         converted too, so a row's two stresses share a unit. None keeps the
         stresses in ``applied_vertical_stress``'s unit and writes $m_v$ in
-        m²/MN, the moduli in kPa and $k$ in m/s.
+        m²/MN, the moduli in kPa and $k$ in m/s. The recomputed $c_v$ is
+        written in m²/yr or ft²/yr.
 
     Returns
     -------
@@ -209,7 +240,11 @@ def oedometer_increments(
         the two ``hydraulic_conductivity_`` columns,
         ``unload_reload_constrained_modulus``,
         ``spans_effective_vertical_stress`` and the ``_reason`` columns
-        added (or replaced), ``load_branch`` where it was missing, and
+        added (or replaced), with ``consolidation_coefficients`` the two
+        recomputed ``coefficient_of_consolidation_`` columns, their
+        ``_basis`` and ``_reason``, and the two
+        ``hydraulic_conductivity_from_readings_`` columns and their
+        ``_reason``, ``load_branch`` where it was missing, and
         ``attrs["units"]`` naming each unit. ``attrs["oedometer_increments"]``
         holds the notes and the water unit weight.
 
@@ -221,7 +256,14 @@ def oedometer_increments(
         a specimen with more than one ``effective_vertical_stress``, a
         ``load_branch`` value it doesn't know, a stress column without units
         or in a unit that isn't a stress, or a ``display_units`` other than
-        "SI", "US" or None.
+        "SI", "US" or None; with ``consolidation_coefficients``, a frame
+        without its columns or ``df`` without ``test_stage``, or two of its
+        rows for one increment.
+
+    Warns
+    -----
+    UserWarning
+        For rows of ``consolidation_coefficients`` that match no increment.
 
     Examples
     --------
@@ -341,12 +383,18 @@ def oedometer_increments(
         result[_IN_SITU] = in_situ_stress
         result.attrs["units"][_IN_SITU] = unit
     for column, consolidation in CONDUCTIVITY.items():
-        values, why = _conductivity(df, consolidation, units, compressibility, reason)
+        lab = _lab_consolidation(df, consolidation, units)
+        blank = np.full(n, NO_CONSOLIDATION, dtype=object)
+        values, why = _conductivity(lab, blank, compressibility, reason)
         result[column], conductivity_unit = _written(
             values, _CONDUCTIVITY_UNIT, system, "hydraulic_conductivity"
         )
         result[f"{column}_reason"] = pd.Series(why, index=df.index, dtype=object)
         result.attrs["units"][column] = conductivity_unit
+    if consolidation_coefficients is not None:
+        _from_readings(
+            result, df, consolidation_coefficients, compressibility, reason, system
+        )
     result.attrs["oedometer_increments"] = {
         "notes": notes,
         "water_unit_weight": settings.water_unit_weight,
@@ -454,30 +502,41 @@ def _spans(
     return flags
 
 
-def _conductivity(
-    df: pd.DataFrame,
-    column: str,
-    units: Mapping[str, str] | None,
-    compressibility: np.ndarray,
-    reason: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Return k = c_v m_v γw in m/s from the lab's c_v in ``column``, and why blank.
-
-    ``compressibility`` is m_v in 1/kPa. A column absent or blank throughout
-    needs no unit.
-    """
-    n = len(df)
+def _lab_consolidation(
+    df: pd.DataFrame, column: str, units: Mapping[str, str] | None
+) -> np.ndarray:
+    """Return the lab's c_v in ``column`` in m²/yr; absent or blank needs no unit."""
     if column not in df.columns or df[column].isna().all():
-        return np.full(n, np.nan), np.full(n, NO_CONSOLIDATION, dtype=object)
+        return np.full(len(df), np.nan)
     declared = _units.resolve_units(df, [column], units, analysis=True)[column]
+    return _in_m2_per_year(numeric_column(df, column), declared, column)
+
+
+def _in_m2_per_year(
+    values: np.ndarray, declared: str | None, column: str
+) -> np.ndarray:
     parsed = _units.parse_unit(declared, column)
     _units.check_dimension(parsed, "consolidation_coefficient", column)
-    consolidation = _units.convert(
-        numeric_column(df, column),
+    return _units.convert(
+        values,
         parsed,
         "consolidation_coefficient",
         _units.ureg.Unit("meter**2 / year"),
     )
+
+
+def _conductivity(
+    consolidation: np.ndarray,
+    blank: np.ndarray,
+    compressibility: np.ndarray,
+    reason: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return k = c_v m_v γw in m/s, and why each is blank.
+
+    ``consolidation`` is c_v in m²/yr, ``compressibility`` m_v in 1/kPa;
+    ``blank`` is the reason on each row where c_v is blank.
+    """
+    n = len(consolidation)
     value, unit = _units.parse_quantity(settings.water_unit_weight, "unit_weight")
     gamma_w = _units.convert(
         [value], _units.parse_unit(unit), "unit_weight", _units.ureg.Unit("kN/m^3")
@@ -489,7 +548,7 @@ def _conductivity(
     why = np.full(n, None, dtype=object)
     for row in range(n):
         if np.isnan(consolidation[row]):
-            why[row] = NO_CONSOLIDATION
+            why[row] = blank[row]
         elif consolidation[row] <= 0:
             why[row] = CONSOLIDATION_NOT_POSITIVE
         elif np.isnan(compressibility[row]):
@@ -498,6 +557,117 @@ def _conductivity(
             why[row] = NOT_POSITIVE
     conductivity[why != None] = np.nan  # noqa: E711 (an object array's None)
     return conductivity, why
+
+
+def _from_readings(
+    result: pd.DataFrame,
+    df: pd.DataFrame,
+    reduced: Any,
+    compressibility: np.ndarray,
+    reason: np.ndarray,
+    system: str | None,
+) -> None:
+    """Add the recomputed c_v and k from it to ``result``, joined on the increment."""
+    if not isinstance(reduced, pd.DataFrame):
+        raise HangtuError(
+            "consolidation_coefficients must be a pandas DataFrame, as "
+            "ht.analysis.consolidation_coefficient_from_readings() returns, not "
+            f"{type(reduced).__name__}."
+        )
+    needed = [*_JOIN, *[f"{c}{s}" for c in FROM_READINGS.values() for s in _CARRIED]]
+    missing = [c for c in needed if c not in reduced.columns]
+    if missing or "test_stage" not in df.columns:
+        absent = missing if missing else ["test_stage"]
+        where = "consolidation_coefficients" if missing else "df"
+        raise ColumnError(
+            f"{where} has no column {', '.join(map(repr, absent))}. Pass "
+            "consolidation_coefficients as "
+            "ht.analysis.consolidation_coefficient_from_readings() returns it, "
+            "and the increments with their test_stage, as p.oedometer() gives them."
+        )
+    keys = [_join_key(df, i) for i in range(len(df))]
+    reduced_keys = [_join_key(reduced, i) for i in range(len(reduced))]
+    position: dict[tuple[str, str], int] = {}
+    for i, key in enumerate(reduced_keys):
+        if key in position:
+            raise HangtuError(
+                f"consolidation_coefficients has more than one row for specimen "
+                f"{key[0]!r} increment {key[1]!r}. Pass one row per increment, as "
+                "ht.analysis.consolidation_coefficient_from_readings() returns."
+            )
+        position[key] = i
+    unmatched = sorted(set(reduced_keys) - set(keys))
+    if unmatched:
+        shown = ", ".join(f"{s} increment {t}" for s, t in unmatched[:5])
+        more = f" and {len(unmatched) - 5} more" if len(unmatched) > 5 else ""
+        warn(
+            f"consolidation_coefficients has c_v for {shown}{more}, which df's "
+            "increments don't have, so they are left out. Check the two frames "
+            "come from the same project and specimens."
+        )
+    rows = [position.get(key) for key in keys]
+    found = np.array([row is not None for row in rows])
+    taken = np.array([row if row is not None else 0 for row in rows], dtype=int)
+    n = len(df)
+    for column, consolidation in FROM_READINGS.items():
+        values = np.full(n, np.nan)
+        if len(reduced):
+            raw = numeric_column(reduced, consolidation)[taken]
+            if not np.isnan(raw).all():
+                unit = _units.resolve_units(reduced, [consolidation], analysis=True)
+                raw = _in_m2_per_year(raw, unit[consolidation], consolidation)
+            values = np.where(found, raw, np.nan)
+        basis = _picked(reduced, f"{consolidation}_basis", taken, found, None)
+        blank_cv = _picked(
+            reduced, f"{consolidation}_reason", taken, found, NO_READINGS
+        )
+        k_blank = np.where(found, NO_CONSOLIDATION_FROM_READINGS, NO_READINGS)
+        conductivity, why = _conductivity(values, k_blank, compressibility, reason)
+        written, cv_unit = _written(
+            values, "m2/yr", system, "consolidation_coefficient"
+        )
+        result[consolidation] = written
+        result[f"{consolidation}_basis"] = pd.Series(
+            basis, index=df.index, dtype=object
+        )
+        result[f"{consolidation}_reason"] = pd.Series(
+            blank_cv, index=df.index, dtype=object
+        )
+        result.attrs["units"][consolidation] = cv_unit
+        result[column], k_unit = _written(
+            conductivity, _CONDUCTIVITY_UNIT, system, "hydraulic_conductivity"
+        )
+        result[f"{column}_reason"] = pd.Series(why, index=df.index, dtype=object)
+        result.attrs["units"][column] = k_unit
+
+
+#: The columns of each recomputed c_v that are carried.
+_CARRIED = ("", "_basis", "_reason")
+
+
+def _join_key(frame: pd.DataFrame, i: int) -> tuple[str, str]:
+    """Return the increment's key as text, so 4 in one frame matches "4"."""
+    row = frame.iloc[i]
+    specimen, stage = (row[c] for c in _JOIN)
+    return (
+        "" if pd.isna(specimen) else str(specimen),
+        "" if pd.isna(stage) else str(stage),
+    )
+
+
+def _picked(
+    reduced: pd.DataFrame,
+    column: str,
+    taken: np.ndarray,
+    found: np.ndarray,
+    missing: str | None,
+) -> np.ndarray:
+    """Return ``reduced[column]`` on each matched row, ``missing`` elsewhere."""
+    picked = np.full(len(found), missing, dtype=object)
+    if len(reduced):
+        values = reduced[column].to_numpy(dtype=object)[taken]
+        picked[found] = [None if pd.isna(v) else v for v in values[found]]
+    return picked
 
 
 def _label(df: pd.DataFrame, positions: np.ndarray) -> str:

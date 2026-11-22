@@ -4,7 +4,7 @@ Promoted to the docs site as [`docs/site/parameters/06-preconsolidation-and-comp
 
 | | |
 |---|---|
-| **Parameters** | σ′p (preconsolidation / yield stress), OCR = σ′p/σ′v0, Cc (compression index), Cs / Cr (swelling / recompression index) |
+| **Parameters** | σ′p (preconsolidation / yield stress), OCR = σ′p/σ′v0, Cc (compression index), Cs / Cr (swelling / recompression index), c_v (coefficient of consolidation) from settlement–time readings |
 | **Material** | Soil (mainly fine-grained) |
 | **Constitutive models that use it** | Soft Soil / Modified Cam Clay (λ* = Cc/(2.3(1+e)), κ*), HS (OCR or POP sets the initial cap), SHANSEP su |
 | **Depends on** | [01 Unit weight and vertical stress](01-unit-weight-and-vertical-stress.md) (σ′v0), [02 Index properties](02-index-properties.md) (LL, PI), [03 Specific gravity and void ratio](03-specific-gravity-and-void-ratio.md) (e0) |
@@ -40,7 +40,7 @@ raises Cr. Cc depends on mineralogy, water content and structure (sensitive clay
 
 | Test | ASTM | ISO / BS (CSA) | AGS 4.2 group: headings | Delivers |
 |---|---|---|---|---|
-| Incremental-load oedometer | D2435/D2435M | ISO 17892-5; BS 1377-5 | CONG: CONG_TYPE, CONG_COND, CONG_IVR, CONG_HIGT, CONG_MCI; CONS: CONS_INCN, CONS_INCF, CONS_IVR, CONS_INCE, CONS_INMV | e vs σ′v points → σ′p, Cc, Cs |
+| Incremental-load oedometer | D2435/D2435M | ISO 17892-5; BS 1377-5 | CONG: CONG_TYPE, CONG_COND, CONG_IVR, CONG_HIGT, CONG_MCI; CONS: CONS_INCN, CONS_INCF, CONS_IVR, CONS_INCE, CONS_INMV, CONS_CVRT, CONS_CVLG; settlement–time readings in a user-defined group (no AGS group) | e vs σ′v points → σ′p, Cc, Cs; readings → c_v per increment |
 | Constant rate of strain (CRS) / effective-stress consolidation (Rowe cell) | D4186/D4186M | BS 1377-6 | ESCG: ESCG_PCP, ESCG_YSR, ESCG_CC, ESCG_CS, ESCG_ISVS, ESCG_ISVR, ESCG_IVR; ESCT: ESCT_INCF, ESCT_VR0, ESCT_VRE | continuous curve; lab-reported σ′p, Cc, Cs |
 | CPTu (correlation) | D5778 | ISO 22476-1 | CPTT: CPTT_QT, CPTT_CPO; CPTP: CPTP_P01, CPTP_CC1 | σ′p from qnet |
 | DMT (correlation) | D6635 | ISO 22476-11 | DMTP: DMTP_MPS | σ′p estimate |
@@ -110,6 +110,23 @@ $$\Delta e/e_0 = (e_0 - e_{\sigma'_{v0}})/e_0$$
 - **Source:** [7]; all bands [V] via Krage et al. (2015) Table 1 [13] and Amundsen et al. (2016) Table 1 [8]. Alternative
   SQD by εv0 at σ′v0 (< 1 % very good; > 8 % very poor; Terzaghi et al. 1996) [V] via [8].
 
+### 5.9 c_v from settlement–time readings — BS 1377-5:1990, root time and log time — built (`ht.analysis.consolidation_coefficient_from_readings()`)
+$$c_v = \frac{0.111\,\bar H^2}{t_{90}}\ \text{(root time)},\qquad c_v = \frac{0.026\,\bar H^2}{t_{50}}\ \text{(log time)}$$
+- **Built (M19 c2):** per increment, both constructions as stated rules on the readings joined by straight lines:
+  root time (3.6.3.3.1–3.6.3.3.3: the early line, the 1.15 line, t90) and log time (3.6.3.2.1–3.6.3.2.4: d0 from
+  pairs in the ratio 1:4, d100 where the tangent at the inflexion meets the secondary line, t50 at d50). H̄ in mm and
+  t in min give m²/yr; H̄ = (H1 + H2)/2 from the void ratios. Both are given beside the lab's; neither is preferred.
+  A curve a construction can't read gets a reason; an override of one part's time range is recorded with its reason.
+  Drawn by P15; k from it in sheet 12 §5.4.
+- **Coefficients:** BS's 0.026 and 0.111 round Terzaghi's T50 = 0.197 and T90 = 0.848 (double drainage, H̄/2), so
+  c_v matches a BS lab's to the figure; T50 and T90 as [16] Table 1, p. 45 (i_cv = 0) [V].
+- **Valid for:** one-dimensional primary consolidation with c_v constant over the increment. Where c_v changes with
+  stress, log time reads it at 50 % and root time at 90 %, so the two differ by design [16] pp. 44–47 [V]. Root time
+  can find no straight early portion where log time works, and the reverse with large secondary compression
+  (3.6.3.1, note) [V]. Unloads and reloads are hangtu's extension: BS describes the constructions for load
+  increments.
+- **Source:** [15] 3.6.3, 3.7 (h), (k) [V].
+
 ## 6. Sensitivity in models
 
 | Analysis | How the parameter enters | Sensitivity |
@@ -167,3 +184,9 @@ Geotech. Eng. (6ICEGE), Christchurch. — [V] Table 1 (Lunne et al. 1997 classes
 [14] Umar, M. & Sadrekarimi, A. (2017). Accuracy of determining pre-consolidation pressure from laboratory tests.
 Can. Geotech. J. 54(3), 441–450. — [V] bibliographic (the author's publications page); Tables 1 and 7 read in the
 accepted manuscript (cgj-2016-0203.R1), the published version not checked.
+[15] BS 1377-5:1990 (incorporating Amendment 1). Methods of test for soils for civil engineering purposes. Part 5:
+Compressibility, permeability and durability tests. BSI. — [V] 3.6.3.1–3.6.3.3.3 (the constructions and
+coefficients), 3.6.5.2, 3.7 (h), (i), (k).
+[16] Abuel-Naga, H.M. & Pender, M.J. (2012). Modified Terzaghi consolidation curves with effective stress-dependent
+coefficient of consolidation. Géotechnique Letters 2, 43–48. https://doi.org/10.1680/geolett.12.00005 — [V] Eq. 6
+(p. 44), Table 1 (p. 45), the methods' difference (pp. 44–47).

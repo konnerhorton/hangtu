@@ -10,6 +10,7 @@ from hangtu.plot import common, style
 from hangtu.plot._clogging_diagram import clogging_diagram
 from hangtu.plot._consolidation_coefficients import consolidation_coefficients
 from hangtu.plot._consolidation_curve import consolidation_curve
+from hangtu.plot._consolidation_time_curves import consolidation_time_curves
 from hangtu.plot._distribution_fit import distribution_fit
 from hangtu.plot._failure_envelope import failure_envelope
 from hangtu.plot._geology_units import (
@@ -33,6 +34,7 @@ __all__ = [
     "common",
     "consolidation_coefficients",
     "consolidation_curve",
+    "consolidation_time_curves",
     "distribution_fit",
     "failure_envelope",
     "geology_unit_comparison",

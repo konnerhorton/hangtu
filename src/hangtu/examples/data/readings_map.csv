@@ -15,3 +15,6 @@ XSBS,shear_box_readings,XSBS_TESN,test_stage
 XSBS,shear_box_readings,XSBS_HDIS,horizontal_displacement
 XSBS,shear_box_readings,XSBS_SHST,shear_stress
 XSBS,shear_box_readings,XSBS_VDIS,vertical_displacement
+XCOT,oedometer_readings,XCOT_TESN,test_stage
+XCOT,oedometer_readings,XCOT_TIME,elapsed_time
+XCOT,oedometer_readings,XCOT_DISP,vertical_displacement

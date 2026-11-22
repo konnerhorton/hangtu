@@ -67,6 +67,12 @@ DATASETS = {
         one_of=("shear_stress", "vertical_displacement"),
         stages={"SHBG": "SHBT", "SHBT": "SHBT"},
     ),
+    "oedometer_readings": Readings(
+        mapped=("test_stage", "elapsed_time", "vertical_displacement"),
+        required=("test_stage", "elapsed_time", "vertical_displacement"),
+        one_of=(),
+        stages={"CONG": "CONS", "CONS": "CONS"},
+    ),
 }
 
 # meta_heading.status of a numeric heading ingest couldn't convert (ingest.md §7).
@@ -184,7 +190,8 @@ def _check_names(table: pd.DataFrame, where: str, word: str) -> None:
         if row["dataset"] not in DATASETS:
             raise HangtuError(
                 f"{where} has dataset {row['dataset']!r} on {word} {line}. The "
-                f"readings datasets are {' and '.join(DATASETS)}."
+                f"readings datasets are {', '.join(list(DATASETS)[:-1])} and "
+                f"{list(DATASETS)[-1]}."
             )
         mapped = DATASETS[row["dataset"]].mapped
         if row["column"] not in mapped:
@@ -229,14 +236,18 @@ def _check_file(table: pd.DataFrame, where: str, word: str, path) -> None:
         readings = DATASETS[dataset]
         given = set(rows["column"])
         missing = [c for c in readings.required if c not in given]
-        if missing or not given & set(readings.one_of):
-            needs = [*missing] + (
-                [] if given & set(readings.one_of) else [" or ".join(readings.one_of)]
+        none_of = bool(readings.one_of) and not given & set(readings.one_of)
+        if missing or none_of:
+            needs = [*missing] + ([" or ".join(readings.one_of)] if none_of else [])
+            other = (
+                f", and at least one of {', '.join(readings.one_of)}"
+                if readings.one_of
+                else ""
             )
             raise HangtuError(
-                f"{where} doesn't map {', '.join(needs)} for group {group}. A "
-                f"{dataset} group needs {' and '.join(readings.required)}, "
-                f"and at least one of {', '.join(readings.one_of)}."
+                f"{where} doesn't map {', '.join(needs)} for group {group}. "
+                f"{_article(dataset)} {dataset} group needs "
+                f"{_listed(readings.required)}{other}."
             )
 
     parents = _parents(path)
@@ -254,7 +265,8 @@ def _check_file(table: pd.DataFrame, where: str, word: str, path) -> None:
         if parent not in allowed:
             raise HangtuError(
                 f"{where} sends group {group} to {dataset}, but the file's DICT gives "
-                f"it the parent {parent or 'none'}. A {dataset} group is a child of "
+                f"it the parent {parent or 'none'}. {_article(dataset)} {dataset} "
+                "group is a child of "
                 f"{', '.join(allowed)}. Check the dataset on "
                 f"{_lines(word, list(rows.index))}."
             )
@@ -314,6 +326,16 @@ def _parents(path) -> dict[str, str | None]:
             parent = row.get("DICT_PGRP", "").strip()
             parents[row["DICT_GRP"].strip()] = None if parent in ("", "-") else parent
     return parents
+
+
+def _article(word: str) -> str:
+    return "An" if word[0] in "aeiou" else "A"
+
+
+def _listed(names) -> str:
+    """Join names as ``a``, ``a and b`` or ``a, b and c``."""
+    names = list(names)
+    return names[0] if len(names) == 1 else f"{', '.join(names[:-1])} and {names[-1]}"
 
 
 def _lines(word: str, lines: list[int]) -> str:

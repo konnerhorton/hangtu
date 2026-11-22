@@ -31,6 +31,18 @@ psf, m_v in ft²/kip, c_v in ft²/yr): two incremental-load tests on Alluvium
 tubes, each with an unload-reload loop, and a swelling pressure test with no
 increments.
 
+``site.ags`` also carries settlement-time readings for each incremental-load
+test's loading increments that have a lab c_v, in a group of its own
+(``XCOT``, under ``CONG``), named in ``readings_map.csv`` too. They are
+synthetic: generated from Terzaghi's consolidation curve with an immediate
+and a secondary compression, at the reading times of BS 1377-5, with
+dial-gauge scatter. B-5-U2's third increment consolidates too fast for those
+times, so neither construction can read its c_v. ``oedometer_readings.csv``
+is those readings from the project, laid out like
+``ht.template("oedometer_readings")`` (stresses in psf, heights and
+displacements in in, times in min, c_v in ft²/yr), for
+``ht.analysis.consolidation_coefficient_from_readings()``.
+
 ``rock_triaxial.csv`` has UCS and triaxial tests on the sandstone cored in
 B-3, in MPa (depths in ft), laid out like ``ht.template("triaxial")`` with
 ``failure_mode`` filled, for ``ht.analysis.hoek_brown_fit()``. They aren't

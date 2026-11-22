@@ -71,3 +71,38 @@ def test_findings_from_every_step():
     }
     assert {f.rule for f in ags.ingest(DATA / "site_v404.ags").findings} == {"M001"}
     assert ags.ingest(DATA / "site_si.ags").findings == []
+
+
+def test_a_user_defined_time_heading_in_seconds_is_stored_in_minutes(tmp_path):
+    # M19 (c2), AC 11: user-defined headings in a unit of time convert to the
+    # time kind's canonical minute on ingest.
+    text = (DATA / "site_si.ags").read_bytes().decode("utf-8")
+    edits = [
+        (
+            '"DATA","HEADING","XPPT","XPPT_RES",',
+            '"DATA","HEADING","XPPT","XPPT_TIME","OTHER","1DP","Time of reading",'
+            '"s","","","",""\r\n"DATA","HEADING","XPPT","XPPT_RES",',
+        ),
+        (
+            '"HEADING","LOCA_ID","XPPT_DPTH","XPPT_RES"\r\n"UNIT","","m","kPa"\r\n'
+            '"TYPE","ID","2DP","0DP"\r\n"DATA","BH1","1.20","145"\r\n'
+            '"DATA","BH2","1.00","70"',
+            '"HEADING","LOCA_ID","XPPT_DPTH","XPPT_RES","XPPT_TIME"\r\n'
+            '"UNIT","","m","kPa","s"\r\n"TYPE","ID","2DP","0DP","1DP"\r\n'
+            '"DATA","BH1","1.20","145","90.0"\r\n"DATA","BH2","1.00","70","30.0"',
+        ),
+    ]
+    for old, new in edits:
+        assert old in text
+        text = text.replace(old, new, 1)
+    path = tmp_path / "time.ags"
+    path.write_bytes(text.encode("utf-8"))
+    result = ags.ingest(path)
+    heading = result.headings["XPPT", "XPPT_TIME"]
+    assert (heading.unit, heading.quantity, heading.status) == (
+        "min",
+        "time",
+        "converted",
+    )
+    assert result.canonical["XPPT"]["XPPT_TIME"] == pytest.approx([1.5, 0.5])
+    assert not [f for f in result.findings if f.heading == "XPPT_TIME"]

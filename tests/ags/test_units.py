@@ -366,3 +366,50 @@ def test_us_oedometer_coefficients_convert(file_unit, dictionary_unit, value, ex
     result, _, finding = converted(file_unit, standard(dictionary_unit, "2SF"), value)
     assert result == pytest.approx(expected, rel=1e-6)
     assert finding is None
+
+
+# M19 (c2): the time kind. Standard headings keep their dictionary unit and are
+# times by dimension; user-defined ones convert to minutes.
+@pytest.mark.parametrize(
+    ("group", "heading", "unit"),
+    [
+        ("PLTT", "PLTT_TIME", "min"),
+        ("CPDT", "CPDT_TIME", "s"),
+        ("ISTS", "ISTS_RATE", "ms"),
+        ("CTRG", "CTRG_DURN", "day"),
+    ],
+)
+def test_standard_time_headings_keep_their_unit_with_the_time_kind(
+    group, heading, unit
+):
+    entry = Heading(group, heading, "OTHER", "1DP", unit, "4.2")
+    result, finding = u.resolve_heading(group, heading, unit, "1DP", entry, "SI", 7)
+    assert (result.unit, result.quantity, result.status, finding) == (
+        unit,
+        "time",
+        u.CONVERTED,
+        None,
+    )
+    assert result.convert([12.5])[0] == 12.5
+
+
+def test_a_standard_time_heading_converts_a_file_unit_to_its_dictionary_unit():
+    value, heading, finding = converted("min", standard("s", "1DP"), 2.0)
+    assert value == pytest.approx(120.0)
+    assert (heading.unit, heading.quantity, finding) == ("s", "time", None)
+
+
+@pytest.mark.parametrize(
+    ("file_unit", "value", "minutes"),
+    [("s", 90.0, 1.5), ("ms", 30000.0, 0.5), ("min", 4.0, 4.0), ("day", 1.0, 1440.0)],
+)
+def test_user_defined_time_headings_convert_to_minutes(file_unit, value, minutes):
+    result, heading, finding = converted(file_unit, None, value)
+    assert result == pytest.approx(minutes, rel=1e-12)
+    assert (heading.unit, heading.quantity, finding) == ("min", "time", None)
+
+
+def test_only_time_is_matched_by_dimension():
+    # A standard MPa heading is not a stress: kPa is the stress kind's canonical.
+    assert resolve("MPa", standard("MPa"))[0].quantity is None
+    assert resolve("mm/s", standard("mm/s"))[0].quantity is None

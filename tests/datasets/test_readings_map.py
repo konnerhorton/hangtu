@@ -29,7 +29,7 @@ def _map(*changes, drop=()):
 
 @pytest.mark.parametrize("name", ["site_si", "site_us", "joins"])
 def test_stored(fresh, name):
-    # AC 1: thirteen rows, kept on open, removed by None.
+    # AC 1: sixteen rows (thirteen before M19 c2), kept on open, removed by None.
     p = fresh(name)
     assert p.readings_map is None
     p.set_readings_map(MAP)
@@ -43,7 +43,7 @@ def test_stored(fresh, name):
 def test_a_dataframe_replaces_the_map(fresh):
     p = fresh()
     p.set_readings_map(MAP)
-    p.set_readings_map(MAPPED.iloc[9:])
+    p.set_readings_map(MAPPED.iloc[9:13])
     assert list(p.readings_map["group"]) == ["XSBS"] * 4
 
 
@@ -89,7 +89,7 @@ ERRORS = [
     (_map((4, "heading", "")), r"has a blank heading on row 5\."),
     (
         _map((None, None, dict(MAPPED.iloc[1]))),
-        r"maps a heading more than once: XTDS XTDS_STRN on rows 2, 14\.",
+        r"maps a heading more than once: XTDS XTDS_STRN on rows 2, 17\.",
     ),
     (
         _map((2, "heading", "XTDS_DEVF"), (1, "heading", "XTDS_DEVF"), drop=[]),
@@ -98,7 +98,7 @@ ERRORS = [
     (
         _map((None, None, {**dict(MAPPED.iloc[2]), "heading": "XTDS_POIN"})),
         r"maps a column more than once in one group: XTDS deviator_stress on "
-        r"rows 3, 14\.",
+        r"rows 3, 17\.",
     ),
     (
         _map((0, "dataset", "shear_box_readings")),
@@ -108,7 +108,7 @@ ERRORS = [
     (
         _map(*((r, "dataset", "triaxial") for r in range(3))),
         r"has dataset 'triaxial' on row 1\. The readings datasets are "
-        r"triaxial_readings and shear_box_readings\.",
+        r"triaxial_readings, shear_box_readings and oedometer_readings\.",
     ),
     (
         _map((2, "column", "shear_stress")),
@@ -125,7 +125,7 @@ ERRORS = [
     (
         _map(*((r, "group", "XTQQ") for r in range(3))),
         r"names group XTQQ on row 1, which the file doesn't have\. Its user-defined "
-        r"groups are: XPPT, XSBS, XTDS, XTPW, XTVS\.",
+        r"groups are: XCOT, XPPT, XSBS, XTDS, XTPW, XTVS\.",
     ),
     (
         _map((5, "heading", "XTPW_PWPF")),
@@ -167,6 +167,12 @@ ERRORS = [
         ),
         r"sends group XPPT to shear_box_readings, but the file's DICT gives it the "
         r"parent LOCA\. A shear_box_readings group is a child of SHBG, SHBT\.",
+    ),
+    # M19 (c2), AC 10: an oedometer readings group without its time.
+    (
+        _map(drop=[14]),
+        r"doesn't map elapsed_time for group XCOT\. An oedometer_readings group "
+        r"needs test_stage, elapsed_time and vertical_displacement\.",
     ),
     # Units: kPa against percent.
     (
@@ -235,3 +241,21 @@ def test_a_heading_ingest_did_not_convert(fresh, status, unit, message):
         rf"deviator_stress on row 3, but deviator_stress is a stress and {message}",
     ):
         p.set_readings_map(MAPPED)
+
+
+def test_an_oedometer_readings_group_under_tret_is_rejected(fresh):
+    # M19 (c2), AC 10: XCOT's DICT_PGRP rewritten to TRET.
+    p = fresh()
+    with closing(sqlite3.connect(p.path)) as connection, connection:
+        connection.execute(
+            "UPDATE raw_DICT SET DICT_PGRP = 'TRET' WHERE DICT_TYPE = 'GROUP' "
+            "AND DICT_GRP = 'XCOT'"
+        )
+    with pytest.raises(
+        ht.HangtuError,
+        match=r"sends group XCOT to oedometer_readings, but the file's DICT gives it "
+        r"the parent TRET\. An oedometer_readings group is a child of CONG, CONS\. "
+        r"Check the dataset on rows 14, 15, 16\.",
+    ):
+        p.set_readings_map(MAPPED)
+    assert p.readings_map is None

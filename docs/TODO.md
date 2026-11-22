@@ -282,6 +282,14 @@ One unit can need two selected values of one parameter: EC7's Type A (a mean) fo
 - **Casagrande (1936):** the point of maximum curvature needs a smoothing choice (a spline, a window), a judgment the fit would hide. Open: which smoothing, stated and fixed, or a judgment input; and a verified citation (sheet 06 [4] is [U]).
 - **Work method (Becker et al. 1987):** W = Σ σ′v Δε_v (strain referred to the initial thickness, `docs/analysis/compressibility.md` §8); the two lines are in arithmetic W–σ′v, each fitted over a stress range the engineer chooses. Open: whether the split is searched as Oikawa's is, and the equation's form from the paper (sheet 06 [6] is [U] for it).
 
+### 77. Stored overrides of a test's reading · You + Claude · SPEC §4, `docs/analysis/compressibility.md` §9, `docs/data/datasets.md` §6.18 · before a project reruns an analysis with overrides after a data update, or when a second analysis takes them (#76)
+- **Built (M19 c2):** the c_v constructions are read by a stated rule, and an engineer overrides an increment's ranges by an argument, recorded on the result. Nothing is stored, so each call passes them again.
+- **Goal:** rerun an analysis exactly as before after the data is updated, overrides included.
+- **Open:**
+  - **Where they live:** a plain file next to the project, like `judgments.yaml` (reviewable, in version control, survives a rebuild), or with the project in the database, like the readings map (which is kept only until the database is rebuilt, and a data update can rebuild it). Not in `judgments.yaml` itself (M19 c2's decision 1).
+  - **Stale overrides:** what happens when an update changes or removes the readings an override was made on (a key that no longer exists, a time range past the new last reading, readings that changed under it). Possibly a hash of the readings it was made on, with a warning when they differ.
+  - Whether σ′p overrides (#76) share the file and its format.
+
 ## Agent-use review (2026-11-09)
 A review of the whole package asked one question: if an AI agent does the work and an engineer signs it off, how likely is a wrong answer, and how easy is it to catch? It used probe scripts plus two agent trials (an SPT correlation task and a lab strength task, from the public docs only). Items 60–61 can give a plausible wrong number with nothing to flag it; 62–67 lead an agent to misuse; 68–69 are friction.
 

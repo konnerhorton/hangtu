@@ -40,6 +40,7 @@ Every plot takes a DataFrame and returns an ordinary matplotlib figure and axes.
 | [Hoek–Brown envelope](hoek-brown-envelope.md) | Intact rock UCS and triaxial tests in σ1–σ3, with the fitted σci and mi, free and with σci fixed |
 | [Consolidation curve](consolidation-curve.md) | Oedometer increments as e against log σ′v, with σ′p, Cc, Cr and Cs, OCR and the sample quality |
 | [Consolidation coefficients](consolidation-coefficients.md) | m_v and c_v of each oedometer increment against log σ′v, the lab's m_v beside the recomputed one, and σ′v0 |
+| [Consolidation time curves](consolidation-time-curves.md) | Each oedometer increment's settlement against root time and log time, with the c_v constructions of BS 1377-5 and the lab's c_v beside hangtu's |
 
 ## See also
 

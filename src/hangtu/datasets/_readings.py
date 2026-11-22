@@ -1,12 +1,13 @@
-"""``p.triaxial_readings()`` and ``p.shear_box_readings()`` (M16).
+"""The readings datasets: triaxial and shear box (M16), oedometer (M19 c2).
 
-The readings of the user-defined groups the readings map names (datasets.md
-§6.15 to §6.17).
+``p.triaxial_readings()``, ``p.shear_box_readings()`` and
+``p.oedometer_readings()``: the readings of the user-defined groups the
+readings map names (datasets.md §6.15 to §6.18).
 
 One row per reading, never merged: each keeps only the values its group gives,
-with its stage's values from ``TRET``, ``TRIT`` or ``SHBT`` on each. Readings
-stay in file order, so an unload at the end of a stage stays at the end
-(docs/analysis/strength.md §2).
+with its stage's values from ``TRET``, ``TRIT``, ``SHBT`` or ``CONS`` on each.
+Readings stay in file order, so an unload at the end of a stage stays at the
+end (docs/analysis/strength.md §2).
 """
 
 from dataclasses import dataclass, field
@@ -18,6 +19,7 @@ import hangtu.db as database
 from hangtu import units
 from hangtu.datasets._frame import GEOLOGY_COLUMNS, Build
 from hangtu.datasets._lab import specimens
+from hangtu.datasets._oedometer import increment_rows
 from hangtu.datasets._readings_map import DATASETS, _parents
 from hangtu.errors import warn
 from hangtu.registry import _template_columns, column_info
@@ -52,6 +54,13 @@ STAGES = {
 ORDER = {
     "triaxial_readings": (("TRET", "TRIT"), "triaxial readings"),
     "shear_box_readings": (("SHBT",), "shear box readings"),
+    "oedometer_readings": (("CONS",), "oedometer readings"),
+}
+#: What makes a reading incomplete, as its warning says it.
+INCOMPLETE = {
+    "triaxial_readings": "a blank stage or strain, or no other value",
+    "shear_box_readings": "a blank stage or strain, or no other value",
+    "oedometer_readings": "a blank increment, time or displacement",
 }
 
 
@@ -63,6 +72,11 @@ def triaxial_readings(path: str | PathLike[str], **arguments) -> pd.DataFrame:
 def shear_box_readings(path: str | PathLike[str], **arguments) -> pd.DataFrame:
     """Build the shear box readings dataset; see ``Project.shear_box_readings``."""
     return _readings(path, "shear_box_readings", **arguments)
+
+
+def oedometer_readings(path: str | PathLike[str], **arguments) -> pd.DataFrame:
+    """Build the oedometer readings dataset; see ``Project.oedometer_readings``."""
+    return _readings(path, "oedometer_readings", **arguments)
 
 
 def _readings(
@@ -95,7 +109,11 @@ def _readings(
         return build._empty([*template, "source_line"])
 
     stages = pd.concat(
-        [_stage_rows(build, group) for group in stage_groups if build.has(group)]
+        [
+            increment_rows(build) if group == "CONS" else _stage_rows(build, group)
+            for group in stage_groups
+            if build.has(group)
+        ]
         or [pd.DataFrame(columns=["_stage", "_specimen", "_position"])],
         ignore_index=True,
     )
@@ -123,7 +141,7 @@ def _readings(
     if not include_incomplete:
         _count(left_out, "incomplete", frame[incomplete], "")
         frame = frame[~incomplete]
-    _warn(left_out, noun)
+    _warn(left_out, noun, INCOMPLETE[dataset])
 
     frame = frame.sort_values(
         ["_position", "_group", "_line"], na_position="last", kind="stable"
@@ -132,7 +150,7 @@ def _readings(
         frame["reported_failure_reading"] = pd.Series(
             pd.NA, index=frame.index, dtype="boolean"
         )
-    for column in ("test_type", "test_stage", "failure_criterion"):
+    for column in ("test_type", "test_stage", "failure_criterion", "load_branch"):
         if column in frame:
             values = frame[column].astype(object)
             frame[column] = values.where(values.notna(), None)
@@ -232,7 +250,9 @@ def _join(part: pd.DataFrame, stages: pd.DataFrame):
 
 
 def _incomplete(frame: pd.DataFrame, readings) -> pd.Series:
-    blank = frame["test_stage"].isna() | frame[readings.required[1]].isna()
+    blank = frame[list(readings.required)].isna().any(axis=1)
+    if not readings.one_of:
+        return blank
     others = [c for c in readings.one_of if c in frame]
     return blank | frame[others].isna().all(axis=1)
 
@@ -243,7 +263,7 @@ def _count(left_out, kind, rows: pd.DataFrame, why: str) -> None:
         left_out[kind].append((name, lines, why))
 
 
-def _warn(left_out, noun: str) -> None:
+def _warn(left_out, noun: str, incomplete: str) -> None:
     texts = {
         "stage": (
             "{n} {readings} of {group} {why} ({lines})",
@@ -257,8 +277,7 @@ def _warn(left_out, noun: str) -> None:
             "include_incomplete=True doesn't keep them. p.diff() shows the text.",
         ),
         "incomplete": (
-            "{n} {readings} of {group} with a blank stage or strain, or no other "
-            "value ({lines})",
+            "{n} {readings} of {group} with " + incomplete + " ({lines})",
             ". Keep them with include_incomplete=True.",
         ),
     }

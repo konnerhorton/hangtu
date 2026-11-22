@@ -437,3 +437,205 @@ def test_ac11_docstring():
         "no void ratio at the increment's start",
     ):
         assert reason in doc.replace("\n    ", " ")
+
+
+# --- k from the recomputed c_v (docs/work/m19c2-cv-readings.md, AC 6) ---------------
+
+MAP = DATA / "readings_map.csv"
+FROM_READINGS = "hydraulic_conductivity_from_readings"
+
+
+def _with_readings(name, system, tmp_path_factory, **kwargs):
+    p = _project(name, system, tmp_path_factory)
+    p.set_readings_map(MAP)
+    reduced = ht.analysis.consolidation_coefficient_from_readings(
+        p.oedometer_readings()
+    )
+    return ht.analysis.oedometer_increments(
+        p.oedometer(), consolidation_coefficients=reduced, **kwargs
+    ), reduced
+
+
+@pytest.fixture(scope="module")
+def with_readings(tmp_path_factory):
+    return _with_readings("site_si", "SI", tmp_path_factory)[0]
+
+
+def test_c2_ac6_k_from_the_recomputed_cv(with_readings, bh1_u3):
+    rows = with_readings
+    # 2.15039592 m²/yr × 0.157657658 m²/MN × 9.81 kN/m³ × 10⁻³ / 31 557 600 s.
+    assert rows[f"{FROM_READINGS}_root_time"].iloc[3] == pytest.approx(
+        1.05389790e-10, rel=TABLE_REL
+    )
+    assert rows[f"{FROM_READINGS}_log_time"].iloc[3] == pytest.approx(
+        1.01127911e-10, rel=TABLE_REL
+    )
+    mv = rows["coefficient_of_volume_compressibility"].iloc[3]
+    cv = rows["coefficient_of_consolidation_root_time"].iloc[3]
+    assert cv == pytest.approx(2.15039592, rel=TABLE_REL)
+    assert rows[f"{FROM_READINGS}_root_time"].iloc[3] == pytest.approx(
+        cv * mv * 9.81e-3 / YEAR, rel=REL
+    )
+    # c1's k from the lab's c_v, beside it and unchanged.
+    for column in (
+        "hydraulic_conductivity_root_time",
+        "hydraulic_conductivity_log_time",
+    ):
+        pd.testing.assert_series_equal(rows[column], bh1_u3[column])
+    assert rows["hydraulic_conductivity_root_time"].iloc[3] == pytest.approx(
+        1.02919912e-10, rel=TABLE_REL
+    )
+    assert rows.attrs["units"][f"{FROM_READINGS}_root_time"] == "m/s"
+    assert rows.attrs["units"]["coefficient_of_consolidation_log_time"] == "m2/yr"
+
+
+def test_c2_ac6_no_readings_on_the_other_increments(with_readings):
+    rows = with_readings
+    without = [0, *range(6, 12)]  # increments 1 and 7-12
+    for method in ("root_time", "log_time"):
+        k = rows[f"{FROM_READINGS}_{method}"]
+        assert k.iloc[without].isna().all()
+        assert not k.iloc[1:6].isna().any()
+        assert set(rows[f"{FROM_READINGS}_{method}_reason"].iloc[without]) == {
+            "no readings"
+        }
+        cv = f"coefficient_of_consolidation_{method}"
+        assert set(rows[f"{cv}_reason"].iloc[without]) == {"no readings"}
+        assert rows[f"{cv}_basis"].iloc[without].isna().all()
+        assert list(rows[f"{cv}_basis"].iloc[1:6]) == ["rule"] * 5
+
+
+def test_c2_without_consolidation_coefficients_the_frame_is_as_before(bh1_u3):
+    assert not any(c.startswith(FROM_READINGS) for c in bh1_u3.columns)
+    assert "coefficient_of_consolidation_root_time" not in bh1_u3.columns
+
+
+def test_c2_a_blank_recomputed_cv_gives_its_reason(site_si):
+    reduced = pd.DataFrame(
+        {
+            "specimen_id": [site_si["specimen_id"].iloc[3]],
+            "test_stage": ["4"],
+            "coefficient_of_consolidation_root_time": [np.nan],
+            "coefficient_of_consolidation_root_time_basis": ["rule"],
+            "coefficient_of_consolidation_root_time_reason": [
+                "t90 after the last reading"
+            ],
+            "coefficient_of_consolidation_log_time": [2.0],
+            "coefficient_of_consolidation_log_time_basis": ["override"],
+            "coefficient_of_consolidation_log_time_reason": [None],
+        }
+    )
+    reduced = ht.set_units(
+        reduced,
+        {
+            "coefficient_of_consolidation_root_time": "m2/yr",
+            "coefficient_of_consolidation_log_time": "ft2/yr",
+        },
+    )
+    rows = ht.analysis.oedometer_increments(site_si, consolidation_coefficients=reduced)
+    row = rows.iloc[3]
+    assert row["coefficient_of_consolidation_root_time_reason"] == (
+        "t90 after the last reading"
+    )
+    assert row[f"{FROM_READINGS}_root_time_reason"] == "no c_v from readings"
+    assert row["coefficient_of_consolidation_log_time"] == pytest.approx(
+        2.0 / 10.7639104, rel=1e-8
+    )
+    assert row["coefficient_of_consolidation_log_time_basis"] == "override"
+    assert row[f"{FROM_READINGS}_log_time"] == pytest.approx(
+        2.0
+        / 10.7639104
+        * row["coefficient_of_volume_compressibility"]
+        * 9.81e-3
+        / YEAR,
+        rel=1e-8,
+    )
+
+
+def test_c2_reduced_rows_matching_no_increment_warn(site_si, tmp_path_factory):
+    p = _project("site_si", "SI", tmp_path_factory)
+    p.set_readings_map(MAP)
+    reduced = ht.analysis.consolidation_coefficient_from_readings(
+        p.oedometer_readings()
+    )
+    extra = reduced.iloc[[0]].copy()
+    extra["test_stage"] = "99"
+    both = pd.concat([reduced, extra], ignore_index=True)
+    both.attrs = reduced.attrs
+    with pytest.warns(UserWarning, match=r"increment 99, which df's increments"):
+        rows = ht.analysis.oedometer_increments(
+            site_si, consolidation_coefficients=both
+        )
+    assert rows[f"{FROM_READINGS}_root_time"].iloc[3] == pytest.approx(
+        1.05389790e-10, rel=TABLE_REL
+    )
+
+
+def test_c2_twins(tmp_path_factory):
+    si, _ = _with_readings("site_si", "SI", tmp_path_factory)
+    us, _ = _with_readings("site_us", "US", tmp_path_factory)
+    for method in ("root_time", "log_time"):
+        np.testing.assert_allclose(
+            si[f"{FROM_READINGS}_{method}"], us[f"{FROM_READINGS}_{method}"], rtol=1e-8
+        )
+
+
+def test_c2_display_units_us(tmp_path_factory):
+    rows, _ = _with_readings("site_si", "SI", tmp_path_factory, display_units="US")
+    assert rows["coefficient_of_consolidation_root_time"].iloc[3] == pytest.approx(
+        23.1466690, rel=1e-6
+    )
+    assert rows.attrs["units"]["coefficient_of_consolidation_root_time"] == "ft²/yr"
+    assert rows.attrs["units"][f"{FROM_READINGS}_root_time"] == "cm/s"
+    assert rows[f"{FROM_READINGS}_root_time"].iloc[3] == pytest.approx(
+        1.05389790e-8, rel=TABLE_REL
+    )
+
+
+@pytest.mark.parametrize(
+    ("change", "error", "match"),
+    [
+        (
+            lambda r: r.drop(columns="coefficient_of_consolidation_log_time_basis"),
+            ColumnError,
+            r"consolidation_coefficients has no column "
+            r"'coefficient_of_consolidation_log_time_basis'",
+        ),
+        (
+            lambda r: pd.concat([r, r.iloc[[0]]], ignore_index=True),
+            HangtuError,
+            r"more than one row for specimen .* increment '2'",
+        ),
+        (lambda r: r.to_dict(), HangtuError, "must be a pandas DataFrame"),
+    ],
+)
+def test_c2_consolidation_coefficients_errors(
+    site_si, tmp_path_factory, change, error, match
+):
+    p = _project("site_si", "SI", tmp_path_factory)
+    p.set_readings_map(MAP)
+    reduced = ht.analysis.consolidation_coefficient_from_readings(
+        p.oedometer_readings()
+    )
+    with pytest.raises(error, match=match):
+        ht.analysis.oedometer_increments(
+            site_si, consolidation_coefficients=change(reduced)
+        )
+
+
+def test_c2_df_needs_test_stage(site_si):
+    reduced = pd.DataFrame(
+        columns=[
+            "specimen_id",
+            "test_stage",
+            *[
+                f"coefficient_of_consolidation_{m}{s}"
+                for m in ("root_time", "log_time")
+                for s in ("", "_basis", "_reason")
+            ],
+        ]
+    )
+    with pytest.raises(ColumnError, match=r"df has no column 'test_stage'"):
+        ht.analysis.oedometer_increments(
+            site_si.drop(columns="test_stage"), consolidation_coefficients=reduced
+        )
