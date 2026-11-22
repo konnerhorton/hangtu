@@ -648,3 +648,14 @@ cited §8 before it was written; the registry's `ags` entries for the derived co
   increment (B-5-U2's 3rd) is generated at 20 m²/yr, AC 3's case: at 10 and 15 m²/yr both constructions still
   resolve it, and at 18–20 both give a reason, not log time alone as step 7 said. Its lab c_v (53 ft²/yr) is
   left as the lab wrote it.
+- **Step 8.** The analysis's body moved into a private `constructions()` that also returns each increment's
+  `Readings`, `RootTime`, `LogTime` and override ranges; the public function returns its frame, and P15 draws the
+  same fit. Changed in P15 in this commit (approved 2026-11-22): the root time x axis stops past 2.5 √t90, with later
+  readings at its edge and counted (§6), since an axis to 1440 min squeezed the construction into the panel's first
+  eighth. Also settled in drawing it: the result text sits upper right (the curve leaves it clear), the point labels
+  just outside the panel's right edge, no method title (the x labels name it), σ′1 from the increment numbered one
+  before ("to 50 kPa" without it), the lines a stopped construction got to drawn, and one legend entry per line
+  style. The lab's c_v keeps the figures it was read with, so `site_us.ags`'s 10SF values show as "2.100000000"
+  m²/yr; AC 6's "lab 23" is site_si's 2.1 m²/yr in ft²/yr. The shared legend and footnote go in a band below the
+  panels as P07's grid puts them, but with fewer columns when the entries would run past the figure's edges (a
+  one-row figure with the override entry did), so P15 has its own `_legend()` rather than P07's `_grid_legend()`.

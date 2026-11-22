@@ -499,6 +499,41 @@ def consolidation_coefficient_from_readings(
     ...     ]
     ... ]
     """
+    return constructions(
+        df, overrides=overrides, units=units, display_units=display_units
+    )[0]
+
+
+@dataclass(frozen=True)
+class Construction:
+    """One increment's constructions, for a plot to draw the fit the result holds.
+
+    ``row`` is the position in the rows of the increment's first reading.
+    ``readings``, ``root`` and ``log`` are None for a constant stress
+    increment. ``ranges`` maps each overridden method to its parts' ranges,
+    in minutes.
+    """
+
+    key: tuple[str, str]
+    row: int
+    readings: Readings | None
+    root: RootTime | None
+    log: LogTime | None
+    ranges: Mapping[str, Mapping[str, Range]]
+
+
+def constructions(
+    df: pd.DataFrame,
+    *,
+    overrides: pd.DataFrame | None = None,
+    units: Mapping[str, str] | None = None,
+    display_units: str | None = None,
+) -> tuple[pd.DataFrame, list[Construction]]:
+    """Return the analysis's result and the constructions behind each row.
+
+    The result is ``consolidation_coefficient_from_readings()``'s; a plot
+    draws the constructions, so it shows the fit the result holds.
+    """
     _check(df, display_units)
     notes: list[str] = []
     times = _in_unit(df, TIME, "time", _MINUTE, units)
@@ -537,12 +572,14 @@ def consolidation_coefficient_from_readings(
         )
         for column, method in ((ROOT_TIME, ROOT_METHOD), (LOG_TIME, LOG_METHOD))
     }
+    built: list[Construction] = []
     for i, positions in enumerate(groups):
+        given = ranges.get(keys[i], {})
         if branch[i] == CONSTANT_STRESS:
             reasons[ROOT_TIME][i] = reasons[LOG_TIME][i] = CONSTANT
+            built.append(Construction(keys[i], first_rows[i], None, None, None, given))
             continue
         readings = increment_readings(df.index, positions, times, displacements)
-        given = ranges.get(keys[i], {})
         root = root_time(readings, given.get(ROOT_METHOD, {}).get(EARLY))
         reasons[ROOT_TIME][i] = root.reason
         if root.reason is None:
@@ -558,6 +595,7 @@ def consolidation_coefficient_from_readings(
             values[DISPLACEMENT_50][i] = readings.displacement(log.movement_50)
             values[TIME_50][i] = log.time
             values[LOG_TIME][i] = LOG_TIME_COEFFICIENT * heights[i] ** 2 / log.time
+        built.append(Construction(keys[i], first_rows[i], readings, root, log, given))
         if np.isnan(heights[i]):
             for method in (ROOT_TIME, LOG_TIME):
                 if reasons[method][i] is None:
@@ -600,7 +638,7 @@ def consolidation_coefficient_from_readings(
         "notes": notes,
         "overrides": records,
     }
-    return result
+    return result, built
 
 
 def increment_readings(

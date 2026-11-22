@@ -1425,7 +1425,7 @@ columns:
     scale: interval
     label: Vertical displacement, δ_v
     ags: ["a user-defined group, through the readings map (datasets.md §6.15)", "a user CSV of oedometer readings (datasets.md §6.18)"]
-    used_by: []
+    used_by: [plot.consolidation_time_curves]
   elapsed_time:
     description: Elapsed time at an oedometer reading since its increment's load was applied
     type: number
@@ -1433,7 +1433,7 @@ columns:
     scale: ratio
     label: Elapsed time since the load was applied, t
     ags: ["a user-defined group, through the readings map (datasets.md §6.15)", "a user CSV of oedometer readings (datasets.md §6.18)"]
-    used_by: []
+    used_by: [plot.consolidation_time_curves]
   # An override of a c_v construction's time range (M19 c2, compressibility.md §9).
   consolidation_method:
     description: "The c_v construction an override applies to: root_time or log_time"
@@ -1567,7 +1567,7 @@ columns:
     scale: ratio
     label: Applied vertical stress, σ′_v
     ags: [CONS.CONS_INCF]
-    used_by: []
+    used_by: [plot.consolidation_time_curves]
   void_ratio_at_increment_start:
     description: Void ratio of an oedometer specimen at the start of an increment
     type: number
@@ -1599,7 +1599,7 @@ columns:
     scale: ratio
     label: Coefficient of consolidation, root time (reported), c_v
     ags: [CONS.CONS_CVRT]
-    used_by: [plot.consolidation_coefficients]
+    used_by: [plot.consolidation_coefficients, plot.consolidation_time_curves]
   reported_coefficient_of_consolidation_log_time:
     description: The lab's coefficient of consolidation over an oedometer increment, by the log time method
     type: number
@@ -1607,7 +1607,7 @@ columns:
     scale: ratio
     label: Coefficient of consolidation, log time (reported), c_v
     ags: [CONS.CONS_CVLG]
-    used_by: [plot.consolidation_coefficients]
+    used_by: [plot.consolidation_coefficients, plot.consolidation_time_curves]
   swelling_pressure:
     description: Swelling pressure of a consolidation specimen, as the lab reports it
     type: number
@@ -1728,17 +1728,17 @@ columns:
     scale: ratio
     label: Coefficient of consolidation (root time), c_v
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_time_curves]
   coefficient_of_consolidation_root_time_basis:
     description: "Where the root time construction's lines came from: rule (the stated rule) or override (a time range given for at least one line)"
     type: text
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_time_curves]
   coefficient_of_consolidation_root_time_reason:
     description: Why an increment's coefficient of consolidation by root time is blank
     type: text
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_time_curves]
   coefficient_of_consolidation_log_time:
     description: Coefficient of consolidation over an oedometer increment, recomputed from its settlement-time readings by the log time construction
     type: number
@@ -1746,17 +1746,17 @@ columns:
     scale: ratio
     label: Coefficient of consolidation (log time), c_v
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_time_curves]
   coefficient_of_consolidation_log_time_basis:
     description: "Where the log time construction's lines came from: rule (the stated rule) or override (a time range given for at least one line)"
     type: text
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_time_curves]
   coefficient_of_consolidation_log_time_reason:
     description: Why an increment's coefficient of consolidation by log time is blank
     type: text
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_time_curves]
   time_to_90_percent_consolidation:
     description: Time to 90 % primary consolidation of an oedometer increment, from the root time construction
     type: number
@@ -1764,7 +1764,7 @@ columns:
     scale: ratio
     label: Time to 90 % consolidation, t90
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_time_curves]
   time_to_50_percent_consolidation:
     description: Time to 50 % primary consolidation of an oedometer increment, from the log time construction
     type: number
@@ -1772,7 +1772,7 @@ columns:
     scale: ratio
     label: Time to 50 % consolidation, t50
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_time_curves]
   corrected_zero_displacement_root_time:
     description: Corrected zero point of an oedometer increment by the root time construction, in the readings' datum and sign
     type: number
@@ -1780,7 +1780,7 @@ columns:
     scale: interval
     label: Corrected zero point (root time), d0
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_time_curves]
   corrected_zero_displacement_log_time:
     description: Corrected zero point of an oedometer increment by the log time construction, in the readings' datum and sign
     type: number
@@ -1788,7 +1788,7 @@ columns:
     scale: interval
     label: Corrected zero point (log time), d0
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_time_curves]
   displacement_at_90_percent_consolidation:
     description: Displacement at 90 % primary consolidation of an oedometer increment, from the root time construction, in the readings' datum and sign
     type: number
@@ -1796,7 +1796,7 @@ columns:
     scale: interval
     label: Displacement at 90 % consolidation, d90
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_time_curves]
   displacement_at_50_percent_consolidation:
     description: Displacement at 50 % primary consolidation of an oedometer increment, from the log time construction, in the readings' datum and sign
     type: number
@@ -1804,7 +1804,7 @@ columns:
     scale: interval
     label: Displacement at 50 % consolidation, d50
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_time_curves]
   displacement_at_100_percent_primary_consolidation:
     description: Displacement at the end of primary consolidation of an oedometer increment, from the log time construction, in the readings' datum and sign
     type: number
@@ -1812,7 +1812,7 @@ columns:
     scale: interval
     label: Displacement at 100 % primary consolidation, d100
     ags: ["derived: docs/analysis/compressibility.md"]
-    used_by: []
+    used_by: [plot.consolidation_time_curves]
   hydraulic_conductivity_from_readings_root_time:
     description: Vertical hydraulic conductivity over an oedometer increment, from the c_v recomputed from its readings by root time and the recomputed m_v
     type: number

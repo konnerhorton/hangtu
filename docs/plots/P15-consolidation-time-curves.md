@@ -62,11 +62,14 @@ calls it with `overrides=` and draws its lines and points; it computes nothing o
 
 ## 5. Figure layout
 - **Panels:** one row per increment, two columns: root time (left) and log time (right). `methods=` draws one column.
-- **Default size:** `default`'s width, 2.4 in per row. At most 6 increments in one figure; more raise an error
-  naming `increments=`, since a taller figure isn't readable on a page. A loop over `increments=` draws them all.
+- **Default size:** `default`'s width, 2.4 in per row plus 1.1 in for the title, legend and footnote. At most 6
+  increments in one figure; more raise an error naming `increments=`, since a taller figure isn't readable on a page. A
+  loop over `increments=` draws them all.
 - **Legend:** once, below the last row's x labels: readings (fitted, not fitted), the construction lines, the points.
 - **Panel title:** "Increment 4: 100 → 200 kPa" (the increment's `test_stage`, σ′1 → σ′2; "(unloading)" or
-  "(reloading)" appended off the loading branch). The specimen named as P13 names it in the figure title.
+  "(reloading)" appended off the loading branch), once per row, over the left panel. σ′1 is the stress of the
+  increment numbered one before, where the rows have it; without it, "Increment 2: to 50 kPa". The x labels name the
+  method, so the panels have no method title. The specimen named as P13 names it in the figure title, with its depth.
 
 ## 6. Axes
 | X axis, left | X axis, right | Y axis (both) |
@@ -75,8 +78,13 @@ calls it with `overrides=` and draws its lines and points; it computes nothing o
 
 - **Orientation:** the increment's movement points down: the y axis is inverted where the readings rise over the
   increment (s = +1), not where they fall. Each panel's own y limits, so a small increment isn't flattened.
-- **Limits:** x from 0 (left) or the decade at or below the first reading after t = 0 (right) to beyond the last
-  reading; y as README's linear rule, over the readings and the construction points.
+- **Limits:** x on the right from the decade at or below the first reading after t = 0 to beyond the last reading.
+  x on the left from 0 to a nice limit past 2.5 √t90 (past the last fitted early reading where there's no t90, and
+  never past the last reading); the readings beyond it go at the right edge as open markers with an arrow, counted in
+  the footnote (README's out-of-range rule). Reason: at the standard's reading times the last reading is at 1440 min
+  (√t ≈ 38) and t90 is usually near 20 min (√t ≈ 4.5), so an axis to the last reading squeezes the construction into
+  the panel's first eighth, where it can't be judged (decided 2026-11-22, in the build). y as README's linear rule,
+  over the readings and the construction points, shared by the row's panels.
 - US labels: in; time stays in minutes.
 
 **Range constraints:** none.
@@ -84,22 +92,23 @@ calls it with `overrides=` and draws its lines and points; it computes nothing o
 ## 7. Data marks
 | Series | Mark | Color | Legend |
 |---|---|---|---|
-| Reading fitted by a line, or in a 1:4 pair | filled circle | the specimen's | "Reading used" |
+| Reading fitted by a line, or in a 1:4 pair (t_i or 4 t_i) | filled circle | the specimen's | "Reading used" |
 | Other reading | open circle, joined by a thin line (the interpolation) | as above | "Reading" |
 | t = 0 reading | on the root time panel only (no position on log t) | as above | counted in the footnote |
 | Early line, extended to t = 0 | solid thin | dark gray | "Early line" |
 | 1.15 line | dashed thin | dark gray | "1.15 line" |
-| Tangent at inflexion, secondary line | solid thin, extended to their crossing | dark gray | "Tangent", "Secondary line" |
-| d0, d50, d90, d100 | dotted horizontal across the panel, labeled at the right | gray | — |
-| t50, t90 | dotted vertical from the curve to the axis, labeled | gray | — |
-| Result | text in the panel's lower corner: "c_v 2.15 m²/yr (lab 2.1)", 3SF for hangtu's, the lab's as written | black | — |
-| An override | "(override)" after the result, and the overridden line dash-dotted | as above | "Override range" |
+| Tangent at inflexion, secondary line | solid thin, extended to their crossing | dark gray | "Tangent and secondary line" |
+| d0, d50, d90, d100 | dotted horizontal across the panel, labeled just outside its right edge | gray | "d0, d50, d90, d100; t50, t90" |
+| t50, t90 | dotted vertical from the curve to the axis, labeled at the axis | gray | as above |
+| Result | text in the panel's upper right, clear of the curve, which runs from upper left to lower right: "c_v 2.15 m²/yr (lab 2.1)", 3SF for hangtu's, the lab's as written | black | — |
+| An override | "(override)" after the result, and the overridden line dash-dotted | as above | "Line over an override range" |
+| A construction that stops | the lines it got to (the early line; the secondary line and tangent), and its reason; readings filled only where a drawn line was fitted to them | as above | — |
 
 ## 8. Overlays and annotations
 | Overlay | Argument | Default | Source of definition | Style | Notes |
 |---|---|---|---|---|---|
 | Overrides | `overrides=` | `None` | `ht.template("consolidation_overrides")` | §7 | passed to the analysis |
-| Lab's c_v | `reported=` | `True` | the `reported_` columns | in the result text | "lab –" when blank |
+| Lab's c_v | `reported=` | `True` | the `reported_` columns | in the result text | "lab —" when blank |
 | Methods | `methods=` | `("root_time", "log_time")` | | | one or both |
 | Increments | `increments=` | every increment with readings | `test_stage` values, as text | | an unknown one is an error listing them |
 | Footnote | — | when anything isn't drawn | the analysis's notes | README | readings left out; the t = 0 reading not on log t |
@@ -152,9 +161,9 @@ fig, axs = ht.plot.consolidation_time_curves(readings, specimen="BH1-U3-OED1", o
 
 ## 12. Acceptance criteria and tests
 Golden values are the M19 (c2) Spec's, hand-calculated there. Tolerance 1e-9 relative on drawn data unless stated.
-1. **Root time panel:** BH1-U3 increment 4 (`site_si.ags`) draws 15 readings at √t, 6 filled (0.1–4 min); the
-   early line from (0, 0.286233001) with slope 0.0619114129 mm/√min; the 1.15 line; t90 at √19.7847853; d90 at
-   0.525696071 mm; "c_v 2.15 m²/yr (lab 2.1)".
+1. **Root time panel:** BH1-U3 increment 4 (`site_si.ags`) draws 15 readings at √t, 6 filled (0.1–4 min), the three past
+   the x limit (240–1440 min) at its edge; the early line from (0, 0.286233001) with slope 0.0619114129 mm/√min; the
+   1.15 line; t90 at √19.7847853; d90 at 0.525696071 mm; "c_v 2.15 m²/yr (lab 2.1)".
 2. **Log time panel:** 14 readings (no t = 0), filled at 0.5, 1, 2, 4, 8, 15, 240, 480 and 1440 min; the tangent
    and secondary lines crossing at 29.0882465 min, 0.560523057 mm; d0 0.286666667, d50 0.423594862 mm; t50
    4.82957834 min; "c_v 2.06 m²/yr (lab 1.8)".
