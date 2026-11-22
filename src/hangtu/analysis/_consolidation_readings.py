@@ -87,6 +87,28 @@ FEW_PAIRS = "fewer than 3 pairs of times in the ratio 1:4 before the inflexion"
 OUTSIDE_100 = "d100 outside the readings"
 BEFORE_FIRST = "t50 before the first reading"
 AFTER_LAST_50 = "t50 after the last reading"
+NO_PAIR_IN_RANGE = "the override for early holds no pair of times in the ratio 1:4"
+
+#: The overrides (``ht.template("consolidation_overrides")``).
+_OVERRIDES_TEMPLATE = 'ht.template("consolidation_overrides")'
+_METHOD = "consolidation_method"
+_PORTION = "curve_portion"
+_START_TIME = "elapsed_time_start"
+_END_TIME = "elapsed_time_end"
+_OVERRIDE_REASON = "override_reason"
+ROOT_METHOD = "root_time"
+LOG_METHOD = "log_time"
+EARLY = "early"
+INFLEXION = "inflexion"
+SECONDARY = "secondary"
+#: The parts of each construction an override can give the range of.
+PORTIONS = {ROOT_METHOD: (EARLY,), LOG_METHOD: (EARLY, INFLEXION, SECONDARY)}
+#: The fewest readings an overridden line is fitted to.
+OVERRIDE_FEWEST = 2
+OVERRIDE = "override"
+
+#: An override's time range, (start, end) in minutes.
+Range = tuple[float, float]
 
 RULE = "rule"
 
@@ -180,6 +202,7 @@ class LogTime:
 def consolidation_coefficient_from_readings(
     df: pd.DataFrame,
     *,
+    overrides: pd.DataFrame | None = None,
     units: Mapping[str, str] | None = None,
     display_units: str | None = None,
 ) -> pd.DataFrame:
@@ -310,6 +333,34 @@ def consolidation_coefficient_from_readings(
     of them blank: $c_v$ is blank, the constructions' points and times are
     still given.
 
+    **Overrides.** Each rule above is a reading of the curve, and where an
+    increment's curve calls for another reading, ``overrides`` gives the
+    time range for one part of one construction, in
+    ``ht.template("consolidation_overrides")``'s shape: ``specimen_id``,
+    ``test_stage``, ``consolidation_method`` (``"root_time"`` or
+    ``"log_time"``), ``curve_portion``, ``elapsed_time_start`` and
+    ``elapsed_time_end`` (inclusive, in the units its ``attrs["units"]``
+    declares) and ``override_reason``, required. An override replaces the
+    rule's range for its part only, and the other steps run as above:
+
+    - ``"early"``, root time: the early line is fitted to the readings in
+      the range, at least 2;
+    - ``"early"``, log time: $d_0$ is the mean over every pair with both
+      $t_i$ and $4 t_i$ in the range, at least one;
+    - ``"inflexion"``, log time: the tangent is fitted to the readings in the
+      range, at least 2; its middle reading (the earlier of two) ends the
+      convex-upward portion for the pairs and for $d_{100}$'s check;
+    - ``"secondary"``, log time: the secondary line is fitted to the readings
+      in the range, at least 2.
+
+    A range with too few readings gives the method its reason, such as
+    ``"the override for early holds 1 reading"`` or ``"the override for
+    early holds no pair of times in the ratio 1:4"``. Each method's
+    ``_basis`` is ``"override"`` on an increment where any of its parts was
+    overridden and ``"rule"`` elsewhere, and the overrides are recorded on
+    the result. They are passed on each call: the result is reproducible
+    only with the same overrides.
+
     **When an increment gives no value,** its $c_v$ by each method is blank
     with the first reason that applies, in
     ``coefficient_of_consolidation_root_time_reason`` and
@@ -378,6 +429,10 @@ def consolidation_coefficient_from_readings(
         repeated on each of its readings. The identity columns and the lab's
         ``reported_coefficient_of_consolidation_root_time`` and
         ``_log_time`` are carried to the result where present.
+    overrides : pandas.DataFrame, optional
+        One row per overridden part of a construction, as above. Its times'
+        units come from its ``attrs["units"]`` (``ht.read_csv(...,
+        units=...)`` or ``ht.set_units()``).
     units : dict, optional
         ``{column: unit}`` for ``df``, overriding ``df.attrs["units"]``.
     display_units : {"SI", "US"}, optional
@@ -396,26 +451,33 @@ def consolidation_coefficient_from_readings(
         ``displacement_at_90_percent_consolidation``,
         ``time_to_90_percent_consolidation``,
         ``coefficient_of_consolidation_root_time``, its ``_basis``
-        (``"rule"``) and its ``_reason``, then
+        (``"rule"`` or ``"override"``) and its ``_reason``, then
         ``corrected_zero_displacement_log_time``,
         ``displacement_at_100_percent_primary_consolidation``,
         ``displacement_at_50_percent_consolidation``,
         ``time_to_50_percent_consolidation``,
         ``coefficient_of_consolidation_log_time``, its ``_basis`` and its
         ``_reason``. ``attrs["units"]`` names each unit;
-        ``attrs["consolidation_coefficient_from_readings"]["notes"]`` holds
-        the notes.
+        ``attrs["consolidation_coefficient_from_readings"]`` holds the
+        ``"notes"`` and the ``"overrides"`` used, as records.
 
     Raises
     ------
     ColumnError
         For a missing ``specimen_id``, ``test_stage``, ``elapsed_time`` or
-        ``vertical_displacement``, or a cell that isn't a number.
+        ``vertical_displacement``, an overrides column missing, or a cell
+        that isn't a number.
     HangtuError
         For a reading with a blank ``specimen_id`` or ``test_stage``, a
         ``load_branch`` value it doesn't know, a ``display_units`` other than
         "SI", "US" or None, or a time, displacement or height without units
-        or in a unit of the wrong kind.
+        or in a unit of the wrong kind. For an override, naming its row as a
+        spreadsheet numbers it (the header is row 1): one for an increment
+        the readings don't have (a typo would otherwise leave the rule in
+        place silently), one repeating another's increment, method and part,
+        an unknown ``consolidation_method`` or ``curve_portion``,
+        ``"inflexion"`` or ``"secondary"`` for root time, a blank time, a
+        start after its end, or a blank ``override_reason``.
 
     Examples
     --------
@@ -443,6 +505,8 @@ def consolidation_coefficient_from_readings(
     displacements = _in_unit(df, DISPLACEMENT, "small_length", _MM, units)
     kept = _kept(df, times, displacements, notes)
     groups = _groups(df, kept)
+    keys = [_key(df, int(positions[0])) for positions in groups]
+    ranges, records = _overrides(overrides, keys)
     first_rows = [int(positions[0]) for positions in groups]
     increments = df.iloc[first_rows]
     branch = _branches(increments, notes)
@@ -466,19 +530,27 @@ def consolidation_coefficient_from_readings(
     reasons = {
         method: np.full(n, None, dtype=object) for method in (ROOT_TIME, LOG_TIME)
     }
+    bases = {
+        column: np.array(
+            [OVERRIDE if method in ranges.get(key, {}) else RULE for key in keys],
+            dtype=object,
+        )
+        for column, method in ((ROOT_TIME, ROOT_METHOD), (LOG_TIME, LOG_METHOD))
+    }
     for i, positions in enumerate(groups):
         if branch[i] == CONSTANT_STRESS:
             reasons[ROOT_TIME][i] = reasons[LOG_TIME][i] = CONSTANT
             continue
         readings = increment_readings(df.index, positions, times, displacements)
-        root = root_time(readings)
+        given = ranges.get(keys[i], {})
+        root = root_time(readings, given.get(ROOT_METHOD, {}).get(EARLY))
         reasons[ROOT_TIME][i] = root.reason
         if root.reason is None:
             values[ROOT_TIME_ZERO][i] = readings.displacement(root.zero)
             values[DISPLACEMENT_90][i] = readings.displacement(root.movement)
             values[TIME_90][i] = root.time
             values[ROOT_TIME][i] = ROOT_TIME_COEFFICIENT * heights[i] ** 2 / root.time
-        log = log_time(readings)
+        log = log_time(readings, given.get(LOG_METHOD))
         reasons[LOG_TIME][i] = log.reason
         if log.reason is None:
             values[LOG_TIME_ZERO][i] = readings.displacement(log.zero)
@@ -521,10 +593,13 @@ def consolidation_coefficient_from_readings(
             quantity = "time" if canonical == _MINUTE else "small_length"
             write(column, values[column], canonical, quantity)
         write(method, values[method], _CV_UNIT, "consolidation_coefficient")
-        result[f"{method}_basis"] = pd.Series([RULE] * n, dtype=object)
+        result[f"{method}_basis"] = pd.Series(bases[method], dtype=object)
         result[f"{method}_reason"] = pd.Series(reasons[method], dtype=object)
     result.attrs["units"] = {**result.attrs.get("units", {}), **written_units}
-    result.attrs["consolidation_coefficient_from_readings"] = {"notes": notes}
+    result.attrs["consolidation_coefficient_from_readings"] = {
+        "notes": notes,
+        "overrides": records,
+    }
     return result
 
 
@@ -543,14 +618,22 @@ def increment_readings(
     return Readings(t, sign * (d - first), float(first), sign, index[order])
 
 
-def root_time(readings: Readings) -> RootTime:
-    """Make the root time construction (BS 1377-5:1990, 3.6.3.3) on one increment."""
+def root_time(readings: Readings, early_range: Range | None = None) -> RootTime:
+    """Make the root time construction (BS 1377-5:1990, 3.6.3.3) on one increment.
+
+    ``early_range``, (start, end) in minutes, overrides the early portion.
+    """
     whole = _whole_reason(readings)
     if whole is not None:
         return RootTime(reason=whole)
-    early = readings.early
-    if early.sum() < FEWEST:
-        return RootTime(fitted=early, reason=FEW_EARLY)
+    if early_range is None:
+        early = readings.early
+        if early.sum() < FEWEST:
+            return RootTime(fitted=early, reason=FEW_EARLY)
+    else:
+        early = readings.after_load & _within(readings.times, early_range)
+        if early.sum() < OVERRIDE_FEWEST:
+            return RootTime(fitted=early, reason=_holds(EARLY, early.sum()))
     x = np.sqrt(readings.times)
     y = readings.movement
     zero, slope = _least_squares(x[early], y[early])
@@ -570,8 +653,13 @@ def root_time(readings: Readings) -> RootTime:
     return RootTime(zero, slope, early, reason=AFTER_LAST)
 
 
-def log_time(readings: Readings) -> LogTime:
-    """Make the log time construction (BS 1377-5:1990, 3.6.3.2) on one increment."""
+def log_time(readings: Readings, ranges: Mapping[str, Range] | None = None) -> LogTime:
+    """Make the log time construction (BS 1377-5:1990, 3.6.3.2) on one increment.
+
+    ``ranges`` maps ``early``, ``inflexion`` and ``secondary`` to the (start,
+    end) in minutes that override that part's rule.
+    """
+    ranges = ranges or {}
     whole = _whole_reason(readings)
     if whole is not None:
         return LogTime(reason=whole)
@@ -583,21 +671,33 @@ def log_time(readings: Readings) -> LogTime:
     last = t[-1]
 
     # The secondary line: the last log cycle of time (3.6.3.2.2, 3.6.5.2).
-    in_last = positive & (t >= last / 10 * (1 - _SAME_TIME))
-    if in_last.sum() < FEWEST:
-        return LogTime(reason=FEW_SECONDARY)
+    if SECONDARY in ranges:
+        in_last = positive & _within(t, ranges[SECONDARY])
+        if in_last.sum() < OVERRIDE_FEWEST:
+            return LogTime(reason=_holds(SECONDARY, in_last.sum()))
+    else:
+        in_last = positive & (t >= last / 10 * (1 - _SAME_TIME))
+        if in_last.sum() < FEWEST:
+            return LogTime(reason=FEW_SECONDARY)
     secondary = _line(x, y, in_last)
 
     # The tangent at the inflexion: the steepest three consecutive readings
     # before the last cycle, the earlier on a tie.
-    before = np.flatnonzero(positive[: int(np.flatnonzero(in_last)[0])])
     tangent: Line | None = None
-    for k in range(len(before) - FEWEST + 1):
-        fitted = np.zeros(len(t), dtype=bool)
-        fitted[before[k : k + FEWEST]] = True
-        line = _line(x, y, fitted)
-        if not np.isnan(line.slope) and (tangent is None or line.slope > tangent.slope):
-            tangent = line
+    if INFLEXION in ranges:
+        fitted = positive & _within(t, ranges[INFLEXION])
+        if fitted.sum() < OVERRIDE_FEWEST:
+            return LogTime(secondary, reason=_holds(INFLEXION, fitted.sum()))
+        tangent = _line(x, y, fitted)
+    else:
+        before = np.flatnonzero(positive[: int(np.flatnonzero(in_last)[0])])
+        for k in range(len(before) - FEWEST + 1):
+            fitted = np.zeros(len(t), dtype=bool)
+            fitted[before[k : k + FEWEST]] = True
+            line = _line(x, y, fitted)
+            steeper = tangent is None or line.slope > tangent.slope
+            if not np.isnan(line.slope) and steeper:
+                tangent = line
     if tangent is None:
         return LogTime(secondary, reason=NO_TANGENT)
     if not (tangent.slope > 0 and tangent.slope >= STEEPER * secondary.slope):
@@ -605,11 +705,22 @@ def log_time(readings: Readings) -> LogTime:
 
     # d0 from the three latest pairs t_i, 4 t_i on the convex-upward portion,
     # which ends at the tangent's middle reading (3.6.3.2.1).
-    middle = t[np.flatnonzero(tangent.fitted)[1]]
-    paired = np.flatnonzero(positive & (PAIR_RATIO * t <= middle * (1 + _SAME_TIME)))
-    if len(paired) < FEWEST:
-        return LogTime(secondary, tangent, paired, reason=FEW_PAIRS)
-    pairs = paired[-FEWEST:]
+    tangent_readings = np.flatnonzero(tangent.fitted)
+    middle = t[tangent_readings[(len(tangent_readings) - 1) // 2]]
+    if EARLY in ranges:
+        # Every pair with both its times in the range.
+        early_start, early_end = ranges[EARLY]
+        both = _within(t, (early_start, early_end / PAIR_RATIO))
+        pairs = np.flatnonzero(positive & both)
+        if len(pairs) == 0:
+            return LogTime(secondary, tangent, pairs, reason=NO_PAIR_IN_RANGE)
+    else:
+        paired = np.flatnonzero(
+            positive & (PAIR_RATIO * t <= middle * (1 + _SAME_TIME))
+        )
+        if len(paired) < FEWEST:
+            return LogTime(secondary, tangent, paired, reason=FEW_PAIRS)
+        pairs = paired[-FEWEST:]
     later = np.interp(np.log10(PAIR_RATIO * t[pairs]), x[positive], y[positive])
     zero = float(np.mean(2 * y[pairs] - later))
 
@@ -639,6 +750,17 @@ def log_time(readings: Readings) -> LogTime:
     share = (movement_50 - y[j - 1]) / (y[j] - y[j - 1])
     time_50 = float(10 ** (x[j - 1] + (x[j] - x[j - 1]) * share))
     return dataclasses.replace(partial, movement_50=movement_50, time=time_50)
+
+
+def _within(times: np.ndarray, time_range: Range) -> np.ndarray:
+    """Return True on the times in ``time_range``, inclusive, to their rounding."""
+    start, end = time_range
+    return (times >= start * (1 - _SAME_TIME)) & (times <= end * (1 + _SAME_TIME))
+
+
+def _holds(portion: str, count: int) -> str:
+    readings = "reading" if count == 1 else "readings"
+    return f"the override for {portion} holds {count} {readings}"
 
 
 def _line(x: np.ndarray, y: np.ndarray, fitted: np.ndarray) -> Line:
@@ -690,6 +812,110 @@ def _check(df: Any, display_units: str | None) -> None:
             "or test_stage, so hangtu can't tell which increment their readings "
             "belong to. Fill them in, or drop the rows."
         )
+
+
+def _key(df: pd.DataFrame, position: int) -> tuple[str, str]:
+    row = df.iloc[position]
+    return str(row["specimen_id"]).strip(), str(row["test_stage"]).strip()
+
+
+def _overrides(
+    overrides: Any, keys: list[tuple[str, str]]
+) -> tuple[dict[tuple[str, str], dict[str, dict[str, Range]]], list[dict[str, Any]]]:
+    """Check the overrides; return each increment's ranges, in minutes, and the rows.
+
+    Every error names the override's row as a spreadsheet numbers it (the
+    header is row 1), so it can be found in the CSV it was read from.
+    """
+    if overrides is None:
+        return {}, []
+    if not isinstance(overrides, pd.DataFrame):
+        raise HangtuError(
+            f"overrides must be a pandas DataFrame, not {type(overrides).__name__}; "
+            f"{_OVERRIDES_TEMPLATE} has its columns."
+        )
+    columns = template("consolidation_overrides").columns
+    missing = [c for c in columns if c not in overrides.columns]
+    if missing:
+        raise ColumnError(
+            f"overrides has no column {', '.join(map(repr, missing))}. Each override "
+            "needs the increment (specimen_id, test_stage), the construction and "
+            "part it overrides, the time range and the reason; "
+            f"{_OVERRIDES_TEMPLATE} has the columns."
+        )
+    table = overrides.reset_index(drop=True)
+    table.attrs = overrides.attrs
+    starts = _override_times(table, _START_TIME)
+    ends = _override_times(table, _END_TIME)
+    known = set(keys)
+    ranges: dict[tuple[str, str], dict[str, dict[str, Range]]] = {}
+    seen: dict[tuple[str, str, str, str], int] = {}
+    for i, row in table.iterrows():
+        assert isinstance(i, int)  # reset_index gives a RangeIndex
+        where = f"Override row {i + 2} (the header is row 1)"
+        key = (_text(row["specimen_id"]), _text(row["test_stage"]))
+        method, portion = _text(row[_METHOD]), _text(row[_PORTION])
+        if key not in known:
+            raise HangtuError(
+                f"{where} is for specimen {key[0]!r} increment {key[1]!r}, which "
+                "the readings don't have. Check its specimen_id and test_stage "
+                "against the readings'; an override for no increment would leave "
+                "the rule in place without saying so."
+            )
+        if method not in PORTIONS:
+            raise HangtuError(
+                f"{where} has {_METHOD} {method!r}. Use "
+                f"{' or '.join(map(repr, PORTIONS))}."
+            )
+        if portion not in PORTIONS[LOG_METHOD]:
+            raise HangtuError(
+                f"{where} has {_PORTION} {portion!r}. Use "
+                f"{', '.join(map(repr, PORTIONS[LOG_METHOD]))}."
+            )
+        if portion not in PORTIONS[method]:
+            raise HangtuError(
+                f"{where} gives the {portion} line for {method}, which has only an "
+                f"early line. Use {_PORTION} 'early', or {_METHOD} 'log_time'."
+            )
+        start, end = float(starts[i]), float(ends[i])
+        if np.isnan(start) or np.isnan(end):
+            raise HangtuError(
+                f"{where} has a blank {_START_TIME} or {_END_TIME}. Give both ends "
+                "of the range."
+            )
+        if start > end:
+            raise HangtuError(
+                f"{where} has {_START_TIME} {start:g} after {_END_TIME} {end:g} "
+                "(in minutes). Swap them."
+            )
+        if _text(row[_OVERRIDE_REASON]) == "":
+            raise HangtuError(
+                f"{where} has a blank {_OVERRIDE_REASON}. Say why the range "
+                "replaces the rule's, so a reviewer reading the result knows."
+            )
+        full = (*key, method, portion)
+        if full in seen:
+            raise HangtuError(
+                f"{where} repeats row {seen[full] + 2}: both give the {portion} line "
+                f"of {method} for specimen {key[0]!r} increment {key[1]!r}. Keep "
+                "one."
+            )
+        seen[full] = i
+        ranges.setdefault(key, {}).setdefault(method, {})[portion] = (start, end)
+    return ranges, overrides.to_dict("records")
+
+
+def _override_times(table: pd.DataFrame, column: str) -> np.ndarray:
+    """Return an override time column in minutes, its unit from ``attrs``."""
+    values = numeric_column(table, column)
+    declared = _units.resolve_units(table, [column], analysis=True)[column]
+    parsed = _units.parse_unit(declared, column)
+    _units.check_dimension(parsed, "time", column)
+    return _units.convert(values, parsed, "time", _units.parse_unit(_MINUTE))
+
+
+def _text(value: Any) -> str:
+    return "" if pd.isna(value) else str(value).strip()
 
 
 def _in_unit(

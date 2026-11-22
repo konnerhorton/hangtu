@@ -58,6 +58,9 @@ templates:
   # values on each row: p.oedometer_readings()'s columns without source_line (M19 c2,
   # datasets.md §6.18).
   oedometer_readings: [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, test_type, test_stage, load_branch, applied_vertical_stress, void_ratio_at_increment_start, void_ratio_at_increment_end, specimen_height, void_ratio, reported_coefficient_of_consolidation_root_time, reported_coefficient_of_consolidation_log_time, elapsed_time, vertical_displacement, geology_unit, soil_class, geology_description]
+  # One row per override of a c_v construction's time range, passed as
+  # consolidation_coefficient_from_readings(overrides=) (M19 c2, compressibility.md §9).
+  consolidation_overrides: [specimen_id, test_stage, consolidation_method, curve_portion, elapsed_time_start, elapsed_time_end, override_reason]
   # A log per hole (ht.analysis.vertical_stress); p.stratigraphy() adds source_line.
   stratigraphy:   [loca_id, depth_top, depth_base, geology_unit, soil_class, geology_description]
   # Overlays (P01 §8): fill in one depth or elevation pair and leave the other blank.
@@ -1430,6 +1433,38 @@ columns:
     scale: ratio
     label: Elapsed time since the load was applied, t
     ags: ["a user-defined group, through the readings map (datasets.md §6.15)", "a user CSV of oedometer readings (datasets.md §6.18)"]
+    used_by: []
+  # An override of a c_v construction's time range (M19 c2, compressibility.md §9).
+  consolidation_method:
+    description: "The c_v construction an override applies to: root_time or log_time"
+    type: text
+    ags: ["a user CSV of c_v overrides (docs/analysis/compressibility.md)"]
+    used_by: []
+  curve_portion:
+    description: "The part of a c_v construction an override gives the time range of: early (either method), inflexion or secondary (log time)"
+    type: text
+    ags: ["a user CSV of c_v overrides (docs/analysis/compressibility.md)"]
+    used_by: []
+  elapsed_time_start:
+    description: Elapsed time at the start of an override's range, inclusive
+    type: number
+    quantity: time
+    scale: ratio
+    label: Start of the time range, t
+    ags: ["a user CSV of c_v overrides (docs/analysis/compressibility.md)"]
+    used_by: []
+  elapsed_time_end:
+    description: Elapsed time at the end of an override's range, inclusive
+    type: number
+    quantity: time
+    scale: ratio
+    label: End of the time range, t
+    ags: ["a user CSV of c_v overrides (docs/analysis/compressibility.md)"]
+    used_by: []
+  override_reason:
+    description: Why an engineer gave an override's time range in place of the construction's rule
+    type: text
+    ags: ["a user CSV of c_v overrides (docs/analysis/compressibility.md)"]
     used_by: []
   peak_displacement_rate:
     description: Displacement rate of the stage sheared to its peak

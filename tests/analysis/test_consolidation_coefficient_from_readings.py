@@ -653,3 +653,267 @@ def test_a_blank_increment():
 def test_display_units_must_be_si_or_us():
     with pytest.raises(HangtuError, match=r'display_units must be "SI", "US"'):
         FUNCTION(readings(INCREMENT_4), display_units="metric")
+
+
+# --- AC 4: overrides ----------------------------------------------------------------
+
+MINUTES = {"elapsed_time_start": "min", "elapsed_time_end": "min"}
+
+
+def overrides(*rows, units=MINUTES):
+    """Overrides for S1 increment 1, in the template's shape."""
+    columns = list(ht.template("consolidation_overrides").columns)
+    frame = pd.DataFrame(
+        [("S1", "1", *row) for row in rows], columns=columns, dtype=object
+    )
+    for column in ("elapsed_time_start", "elapsed_time_end"):
+        frame[column] = pd.to_numeric(frame[column])
+    return ht.set_units(frame, units) if units else frame
+
+
+EARLY_OVERRIDE = ("root_time", "early", 0.25, 4, "0.1 min read before the load")
+SECONDARY_OVERRIDE = ("log_time", "secondary", 120, 1440, "secondary from 2 hours")
+
+
+def test_the_overrides_template():
+    assert list(ht.template("consolidation_overrides").columns) == [
+        "specimen_id",
+        "test_stage",
+        "consolidation_method",
+        "curve_portion",
+        "elapsed_time_start",
+        "elapsed_time_end",
+        "override_reason",
+    ]
+
+
+def test_ac4_root_time_early_override():
+    from hangtu.analysis import _consolidation_readings as module
+
+    rows = quiet(readings(INCREMENT_4), overrides=overrides(EARLY_OVERRIDE))
+    row = rows.iloc[0]
+    assert row["time_to_90_percent_consolidation"] == pytest.approx(19.7049019, rel=REL)
+    assert row[ROOT] == pytest.approx(2.15911359, rel=REL)
+    assert row[f"{ROOT}_basis"] == "override"
+    assert row[f"{LOG}_basis"] == "rule"
+    assert row[LOG] == pytest.approx(LOG_TIME, rel=REL)
+    frame = readings(INCREMENT_4)
+    data = module.increment_readings(
+        frame.index,
+        np.arange(len(frame)),
+        frame["elapsed_time"].to_numpy(float),
+        frame["vertical_displacement"].to_numpy(float),
+    )
+    root = module.root_time(data, (0.25, 4))
+    assert root.zero == pytest.approx(0.0190752377, rel=REL)
+    assert root.slope == pytest.approx(0.0620181363, rel=REL)
+
+
+def test_ac4_log_time_secondary_override():
+    rows = quiet(readings(INCREMENT_4), overrides=overrides(SECONDARY_OVERRIDE))
+    row = rows.iloc[0]
+    assert row["corrected_zero_displacement_log_time"] == pytest.approx(
+        LOG_ZERO, rel=REL
+    )
+    assert row["time_to_50_percent_consolidation"] == pytest.approx(4.87474524, rel=REL)
+    assert row[LOG] == pytest.approx(2.04431687, rel=REL)
+    assert (row[f"{LOG}_basis"], row[f"{ROOT}_basis"]) == ("override", "rule")
+    assert row[ROOT] == pytest.approx(ROOT_TIME, rel=REL)
+    from hangtu.analysis import _consolidation_readings as module
+
+    frame = readings(INCREMENT_4)
+    data = module.increment_readings(
+        frame.index,
+        np.arange(len(frame)),
+        frame["elapsed_time"].to_numpy(float),
+        frame["vertical_displacement"].to_numpy(float),
+    )
+    log = module.log_time(data, {"secondary": (120, 1440)})
+    assert log.secondary.intercept == pytest.approx(0.281019115, rel=REL)
+    assert log.secondary.slope == pytest.approx(0.00941096958, rel=REL)
+    assert log.time_100 == pytest.approx(29.6044854, rel=REL)
+
+
+def test_ac4_both_overrides_are_recorded():
+    given = overrides(EARLY_OVERRIDE, SECONDARY_OVERRIDE)
+    rows = quiet(readings(INCREMENT_4), overrides=given)
+    assert list(rows.iloc[0][[f"{ROOT}_basis", f"{LOG}_basis"]]) == [
+        "override",
+        "override",
+    ]
+    recorded = rows.attrs["consolidation_coefficient_from_readings"]["overrides"]
+    assert [r["override_reason"] for r in recorded] == [
+        "0.1 min read before the load",
+        "secondary from 2 hours",
+    ]
+    assert recorded[1]["elapsed_time_start"] == 120
+
+
+def test_without_overrides_none_are_recorded():
+    rows = quiet(readings(INCREMENT_4))
+    assert rows.attrs["consolidation_coefficient_from_readings"]["overrides"] == []
+
+
+def test_override_times_in_seconds_convert_to_minutes():
+    given = overrides(
+        ("root_time", "early", 15, 240, "in seconds"),
+        units={"elapsed_time_start": "s", "elapsed_time_end": "s"},
+    )
+    row = quiet(readings(INCREMENT_4), overrides=given).iloc[0]
+    assert row[ROOT] == pytest.approx(2.15911359, rel=REL)
+
+
+def test_log_time_early_override_takes_every_pair_in_the_range():
+    # 0.25 to 4 min holds the pairs (0.25, 1), (0.5, 2) and (1, 4):
+    # d0 = (2 x 0.050 - 0.081 + 2 x 0.063 - 0.107 + 2 x 0.081 - 0.143) / 3.
+    given = overrides(("log_time", "early", 0.25, 4, "the later pairs"))
+    row = quiet(readings(INCREMENT_4), overrides=given).iloc[0]
+    assert row["corrected_zero_displacement_log_time"] == pytest.approx(
+        0.267 + (0.019 + 0.019 + 0.019) / 3, rel=REL
+    )
+    assert row[f"{LOG}_basis"] == "override"
+
+
+def test_log_time_inflexion_override_fits_the_tangent_to_the_range():
+    # 8 to 30 min: the next-steepest three, slope 0.159859434 (AC 2). Its
+    # middle reading, 15 min, lets the pair (2, 8) in, as 4 x 4 = 16 > 15
+    # keeps (4, 16) out: the pairs are the same three.
+    from hangtu.analysis import _consolidation_readings as module
+
+    frame = readings(INCREMENT_4)
+    data = module.increment_readings(
+        frame.index,
+        np.arange(len(frame)),
+        frame["elapsed_time"].to_numpy(float),
+        frame["vertical_displacement"].to_numpy(float),
+    )
+    log = module.log_time(data, {"inflexion": (8, 30)})
+    assert log.tangent.slope == pytest.approx(0.159859434, rel=REL)
+    assert list(data.times[log.pairs]) == [0.5, 1, 2]
+    given = overrides(("log_time", "inflexion", 8, 30, "the later three"))
+    row = quiet(frame, overrides=given).iloc[0]
+    assert row[f"{LOG}_basis"] == "override"
+    assert row["time_to_50_percent_consolidation"] == pytest.approx(log.time)
+
+
+@pytest.mark.parametrize(
+    ("row", "column", "expected"),
+    [
+        (
+            ("root_time", "early", 3, 5, "one reading"),
+            ROOT,
+            "the override for early holds 1 reading",
+        ),
+        (
+            ("log_time", "secondary", 1000, 1500, "one reading"),
+            LOG,
+            "the override for secondary holds 1 reading",
+        ),
+        (
+            ("log_time", "inflexion", 9, 10, "none"),
+            LOG,
+            "the override for inflexion holds 0 readings",
+        ),
+        (
+            ("log_time", "early", 1, 3, "no 1:4 pair"),
+            LOG,
+            "the override for early holds no pair of times in the ratio 1:4",
+        ),
+    ],
+)
+def test_ac4_a_range_too_short_gives_a_reason(row, column, expected):
+    result = quiet(readings(INCREMENT_4), overrides=overrides(row)).iloc[0]
+    assert np.isnan(result[column])
+    assert result[f"{column}_reason"] == expected
+    assert result[f"{column}_basis"] == "override"
+
+
+# --- AC 9: the overrides' errors ----------------------------------------------------
+
+
+def run_overrides(given):
+    return FUNCTION(readings(INCREMENT_4), overrides=given)
+
+
+@pytest.mark.parametrize(
+    ("rows", "match"),
+    [
+        (
+            [("root_time", "early", 0.25, 4, "ok"), ("root_time", "early", 1, 4, "x")],
+            r"Override row 3 \(the header is row 1\) repeats row 2",
+        ),
+        (
+            [("taylor", "early", 0.25, 4, "x")],
+            r"Override row 2 .* consolidation_method 'taylor'\. Use 'root_time' or "
+            r"'log_time'",
+        ),
+        (
+            [("log_time", "middle", 0.25, 4, "x")],
+            r"Override row 2 .* curve_portion 'middle'\. Use 'early', 'inflexion', "
+            r"'secondary'",
+        ),
+        (
+            [("root_time", "secondary", 120, 1440, "x")],
+            r"Override row 2 .* secondary line for root_time, which has only an "
+            r"early line",
+        ),
+        (
+            [("root_time", "inflexion", 4, 15, "x")],
+            r"Override row 2 .* inflexion line for root_time",
+        ),
+        (
+            [("root_time", "early", 4, 0.25, "x")],
+            r"Override row 2 .* elapsed_time_start 4 after elapsed_time_end 0\.25",
+        ),
+        (
+            [("root_time", "early", 0.25, 4, "  ")],
+            r"Override row 2 .* blank override_r",
+        ),
+        (
+            [("root_time", "early", 0.25, 4, None)],
+            r"Override row 2 .* blank override_r",
+        ),
+        (
+            [("root_time", "early", np.nan, 4, "x")],
+            r"Override row 2 .* blank elapsed_time_start or elapsed_time_end",
+        ),
+    ],
+)
+def test_ac9_override_errors_name_the_row(rows, match):
+    with pytest.raises(HangtuError, match=match):
+        run_overrides(overrides(*rows))
+
+
+def test_ac9_an_override_for_an_increment_the_readings_dont_have():
+    given = overrides(EARLY_OVERRIDE)
+    given.loc[0, "test_stage"] = "7"
+    with pytest.raises(
+        HangtuError, match=r"Override row 2 .* specimen 'S1' increment '7', which"
+    ):
+        run_overrides(given)
+
+
+def test_ac9_override_times_without_units():
+    with pytest.raises(UnitsError, match="'elapsed_time_start' has no units"):
+        run_overrides(overrides(EARLY_OVERRIDE, units=None))
+
+
+def test_ac9_override_times_in_a_length_unit():
+    given = overrides(EARLY_OVERRIDE)
+    given.attrs["units"] = {**MINUTES, "elapsed_time_start": "mm"}
+    with pytest.raises(HangtuError, match="elapsed_time_start"):
+        run_overrides(given)
+
+
+def test_ac9_an_overrides_column_missing():
+    given = overrides(EARLY_OVERRIDE).drop(columns="override_reason")
+    with pytest.raises(
+        ColumnError,
+        match=r"overrides has no column 'override_reason'.*consolidation_overrides",
+    ):
+        run_overrides(given)
+
+
+def test_ac9_overrides_must_be_a_frame():
+    with pytest.raises(HangtuError, match="overrides must be a pandas DataFrame"):
+        run_overrides([EARLY_OVERRIDE])

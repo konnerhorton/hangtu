@@ -224,15 +224,15 @@ because they bind later units too. The choices this spec proposed were approved 
 7. **Overrides** (intent decision 1): `overrides=`, a frame in `ht.template("consolidation_overrides")`'s shape:
    `specimen_id`, `test_stage`, `consolidation_method` (`root_time`, `log_time`), `curve_portion` (`early` for
    either method; `inflexion` and `secondary` for log time), `elapsed_time_start`, `elapsed_time_end` (inclusive, in
-   the frame's declared units), `reason` (required).
+   the frame's declared units), `override_reason` (required).
    - An override replaces the rule's range for that part only. For root time `early`, the line is fitted to the
      readings in the range; for log time `early`, the pairs are taken with both times in the range (as many as fit,
      at least one), `inflexion` and `secondary` are fitted to the readings in the range (at least 2 each). The
      other steps run as the rule says.
    - Errors, each naming the override's row: a key no increment has, a duplicate key, an unknown method or portion
-     (listing them), `inflexion` or `secondary` with `root_time`, start after end, a blank `reason`, times without
-     units. A range too short to fit gives the c_v a reason, not an error: "the override for early holds 1
-     reading".
+     (listing them), `inflexion` or `secondary` with `root_time`, start after end, a blank `override_reason`,
+     times without units. A range too short to fit gives the c_v a reason, not an error: "the override for early
+     holds 1 reading".
    - **Recorded:** the overrides used, in `attrs["consolidation_coefficient_from_readings"]["overrides"]` as records,
      and `coefficient_of_consolidation_root_time_basis` (`…_log_time_basis`) is `override` where any part was
      overridden, `rule` elsewhere. An override for an increment the frame doesn't have is an error, not ignored,
@@ -284,15 +284,15 @@ because they bind later units too. The choices this spec proposed were approved 
     | `displacement_at_50_percent_consolidation`, `displacement_at_100_percent_primary_consolidation` | small_length | d50, d100 |
     | `hydraulic_conductivity_from_readings_root_time`, `…_log_time` | hydraulic_conductivity | Hydraulic conductivity from c_v by readings (root time), k |
     | `hydraulic_conductivity_from_readings_root_time_reason`, `…_log_time_reason` | text | |
-    | `consolidation_method`, `curve_portion`, `elapsed_time_start`, `elapsed_time_end`, `reason` | text, text, time, time, text | the overrides template |
+    | `consolidation_method`, `curve_portion`, `elapsed_time_start`, `elapsed_time_end`, `override_reason` | text, text, time, time, text | the overrides template |
 
     - The recomputed c_v takes the plain name; the lab's stays `reported_` (M19 (a) decision 4). `percent` is spelled
       out, as `percent_passing` does.
     - k from readings is named `…_from_readings_…`, and c1's `hydraulic_conductivity_root_time` (k from the lab's
       c_v) keeps its name. Renaming it `…_from_reported_…` would read more clearly, but it would rename columns c1
       just added, its tests and P14's code, for a gain the labels and descriptions already give.
-    - `reason` is checked in the plan against its uses in the judgments file; if it would be read as a judgment
-      field, the column is `override_reason`.
+    - `override_reason`, not `reason`: `reason` is the field every judgments file entry carries, so it would read
+      as a judgment field (the plan's check, approved 2026-11-22).
 14. **P15** as its spec: one row of panels per increment, root time left and log time right, with each
     construction's lines and points and the c_v beside the lab's. It calls
     `consolidation_coefficient_from_readings()` and returns `(fig, axs)`.
@@ -631,3 +631,9 @@ cited §8 before it was written; the registry's `ags` entries for the derived co
   displacements to 10SF in inches, which differences carry to 1.5e-9 in t50, so AC 11's twins hold log time to 1e-8
   (root time stays at 1e-9). AC 7's reasons use hand-built frames, two of them non-monotone (a first-reading spike,
   a dip) since monotone readings can't put t50 outside them.
+- **Step 5.** AC 4's hand values all reproduce. Beyond the spec: root time `early` needs at least 2 readings (a
+  line), as `inflexion` and `secondary` do; log time `early` with no pair in its range gives "the override for early
+  holds no pair of times in the ratio 1:4"; a blank `elapsed_time_start` or `_end` is an error naming the row (a
+  range needs both ends), as is an `overrides` that isn't a frame; an overridden tangent's middle reading is the
+  earlier of two middle ones. The overrides' times take their units from the overrides' own `attrs` (`units=` is
+  the readings'). `attrs[...]["overrides"]` holds the rows as given, `[]` without overrides.
