@@ -600,3 +600,15 @@ cited §8 before it was written; the registry's `ags` entries for the derived co
   `_group_readings()` converts from `meta_heading.unit`; `Build.numbers()` reads stored values, and no dataset reads
   a time heading. The test that a readings heading converts from its stored time unit is step 2's (`XCOT_TIME`).
   P00 §4.1's kind table gains `time` (`tests/test_registry.py` mirrors it).
+- **Step 2.** The golden readings' generator, recovered from AC 1's table and reproducing all 15 values: y =
+  0.020 + ρ U(T) + 0.010 log10(1 + t/t1), t1 the time at T = 1 (H̄/2 drainage), and ρ the increment's height change
+  from its void ratios less the immediate and the secondary at 1440 min (ρ = 0.27347 mm for increment 4, the
+  spec's 0.2735). `_make_files.py` uses it for increments 2–6 (c_v 3.0, 2.5, 2.0, 1.5, 1.2 m²/yr); step 3's
+  `tests/analysis/_terzaghi.py` uses the same terms. The mapped stage heading is `XCOT_TESN` (as every curve group's),
+  where AC 10 says `XCOT_INCN`. `joins.ags` gets an `XCOT` too, since the readings map is checked against it:
+  increment 1, two readings of increment 2 (incomplete in `CONS`, so `p.oedometer()` leaves it out, but its
+  readings keep its values) and two of an increment 3 that `CONS` lacks (AC 10's warning). The site files' DICT
+  rows move every later line by 12; the tests that name lines are updated. `load_branch` on the readings is
+  `oedometer_load_branch()` over every `CONS` row (`p.oedometer(include_incomplete=True)`'s), so it can differ from
+  `p.oedometer()`'s only where an incomplete increment has a stress. The readings map's messages now say "An
+  oedometer_readings group" and list three required columns as "a, b and c".

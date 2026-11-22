@@ -35,7 +35,8 @@ def test_groups_in_file_order(project):
     last = ["SHBG", "SHBT", "LUCT", "LVAN", "LPEN", "LFCN", "IVAN", "IPEN"]
     last += ["CONG", "CONS"]  # oedometer (M19 a)
     last += ["XTDS", "XTPW", "XTVS", "XSBS"]  # readings curves (M16)
-    assert project.groups[-17:] == [*last, "UNIT", "TYPE", "ABBR"]
+    last += ["XCOT"]  # oedometer readings (M19 c2)
+    assert project.groups[-18:] == [*last, "UNIT", "TYPE", "ABBR"]
 
 
 def test_canonical_table(project):

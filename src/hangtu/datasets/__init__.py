@@ -6,7 +6,11 @@ from hangtu.datasets._index import index_properties
 from hangtu.datasets._lab import atterberg, grain_size, grain_size_summary
 from hangtu.datasets._oedometer import oedometer
 from hangtu.datasets._permeability import permeability
-from hangtu.datasets._readings import shear_box_readings, triaxial_readings
+from hangtu.datasets._readings import (
+    oedometer_readings,
+    shear_box_readings,
+    triaxial_readings,
+)
 from hangtu.datasets._shear_box import shear_box
 from hangtu.datasets._spt import spt
 from hangtu.datasets._stratigraphy import stratigraphy
@@ -21,6 +25,7 @@ __all__ = [
     "index_properties",
     "locations",
     "oedometer",
+    "oedometer_readings",
     "particle_density",
     "permeability",
     "shear_box",

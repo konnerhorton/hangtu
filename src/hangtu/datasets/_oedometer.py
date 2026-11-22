@@ -99,15 +99,7 @@ def oedometer(
     parts = []
     if increments is not None:
         frame = specimens(build, "CONS", increments)
-        frame["test_stage"] = build.texts(increments, "CONS_INCN")
-        frame["remarks"] = build.texts(increments, "CONS_REM")
-        for column, heading in INCREMENT_NUMBERS.items():
-            frame[column] = build.numbers(increments, heading)
-        # An increment with no CONG row (a broken parent link) keeps blank
-        # specimen columns.
-        key = increments["specimen_id"]
-        for column in tests.columns:
-            frame[column] = key.map(tests[column])
+        _add_increment_values(build, frame, increments, tests)
         parts.append(frame)
     if build.has("CONG"):
         # Every CONS row in the file counts, so a specimen whose increments
@@ -136,6 +128,44 @@ def oedometer(
         frame[column] = frame[column].astype("boolean")
     frame = oedometer_load_branch(frame)
     return build.finish(frame, OEDOMETER_COLUMNS, **common)
+
+
+def _add_increment_values(
+    build: Build, frame: pd.DataFrame, increments: pd.DataFrame, tests: pd.DataFrame
+) -> None:
+    """Add each ``CONS`` row's increment values and its specimen's, in SI."""
+    frame["test_stage"] = build.texts(increments, "CONS_INCN")
+    frame["remarks"] = build.texts(increments, "CONS_REM")
+    for column, heading in INCREMENT_NUMBERS.items():
+        frame[column] = build.numbers(increments, heading)
+    # An increment with no CONG row (a broken parent link) keeps blank
+    # specimen columns.
+    key = increments["specimen_id"]
+    for column in tests.columns:
+        frame[column] = key.map(tests[column])
+
+
+def increment_rows(build: Build) -> pd.DataFrame:
+    """Every ``CONS`` row's values as ``p.oedometer()`` gives them, for its readings.
+
+    Incomplete rows too, so a reading of an increment left out of
+    ``p.oedometer()`` still gets its values (datasets.md §6.18). ``_specimen``
+    is the specimen key, ``test_stage`` the increment as text, and
+    ``load_branch`` is ``oedometer_load_branch()`` over every row, as
+    ``p.oedometer(include_incomplete=True)`` gives it.
+    """
+    if not build.has("CONS"):
+        return pd.DataFrame(columns=["_stage", "_specimen", "test_stage"])
+    increments = build.data.table("CONS")
+    frame = pd.DataFrame(
+        {"_stage": "CONS", "_specimen": increments["specimen_id"]},
+        index=increments.index,
+    )
+    _add_increment_values(build, frame, increments, _specimen_values(build))
+    frame = oedometer_load_branch(frame.assign(specimen_id=frame["_specimen"])).drop(
+        columns="specimen_id"
+    )
+    return frame
 
 
 def _specimen_values(build: Build) -> pd.DataFrame:

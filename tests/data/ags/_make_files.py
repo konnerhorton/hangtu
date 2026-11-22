@@ -12,6 +12,7 @@ written to 10 significant figures (TYPE ``10SF``), enough for the 1e-9
 relative tolerance of acceptance criterion 1.
 """
 
+import math
 from pathlib import Path
 
 from python_ags4.AGS4 import _format_SF
@@ -41,6 +42,7 @@ US = {
 UNIT_DESCRIPTIONS = {
     "m": "metre",
     "mm": "millimetre",
+    "min": "minute",
     "%": "percentage",
     "kPa": "kilopascal",
     "Mg/m3": "megagrams per cubic metre",
@@ -1018,12 +1020,13 @@ XSBS = curve_group(
         ),
     ],
 )
-CURVES = [XTDS, XTPW, XTVS, XSBS]
+
 CURVE_PARENTS = {
     "XTDS": ("TREG", "Triaxial deviator stress readings"),
     "XTPW": ("TREG", "Triaxial excess pore pressure readings"),
     "XTVS": ("TREG", "Triaxial volumetric strain readings"),
     "XSBS": ("SHBG", "Shear box readings"),
+    "XCOT": ("CONG", "Oedometer settlement-time readings"),
     "XUDS": ("TRIG", "Triaxial deviator stress readings, unconsolidated undrained"),
 }
 
@@ -1173,6 +1176,75 @@ def _us_volume_compressibility(increments):
 
 #: Headings the US twin writes as values of their own, with their TYPE.
 CONS["us_values"] = {"CONS_INMV": ("2SF", _us_volume_compressibility(OED1_INCREMENTS))}
+
+
+# Oedometer settlement-time readings (M19 c2, datasets.md §6.18): BH1-U3 OED1's
+# loading increments 2 to 6, under CONG, at the standard's reading times.
+# Increment 4's readings are the c2 spec's golden table. Every increment is
+# generated the same way from Terzaghi's solution, from a datum of H0 - H1 and
+# rounded to 0.001 mm: an immediate compression of 0.020 mm, then rho U(T), then
+# a secondary compression of 0.010 mm x log10(1 + t / t1), t1 the time at T = 1,
+# with rho the increment's height change from its void ratios less the other two
+# terms at the last reading. Only increment 4's are hand-calculated (in the spec).
+OEDOMETER_TIMES = [0, 0.1, 0.25, 0.5, 1, 2, 4, 8, 15, 30, 60, 120, 240, 480, 1440]
+#: The generating c_v (m2/yr) of each increment with readings, near the lab's.
+OED1_READINGS_CV = {"2": 3.0, "3": 2.5, "4": 2.0, "5": 1.5, "6": 1.2}
+
+
+def terzaghi_degree(time_factor):
+    """Terzaghi's average degree of consolidation U(T), the standard series."""
+    if time_factor <= 0:
+        return 0.0
+    total = 0.0
+    for m in range(200):
+        big_m = math.pi * (2 * m + 1) / 2
+        total += 2 / big_m**2 * math.exp(-(big_m**2) * time_factor)
+    return 1 - total
+
+
+def oedometer_readings(cv, start, end, height=20.0, initial=0.800):
+    """Displacements (mm, from the specimen's start) at ``OEDOMETER_TIMES``."""
+    immediate, secondary = 0.020, 0.010
+    h1 = height * (1 + start) / (1 + initial)
+    h2 = height * (1 + end) / (1 + initial)
+    drainage = (h1 + h2) / 4  # half the average height: double drainage
+    rate = cv * 1.0e6 / 525960  # mm2/min
+    t1 = drainage**2 / rate
+    rho = h1 - h2 - immediate - secondary * math.log10(1 + OEDOMETER_TIMES[-1] / t1)
+    values = []
+    for t in OEDOMETER_TIMES:
+        y = 0.0
+        if t > 0:
+            y = immediate + rho * terzaghi_degree(rate * t / drainage**2)
+            y += secondary * math.log10(1 + t / t1)
+        values.append(round(height - h1 + y, 3))
+    return values
+
+
+XCOT = curve_group(
+    "XCOT",
+    [
+        ("TIME", "2DP", "min", "Elapsed time since the load was applied", False),
+        ("DISP", "3DP", "mm", "Vertical displacement", True),
+    ],
+    [
+        (
+            BH1_U3_OED,
+            incn,
+            [
+                [t, d]
+                for t, d in zip(
+                    OEDOMETER_TIMES,
+                    oedometer_readings(OED1_READINGS_CV[incn], start, end),
+                    strict=True,
+                )
+            ],
+        )
+        for incn, _, start, end, _ in OED1_INCREMENTS
+        if incn in OED1_READINGS_CV
+    ],
+)
+CURVES = [XTDS, XTPW, XTVS, XSBS, XCOT]
 
 CPTP = group(
     "CPTP",
@@ -2287,7 +2359,27 @@ def joins_groups():
         SHEAR_BOX,
         [([*j1_d2, "R2", 3.20], "1", [[0.00, 0, 0.00], [5.00, 18, -0.10]])],
     )
-    curves = [xtds, xtpw, xtvs, xsbs]
+    # Oedometer readings (M19 c2, datasets.md §6.18): J2-U1 L1's increment "1"
+    # (the CONS row above), two of increment "2" (incomplete in CONS, its
+    # CONS_INCE blank, so p.oedometer() leaves it out) and two of an increment
+    # "3" that CONS doesn't have, left out with the readings' warning.
+    xcot = curve_group(
+        "XCOT",
+        [
+            ("TIME", "2DP", "min", "Elapsed time since the load was applied", False),
+            ("DISP", "3DP", "mm", "Vertical displacement", True),
+        ],
+        [
+            (
+                [*j2_u1, "L1", 2.10],
+                "1",
+                [[0.0, 0.000], [1.0, 0.010], [4.0, 0.020], [60.0, 0.030]],
+            ),
+            ([*j2_u1, "L1", 2.10], "2", [[0.0, 0.030], [1.0, 0.040]]),
+            ([*j2_u1, "L1", 2.10], "3", [[0.0, 0.100], [1.0, 0.110]]),
+        ],
+    )
+    curves = [xtds, xtpw, xtvs, xsbs, xcot]
     return [
         loca,
         geol,

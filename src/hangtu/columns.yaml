@@ -54,6 +54,10 @@ templates:
   triaxial_readings: [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, test_type, test_stage, failure_criterion, effective_consolidation_stress, back_pressure, cell_pressure, axial_strain, deviator_stress, excess_pore_pressure, volumetric_strain, reported_failure_reading, geology_unit, soil_class, geology_description]
   # One row per shear box reading, p.shear_box_readings()'s columns without source_line (M16, datasets.md §6.17).
   shear_box_readings: [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, test_type, test_stage, applied_normal_stress, horizontal_displacement, shear_stress, vertical_displacement, geology_unit, soil_class, geology_description]
+  # One row per settlement-time reading of an oedometer increment, its increment's
+  # values on each row: p.oedometer_readings()'s columns without source_line (M19 c2,
+  # datasets.md §6.18).
+  oedometer_readings: [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, test_type, test_stage, load_branch, applied_vertical_stress, void_ratio_at_increment_start, void_ratio_at_increment_end, specimen_height, void_ratio, reported_coefficient_of_consolidation_root_time, reported_coefficient_of_consolidation_log_time, elapsed_time, vertical_displacement, geology_unit, soil_class, geology_description]
   # A log per hole (ht.analysis.vertical_stress); p.stratigraphy() adds source_line.
   stratigraphy:   [loca_id, depth_top, depth_base, geology_unit, soil_class, geology_description]
   # Overlays (P01 §8): fill in one depth or elevation pair and leave the other blank.
@@ -1412,12 +1416,20 @@ columns:
     ags: ["a user-defined group, through the readings map (datasets.md §6.15)"]
     used_by: []
   vertical_displacement:
-    description: Vertical displacement at a shear box reading, from the start of shearing, sign as the file gives it
+    description: Vertical displacement at a reading (shear box or oedometer), from a datum and with a sign the file gives
     type: number
     quantity: small_length
     scale: interval
     label: Vertical displacement, δ_v
-    ags: ["a user-defined group, through the readings map (datasets.md §6.15)"]
+    ags: ["a user-defined group, through the readings map (datasets.md §6.15)", "a user CSV of oedometer readings (datasets.md §6.18)"]
+    used_by: []
+  elapsed_time:
+    description: Elapsed time at an oedometer reading since its increment's load was applied
+    type: number
+    quantity: time
+    scale: ratio
+    label: Elapsed time since the load was applied, t
+    ags: ["a user-defined group, through the readings map (datasets.md §6.15)", "a user CSV of oedometer readings (datasets.md §6.18)"]
     used_by: []
   peak_displacement_rate:
     description: Displacement rate of the stage sheared to its peak
