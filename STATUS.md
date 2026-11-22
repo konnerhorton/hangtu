@@ -7,10 +7,10 @@ Then waves 4–6.
 Last checkpoint: 3, after M19 (a), 2026-11-15, 4f03bfd.
 
 ## In progress
-- **M19 (c2)** on `m19c2-cv-readings`: plan steps 1–5 committed (the `time` kind, `p.oedometer_readings()`, root
-  and log time and overrides in `consolidation_coefficient_from_readings()`). Next: step 6, k from the recomputed
-  c_v in `oedometer_increments()`, on Opus, from `docs/work/m19c2-cv-readings.md` `## Plan` and its "Notes from the
-  build".
+- **M19 (c2)** on `m19c2-cv-readings`: plan steps 1–6 committed (the `time` kind, `p.oedometer_readings()`,
+  `consolidation_coefficient_from_readings()` with both constructions and overrides, k from it in
+  `oedometer_increments()`). Next: steps 7–9 on Sonnet in a new session (the example readings, P15, the docs site),
+  from `docs/work/m19c2-cv-readings.md` `## Plan` and its "Notes from the build".
 
 ## Open
 Each milestone names its wave (SPEC §1.3). A unit's close-out records its status here; a finished milestone

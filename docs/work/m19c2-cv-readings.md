@@ -637,3 +637,7 @@ cited §8 before it was written; the registry's `ags` entries for the derived co
   range needs both ends), as is an `overrides` that isn't a frame; an overridden tangent's middle reading is the
   earlier of two middle ones. The overrides' times take their units from the overrides' own `attrs` (`units=` is
   the readings'). `attrs[...]["overrides"]` holds the rows as given, `[]` without overrides.
+- **Step 6.** AC 6's values reproduce. Besides k, `oedometer_increments()` carries the recomputed c_v (in m²/yr or
+  ft²/yr), its basis (blank with no reduced row) and its reason ("no readings" with none), as decision 10 lists.
+  Beyond the spec: two reduced rows for one increment, a reduced frame missing a carried column, and `df` without
+  `test_stage` are errors; c1's k code is split so both pairs of k share one `_conductivity()`.
