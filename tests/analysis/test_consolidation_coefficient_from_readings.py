@@ -1,8 +1,8 @@
-"""ht.analysis.consolidation_coefficient_from_readings(), root time.
+"""ht.analysis.consolidation_coefficient_from_readings(), root time and log time.
 
 The c2 spec's acceptance criteria (docs/work/m19c2-cv-readings.md). The golden
 increment is BH1-U3's increment 4 in site_si.ags: its readings, hand-calculated
-there from the readings as rounded (BS 1377-5:1990, 3.6.3.3). The generated
+there from the readings as rounded (BS 1377-5:1990, 3.6.3.2 and 3.6.3.3). The generated
 curves come from Terzaghi's series in _terzaghi.py, written from the series and
 checked against Abuel-Naga & Pender (2012), Table 1.
 """
@@ -25,6 +25,7 @@ MAP = DATA / "readings_map.csv"
 REL = 1e-8
 FUNCTION = ht.analysis.consolidation_coefficient_from_readings
 ROOT = "coefficient_of_consolidation_root_time"
+LOG = "coefficient_of_consolidation_log_time"
 
 #: AC 1's readings: (t min, δ_v mm).
 INCREMENT_4 = [
@@ -37,6 +38,12 @@ ZERO = 0.286233001
 AT_90 = 0.525696071
 TIME_90 = 19.7847853
 ROOT_TIME = 2.15039592
+#: AC 2's hand calculation, log time.
+LOG_ZERO = 0.286666667
+AT_100 = 0.560523057
+AT_50 = 0.423594862
+TIME_50 = 4.82957834
+LOG_TIME = 2.06343562
 #: H̄ = (19.7333333 + 19.4222222) / 2 mm.
 AVERAGE = 19.5777778
 UNITS = {"elapsed_time": "min", "vertical_displacement": "mm", "specimen_height": "mm"}
@@ -160,6 +167,87 @@ def test_ac1_on_a_hand_built_frame():
     assert np.sqrt(root.time) == pytest.approx(4.44800913, rel=REL)
 
 
+# --- AC 2: the golden increment, log time ------------------------------------------
+
+
+def test_ac2_log_time(site):
+    row, rows = golden_row(site["site_si"])
+    assert row["corrected_zero_displacement_log_time"] == pytest.approx(
+        LOG_ZERO, rel=REL
+    )
+    assert row["displacement_at_100_percent_primary_consolidation"] == pytest.approx(
+        AT_100, rel=REL
+    )
+    assert row["displacement_at_50_percent_consolidation"] == pytest.approx(
+        AT_50, rel=REL
+    )
+    assert row["time_to_50_percent_consolidation"] == pytest.approx(TIME_50, rel=REL)
+    assert row[LOG] == pytest.approx(LOG_TIME, rel=REL)
+    assert row[f"{LOG}_basis"] == "rule"
+    assert row[f"{LOG}_reason"] is None
+    assert rows.attrs["units"][LOG] == "m2/yr"
+    assert rows.attrs["units"]["time_to_50_percent_consolidation"] == "min"
+    assert rows.attrs["units"]["displacement_at_50_percent_consolidation"] == "mm"
+
+
+def test_ac2_intermediate_values():
+    from hangtu.analysis import _consolidation_readings as module
+
+    frame = readings(INCREMENT_4)
+    data = module.increment_readings(
+        frame.index,
+        np.arange(len(frame)),
+        frame["elapsed_time"].to_numpy(float),
+        frame["vertical_displacement"].to_numpy(float),
+    )
+    log = module.log_time(data)
+    assert log.reason is None
+    # The secondary line over 240, 480 and 1440 min.
+    assert list(np.flatnonzero(log.secondary.fitted)) == [12, 13, 14]
+    assert log.secondary.intercept == pytest.approx(0.278448445, rel=REL)
+    assert log.secondary.slope == pytest.approx(0.0102988527, rel=REL)
+    # The tangent over 4, 8 and 15 min, 17.1 times as steep.
+    assert list(np.flatnonzero(log.tangent.fitted)) == [6, 7, 8]
+    assert log.tangent.intercept == pytest.approx(0.0362299771, rel=REL)
+    assert log.tangent.slope == pytest.approx(0.175780553, rel=REL)
+    assert log.tangent.slope / log.secondary.slope == pytest.approx(17.1, abs=0.05)
+    # The pairs (0.5, 2), (1, 4), (2, 8); d0 their mean.
+    assert list(data.times[log.pairs]) == [0.5, 1, 2]
+    assert log.zero == pytest.approx(0.0196666667, rel=REL)
+    assert np.log10(log.time_100) == pytest.approx(1.46371754, rel=REL)
+    assert log.time_100 == pytest.approx(29.0882465, rel=REL)
+    assert log.movement_100 == pytest.approx(0.293523057, rel=REL)
+    assert log.movement_50 == pytest.approx(0.156594862, rel=REL)
+    assert np.log10(log.time) == pytest.approx(0.683909216, rel=REL)
+
+
+def test_ac2_on_a_hand_built_frame():
+    row = quiet(readings(INCREMENT_4)).iloc[0]
+    assert row["time_to_50_percent_consolidation"] == pytest.approx(TIME_50, rel=REL)
+    assert row[LOG] == pytest.approx(LOG_TIME, rel=REL)
+
+
+def test_the_result_columns_in_order():
+    rows = quiet(readings(INCREMENT_4))
+    new = list(rows.columns[list(rows.columns).index("average_specimen_height") :])
+    assert new == [
+        "average_specimen_height",
+        "corrected_zero_displacement_root_time",
+        "displacement_at_90_percent_consolidation",
+        "time_to_90_percent_consolidation",
+        ROOT,
+        f"{ROOT}_basis",
+        f"{ROOT}_reason",
+        "corrected_zero_displacement_log_time",
+        "displacement_at_100_percent_primary_consolidation",
+        "displacement_at_50_percent_consolidation",
+        "time_to_50_percent_consolidation",
+        LOG,
+        f"{LOG}_basis",
+        f"{LOG}_reason",
+    ]
+
+
 # --- AC 3: recovery of the generating c_v -------------------------------------------
 
 
@@ -187,6 +275,22 @@ def test_ac3_root_time_recovers_the_generating_cv(cv, immediate, secondary):
     assert row[ROOT] == pytest.approx(cv, rel=0.10)
 
 
+@pytest.mark.parametrize("cv", [0.3, 1, 2, 5, 10])
+@pytest.mark.parametrize(("immediate", "secondary"), COMPRESSION)
+def test_ac3_log_time_recovers_the_generating_cv(cv, immediate, secondary):
+    row = quiet(generated(cv, immediate, secondary)).iloc[0]
+    assert row[LOG] == pytest.approx(cv, rel=0.10)
+
+
+@pytest.mark.parametrize(("immediate", "secondary"), COMPRESSION)
+def test_ac3_at_cv_20_log_time_has_too_few_pairs(immediate, secondary):
+    row = quiet(generated(20, immediate, secondary)).iloc[0]
+    assert np.isnan(row[LOG])
+    assert row[f"{LOG}_reason"] == (
+        "fewer than 3 pairs of times in the ratio 1:4 before the inflexion"
+    )
+
+
 @pytest.mark.parametrize(("immediate", "secondary"), COMPRESSION[:2])
 def test_ac3_at_cv_20_the_times_cant_resolve_the_early_portion(immediate, secondary):
     row = quiet(generated(20, immediate, secondary)).iloc[0]
@@ -212,9 +316,14 @@ def test_ac5_datum_and_sign(shift, sign):
     row = quiet(readings(moved)).iloc[0]
     assert row[ROOT] == pytest.approx(ROOT_TIME, rel=REL)
     assert row["time_to_90_percent_consolidation"] == pytest.approx(TIME_90, rel=REL)
+    assert row[LOG] == pytest.approx(LOG_TIME, rel=REL)
+    assert row["time_to_50_percent_consolidation"] == pytest.approx(TIME_50, rel=REL)
     for column, value in (
         ("corrected_zero_displacement_root_time", ZERO),
         ("displacement_at_90_percent_consolidation", AT_90),
+        ("corrected_zero_displacement_log_time", LOG_ZERO),
+        ("displacement_at_100_percent_primary_consolidation", AT_100),
+        ("displacement_at_50_percent_consolidation", AT_50),
     ):
         assert row[column] == pytest.approx(shift + sign * value, rel=REL, abs=1e-12)
 
@@ -274,12 +383,103 @@ def test_ac7_reasons(points, kwargs, expected):
     assert np.isnan(row["time_to_90_percent_consolidation"])
 
 
+@pytest.mark.parametrize(
+    "points",
+    [
+        INCREMENT_4,
+        [(t, 0.5) for t, _ in INCREMENT_4],
+        [(0, 0.0), (1, 0.1), (4, 0.2)],
+    ],
+)
+def test_ac7_the_increment_reasons_apply_to_both_methods(points):
+    for kwargs in ({"branch": "constant_stress"}, {}):
+        if points is INCREMENT_4 and not kwargs:
+            continue
+        rows = quiet(readings(points, **kwargs))
+        assert rows.iloc[0][f"{ROOT}_reason"] == rows.iloc[0][f"{LOG}_reason"]
+        assert np.isnan(rows.iloc[0][LOG])
+
+
+#: A first reading far past the rest, as a misread gauge gives: d0 from the
+#: pairs (0.1, 0.4), (0.25, 1), (0.5, 2) is 0.622, d100 1.163, so d50 0.892 is
+#: below the first reading's 1.0.
+SPIKE = [
+    *[(0, 0.0), (0.1, 1.0), (0.25, 0.30), (0.5, 0.35), (1, 0.45), (2, 0.65)],
+    *[(4, 0.95), (8, 1.10), (15, 1.15), (30, 1.17), (60, 1.18), (120, 1.19)],
+    *[(240, 1.20), (480, 1.21), (1440, 1.22)],
+]
+#: Two steps: the tangent over 1, 2 and 4 min is above the secondary line at
+#: its middle reading, 2 min, so the lines cross before it.
+TWO_STEPS = [
+    *[(0, 0.0), (0.1, 0.02), (0.25, 0.03), (0.5, 0.05), (1, 0.10), (2, 0.50)],
+    *[(4, 0.90), (8, 1.0), (15, 1.0), (30, 1.0), (60, 1.0), (120, 1.0)],
+    *[(240, 1.05), (480, 1.15), (1440, 1.30)],
+]
+
+#: Readings that dip after 1 min, as a reset gauge gives: the pairs (0.25, 1),
+#: (0.5, 2), (1, 4) give d0 = (0.9 + 1.6 + 1.3) / 3 = 1.267, d100 0.967, so
+#: d50 1.117 is above every reading.
+DIP = [
+    *[(0, 0.0), (0.1, 0.85), (0.25, 0.9), (0.5, 0.9), (1, 0.9), (2, 0.2)],
+    *[(4, 0.5), (8, 0.85), (15, 0.95), (30, 0.97), (60, 0.98), (120, 0.99)],
+    *[(240, 1.0), (480, 1.01), (1440, 1.02)],
+]
+
+
+@pytest.mark.parametrize(
+    ("points", "expected"),
+    [
+        # Stop at 10 min: only 2 and 10 min in the last cycle.
+        (
+            [(0, 0.0), (0.1, 0.1), (0.5, 0.2), (2, 0.3), (10, 0.4)],
+            "fewer than 3 readings in the last log cycle of time",
+        ),
+        (
+            [(0, 0.0), (100, 0.1), (200, 0.2), (400, 0.3), (1000, 0.4)],
+            "no three readings before the last log cycle",
+        ),
+        # A straight line in log t: the tangent is as steep as the last cycle.
+        (
+            [(0, 0.0), *[(t, 1 + np.log10(t)) for t, _ in INCREMENT_4[1:]]],
+            "no clear secondary portion: the tangent is less than twice as steep "
+            "as the last log cycle",
+        ),
+        # Stopped at 15 min, the curve is still steep in its last cycle.
+        (
+            [(t, d) for t, d in INCREMENT_4 if t <= 15],
+            "no clear secondary portion: the tangent is less than twice as steep "
+            "as the last log cycle",
+        ),
+        (TWO_STEPS, "d100 outside the readings"),
+        (SPIKE, "t50 before the first reading"),
+        (DIP, "t50 after the last reading"),
+    ],
+)
+def test_ac7_log_time_reasons(points, expected):
+    row = quiet(readings(points)).iloc[0]
+    assert np.isnan(row[LOG])
+    assert row[f"{LOG}_reason"] == expected
+    for column in (
+        "time_to_50_percent_consolidation",
+        "corrected_zero_displacement_log_time",
+        "displacement_at_100_percent_primary_consolidation",
+        "displacement_at_50_percent_consolidation",
+    ):
+        assert np.isnan(row[column])
+
+
 def test_ac7_no_specimen_height_gives_the_points_but_no_cv():
     value, why, row = reason(INCREMENT_4, height=np.nan)
     assert np.isnan(value) and why == "no specimen height or void ratio for H̄"
     assert np.isnan(row["average_specimen_height"])
     assert row["time_to_90_percent_consolidation"] == pytest.approx(TIME_90, rel=REL)
     assert row["corrected_zero_displacement_root_time"] == pytest.approx(ZERO, rel=REL)
+    assert np.isnan(row[LOG])
+    assert row[f"{LOG}_reason"] == "no specimen height or void ratio for H̄"
+    assert row["time_to_50_percent_consolidation"] == pytest.approx(TIME_50, rel=REL)
+    assert row["corrected_zero_displacement_log_time"] == pytest.approx(
+        LOG_ZERO, rel=REL
+    )
 
 
 def test_ac7_no_height_column_needs_no_unit():
@@ -363,6 +563,17 @@ def test_ac11_twins_give_the_same_cv(site):
         "displacement_at_90_percent_consolidation",
     ):
         np.testing.assert_allclose(si[column], us[column], rtol=1e-9)
+    # site_us.ags writes the displacements to 10 significant figures in inches;
+    # t50 interpolates between differences of them, which carries that rounding
+    # to 1.5e-9, so log time holds to 1e-8.
+    for column in (
+        LOG,
+        "time_to_50_percent_consolidation",
+        "corrected_zero_displacement_log_time",
+        "displacement_at_100_percent_primary_consolidation",
+        "displacement_at_50_percent_consolidation",
+    ):
+        np.testing.assert_allclose(si[column], us[column], rtol=1e-8)
 
 
 def test_ac11_display_units_us(site):
@@ -374,12 +585,17 @@ def test_ac11_display_units_us(site):
         ZERO / 25.4, rel=1e-9
     )
     assert row["time_to_90_percent_consolidation"] == pytest.approx(TIME_90, rel=REL)
+    assert row[LOG] == pytest.approx(LOG_TIME * 10.7639104, rel=1e-6)
+    assert row["displacement_at_50_percent_consolidation"] == pytest.approx(
+        AT_50 / 25.4, rel=1e-9
+    )
     assert row["reported_coefficient_of_consolidation_root_time"] == pytest.approx(
         2.1 * 10.7639104, rel=1e-6
     )
     assert row["specimen_height"] == pytest.approx(20 / 25.4, rel=1e-9)
     units = rows.attrs["units"]
     assert (units[ROOT], units["average_specimen_height"]) == ("ft²/yr", "in")
+    assert (units[LOG], units["time_to_50_percent_consolidation"]) == ("ft²/yr", "min")
     assert units["time_to_90_percent_consolidation"] == "min"
     assert units["reported_coefficient_of_consolidation_root_time"] == "ft²/yr"
 
@@ -393,6 +609,9 @@ def test_inputs_in_other_units_convert_through_pint():
     row = quiet(frame).iloc[0]
     assert row[ROOT] == pytest.approx(ROOT_TIME, rel=REL)
     assert row["time_to_90_percent_consolidation"] == pytest.approx(TIME_90, rel=REL)
+    # Times from seconds still pair: 4 x 6 s against 24 s, within rounding.
+    assert row[LOG] == pytest.approx(LOG_TIME, rel=REL)
+    assert row["time_to_50_percent_consolidation"] == pytest.approx(TIME_50, rel=REL)
 
 
 # --- Errors -------------------------------------------------------------------------

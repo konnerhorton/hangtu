@@ -5,6 +5,7 @@ One row per oedometer increment from its readings, as
 is a fixed rule on the readings, so the same readings give the same c_v.
 """
 
+import dataclasses
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
@@ -42,13 +43,28 @@ ROOT_TIME = "coefficient_of_consolidation_root_time"
 ROOT_TIME_ZERO = "corrected_zero_displacement_root_time"
 DISPLACEMENT_90 = "displacement_at_90_percent_consolidation"
 TIME_90 = "time_to_90_percent_consolidation"
+LOG_TIME = "coefficient_of_consolidation_log_time"
+LOG_TIME_ZERO = "corrected_zero_displacement_log_time"
+DISPLACEMENT_100 = "displacement_at_100_percent_primary_consolidation"
+DISPLACEMENT_50 = "displacement_at_50_percent_consolidation"
+TIME_50 = "time_to_50_percent_consolidation"
 
 #: BS 1377-5:1990, 3.6.3.3.3: c_v = 0.111 H̄²/t90, H̄ in mm, t90 in min, m²/year.
 ROOT_TIME_COEFFICIENT = 0.111
 #: The 1.15 line's abscissae are 1.15 times the early line's (3.6.3.3.2).
 ROOT_TIME_RATIO = 1.15
-#: The fewest readings a line is fitted to.
+#: BS 1377-5:1990, 3.6.3.2.4: c_v = 0.026 H̄²/t50, H̄ in mm, t50 in min, m²/year.
+LOG_TIME_COEFFICIENT = 0.026
+#: The fewest readings a line is fitted to, and the fewest 1:4 pairs averaged.
 FEWEST = 3
+#: The pairs' times are in the ratio 1:4 (3.6.3.2.1).
+PAIR_RATIO = 4.0
+#: The tangent at the inflexion is at least this many times as steep as the
+#: secondary line, as ``oedometer_fit()``'s break (compressibility.md §3).
+STEEPER = 2.0
+#: Times that differ by less than this, relative, are the same time, so that
+#: times converted from another unit still pair (4 x 0.1 min against 0.4 min).
+_SAME_TIME = 1e-9
 
 #: The reasons a value is blank, worded as the result gives them.
 CONSTANT = "constant stress increment"
@@ -61,6 +77,16 @@ BELOW_EARLY = (
 )
 AFTER_LAST = "t90 after the last reading"
 NO_HEIGHT = "no specimen height or void ratio for H̄"
+FEW_SECONDARY = "fewer than 3 readings in the last log cycle of time"
+NO_TANGENT = "no three readings before the last log cycle"
+NO_SECONDARY = (
+    "no clear secondary portion: the tangent is less than twice as steep as the "
+    "last log cycle"
+)
+FEW_PAIRS = "fewer than 3 pairs of times in the ratio 1:4 before the inflexion"
+OUTSIDE_100 = "d100 outside the readings"
+BEFORE_FIRST = "t50 before the first reading"
+AFTER_LAST_50 = "t50 after the last reading"
 
 RULE = "rule"
 
@@ -118,6 +144,39 @@ class RootTime:
     reason: str | None = None
 
 
+@dataclass(frozen=True)
+class Line:
+    """A least squares line y = intercept + slope x over the ``fitted`` readings."""
+
+    intercept: float
+    slope: float
+    fitted: np.ndarray
+
+    def at(self, x: float) -> float:
+        return self.intercept + self.slope * x
+
+
+@dataclass(frozen=True)
+class LogTime:
+    """The log time construction on one increment (BS 1377-5:1990, 3.6.3.2).
+
+    Movements are y in mm, times in minutes, and the lines in x = log10 t.
+    ``pairs`` are the positions (in time order) of the readings whose times
+    t_i paired with 4 t_i gave d0. Blank (NaN or None) where the construction
+    stopped, with its ``reason``.
+    """
+
+    secondary: Line | None = None
+    tangent: Line | None = None
+    pairs: np.ndarray | None = None
+    zero: float = np.nan
+    time_100: float = np.nan
+    movement_100: float = np.nan
+    movement_50: float = np.nan
+    time: float = np.nan
+    reason: str | None = None
+
+
 def consolidation_coefficient_from_readings(
     df: pd.DataFrame,
     *,
@@ -130,8 +189,9 @@ def consolidation_coefficient_from_readings(
     ``p.oedometer_readings()`` or ``ht.template("oedometer_readings")`` lays
     them out (one row per reading, its increment's values on each row), and
     returns one row per increment with the coefficient of consolidation by
-    the **root time** construction of BS 1377-5:1990, 3.6.3.3, with the
-    construction's points, beside the lab's reported values. The lab reports
+    the **root time** and **log time** constructions of BS 1377-5:1990,
+    3.6.3.3 and 3.6.3.2, with each construction's points, beside the lab's
+    reported values. The lab reports
     only the result; the construction behind it is a graphical judgment
     (3.6.3.1, note), and here it is a stated rule, so the same readings
     always give the same $c_v$ and a reviewer can check each point by hand.
@@ -146,13 +206,13 @@ def consolidation_coefficient_from_readings(
     from the rows, else added by ``ht.analysis.oedometer_load_branch()``
     over the increments the rows hold, with a note. A ``constant_stress``
     increment gives no $c_v$. Unloading and reloading increments get $c_v$
-    by the same construction, oriented by their own movement: BS 1377-5
-    describes it for load increments, so those values are an extension of
+    by the same constructions, oriented by their own movement: BS 1377-5
+    describes them for load increments, so those values are an extension of
     it.
 
     **Orientation and datum.** ``vertical_displacement`` keeps the datum and
     sign the rows give it. Per increment, with $d_{first}$ the reading at the
-    smallest time and $d_{last}$ at the largest, the construction works on
+    smallest time and $d_{last}$ at the largest, both constructions work on
 
     $$
     y = s\,(d - d_{first}), \quad s = \operatorname{sign}(d_{last} - d_{first})
@@ -197,6 +257,49 @@ def consolidation_coefficient_from_readings(
        matches a BS lab's to the figure; Terzaghi's $T_{90}$ would give a
        $c_v$ 0.45 % higher.
 
+    **Log time** (3.6.3.2), in $x = \log_{10} t$ over the readings with
+    $t > 0$ (the $t = 0$ reading has no place on a log scale):
+
+    1. The secondary line: the least squares line of $y$ on $\log_{10} t$
+       over the readings in the last log cycle of time,
+       $t \ge t_{last}/10$ (one cycle, as 3.6.5.2 extends the same line over
+       one cycle for the secondary compression coefficient).
+    2. The tangent at the point of inflexion: of every three consecutive
+       readings ending before the secondary line's first, the least squares
+       line with the largest slope, the earlier on a tie. The inflexion is
+       where the curve is steepest in $\log t$, and three readings fit a line
+       without one stray reading deciding it.
+    3. The tangent must be at least twice as steep as the secondary line, or
+       the curve has no clear secondary portion to draw the second line on.
+    4. The corrected zero point (3.6.3.2.1): for each reading time $t_i$
+       with $4 t_i$ at or before the tangent's middle reading (the
+       convex-upward portion ends at the inflexion),
+       $d_{0,i} = 2\,y(t_i) - y(4 t_i)$, with $y(4 t_i)$ interpolated linearly
+       in $\log t$ when no reading has that time; $d_0$ is the mean over the
+       three largest $t_i$ (the standard's pair and "two other pairs"). The
+       largest are used because their differences are largest against the
+       gauge's resolution. The construction assumes the early curve is
+       parabolic (3.6.3.2.1, note).
+    5. $d_{100}$: where the tangent and the secondary line cross (3.6.3.2.2).
+    6. $d_{50} = (d_0 + d_{100})/2$, and $t_{50}$ where the curve first
+       reaches it, the readings joined by straight lines in $\log t$
+       (3.6.3.2.3).
+    7. The coefficient (3.6.3.2.4), with $\bar{H}$ in mm and $t_{50}$ in
+       minutes:
+
+       $$
+       c_v = \frac{0.026\,\bar{H}^2}{t_{50}} \quad \text{m}^2/\text{year}
+       $$
+
+       0.026 is BS 1377-5's rounding of
+       $T_{50} \times 525\,960 \times 10^{-6} / 4 = 0.0259$, with
+       Terzaghi's $T_{50} = 0.197$ (Abuel-Naga & Pender 2012, Table 1,
+       p. 45); Terzaghi's $T_{50}$ would give a $c_v$ 0.37 % lower.
+
+    The two constructions generally agree, but the root time plot sometimes
+    has no straight early portion and log time serves better, or the reverse
+    where secondary compression is large (3.6.3.1, note), so both are given.
+
     **The average height** is $\bar{H} = (H_1 + H_2)/2$ (3.6.3.2.4), with
     $H = H_0 (1 + e)/(1 + e_0)$: $H_0$ the ``specimen_height``, $e_0$ the
     initial ``void_ratio``, $e_1$ the increment's
@@ -204,15 +307,23 @@ def consolidation_coefficient_from_readings(
     ``void_ratio_at_increment_end`` in the rows, with a note) and $e_2$ its
     ``void_ratio_at_increment_end``. It comes from the void ratios, not the
     readings, since an increment's readings needn't start at its start. Any
-    of them blank: $c_v$ is blank, the construction's points and $t_{90}$
-    are still given.
+    of them blank: $c_v$ is blank, the constructions' points and times are
+    still given.
 
-    **When an increment gives no value,** its $c_v$ is blank with the first
-    reason that applies, in ``coefficient_of_consolidation_root_time_reason``:
+    **When an increment gives no value,** its $c_v$ by each method is blank
+    with the first reason that applies, in
+    ``coefficient_of_consolidation_root_time_reason`` and
+    ``coefficient_of_consolidation_log_time_reason``, and the construction's
+    points are blank too. For both methods:
 
     - ``"constant stress increment"``;
-    - ``"no displacement over the increment"``: $y_{last} = 0$;
     - ``"fewer than 3 readings after the load was applied"``;
+    - ``"no displacement over the increment"``: $y_{last} = 0$;
+    - ``"no specimen height or void ratio for H̄"``: the points and times are
+      given, $c_v$ isn't.
+
+    For root time, in this order:
+
     - ``"fewer than 3 readings in the first half of the increment's
       movement"``: the early line needs three;
     - ``"the early readings don't move with the increment"``: the early
@@ -222,9 +333,22 @@ def consolidation_coefficient_from_readings(
       already at or below it. The root time plot sometimes has no straight
       early portion (3.6.3.1, note); the log time construction may serve;
     - ``"t90 after the last reading"``: the curve never reaches the 1.15
-      line. Nothing is extrapolated past the readings;
-    - ``"no specimen height or void ratio for H̄"``: $t_{90}$ is given, $c_v$
-      isn't.
+      line. Nothing is extrapolated past the readings.
+
+    For log time, in this order:
+
+    - ``"fewer than 3 readings in the last log cycle of time"``;
+    - ``"no three readings before the last log cycle"``: no tangent;
+    - ``"no clear secondary portion: the tangent is less than twice as steep
+      as the last log cycle"`` (or the tangent doesn't rise at all);
+    - ``"fewer than 3 pairs of times in the ratio 1:4 before the
+      inflexion"``: the readings start too late, or primary consolidation
+      ends too soon, for the times to resolve the curve's start;
+    - ``"d100 outside the readings"``: the lines cross before the tangent's
+      middle reading or after the last reading;
+    - ``"t50 before the first reading"``: the curve is at or past $d_{50}$ at
+      its first reading after the load;
+    - ``"t50 after the last reading"``: the curve never reaches $d_{50}$.
 
     **Valid for:** incremental-load oedometer tests in a double-drained
     cell, one increment's readings timed from the moment its load was
@@ -235,11 +359,12 @@ def consolidation_coefficient_from_readings(
 
     Sources: BS 1377-5:1990, Methods of test for soils for civil engineering
     purposes, Part 5: Compressibility, permeability and durability tests,
-    3.6.3.1 and its note, 3.6.3.2.4 (the average height), 3.6.3.3.1 to
-    3.6.3.3.3. Abuel-Naga, H.M. & Pender, M.J. (2012). Modified Terzaghi
-    consolidation curves with effective stress-dependent coefficient of
-    consolidation. *Géotechnique Letters* 2, 43-48, Table 1 (Terzaghi's
-    $T_{90} = 0.848$), https://doi.org/10.1680/geolett.12.00005.
+    3.6.3.1 and its note, 3.6.3.2.1 to 3.6.3.2.4, 3.6.3.3.1 to 3.6.3.3.3,
+    3.6.5.2 (the secondary line over one cycle). Abuel-Naga, H.M. & Pender,
+    M.J. (2012). Modified Terzaghi consolidation curves with effective
+    stress-dependent coefficient of consolidation. *Géotechnique Letters* 2,
+    43-48, Table 1 (Terzaghi's $T_{50} = 0.197$ and $T_{90} = 0.848$),
+    https://doi.org/10.1680/geolett.12.00005.
 
     Parameters
     ----------
@@ -271,7 +396,13 @@ def consolidation_coefficient_from_readings(
         ``displacement_at_90_percent_consolidation``,
         ``time_to_90_percent_consolidation``,
         ``coefficient_of_consolidation_root_time``, its ``_basis``
-        (``"rule"``) and its ``_reason``. ``attrs["units"]`` names each unit;
+        (``"rule"``) and its ``_reason``, then
+        ``corrected_zero_displacement_log_time``,
+        ``displacement_at_100_percent_primary_consolidation``,
+        ``displacement_at_50_percent_consolidation``,
+        ``time_to_50_percent_consolidation``,
+        ``coefficient_of_consolidation_log_time``, its ``_basis`` and its
+        ``_reason``. ``attrs["units"]`` names each unit;
         ``attrs["consolidation_coefficient_from_readings"]["notes"]`` holds
         the notes.
 
@@ -300,6 +431,9 @@ def consolidation_coefficient_from_readings(
     ...         "time_to_90_percent_consolidation",
     ...         "coefficient_of_consolidation_root_time",
     ...         "reported_coefficient_of_consolidation_root_time",
+    ...         "time_to_50_percent_consolidation",
+    ...         "coefficient_of_consolidation_log_time",
+    ...         "reported_coefficient_of_consolidation_log_time",
     ...     ]
     ... ]
     """
@@ -315,44 +449,80 @@ def consolidation_coefficient_from_readings(
     heights = _average_heights(df, increments, units, notes)
 
     n = len(groups)
-    zero = np.full(n, np.nan)
-    at_90 = np.full(n, np.nan)
-    time_90 = np.full(n, np.nan)
-    coefficient = np.full(n, np.nan)
-    reason = np.full(n, None, dtype=object)
+    values = {
+        column: np.full(n, np.nan)
+        for column in (
+            ROOT_TIME_ZERO,
+            DISPLACEMENT_90,
+            TIME_90,
+            ROOT_TIME,
+            LOG_TIME_ZERO,
+            DISPLACEMENT_100,
+            DISPLACEMENT_50,
+            TIME_50,
+            LOG_TIME,
+        )
+    }
+    reasons = {
+        method: np.full(n, None, dtype=object) for method in (ROOT_TIME, LOG_TIME)
+    }
     for i, positions in enumerate(groups):
         if branch[i] == CONSTANT_STRESS:
-            reason[i] = CONSTANT
+            reasons[ROOT_TIME][i] = reasons[LOG_TIME][i] = CONSTANT
             continue
         readings = increment_readings(df.index, positions, times, displacements)
         root = root_time(readings)
-        reason[i] = root.reason
-        if root.reason is not None:
-            continue
-        zero[i] = readings.displacement(root.zero)
-        at_90[i] = readings.displacement(root.movement)
-        time_90[i] = root.time
+        reasons[ROOT_TIME][i] = root.reason
+        if root.reason is None:
+            values[ROOT_TIME_ZERO][i] = readings.displacement(root.zero)
+            values[DISPLACEMENT_90][i] = readings.displacement(root.movement)
+            values[TIME_90][i] = root.time
+            values[ROOT_TIME][i] = ROOT_TIME_COEFFICIENT * heights[i] ** 2 / root.time
+        log = log_time(readings)
+        reasons[LOG_TIME][i] = log.reason
+        if log.reason is None:
+            values[LOG_TIME_ZERO][i] = readings.displacement(log.zero)
+            values[DISPLACEMENT_100][i] = readings.displacement(log.movement_100)
+            values[DISPLACEMENT_50][i] = readings.displacement(log.movement_50)
+            values[TIME_50][i] = log.time
+            values[LOG_TIME][i] = LOG_TIME_COEFFICIENT * heights[i] ** 2 / log.time
         if np.isnan(heights[i]):
-            reason[i] = NO_HEIGHT
-        else:
-            coefficient[i] = ROOT_TIME_COEFFICIENT * heights[i] ** 2 / root.time
+            for method in (ROOT_TIME, LOG_TIME):
+                if reasons[method][i] is None:
+                    reasons[method][i] = NO_HEIGHT
 
     result = _carried(increments, units, display_units)
     if "load_branch" not in result.columns:
         result["load_branch"] = pd.Series(branch, dtype=object)
     written_units: dict[str, str | None] = {}
-    for column, values, canonical, quantity in (
-        (AVERAGE_HEIGHT, heights, _MM, "small_length"),
-        (ROOT_TIME_ZERO, zero, _MM, "small_length"),
-        (DISPLACEMENT_90, at_90, _MM, "small_length"),
-        (TIME_90, time_90, _MINUTE, "time"),
-        (ROOT_TIME, coefficient, _CV_UNIT, "consolidation_coefficient"),
-    ):
+
+    def write(column: str, data: np.ndarray, canonical: str, quantity: str) -> None:
         result[column], written_units[column] = _written(
-            values, canonical, quantity, display_units
+            data, canonical, quantity, display_units
         )
-    result[f"{ROOT_TIME}_basis"] = pd.Series([RULE] * n, dtype=object)
-    result[f"{ROOT_TIME}_reason"] = pd.Series(reason, dtype=object)
+
+    write(AVERAGE_HEIGHT, heights, _MM, "small_length")
+    for method, columns in (
+        (
+            ROOT_TIME,
+            ((ROOT_TIME_ZERO, _MM), (DISPLACEMENT_90, _MM), (TIME_90, _MINUTE)),
+        ),
+        (
+            LOG_TIME,
+            (
+                (LOG_TIME_ZERO, _MM),
+                (DISPLACEMENT_100, _MM),
+                (DISPLACEMENT_50, _MM),
+                (TIME_50, _MINUTE),
+            ),
+        ),
+    ):
+        for column, canonical in columns:
+            quantity = "time" if canonical == _MINUTE else "small_length"
+            write(column, values[column], canonical, quantity)
+        write(method, values[method], _CV_UNIT, "consolidation_coefficient")
+        result[f"{method}_basis"] = pd.Series([RULE] * n, dtype=object)
+        result[f"{method}_reason"] = pd.Series(reasons[method], dtype=object)
     result.attrs["units"] = {**result.attrs.get("units", {}), **written_units}
     result.attrs["consolidation_coefficient_from_readings"] = {"notes": notes}
     return result
@@ -398,6 +568,82 @@ def root_time(readings: Readings) -> RootTime:
             movement = zero + slope / ROOT_TIME_RATIO * root
             return RootTime(zero, slope, early, float(root**2), float(movement))
     return RootTime(zero, slope, early, reason=AFTER_LAST)
+
+
+def log_time(readings: Readings) -> LogTime:
+    """Make the log time construction (BS 1377-5:1990, 3.6.3.2) on one increment."""
+    whole = _whole_reason(readings)
+    if whole is not None:
+        return LogTime(reason=whole)
+    t, y = readings.times, readings.movement
+    positive = readings.after_load
+    # Readings are sorted and none is negative, so those with t > 0 are the last ones.
+    x = np.full(len(t), np.nan)
+    x[positive] = np.log10(t[positive])
+    last = t[-1]
+
+    # The secondary line: the last log cycle of time (3.6.3.2.2, 3.6.5.2).
+    in_last = positive & (t >= last / 10 * (1 - _SAME_TIME))
+    if in_last.sum() < FEWEST:
+        return LogTime(reason=FEW_SECONDARY)
+    secondary = _line(x, y, in_last)
+
+    # The tangent at the inflexion: the steepest three consecutive readings
+    # before the last cycle, the earlier on a tie.
+    before = np.flatnonzero(positive[: int(np.flatnonzero(in_last)[0])])
+    tangent: Line | None = None
+    for k in range(len(before) - FEWEST + 1):
+        fitted = np.zeros(len(t), dtype=bool)
+        fitted[before[k : k + FEWEST]] = True
+        line = _line(x, y, fitted)
+        if not np.isnan(line.slope) and (tangent is None or line.slope > tangent.slope):
+            tangent = line
+    if tangent is None:
+        return LogTime(secondary, reason=NO_TANGENT)
+    if not (tangent.slope > 0 and tangent.slope >= STEEPER * secondary.slope):
+        return LogTime(secondary, tangent, reason=NO_SECONDARY)
+
+    # d0 from the three latest pairs t_i, 4 t_i on the convex-upward portion,
+    # which ends at the tangent's middle reading (3.6.3.2.1).
+    middle = t[np.flatnonzero(tangent.fitted)[1]]
+    paired = np.flatnonzero(positive & (PAIR_RATIO * t <= middle * (1 + _SAME_TIME)))
+    if len(paired) < FEWEST:
+        return LogTime(secondary, tangent, paired, reason=FEW_PAIRS)
+    pairs = paired[-FEWEST:]
+    later = np.interp(np.log10(PAIR_RATIO * t[pairs]), x[positive], y[positive])
+    zero = float(np.mean(2 * y[pairs] - later))
+
+    # d100 where the tangent and the secondary line cross (3.6.3.2.2).
+    x_100 = (secondary.intercept - tangent.intercept) / (
+        tangent.slope - secondary.slope
+    )
+    time_100 = float(10**x_100)
+    movement_100 = tangent.at(x_100)
+    if not middle <= time_100 <= last:
+        return LogTime(secondary, tangent, pairs, zero, reason=OUTSIDE_100)
+
+    # d50 midway, and t50 where the curve first reaches it (3.6.3.2.3).
+    partial = LogTime(secondary, tangent, pairs, zero, time_100, movement_100)
+    movement_50 = float((zero + movement_100) / 2)
+    reached = np.flatnonzero(positive & (y >= movement_50))
+    first = int(np.flatnonzero(positive)[0])
+    if len(reached) == 0:
+        return dataclasses.replace(
+            partial, movement_50=movement_50, reason=AFTER_LAST_50
+        )
+    j = int(reached[0])
+    if j == first:
+        return dataclasses.replace(
+            partial, movement_50=movement_50, reason=BEFORE_FIRST
+        )
+    share = (movement_50 - y[j - 1]) / (y[j] - y[j - 1])
+    time_50 = float(10 ** (x[j - 1] + (x[j] - x[j - 1]) * share))
+    return dataclasses.replace(partial, movement_50=movement_50, time=time_50)
+
+
+def _line(x: np.ndarray, y: np.ndarray, fitted: np.ndarray) -> Line:
+    intercept, slope = _least_squares(x[fitted], y[fitted])
+    return Line(intercept, slope, fitted)
 
 
 def _whole_reason(readings: Readings) -> str | None:

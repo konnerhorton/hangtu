@@ -622,3 +622,12 @@ cited §8 before it was written; the registry's `ags` entries for the derived co
   `load_branch` is a result column. With `display_units=`, the carried columns with a kind and a unit convert too
   (the lab's c_v beside hangtu's in ft²/yr). BS's 0.111 is 0.45 % below Terzaghi's T90 coefficient (0.1115), so
   T90 would give a c_v 0.45 % higher; the docstring says so.
+- **Step 4.** AC 2's hand values all reproduce (1e-8, as step 3's). Beyond the spec: a tangent that doesn't rise
+  gives decision 4.3's reason too ("…less than twice as steep…"), since a factor on a negative secondary slope would
+  otherwise pass it; a curve that never reaches d50 gives "t50 after the last reading" (only non-monotone readings do
+  it); the pairs' 4 t_i and the last cycle's t_last / 10 compare with a 1e-9 relative tolerance, so times converted
+  from seconds pair as minutes do. The points of a construction that stopped are blank (as root time's), but the
+  plot's helper (step 8) can read the lines it got to from `log_time()`'s `LogTime`. `site_us.ags` writes
+  displacements to 10SF in inches, which differences carry to 1.5e-9 in t50, so AC 11's twins hold log time to 1e-8
+  (root time stays at 1e-9). AC 7's reasons use hand-built frames, two of them non-monotone (a first-reading spike,
+  a dip) since monotone readings can't put t50 outside them.
