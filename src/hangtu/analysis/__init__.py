@@ -7,6 +7,9 @@ from hangtu.analysis._add_judgment import add_judgment
 from hangtu.analysis._classification import aashto, uscs
 from hangtu.analysis._clay_activity import clay_activity
 from hangtu.analysis._clogging import clogging_potential
+from hangtu.analysis._consolidation_readings import (
+    consolidation_coefficient_from_readings,
+)
 from hangtu.analysis._gradation import gradation
 from hangtu.analysis._hoek_brown_fit import HoekBrownFit, hoek_brown_fit
 from hangtu.analysis._mohr_coulomb import MohrCoulombFit, mohr_coulomb_fit
@@ -37,6 +40,7 @@ __all__ = [
     "add_judgment",
     "clay_activity",
     "clogging_potential",
+    "consolidation_coefficient_from_readings",
     "correlations",
     "friction_angle_from_shear_box",
     "gradation",

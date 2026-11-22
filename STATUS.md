@@ -6,6 +6,11 @@ Then waves 4–6.
 
 Last checkpoint: 3, after M19 (a), 2026-11-15, 4f03bfd.
 
+## In progress
+- **M19 (c2)** on `m19c2-cv-readings`: plan steps 1–3 committed (the `time` kind, `p.oedometer_readings()`, root
+  time in `consolidation_coefficient_from_readings()`). Next: step 4, the log time construction, on Opus in a new
+  session, from `docs/work/m19c2-cv-readings.md` `## Plan` and its "Notes from the build".
+
 ## Open
 Each milestone names its wave (SPEC §1.3). A unit's close-out records its status here; a finished milestone
 moves to Done, in one line (its unit's work file has the detail).

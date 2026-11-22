@@ -612,3 +612,13 @@ cited §8 before it was written; the registry's `ags` entries for the derived co
   `oedometer_load_branch()` over every `CONS` row (`p.oedometer(include_incomplete=True)`'s), so it can differ from
   `p.oedometer()`'s only where an incomplete increment has a stress. The readings map's messages now say "An
   oedometer_readings group" and list three required columns as "a, b and c".
+- **Step 3.** AC 1's hand values are written to nine significant figures (t90 19.7847853 against 19.78478526), so
+  the tests hold them to 1e-8 relative, not the spec's 1e-9. The series gives T60 = 0.2863, which rounds to 0.286
+  against Abuel-Naga & Pender's 0.287, so the Sources' "matches all nine to the table's three decimals" holds to
+  within one unit of the last decimal; T50 and T90 match. AC 3's curves need a primary compression the spec doesn't
+  give: 0.4 mm, with H̄ 18 mm (root time then −5.2 % to +7.7 %, and c_v 20 as the spec says). Beyond the spec: a
+  reading with a blank `specimen_id` or `test_stage` is an error (it can't be put in an increment); without
+  `load_branch` or `applied_vertical_stress` no increment is read as constant stress, with a note; an added
+  `load_branch` is a result column. With `display_units=`, the carried columns with a kind and a unit convert too
+  (the lab's c_v beside hangtu's in ft²/yr). BS's 0.111 is 0.45 % below Terzaghi's T90 coefficient (0.1115), so
+  T90 would give a c_v 0.45 % higher; the docstring says so.
