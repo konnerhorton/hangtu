@@ -7,7 +7,7 @@
 | **Type** | plot + light analysis |
 | **Milestone** | M19 (c1) (`STATUS.md`), [`docs/work/m19c-consolidation.md`](../work/m19c-consolidation.md) |
 | **Depends on** | P00; `p.oedometer()` (M19 a); `oedometer_increments()` (M19 (c1) Spec) |
-| **Related** | P13 (the e–log σ′v curve of the same increments); P15 (c_v's time curves, M19 (c2)); sheets 06, 11, 12 |
+| **Related** | P13 (the e–log σ′v curve of the same increments); P15 (the time curves each c_v is read from); sheets 06, 11, 12 |
 
 ---
 
@@ -174,6 +174,7 @@ Golden values are the M19 (c1) Spec's, hand-calculated there. Tolerance 1e-9 rel
 - Drawing unload m_v in the loading style: BS defines m_v on loading increments only.
 
 ## 15. Future enhancements
-- c_v from time readings beside the lab's (M19 (c2), with P15).
+- hangtu's c_v from readings (`consolidation_coefficient_from_readings()`, P15) beside the lab's, from
+  `oedometer_increments(consolidation_coefficients=...)`'s columns, with its k.
 - Eoed = 1/m_v on a modulus axis instead of m_v.
 - σ′p from `oedometer_fit()` as a vertical line, where c_v often drops.

@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **ID / function** | P15 · `ht.plot.consolidation_time_curves()` (+ `ht.analysis.consolidation_coefficient_from_readings()`) |
-| **Status** | draft (M19 (c2)) |
+| **Status** | built (M19 (c2)); images: [`img/P15-si.png`](img/P15-si.png), [`img/P15-us.png`](img/P15-us.png) |
 | **Type** | plot + analysis |
 | **Milestone** | M19 (c2) (`STATUS.md`), [`docs/work/m19c2-cv-readings.md`](../work/m19c2-cv-readings.md) |
 | **Depends on** | P00; `p.oedometer_readings()` or `ht.template("oedometer_readings")`; `consolidation_coefficient_from_readings()` (M19 (c2) Spec) |

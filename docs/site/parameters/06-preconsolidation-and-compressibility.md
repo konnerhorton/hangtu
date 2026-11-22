@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Parameters** | σ′p (preconsolidation or yield stress), OCR = σ′p / σ′v0 (overconsolidation ratio), Cc (compression index), Cs or Cr (swelling or recompression index) |
+| **Parameters** | σ′p (preconsolidation or yield stress), OCR = σ′p / σ′v0 (overconsolidation ratio), Cc (compression index), Cs or Cr (swelling or recompression index), c_v (coefficient of consolidation) |
 | **Material** | Soil, mainly fine-grained |
 | **Models that use it** | Soft Soil and Modified Cam Clay (λ* = Cc / (2.3 (1 + e)), κ*), Hardening Soil (OCR or POP sets the initial cap), SHANSEP |
 | **Depends on** | [Unit weight and vertical stress](01-unit-weight-and-vertical-stress.md) (σ′v0); index properties (LL, PI); specific gravity and void ratio (e0) |
@@ -48,7 +48,7 @@ mineralogy, water content and structure.
 
 | Test | ASTM | ISO / BS | AGS 4.2 group: headings | Delivers |
 |---|---|---|---|---|
-| Incremental-load oedometer | D2435/D2435M | ISO 17892-5; BS 1377-5 | `CONG`: `CONG_TYPE`, `CONG_COND`, `CONG_IVR`, `CONG_HIGT`; `CONS`: `CONS_INCN`, `CONS_INCF`, `CONS_INCE`, `CONS_INMV` | e against σ′v, for σ′p, Cc, Cs |
+| Incremental-load oedometer | D2435/D2435M | ISO 17892-5; BS 1377-5 | `CONG`: `CONG_TYPE`, `CONG_COND`, `CONG_IVR`, `CONG_HIGT`; `CONS`: `CONS_INCN`, `CONS_INCF`, `CONS_INCE`, `CONS_INMV`, `CONS_CVRT`, `CONS_CVLG`; settlement–time readings in a group of the lab's own (see [datasets](../guides/datasets.md)) | e against σ′v, for σ′p, Cc, Cs; readings, for c_v |
 | Constant rate of strain; Rowe cell | D4186/D4186M | BS 1377-6 | `ESCG`: `ESCG_PCP`, `ESCG_YSR`, `ESCG_CC`, `ESCG_CS`, `ESCG_IVR`; `ESCT`: `ESCT_INCF`, `ESCT_VR0` | a continuous curve; the laboratory's σ′p, Cc, Cs |
 | CPTu (correlation input) | D5778 | ISO 22476-1 | `SCPT`: `SCPT_QT` | q_net, for σ′p |
 | SPT (correlation input) | D1586/D1586M | ISO 22476-3 | `ISPT`: `ISPT_NVAL` | field N, for the correlations below |
@@ -60,6 +60,7 @@ mineralogy, water content and structure.
 | σ′p, Mayne & Kemper (1988), as given by Kulhawy & Mayne (1990) | field N | clays; 0.5 ≤ N ≤ 200 | [`ht.analysis.correlations.preconsolidation_stress_mayne_kemper_1988()`](../reference/correlations.md#hangtu.analysis.correlations.preconsolidation_stress_mayne_kemper_1988) |
 | OCR, Mayne & Kemper (1988), as given by Kulhawy & Mayne (1990) | field N, σ′v0 | clays; 1 ≤ N pa/σ′v0 ≤ 100 | [`ht.analysis.correlations.overconsolidation_ratio_mayne_kemper_1988()`](../reference/correlations.md#hangtu.analysis.correlations.overconsolidation_ratio_mayne_kemper_1988) |
 | σ′p by Oikawa (1987), Cc, Cr, Cs and CR from an oedometer curve; σ′p by Pacheco Silva (1970) as the check; OCR and Δe/e0 with Lunne et al.'s (1997) class | e and σ′v of each increment; e0; σ′v0 for OCR and Δe/e0 | at least 3 loading points either side of σ′p, a clear break, a test to at least 2 σ′p; tested on soft soils | [`ht.analysis.oedometer_fit()`](../reference/analysis.md#hangtu.analysis.oedometer_fit), drawn by [`ht.plot.consolidation_curve()`](../plots/consolidation-curve.md) |
+| c_v by the root time and log time constructions (BS 1377-5:1990, 3.6.3.3 and 3.6.3.2), beside the lab's | settlement–time readings of each increment; specimen height and void ratios for H̄ | one-dimensional primary consolidation, c_v constant over the increment; a curve the construction can't read gets a reason | [`ht.analysis.consolidation_coefficient_from_readings()`](../reference/analysis.md#hangtu.analysis.consolidation_coefficient_from_readings), drawn by [`ht.plot.consolidation_time_curves()`](../plots/consolidation-time-curves.md) |
 | Cc from LL, Cc = 0.009 (LL − 10) (Kulhawy & Mayne 1990, Eq. 6-5, after Terzaghi & Peck 1967) | LL | normally consolidated clays | W3 |
 | CPTu, σ′p ≈ 0.33 (q_t − σv0) (Mayne et al. 2009, Eq. 4.15, p. 2832) | q_t, σv0 | intact clays; low in fissured clays | later |
 
@@ -76,6 +77,15 @@ reported beside it as a check. A curve with no clear break, too few points or to
 not a value: look at the [consolidation curve](../plots/consolidation-curve.md) before using either. Casagrande's
 construction and the work method aren't built: both need a choice (a smoothing for the maximum curvature, a strain
 definition) that the fit would have to hide.
+
+c_v is read from each increment's settlement–time readings by both of BS 1377-5:1990's constructions, root time
+(c_v = 0.111 H̄²/t90, 3.6.3.3) and log time (c_v = 0.026 H̄²/t50, 3.6.3.2), each a stated rule on the readings
+joined by straight lines, so the same readings always give the same c_v. The coefficients are BS's rounding of
+Terzaghi's T90 = 0.848 and T50 = 0.197 (Abuel-Naga & Pender 2012, Table 1). The two often differ: where c_v
+changes with stress, log time reads it at 50 % consolidation and root time at 90 % (Abuel-Naga & Pender 2012,
+pp. 44–47). Both are given beside the lab's, and a curve a construction can't read gets a reason, not a value:
+look at the [consolidation time curves](../plots/consolidation-time-curves.md) before using either, and override
+a part's time range where the rule reads a curve badly.
 
 ## How the methods compare
 
@@ -113,8 +123,13 @@ Choosing a design value is selection: [`ht.stats.select()`](../guides/selection.
 
 ## References
 
+- Abuel-Naga, H.M. and Pender, M.J. (2012). Modified Terzaghi consolidation curves with effective
+  stress-dependent coefficient of consolidation. *Géotechnique Letters* 2, 43–48.
+  <https://doi.org/10.1680/geolett.12.00005>
 - Amundsen, H.A., Thakur, V. and Emdal, A. (2016). Sample disturbances in block samples on low plastic soft clays.
   *Proc. 17th Nordic Geotechnical Meeting (NGM 2016)*, Reykjavik.
+- BS 1377-5:1990. *Methods of test for soils for civil engineering purposes. Part 5: Compressibility,
+  permeability and durability tests.* British Standards Institution.
 - Krage, C.P., DeJong, J.T., DeGroot, D.J., Dyer, M. and Lukas, W. (2015). *Proc. 6th International Conference
   on Earthquake Geotechnical Engineering*, Christchurch.
 - Kulhawy, F.H. and Mayne, P.W. (1990). *Manual on Estimating Soil Properties for Foundation Design.* EPRI EL-6800,

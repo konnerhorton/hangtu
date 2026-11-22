@@ -282,7 +282,7 @@ One unit can need two selected values of one parameter: EC7's Type A (a mean) fo
 - **Casagrande (1936):** the point of maximum curvature needs a smoothing choice (a spline, a window), a judgment the fit would hide. Open: which smoothing, stated and fixed, or a judgment input; and a verified citation (sheet 06 [4] is [U]).
 - **Work method (Becker et al. 1987):** W = Σ σ′v Δε_v (strain referred to the initial thickness, `docs/analysis/compressibility.md` §8); the two lines are in arithmetic W–σ′v, each fitted over a stress range the engineer chooses. Open: whether the split is searched as Oikawa's is, and the equation's form from the paper (sheet 06 [6] is [U] for it).
 
-### 77. Stored overrides of a test's reading · You + Claude · SPEC §4, `docs/analysis/compressibility.md`, `docs/data/datasets.md` §6.15 · before a project reruns an analysis with overrides after a data update, or when a second analysis takes them (#76)
+### 77. Stored overrides of a test's reading · You + Claude · SPEC §4, `docs/analysis/compressibility.md` §9, `docs/data/datasets.md` §6.18 · before a project reruns an analysis with overrides after a data update, or when a second analysis takes them (#76)
 - **Built (M19 c2):** the c_v constructions are read by a stated rule, and an engineer overrides an increment's ranges by an argument, recorded on the result. Nothing is stored, so each call passes them again.
 - **Goal:** rerun an analysis exactly as before after the data is updated, overrides included.
 - **Open:**

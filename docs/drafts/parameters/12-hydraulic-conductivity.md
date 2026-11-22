@@ -83,6 +83,9 @@ $$k = c_v\, m_v\, \gamma_w$$
 - **Built (M19 c1):** per increment, one k for each of the lab's c_v (CONS_CVRT, CONS_CVLG), so neither method is
   preferred, with m_v recomputed from the void ratios (sheet 11 §5.3) and γw from `ht.settings.water_unit_weight`. The
   increment spanning σ′v0 is marked, never interpolated. Unload and reload values are an extension, as their m_v is.
+- **Built (M19 c2):** k from hangtu's c_v from readings (sheet 06 §5.9), in two more columns beside the lab's
+  (`oedometer_increments(consolidation_coefficients=...)`), the same relation, blanks and reasons; "no readings"
+  for an increment without them. Lab and recomputed k stay apart.
 - **Valid for:** one-dimensional consolidation of a saturated soil, the pore fluid's compressibility neglected beside
   the soil's. A vertical k of a small specimen, usually below the field value, since the specimen can miss the fabric
   that drains the ground (BS 1377-5:1990, 3.1.1, note 3) [V]: a check, not a design value on its own. Not pooled
