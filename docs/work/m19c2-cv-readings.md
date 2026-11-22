@@ -641,3 +641,10 @@ cited §8 before it was written; the registry's `ags` entries for the derived co
   ft²/yr), its basis (blank with no reduced row) and its reason ("no readings" with none), as decision 10 lists.
   Beyond the spec: two reduced rows for one increment, a reduced frame missing a carried column, and `df` without
   `test_stage` are errors; c1's k code is split so both pairs of k share one `_conductivity()`.
+- **Step 7.** The example's readings cover each test's loading increments with a lab c_v (2–6 and 11, twelve in
+  all), generated as `_make_files.py`'s XCOT is, with each increment's immediate and secondary compression a drawn
+  share of its movement (5–15 % and 2–5 % per cycle) so the small recompression increments keep a positive primary
+  part. Displacements are written to 0.00001 in, so the ±0.002 mm scatter, not the rounding, is the noise. The fast
+  increment (B-5-U2's 3rd) is generated at 20 m²/yr, AC 3's case: at 10 and 15 m²/yr both constructions still
+  resolve it, and at 18–20 both give a reason, not log time alone as step 7 said. Its lab c_v (53 ft²/yr) is
+  left as the lab wrote it.

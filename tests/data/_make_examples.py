@@ -1415,6 +1415,10 @@ CURVE_SHEAR_BOX = [
     ("SHST", "0DP", "psf", "Shear stress", False),
     ("VDIS", "3DP", "in", "Vertical displacement", False),
 ]
+CURVE_SETTLEMENT = [
+    ("TIME", "2DP", "min", "Elapsed time since the load was applied", False),
+    ("DISP", "5DP", "in", "Vertical displacement", False),
+]
 #: Strains (%) of the q readings below failure, and the q readings past it on a
 #: test's last stage: (strain beyond ε_f, fraction of q_f).
 READING_STRAINS = [0, 0.25, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15]
@@ -1581,6 +1585,81 @@ def shear_box_curves(draw):
     return found
 
 
+# Settlement-time readings (M19 c2): each oedometer test's loading increments
+# that have a lab c_v (2 to 6 and 11), under CONG at the standard's reading
+# times, as a dial gauge reads them: generated from Terzaghi's series as the
+# test files' XCOT is (an immediate compression, rho U(T), a secondary
+# compression per log cycle after t1, the time at T = 1), each increment's
+# total movement its height change from the void ratios as written, then
+# scatter of up to 0.002 mm and the reading written to 0.00001 in. The
+# generating c_v is near the lab's root time value, except B-5-U2's increment
+# 3, an early recompression increment at 20 m²/yr: too fast for these times,
+# so log time finds fewer than three 1:4 pairs before the inflexion and root
+# time fewer than three readings in the first half of the movement (the c2
+# spec's AC 3 at c_v 20), and the lab's c_v can't be checked from them.
+OEDOMETER_READING_TIMES = [0, 0.1, 0.25, 0.5, 1, 2, 4, 8, 15, 30, 60, 120, 240]
+OEDOMETER_READING_TIMES += [480, 1440]
+OEDOMETER_READING_INCREMENTS = (2, 3, 4, 5, 6, 11)
+#: The fast increment, (specimen, increment), and its generating c_v (m²/yr).
+FAST_INCREMENT = (("B-5-U2", 3), 20.0)
+SQUARE_FEET_PER_SQUARE_METRE = 10.7639104
+MM_PER_INCH = 25.4
+
+
+def settlement_readings(cv, start, end, e0, height, draw):
+    """Displacements (in, from the specimen's start) at the reading times.
+
+    ``cv`` in m²/yr, ``height`` H0 in mm, ``start``, ``end`` and ``e0`` the
+    increment's and the specimen's void ratios.
+    """
+    h1 = height * (1 + start) / (1 + e0)
+    h2 = height * (1 + end) / (1 + e0)
+    total = h1 - h2
+    immediate = total * draw.uniform(0.05, 0.15)
+    secondary = total * draw.uniform(0.02, 0.05)  # per log cycle of time
+    drainage = (h1 + h2) / 4  # half the average height: double drainage
+    rate = cv * 1.0e6 / 525960  # mm²/min
+    t1 = drainage**2 / rate
+    last = OEDOMETER_READING_TIMES[-1]
+    rho = total - immediate - secondary * math.log10(1 + last / t1)
+    values = []
+    for t in OEDOMETER_READING_TIMES:
+        y = 0.0
+        if t > 0:
+            y = immediate + rho * _files.terzaghi_degree(rate * t / drainage**2)
+            y += secondary * math.log10(1 + t / t1) + draw.uniform(-0.002, 0.002)
+        values.append(round((height - h1 + y) / MM_PER_INCH, 5))
+    return values
+
+
+def settlement_curves():
+    """Each loading increment's (key, increment, [[t, δv], ...]), in min and in."""
+    draw = random.Random(2033)
+    found = []
+    for specimen_row, kind, values, _, _, curve in oedometer_tests():
+        if kind != "OEDOMETER":
+            continue
+        e0 = values[-1]
+        height = 0.75 * MM_PER_INCH  # CONG_HIGT
+        for incn in OEDOMETER_READING_INCREMENTS:
+            _, start, end, _, cv_root, _ = curve[incn - 1]
+            cv = cv_root / SQUARE_FEET_PER_SQUARE_METRE * draw.uniform(0.8, 1.0)
+            if (specimen_row[4], incn) == FAST_INCREMENT[0]:
+                cv = FAST_INCREMENT[1]
+            readings = settlement_readings(cv, start, end, e0, height, draw)
+            found.append(
+                (
+                    specimen_row,
+                    str(incn),
+                    [
+                        list(r)
+                        for r in zip(OEDOMETER_READING_TIMES, readings, strict=True)
+                    ],
+                )
+            )
+    return found
+
+
 def curve_groups():
     """The curve groups and their DICT group, after every other group."""
     draw = random.Random(2031)
@@ -1596,6 +1675,9 @@ def curve_groups():
         ),
         _files.curve_group("XUDS", [CURVE_STRAIN, CURVE_DEVIATOR], uu_rows, key, []),
         _files.curve_group("XSBS", CURVE_SHEAR_BOX, shear_box_curves(draw), key, []),
+        _files.curve_group(
+            "XCOT", CURVE_SETTLEMENT, settlement_curves(), SPECIMEN_HEADINGS, []
+        ),
     ]
     return [*curves, _files.dict_group(curves=curves, xppt=False)]
 
@@ -1618,6 +1700,9 @@ XSBS,shear_box_readings,XSBS_TESN,test_stage
 XSBS,shear_box_readings,XSBS_HDIS,horizontal_displacement
 XSBS,shear_box_readings,XSBS_SHST,shear_stress
 XSBS,shear_box_readings,XSBS_VDIS,vertical_displacement
+XCOT,oedometer_readings,XCOT_TESN,test_stage
+XCOT,oedometer_readings,XCOT_TIME,elapsed_time
+XCOT,oedometer_readings,XCOT_DISP,vertical_displacement
 """
 
 
@@ -1739,8 +1824,9 @@ def write_csvs(out):
 
 
 def write_readings(out, p):
-    """Write ``triaxial_readings.csv`` and ``shear_box_readings.csv`` from the
-    project's readings datasets, in psf and in, in their templates' columns.
+    """Write ``triaxial_readings.csv``, ``shear_box_readings.csv`` and
+    ``oedometer_readings.csv`` from the project's readings datasets, in psf, in
+    and min, in their templates' columns.
 
     A specimen is named by its sample and reference, as the other CSVs name
     them. The triaxial file keeps the lab's mark, as a lab's CSV would: each
@@ -1757,7 +1843,7 @@ def write_readings(out, p):
             strict=True,
         )
     }
-    for name in ("triaxial_readings", "shear_box_readings"):
+    for name in ("triaxial_readings", "shear_box_readings", "oedometer_readings"):
         dataset = getattr(p, name)()
         if name == "triaxial_readings":
             at_failure = [

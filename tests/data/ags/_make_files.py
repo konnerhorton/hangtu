@@ -92,6 +92,7 @@ TYPE_DESCRIPTIONS = {
     "2DP": "Value with 2 decimal places",
     "2SF": "Value with 2 significant figures",
     "3DP": "Value with 3 decimal places",
+    "5DP": "Value with 5 decimal places",
     "1SCI": "Scientific notation with 1 decimal place",
     "3SF": "Value with 3 significant figures",
     "10SF": "Value with 10 significant figures",
