@@ -659,3 +659,11 @@ cited §8 before it was written; the registry's `ags` entries for the derived co
   m²/yr; AC 6's "lab 23" is site_si's 2.1 m²/yr in ft²/yr. The shared legend and footnote go in a band below the
   panels as P07's grid puts them, but with fewer columns when the entries would run past the figure's edges (a
   one-row figure with the override entry did), so P15 has its own `_legend()` rather than P07's `_grid_legend()`.
+- **Step 9.** The override is its own example, `consolidation-time-curves-override.py`, since each example gives its
+  page one figure: B-5-U2's 4th increment, 0.003 in of movement, where the 0.1 min reading steepens the early line
+  (root time 78.9 ft²/yr against log time's 39.0); fitted from 0.25–4 min it gives 43.3. The remark on why the
+  methods differ was checked against Abuel-Naga & Pender (2012): the three cases of c_v against stress are defined on
+  p. 44 and the methods' difference is discussed on pp. 45–47, so the page cites pp. 44–47; with c_v falling as the
+  stress rises (their case 2) log time gives the higher c_v, rising (case 3) root time does. There is no separate AGS
+  guide: the readings map is described in the datasets guide, which gains the `oedometer_readings` group, and the
+  templates guide gains the two templates.
