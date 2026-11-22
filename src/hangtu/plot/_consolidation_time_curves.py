@@ -616,7 +616,11 @@ def _set_y(axs: Sequence[Axes], levels: list[float], invert: bool) -> None:
 
 
 def _time_mark(ax: Axes, x: float, y: float, name: str) -> None:
-    """Draw a point's time: a dotted line from the curve down to the axis."""
+    """Draw a point's time: a dotted line from the curve down to the axis.
+
+    The label sits left of the line: the construction lines run down to the
+    right past t90 and t50, so they would cross a label on the right.
+    """
     bottom = ax.get_ylim()[0]
     ax.plot(
         [x, x],
@@ -630,12 +634,13 @@ def _time_mark(ax: Axes, x: float, y: float, name: str) -> None:
     ax.annotate(
         name,
         xy=(x, bottom),
-        xytext=(2.0, 2.0),
+        xytext=(-2.0, 2.0),
         textcoords="offset points",
-        ha="left",
+        ha="right",
         va="bottom",
         fontsize=TEXT_SIZE,
         color=POINT_COLOR,
+        bbox={"facecolor": "white", "edgecolor": "none", "pad": 0.5},
         gid=f"label_{name}",
     )
 

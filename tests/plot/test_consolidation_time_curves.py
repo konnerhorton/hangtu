@@ -156,6 +156,15 @@ def test_ac1_root_time_panel():
     assert axs[0, 0].get_title(loc="left") == "Increment 4: 100 → 200 kPa"
 
 
+def test_the_time_labels_sit_left_of_their_lines():
+    # P15 §7: the construction lines run down to the right past t90 and t50.
+    _, axs = draw(golden(), increments=["4"])
+    for ax, name in ((axs[0, 0], "label_t90"), (axs[0, 1], "label_t50")):
+        (label,) = [t for t in ax.texts if t.get_gid() == name]
+        assert label.get_horizontalalignment() == "right"
+        assert label.get_bbox_patch().get_facecolor()[:3] == (1.0, 1.0, 1.0)
+
+
 def test_ac1_the_x_axis_stops_past_t90():
     # P15 §6: from 0 to past 2.5 √t90, not to the last reading.
     _, axs = draw(golden(), increments=["4"])

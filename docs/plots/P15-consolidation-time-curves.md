@@ -99,7 +99,7 @@ calls it with `overrides=` and draws its lines and points; it computes nothing o
 | 1.15 line | dashed thin | dark gray | "1.15 line" |
 | Tangent at inflexion, secondary line | solid thin, extended to their crossing | dark gray | "Tangent and secondary line" |
 | d0, d50, d90, d100 | dotted horizontal across the panel, labeled just outside its right edge | gray | "d0, d50, d90, d100; t50, t90" |
-| t50, t90 | dotted vertical from the curve to the axis, labeled at the axis | gray | as above |
+| t50, t90 | dotted vertical from the curve to the axis, labeled at the axis on its left, on white (the construction lines run down to the right past it) | gray | as above |
 | Result | text in the panel's upper right, clear of the curve, which runs from upper left to lower right: "c_v 2.15 m²/yr (lab 2.1)", 3SF for hangtu's, the lab's as written | black | — |
 | An override | "(override)" after the result, and the overridden line dash-dotted | as above | "Line over an override range" |
 | A construction that stops | the lines it got to (the early line; the secondary line and tangent), and its reason; readings filled only where a drawn line was fitted to them | as above | — |
