@@ -218,8 +218,9 @@ because they bind later units too. The choices this spec proposed were approved 
    times still given. H̄ in mm and t in min in the standard's coefficients, which give m²/year; computed through pint
    whatever the input units.
    - **BS's coefficients, not T50 and T90:** 0.026 and 0.111 are BS 1377-5's rounding of 0.0259 and 0.1115 (checked
-     in the M19 (c) intent), so c_v matches a BS lab's to the figure. ASTM D2435's T50 = 0.197 and T90 = 0.848 give
-     values 0.4 % apart; the docstring says so. Double drainage is assumed (intent decision 4).
+     in the M19 (c) intent), so c_v matches a BS lab's to the figure. Terzaghi's T50 = 0.197 and T90 = 0.848 give
+     values 0.4 % apart (+0.37 % and −0.45 %); the docstring says so. Double drainage is assumed (intent decision
+     4).
 7. **Overrides** (intent decision 1): `overrides=`, a frame in `ht.template("consolidation_overrides")`'s shape:
    `specimen_id`, `test_stage`, `consolidation_method` (`root_time`, `log_time`), `curve_portion` (`early` for
    either method; `inflexion` and `secondary` for log time), `elapsed_time_start`, `elapsed_time_end` (inclusive, in
@@ -300,9 +301,13 @@ because they bind later units too. The choices this spec proposed were approved 
 - **BS 1377-5:1990** (incorporating Amendment 1): 3.6.3.1 and its note, 3.6.3.2.1–3.6.3.2.4, 3.6.3.3.1–3.6.3.3.3,
   3.6.5.2 (the one-cycle secondary line), 3.7 items (h), (i), (k). Read 2026-11-22 (the intent's Evidence).
 - **Terzaghi's solution,** for the readings the golden values start from: U(T) = 1 − Σ (2/M²) exp(−M² T),
-  M = π(2m + 1)/2, the standard series; T50 = 0.197 and T90 = 0.848 as the c1 intent checked them. 🔬 To cite in the
-  docstring: a textbook with the series and its table, verified against the source before the build (sheet 06's
-  bibliography first).
+  M = π(2m + 1)/2, the standard series; T50 = 0.197 and T90 = 0.848 as the c1 intent checked them.
+- **Abuel-Naga, H. M. & Pender, M. J. (2012).** Modified Terzaghi consolidation curves with effective
+  stress-dependent coefficient of consolidation. *Géotechnique Letters* 2, 43–48,
+  https://doi.org/10.1680/geolett.12.00005. Table 1, p. 45, column i_cv = 0 (Terzaghi's constant c_v): T at U_avg
+  10–90 % = 0.008, 0.031, 0.071, 0.126, 0.197, 0.287, 0.403, 0.567, 0.848; T_v = c_v t/H², H the longest drainage
+  path (Eq. 6, p. 44). Read 2026-11-22: the series above, inverted at each U, matches all nine to the table's three
+  decimals. The docstring cites it for T50 and T90; it doesn't give the series, which the tests state in full.
 - **Unit factors** as c1's Sources: 1 m²/yr = 10.7639104 ft²/yr; 1 in = 25.4 mm; a year of 525 960 min.
 
 ### Acceptance criteria
@@ -368,3 +373,221 @@ The steps below are a hand calculation from the readings as rounded. Tolerance 1
     entries for both functions and P15 (`tests/docs/test_site.py`), and docstrings giving the constructions, the
     clauses, the coefficients, the overrides and each reason's wording, with no internal file cited.
 13. **P15:** its acceptance criteria (P15 §12).
+
+## Plan
+Draft, 2026-11-22. Ten commits, each green: the tests it touches, then the CI command with `-n 3`. Steps 1–6 on
+Opus (the `time` kind's ingest change, the dataset that carries the golden readings, the two constructions, the
+overrides' rules and errors, k), 7–9 on Sonnet (the example data, the plot and the docs site, with the spec's values
+and P15 §12 deciding correctness), 10 on Opus (the figure judged against P15, the topic docs, the sheets,
+close-out): two model boundaries, after 6 and after 9, and a new Opus session after step 3 to keep the first one
+short. A step past about 300 changed lines without test data splits as noted. Reused, not rebuilt:
+- **Oedometer:** `oedometer_load_branch()`, `branches()`, `one_value()`, `specimen_label()`, `stress_text()`
+  (`analysis/_oedometer.py`); `oedometer_increments()`'s e1 fallback and its note (decision 6 reads e1 the same way).
+- **Readings:** `triaxial_failure_from_readings()` (`analysis/_triaxial_readings.py`) as the pattern for reducing
+  readings to one row per group, its notes in `attrs` and its input errors; the readings map (`DATASETS`,
+  `_parents`) and `_readings()` (`datasets/_readings.py`); `curve_group()` and `curve_dict_rows()` in
+  `tests/data/ags/_make_files.py`.
+- **Units and data:** `resolve_units`, `parse_unit`, `check_dimension`, `convert`, `to_display` (`hangtu.units`);
+  `numeric_column`, `rows_text` (`_data`); `ColumnError`, `HangtuError`, `warn` (`errors`); `group_keys()`.
+- **Plotting:** as `plot/_consolidation_coefficients.py` (P14): `style.context`/`style_axes`, `figure_size`,
+  `axis_label`, `add_legend`, `Notes`, `figure_of`, `hint_missing`, `resolve_palette`, `format_number`.
+
+Code cites `docs/analysis/compressibility.md` §9 and `docs/data/datasets.md` §6.18, which step 10 writes, as c1's code
+cited §8 before it was written; the registry's `ags` entries for the derived columns say
+`"derived: docs/analysis/compressibility.md"`.
+
+**Settled before the build:**
+- **`override_reason`, not `reason`** (approved 2026-11-22) (Spec decision 13's check): `reason` is the field every judgments file entry
+  carries (`_judgments.py`, `judgments.md`), so an overrides column of that name would read as a judgment field, the
+  thing decision 1 says an override isn't. Step 5 names it `override_reason`; decision 7's "`reason` (required)" and
+  its error ("a blank `reason`") read `override_reason`. The Spec's text is corrected in step 5's commit.
+- **The Terzaghi source** (Sources, settled 2026-11-22): Abuel-Naga & Pender (2012), Table 1, for T50 and T90 and
+  the docstring's "0.4 % apart" remark, in place of ASTM D2435, which isn't at hand. The Spec's decision 6 and
+  Sources are corrected in this commit. Taylor (1948), the root time method's origin with the series and its table,
+  was skipped: the docstring names the methods "root time" and "log time", as BS 1377-5 does, not by author.
+- **`ingest.md` §7 moves to step 1,** not close-out (a deviation from the Spec's intro): step 1 makes its step 4's
+  "they all match the P00 canonical units" untrue, and the text should change with the behavior.
+
+### 1. `units: add the time quantity kind; schema version 5` (Opus)
+- `src/hangtu/config/defaults.yaml`: `time`, canonical `minute`, US and SI `{unit: minute, text: min}`, after
+  `consolidation_coefficient` with a comment that no other kind shares its dimension (decision 12). The aliases for
+  `s`, `ms`, `min` and `day` exist (`units/aliases.yaml`).
+- Ingest (`ags/_units.py`): a user-defined heading in a time unit converts to minutes through `_canonical()` unchanged.
+  A standard heading keeps its dictionary unit and values; its `meta_heading.quantity` is `time` by dimension, since
+  `_quantity()` matches a kind only when the unit is its canonical one. Before changing `_quantity()`, list which
+  standard headings a match by dimension would change outside time (e.g. MPa headings against `modulus`'s kPa); if any
+  does, the match by dimension applies to time only, and the commit says why.
+- The readers: check that every dataset reader (`Build.numbers()` and the readings' `_group_readings()`) converts
+  from `meta_heading.unit`, the column's recorded unit, and not from the kind's canonical one; no dataset reads a
+  time heading today, so this is a check written into a test, not a fix. Record the 30 headings' count by unit in
+  the commit body.
+- `src/hangtu/db.py`: `SCHEMA_VERSION = 5`; the stored-project mismatch message and its test unchanged in wording.
+- `docs/data/ingest.md` §7 step 4: time is the exception (standard headings keep `s`, `ms`, `day`; user-defined ones
+  convert to `min`). SPEC §2.6 is read and changed only if it states the rule step 4 states.
+- Tests: `tests/ags/` (the units tests): a user-defined `XTIM_TIME` heading in `s` stored in minutes (AC 11, last
+  sentence); a standard `PLTT_TIME` in a hand-built file keeps its unit with quantity `time`; `tests/test_units.py`
+  for the kind; `tests/test_db.py` (or wherever `SCHEMA_VERSION` is tested) for 5. The whole suite, since every
+  ingest test passes through the change.
+
+### 2. `M19: add p.oedometer_readings() and the XCOT test readings` (Opus)
+- `columns.yaml`: `elapsed_time` (time) and `vertical_displacement`'s description widened (decision 13); the
+  `oedometer_readings` template: `p.oedometer_readings()`'s columns without `source_line` (identity and depth
+  columns, `test_type`, `test_stage`, `load_branch`, `applied_vertical_stress`, the two increment void ratios,
+  `specimen_height`, `void_ratio`, the two `reported_` c_v, `elapsed_time`, `vertical_displacement`, the geology
+  columns). `tests/test_registry.py` green.
+- `datasets/_readings_map.py`: `DATASETS["oedometer_readings"]`: mapped and required `test_stage`, `elapsed_time`,
+  `vertical_displacement`; no `one_of` (the check today requires one, so an empty `one_of` passes it); stages
+  `{"CONG": "CONS", "CONS": "CONS"}`. The "readings datasets are …" message lists three.
+- `datasets/_readings.py`: `ORDER["oedometer_readings"] = (("CONS",), "oedometer readings")`. The increment values
+  come from `p.oedometer()`'s own builder (`datasets/_oedometer.py`, incomplete rows kept, as `_stage_rows()` keeps
+  them), keyed on `specimen_id` and `CONS_INCN` as text, so each reading carries exactly the values `p.oedometer()`
+  gives its increment, `load_branch` included (decision 11), rather than a second reading of `CONS` and `CONG` in a
+  `Stages` entry. If `_join()` can't take that frame as it is, it gains the parameter it needs, not a copy.
+- `project.py`: `Project.oedometer_readings()`, as `triaxial_readings()`: its docstring (rows, the join, what is left
+  out, the sign kept, an example), and its reference entry where `triaxial_readings` has one.
+- `tests/data/ags/_make_files.py`: `XCOT` (`XCOT_TESN`, `XCOT_TIME` `min`, `XCOT_DISP` `mm`) under `CONG`, for
+  BH1-U3's increments 2–6: increment 4's 15 readings exactly as AC 1's table; the others from Terzaghi's series in
+  the file (the same immediate and secondary terms, each increment's ρ from its void ratios, c_v near the lab's),
+  rounded to 0.001 mm, with a comment that they aren't hand-calculated. `site_us.ags` converts `XCOT_DISP` to `in`
+  and keeps minutes. `site_v404.ags` none. `tests/data/ags/readings_map.csv` maps `XCOT`;
+  `tests/data/ags/README.md` describes it. Every other file checked unchanged (`git diff --stat tests/data/ags`).
+- Tests: `tests/datasets/test_readings.py` (AC 10: increment 4's 15 readings with its increment values; a reading
+  whose `XCOT_INCN` matches no `CONS_INCN` left out with §6.16's warning; the empty frame);
+  `tests/datasets/test_readings_map.py` (AC 10: `XCOT` without `elapsed_time` rejected, `DICT_PGRP` `TRET`
+  rejected); the twins in canonical units to 1e-9 (AC 11's dataset part).
+
+### 3. `M19: add consolidation_coefficient_from_readings(), root time` (Opus)
+- `columns.yaml`: every column of decision 13 but the overrides template's, with kinds and labels, the `ags` entry
+  above, no `used_by` yet (step 8 adds it; c1's note). The log time and k columns too, so steps 4 and 6 add no
+  registry change.
+- `src/hangtu/analysis/_consolidation_readings.py` (new), exported in `analysis/__init__.py`:
+  - inputs (decisions 1, 9): the required columns, each missing one an error naming it and
+    `ht.template("oedometer_readings")`; units resolved per SPEC §2.6; grouping by `specimen_id` and `test_stage` in
+    order of first appearance, readings sorted stably by `elapsed_time`; the three left-out kinds, one note each,
+    counted; `load_branch` read or added with its note; `constant_stress` increments' reason;
+  - orientation and datum (decision 2): s, y, the early portion, the two whole-increment reasons; every point
+    written back in the file's datum and sign;
+  - root time (decision 3): the early line, the 1.15 line, d90 and t90 by linear interpolation in √t, each reason
+    worded as decision 3 gives it;
+  - H̄ (decision 6) from the void ratios, e1's fallback with its note, the "no specimen height or void ratio for H̄"
+    reason with the points still given; c_v = 0.111 H̄²/t90 in canonical units (mm, min → m²/yr), through pint where
+    the input isn't canonical;
+  - the result (decision 8): one row per increment, its identity and increment columns from its first reading;
+    `attrs["consolidation_coefficient_from_readings"]["notes"]`; `display_units=` (decision 9). The frame has the
+    root time columns only; step 4 adds the log time ones, so no placeholder column reaches a commit.
+  - the docstring per `docs/drafts/parameters/TEMPLATE.md`'s checklist for root time: the construction step by step,
+    BS 1377-5:1990, 3.6.3.3.1–3.6.3.3.3, the coefficient and its rounding, double drainage, the unload and reload
+    increments as hangtu's extension, each reason's wording, an example on `p.oedometer_readings()`.
+- `docs/site/reference/analysis.md`: `consolidation_coefficient_from_readings`.
+- Tests: `tests/analysis/test_consolidation_coefficient_from_readings.py` (new), with `tests/analysis/_terzaghi.py`
+  (new: the series of Sources, written from the spec, not from hangtu, and checked first against Abuel-Naga &
+  Pender's Table 1, i_cv = 0, to its three decimals at U = 10–90 %): AC 1 (each number, 1e-9), AC 3's root time
+  half (the 15 generated cases and c_v 20), AC 5 for root time, AC 7's reasons from decisions 2, 3 and 6, AC 8, AC 11
+  (the twins on `site_si.ags`/`site_us.ags` to 1e-9; `display_units="US"` 23.1466690 ft²/yr and H̄ 0.770778653 in to
+  1e-6); the docstring and reference checks (`tests/docs/test_site.py`, `tests/test_errors.py`).
+- If past about 300 lines: (3a) inputs, grouping, orientation and the result's frame (AC 8, decision 2's reasons),
+  then (3b) the construction, H̄ and units (AC 1, 3, 5, 7, 11).
+
+### 4. `M19: add the log time construction to c_v from readings` (Opus)
+- `_consolidation_readings.py`: decision 4 in order: the secondary line over the last log cycle, the steepest
+  three-reading tangent before it (the earlier on a tie), the factor-2 check, d0 from the three largest 1:4 pairs
+  (y at 4 t_i interpolated in log t), d100 at the crossing, d50 and t50; c_v = 0.026 H̄²/t50; each reason worded as
+  decision 4 gives it. The t = 0 reading takes no part (no position in log t).
+- The docstring's log time paragraph: BS 1377-5:1990, 3.6.3.2.1–3.6.3.2.4 and 3.6.5.2's one cycle; why the largest
+  pairs; the interpolation (decision 5); the BS coefficients against T50 and T90 (decision 6's bullet, cited as the
+  Abuel-Naga & Pender (2012), Table 1, as Sources gives it).
+- Tests, same file: AC 2 (each number), AC 3's log time half, AC 5 for log time, AC 7's reasons from decision 4.
+
+### 5. `M19: add overrides to consolidation_coefficient_from_readings()` (Opus)
+- `columns.yaml`: `consolidation_method`, `curve_portion`, `elapsed_time_start`, `elapsed_time_end`,
+  `override_reason`; the `consolidation_overrides` template.
+- `_consolidation_readings.py`: `overrides=` (decision 7): validated first, every error naming the override's row
+  (as the file numbers it when read from a CSV: header = 1) and what to do; the ranges in the frame's declared time
+  units converted to minutes; each override replacing its part's range only; "the override for early holds 1
+  reading"; the `_basis` columns; `attrs[...]["overrides"]` as records.
+- The docstring's overrides paragraph: what each portion replaces, the minimum readings, the errors, that the
+  overrides are recorded on the result and passed on each call.
+- The Spec's decision 7 and 13: `reason` → `override_reason`.
+- Tests, same file: AC 4 (each number, both bases, `attrs`), AC 9 (each error), the template (`ht.template(
+  "consolidation_overrides")` columns).
+
+### 6. `M19: add k from the recomputed c_v to oedometer_increments()` (Opus)
+- `analysis/_oedometer_increments.py`: `consolidation_coefficients=` (decision 10): the reduced rows joined on
+  `specimen_id` and `test_stage` as text; the four c_v columns (value, basis, reason) carried; `hydraulic_
+  conductivity_from_readings_root_time` and `…_log_time` by c1's decision 7, with its blanks and reasons and "no c_v
+  from readings"; "no readings" on increments with no reduced row; one warning naming the reduced rows that match
+  no increment. Without the argument, the frame is as before.
+- The docstring: the argument, the join, the two pairs of k columns kept apart.
+- Tests: `tests/analysis/test_oedometer_increments.py`: AC 6 (both k, c1's beside them unchanged, "no readings" on
+  increments 1 and 7–12), the warning (`pytest.warns`), the twins.
+
+### 7. `M19: add oedometer readings to the example project` (Sonnet)
+- `tests/data/_make_examples.py`: an `XCOT` group in the example `site.ags` for the example oedometer specimens'
+  loading increments, generated from the series with the increment's void ratios and a c_v near the lab's, with
+  dial-gauge scatter of ±0.002 mm (seeded) and one increment fast enough that log time gives a reason; the example
+  `readings_map.csv` maps it; `oedometer_readings.csv` generated from it (the examples-AGS-first rule).
+- The example project's tests (wherever `site.ags`'s groups and the CSVs are checked) updated for the new group and
+  file; `ht.examples` lists the CSV if it lists the others.
+- Tests: the example data tests; `consolidation_coefficient_from_readings()` on the example gives c_v on every
+  loading increment but the fast one, which gives its reason.
+
+### 8. `M19: add ht.plot.consolidation_time_curves() (P15)` (Sonnet)
+- `src/hangtu/plot/_consolidation_time_curves.py` (new), exported in `plot/__init__.py`, as P15 §5–§11: calls
+  `consolidation_coefficient_from_readings()` with `overrides=`, `units=` and `display_units=` and draws its rows and
+  the readings, computing nothing of its own; one row of panels per increment, `methods=` columns, 2.4 in per row at
+  `default`'s width, more than 6 increments an error naming `increments=`; the y axis inverted where s = +1; §7's
+  marks (filled where fitted or paired, open joined otherwise, t = 0 on the root panel only), lines, points and the
+  result text (3SF, the lab's as written, "(override)"); the reason centered where a construction gives none; the
+  footnote from the analysis's notes; `specimen=` required with more than one specimen; returns `(fig, axs)` shaped
+  (rows, columns).
+- What the plot needs from the analysis that the result frame doesn't hold (which readings each line was fitted to,
+  the 1:4 pairs, each line's slope and intercept): a private helper in `_consolidation_readings.py` that both the
+  public function and the plot call, so the plot reads the same fit, not a second one. If the plot needs anything
+  the analysis's decisions don't give, stop and hand it back to Opus.
+- `columns.yaml`: `used_by: [plot.consolidation_time_curves]` on the columns it draws.
+- `docs/site/reference/plot.md`: `consolidation_time_curves`.
+- Tests: `tests/plot/test_consolidation_time_curves.py` (new): P15 AC 1–4 and 6–9 from the drawn artists (positions,
+  fill, line styles, inverted axes, texts, the array's shape); `tests/plot/test_consolidation_time_curves_acceptance.py`
+  (new): AC 5 and the example project with `display_units="US"`.
+- If past about 300 lines: (8a) the grid, the readings, the lines and points, orientation and returns (AC 1–3, 7,
+  8), then (8b) the result text, overrides, reasons, the footnote, units and edge cases (AC 4–6, 9).
+
+### 9. `M19: draw the consolidation time curves on the docs site` (Sonnet)
+- `docs/site/examples/consolidation-time-curves.py` (new): an example project specimen in US units, its curves for
+  three increments, and the reduced frame printed; an override shown in a second figure.
+  `docs/site/plots/consolidation-time-curves.md` (new): what each panel shows, the rule behind each line, why a
+  construction gives a reason, overrides and when to use them, the lab's value beside hangtu's; linked in
+  `zensical.toml`'s `nav` and `docs/site/plots/index.md`.
+  - One or two sentences (approved 2026-11-22) on why the two methods differ: where c_v changes with stress within an increment, log
+    time reads it at U = 50 % and root time at U = 90 %, so each gives a different equivalent c_v, and which is
+    higher depends on whether c_v rises or falls with stress (Abuel-Naga & Pender 2012, pp. 45–47). Context for the
+    reviewer judging P15, not a rule hangtu applies; their recommendation of root time isn't adopted.
+- `docs/site/guides/datasets.md`: `p.oedometer_readings()`'s row; the AGS guide's readings map table gains
+  `oedometer_readings` (parent `CONG`/`CONS`, the three mapped columns).
+- Run `docs/prepare_site.py` and `zensical build --clean --strict`.
+
+### 10. `M19: close out (c2)` (Opus)
+- **Visual check:** `docs/plots/img/P15-si.png` (BH1-U3, increments 3–5, kPa and mm) and `P15-us.png` (an example
+  specimen with scatter, in), 100 dpi, looked at against P15, committed (P15 AC 10).
+- **Close-out:**
+  - `docs/analysis/compressibility.md`: §9 "c_v from readings" with decisions 1–9, linking the API reference rather
+    than restating the docstring; §8's k bullet gains k from the recomputed c_v and drops "c_v from time readings is
+    M19 (c2)'s"; Related gains P15. `CLAUDE.md`'s `docs/analysis/` list: `compressibility.md` becomes "the
+    oedometer fit, increments and c_v from readings";
+  - `docs/data/datasets.md`: the `oedometer_readings` template, §6.15's table with the third dataset, §6.18;
+  - SPEC §4: the "c_v from readings" bullet after "Oedometer increments"; §10.3's registry columns;
+  - `docs/plots/P15-consolidation-time-curves.md` status `built` with its images; `docs/plots/README.md` P15 `built`;
+    P14's Related row gains P15;
+  - sheets 06 (c_v in its parameter list, a §5 entry for the constructions) and 12 §5.4 (k from the recomputed c_v);
+    the parameter index; sheet 06's site page gains its c_v section, citing BS 1377-5 by clause; Abuel-Naga &
+    Pender (2012) joins sheet 06's bibliography as [V] (Table 1, p. 45; pp. 45–47 if step 9 uses the remark);
+  - `docs/TODO.md`: #77 records what was built; P14 drawing the recomputed c_v goes to P14 §15; anything deferred
+    here with its trigger;
+  - `STATUS.md`: M19 "(a), (b), (c1), (c2) done; (d) next", the Next line; `CHANGELOG.md` Unreleased:
+    `p.oedometer_readings()`, `consolidation_coefficient_from_readings()`, `oedometer_increments()`'s new argument,
+    `consolidation_time_curves()`, the `time` kind and the schema version (a stored project re-ingests), in the
+    user's words;
+  - what a future session would get wrong without being told, written where it will be read (the three kinds of
+    choice are already in SPEC §4).
+- **Verification:** every AC of the Spec and of P15 §12 reported as met or not, with its test; the whole suite with
+  `-n 3`; ruff; mypy; the lowest-versions run (then `git checkout uv.lock`); the strict docs build.
