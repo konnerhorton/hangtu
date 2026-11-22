@@ -17,7 +17,7 @@ import pytest
 import hangtu as ht
 from hangtu.errors import ColumnError, HangtuError, UnitsError
 
-from . import _terzaghi as terzaghi
+from . import conftest as terzaghi
 
 DATA = Path(__file__).parents[1] / "data" / "ags"
 MAP = DATA / "readings_map.csv"
