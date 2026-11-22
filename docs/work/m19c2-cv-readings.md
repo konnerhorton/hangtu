@@ -260,7 +260,7 @@ because they bind later units too. The choices this spec proposed were approved 
     left out (a reading with no increment in `CONS`) and the empty frame as §6.16, with `CONS` for `TRET` and
     "oedometer readings" in the messages. `vertical_displacement` keeps the file's sign.
 12. **The `time` kind:** canonical `minute` (the standard's unit for readings and the c_v coefficients), displayed
-    in minutes in both systems. No other kind has its dimension. In AGS 4.0.3–4.2, 30 standard headings have a
+    in minutes in both systems. No other kind has its dimension. In AGS 4.0.3–4.2, 27 standard headings have a
     time unit (`s`, `ms`, `min`, `day`: CPT and DMT dissipation, seismic arrival times, `PLTT_TIME`, `WSTD_NMIN` and
     others) and no dataset reads one; none is in `CONS` or `CONG`. They gain the kind and keep their dictionary
     unit, as every standard heading does (`ingest.md` §7, step 4). That step's "they all match the P00 canonical
@@ -419,7 +419,7 @@ cited §8 before it was written; the registry's `ags` entries for the derived co
   does, the match by dimension applies to time only, and the commit says why.
 - The readers: check that every dataset reader (`Build.numbers()` and the readings' `_group_readings()`) converts
   from `meta_heading.unit`, the column's recorded unit, and not from the kind's canonical one; no dataset reads a
-  time heading today, so this is a check written into a test, not a fix. Record the 30 headings' count by unit in
+  time heading today, so this is a check written into a test, not a fix. Record the 27 headings' count by unit in
   the commit body.
 - `src/hangtu/db.py`: `SCHEMA_VERSION = 5`; the stored-project mismatch message and its test unchanged in wording.
 - `docs/data/ingest.md` §7 step 4: time is the exception (standard headings keep `s`, `ms`, `day`; user-defined ones
@@ -591,3 +591,12 @@ cited §8 before it was written; the registry's `ags` entries for the derived co
     choice are already in SPEC §4).
 - **Verification:** every AC of the Spec and of P15 §12 reported as met or not, with its test; the whole suite with
   `-n 3`; ruff; mypy; the lowest-versions run (then `git checkout uv.lock`); the strict docs build.
+
+### Notes from the build
+- **Step 1.** The standard headings with a unit of time number 27, not 30 (17 `s`, 6 `ms`, 3 `min`, 1 `day`, across
+  4.0.3–4.2, numeric types only); decision 12 and step 1 are corrected. A match by dimension for every kind would
+  change dozens of standard headings (MPa and GPa to `stress`, mm/s and m/hr to `hydraulic_conductivity`, kg/m³ to
+  `density`, ppmv to `angle`), so `_quantity()` matches time by dimension and nothing else. The readers' check:
+  `_group_readings()` converts from `meta_heading.unit`; `Build.numbers()` reads stored values, and no dataset reads
+  a time heading. The test that a readings heading converts from its stored time unit is step 2's (`XCOT_TIME`).
+  P00 §4.1's kind table gains `time` (`tests/test_registry.py` mirrors it).

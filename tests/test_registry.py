@@ -35,6 +35,7 @@ def test_quantity_kinds_match_p00_table():
         "displacement_rate",
         "volume_compressibility",
         "consolidation_coefficient",
+        "time",
         "percent",
         "dimensionless",
         "count",

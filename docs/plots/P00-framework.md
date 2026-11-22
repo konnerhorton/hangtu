@@ -79,6 +79,7 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 | `displacement_rate` | mm/min | in/min | mm/min | in/min / mm/min | shear box displacement rates (M17 a); kept after `velocity`, so an m/s heading stays a velocity |
 | `volume_compressibility` | m²/MN | ft²/kip | m²/MN | ft²/kip / m²/MN | oedometer m_v (M19 a); ft²/kip is the inverse of ksf, so m_v and 1/m_v read in matching units |
 | `consolidation_coefficient` | m²/yr | ft²/yr | m²/yr | ft²/yr / m²/yr | oedometer c_v (M19 a) |
+| `time` | min | min | min | min | elapsed time of a reading (M19 c2); the only kind ingest matches by dimension, so standard AGS headings in s, ms or day keep their unit and are still times |
 | `percent` | % | % | % | % | water content, LL, PL, % passing, ER |
 | `dimensionless` | — | — | — | (none) | PI, LI, Ic, Cu, Cc |
 | `count` | — | — | — | (none) | SPT N; never converted |
