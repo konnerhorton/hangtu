@@ -216,7 +216,7 @@ Proposed: two panels, not one axes with twinned x axes. A second x axis on the s
 ### 47. The scale of three correlation standard deviations · Claude (verify) · `config/correlations.yaml`, `docs/analysis/correlations.md` §2
 Mayne & Kemper's σ′p (S.D. = 4.37 pa) and OCR (3.82), and Kulhawy et al.'s K0 (0.43), have `scale: null`, so none is on the rows yet. Check each against Mayne & Kemper (1988), Kulhawy et al. (1989) or Kulhawy & Mayne (1990), Figs. 3-9, 3-18 and 3-30: whether it is the regression's standard error on the arithmetic values (then `scale: arithmetic`, and its registry column `<target>_correlation_standard_deviation` is added) or on log values (a factor, which needs a column design first). σ′p's, given in pa, suggests arithmetic.
 
-### 48. Statistics sources not yet checked · Claude (verify) · SPEC §5, `docs/analysis/statistics.md` §1, §3; sources listed in `docs/work/m15c-fit.md` and `docs/work/m15d-compare.md`
+### 48. Statistics sources not yet checked · Claude (verify) · SPEC §5, `docs/analysis/statistics.md` §1, §3
 `fit()` cites the NIST e-Handbook (§1.3.5.14) for the Anderson–Darling statistic and SciPy's documentation for the bootstrap p-value and the Kaplan–Meier estimate, because the original papers aren't available free. Check each against the paper when a copy is at hand, and update the docstrings and the statistics guide:
 - Stephens (1974), *JASA*, doi:10.2307/2286009 (the A² statistic).
 - Stute, González Manteiga & Presedo Quindimil (1993), *Metrika* (a parametric bootstrap with estimated parameters; the reference SciPy's `goodness_of_fit` gives).
@@ -231,7 +231,7 @@ Mayne & Kemper's σ′p (S.D. = 4.37 pa) and OCR (3.82), and Kulhawy et al.'s K0
 
 Titles, volumes and pages are to be taken from each paper, not from memory.
 
-### 53. Triaxial test standards · You (copies) + Claude (verify) · `docs/data/qc.md` §4.12, `docs/analysis/strength.md` §2–§5; sources listed in `docs/work/m11a-triaxial-data.md`
+### 53. Triaxial test standards · You (copies) + Claude (verify) · `docs/data/qc.md` §4.12, `docs/analysis/strength.md` §2–§5
 QC X001's `lowest_pore_pressure_parameter_b: 0.95` is the B-value commonly quoted as the requirement before shearing, not yet checked against a standard. Check it, and what each allows for stiff soils (a lower B where B stops rising with back pressure), in ASTM D4767 (CU), ASTM D7181 (CD) and ISO 17892-9, with the clause. Then cite it in `qc/rules.yaml`, X001's message and qc.md. `mohr_coulomb_fit()` and `shear_box_fit()` read `failure_criterion` as written and only refuse to pool different ones (strength.md §3–§5; for the shear box, ASTM D3080 and D6467), and `triaxial_failure_from_readings()` defines maximum deviator stress and maximum principal stress ratio from readings without a default (strength.md §2), so nothing built depends on which a standard requires. Check what D4767, D7181 and D2850 (UU) say of each, and of a limiting strain, before a fit, a QC rule or a docs page recommends one.
 
 ### 41. Gravelly sands under `not_for` · You + Claude · page 04, `docs/analysis/correlations.md` §2
