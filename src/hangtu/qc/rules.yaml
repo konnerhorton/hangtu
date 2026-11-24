@@ -229,6 +229,12 @@ rules:
     severity: warning
     thresholds:
       consolidation_stress_tolerance: 2 kPa
+  X007:  # no thresholds: the bounds are the values' own rounding (as E003's)
+    title: Reported E50 doesn't follow from q_f and ε50
+    severity: warning
+  X008:
+    title: Strain at half the peak at or past the strain at failure
+    severity: warning
 
   # Undrained strength (§4.13, M17 a). Q001's tolerance clears 0DP rounding of
   # TRIT_CU and TRIT_DEVF in kPa (at most 0.25 + 0.5 = 0.75 kPa).

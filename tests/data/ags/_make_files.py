@@ -1848,8 +1848,11 @@ def qc_defects_groups():
         ("bh2_t1", "1", {"pwpf": None}),  # X002 (and C002, TRET_PWPF)
         ("bh2_t2", "1", {"devf": -20}),  # X003
         ("bh4_t1", "1", {"pwpf": 410}),  # X004: σ′3 = 400 - 410 = -10
-        ("bh4_t2", "1", {}),  # X005: a CU test with two stages
-        ("bh4_t2", "2", {"conp": 200, "cell": 500}),
+        # X005: a CU test with two stages. Its stages also carry X007 (stage 1:
+        # (150 / 2) / 0.0322 = 2 329 kPa, not 75.50 MPa) and X008 (stage 2:
+        # TRET_EP50 9.00 above TRET_STRN 5.0), so no line moves (M23 a).
+        ("bh4_t2", "1", {"ep50": 3.22, "e50": 75.50}),
+        ("bh4_t2", "2", {"conp": 200, "cell": 500, "ep50": 9.00}),
         ("bh3_t1", "1", {"conp": 101, "bval": 0.95}),
     ]
     tret = group(
@@ -1864,6 +1867,8 @@ def qc_defects_groups():
             ("TRET_PWPF", "0DP", "kPa"),
             ("TRET_BACK", "0DP", "kPa"),
             ("TRET_BVAL", "2DP", ""),
+            ("TRET_EP50", "2DP", "%"),
+            ("TRET_E50", "2DP", "MPa"),
         ],
         [
             [*specimens[key], tesn, *_stage({**stage, **change})]
@@ -2021,7 +2026,8 @@ def qc_defects_groups():
 def _stage(values):
     """A ``TRET`` stage's values after ``TRET_TESN``, in qc_defects' headings."""
     v = values
-    return [v["conp"], v["cell"], 5.0, v["devf"], v["pwpf"], 300, v["bval"]]
+    stage = [v["conp"], v["cell"], 5.0, v["devf"], v["pwpf"], 300, v["bval"]]
+    return [*stage, v.get("ep50"), v.get("e50")]
 
 
 def joins_groups():

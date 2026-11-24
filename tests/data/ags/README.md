@@ -58,6 +58,7 @@ lists several cases, the lines are in the same order. Accepted entries are writt
 | B001, B002, B003, B004 | `LDEN` ρ 2.00, w 20, ρd 1.80 (expected 1.667); ρ 1.80, ρd 1.90, w blank; `LDEN_BDEN` 19.5 and `LPDN_PDEN` 26.5; `LPDN_PDEN` `#2.65` | LDEN 128; LDEN 129; LDEN 130 and LPDN 137; LPDN 138 |
 | none | BH4-U1's `LDEN` row is the AGS dictionary's example (1.66, 57 %, 1.06) | LDEN 131 |
 | X001–X006 | `TRET_BVAL` 0.90; a `CU` stage with `TRET_PWPF` blank (with C002); `TRET_DEVF` −20 in a `CU` stage; `TRET_PWPF` 410 with `TRET_CELL` 400; a `CU` test with two stages (TRET 161–162), and a `TRIG` with none; `TRET_CONP` 150 with `TRET_CELL` 400 and `TRET_BACK` 300 | TRET 156; TRET 158; TRET 159; TRET 160; TREG 149 and TRIG 169; TRET 157 |
+| X007–X008 | The same two-stage test's stages: `TRET_EP50` 3.22 % and `TRET_E50` 75.50 MPa with `TRET_DEVF` 150 kPa ((150 / 2) / 0.0322 = 2.33 MPa); `TRET_EP50` 9.00 % with `TRET_STRN` 5.0 % | TRET 161; TRET 162 |
 | none | BH3-B1's stage, `TRET_CONP` 101 with B-value 0.95 | TRET 163 |
 | Q001–Q003 | `TRIT_CU` 70 with `TRIT_DEVF` 120; `LVAN_VNPK` 20 with `LVAN_VNRM` 25; `LUCT_UCS` 0 | TRIT 176; LVAN 188; LUCT 182 |
 | H001–H003 | `SHBT_PEAK` 50 with `SHBT_RES` 60; a stage with both blank; `SHBT_NORM` 0 | SHBT 200; 201; 202 |

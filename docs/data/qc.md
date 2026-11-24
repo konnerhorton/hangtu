@@ -280,13 +280,18 @@ Each rule checks one stage, or one test against its own stages: a record that ca
 | X004 | Negative effective minor principal stress at failure: `TRET_PWPF` above `TRET_CELL` | warning | |
 | X005 | Stages don't match the test: a `TREG` or `TRIG` with no stage rows, a single-stage type with several, or a multistage type with one | warning | |
 | X006 | `TRET_CONP` differs from `TRET_CELL` − `TRET_BACK` | warning | `consolidation_stress_tolerance: 2 kPa` |
+| X007 | `TRET_E50` differs from (`TRET_DEVF` / 2) / `TRET_EP50` | warning | none: the values' own rounding |
+| X008 | `TRET_EP50` at or above `TRET_STRN` | warning | |
 
 - X001: only where `TRET_BVAL` is given (a blank one is C002's). The threshold is the B-value the standards ask for before shearing (ASTM D4767, ISO 17892-9; 🔬 not yet checked against them, TODO #53). The message names both, and says that stiff soils may be accepted at a lower B-value where the standard allows it, so the engineer reads the lab's remarks before accepting the finding (§3.4).
 - X002: `p.triaxial()` leaves σ′ blank on these stages; the message says that φ′ can't be fitted from them.
 - X003 is an error: a compression test can't fail at a deviator stress of 0 or less. Extension tests aren't checked (`datasets.md` §6.10).
 - X004: σ′3 < 0 isn't possible in an uncemented saturated specimen; the usual cause is a pore pressure recorded without the back pressure taken off, or the reverse.
 - X005: a multistage type is `CDM`, `CUM`, `CIUCM` or `UUM`. A type the dictionary doesn't list is checked only for "no stage rows".
-- X006: only where all three are given, and only for single-stage tests and the first stage of a multistage test, since later stages change the cell pressure after consolidation. The tolerance clears 0DP rounding of the three values (at most 1.5 kPa).
+- X006: only where all three are given, and only for single-stage tests and the first stage of a multistage test, since later stages change the cell pressure after consolidation. The tolerance clears 0DP rounding of the three values (at most 1.5 kPa). It reads `TRET_CONP` as the radial stress, which cell − back gives, so a lab that writes the vertical stress there on an anisotropically consolidated stage raises X006; the message gives both values. `TRET_CVP` and `TRET_CRP` (`datasets.md` §6.10) say which it is.
+- X007 and X008 (M23 a) check the lab's E50 and ε50 on `TRET` stages whose failure criterion makes q_f the peak: `TREG_FCR`, trimmed and with case ignored, "maximum deviator stress" (the dictionary's example) or "peak deviator stress". `TRET_E50` is defined at 50 % of the *peak* deviator stress, so under another criterion, or a blank one, q_f isn't the peak and the stage is skipped. Both also skip a stage where a value they need is blank or flagged, an extension stage, and q_f of 0 or less (X003's). Skipped stages aren't counted as checked.
+- X007 compares intervals, as E003 does: each of q_f, ε50 and E50 is taken ± half a unit in its last place, from its `xDP` TYPE, or from the text where the TYPE is `xSF` or missing. A finding means the recomputed interval, (q_f / 2) / ε50 converted to `TRET_E50`'s unit, and the reported one don't overlap. The message gives both values and the usual causes: a unit slip (kPa written as MPa, ε50 as a fraction rather than %) or values copied from different stages. A warning, since a lab could report E50 by another definition (a tangent at 50 %), which the engineer reads on the lab's sheet.
+- X008: the strain at half the peak can't be at or past the strain at the peak, so equal values are a finding, with no tolerance. An ε50 written as a fraction with no `TRET_E50` is smaller still and raises neither rule: nothing tells a small ε50 from a fraction without E50.
 
 ### 4.13 Undrained strength (Q)
 Checks within one record. Plausible ranges for s_u are level 2. `Q` is for `TRIG_TYPE`'s "quick undrained"; `U` (units) is taken.

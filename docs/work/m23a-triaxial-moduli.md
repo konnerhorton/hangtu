@@ -128,7 +128,8 @@ acceptance criteria.
   - BH1-U3 specimen 1 (`CU`, q_f 180 kPa) and BH2-U2 specimen 3 stage 1 (`CDM`, q_f 300 kPa) get the lab's values
     (AC 1). The other stages are left blank.
   - `site_v404.ags` doesn't get them: all four headings are new in 4.1. The README's list of 4.1 headings gains them.
-  - `qc_defects.ags` gets the X007 and X008 cases (AC 5–7), and the README table gets their lines.
+  - `qc_defects.ags` gets one seeded X007 and one X008 case, and the README table gets their lines. AC 5–8's
+    cases are built in `tests/qc/test_triaxial.py`. (Corrected in build step 3; see the build notes.)
 - **`tests/data/_make_examples.py`:** `site.ags` adds `TRET_CVP`, `TRET_CRP` (0DP psf), `TRET_EP50` (2DP %) and
   `TRET_E50` (1DP ksf) to `TRET`, for the three CU stages on B-2-U2 and the CD stages on B-1-U5 and B-2-U4: nine
   stages. The other six (B-4-U4, B-6-U4 and the CDM test) stay blank. ε50 is read from each stage's own curve in
@@ -371,3 +372,22 @@ step past about 300 changed lines without test data splits as noted. Reused, not
   the template, QC rules X007 and X008); SPEC §10.2–10.3 and §2.6 read and changed only where they list the
   dataset's or template's columns; `docs/TODO.md` only if the build deferred something with a trigger.
 - Tests: AC 10 (`tests/docs/test_site.py`, `tests/test_errors.py`); the CI command.
+
+### Notes from the build
+- **Step 1, the stored unit:** `Build.data.table()` (`qc/_data.Data.table`) carries no `attrs["units"]`; only
+  `Project.table()` sets them. So `p.triaxial()` reads `TRET_E50`'s stored unit from `meta_heading`
+  (`build.data.headings`). `p.shear_box()`'s `RATES` conversion reads the empty `attrs` and so never converts; it is
+  harmless today because ingest already stores `SHBT_DISP` and `SHBT_DISR` in the dictionary's mm/min, but it would
+  miss a stored unit other than the column's. Not fixed here.
+- **Step 1, SI display:** `modulus` displays in MPa in SI (ksf in US), so AC 1's 15.00 MPa is the SI display value;
+  the dataset holds 15 000 kPa.
+- **Step 1, `joins.ags`** shares `TRET_HEADINGS`, so it drops the four headings with `without()` to stay unchanged.
+  Both twins' `UNIT` groups gain a line (`MPa`; `ksf` in the US twin), after every cited line.
+- **Step 3, the seeded cases** go on BH4-U1's two existing stages (the X005 case, otherwise clean), not on two new
+  specimens: new `TREG` and `TRET` rows would have moved every later line of `qc_defects.ags`, which about fifteen
+  test files cite. X007 on stage 1 (`TRET_EP50` 3.22 %, `TRET_E50` 75.50 MPa, q_f 150 kPa: 2.33 MPa recomputed), X008
+  on stage 2 (`TRET_EP50` 9.00 % against `TRET_STRN` 5.0 %). AC 5's dictionary values are built in the test.
+- **Step 3, X008's purpose:** the Spec's decision 1 says X008 "catches an ε50 given as a fraction in a file with no
+  `TRET_E50`", but a fraction is smaller than the percentage and can't reach the strain at failure; AC 7's third case
+  (0.006, no X008) is right. X008 catches a strain at failure written as a fraction, the two swapped, or values from
+  different stages, and its message and `qc.md` say so.
