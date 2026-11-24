@@ -1,4 +1,9 @@
-"""Terzaghi's one-dimensional consolidation, for c_v golden readings (M19 c2).
+"""Helpers shared by the analysis tests.
+
+The golden triaxial readings (M11 c), at the end of the file, are shared by the
+failure, stiffness and dilatancy tests.
+
+Terzaghi's one-dimensional consolidation, for c_v golden readings (M19 c2).
 
 Written from the series, not from hangtu, so readings generated here test
 ``consolidation_coefficient_from_readings()`` from outside it. The average
@@ -20,6 +25,9 @@ with t1 the time at T = 1 and ρ the primary compression. y(0) = 0.
 """
 
 import math
+from pathlib import Path
+
+import pandas as pd
 
 #: Minutes in a year of 365.25 days.
 MINUTES_PER_YEAR = 525960.0
@@ -76,3 +84,19 @@ def readings(
             y += secondary * math.log10(1 + t / t1)
         values.append(y if rounding is None else round(y, rounding))
     return values
+
+
+#: The golden readings of the M11 (c) spec, in kPa and percent.
+GOLDENS = Path(__file__).parents[1] / "data" / "triaxial_readings_goldens.csv"
+STRESSES = ["cell_pressure", "back_pressure", "deviator_stress", "excess_pore_pressure"]
+
+
+def triaxial_goldens(*stages, **columns):
+    """The golden readings of ``stages`` (all when none), in kPa."""
+    df = pd.read_csv(GOLDENS, dtype={"test_stage": str})
+    if stages:
+        df = df[df["specimen_id"].isin(stages)].reset_index(drop=True)
+    for column, values in columns.items():
+        df[column] = values
+    df.attrs["units"] = dict.fromkeys(STRESSES, "kPa")
+    return df
