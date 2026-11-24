@@ -290,6 +290,10 @@ One unit can need two selected values of one parameter: EC7's Type A (a mean) fo
   - **Stale overrides:** what happens when an update changes or removes the readings an override was made on (a key that no longer exists, a time range past the new last reading, readings that changed under it). Possibly a hash of the readings it was made on, with a warning when they differ.
   - Whether σ′p overrides (#76) share the file and its format.
 
+### 78. `p.shear_box()`'s rate conversion reads no unit · Claude · `src/hangtu/datasets/_shear_box.py` (`RATES`), `docs/data/datasets.md` §6.12 · before a dataset reads a standard heading stored in a unit other than its column's
+- **Found (M23 a):** `p.shear_box()` converts `SHBT_DISP` and `SHBT_DISR` from `build.data.table("SHBT").attrs["units"]`, but the QC `Data.table()` sets no `attrs`; only `Project.table()` does. So the conversion never runs. It is harmless today, because ingest stores both in the dictionary's mm/min, the column's unit. `p.triaxial()` reads `TRET_E50`'s stored unit from `meta_heading` (`build.data.headings`) instead.
+- **Do:** read the stored unit the same way in `p.shear_box()`, or give `Build` one helper both use, with a test whose heading is stored in a unit other than the column's.
+
 ## Agent-use review (2026-11-09)
 A review of the whole package asked one question: if an AI agent does the work and an engineer signs it off, how likely is a wrong answer, and how easy is it to catch? It used probe scripts plus two agent trials (an SPT correlation task and a lab strength task, from the public docs only). Items 60–61 can give a plausible wrong number with nothing to flag it; 62–67 lead an agent to misuse; 68–69 are friction.
 

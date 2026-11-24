@@ -59,7 +59,7 @@ The same ranges in ksi are in Loehr et al. (2016), Table 8-10, p. 8-26. MPa valu
 
 | Test | ASTM | ISO / BS | AGS 4.2 group: headings | Delivers |
 |---|---|---|---|---|
-| Triaxial CU / CD | D4767; D7181 | ISO 17892-9 | `TRET`: `TRET_E50` | E50, the secant modulus at half the peak deviator stress |
+| Triaxial CU / CD | D4767; D7181 | ISO 17892-9 | `TRET`: `TRET_E50`, `TRET_EP50` | E50, the secant modulus at half the peak deviator stress, and the strain where it was measured: `p.triaxial()` returns the lab's values (`reported_secant_modulus_at_50_percent_peak`), undrained on a CU stage and drained on a CD one |
 | Triaxial UU / unconfined | D2850; D2166 | ISO 17892-8, -7 | `TRIT`, `LUCT` | Eu, low where samples are disturbed |
 | Oedometer | D2435 | ISO 17892-5 | `CONS`: `CONS_INMV` | constrained modulus, 1/mv |
 | Pressuremeter | D4719 | ISO 22476-4, -6 | `PMTP`, `PMTL` | G from first loading and from unload–reload loops |
@@ -73,9 +73,9 @@ The same ranges in ksi are in Loehr et al. (2016), Table 8-10, p. 8-26. MPa valu
 |---|---|---|---|
 | AASHTO (2004), E = C (N1)60 tsf, C by soil row (Samtani & Nowatzki 2006, Table 5-16) | (N1)60 | silts, sands and gravels, by the source's rows | [`ht.analysis.correlations.drained_youngs_modulus_aashto_2004()`](../reference/correlations.md#hangtu.analysis.correlations.drained_youngs_modulus_aashto_2004) |
 | Kulhawy & Mayne (1990), E/pa = C N60, C by soil row (EPRI Eqs. 5-26a–c) | N60 | sands with fines, clean NC and clean OC sands | [`ht.analysis.correlations.drained_youngs_modulus_kulhawy_mayne_1990()`](../reference/correlations.md#hangtu.analysis.correlations.drained_youngs_modulus_kulhawy_mayne_1990) |
-| E50 and Eu from triaxial tests | stress–strain curves | tested specimens | W2 |
-| Constrained modulus from the oedometer | mv | tested specimens | W3 |
-| Equivalent modulus from Vs with a modulus reduction ratio (Loehr et al. 2016, Eqs. 8.17–8.18 and Fig. 8-15, pp. 8-25 to 8-27) | Vs, ρ, ν, E/Emax | intact clays and uncemented sands under foundations | W5 |
+| E50 and Eu from triaxial tests | stress–strain curves | tested specimens | planned |
+| Constrained modulus from the oedometer | mv | tested specimens | [`ht.analysis.oedometer_increments()`](../reference/analysis.md#hangtu.analysis.oedometer_increments) |
+| Equivalent modulus from Vs with a modulus reduction ratio (Loehr et al. 2016, Eqs. 8.17–8.18 and Fig. 8-15, pp. 8-25 to 8-27) | Vs, ρ, ν, E/Emax | intact clays and uncemented sands under foundations | planned |
 
 Both SPT correlations take their coefficient from the source's soil row, which `soil=` names: one row for every
 test, or a row per geology unit. hangtu never infers it, and `uscs=` only checks it. The equations, rows, ranges

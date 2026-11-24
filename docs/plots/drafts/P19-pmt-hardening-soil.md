@@ -58,7 +58,7 @@ All proposed names need the registry check. `pmt_` follows the "prefix test-spec
 
 - **α from an equation** (source to find, §14): α = (E_M/p_L)^(1/n) / [k_E (p_L/p0)^(m/n)], with n = 2, m = 0.5, k_E = 3.5.
 - **Moduli:** E_oed = E_M / α; E50 = E_oed / 1.15 (source to find, §14).
-- **Result columns** (proposed): `pmt_rheological_factor`, `oedometer_modulus`, `secant_modulus_50` — names to check.
+- **Result columns** (proposed): `pmt_rheological_factor`, `oedometer_modulus`, `secant_modulus_at_50_percent_peak` — names to check.
 - **These are stress-level values**, at the test's in-situ stress, **not** the Hardening Soil reference values E50_ref at p_ref. Converting needs m and the stress state; out of scope here, stated in the docstring.
 
 ## 5. Figure layout
@@ -79,7 +79,7 @@ All moduli and pressures convert together; α is dimensionless.
 ## 10. API
 ```python
 pmt = ht.analysis.pressuremeter_stiffness(pmt, alpha="table")
-fig, ax = ht.plot.profile(pmt, value="secant_modulus_50", marker_by="method")
+fig, ax = ht.plot.profile(pmt, value="secant_modulus_at_50_percent_peak", marker_by="method")
 ```
 
 ## 11. Edge cases and data quality
