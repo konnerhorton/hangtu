@@ -260,3 +260,147 @@ Truty Eq. 2.14).
     in psf give the same E50 after conversion; `failure_ratio_range` and `dilatancy_from` are in `df.attrs`.
 11. Every published docstring, message and site page cites no internal file (`tests/docs/test_site.py`,
     `tests/test_errors.py`), and both functions have reference entries.
+
+## Plan
+Draft, 2026-11-24. Four commits, each green: the tests it touches, then the CI command with `-n 2`. All on Opus, in
+one session: steps 2–3 are calculations with validity limits, and step 4 touches citations and the site, so no run of
+Sonnet-suited work is large enough to be worth a model boundary. A step past about 300 changed lines without tests
+splits as noted. Reused, not rebuilt:
+- **Readings:** `reduce_readings()`, `Reduced` (readings, stages, picks, rows, interpolated), `Readings.q_loading`,
+  `_loading_part()`, `_interpolate()`, `_name()`, `_warn_interpolated()`, `DRAINED`
+  (`analysis/_triaxial_readings.py`, `analysis/_triaxial.py`).
+- **Line fit:** `line_fit()` and its `Line` (slope, r², `no_fit_reason`) from `analysis/_line_fit.py`, for both
+  Rf's transformed line and ψ's slope (no new dependency).
+- **Units:** `resolve_units()`, `parse_unit()`, `check_dimension()` (`units/__init__.py`).
+- **Test data:** the example project and `ht.examples.path("triaxial_readings.csv")`; `E50_SAMPLES` and `tret()` in
+  `tests/data/_make_examples.py` (the nine stages with the lab's E50, for AC 9).
+
+**Settled before the build** (each corrects or narrows the Spec's text in the step named):
+- **Strain units are checked, not converted** (checked in code, 2026-11-24). Spec decision 9 says a strain declared in
+  another unit than percent is converted. `axial_strain` and `volumetric_strain` are `percent` columns, and
+  `check_dimension()` accepts only `%` for that kind (a kind with no canonical unit is never converted). So both
+  functions resolve the two columns' units where declared and raise `UnitsError` for anything but `%`; undeclared,
+  they are read as percent, as `triaxial_failure_from_readings()` reads them today. Step 2 corrects decision 9.
+- **AC 9's tolerance is each heading's half place:** ε50 within 0.005 % (`TRET_EP50`, 2DP) and E50 within 0.05 ksf
+  (`TRET_E50`, 1DP, not 2DP as AC 9 says). (a) computed both from the same curves as written to the file, so the
+  difference is only the rounding. Step 2 corrects AC 9.
+- 🟡 **The origin is a reading only where the stage has one.** q_0 is the q of the stage's first loading-part q
+  reading at ε1 = 0 (decision 1). Where the stage has no such reading, q_0 = 0, and ε50 is interpolated between
+  readings only: a stage whose first loading-part q reading is already at or above q_50 gets E50's reason ("no reading
+  below half the peak"), as the intent's constraints say, rather than a chord from an origin the lab didn't read. The
+  alternative, interpolating from (0, 0), is what a curve with its zero dropped would want; it is a one-line change if
+  you prefer it.
+- **The peak** is the first loading-part q reading at the largest q (the lowest strain on a tie), as `pick()` breaks
+  ties; ε50's bracketing readings are the loading-part q readings before it in row order.
+- **Rf's readings** are the loading-part q readings at row positions up to and including the failure reading's, inside
+  the range (decision 3); ε1 as a fraction (the slope b is the same either way, ε1/q's scale isn't).
+- 🟡 **ψ's start is measured from q_0 too:** the window starts at the first loading-part q reading with
+  (q − q_0) ≥ `dilatancy_from` × (q_f − q_0), as Rf's range is measured. Decision 5 says "`dilatancy_from` × q_f";
+  the two agree on every isotropic stage (G1, G2), and measuring both from q_0 keeps G3's equivalence. Step 3
+  corrects decision 5.
+- **A blank `test_type`** gets ψ's reason "test_type blank: drainage unknown", not "undrained"; only the `DRAINED`
+  types are read for ψ.
+- **Argument checks:** `failure_ratio_range` is two numbers with 0 < lower < upper ≤ 1, and `dilatancy_from` a number
+  with 0 < it ≤ 1; anything else is a `HangtuError` naming the argument and the rule.
+- **Layout:** two private modules beside the readings one, `analysis/_triaxial_stiffness.py` and
+  `analysis/_triaxial_dilatancy.py`, each calling `reduce_readings()` and then `_warn_interpolated()` as
+  `triaxial_failure_from_readings()` does, so its rows and warnings are the same (AC 8).
+- 🟡 **TODO #79's trigger is "before M23 (b) merges",** and Duncan & Chang (1970) aren't in hand. At close-out you
+  either confirm 0.7–0.95 and 0.95 as hangtu's stated rules, and #79 keeps only the reading of the paper with the
+  trigger "when Duncan & Chang (1970) is in hand", or the merge waits for the paper. Step 4 records whichever you
+  choose; the build doesn't depend on it.
+
+### 1. `M23: keep each stage's εv loading part in the readings` (Opus)
+- `src/hangtu/analysis/_triaxial_readings.py`: `Readings` gains `volumetric_loading` (a boolean mask, like
+  `q_loading`), set in `_read_stage()` from the εv loading part it already computes. No behavior change.
+- `tests/analysis/conftest.py`: `readings()` and the golden path move here from
+  `tests/analysis/test_triaxial_failure_from_readings.py`, which imports them (`from .conftest import ...`), for the
+  two new test files.
+- Tests: `tests/analysis/test_triaxial_failure_from_readings.py` and `tests/plot/` P12 tests unchanged and green; one
+  test that the mask on the golden readings marks the εv loading part and not the tail. Its own commit, since it is a
+  refactor (process.md, "Git and commits").
+
+### 2. `M23: E50, ε50 and Rf from the triaxial readings` (Opus)
+- `src/hangtu/columns.yaml`: the seven stiffness columns of the Spec's table (`secant_modulus_at_50_percent_peak`,
+  `axial_strain_at_50_percent_peak`, `secant_modulus_at_50_percent_peak_reason`, `failure_ratio`,
+  `asymptotic_deviator_stress`, `failure_ratio_r_squared`, `failure_ratio_reason`), each `ags: ["derived: …"]` naming
+  the function, descriptions saying E50 is Eu50 on an undrained stage and E′50 on a drained one as `test_type` says,
+  and that it sits beside the lab's `reported_` value; no internal file cited. Not added to any template (they are an
+  analysis's output). `tests/test_registry.py` green.
+- `src/hangtu/analysis/_triaxial_stiffness.py`: `triaxial_stiffness_from_readings()` by Spec decisions 1–4, 7, 9 and
+  the settled points above. Per stage: q_0, q_p, q_50, ε50, E50 or its reason; Rf's range, `line_fit()` on ε1/(q − q_0)
+  against ε1, q_a = 1/b, Rf = (q_f − q_0)/q_a, r², or the reason (fewer than 3 readings, naming the count; b ≤ 0; the
+  line fit's own reason). One warning counting the stages with Rf > 1. `df.attrs["units"]`: E50 and q_a in
+  `cell_pressure`'s unit, ε50 in `%`, Rf and r² none; `df.attrs["failure_ratio_range"]`. The docstring is the reference
+  entry: the equations, PLAXIS 2026.1 Eqs. 6–3, 6–4, 6–6 and Fig. 6–1, p. 69, Obrzud & Truty (2018) Eqs. 2.10–2.14,
+  the fit range as hangtu's rule, the intercept not used and why, that a later stage's specimen was sheared in an
+  earlier one, the chord's ~1 % difference from a smooth curve, and an example on the example readings.
+- `src/hangtu/analysis/__init__.py`: export it.
+- `docs/site/reference/analysis.md`: its entry, beside `triaxial_failure_from_readings`.
+- `docs/analysis/stiffness.md` (new): §1 E50 and ε50, §2 Rf (the rules, limits and reasons; links to the API
+  reference rather than restating the docstring). `CLAUDE.md`: the analysis docs list names it.
+- `SPEC.md` §4: one bullet, like the oedometer's, for E50, ε50 and Rf from readings (covering step 3's ψ too, so §4
+  changes once); §10.3 if it lists column families, else nothing there.
+- This file's Spec: decision 9 and AC 9 corrected as settled above.
+- Tests: `tests/analysis/test_triaxial_stiffness_from_readings.py`, with G1 and G3 built in the test from the Spec's
+  table (kPa, isotropic `CD`):
+  - AC 1 (G1: ε50, E50, q_a, Rf, r²) and AC 2 (G3 the same);
+  - AC 3 (G2, B-1-U5 specimen 1, from `p.triaxial_readings()` on the example project and from the CSV template,
+    `failure_criterion="max_deviator_stress"`, compared in ksf/psf after conversion);
+  - AC 5 (two readings in range: reason naming 2; ε1/q falling: b ≤ 0 reason; Rf > 1 kept, one warning with the count,
+    asserted with `pytest.warns`);
+  - AC 7 (q never above q_0: reason; the 🟡 no-reading-below-q_50 case; every row has a value or a reason in each
+    pair, never both and never neither);
+  - AC 8 for this function (the failure columns equal `triaxial_failure_from_readings()`'s, values and order, for
+    both criteria; a CU stage with the ratio peaking first: E50 at half the largest q, Rf from the failure reading's q);
+  - AC 9 (the nine `E50_SAMPLES` stages merged with `p.triaxial()` on `specimen_id` and `test_stage`, within the half
+    places above);
+  - AC 10 (units in attrs; kPa and psf readings give the same E50; the range in attrs; a strain declared in another
+    unit raises; bad `failure_ratio_range` raises).
+  - `tests/test_examples.py`: the new modulus columns join its unit lists if it checks every modulus column.
+- Split if past ~300 lines without tests: the docs (`stiffness.md`, SPEC, CLAUDE.md) go in a commit of their own after
+  the code.
+
+### 3. `M23: ψ from the rate of dilation in the triaxial readings` (Opus)
+- `src/hangtu/columns.yaml`: `dilation_rate` and `dilatancy_angle_reason`; `dilatancy_angle`'s description widens to
+  "a Mohr–Coulomb set's ψ (by rule or selected), or a drained triaxial stage's ψ from its readings", and its `ags`
+  names both derivations.
+- `src/hangtu/analysis/_triaxial_dilatancy.py`: `triaxial_dilatancy_from_readings()` by Spec decisions 5–6 and the
+  settled points above: the window's start strain from the q readings, the εv readings in the εv loading part
+  (`volumetric_loading`, step 1) with strain in [start, ε_f], `line_fit()` slope s, r = −s, sin ψ = r / (2 + r), ψ in
+  `deg`. Reasons: undrained; drainage unknown; no εv readings in the window, or 1 (naming the count); r ≤ −1 (naming
+  the rate). Negative ψ kept. `df.attrs["dilatancy_from"]`. The docstring: Vermeer & de Borst (1984) Eqs. 3.1–3.3,
+  pp. 12–13, the sign change to compression positive, total strains for plastic ones and the quoted reason, the window
+  as hangtu's rule, valid for drained compression stages only.
+- `src/hangtu/analysis/__init__.py`, `docs/site/reference/analysis.md`: export and entry.
+- `docs/analysis/strength.md`: §9, ψ from readings, beside §2; the header's list of contents names it.
+- This file's Spec: decision 5's start corrected as settled above.
+- Tests: `tests/analysis/test_triaxial_dilatancy_from_readings.py`: AC 4 (G1 13.34° and 0.600; G2 0.66° and 0.0235,
+  from the example project); AC 6 (a CU and a UU stage "undrained"; a CD stage without εv, and one with 1 εv reading in
+  the window; r ≤ −1; a contracting stage's negative ψ); AC 8 for this function; AC 10's attrs and argument check.
+
+### 4. `M23: close out (b): sheet 11's page, ψ and E50 on the site` (Opus)
+- `docs/site/parameters/11-hardening-soil-stiffness.md` (new), promoted from the draft with stage A–B content only
+  and [V] values: what it is, E50 and Rf from a triaxial curve (§5.2) with the PLAXIS citation moved to the 2026.1 copy
+  (Fig. 6–1, p. 69, not "Fig. 6–5"), the oedometer moduli already built (§5.3), and the rest (HS set, E50ref, m) named
+  as later without restating unverified content. Values and citations only, no copied tables or charts.
+  `zensical.toml`: in the nav after 10.
+- `docs/site/examples/hardening-soil-stiffness.py` (new): the example project's readings, both functions with
+  `failure_criterion="max_deviator_stress"`, merged with `p.triaxial()` to show hangtu's E50 beside the lab's for the
+  nine stages (Spec decision 8), and ψ for the drained ones. It must run warning-free (or assert the Rf > 1 warning if
+  the example's scatter gives one).
+- `docs/site/parameters/08-elastic-stiffness-soil.md`: the "E50 and Eu from triaxial tests" row names
+  `triaxial_stiffness_from_readings()` instead of "planned"; Eu from s_u and the conversion stay later (intent
+  decision 1).
+- `docs/site/parameters/09-dilatancy.md`: the "From the test curves" row names `triaxial_dilatancy_from_readings()`
+  (CD triaxial; direct shear later), with total strain increments near peak; line 59's "doesn't read ψ from test
+  curves yet" rewritten for the shear box only; Vermeer & de Borst's Eqs. 3.2–3.3 marked verified.
+- `docs/drafts/parameters/11-hardening-soil-stiffness.md` and `09-dilatancy.md`: the same citation fixes, so the
+  draft and the page don't disagree.
+- `docs/drafts/parameters/README.md`: stage B (triaxial route) for 08, 09 and 11.
+- Close-out: `STATUS.md` ((b) done, (c) next, the "In progress" block cleared); `CHANGELOG.md` Unreleased (the two
+  functions, in the user's words); `docs/TODO.md` #79 as you decide (settled above), its pointer moved from this file
+  to `docs/analysis/stiffness.md` §2 and `strength.md` §9, and the Eur TODO from intent decision 1 with its trigger
+  ("the first real file with unload–reload loops"); `SPEC.md` if the build settled anything cross-cutting.
+- Tests: `tests/docs/test_site.py`, `tests/test_errors.py` (AC 11); `uv run python docs/prepare_site.py` and
+  `zensical build --clean --strict`; then the whole suite. Look at the generated example output before committing.
