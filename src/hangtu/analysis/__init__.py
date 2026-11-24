@@ -26,6 +26,7 @@ from hangtu.analysis._shear_box_conversion import (
 from hangtu.analysis._shear_box_fit import ShearBoxFit, shear_box_fit
 from hangtu.analysis._spt import spt, spt_class
 from hangtu.analysis._triaxial import triaxial_failure_stresses
+from hangtu.analysis._triaxial_dilatancy import triaxial_dilatancy_from_readings
 from hangtu.analysis._triaxial_readings import triaxial_failure_from_readings
 from hangtu.analysis._triaxial_stiffness import triaxial_stiffness_from_readings
 from hangtu.analysis._undrained import undrained_shear_strength_from_tests
@@ -56,6 +57,7 @@ __all__ = [
     "spt",
     "spt_class",
     "spt_n1_60",
+    "triaxial_dilatancy_from_readings",
     "triaxial_failure_from_readings",
     "triaxial_failure_stresses",
     "triaxial_stiffness_from_readings",

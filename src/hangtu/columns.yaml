@@ -538,12 +538,25 @@ columns:
     ags: ["derived: intercept / cos φ′ of mohr_coulomb_fit()'s s′–t line"]
     used_by: []
   dilatancy_angle:
-    description: Dilatancy angle of a Mohr-Coulomb set, by Bolton's relation, 0 for a fine-grained unit, or selected
+    description: Dilatancy angle ψ, of a Mohr-Coulomb set (by Bolton's relation, 0 for a fine-grained unit, or selected) or of a drained triaxial stage, from the rate of dilation in its readings
     type: number
     quantity: angle
     scale: ratio
     label: Dilatancy angle, ψ
-    ags: ["derived: docs/analysis/statistics.md §7"]
+    ags: ["derived: docs/analysis/statistics.md §7", "derived: ht.analysis.triaxial_dilatancy_from_readings(), docs/analysis/strength.md §9"]
+    used_by: []
+  dilation_rate:
+    description: Rate of dilation of a drained triaxial stage near failure, −dεv/dε1 from its readings, positive when the specimen dilates
+    type: number
+    quantity: dimensionless
+    scale: interval
+    label: Rate of dilation, −dεv/dε1
+    ags: ["derived: ht.analysis.triaxial_dilatancy_from_readings(), docs/analysis/strength.md §9"]
+    used_by: []
+  dilatancy_angle_reason:
+    description: Why a triaxial stage has no dilatancy angle from its readings
+    type: text
+    ags: ["derived: ht.analysis.triaxial_dilatancy_from_readings(), docs/analysis/strength.md §9"]
     used_by: []
   total_stress_cohesion:
     description: Cohesion intercept of a Mohr-Coulomb envelope fitted to total-stress failure points

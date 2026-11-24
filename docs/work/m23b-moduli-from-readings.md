@@ -167,8 +167,9 @@ drained stage with volume change, the dilatancy angle ψ. Each value says how it
    (intent decision 4): the source says that near the end of hardening "the elastic strain rate is almost zero, so that
    all further strain increments are of a plastic nature" (p. 12), and that εv against ε1 is then linear, "the
    so-called rate of dilation is found to be a constant". So r is the least-squares slope of εv against ε1 over the
-   stage's loading-part εv readings from the strain where q first reaches `dilatancy_from` × q_f (🟡 0.95, hangtu's
-   rule; TODO #79) to the failure reading's strain, inclusive.
+   stage's loading-part εv readings from the strain where q − q_0 first reaches `dilatancy_from` × (q_f − q_0)
+   (🟡 0.95, hangtu's rule; TODO #79; measured from q_0 as Rf's range is, corrected in the build, step 3) to the
+   failure reading's strain, inclusive.
 6. **ψ's limits.** A stage that isn't drained (`CU`, `UU` and their variants): blank, reason "undrained: no volume
    change". No εv readings in the window, or fewer than 2: blank, with a reason. r ≤ −1 (contraction faster than
    axial strain, so sin ψ ≤ −1): blank, with a reason naming the rate. A negative ψ (a stage still contracting at

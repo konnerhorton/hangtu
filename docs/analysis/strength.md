@@ -1,10 +1,10 @@
-# Strength: stresses at failure, envelope fits, undrained strength and the shear box conversion
+# Strength: stresses at failure, envelope fits, undrained strength, the shear box conversion and ψ from readings
 
 | | |
 |---|---|
-| **Status** | Living spec. Stresses at failure, envelope fits, failure from readings, undrained strength from tests and the shear box conversion |
+| **Status** | Living spec. Stresses at failure, envelope fits, failure from readings, undrained strength from tests, the shear box conversion and ψ from triaxial readings (§9) |
 | **Parent** | SPEC §4 (triaxial stresses at failure, envelope fits, undrained strength) and §5 (derived results) |
-| **Related** | [`m11a-triaxial-data.md`](../work/m11a-triaxial-data.md), [`m11b-envelope-fit.md`](../work/m11b-envelope-fit.md), [`m11c-triaxial-shearing.md`](../work/m11c-triaxial-shearing.md), [`m17a-strength-data.md`](../work/m17a-strength-data.md), [`m17b-shear-box-fit.md`](../work/m17b-shear-box-fit.md), [`m17c-hoek-brown-fit.md`](../work/m17c-hoek-brown-fit.md), [`m18d-sources-compared.md`](../work/m18d-sources-compared.md). The datasets: [`docs/data/datasets.md`](../data/datasets.md) §6.10–6.12. The figures: P11, P12, P31, P32 in [`docs/plots/`](../plots/README.md). The judgments: [`judgments.md`](judgments.md) |
+| **Related** | [`m11a-triaxial-data.md`](../work/m11a-triaxial-data.md), [`m11b-envelope-fit.md`](../work/m11b-envelope-fit.md), [`m11c-triaxial-shearing.md`](../work/m11c-triaxial-shearing.md), [`m17a-strength-data.md`](../work/m17a-strength-data.md), [`m17b-shear-box-fit.md`](../work/m17b-shear-box-fit.md), [`m17c-hoek-brown-fit.md`](../work/m17c-hoek-brown-fit.md), [`m18d-sources-compared.md`](../work/m18d-sources-compared.md), [`m23b-moduli-from-readings.md`](../work/m23b-moduli-from-readings.md). E50 and Rf from the same readings: [`stiffness.md`](stiffness.md). The datasets: [`docs/data/datasets.md`](../data/datasets.md) §6.10–6.12. The figures: P11, P12, P31, P32 in [`docs/plots/`](../plots/README.md). The judgments: [`judgments.md`](judgments.md) |
 
 Update this file in the same commit as any change to these functions' behavior, and SPEC §4 or §5 if the change
 alters a rule there. Each fit's derivation is in its docstring's Notes, the published reference; it isn't repeated
@@ -227,3 +227,26 @@ a `ShearBoxFit` and returns `ShearBoxConversion`, a derived result (§3).
   `peak_friction_angle`, `critical_state_friction_angle`, `conversion_soil`, `plane_strain_friction_angle`,
   `effective_friction_angle`, `conversion_name`, `below_critical_state`, `count`, the normal stress range and
   `no_conversion_reason`. It keeps the fit's peak points with their depths, and the judgment.
+
+## 9. ψ from triaxial readings
+`triaxial_dilatancy_from_readings(df, *, failure_criterion=None, dilatancy_from=0.95, units=None)` reads the readings
+frame §2 reads, through the same `reduce_readings()`, and returns its failure rows unchanged with `dilatancy_angle`,
+`dilation_rate` and `dilatancy_angle_reason` added. The equation, the source (Vermeer & de Borst 1984) and each
+reason's wording are in the docstring, the published reference
+([`ht.analysis.triaxial_dilatancy_from_readings`](../site/reference/analysis.md)).
+- **Beside the Mohr–Coulomb set's ψ by rule** ([`statistics.md`](statistics.md) §7): this is a stage's measured ψ, a
+  row per stage; the set's ψ is a set constant, so the two share `dilatancy_angle` and never meet in one frame. Wiring this method into the set's
+  `selection` is M23 (c)'s.
+- **The rate:** the least-squares slope of εv against ε1 (`line_fit()`) over the stage's εv loading-part readings
+  (`Readings.volumetric_loading`) with strain from the first loading-part q reading at or above
+  q_0 + `dilatancy_from` × (q_f − q_0) to the failure reading's strain, both included; r = −slope, sin ψ = r / (2 + r).
+  q_0 is §1 of [`stiffness.md`](stiffness.md)'s origin, so an anisotropic stage's window is measured as Rf's range is.
+  Total strains stand in for plastic ones (the source's reason is quoted in the docstring).
+- **The window is hangtu's rule,** stated as such: the source says the rate is constant near the end of hardening,
+  not which readings to take (TODO #79). The
+  fraction used is in `df.attrs["dilatancy_from"]`; anything but a number with 0 < it ≤ 1 is a `HangtuError`.
+- **Limits:** undrained (`CU`, `UU` and their variants, `UNC`), a blank `test_type` ("drainage unknown"), another type
+  not in `DRAINED` (an extension stage), no εv readings, fewer than 2 in the window, no fit, or r ≤ −1 (r kept): blank
+  with a reason. A negative ψ, a stage still contracting at failure, is kept. Strains in a unit other than percent raise.
+- **Not interpolated:** εv is read at its own readings, never interpolated to the window's ends; §2's interpolation at
+  the failure reading is untouched.
