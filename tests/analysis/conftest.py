@@ -100,3 +100,54 @@ def triaxial_goldens(*stages, **columns):
         df[column] = values
     df.attrs["units"] = dict.fromkeys(STRESSES, "kPa")
     return df
+
+
+#: M23 (b)'s golden G1: a drained stage on PLAXIS's hyperbola, E50 = 20 000 kPa,
+#: Rf = 0.9, q_f = 300 kPa at 8.25 %, one reading past failure (strain in %).
+G1_Q = [
+    (0, 0), (0.1, 32.79), (0.2, 59.70), (0.4, 101.27), (0.6, 131.87),
+    (0.8, 155.34), (1.0, 173.91), (1.5, 206.90), (2, 228.57), (3, 255.32),
+    (4, 271.19), (6, 289.16), (8.25, 300.00), (10, 295.00),
+]  # fmt: skip
+G1_EV = {0: 0, 1.0: 0.25, 2: 0.35, 4: 0.20, 6: -0.10, 7.0: -0.70, 8.25: -1.45}
+
+
+def stage_frame(specimen, test_type, curve, *, volumetric=None, cell=300.0,
+                back=100.0, excess=None, stage="1"):  # fmt: skip
+    """One stage's readings in kPa and %, in strain order.
+
+    ``curve`` is (strain, q) pairs; ``volumetric`` and ``excess`` map strain to
+    εv and Δu, on the q reading at that strain or, where there is none, on a
+    row of their own.
+    """
+    volumetric = volumetric or {}
+    excess = excess or {}
+    q = dict(curve)
+    strains = sorted(set(q) | set(volumetric) | set(excess))
+    df = pd.DataFrame(
+        {
+            "specimen_id": specimen,
+            "test_stage": stage,
+            "test_type": test_type,
+            "cell_pressure": cell,
+            "back_pressure": back,
+            "axial_strain": [float(s) for s in strains],
+            "deviator_stress": [q.get(s, math.nan) for s in strains],
+            "excess_pore_pressure": [excess.get(s, math.nan) for s in strains],
+            "volumetric_strain": [volumetric.get(s, math.nan) for s in strains],
+        }
+    )
+    df.attrs["units"] = dict.fromkeys(STRESSES, "kPa")
+    return df
+
+
+def g1(offset=0.0, specimen="G1"):
+    """G1, with ``offset`` kPa added to every q (G3: 50)."""
+    curve = [(s, q + offset) for s, q in G1_Q]
+    return stage_frame(specimen, "CD", curve, volumetric=G1_EV)
+
+
+def stages_frame(*frames):
+    df = pd.concat(frames, ignore_index=True)
+    df.attrs["units"] = dict.fromkeys(STRESSES, "kPa")
+    return df

@@ -1340,6 +1340,56 @@ columns:
     label: Reported secant modulus at 50 % of peak deviator stress, E50
     ags: [TRET.TRET_E50]
     used_by: []
+  secant_modulus_at_50_percent_peak:
+    description: Secant modulus of a triaxial stage from the origin to half its peak deviator stress, E50, read from its readings; undrained (Eu50) on an undrained stage and drained (E′50) on a drained one, as test_type says; beside the lab's reported value, never pooled with it
+    type: number
+    quantity: modulus
+    scale: ratio
+    label: Secant modulus at 50 % of peak deviator stress, E50
+    ags: ["derived: ht.analysis.triaxial_stiffness_from_readings(), docs/analysis/stiffness.md §1"]
+    used_by: []
+  axial_strain_at_50_percent_peak:
+    description: Axial strain where a triaxial stage's readings reach half the peak deviator stress, ε50, interpolated between readings; the strain E50 is read at
+    type: number
+    quantity: percent
+    scale: ratio
+    label: Axial strain at 50 % of peak deviator stress, ε50
+    ags: ["derived: ht.analysis.triaxial_stiffness_from_readings(), docs/analysis/stiffness.md §1"]
+    used_by: []
+  secant_modulus_at_50_percent_peak_reason:
+    description: Why a triaxial stage has no E50 from its readings
+    type: text
+    ags: ["derived: ht.analysis.triaxial_stiffness_from_readings(), docs/analysis/stiffness.md §1"]
+    used_by: []
+  failure_ratio:
+    description: Failure ratio of a triaxial stage, Rf = q_f / q_a, from the hyperbola fitted to its readings, with q measured from its value at zero strain
+    type: number
+    quantity: dimensionless
+    scale: ratio
+    label: Failure ratio, Rf
+    ags: ["derived: ht.analysis.triaxial_stiffness_from_readings(), docs/analysis/stiffness.md §2"]
+    used_by: []
+  asymptotic_deviator_stress:
+    description: Asymptote of the hyperbola fitted to a triaxial stage's readings, q_a, measured from the deviator stress at zero strain
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Asymptotic deviator stress, q_a
+    ags: ["derived: ht.analysis.triaxial_stiffness_from_readings(), docs/analysis/stiffness.md §2"]
+    used_by: []
+  failure_ratio_r_squared:
+    description: Coefficient of determination of the line ε1/q against ε1 that a triaxial stage's failure ratio is fitted by
+    type: number
+    quantity: dimensionless
+    scale: ratio
+    label: Failure ratio fit's coefficient of determination, r²
+    ags: ["derived: ht.analysis.triaxial_stiffness_from_readings(), docs/analysis/stiffness.md §2"]
+    used_by: []
+  failure_ratio_reason:
+    description: Why a triaxial stage has no failure ratio from its readings
+    type: text
+    ags: ["derived: ht.analysis.triaxial_stiffness_from_readings(), docs/analysis/stiffness.md §2"]
+    used_by: []
   reported_intact_compressive_strength:
     description: The lab's intact compressive strength σci for the test set, its own Hoek–Brown fit
     type: number

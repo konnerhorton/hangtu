@@ -537,6 +537,20 @@ class Readings:
         return result
 
 
+def check_strain_units(df: pd.DataFrame, units: Mapping[str, str] | None) -> None:
+    """Raise ``UnitsError`` unless the strains are in percent where declared.
+
+    ``axial_strain`` and ``volumetric_strain`` are percent columns, which are
+    never converted, so a strain declared in any other unit can't be read.
+    Undeclared, they are read as percent, as the failure rows read them.
+    """
+    columns = [c for c in ("axial_strain", "volumetric_strain") if c in df.columns]
+    declared = _units.resolve_units(df, columns, units, analysis=True)
+    for column, unit in declared.items():
+        if unit is not None:
+            _units.check_dimension(_units.parse_unit(unit, column), "percent", column)
+
+
 def _loading_part(
     strain: np.ndarray, rows: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
