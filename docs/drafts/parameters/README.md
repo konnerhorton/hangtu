@@ -35,10 +35,10 @@ Each stage cell gives the wave (W0–W6) or milestone that builds it, and **buil
 | 05 | [Undrained shear strength](05-undrained-shear-strength.md) | su, su,r, St | **built** (`p.undrained_strength()`: UU, UCS, vanes, hand penetrometer, fall cone, M17 a) | **part built** (s_u = q / 2, S_t: M17 a); W3 (SHANSEP) | **part built** (SPT: M13 b2); later (CPT) | **part built** (sources compared: `compare_sources()`, M18 d; the selection: `select()`, the field vane as measured, M18 e); Bjerrum's μ not yet placed |
 | 06 | [Preconsolidation and compressibility](06-preconsolidation-and-compressibility.md) | σ′p, OCR, Cc, Cs/Cr, c_v | **part built** (oedometer: `p.oedometer()`, M19 a; readings: `p.oedometer_readings()`, M19 c2) | **built** (σ′p, Cc, Cr, Cs, OCR, Δe/e0: `oedometer_fit()`, M19 b; c_v from readings: `consolidation_coefficient_from_readings()`, M19 c2) | **part built** (SPT: M13 b2); later (CPT, Cc from LL) | W3 |
 | 07 | [At-rest earth pressure (soil)](07-at-rest-earth-pressure.md) | K0 | — | W3 | **part built** (SPT: M13 b2); later (CPT, DMT) | W3 |
-| 08 | [Elastic stiffness of soil](08-elastic-stiffness-soil.md) | E, ν | W5 | W5 | **part built** (SPT: M13 b3); W5 (others) | W5 |
-| 09 | [Dilatancy](09-dilatancy.md) | ψ (soil and rock mass) | — | **part built** (soil: Bolton's relation for coarse units, 0 for fine, in `mohr_coulomb_set()`, M18 f); W4 (rock), W5 (soil: from test curves and I_R) | — | **part built** (soil: a selected ψ or the rule, in the Mohr–Coulomb set, M18 f); W4 (rock) |
-| 10 | [Small-strain stiffness](10-small-strain-stiffness.md) | Vs, G0, G0ref, γ0.7 | W5 | W5 | **part built** (SPT Vs: M13 b3); W5 (others) | W5 |
-| 11 | [Hardening Soil stiffness](11-hardening-soil-stiffness.md) | Eoed, Eur,oed, E50ref, Eoedref, Eurref, m, pref, Rf, νur | **part built** (oedometer: `p.oedometer()`, M19 a); W5 (triaxial E50) | **part built** (Eoed, Eur,oed: `oedometer_increments()`, M19 c1); W5 (full set) | W5 | W5 |
+| 08 | [Elastic stiffness of soil](08-elastic-stiffness-soil.md) | E, ν | M23 (lab), M25 (in situ) | M23 (lab), M25 (in situ) | **part built** (SPT: M13 b3); M23 (others) | M23 |
+| 09 | [Dilatancy](09-dilatancy.md) | ψ (soil and rock mass) | — | **part built** (soil: Bolton's relation for coarse units, 0 for fine, in `mohr_coulomb_set()`, M18 f); M22 (rock), M23 (soil: from test curves and I_R) | — | **part built** (soil: a selected ψ or the rule, in the Mohr–Coulomb set, M18 f); M22 (rock) |
+| 10 | [Small-strain stiffness](10-small-strain-stiffness.md) | Vs, G0, G0ref, γ0.7 | M26 | M26 | **part built** (SPT Vs: M13 b3); M26 (others) | M26 (the HS-small set) |
+| 11 | [Hardening Soil stiffness](11-hardening-soil-stiffness.md) | Eoed, Eur,oed, E50ref, Eoedref, Eurref, m, pref, Rf, νur | **part built** (oedometer: `p.oedometer()`, M19 a); M23 (triaxial E50); M25 (pressuremeter, dilatometer) | **part built** (Eoed, Eur,oed: `oedometer_increments()`, M19 c1); M23 (full set) | M23 | M23 (the HS set) |
 | 12 | [Hydraulic conductivity](12-hydraulic-conductivity.md) | k (soil, rock mass) | **part built** (`p.permeability()`; the lab's cv and mv: `p.oedometer()`, M19 a); W6 | **part built** (k from the lab's c_v·m_v: `oedometer_increments()`, M19 c1; from hangtu's c_v, M19 c2); W6 | W6 | W6 |
 | 13 | [Intact rock strength](13-intact-rock-strength.md) | σci, σt, Is50 | W4 | W4 | — | W4 |
 | 14 | [Intact rock deformability](14-intact-rock-deformability.md) | Ei, νi | W4 | W4 | — | W4 |
@@ -48,7 +48,7 @@ Each stage cell gives the wave (W0–W6) or milestone that builds it, and **buil
 | 18 | [Rock mass modulus](18-rock-mass-modulus.md) | Em | — | W4 | — | W4 |
 | 19 | [Post-peak (residual) rock mass](19-post-peak-rock-mass.md) | GSIr, mr, sr, ar | — | W4 | — | W4 |
 | 20 | [In situ stress in rock](20-in-situ-stress-rock.md) | σH, σh, kH, kh | — | W4 | — | W4 |
-| 21 | [Swelling of rock](21-swelling-rock.md) | free swell, swell pressure, Grob kq, σ0 | **part built** (`CONG_SPRS`, `CONG_SATH` and swelling increments: `p.oedometer()`, M19 a); rock free swell is M19 (d) | W3 | — | W3 |
+| 21 | [Swelling of rock](21-swelling-rock.md) | free swell, swell pressure, Grob kq, σ0 | **part built** (`CONG_SPRS`, `CONG_SATH` and swelling increments: `p.oedometer()`, M19 a); rock free swell is M21 | M21 | — | M21 |
 | 22 | [Discontinuity shear strength](22-discontinuity-shear-strength.md) | φj, cj | **built** (`p.shear_box()`, M17 a) | **built** (`shear_box_fit()`, peak and residual, free and through the origin: M17 b) | — | not yet placed (`select()` doesn't take a `ShearBoxFit`; joints aren't in a model set yet) |
 | 23 | [Slake durability](23-slake-durability.md) | Id1, Id2 | W4 | W4 | — | W4 |
 

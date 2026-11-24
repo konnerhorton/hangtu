@@ -83,7 +83,7 @@ calls it with `overrides=` and draws its lines and points; it computes nothing o
   never past the last reading); the readings beyond it go at the right edge as open markers with an arrow, counted in
   the footnote (README's out-of-range rule). Reason: at the standard's reading times the last reading is at 1440 min
   (√t ≈ 38) and t90 is usually near 20 min (√t ≈ 4.5), so an axis to the last reading squeezes the construction into
-  the panel's first eighth, where it can't be judged (decided 2026-11-22, in the build). y as README's linear rule,
+  the panel's first eighth, where it can't be judged. y as README's linear rule,
   over the readings and the construction points, shared by the row's panels.
 - US labels: in; time stays in minutes.
 

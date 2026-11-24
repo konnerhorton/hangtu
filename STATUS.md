@@ -1,9 +1,10 @@
 # Status
 
-**Next:** M19 (d), rock swelling (Grob and Huder–Amberg): its intent starts from sheet 21
-(`docs/drafts/parameters/21-swelling-rock.md`). Then M20's Soft Soil set on M18's model-set base. Then waves 4–6.
+**Next:** M23 (a), the triaxial moduli the lab reports (`TRET_E50`, `TRET_EP50`) read into `p.triaxial()`: the
+intent starts from sheets 08, 11 and 09 (`docs/drafts/parameters/`). Then the rest of wave 5 (M23, M25, M26), M20,
+and waves 4 and 6. M19 (d), rock swelling, moved into M21 with the other rock lab tests.
 
-Last checkpoint: 3, after M19 (a), 2026-11-15, 4f03bfd.
+Last checkpoint: 4, after M19 (c2), 2026-11-24, 6791dcc.
 
 ## In progress
 - None.
@@ -14,12 +15,13 @@ moves to Done, in one line (its unit's work file has the detail).
 
 | M | Scope | Done when | Status |
 |---|---|---|---|
-| M19 | Wave 3: oedometer (σ′p, Cc, Cs, Eoed, Eur,oed, k from cv·mv, Grob and Huder–Amberg swelling); P13–P15. Five units: (a) data, (b) compressibility and P13, (c1) mv, Eoed, Eur,oed, k and P14, (c2) cv from readings and P15, (d) rock swelling | Golden values; plot criteria | (a) done (`p.oedometer()`, QC E001–E005); (b) done (`oedometer_fit()`, **P13**); (c1) done (`oedometer_increments()`, QC E003, **P14**); (c2) done (`consolidation_coefficient_from_readings()`, `p.oedometer_readings()`, **P15**); (d) next |
-| M20 | Wave 3: K0 from OCR, SHANSEP; the Soft Soil set | Golden values | Not started |
-| M21 | Wave 4: rock lab datasets (UCS, tensile, point load, slake durability, intact moduli) and RQD | Datasets feed P01 and P07 | Not started |
-| M22 | Wave 4: the Hoek–Brown chain, rock dilatancy, in situ stress; the generalized Hoek–Brown set with residual values | Published worked examples reproduced | Not started |
-| M23 | Wave 5: soil stiffness (elastic, small-strain, Hardening Soil), soil dilatancy; P19, P20; the HS and HS-small sets | Golden values; plot criteria | Not started |
-| M24 | Wave 6: field permeability tests | Golden values; censored values kept | Not started |
+| M23 | Wave 5: soil modulus from the lab tests already read: E, ν (08), the Hardening Soil set (11), soil dilatancy from curves (09); P20. Four units: (a) the lab's triaxial moduli in `p.triaxial()`; (b) E50, Eur and Rf from q–ε₁ readings, Eu from s_u, drained↔undrained conversion, ψ from εv readings; (c) E′ and ν′ selected and in the Mohr–Coulomb set, **P20**; (d) the HS set (E50ref and m across σ′3, Eoedref, Eurref, K0nc by rule) | Golden values; plot criteria | Not started |
+| M25 | Wave 5: in situ modulus tests (pressuremeter, flat dilatometer, plate load); P19. Three units: (a) data (`PMTG`/`PMTL`, `DMTG`/`DMTP`, `PLTG`); (b) the moduli and **P19**; (c) these sources in P20 and the HS set | Golden values; plot criteria | Not started |
+| M26 | Wave 5: small-strain stiffness (10) and the HS-small set. Three units: (a) Vs and G0 data (`ISTA`, `LDYN`, `RESG`/`RESP`); (b) G0 from Vs, Hardin-type G0, γ0.7; (c) the HS-small set | Golden values | Not started |
+| M20 | Wave 3: K0 from OCR, SHANSEP; the Soft Soil set. Four units: (a) K0 from OCR; (b) CU-stage s_u data (`TRET_CU`); (c) SHANSEP; (d) the Soft Soil set | Golden values | Not started |
+| M21 | Wave 4: rock lab datasets and RQD, then stage B for 13, 14, 21 and 23. Units: (a) UCS and intact moduli (TODO #75); (b) tensile and point load; (c) slake durability; (d) RQD; (e) rock swelling (Grob, Huder–Amberg; 21 B, data part built in M19 a); then stage B for 13, 14 and 23 | Datasets feed P01 and P07; golden values | Not started |
+| M22 | Wave 4: the Hoek–Brown chain; the generalized Hoek–Brown set. Units: (a) GSI, D, mb, s, a, σcm, Em; (b) residual values and rock dilatancy; (c) in situ stress; (d) the generalized Hoek–Brown set | Published worked examples reproduced | Not started |
+| M24 | Wave 6: field permeability tests; split at its intent | Golden values; censored values kept | Not started |
 
 ## Done
 In build order. Milestones keep their numbers when the order changes, because other documents cite them, so M8
@@ -42,6 +44,7 @@ comes after M9 and M16 after M18. M10 (a feedback round) was dropped, and its nu
 - **M17:** wave 2: `p.undrained_strength()`, `p.shear_box()`; the shear box fit and **P31**; the intact Hoek–Brown fit and **P32** from a CSV of rock tests.
 - **M18:** selection (stage D): SPT refusals in `fit()`; `representative()` (EC7 characteristic, JRC worked examples, and US views); **P09**; `compare_sources()` and the shear box φ′ conversion; `select()`; the model-set base and `mohr_coulomb_set()`.
 - **M16:** wave 0: the readings map, `p.triaxial_readings()` and `p.shear_box_readings()` from user-defined groups; readings with one quantity per row, unload tails and interpolation in `triaxial_failure_from_readings()` and **P12**.
+- **M19:** wave 3: `p.oedometer()` and `p.oedometer_readings()`; `oedometer_fit()` and **P13**; `oedometer_increments()` and **P14**; `consolidation_coefficient_from_readings()` and **P15**.
 
 ## Releases
 The latest is **0.1.0** (M9). Each release and what's unreleased: [`CHANGELOG.md`](CHANGELOG.md).
