@@ -24,6 +24,9 @@ triaxial, shear box and undrained strength tests from ``site.ags``, laid out
 like ``ht.template()`` (stresses in psf), for comparing a parameter's sources:
 the Terrace's φ′ from CD triaxial and shear box tests, and the Alluvium's s_u
 from UU, laboratory vane, hand penetrometer and borehole vane tests.
+The CU set on B-2-U2 and the CD tests on B-1-U5 and B-2-U4 carry the lab's
+E50 and ε50 (in ksf and %, read from each stage's curve); the other triaxial
+stages leave them blank, as many labs do.
 
 ``oedometer.csv`` is the site's oedometer tests from ``site.ags``, one row
 per load increment, laid out like ``ht.template("oedometer")`` (stresses in

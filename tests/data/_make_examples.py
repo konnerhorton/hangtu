@@ -42,6 +42,7 @@ Two QC findings are planted, so the QC example has something to report:
 """
 
 import importlib.util
+import itertools
 import math
 import random
 import tempfile
@@ -673,7 +674,8 @@ def treg():
     return group("TREG", headings, rows)
 
 
-def tret():
+def tret_rows():
+    """TRET without the lab's E50, which ``triaxial_stages()`` reads."""
     headings = [
         *TRIAXIAL_SPECIMEN_HEADINGS,
         ("TRET_TESN", "X", ""),
@@ -725,6 +727,51 @@ def tret():
                 *[t["volumetric"], BACK_PRESSURE, t["b_value"], t["void_ratio"]],
             ]
         )
+    return group("TRET", headings, rows)
+
+
+#: The samples whose stages carry the lab's E50 (M23 a); the rest leave it blank.
+E50_SAMPLES = {"B-2-U2", "B-1-U5", "B-2-U4"}
+
+
+def strain_at_half_peak(curve, deviator):
+    """The strain where the q curve first reaches ``deviator`` / 2, linearly
+    interpolated between readings (%)."""
+    half = deviator / 2
+    for (s1, q1), (s2, q2) in itertools.pairwise(curve):
+        if q2 >= half > q1:
+            return s1 + (half - q1) / (q2 - q1) * (s2 - s1)
+    raise ValueError("the curve never reaches half its peak")
+
+
+def tret():
+    """TRET with the lab's E50 and the consolidation stresses (M23 a).
+
+    ε50 is read from each stage's own q curve in the file (``triaxial_curves()``
+    with the draw ``curve_groups()`` uses, whose q curves come first), and E50 =
+    (q_f / 2) / ε50 from the unrounded ε50; both are then rounded as written.
+    They are generated, not hand-calculated, so they agree with the curves. The
+    stages are isotropic, so TRET_CVP = TRET_CRP = TRET_CONP.
+    """
+    g = tret_rows()
+    stages, _ = triaxial_stages()
+    q_rows, _, _ = triaxial_curves(stages, random.Random(2031))
+    rows = []
+    for row, stage, (_, _, curve) in zip(g["rows"], stages, q_rows, strict=True):
+        lab = [None] * 4
+        if stage["SAMP_ID"] in E50_SAMPLES:
+            strain = strain_at_half_peak(curve, stage["deviator"])
+            modulus = stage["deviator"] / 2 / (strain / 100) / 1000  # ksf
+            conp = stage["TRET_CONP"]
+            lab = [conp, conp, strain, modulus]
+        rows.append([*row, *lab])
+    headings = [
+        *g["headings"],
+        ("TRET_CVP", "0DP", "psf"),
+        ("TRET_CRP", "0DP", "psf"),
+        ("TRET_EP50", "2DP", "%"),
+        ("TRET_E50", "1DP", "ksf"),
+    ]
     return group("TRET", headings, rows)
 
 
@@ -1526,7 +1573,7 @@ def triaxial_stages():
             "excess": r["TRET_PWPF"] - r["TRET_BACK"],
             "volumetric": r["TRET_STV"],
         }
-        for r in records(tret())
+        for r in records(tret_rows())
     ]
     trit_stages = [
         {

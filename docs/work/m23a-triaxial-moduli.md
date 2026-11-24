@@ -391,3 +391,8 @@ step past about 300 changed lines without test data splits as noted. Reused, not
   `TRET_E50`", but a fraction is smaller than the percentage and can't reach the strain at failure; AC 7's third case
   (0.006, no X008) is right. X008 catches a strain at failure written as a fraction, the two swapped, or values from
   different stages, and its message and `qc.md` say so.
+- **Step 4, the count:** `site.ags` has 18 `TRET` stages (3 CU, 3 CDM, 12 CD), so the stages left blank (B-4-U4,
+  B-6-U4 and the CDM test) are nine, not the Spec's "other six". ε50 for B-1-U5 specimen 1 is 0.44 % and E50
+  470.0 ksf from its curve, as AC 9's hand check said. The CD moduli run from 397 ksf (19 MPa) at σ′3 1000 psf to
+  2079 ksf (100 MPa) at 4000 psf: the hyperbolic curves are stiff at high σ′3, above sheet 11's 11–47 MPa near
+  100 kPa scaled up by stress. They are the curves' values by construction and change only with the curves.
