@@ -4,7 +4,7 @@
 intent starts from sheets 08, 11 and 09 (`docs/drafts/parameters/`). Then the rest of wave 5 (M23, M25, M26), M20,
 and waves 4 and 6. M19 (d), rock swelling, moved into M21 with the other rock lab tests.
 
-Last checkpoint: 3, after M19 (a), 2026-11-15, 4f03bfd.
+Last checkpoint: 4, after M19 (c2), 2026-11-24, 6791dcc.
 
 ## In progress
 - None.
