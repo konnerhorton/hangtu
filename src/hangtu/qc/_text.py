@@ -8,6 +8,7 @@ where its TYPE gives them (``2DP``); everything else has 3 significant figures.
 
 import math
 import re
+from decimal import Decimal
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -33,6 +34,19 @@ def number(value: float, decimals: int | None = None) -> str:
 def _decimals(file_type: str | None) -> int | None:
     match = re.fullmatch(r"(\d+)DP", file_type or "")
     return int(match[1]) if match else None
+
+
+def rounding(data: Data, group: str, heading: str) -> float:
+    """Return half a unit in the last place of the heading's ``xDP`` TYPE, else 0."""
+    places = _decimals(data.heading_info(group, heading)["file_type"])
+    return 0.0 if places is None else 0.5 * 10.0**-places
+
+
+def half_place(text: str) -> float:
+    """Return half a unit in the last place written in ``text``: ``0.32`` -> 0.005."""
+    exponent = Decimal(text.strip()).as_tuple().exponent
+    assert isinstance(exponent, int)  # a number's text, read by the rule already
+    return 0.5 * 10.0**exponent
 
 
 def _in_file(value: float, file_type: str | None) -> str:

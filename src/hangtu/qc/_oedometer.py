@@ -8,7 +8,6 @@ are its ``CONS`` rows in file order, by ``specimen_id``.
 import math
 import re
 from collections.abc import Iterator
-from decimal import Decimal
 from itertools import pairwise
 
 import pandas as pd
@@ -39,12 +38,6 @@ def _number(data: Data, group: str, row: dict, heading: str) -> float | None:
     return float(value)
 
 
-def _rounding(data: Data, group: str, heading: str) -> float:
-    """Return half a unit in the last place of the heading's ``xDP`` TYPE, else 0."""
-    places = _text._decimals(data.heading_info(group, heading)["file_type"])
-    return 0.0 if places is None else 0.5 * 10.0**-places
-
-
 def _tolerance(data: Data, settings: RuleSettings) -> float:
     """Return the chain tolerance, widened where the void ratios are coarser.
 
@@ -53,7 +46,7 @@ def _tolerance(data: Data, settings: RuleSettings) -> float:
     wrong.
     """
     threshold = settings.thresholds["void_ratio_chain_tolerance"].value
-    rounding = _rounding(data, "CONS", "CONS_IVR") + _rounding(
+    rounding = _text.rounding(data, "CONS", "CONS_IVR") + _text.rounding(
         data, "CONS", "CONS_INCE"
     )
     return max(threshold, rounding)
@@ -142,13 +135,6 @@ def void_ratio_rose_under_load(data: Data, settings: RuleSettings) -> RuleResult
     return RuleResult(findings, checked)
 
 
-def _half_place(text: str) -> float:
-    """Return half a unit in the last place written in ``text``: ``0.32`` -> 0.005."""
-    exponent = Decimal(text.strip()).as_tuple().exponent
-    assert isinstance(exponent, int)  # a number's text, read by _number already
-    return 0.5 * 10.0**exponent
-
-
 def _reported_interval(text: str) -> tuple[float, float]:
     """Return the reported m_v ± its rounding, never under 2 significant figures.
 
@@ -157,7 +143,7 @@ def _reported_interval(text: str) -> tuple[float, float]:
     """
     value = float(text)
     second_figure = math.floor(math.log10(abs(value))) - 1 if value else 0
-    half = max(_half_place(text), 0.5 * 10.0**second_figure)
+    half = max(_text.half_place(text), 0.5 * 10.0**second_figure)
     return value - half, value + half
 
 
@@ -187,7 +173,7 @@ def volume_compressibility_mismatch(data: Data, settings: RuleSettings) -> RuleR
         .to(_units.parse_unit(mv_unit))
         .magnitude
     )
-    rounding = {h: _rounding(data, "CONS", h) for h in ("CONS_IVR", "CONS_INCE")}
+    rounding = {h: _text.rounding(data, "CONS", h) for h in ("CONS_IVR", "CONS_INCE")}
     findings, checked = [], 0
     for rows in _specimens(data):
         for previous, row in pairwise(rows):
