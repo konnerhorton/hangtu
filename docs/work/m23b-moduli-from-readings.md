@@ -93,5 +93,170 @@ drained stage with volume change, the dilatancy angle ψ. Each value says how it
 - **ψ from the shear box** (`SHBT_PDIN`, `SHBT_PDIS`) and the pressuremeter (`PMTP_AD`): other tests, later.
 - **ψ in the Mohr–Coulomb set** from these values: the set reads ψ by `selection`, which can name this method once it
   exists. That wiring is (c)'s.
-- **UU stages:** they have no σ′3, so no E50 at a known effective stress; 🟡 they get Eu50 at their cell pressure, or a
-  reason. The spec step decides.
+- **UU stages' ψ:** they have no volume change to read. (Their E50 and Rf are in, Spec decision 7.)
+
+## Spec
+
+### Changes
+- **Two public analyses** in `ht.analysis`, each on a readings frame (`p.triaxial_readings()` or the
+  `triaxial_readings` template), each returning one row per stage: the rows `triaxial_failure_from_readings()` returns,
+  with the same `failure_criterion=` and `units=`, plus its own columns. Both reduce the readings through the one
+  private `reduce_readings()`, so the stages, loading parts and failure readings are the ones P12 and the envelope fits
+  use. Two functions rather than one, because a name has to say what it returns, and ψ isn't a stiffness:
+  - `triaxial_stiffness_from_readings(df, *, failure_criterion=None, failure_ratio_range=(0.7, 0.95), units=None)`:
+    E50, ε50, Rf, q_a and the fit's r²;
+  - `triaxial_dilatancy_from_readings(df, *, failure_criterion=None, dilatancy_from=0.95, units=None)`: ψ and the rate
+    of dilation it comes from.
+- **Registry** (`columns.yaml`), checked against the whole registry and every spec (no collisions):
+
+  | Column | Quantity | Description (short) |
+  |---|---|---|
+  | `secant_modulus_at_50_percent_peak` | modulus | E50 from the readings, undrained or drained as `test_type` says |
+  | `axial_strain_at_50_percent_peak` | percent | ε50, where the readings reach half the peak |
+  | `secant_modulus_at_50_percent_peak_reason` | text | why a stage has no E50 |
+  | `failure_ratio` | dimensionless | Rf = q_f / q_a |
+  | `asymptotic_deviator_stress` | stress | q_a, the hyperbola's asymptote |
+  | `failure_ratio_r_squared` | dimensionless | r² of the transformed line fit |
+  | `failure_ratio_reason` | text | why a stage has no Rf |
+  | `dilatancy_angle` | angle | existing; its description widens to a stage's ψ from readings |
+  | `dilation_rate` | dimensionless | −dεv/dε1 over the window, positive when dilating |
+  | `dilatancy_angle_reason` | text | why a stage has no ψ |
+
+  Names drop (a)'s `reported_` prefix: the lab's value and hangtu's are the same quantity by the same definition, kept
+  apart by the prefix (SPEC §5, "names keep unlike values from pooling unawares"). `dilatancy_angle` is reused because a
+  measured value takes the parameter's name (same rule); the Mohr–Coulomb set's ψ is a set constant, not a stage row,
+  so the two never meet in one frame.
+- **Docs:** a new `docs/analysis/stiffness.md` (§1 E50, §2 Rf), which (c) and (d) extend; `docs/analysis/strength.md`
+  gains §9, ψ from readings, beside §2. `CLAUDE.md`'s list of analysis docs names `stiffness.md`.
+- **Site:** reference entries for both functions; sheet 11 promoted to `docs/site/parameters/11-…` with its [V]
+  content and an example on the example project; sheet 08's "E50 and Eu from triaxial tests" row and sheet 09's "From
+  the test curves" row name the functions; the parameter index gets stage B (triaxial route) for 08, 09 and 11.
+- **Sheet 11's citation** of the PLAXIS manual moves to the 2026.1 copy read for this spec: the hyperbola is Fig. 6–1,
+  p. 69, not "Fig. 6–5".
+
+### Decisions
+1. **E50 is the secant from the stage's origin to half the peak.** The peak, q_p, is the largest q among the stage's
+   loading-part q readings (intent decision 2). The origin is (ε1 = 0, q_0), with q_0 the q of the stage's reading at
+   zero strain, or 0 where it has none. Then q_50 = q_0 + (q_p − q_0) / 2; ε50 is interpolated linearly between the
+   last loading-part reading below q_50 and the next one, in row order before the peak; E50 = (q_50 − q_0) / ε50, with
+   ε50 as a fraction. q_0 = 0 on an isotropic stage, so E50 is PLAXIS's definition (Eqs. 6–3, 6–4, Fig. 6–1); on an
+   anisotropic stage whose lab gives q from the consolidated state, measuring q from q_0 is Obrzud & Truty's
+   q_m = q − q_0 (Eqs. 2.12–2.14). The interpolation is the one (a) used for `site.ags`'s lab values, so the two agree
+   (AC 9). Because a chord replaces the curve between two readings, E50 differs from a smooth curve's by up to about
+   1 % at typical reading spacing (golden G1: 19 881 kPa against 20 000), which is the method, not an error.
+2. **Rf from the transformed hyperbola.** PLAXIS Eq. 6–3 rearranges to ε1 / q = 1/E_i + ε1 / q_a, a straight line in
+   ε1 / q against ε1 (Obrzud & Truty Eq. 2.11, ε1 / q = a + b ε1). hangtu fits that line by ordinary least squares and
+   takes q_a = 1 / b and Rf = (q_f − q_0) / q_a, with q and q_f measured from q_0 (decision 1) and q_f the failure
+   reading's q. Only the slope is used, because the sources disagree on the intercept: PLAXIS Eq. 6–4 gives
+   a = (2 − Rf) / (2 E50), Obrzud & Truty's Eq. 2.10 gives a = 1 / (2 E50). Both give b = 1 / q_a, so Rf doesn't
+   depend on which governs, and E50 comes from decision 1, never from a.
+3. **The fit's readings: loading-part q readings up to the failure reading with 0.7 ≤ (q − q_0) / (q_f − q_0) ≤ 0.95.**
+   This is hangtu's rule, stated as such: neither source in hand says which readings to fit (PLAXIS defines q_a and Rf
+   only; Obrzud & Truty fit the whole curve in their Fig. 2.8). The lower bound leaves out the start, where bedding and
+   seating errors dominate the ratio ε1 / q; the upper leaves out the approach to failure, where the curve leaves the
+   hyperbola for the Mohr–Coulomb line (Fig. 6–1). Duncan & Chang (1970) are commonly said to use 70 % and 95 %;
+   TODO #79 tracks reading them and confirming the bounds; the docstring says they are hangtu's until then.
+   🟡 `failure_ratio_range=` changes the bounds; the range used is in `df.attrs`.
+4. **Rf's limits.** Fewer than 3 readings in the range: blank, with a reason. b ≤ 0 (no asymptote: the transformed
+   points don't rise): blank, with a reason. Rf > 1 (q_a below q_f): kept, not clipped, and counted in one warning;
+   PLAXIS says Rf "should obviously be smaller than or equal to 1" (p. 69), so a value above 1 says the curve isn't
+   hyperbolic in the range, which the engineer should see. r² is reported on every fitted row.
+5. **ψ from the rate of dilation near peak.** Vermeer & de Borst (1984, Eqs. 3.2–3.3) define
+   sin ψ = ε̇v^p / (−2 ε̇1^p + ε̇v^p) with tension positive; with compression positive, as `volumetric_strain` and
+   `axial_strain` are, and r = −dεv / dε1, it reads sin ψ = r / (2 + r). Total strains stand in for plastic ones
+   (intent decision 4): the source says that near the end of hardening "the elastic strain rate is almost zero, so that
+   all further strain increments are of a plastic nature" (p. 12), and that εv against ε1 is then linear, "the
+   so-called rate of dilation is found to be a constant". So r is the least-squares slope of εv against ε1 over the
+   stage's loading-part εv readings from the strain where q first reaches `dilatancy_from` × q_f (🟡 0.95, hangtu's
+   rule; TODO #79) to the failure reading's strain, inclusive.
+6. **ψ's limits.** A stage that isn't drained (`CU`, `UU` and their variants): blank, reason "undrained: no volume
+   change". No εv readings in the window, or fewer than 2: blank, with a reason. r ≤ −1 (contraction faster than
+   axial strain, so sin ψ ≤ −1): blank, with a reason naming the rate. A negative ψ (a stage still contracting at
+   peak, r < 0) is kept: it is what the readings say, and selection in (c) decides what to do with it.
+7. **Every stage, including UU and later stages of a multistage test, gets E50 and Rf.** A UU stage's are undrained at
+   its cell pressure; the carried `test_type`, `cell_pressure` and `multistage_test` say what each row is, so (c) and
+   (d) can leave rows out by those columns rather than this analysis deciding. The docstring says that a later stage's
+   specimen was sheared in an earlier one.
+8. **No comparison column with the lab's E50.** The lab's values are on `p.triaxial()`'s rows, not the readings, so a
+   comparison needs a merge the user can see. The site example merges and shows both; AC 9 checks they agree.
+9. **Units.** Moduli and q_a come back in `cell_pressure`'s unit, as `deviator_stress_at_failure` does; ε50 in
+   `axial_strain`'s. A strain column declared in another unit than percent is converted before the fraction is taken.
+10. **No interpolation at failure is new.** Both analyses read q, εv and ε1 at readings; the failure row's columns
+    (and the warning when Δu or εv at failure was interpolated) are `triaxial_failure_from_readings()`'s, unchanged.
+
+### Sources
+- **PLAXIS 2D 2026.1 Material Models Manual** (Seequent), §6.1, pp. 68–69: Eq. 6–3 (the hyperbola, −ε1 =
+  (1/E_i) q / (1 − q/q_a), q < q_f), Eq. 6–4 (E_i = 2 E50 / (2 − Rf)), Eq. 6–6 (q_a = q_f / Rf), Fig. 6–1 (E50 the
+  secant to q_f / 2), and "R_f … should obviously be smaller than or equal to 1. In PLAXIS, R_f = 0.9 is chosen as a
+  suitable default". Read from page images, 2026-11-24.
+- **Obrzud & Truty (2018),** *The Hardening Soil Model – A Practical Guidebook*, Z_Soil.PC 100701, rev. 21.10.2018:
+  Eqs. 2.2, 2.8, 2.10–2.11 (the hyperbola in transformed form), 2.12–2.14 (q_m = q − q_0 for an anisotropically
+  consolidated clay), pp. 13, 22–23; §3.3.3, p. 106 (Rf 0.75–1, CICD and CICU ranges after Kempfert 2006). Read
+  2026-11-24.
+- **Vermeer & de Borst (1984),** Non-associated plasticity for soils, concrete and rock, *Heron* 29(3): Eqs. 3.1–3.3
+  and the text around them, pp. 12–13. Read from page images, 2026-11-24. Sheet 09's "Eqs. 3.2–3.3 not re-checked"
+  becomes [V].
+- **Duncan & Chang (1970):** [U], not in hand; TODO #79 (decision 3).
+
+### Golden values
+Hand calculations from the sources' equations, independent of the implementation.
+
+**G1, a drained stage on PLAXIS's hyperbola** (kPa, strain in %). E50 = 20 000, Rf = 0.9, q_f = 300, so
+q_a = 333.333 and E_i = 2 × 20 000 / 1.1 = 36 363.64 (Eqs. 6–4, 6–6). q = ε1 E_i / (1 + ε1 E_i / q_a), rounded to
+0.01 kPa; failure at ε1 = q_f / (E_i (1 − Rf)) = 8.25 %; one reading past failure.
+
+| ε1 (%) | 0 | 0.1 | 0.2 | 0.4 | 0.6 | 0.8 | 1.0 | 1.5 | 2 | 3 | 4 | 6 | 8.25 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| q (kPa) | 0 | 32.79 | 59.70 | 101.27 | 131.87 | 155.34 | 173.91 | 206.90 | 228.57 | 255.32 | 271.19 | 289.16 | 300.00 | 295.00 |
+| εv (%) | 0 | | | | | | 0.25 | | 0.35 | | 0.20 | −0.10 | −1.45 | |
+
+with one more εv reading at 7.0 %, −0.70.
+- **E50:** q_50 = 150, between 131.87 (0.6 %) and 155.34 (0.8 %): ε50 = 0.6 + 0.2 × 18.13 / 23.47 = 0.75450 %;
+  E50 = 150 / 0.0075450 = **19 881 kPa** (exact curve: 0.75 %, 20 000; decision 1).
+- **Rf:** the range is 210 ≤ q ≤ 285, so the readings at 2, 3 and 4 %. ε1/q = 8.7501e-5, 1.17500e-4, 1.47500e-4 per
+  kPa at ε1 = 0.02, 0.03, 0.04; slope b = 2.99988e-3 /kPa, q_a = **333.35 kPa**, Rf = 300 × b = **0.9000**
+  (± 0.0005, from the 0.01 kPa rounding), r² > 0.9999. The intercept, 2.750e-5, is 1/E_i (Eq. 6–4), not 1/(2 E50) =
+  2.5e-5: a check that the test curve is PLAXIS's.
+- **ψ:** q first reaches 0.95 × 300 = 285 at the 6 % reading, so the εv readings at 6.0, 7.0 and 8.25 %, which lie on
+  a line of slope −0.6: r = 0.6, sin ψ = 0.6 / 2.6, ψ = **13.34°**.
+
+**G2, `site.ags`'s B-1-U5 specimen 1** (CD, σ′3 1000 psf, psf; the example's readings as committed):
+- q_f = 4123 at 5.1 %. q_50 = 2061.5, between 1501 (0.25 %) and 2244 (0.5 %): ε50 = 0.25 + 0.25 × 560.5 / 743 =
+  **0.4386 %**, E50 = **470.0 ksf**, as (a) wrote to `TRET_E50` (its notes from the build).
+- Rf: 2886.1 ≤ q ≤ 3916.85, the readings at 1.0, 1.5 and 2.0 % (2994, 3429, 3595): b = 2.22327e-4 /psf,
+  q_a = **4498 psf**, Rf = **0.917**, r² = 0.998. The example's curves are hyperbolas with q_a = 1.1 q_f
+  (`_make_examples.py`), so Rf ≈ 0.909 with their 1.5 % scatter: a sanity check, not the golden.
+- ψ: q first reaches 3916.85 at 3.0 %; εv readings at 3.5, 4.5, 5.1 % (0.77, 0.76, 0.73): slope −0.02347, r = 0.0235,
+  ψ = **0.66°**. Small, because the example's εv curve is a parabola whose slope is 0 at 0.75 ε_f; the example isn't
+  reshaped (out of scope).
+
+**G3, G1 anisotropic:** G1's q plus 50 kPa at every reading (q_0 = 50). E50, ε50 and Rf are G1's (decision 1, Obrzud &
+Truty Eq. 2.14).
+
+### Acceptance criteria
+1. `triaxial_stiffness_from_readings()` on G1 gives ε50 0.7545 % (± 0.0001), E50 19 881 kPa (± 1), q_a 333.35 kPa
+   (± 0.2), Rf 0.9000 (± 0.0005), r² > 0.9999.
+2. On G3 it gives G1's E50, ε50 and Rf, to the same tolerances.
+3. On G2 (read from `site.ags` through `p.triaxial_readings()` and from the CSV template), E50 470.0 ksf (± 0.1), ε50
+   0.4386 % (± 0.0001), q_a 4498 psf (± 1), Rf 0.917 (± 0.001).
+4. `triaxial_dilatancy_from_readings()` gives ψ 13.34° (± 0.01) and `dilation_rate` 0.600 on G1, 0.66° (± 0.01) and
+   0.0235 on G2.
+5. Rf's reasons: a stage with 2 readings in the range is blank with a reason naming the count; a stage whose ε1/q falls
+   across the range (b ≤ 0) is blank with a reason; a stage with Rf > 1 keeps the value, and one warning counts the
+   stages.
+6. ψ's reasons: a CU and a UU stage are blank with "undrained"; a CD stage without εv, or with 1 εv reading in the
+   window, is blank with a reason; a stage with r ≤ −1 is blank with a reason; a stage contracting at peak keeps its
+   negative ψ.
+7. E50's reasons: a stage whose q readings never rise above q_0 is blank with a reason. Every row has either a value or
+   a reason in each pair, never both blank.
+8. Both functions return `triaxial_failure_from_readings()`'s rows unchanged (same columns, values and order) with
+   their columns added, for the same `failure_criterion=`; with `failure_criterion="max_stress_ratio"` on a CU stage
+   whose ratio peaks before q does, E50 is still at half the largest q (intent decision 2) and Rf uses the failure
+   reading's q.
+9. On `site.ags`, for each of the nine stages (a) gave a lab E50, hangtu's E50 and ε50 equal
+   `reported_secant_modulus_at_50_percent_peak` and `reported_axial_strain_at_50_percent_peak` to their headings'
+   rounding (2DP).
+10. Units: E50 and q_a carry `cell_pressure`'s unit in `df.attrs["units"]`, ε50 `axial_strain`'s; readings in kPa and
+    in psf give the same E50 after conversion; `failure_ratio_range` and `dilatancy_from` are in `df.attrs`.
+11. Every published docstring, message and site page cites no internal file (`tests/docs/test_site.py`,
+    `tests/test_errors.py`), and both functions have reference entries.
