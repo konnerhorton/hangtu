@@ -236,3 +236,137 @@ SI/US twins, as for the other twin tests.
    0.0044 = 468.5 ksf, consistent within ε50's rounding.
 10. **Published text:** the 08 site page has no W2, W3 or W5, the new columns' descriptions cite no internal file,
     and `tests/docs/test_site.py` and `tests/test_errors.py` pass.
+
+## Plan
+Draft, 2026-11-24. Five commits, each green: the tests it touches, then the CI command with `-n 2`. All on Opus, in
+one session: the unit is small, and no run of Sonnet-suited work is large enough to be worth a model boundary. A
+step past about 300 changed lines without test data splits as noted. Reused, not rebuilt:
+- **Dataset:** `Build.numbers()`, `Build.texts()`, the `GROUPS` and `STAGE_NUMBERS` maps (`datasets/_triaxial.py`);
+  the conversion of a heading stored in its dictionary unit to the column's kind, as `p.shear_box()` does for its
+  rates (`datasets/_shear_box.py`, `RATES`).
+- **QC:** `_types()`, `_stage()`, `_STAGES` (`qc/_triaxial.py`); `_unflagged()`, `_value()`, `SLACK`
+  (`qc/_tests.py`); E003's interval comparison, `_rounding()`, `_half_place()` and its unit factor
+  (`qc/_oedometer.py`); `data.text_at()`, `data.heading_info()`.
+- **Test data:** `group()`, `without()`, `to_us()`, `US_OVERRIDE` (`tests/data/ags/_make_files.py`); the `_triaxial`
+  builder in `tests/qc/test_triaxial.py`; `triaxial_curves()` and `triaxial_stages()` (`tests/data/_make_examples.py`).
+
+**Settled before the build** (each corrects the Spec's text in the step named):
+- **Ingest keeps `TRET_E50` in MPa** (checked in code, 2026-11-24). The Spec's Ingest bullet is wrong: a standard
+  heading is converted to its *dictionary* unit, not to a kind's canonical unit, and `_quantity()` (`ags/_units.py`)
+  matches a kind by dimension only for time ("a match by dimension would make MPa headings stresses"). So the table
+  holds MPa, with `meta_heading.quantity` blank, as `RUCS_ESEC`'s GPa already is
+  (`tests/ags/test_ingest_acceptance.py`). `Build.numbers()` returns the stored values unconverted, so `p.triaxial()` must convert `TRET_E50` from the
+  table's `attrs["units"]` to `modulus`'s kPa, as `p.shear_box()` does `RATES`; reading it as a stage number would
+  give 15 kPa for AC 1's 15 MPa. Nothing in ingest changes and `db.SCHEMA_VERSION` stays, as the Spec says. Step 1
+  corrects the bullet.
+- 🟡 **Column order against M17 (c)'s test.** `test_m17c_template_and_dataset_have_the_rock_columns`
+  (`tests/datasets/test_triaxial.py`, about line 277) asserts `reported_intact_compressive_strength` comes right after
+  `reported_effective_cohesion`, which the Spec's "after `reported_effective_cohesion`" breaks. Step 1 keeps the
+  Spec's order (the soil's reported values together, then the rock's) and changes that assertion to the new
+  neighbor, `reported_secant_modulus_at_50_percent_peak`. The alternative, the two after
+  `reported_intact_hoek_brown_constant`, would put the lab's E50 among the rock columns.
+- 🟡 **`qc_defects.ags` holds one case per rule; the edge cases are built in the test.** The Spec puts AC 5–7 in
+  `qc_defects.ags`. AC 6 and 7 are seven stages, each a new specimen with its own `TREG` row, and every row added
+  there moves the lines of each later group's cases in `test_qc_acceptance.py`. qc.md §5 AC 1 needs one seeded case
+  per rule, so the file gets AC 5's stage (X007) and AC 7's first (X008); AC 6, the rest of AC 7 and AC 8 are built
+  in `tests/qc/test_triaxial.py`, as X006's tolerance cases are. Step 3 corrects the Spec's bullet.
+- **X007's rounding for an `xSF` heading** is half a unit in the last place the text writes (`_half_place()`), since
+  a significant-figure TYPE's last place depends on the value; `xDP` comes from the TYPE (`_rounding()`), and a
+  heading with no usable TYPE falls back to the text, as for `xSF`. On `site_us.ags`'s 10SF values the interval is
+  then tiny, and the recomputed side (ε50 at 2DP %) carries the width.
+- **The US twin's E50 is in ksf through `US_OVERRIDE`,** not a new `"MPa"` entry in `US`, so no other MPa heading
+  changes how its twin is written. `TRET_CVP` and `TRET_CRP` join `TRET_US` and are written in psf, as `TRET_CONP`;
+  the Spec's "ksf in the US twin" is read as E50's unit. `TRET_EP50` stays in %.
+
+### 1. `M23: read the lab's E50 and consolidation stresses in p.triaxial()` (Opus)
+- `src/hangtu/columns.yaml`: the four columns of the Spec's table, with descriptions that say the lab's E50 is Eu50
+  on an undrained stage and E′50 on a drained one (as `test_type` says), and is carried beside hangtu's values,
+  never in their place; no internal file cited. The `triaxial` template in the Spec's order. `tests/test_registry.py`
+  green.
+- `src/hangtu/datasets/_triaxial.py`: `TRIAXIAL_COLUMNS` in the template's order; `TRET_CVP` and `TRET_CRP` read as
+  stage numbers of `TRET` only (a `TRET`-only map beside `STAGE_NUMBERS`, since `TRIT` has neither: blank on `TRIT`
+  rows); `TRET_EP50` likewise (percent, stored as written); `TRET_E50` converted from its stored unit to kPa, as
+  above. No new warning (Spec decision 5).
+- `src/hangtu/project.py`: `Project.triaxial()`'s docstring names the four columns, E50's drainage read from
+  `test_type`, and that `effective_consolidation_stress` is `TRET_CONP` as written.
+- `tests/data/ags/_make_files.py`: the four headings at the end of `TRET_HEADINGS` and `tret_row()` gains
+  `cvp`, `crp`, `ep50`, `e50` (default None); BH1-U3 specimen 1 gets 100, 100, 0.60, 15.00 and BH2-U2 specimen 3
+  stage 1 gets 100, 100, 0.25, 60.00. `TRET_US` gains `TRET_CVP`, `TRET_CRP`, `TRET_E50`; `US_OVERRIDE` gains
+  `TRET_E50: ("ksf", 47.880 26e-3 MPa)` from the file's existing `LBF` and `SQUARE_FOOT`. `site_v404.ags`'s
+  `without(TRET, …)` drops the four. `qc_defects.ags`'s own `TRET` is unchanged here. Regenerate and check with
+  `git diff --stat tests/data/ags` that only `site_si.ags`, `site_us.ags` and nothing else changed, and in those only
+  `TRET`'s heading, unit and type lines and its rows.
+- `tests/data/ags/README.md`: the 4.1 headings list gains the four; `site_si.ags`'s description names the two stages.
+- `docs/data/datasets.md` §6.10: the four rows and the Spec's three notes.
+- This file's Spec: the Ingest bullet corrected as settled above.
+- Tests: `tests/datasets/test_triaxial.py`: AC 1 (both stages' four values, every other row blank, `TRIT` rows blank,
+  the columns in the template's order; the M17 (c) assertion moved as settled above); the ingest check (`TRET_E50`
+  stored in MPa with status `converted`, read as 15 000 kPa); AC 3 (`site_v404.ags`: four blank columns, no warning);
+  AC 4 (a `CAUC` stage built in the test with `TRET_CONP` 100, `TRET_CVP` 200, `TRET_CRP` 100, returned as written).
+  The twin test (`tests/datasets/test_datasets_acceptance.py` or wherever `p.triaxial()`'s twins are compared): AC 2,
+  the SI values to 1e-9 relative and 313.28 ksf (2DP) in US display. `tests/test_examples.py`: the unit lists
+  (`TRIAXIAL_STRESSES` and a modulus list) gain the new columns, blank on the example until step 4.
+  `tests/datasets/test_triaxial.py::test_10_template_frame_gives_the_dataset_stresses` covers the CSV template.
+  Then the whole suite: every triaxial and readings test reads the template's order.
+
+### 2. `qc: share E003's rounding helpers with the triaxial rules` (Opus)
+- `src/hangtu/qc/_oedometer.py` → `src/hangtu/qc/_text.py`: `_rounding()` and `_half_place()` move, renamed without
+  the underscore where `_text`'s other public helpers have none; E003 imports them. No behavior change.
+- Tests: `tests/qc/test_oedometer.py` unchanged and green. Its own commit, since it is a refactor (process.md, "Git
+  and commits").
+
+### 3. `M23: add QC rules X007 and X008 for the lab's E50` (Opus)
+- `src/hangtu/qc/_triaxial.py`: a `_criteria(data)` beside `_types()` giving each `TRET` row's `TREG_FCR`, and
+  `_peak(text)` (trimmed, case ignored, "maximum deviator stress" or "peak deviator stress"; blank is not the peak).
+  `X007` and `X008` as the Spec's decision 1: both on `TRET` only, skipping a blank or flagged value they need, an
+  `EXTENSION` type, q_f at or below 0 (X003's), and a non-peak or blank criterion; `records_checked` counts the stages
+  compared. X007 from the raw text (`data.text_at()`): q_f's and ε50's intervals give the recomputed E50 in
+  `TRET_DEVF`'s file unit per fraction, converted to `TRET_E50`'s file unit by a `ureg` factor as E003's; a finding
+  where the intervals don't overlap (with `SLACK`). The message: both headings' values and units, where the stage is
+  (`_stage()`), the recomputed value from the midpoints at `TRET_E50`'s decimals, and the usual causes (a unit slip,
+  kPa as MPa or ε50 as a fraction, or values from different stages). X008: `TRET_EP50` ≥ `TRET_STRN` − `SLACK`. The
+  module docstring names X007 and X008.
+- `src/hangtu/qc/rules.yaml`: `X007` and `X008`, warnings, no thresholds, with a comment that X007's bounds are the
+  values' own rounding (as E003's).
+- `docs/data/qc.md` §4.12: the two rows, their skips and the peak criterion; the note to X006 from the Spec.
+- `tests/data/ags/_make_files.py`: `qc_defects.ags`'s `TRET` gains `TRET_EP50` and `TRET_E50`, with AC 5's stage
+  (`TRET_DEVF` 360, 3.22, 75.50) and AC 7's (`TRET_EP50` 9.00, `TRET_STRN` 8.5) on two new specimens and `TREG` rows
+  ("Maximum deviator stress"). The lines that move are updated in `tests/qc/test_qc_acceptance.py`,
+  `tests/qc/test_triaxial.py` and the README; `git diff` of `qc_defects.ags` shows only the new rows, columns and
+  shifted lines.
+- `tests/data/ags/README.md`: the X007 and X008 line in the defects table.
+- This file's Spec: the `qc_defects.ags` bullet corrected as settled above.
+- Tests: `tests/qc/test_triaxial.py`: AC 5 (one X007 at its line; the message has 75.50 and 5.59 MPa); AC 6's four
+  cases (none, one, one, one) and AC 7's three (one, one, none and no X007), built with the `_triaxial` builder
+  extended for the two headings and `TREG_FCR`; AC 8's five skips, and the two spellings that count as the peak;
+  severities `warning`; `test_records_checked` gains X007 and X008. `tests/qc/test_qc_acceptance.py`: the two seeded
+  lines, and AC 9's three test files with no X007 or X008 (as the other clean-file checks). `tests/test_errors.py`.
+
+### 4. `M23: give site.ags's triaxial stages the lab's E50 from their curves` (Opus)
+- `tests/data/_make_examples.py`: `tret()` splits so the curves don't read their own output: `tret_rows()` (today's
+  rows, which `triaxial_stages()` reads) and `tret()`, which adds `TRET_CVP`, `TRET_CRP` (0DP psf, = `TRET_CONP`),
+  `TRET_EP50` (2DP %) and `TRET_E50` (1DP ksf) for the nine stages of the Spec. ε50 is the strain where each stage's
+  q curve from `triaxial_curves()` first reaches q_f / 2, linearly interpolated; E50 = (q_f / 2) / ε50 from the
+  unrounded ε50, then both rounded. The curves come from a fresh `random.Random(2031)` in the order `curve_groups()`
+  draws them, so they are the curves in the file; no draw is added to any other stream. A comment names the method
+  and that the values aren't hand-calculated.
+- Regenerate: `site.ags` changes only in `TRET`'s heading, unit and type lines and the nine rows' new cells;
+  `triaxial_readings.csv` is unchanged; `triaxial.csv` and `rock_triaxial.csv` gain the four columns (blank in the
+  rock file). Check with `git diff --stat`.
+- `src/hangtu/examples/__init__.py`: the `triaxial.csv` description says which stages carry the lab's E50.
+- Tests: `tests/test_examples.py`: AC 9's hand check (B-1-U5 specimen 1's ε50 0.44 % and E50 about 470 ksf at q_f
+  4 123 psf, within ε50's rounding), the nine stages filled and six blank; the example stays QC-clean (no X007, X008).
+  If the curve gives a different ε50 from the Spec's 0.44 %, stop: the Spec's hand check was read from the curve, so
+  one of them is wrong.
+
+### 5. `M23: close out (a): sheet 08's page, the index and the changelog` (Opus)
+- `docs/site/parameters/08-elastic-stiffness-soil.md`: "Tests" names `TRET_E50`, `TRET_EP50` and `p.triaxial()`;
+  the "Methods" table's last column drops W2, W3 and W5: the oedometer row links
+  `ht.analysis.oedometer_increments()`, the triaxial and Vs rows say "planned".
+- `docs/plots/drafts/P19-pmt-hardening-soil.md`: `secant_modulus_50` becomes `secant_modulus_at_50_percent_peak`.
+- `docs/drafts/parameters/README.md`: 08 A and 11 A note `p.triaxial()`'s lab E50.
+- `docs/prepare_site.py` and `zensical build --clean --strict`, for any example page that prints triaxial columns.
+- Close-out: `STATUS.md` (M23 (a) done, (b) next); `CHANGELOG.md` Unreleased (the four columns on `p.triaxial()` and
+  the template, QC rules X007 and X008); SPEC §10.2–10.3 and §2.6 read and changed only where they list the
+  dataset's or template's columns; `docs/TODO.md` only if the build deferred something with a trigger.
+- Tests: AC 10 (`tests/docs/test_site.py`, `tests/test_errors.py`); the CI command.
