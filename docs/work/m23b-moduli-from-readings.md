@@ -179,8 +179,9 @@ drained stage with volume change, the dilatancy angle ψ. Each value says how it
    specimen was sheared in an earlier one.
 8. **No comparison column with the lab's E50.** The lab's values are on `p.triaxial()`'s rows, not the readings, so a
    comparison needs a merge the user can see. The site example merges and shows both; AC 9 checks they agree.
-9. **Units.** Moduli and q_a come back in `cell_pressure`'s unit, as `deviator_stress_at_failure` does; ε50 in
-   `axial_strain`'s. A strain column declared in another unit than percent is converted before the fraction is taken.
+9. **Units.** Moduli and q_a come back in `cell_pressure`'s unit, as `deviator_stress_at_failure` does; ε50 in `%`.
+   A strain column declared in another unit than percent is a `UnitsError` (percent columns are never converted);
+   undeclared, strains are read as percent (corrected in the build, step 2).
 10. **No interpolation at failure is new.** Both analyses read q, εv and ε1 at readings; the failure row's columns
     (and the warning when Δu or εv at failure was interpolated) are `triaxial_failure_from_readings()`'s, unchanged.
 
@@ -255,7 +256,7 @@ Truty Eq. 2.14).
    reading's q.
 9. On `site.ags`, for each of the nine stages (a) gave a lab E50, hangtu's E50 and ε50 equal
    `reported_secant_modulus_at_50_percent_peak` and `reported_axial_strain_at_50_percent_peak` to their headings'
-   rounding (2DP).
+   rounding: within 0.05 ksf (`TRET_E50`, 1DP) and 0.005 % (`TRET_EP50`, 2DP) (corrected in the build, step 2).
 10. Units: E50 and q_a carry `cell_pressure`'s unit in `df.attrs["units"]`, ε50 `axial_strain`'s; readings in kPa and
     in psf give the same E50 after conversion; `failure_ratio_range` and `dilatancy_from` are in `df.attrs`.
 11. Every published docstring, message and site page cites no internal file (`tests/docs/test_site.py`,
