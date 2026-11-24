@@ -58,12 +58,12 @@
 | 0 | User-defined groups and curves | Readings curves carried in user-defined AGS groups (triaxial q, Δu and εv against axial strain; shear box τ and vertical displacement against horizontal displacement), read through a readings map the user writes; built against a sample dataset from a real project. Rock triaxial results are read from `TRIG`/`TRIT`, which AGS 4.2 has, not from a user-defined group. Waves 4 and 5 need it |
 | 1 | Stress and state | 01 and 03 A–B (vertical stress, phase relations), 02 B (activity; LI and Ic as analyses); SPT correlations and (N1)60, stage C for 04–08 and 10; P17 (drawn from Ic) |
 | 2 | Strength envelopes | One fitting core for 04 A–B, 05 A–B, 22 A–B and 15 B (intact Hoek–Brown fit); P11–P12 |
-| 3 | Oedometer | 06 A–B, 11 (Eoed, Eur,oed), 12 B (k from cv·mv), 21 A–B (Grob, Huder–Amberg); then 07 B (K0 from OCR) and 05 B (SHANSEP); P13–P15 |
-| 4 | Rock | 13, 14, 23 A–B and 16 A (RQD); then the Hoek–Brown chain: 15 C, 16 B, 17–19, 09 (rock), 20. Kept after the soil waves |
-| 5 | Stiffness | 08, 10 and 11 (the full set), 09 (soil); P19, P20 |
+| 3 | Oedometer | 06 A–B, 11 (Eoed, Eur,oed), 12 B (k from cv·mv), 21 A (swelling increments and pressure); then 07 B (K0 from OCR) and 05 B (SHANSEP); P13–P15 |
+| 4 | Rock | 13, 14, 23 A–B, 21 B (Grob, Huder–Amberg) and 16 A (RQD); then the Hoek–Brown chain: 15 C, 16 B, 17–19, 09 (rock), 20. Kept after the soil waves |
+| 5 | Stiffness | 08, 11 (the full set) and 09 (soil) from the lab tests already read; then the in situ modulus tests; then 10 (small-strain); P19, P20 |
 | 6 | Hydraulic | 12 A–C (field permeability tests) |
 
-**Order of work:** wave 1, statistics, wave 2, wave 0, selection (stage D, starting with the Mohr–Coulomb set), then waves 3–6, each adding stage D and the model sets its sheets complete. Statistics come ahead of waves 2 and 0 because by then there are measured properties, derived values with depth trends and several correlations per property to compare, so they are designed against real uses. Wave 0 waited on a sample dataset of real files, and goes before the rest of wave 3. The milestones: [`STATUS.md`](STATUS.md).
+**Order of work:** wave 1, statistics, wave 2, wave 0, selection (stage D, starting with the Mohr–Coulomb set), then wave 3's oedometer, wave 5, the rest of wave 3, and waves 4 and 6, each adding stage D and the model sets its sheets complete. Statistics come ahead of waves 2 and 0 because by then there are measured properties, derived values with depth trends and several correlations per property to compare, so they are designed against real uses. Wave 0 waited on a sample dataset of real files, and goes before the rest of wave 3. Wave 5 goes ahead of the rest of wave 3 because a soil modulus is wanted soonest and everything it needs is built (the readings curves, the oedometer moduli, the model-set base); its lab moduli come first, from tests already read, and its new data (in situ tests, then small-strain) after. Rock swelling's derivation sits with the rock lab tests of wave 4. The milestones: [`STATUS.md`](STATUS.md).
 
 **Releases** are cut when a milestone leaves something usable, and aren't tied to waves or planned ahead. The releases so far: [`CHANGELOG.md`](CHANGELOG.md).
 

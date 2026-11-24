@@ -17,7 +17,7 @@ Each draft ends with **pitfalls**: mistakes that are easy to make when implement
 | [P11](../P11-failure-envelope.md) | Failure envelope with fitted c′–φ′: Mohr circles, s′–t or p′–q, optional idealized drained paths | built (promoted) | M11 (b) |
 | [P12](../P12-triaxial-shearing.md) | Stress–strain curves and measured stress paths, with P11's envelope (P10 merged in) | built (promoted) | M11 (c) |
 | [P17](../P17-clogging-diagram.md) | Clogging potential zones, PI against consistency index | built (promoted) | M12 |
-| [P19](P19-pmt-hardening-soil.md) | E50 against elevation from pressuremeter tests | listed | M23 |
+| [P19](P19-pmt-hardening-soil.md) | E50 against elevation from pressuremeter tests | listed | M25 |
 | [P23](P23-lateral-earth-pressure.md) | PMT p0, σv, u, σ′v, σ′h and K0 against depth | listed | Later |
 | [P24](P24-grouped-histogram.md) | Property histogram per unit | **proposed ID** | open |
 | [P25](P25-size-fraction-comparison.md) | % gravel/sand/silt/clay/fines per unit | **proposed ID** | open (after M8) |
