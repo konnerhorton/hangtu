@@ -134,6 +134,11 @@ def test_2_twin_files_triaxial(projects, system):
             si[column].to_numpy(), rel=1e-9, abs=1e-9 * scale, nan_ok=True
         )
     assert si.attrs == us.attrs
+    if system == "US":
+        # M23 (a) AC 2: 15 000 kPa / 47.880 26 kPa per ksf = 313.28 ksf.
+        assert us.attrs["units"]["reported_secant_modulus_at_50_percent_peak"] == "ksf"
+        e50 = us.loc[0, "reported_secant_modulus_at_50_percent_peak"]
+        assert round(e50, 2) == 313.28
 
 
 # 3. An older version: IPRG gives one field row per stage.

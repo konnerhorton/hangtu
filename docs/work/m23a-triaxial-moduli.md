@@ -141,9 +141,10 @@ acceptance criteria.
     row links `ht.analysis.oedometer_increments()`, which is built. The triaxial and Vs rows say "planned".
 - **`docs/plots/drafts/P19-pmt-hardening-soil.md`:** its proposed `secant_modulus_50` becomes
   `secant_modulus_at_50_percent_peak`, the name (b) will give hangtu's own E50 (decision 2).
-- **Ingest:** nothing changes. `TRET_E50`'s unit (MPa) has the stress dimension, so ingest gives it the first kind
-  with that dimension, `stress`, and stores it in kPa. That is also `modulus`'s canonical unit, so the dataset reads
-  it without converting it again. `db.SCHEMA_VERSION` stays. The plan's first step confirms this with a test.
+- **Ingest:** nothing changes. A standard heading is stored in its dictionary unit, so `TRET_E50` is kept in MPa
+  (as `RUCS_ESEC`'s GPa is), with no quantity kind: ingest matches a kind by dimension only for time. `p.triaxial()`
+  converts it from the stored unit (`meta_heading`) to `modulus`'s kPa. `db.SCHEMA_VERSION` stays. (Corrected in
+  build step 1: this bullet first said ingest stored it in kPa as a stress.)
 - **The parameter index:** 08 A and 11 A note `p.triaxial()`'s E50 at close-out.
 
 ### Decisions

@@ -886,6 +886,23 @@ class Project:
         specimen (``drop_duplicates("specimen_id")``). It is the lab's derived
         value, kept apart from ``effective_friction_angle``.
 
+        **The lab's E50:** ``reported_secant_modulus_at_50_percent_peak``
+        (``TRET_E50``) and ``reported_axial_strain_at_50_percent_peak``
+        (``TRET_EP50``) are the secant modulus to half the peak deviator
+        stress and the strain where it was measured, as the lab reports them,
+        blank on ``TRIT`` rows and in files without the headings. Read E50
+        with ``test_type``: it is undrained (Eu50) on an undrained stage and
+        drained (E′50) on a drained one, and it holds at the stage's σ′3.
+        QC X007 and X008 check it against the stage's own q and strain.
+
+        **Consolidation stresses:** ``effective_consolidation_stress`` is
+        ``TRET_CONP`` as written. On an anisotropically consolidated stage
+        (``CAUC``, ``CADC``, ...) it doesn't say whether it is the vertical,
+        the radial or a mean stress, so read
+        ``effective_vertical_consolidation_stress`` and
+        ``effective_radial_consolidation_stress`` (``TRET_CVP``,
+        ``TRET_CRP``) there.
+
         **Initial state, not in situ:** ``water_content``, ``bulk_unit_weight``
         and ``dry_unit_weight`` (density × g) and ``void_ratio`` are the
         specimen's as set up for the test (as made, if recompacted:
@@ -913,7 +930,7 @@ class Project:
             default they're left out, with a warning that counts them.
         display_units
             ``"US"`` or ``"SI"``; by default the project's. Stresses are in
-            kPa (SI) or psf (US).
+            kPa (SI) or psf (US), and E50 in MPa (SI) or ksf (US).
 
         Examples
         --------

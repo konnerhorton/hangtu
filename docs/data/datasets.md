@@ -354,7 +354,8 @@ One row per triaxial stage at failure: each `TRET` row (effective stress, parent
 | `water_content` | `TRET_IMC` (initial) | `TRIT_IMC` (initial) |
 | `bulk_unit_weight`, `dry_unit_weight` | `TRET_BDEN`, `TRET_DDEN` × g (initial) | `TRIT_BDEN`, `TRIT_DDEN` × g (initial) |
 | `void_ratio` | `TRET_IVR` (initial) | blank |
-| `effective_consolidation_stress` | `TRET_CONP` | blank |
+| `effective_consolidation_stress` | `TRET_CONP`, as written (below) | blank |
+| `effective_vertical_consolidation_stress`, `effective_radial_consolidation_stress` | `TRET_CVP`, `TRET_CRP` (4.1) | blank |
 | `back_pressure` | `TRET_BACK` | blank |
 | `pore_pressure_parameter_b` | `TRET_BVAL` | blank |
 | `cell_pressure` | `TRET_CELL` | `TRIT_CELL` |
@@ -366,6 +367,7 @@ One row per triaxial stage at failure: each `TRET` row (effective stress, parent
 | `effective_minor_principal_stress_at_failure`, `effective_major_principal_stress_at_failure` | σ′3 = σ3 − u_f, σ′1 = σ′3 + q_f, below | blank |
 | `effective_stress_basis` | Where u_f came from: `pore_pressure_at_failure` or `back_pressure`, below; blank where σ′ is blank | blank |
 | `reported_effective_friction_angle`, `reported_effective_cohesion` | `TREG_PHI`, `TREG_COH`: the lab's own fit, repeated on each stage of the specimen | blank |
+| `reported_axial_strain_at_50_percent_peak`, `reported_secant_modulus_at_50_percent_peak` | `TRET_EP50`, `TRET_E50` (4.1): the lab's ε50 and E50, below. `TRET_E50` is stored in the file's unit (MPa in the dictionary) and converted to the modulus kind | blank |
 | `reported_intact_compressive_strength`, `reported_intact_hoek_brown_constant` | blank: the lab's Hoek–Brown σci and mi have no AGS heading, so they come from a CSV | blank |
 | `test_remarks`, `remarks` | `TREG_REM`, `TRET_REM` | `TRIG_REM`, `TRIT_REM` |
 
@@ -373,6 +375,9 @@ One row per triaxial stage at failure: each `TRET` row (effective stress, parent
 - **Extension tests** (`CIDE`, `CADE`, `CAUE`) are kept, with every principal stress blank and one warning per call naming them: the dictionary doesn't give the sign of `TRET_DEVF` in extension, and in extension the axial stress is the minor one, so the compression formulas would be wrong.
 - **A deviator stress of 0 or less** in a compression test gives blank principal stresses, and one warning per call names the stages and points to `p.qc()` (X003). A dataset doesn't stop on the file's data (as §6.2).
 - **The lab's fit is repeated on each stage** of its specimen, and often on every specimen of a set, so a summary of it counts one value many times. Summarize it on one row per specimen (`drop_duplicates("specimen_id")`); (b) compares it with hangtu's fit per test.
+- **E50 is read with `test_type`** (M23 a): the lab's secant modulus to half the peak deviator stress is undrained (Eu50) on an undrained stage and drained (E′50) on a drained one. One column holds both, as the frame holds CU and CD stages together; the drainage call is made where it becomes E′ or Eu. E50 holds at the stage's σ′3. QC X007 and X008 check it against the stage's own q and strain (`qc.md` §4.12).
+- **`effective_consolidation_stress` is `TRET_CONP` as written.** On an anisotropically consolidated stage (`CAUC`, `CADC`, `CAUE`, `CADE`) the dictionary doesn't say whether it is the vertical, the radial or a mean stress. `effective_vertical_consolidation_stress` and `effective_radial_consolidation_stress` say which, so read them there; on an isotropic stage the three are equal.
+- **Like the lab's c′ and φ′,** the lab's E50 and ε50 are carried beside the values hangtu derives, never in their place. Most files leave them blank (the lab sends the q–ε₁ readings instead), and a blank raises no warning.
 - **Initial state, not in situ:** the unit weights, water content and void ratio are the specimen's as set up for the test (for a recompacted specimen, as made). They are carried so a fit can be read against density, not pooled with `p.density()`.
 - **No `TREG`/`TRIG` row** above a stage (a broken parent link, which python-ags4 reports as Rule 10): the stage is kept, with blank test type, criterion and the lab's fit.
 - With neither `TRET` nor `TRIT`, it is an empty frame with every column and the warning "No TRET or TRIT group". A `TREG` or `TRIG` with no stage rows gives no row; QC X005 reports it.

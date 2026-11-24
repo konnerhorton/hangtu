@@ -57,6 +57,7 @@ UNIT_DESCRIPTIONS = {
     "in": "inch",
     "psf": "pounds force per square foot",
     "tsf": "short tons force per square foot",
+    "ksf": "kips per square foot",
     "pcf": "pounds per cubic foot",
     "cm/s": "centimetres per second",
     "yyyy-mm-dd": "year month day",
@@ -566,7 +567,15 @@ TRET_HEADINGS = [
     ("TRET_BACK", "0DP", "kPa"),
     ("TRET_BVAL", "2DP", ""),
     ("TRET_IVR", "3DP", ""),
+    # 4.1's: the consolidation stresses and the lab's E50 (M23 a).
+    ("TRET_CVP", "0DP", "kPa"),
+    ("TRET_CRP", "0DP", "kPa"),
+    ("TRET_EP50", "2DP", "%"),
+    ("TRET_E50", "2DP", "MPa"),
 ]
+#: TRET's 4.1 headings, which the 4.0.4 file and joins.ags leave out.
+TRET_41 = ["TRET_BACK", "TRET_BVAL", "TRET_IVR"]
+TRET_E50_HEADINGS = ["TRET_CVP", "TRET_CRP", "TRET_EP50", "TRET_E50"]
 TRET_US = [
     *SPECIMEN_US,
     "TRET_BDEN",
@@ -576,11 +585,29 @@ TRET_US = [
     "TRET_DEVF",
     "TRET_PWPF",
     "TRET_BACK",
+    "TRET_CVP",
+    "TRET_CRP",
+    "TRET_E50",
 ]
 
 
 def tret_row(
-    key, tesn, *, initial, conp, cell, strn, devf, pwpf, bval, stv=None, rem=None
+    key,
+    tesn,
+    *,
+    initial,
+    conp,
+    cell,
+    strn,
+    devf,
+    pwpf,
+    bval,
+    stv=None,
+    rem=None,
+    cvp=None,
+    crp=None,
+    ep50=None,
+    e50=None,
 ):
     """A ``TRET`` row in ``TRET_HEADINGS``' order, with ``TRET_BACK`` 300 kPa.
 
@@ -589,7 +616,7 @@ def tret_row(
     """
     imc, bden, dden, ivr = initial
     stage = [conp, cell, strn, devf, pwpf, stv, rem, 300, bval]
-    return [*key, tesn, imc, bden, dden, *stage, ivr]
+    return [*key, tesn, imc, bden, dden, *stage, ivr, cvp, crp, ep50, e50]
 
 
 CDM_INITIAL = ("30", 1.98, 1.52, 0.763)
@@ -607,6 +634,11 @@ TRET = group(
             devf=180,
             pwpf=360,
             bval=0.97,
+            # The lab's E50 (M23 a AC 1): (180 / 2) / 0.0060 = 15 000 kPa.
+            cvp=100,
+            crp=100,
+            ep50=0.60,
+            e50=15.00,
         ),
         tret_row(
             [*BH1_U3, "2", 5.15],
@@ -643,11 +675,21 @@ TRET = group(
                 stv=stv,
                 rem=rem,
                 bval=0.96,
+                **lab,
             )
-            for tesn, conp, cell, strn, devf, pwpf, stv, rem in [
-                ("1", 100, 400, 4.0, 300, 300, 1.20, None),
-                ("2", 200, 500, 3.5, 520, None, 2.10, "Pore pressure not recorded"),
-                ("3", 400, 700, 6.0, 900, 300, 3.40, None),
+            for tesn, conp, cell, strn, devf, pwpf, stv, rem, lab in [
+                # Stage 1 has the lab's E50: (300 / 2) / 0.0025 = 60 000 kPa.
+                (
+                    "1",
+                    *(100, 400, 4.0, 300, 300, 1.20, None),
+                    {"cvp": 100, "crp": 100, "ep50": 0.25, "e50": 60.00},
+                ),
+                (
+                    "2",
+                    *(200, 500, 3.5, 520, None, 2.10, "Pore pressure not recorded"),
+                    {},
+                ),
+                ("3", *(400, 700, 6.0, 900, 300, 3.40, None), {}),
             ]
         ),
     ],
@@ -1297,7 +1339,11 @@ XPPT = group(
     us=["XPPT_DPTH", "XPPT_RES"],
 )
 # Headings whose US unit isn't the default for their SI unit.
-US_OVERRIDE = {"XPPT_RES": TSF}
+US_OVERRIDE = {
+    "XPPT_RES": TSF,
+    # The lab's E50 in ksf: 1 ksf = 1000 lbf/ft² in MPa.
+    "TRET_E50": ("ksf", 1000 * LBF / SQUARE_FOOT / 1e6),
+}
 
 # The 4.0.4 file: IPRG/IPRT in place of FGHG/FGHS (no mapping, ingest.md §6),
 # RUCS with a heading 4.2 removed (RUCS_E), and the old unit spellings.
@@ -2393,7 +2439,7 @@ def joins_groups():
         lden,
         lpdn,
         treg,
-        tret,
+        without(tret, *TRET_E50_HEADINGS),  # joins.ags predates them
         ivan,
         shbg,
         shbt,
@@ -2531,7 +2577,7 @@ def main(out=HERE):
         LPDN,
         IDEN,
         TREG,
-        without(TRET, "TRET_BACK", "TRET_BVAL", "TRET_IVR"),
+        without(TRET, *TRET_41, *TRET_E50_HEADINGS),
         TRIG,
         TRIT,
         SHBG,

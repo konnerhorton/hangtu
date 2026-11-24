@@ -45,7 +45,7 @@ templates:
   particle_density: [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, particle_density, particle_density_assumed, test_type, geology_unit, soil_class, geology_description]
   # One row per stage at failure; p.triaxial() adds the principal stresses and their basis (M11 a).
   # Rock specimens too, a UCS test as a row with cell_pressure 0 (M17 c).
-  triaxial:       [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, test_type, test_stage, multistage_test, sample_condition, failure_criterion, failure_mode, water_content, bulk_unit_weight, dry_unit_weight, void_ratio, effective_consolidation_stress, back_pressure, pore_pressure_parameter_b, cell_pressure, deviator_stress_at_failure, pore_pressure_at_failure, axial_strain_at_failure, volumetric_strain_at_failure, reported_effective_friction_angle, reported_effective_cohesion, reported_intact_compressive_strength, reported_intact_hoek_brown_constant, test_remarks, remarks, geology_unit, soil_class, geology_description]
+  triaxial:       [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, test_type, test_stage, multistage_test, sample_condition, failure_criterion, failure_mode, water_content, bulk_unit_weight, dry_unit_weight, void_ratio, effective_consolidation_stress, effective_vertical_consolidation_stress, effective_radial_consolidation_stress, back_pressure, pore_pressure_parameter_b, cell_pressure, deviator_stress_at_failure, pore_pressure_at_failure, axial_strain_at_failure, volumetric_strain_at_failure, reported_effective_friction_angle, reported_effective_cohesion, reported_axial_strain_at_50_percent_peak, reported_secant_modulus_at_50_percent_peak, reported_intact_compressive_strength, reported_intact_hoek_brown_constant, test_remarks, remarks, geology_unit, soil_class, geology_description]
   # One row per oedometer increment, p.oedometer()'s columns without source_line and
   # load_branch, which ht.analysis.oedometer_load_branch() adds (M19 a).
   oedometer:      [loca_id, specimen_id, sample_reference, specimen_reference, ground_level, depth, depth_basis, elevation, test_type, sample_condition, test_stage, applied_vertical_stress, void_ratio_at_increment_start, void_ratio_at_increment_end, reported_coefficient_of_volume_compressibility, reported_coefficient_of_consolidation_root_time, reported_coefficient_of_consolidation_log_time, specimen_height, specimen_diameter, water_content, final_water_content, bulk_unit_weight, dry_unit_weight, particle_density, particle_density_assumed, degree_of_saturation, void_ratio, swelling_pressure, height_change_on_saturation, equipment_deformation_corrected, test_remarks, remarks, geology_unit, soil_class, geology_description]
@@ -1268,6 +1268,22 @@ columns:
     label: Effective consolidation stress, σ′c
     ags: [TRET.TRET_CONP]
     used_by: []
+  effective_vertical_consolidation_stress:
+    description: Effective vertical stress at the end of consolidation, which differs from the radial one on an anisotropically consolidated stage
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Effective vertical consolidation stress, σ′vc
+    ags: [TRET.TRET_CVP]
+    used_by: []
+  effective_radial_consolidation_stress:
+    description: Effective radial stress at the end of consolidation, the confining stress σ′3 of an anisotropically consolidated stage
+    type: number
+    quantity: stress
+    scale: ratio
+    label: Effective radial consolidation stress, σ′rc
+    ags: [TRET.TRET_CRP]
+    used_by: []
   pore_pressure_parameter_b:
     description: Skempton's pore pressure parameter B before shearing, a measure of saturation
     type: number
@@ -1307,6 +1323,22 @@ columns:
     scale: ratio
     label: Reported effective cohesion, c′
     ags: [TREG.TREG_COH]
+    used_by: []
+  reported_axial_strain_at_50_percent_peak:
+    description: The lab's axial strain where the deviator stress reaches half its peak, as reported with its E50
+    type: number
+    quantity: percent
+    scale: ratio
+    label: Reported axial strain at 50 % of peak deviator stress, ε50
+    ags: [TRET.TRET_EP50]
+    used_by: []
+  reported_secant_modulus_at_50_percent_peak:
+    description: The lab's secant modulus from the origin to half the peak deviator stress, E50, undrained (Eu50) on an undrained stage and drained (E′50) on a drained one, as test_type says; carried beside the moduli hangtu derives, never in their place
+    type: number
+    quantity: modulus
+    scale: ratio
+    label: Reported secant modulus at 50 % of peak deviator stress, E50
+    ags: [TRET.TRET_E50]
     used_by: []
   reported_intact_compressive_strength:
     description: The lab's intact compressive strength σci for the test set, its own Hoek–Brown fit

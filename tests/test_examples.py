@@ -188,6 +188,8 @@ DEGREES = dict.fromkeys(
 )
 TRIAXIAL_STRESSES = [
     "effective_consolidation_stress",
+    "effective_vertical_consolidation_stress",
+    "effective_radial_consolidation_stress",
     "back_pressure",
     "cell_pressure",
     "deviator_stress_at_failure",
