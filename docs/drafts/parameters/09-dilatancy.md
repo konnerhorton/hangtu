@@ -53,7 +53,9 @@ ASTM designations without year — confirm the current edition before citing.
 ### 5.1 From test curves (definition)
 $$\text{Triaxial: } \sin\psi = \frac{-\dot\varepsilon_v/\dot\varepsilon_1}{2-\dot\varepsilon_v/\dot\varepsilon_1}\ \ (\text{compression positive}),\qquad \text{Direct shear: } \tan\psi \approx -\frac{\delta y}{\delta x}$$
 - **Inputs:** plastic (or total, near peak) strain increments; dilation makes ε̇v negative.
-- **Source:** Vermeer & de Borst (1984) [5] [U]; reproduced as ψ = arcsin[ε̇p_v/(−2ε̇p_1 + ε̇p_v)] in [6] Eq. 15,
+- **Built (M23 b):** `ht.analysis.triaxial_dilatancy_from_readings()`, total strains over a window from 0.95 q_f to
+  the failure reading (hangtu's rule, TODO #79); the shear box route later.
+- **Source:** Vermeer & de Borst (1984) [5] Eqs. 3.1–3.3, pp. 12–13 [V]; reproduced as ψ = arcsin[ε̇p_v/(−2ε̇p_1 + ε̇p_v)] in [6] Eq. 15,
   p. 484 [V] (equivalent to the form above). Use plastic strains (subtract elastic parts, [6] p. 485).
 
 ### 5.2 Sands — Bolton (1986) relative dilatancy index
@@ -124,7 +126,8 @@ https://www.rocscience.com/assets/resources/learning/hoek/Practical-Estimates-of
 pp. 12–13 (preprint pagination; journal page numbers not checked).
 [5] Vermeer, P.A. & de Borst, R. (1984). Non-associated plasticity for soils, concrete and rock. Heron 29(3), 1–64. — [V]
 p. 3 (the perfectly plastic model's five parameters: E, ν, c, φ, ψ); p. 13 (ψ = 15° typical of a very dense sand, a few
-degrees for loose sands, "normally consolidated clays show no dilatancy at all"). Eqs. 3.2–3.3 not re-checked.
+degrees for loose sands, "normally consolidated clays show no dilatancy at all"); Eqs. 3.1–3.3, pp. 12–13 (read
+from page images, 2026-11-24).
 [6] Alejano, L.R. & Alonso, E. (2005). Considerations of the dilatancy angle in rocks and rock masses. Int. J.
 Rock Mech. Min. Sci. 42(4), 481–507. https://doi.org/10.1016/j.ijrmms.2005.01.003 — [V] Eqs. 15, 28, 29; p. 489.
 [7] Kulhawy, F.H. & Mayne, P.W. (1990). Manual on Estimating Soil Properties for Foundation Design. EPRI EL-6800.

@@ -62,6 +62,7 @@ nav = [
     "parameters/08-elastic-stiffness-soil.md",
     "parameters/09-dilatancy.md",
     "parameters/10-small-strain-stiffness.md",
+    "parameters/11-hardening-soil-stiffness.md",
     "parameters/15-hoek-brown-constant.md",
     "parameters/22-discontinuity-shear-strength.md",
   ] },

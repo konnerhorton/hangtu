@@ -73,7 +73,8 @@ The same ranges in ksi are in Loehr et al. (2016), Table 8-10, p. 8-26. MPa valu
 |---|---|---|---|
 | AASHTO (2004), E = C (N1)60 tsf, C by soil row (Samtani & Nowatzki 2006, Table 5-16) | (N1)60 | silts, sands and gravels, by the source's rows | [`ht.analysis.correlations.drained_youngs_modulus_aashto_2004()`](../reference/correlations.md#hangtu.analysis.correlations.drained_youngs_modulus_aashto_2004) |
 | Kulhawy & Mayne (1990), E/pa = C N60, C by soil row (EPRI Eqs. 5-26a–c) | N60 | sands with fines, clean NC and clean OC sands | [`ht.analysis.correlations.drained_youngs_modulus_kulhawy_mayne_1990()`](../reference/correlations.md#hangtu.analysis.correlations.drained_youngs_modulus_kulhawy_mayne_1990) |
-| E50 and Eu from triaxial tests | stress–strain curves | tested specimens | planned |
+| E50 from triaxial tests, the secant to half the peak ([Hardening Soil stiffness](11-hardening-soil-stiffness.md)) | the q–ε1 readings | triaxial compression stages | [`ht.analysis.triaxial_stiffness_from_readings()`](../reference/analysis.md#hangtu.analysis.triaxial_stiffness_from_readings) |
+| Eu from s_u, and the drained–undrained conversion | s_u; E′, ν′ | — | later |
 | Constrained modulus from the oedometer | mv | tested specimens | [`ht.analysis.oedometer_increments()`](../reference/analysis.md#hangtu.analysis.oedometer_increments) |
 | Equivalent modulus from Vs with a modulus reduction ratio (Loehr et al. 2016, Eqs. 8.17–8.18 and Fig. 8-15, pp. 8-25 to 8-27) | Vs, ρ, ν, E/Emax | intact clays and uncemented sands under foundations | planned |
 

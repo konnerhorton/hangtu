@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Living spec. E50 and ε50 (§1) and the failure ratio Rf (§2) from the readings during shearing. M23 (c) adds the selection of E′ and ν′ and P20; M23 (d) the Hardening Soil set |
+| **Status** | Living spec. E50 and ε50 (§1) and the failure ratio Rf (§2) from the readings during shearing. M23 (c) adds the selection of E′ and ν′ and P20; M23 (d) the Hardening Soil set. Eur from unload–reload loops isn't built (TODO #80) |
 | **Parent** | SPEC §4 (stiffness from readings) and §5 (derived results) |
-| **Related** | [`m23b-moduli-from-readings.md`](../work/m23b-moduli-from-readings.md). The readings and their failure rows: [`strength.md`](strength.md) §2. The lab's E50: [`docs/data/datasets.md`](../data/datasets.md) (`p.triaxial()`). Sheets 08 and 11 in [`docs/drafts/parameters/`](../drafts/parameters/README.md) |
+| **Related** | [`m23b-moduli-from-readings.md`](../work/m23b-moduli-from-readings.md). The readings and their failure rows: [`strength.md`](strength.md) §2. The lab's E50: [`docs/data/datasets.md`](../data/datasets.md) (`p.triaxial()`). The site pages for sheets 08 and 11 ([`docs/site/parameters/`](../site/parameters/11-hardening-soil-stiffness.md)), whose example sets hangtu's E50 beside the lab's |
 
 Update this file in the same commit as any change to `triaxial_stiffness_from_readings()`'s behavior, and SPEC §4 or
 §5 if the change alters a rule there. The equations, sources, validity and each reason's wording are in the docstring,

@@ -45,6 +45,13 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
   `ht.template("oedometer_readings")` lays them out for a CSV, and `ht.template("consolidation_overrides")` the
   overrides. The example project carries readings for its oedometer tests. Elapsed times in a file are read in any
   unit of time and given in minutes.
+- **Stiffness and dilatancy from triaxial readings:** `triaxial_stiffness_from_readings()` reads each stage's
+  E50, the secant modulus at half the peak deviator stress, and its strain ε50 from the q–ε1 readings, so you can
+  set it beside the lab's reported E50; and the failure ratio Rf of the Hardening Soil model's hyperbola, fitted to
+  the readings between 0.7 and 0.95 of the failure stress. `triaxial_dilatancy_from_readings()` reads each drained
+  stage's dilatancy angle ψ from the rate of volume change near failure. A stage a value can't be read from gets a
+  reason instead, and the fit's range and ψ's window are arguments. The new site page, Hardening Soil stiffness,
+  shows both on the example project.
 - `oedometer_load_branch()` marks each oedometer increment as loading, unloading, reloading or held at a
   constant stress, and `ht.template("oedometer")` lays out oedometer tests for a CSV.
 - **Classification and index analyses:** `plasticity()`, `uscs()`, `aashto()`, `gradation()`,
