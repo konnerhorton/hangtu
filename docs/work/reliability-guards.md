@@ -126,3 +126,38 @@ value driven by censored values, and stresses declared in the wrong unit.
 9. **Docs:** the site builds strict, every example runs without a new warning, and the reference pages show
    `table=` as required.
 
+## Plan
+
+Four build commits, each with ruff, mypy and the tests it touches green, and the whole suite once before each commit.
+
+### 1. `reliability: warn when soil_class contradicts a correlation` (Opus)
+- `src/hangtu/analysis/_soil_class.py` (new): `row_classes(df)` (column, else attrs by `geology_unit`) and
+  `contradicting(classes, allowed)`; shared with step 3.
+- `src/hangtu/config/correlations.yaml`: `soil_classes:` per entry and per AASHTO soil row; the header comment.
+- `src/hangtu/analysis/correlations/_framework.py`: the new reason last in `REASONS`, the warning in `estimate()`;
+  `describe()` returns `soil_classes`.
+- `src/hangtu/plot/_notes.py`: the footnote text.
+- `docs/analysis/correlations.md` §2, SPEC §4, P01's spec; any site example or guide that now warns.
+- Tests: `tests/analysis/test_correlations_soil_class.py` (AC 3, 4, 8); the entry-vs-docstring test covers the new
+  field.
+
+### 2. `reliability: warn when most values are censored` (Opus)
+- `src/hangtu/stats/_representative.py`, `src/hangtu/stats/_fit.py`: the two conditions, the warning and the note.
+- `docs/analysis/statistics.md` §1–2.
+- Tests: `tests/stats/test_censored_share.py` (AC 5, 6, 8).
+
+### 3. `reliability: require table= in spt_class() and spt_histogram()` (Opus)
+- `src/hangtu/analysis/_spt.py`, `src/hangtu/plot/_spt_histogram.py`: `table` required with our own message; the
+  class check through `_soil_class`.
+- `docs/analysis/index-and-spt.md` §1.4, P03's spec; the site examples, guides and tests that call either without
+  `table=` (`docs/site/examples/spt.py`, `csv-to-plot.py`, `sheet.py`, `docs/site/guides/spt.md`, and others the
+  suite finds).
+- Tests: `tests/analysis/test_spt_class.py`, `tests/plot/test_spt_histogram.py` (AC 1, 2).
+
+### 4. `reliability: warn when triaxial stresses exceed the overburden` (Opus)
+- `src/hangtu/analysis/_mohr_coulomb.py`: the bound, with depth converted to m and stress to kPa for the comparison.
+- `docs/analysis/strength.md` §4.
+- Tests: `tests/analysis/test_mohr_coulomb_overburden.py` (AC 7, 8); the docs build (AC 9).
+- Close-out: `CHANGELOG.md` Unreleased (the `table=` break under "Changed", the four warnings under "Added");
+  `docs/TODO.md` (delete #60, #61, #63, #67; #41 and #3 stay, #41 noting the class check now covers clays and rock);
+  `STATUS.md` (this unit in Done; M23 c next again).

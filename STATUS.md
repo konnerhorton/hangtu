@@ -6,7 +6,8 @@ s_u if its source is in hand, and **P20**. Then the rest of wave 5 (M23 d, M25, 
 Last checkpoint: 4, after M19 (c2), 2026-11-24, 6791dcc.
 
 ## In progress
-- None.
+- `reliability-guards` (TODO #60, #61, #63, #67): plan committed; building steps 1–4 of
+  `docs/work/reliability-guards.md` (Opus). M23 (c) is paused on `m23c-modulus-selection`, its draft intent unreviewed.
 
 ## Open
 Each milestone names its wave (SPEC §1.3). A unit's close-out records its status here; a finished milestone
