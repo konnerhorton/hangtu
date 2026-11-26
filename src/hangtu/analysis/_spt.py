@@ -11,6 +11,7 @@ from hangtu import _config
 from hangtu import units as _units
 from hangtu._data import flag_column, numeric_column, rows_text
 from hangtu._settings import settings
+from hangtu.analysis import _soil_class
 from hangtu.errors import ColumnError, HangtuError, warn
 
 REFUSAL_PENETRATION = 450.0  # mm: seating plus test drive (§1.3)
@@ -293,6 +294,43 @@ def spt(
     return result
 
 
+#: The soil_class each table is for; a row of another checked class warns.
+TABLE_CLASSES = {"cohesionless": ("coarse",), "cohesive": ("fine",)}
+
+
+def required_table(table: str | None, function: str) -> str:
+    """Return ``table``, or say it is required: the table is a judgment (SPEC §4)."""
+    if table is None:
+        raise HangtuError(
+            f'{function} needs table=: "cohesionless" (relative density) or '
+            '"cohesive" (consistency). Which applies is the engineer\'s call: '
+            'pick the table and pass the rows it applies to. Example: table="cohesive"'
+        )
+    return table
+
+
+def check_classes(df: pd.DataFrame, table: str) -> None:
+    """Warn when rows' ``soil_class`` contradicts the class table.
+
+    The classes are given as asked: the table is the engineer's call, and
+    the check reads the class the user supplied, never a derived one
+    (docs/analysis/index-and-spt.md §1.4).
+    """
+    allowed = TABLE_CLASSES.get(table)
+    if allowed is None:
+        return
+    classes = _soil_class.row_classes(df)
+    contradicts = _soil_class.contradicting(classes, allowed)
+    if contradicts.any():
+        found = _soil_class.by_unit(df, contradicts, classes)
+        warn(
+            f"The {table} SPT class table is for {allowed[0]} soils, and "
+            f"{int(contradicts.sum())} of {len(df)} rows have another soil_class "
+            f"({found}). They are classified as asked; pass only the rows the "
+            "table applies to, or correct soil_class in the geology map."
+        )
+
+
 def class_table(table: str) -> tuple[list[str], np.ndarray]:
     """Return a class table's names and lower bounds, from the lowest N up."""
     tables = _config.load("config/spt_classes.yaml")
@@ -308,7 +346,7 @@ def class_table(table: str) -> tuple[list[str], np.ndarray]:
 
 
 def spt_class(
-    df: pd.DataFrame, *, n: str = "spt_n", table: str = "cohesionless"
+    df: pd.DataFrame, *, n: str = "spt_n", table: str | None = None
 ) -> pd.Series:
     """Classify SPT tests by relative density or consistency.
 
@@ -316,9 +354,12 @@ def spt_class(
     N = 0 is "Very loose" and N = 10 is "Medium dense". A refusal is
     "Refusal", whatever its N, and a blank value gives a blank class.
 
-    Which table applies is the engineer's call: pick ``table`` and pass the rows
-    it applies to. The data first goes through ``ht.analysis.spt()``, so the
-    refusal rule is the same.
+    Which table applies is the engineer's call, so ``table`` is required: pick
+    it and pass the rows it applies to. Rows whose ``soil_class`` contradicts
+    the table (``fine`` or ``rock`` for the cohesionless one, ``coarse`` or
+    ``rock`` for the cohesive one) are classified as asked, with a warning.
+    The data first goes through ``ht.analysis.spt()``, so the refusal rule
+    is the same.
 
     Parameters
     ----------
@@ -329,8 +370,8 @@ def spt_class(
         fill in ``energy_ratio``, or run ``ht.analysis.spt()`` first with
         ``hammer_efficiency=``.
     table : {"cohesionless", "cohesive"}
-        Relative density (very loose to very dense) or consistency (very soft
-        to hard). The tables are in ``config/spt_classes.yaml``.
+        Required. Relative density (very loose to very dense) or consistency
+        (very soft to hard). The tables are in ``config/spt_classes.yaml``.
 
     Returns
     -------
@@ -348,7 +389,9 @@ def spt_class(
             f"n must be one of {', '.join(map(repr, N_COLUMNS))}, not {n!r}. "
             'Example: n="spt_n60"'
         )
+    table = required_table(table, "spt_class()")
     names, lowers = class_table(table)
+    check_classes(df, table)
     result = spt(df)
     values = numeric_column(result, n)
     negative = values < 0

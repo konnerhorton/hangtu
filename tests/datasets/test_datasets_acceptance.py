@@ -5,6 +5,7 @@ the file with the cases.
 """
 
 import warnings
+from functools import partial
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -64,7 +65,11 @@ def test_1_feeds_the_plots(projects, name, system):
     atterberg = _quiet(p.atterberg, display_units=system)
     calls = [
         (ht.plot.spt_profile, spt),
-        (ht.plot.spt_histogram, spt),
+        # The cohesionless table, on the rows it applies to.
+        (
+            partial(ht.plot.spt_histogram, table="cohesionless"),
+            spt[spt["soil_class"] == "coarse"],
+        ),
         (
             ht.plot.profile,
             _quiet(p.permeability, display_units=system),
@@ -249,7 +254,7 @@ def test_8_plots_draw_a_refusal_with_a_blank_n(joins_spt):
     assert ax.ags_notes == {"nan": 1, "refusal": 3}
     plt.close("all")
     # Refusals at 80, 83, 85 and 87: 4 of the 8 tests kept.
-    _, ax = ht.plot.spt_histogram(joins_spt, color_by=None)
+    _, ax = ht.plot.spt_histogram(joins_spt, table="cohesionless", color_by=None)
     assert [t.get_text() for t in ax.get_xticklabels()][-1] == "Refusal"
     assert ax.containers[0][-1].get_height() == pytest.approx(50.0)
     plt.close("all")

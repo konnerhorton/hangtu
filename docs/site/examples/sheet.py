@@ -6,5 +6,7 @@ spt = ht.read_csv(
 )
 sheet = ht.Sheet("letter", layout=(1, 2), title="SPT, example site")
 ht.plot.spt_profile(spt, n="spt_n60", ax=sheet[0])
-ht.plot.spt_histogram(spt[spt["soil_class"] == "coarse"], n="spt_n60", ax=sheet[1])
+ht.plot.spt_histogram(
+    spt[spt["soil_class"] == "coarse"], table="cohesionless", n="spt_n60", ax=sheet[1]
+)
 sheet.save("sheet.png", dpi=100)

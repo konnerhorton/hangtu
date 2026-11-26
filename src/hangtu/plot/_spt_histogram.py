@@ -13,7 +13,7 @@ from matplotlib.ticker import FixedLocator, NullLocator
 
 from hangtu import analysis
 from hangtu._settings import _display_units, figure_size, settings
-from hangtu.analysis._spt import REFUSAL_CLASS, class_table
+from hangtu.analysis._spt import REFUSAL_CLASS, class_table, required_table
 from hangtu.errors import ColumnError, HangtuError
 from hangtu.plot import _layers, _values, style
 from hangtu.plot._hints import hint_missing
@@ -87,7 +87,7 @@ def spt_histogram(
     df: pd.DataFrame,
     *,
     n: Literal["spt_n", "spt_n60"] = "spt_n",
-    table: Literal["cohesionless", "cohesive"] = "cohesionless",
+    table: Literal["cohesionless", "cohesive"] | None = None,
     refusal: Literal["separate", "exclude"] = "separate",
     color_by: str | None = "geology_unit",
     order: list[str] | None = None,
@@ -109,8 +109,9 @@ def spt_histogram(
     class runs from its lower bound up to, not including, the next one, and a
     refusal is "Refusal" whatever its N.
 
-    Which table applies is your call: pick ``table`` and pass the rows it
-    applies to. For both, draw two histograms on a ``Sheet``.
+    Which table applies is your call, so ``table`` is required: pick it and
+    pass the rows it applies to. Rows whose ``soil_class`` contradicts it are
+    drawn as asked, with a warning. For both, draw two histograms on a ``Sheet``.
 
     Parameters
     ----------
@@ -120,7 +121,7 @@ def spt_histogram(
     n : {"spt_n", "spt_n60"}
         The value classified. Tests without N60 are left out and counted.
     table : {"cohesionless", "cohesive"}
-        Relative density (very loose to very dense) or consistency (very soft
+        Required. Relative density (very loose to very dense) or consistency (very soft
         to hard), from ``config/spt_classes.yaml``.
     refusal : {"separate", "exclude"}
         ``"separate"`` gives refusals their own hatched class, last;
@@ -169,12 +170,14 @@ def spt_histogram(
     Examples
     --------
     >>> sand = spt[spt["geology_unit"].isin(["Fill", "Alluvial sand"])]
-    >>> fig, ax = ht.plot.spt_histogram(sand, order=["Fill", "Alluvial sand"])
+    >>> fig, ax = ht.plot.spt_histogram(
+    ...     sand, table="cohesionless", order=["Fill", "Alluvial sand"]
+    ... )
     >>> fig, ax = ht.plot.spt_histogram(clay, table="cohesive")
     """
     _check_choice("n", n, N_COLUMNS)
     _check_choice("refusal", refusal, REFUSAL_OPTIONS)
-    names, lowers = class_table(table)
+    names, lowers = class_table(required_table(table, "spt_histogram()"))
     _display_units(display_units or settings.display_units)
     where = check_legend(legend)
     if color_by is not None and color_by != "geology_unit" and color_by not in df:

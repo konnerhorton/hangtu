@@ -58,7 +58,9 @@ spt = ht.read_csv(
     ht.examples.path("spt.csv"),  # or your own file
     units={"ground_level": "ft", "depth": "ft", "elevation": "ft", "spt_penetration": "in"},
 )
-fig, ax = ht.plot.spt_histogram(spt[spt["soil_class"] == "coarse"], n="spt_n60")
+fig, ax = ht.plot.spt_histogram(
+    spt[spt["soil_class"] == "coarse"], table="cohesionless", n="spt_n60"
+)
 ```
 
 `ht.columns("spt")` lists each template column with its description and unit. Both examples in full, with all four plots on one sheet, are in [`examples/`](https://github.com/konnerhorton/hangtu/tree/main/examples).

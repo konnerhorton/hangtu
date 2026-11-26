@@ -70,7 +70,9 @@ def plots(frame, comparison):
         "water_content_profile": lambda **kw: ht.plot.water_content_profile(
             atterberg(), vs="depth", **kw
         ),
-        "spt_histogram": lambda **kw: ht.plot.spt_histogram(spt(), **kw),
+        "spt_histogram": lambda **kw: ht.plot.spt_histogram(
+            spt(), table="cohesionless", **kw
+        ),
         "plasticity_chart": lambda **kw: ht.plot.plasticity_chart(atterberg(), **kw),
         "geology_unit_comparison": lambda **kw: ht.plot.geology_unit_comparison(
             comparison(), "undrained_shear_strength", **kw
