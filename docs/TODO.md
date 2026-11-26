@@ -235,7 +235,7 @@ Titles, volumes and pages are to be taken from each paper, not from memory.
 QC X001's `lowest_pore_pressure_parameter_b: 0.95` is the B-value commonly quoted as the requirement before shearing, not yet checked against a standard. Check it, and what each allows for stiff soils (a lower B where B stops rising with back pressure), in ASTM D4767 (CU), ASTM D7181 (CD) and ISO 17892-9, with the clause. Then cite it in `qc/rules.yaml`, X001's message and qc.md. `mohr_coulomb_fit()` and `shear_box_fit()` read `failure_criterion` as written and only refuse to pool different ones (strength.md §3–§5; for the shear box, ASTM D3080 and D6467), and `triaxial_failure_from_readings()` defines maximum deviator stress and maximum principal stress ratio from readings without a default (strength.md §2), so nothing built depends on which a standard requires. Check what D4767, D7181 and D2850 (UU) say of each, and of a limiting strain, before a fit, a QC rule or a docs page recommends one.
 
 ### 41. Gravelly sands under `not_for` · You + Claude · page 04, `docs/analysis/correlations.md` §2
-Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads only the group symbol. The example site's Terrace is "SAND with gravel (SP)": SP passes, so its rows get estimates with no note. USCS group names (ASTM D2487) add "with gravel" at ≥ 15 % gravel, which the symbol does not carry.
+Hatanaka & Uchida (1996) is `not_for` gravelly soils, but the USCS check reads only the group symbol. The `soil_class` check (correlations.md §2) catches a clay or rock row, not a gravelly sand, since both are `coarse`. The example site's Terrace is "SAND with gravel (SP)": SP passes, so its rows get estimates with no note. USCS group names (ASTM D2487) add "with gravel" at ≥ 15 % gravel, which the symbol does not carry.
 - **Questions:**
   - Read the group name or description (`geology_description`, or a `uscs_name` column), the gravel fraction from gradation tests, or leave it to the user to pass the rows?
   - If flagged: no estimate ("not for this soil"), or an estimate with a note?
@@ -303,35 +303,12 @@ One unit can need two selected values of one parameter: EC7's Type A (a mean) fo
 - **Open:** how a loop is marked in the readings, and its rules: `triaxial_failure_from_readings()` treats strain that falls within a loading part as a reading out of place, so loops change how the loading part is found. Then Eur as the secant of each loop, for the Hardening Soil set's Eurref.
 
 ## Agent-use review (2026-11-09)
-A review of the whole package asked one question: if an AI agent does the work and an engineer signs it off, how likely is a wrong answer, and how easy is it to catch? It used probe scripts plus two agent trials (an SPT correlation task and a lab strength task, from the public docs only). Items 60–61 can give a plausible wrong number with nothing to flag it; 62–67 lead an agent to misuse; 68–69 are friction.
-
-### 60. A correlation on rows its `soil_class` rules out · You + Claude · SPEC §4, `docs/analysis/correlations.md` §2 · related to #3, #41
-- **Problem:** `effective_friction_angle_hatanaka_uchida_1996` on the Alluvium (lean clay) rows gives φ′ = 28–32° for every row. The only warning is about range bounds, although the frame carries `soil_class == "fine"` and `attrs["soil_classes"]`. SPEC §4 reads soil type only when asked (`uscs=`), so this follows the spec; an agent passing the whole frame won't ask.
-- **Options:**
-  - warn, and note it in `correlation_note`, when `soil_class` contradicts the entry's `applies_to`;
-  - give those rows NaN with a reason unless `uscs=` or an explicit override is passed;
-  - leave it as decided.
-- **Recommendation (Claude):** the first. It costs nothing when the classes agree, and it reads a column the user already supplied rather than inferring one.
-
-### 61. `spt_class()` defaults to the cohesionless table · You + Claude · `docs/analysis/index-and-spt.md` §1.4, `src/hangtu/analysis/_spt.py`
-- **Problem:** `spt_class(clay_rows)` returns "Very loose" and "Loose" for clays with no warning. Its docstring says the table is the engineer's call, but `table="cohesionless"` and `n="spt_n"` are defaults. P03's `spt_histogram()` has the same defaults.
-- **Proposed:** make `table=` required in both, which matches SPEC §4's "no defaults for judgments". Also warn when `soil_class` contradicts the table (#3).
-- **Open:** whether `n=` is a judgment too (field N or N60 for a class table), or a convention that stays a default.
-
-### 63. `representative()` with most values censored · You + Claude · `docs/analysis/statistics.md`
-- **Problem:** with 25 of 40 Hatanaka & Uchida values "at least 44.5°", the censored normal fit gives a mean of 45.4° and a characteristic value of 44.6°. That is above every real estimate (max 44.1°) and above the correlation's ceiling. The note explains how censored values were treated but doesn't warn about the result.
-- **Proposed:** warn when more than half the values are censored, or when the representative value is beyond the largest (or, low side, the smallest) uncensored value.
-- **Open:** the threshold, and whether `fit()` and `compare_sources()` warn the same way.
+A review of the whole package asked one question: if an AI agent does the work and an engineer signs it off, how likely is a wrong answer, and how easy is it to catch? It used probe scripts plus two agent trials (an SPT correlation task and a lab strength task, from the public docs only). Items 60, 61, 63 and 67, which gave a plausible wrong number with nothing to flag it, now warn (see `docs/analysis/correlations.md` §2, `index-and-spt.md` §1.4, `statistics.md` §1–2, `strength.md` §4); 66 leads an agent to misuse; 69 is friction.
 
 ### 66. The CSV route leads to invented inputs · Claude + You · `docs/site/getting-started/csv.md`, `src/hangtu/examples/data/`
 - **Problem:** no page shows a CSV stratigraphy for `vertical_stress()`, nor the triaxial and undrained strength analyses from CSV; every example starts from `site.ags`. The trial agent tried `strata.csv` as the log (it is the geology map), then made up layer boundaries midway between tests. The lab agent built about 24 unit declarations by hand from `ht.columns()`.
 - **Proposed:** ship `stratigraphy.csv` with the examples; add one CSV-route example per analysis family; rename `strata.csv` to `geology_map.csv` (examples-ags-first: written from `site.ags`).
 - **Open (You):** a way to declare a file's units in one step, e.g. from each column's `quantity` and a stated system. It is a declaration, not a guess, but it would cover columns the user never looked at.
-
-### 67. Stress units declared wrong · You · SPEC §2.2, §2.6
-- **Problem:** the triaxial CSV in psf declared as kPa gives c′ = 104 kPa and σ′n up to 3,680 kPa at 18 ft, with no check. The summary prints the unit, so a reviewer could catch it; an agent won't. Typical ranges are never used for QC (P00), by design.
-- **Idea:** a physical check rather than a typical range, for example a consolidation stress more than about 10× the overburden at the sample depth warns.
-- **Not the oedometer (M19 a):** an oedometer is loaded far past σ′v0 by design, often 10–30 times, so the check fits the triaxial's `TRET_CONP`, not `CONS_INCF`.
 
 ### 69. Friction from the agent trials · Claude · plots, `src/hangtu/units/`
 - A long `note=` collapses the axes, and the only sign is matplotlib's warning.

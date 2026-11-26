@@ -99,8 +99,22 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
 - `spt_profile(n="spt_n1_60")` plots (N1)60 from `spt_n1_60()`, with refusals drawn at the cap as for N60.
 - Type annotations ship with the package (`py.typed`).
 - The documentation site, with a page and example for each plot and parameter, and the API reference.
+- **Warnings where a plausible number may be wrong:**
+  - A correlation run on rows whose `soil_class` it isn't for (a sand correlation on `fine` rows, any soil
+    correlation on `rock`) keeps its estimates, warns with the count by geology unit, and notes the rows
+    `soil class contradicts` in `correlation_note`. `profile()`'s footnote counts them, and
+    `correlations.describe(name)["soil_classes"]` gives the classes each correlation is for.
+  - `spt_class()` and `spt_histogram()` warn when rows' `soil_class` contradicts the class table.
+  - `representative()` warns, and notes the group, when more than half its values are censored, or when the value
+    lies beyond every measured value on the censored side. `fit()` warns when more than half are censored.
+  - `mohr_coulomb_fit()` warns when a consolidation stress is far above any overburden at the sample's depth
+    (above max(10 × 25 kN/m³ × depth, 500 kPa)): the stresses may be in another unit than declared, such as psf
+    declared as kPa.
 
 ### Changed
+- **Breaking:** `spt_class()` and `spt_histogram()` need `table=` (`"cohesionless"` or `"cohesive"`). The default
+  of `"cohesionless"` classed clays as "Very loose" or "Loose" with no warning; which table applies is the
+  engineer's call. Add `table="cohesionless"` to keep what a call gave before.
 - A project database made by an earlier version needs ingesting again (`ht.Project.from_ags(...,
   overwrite=True)`): it now records the units of the oedometer's m_v and c_v, the readings map, and which headings
   hold a time. Opening an old one says so.

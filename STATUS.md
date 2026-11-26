@@ -6,8 +6,8 @@ s_u if its source is in hand, and **P20**. Then the rest of wave 5 (M23 d, M25, 
 Last checkpoint: 4, after M19 (c2), 2026-11-24, 6791dcc.
 
 ## In progress
-- `reliability-guards` (TODO #60, #61, #63, #67): plan committed; building steps 1–4 of
-  `docs/work/reliability-guards.md` (Opus). M23 (c) is paused on `m23c-modulus-selection`, its draft intent unreviewed.
+- M23 (c): paused on `m23c-modulus-selection`; its draft intent's "Open for the intent review" list is not
+  reviewed yet. First step: review that list with the user, record the decisions, and amend the intent (Opus).
 
 ## Open
 Each milestone names its wave (SPEC §1.3). A unit's close-out records its status here; a finished milestone
@@ -45,6 +45,7 @@ comes after M9 and M16 after M18. M10 (a feedback round) was dropped, and its nu
 - **M18:** selection (stage D): SPT refusals in `fit()`; `representative()` (EC7 characteristic, JRC worked examples, and US views); **P09**; `compare_sources()` and the shear box φ′ conversion; `select()`; the model-set base and `mohr_coulomb_set()`.
 - **M16:** wave 0: the readings map, `p.triaxial_readings()` and `p.shear_box_readings()` from user-defined groups; readings with one quantity per row, unload tails and interpolation in `triaxial_failure_from_readings()` and **P12**.
 - **M19:** wave 3: `p.oedometer()` and `p.oedometer_readings()`; `oedometer_fit()` and **P13**; `oedometer_increments()` and **P14**; `consolidation_coefficient_from_readings()` and **P15**.
+- **reliability-guards:** warnings where a plausible number may be wrong (TODO #60, #61, #63, #67): `soil_class` against correlations and the SPT class tables, `table=` required, censored values driving `representative()` and `fit()`, triaxial stresses far above the overburden.
 
 ## Releases
 The latest is **0.1.0** (M9). Each release and what's unreleased: [`CHANGELOG.md`](CHANGELOG.md).
