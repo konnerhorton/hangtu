@@ -27,8 +27,8 @@
 #               bound on the input (inclusive) and its target band (lower, upper;
 #               upper null for an open band), written as <target>_lower / _upper
 #   rows        optional, for a coefficient the source gives by soil type: {name:
-#               {wording, coefficient, uscs}}, the source's wording, its coefficient,
-#               and hangtu's proposed USCS groups for it; soil= names the row and
+#               {wording, coefficient, uscs, soil_classes}}, the source's wording, its
+#               coefficient, and hangtu's proposed USCS groups and soil classes for it; soil= names the row and
 #               uscs= checks it (docs/analysis/correlations.md §2)
 #   applies_to, not_for, notes   as the sources state them
 #   scatter     the source's own statistics (docs/analysis/correlations.md §2):
@@ -44,6 +44,10 @@
 #   evaluations other databases' checks of the correlation, [] when none: bias (mean
 #               of measured over estimated), coefficient_of_variation, data_count,
 #               database, cite, locator. Kept off the rows; applying them is M18's
+#   soil_classes  hangtu's reading of applies_to as soil_class values (coarse, fine,
+#               rock), or null for all soils; a soil row has its own. A row whose
+#               soil_class is checked and not listed keeps its estimate, with a warning
+#               and a note (docs/analysis/correlations.md §2)
 #   uscs        hangtu's proposed USCS groups for applies_to, used only with
 #               uscs="proposed" (Decision 10); uscs_basis says how they were read
 #   label       optional: the legend text, e.g. "Stroud (1974)"; by default the first
@@ -62,6 +66,7 @@ effective_friction_angle_hatanaka_uchida_1996:
   bound_by: spt_n1_60
   labels: {spt_n1_60: "(N1)60"}
   applies_to: relatively clean fine to medium sands
+  soil_classes: [coarse]
   not_for: micaceous sands; gravelly soils
   uscs: [SP, SW, SP-SM, SW-SM]
   uscs_basis: >-
@@ -99,6 +104,7 @@ effective_friction_angle_kulhawy_mayne_1990:
   bound_by: spt_n60
   labels: {spt_n60: "N60", effective_vertical_stress: "σ′v"}
   applies_to: relatively clean sands
+  soil_classes: [coarse]
   not_for: null
   uscs: [SP, SW, SP-SM, SW-SM]
   uscs_basis: >-
@@ -141,6 +147,7 @@ undrained_shear_strength_terzaghi_peck_1967:
     - {spt_n: 15, lower: 1.0, upper: 2.0}
     - {spt_n: 30, lower: 2.0, upper: null}
   applies_to: clays
+  soil_classes: [fine]
   not_for: null
   uscs: [CL, CH]
   uscs_basis: >-
@@ -181,6 +188,7 @@ undrained_shear_strength_stroud_1974:
     - {plasticity_index: 15, lower: 4.5, upper: 5.5}
     - {plasticity_index: 30, lower: 4.5, upper: 4.5}
   applies_to: clays
+  soil_classes: [fine]
   not_for: null
   uscs: [CL, CH]
   uscs_basis: >-
@@ -214,6 +222,7 @@ preconsolidation_stress_mayne_kemper_1988:
   bound_by: spt_n
   labels: {spt_n: "N"}
   applies_to: clays
+  soil_classes: [fine]
   not_for: null
   uscs: [CL, CH]
   uscs_basis: >-
@@ -252,6 +261,7 @@ overconsolidation_ratio_mayne_kemper_1988:
   bound_by: normalized_n
   labels: {effective_vertical_stress: "σ′v0", normalized_n: "N pa/σ′v0"}
   applies_to: clays
+  soil_classes: [fine]
   not_for: null
   uscs: [CL, CH]
   uscs_basis: >-
@@ -288,6 +298,7 @@ at_rest_earth_pressure_coefficient_kulhawy_et_al_1989:
   bound_by: normalized_n
   labels: {effective_vertical_stress: "σ′v0", normalized_n: "N pa/σ′v0"}
   applies_to: clays
+  soil_classes: [fine]
   not_for: null
   uscs: [CL, CH]
   uscs_basis: >-
@@ -340,19 +351,24 @@ drained_youngs_modulus_aashto_2004:
       wording: "Silts, sandy silts, slightly cohesive mixtures"
       coefficient: 4
       uscs: [ML, CL-ML]
+      soil_classes: [fine]
     clean_fine_to_medium_sands:
       wording: "Clean fine to medium sands and slightly silty sands"
       coefficient: 7
       uscs: [SP, SW, SP-SM, SW-SM]
+      soil_classes: [coarse]
     coarse_sands:
       wording: "Coarse sands and sands with little gravel"
       coefficient: 10
       uscs: [SP, SW, SP-SM, SW-SM]
+      soil_classes: [coarse]
     gravels:
       wording: "Sandy gravel and gravels"
       coefficient: 12
       uscs: [GP, GW, GP-GM, GW-GM]
+      soil_classes: [coarse]
   applies_to: silts, sands and gravels, by the source's soil rows
+  soil_classes: null
   not_for: null
   uscs: null
   uscs_basis: >-
@@ -402,15 +418,19 @@ drained_youngs_modulus_kulhawy_mayne_1990:
       wording: "sands with fines"
       coefficient: 5
       uscs: [SM, SC, SP-SM, SW-SM, SP-SC, SW-SC]
+      soil_classes: [coarse]
     clean_normally_consolidated_sands:
       wording: "clean NC sands"
       coefficient: 10
       uscs: [SP, SW]
+      soil_classes: [coarse]
     clean_overconsolidated_sands:
       wording: "clean OC sands"
       coefficient: 15
       uscs: [SP, SW]
+      soil_classes: [coarse]
   applies_to: sands, by the source's soil rows
+  soil_classes: null
   not_for: null
   uscs: null
   uscs_basis: >-
@@ -448,6 +468,7 @@ shear_wave_velocity_imai_tonouchi_1982:
   bound_by: spt_n60
   labels: {spt_n60: "N60"}
   applies_to: all soils; Holocene, Pleistocene and Tertiary, alluvium and fill, in Japan
+  soil_classes: null
   not_for: null
   uscs: null
   uscs_basis: None proposed; the source is for all soils.
@@ -484,6 +505,7 @@ shear_wave_velocity_ohta_goto_1978:
   bound_by: spt_n60
   labels: {spt_n60: "N60"}
   applies_to: all soils; Quaternary alluvium, mostly of alluvial plains in Japan
+  soil_classes: null
   not_for: null
   uscs: null
   uscs_basis: None proposed; the source is for all soils.

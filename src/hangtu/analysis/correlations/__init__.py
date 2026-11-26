@@ -67,7 +67,12 @@ def describe(name: str) -> dict[str, Any]:
         A copy of its entry in ``config/correlations.yaml``: ``target``,
         ``equation``, ``inputs`` (column, variant and unit), ``range``,
         ``applies_to``, ``not_for``, ``notes``, ``sources`` (each with its
-        locator) and ``label``. ``scatter`` holds the source's own statistics:
+        locator) and ``label``. ``soil_classes`` is hangtu's reading of
+        ``applies_to`` as ``soil_class`` values (``["coarse"]``, ``["fine"]``),
+        or None for all soils or where each soil row gives its own: a row whose
+        ``soil_class`` is ``coarse``, ``fine`` or ``rock`` and not listed keeps
+        its estimate, with a warning and the note "soil class contradicts".
+        ``scatter`` holds the source's own statistics:
         its ``words``, ``data_count`` (n), ``r_squared`` and
         ``standard_deviation`` (``value``, ``unit`` and ``scale``), each None
         where the source states none. ``advice`` is the source's advice on use
