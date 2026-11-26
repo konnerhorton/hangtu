@@ -27,6 +27,7 @@ from hangtu import _config
 from hangtu import units as _units
 from hangtu._data import flag_column, numeric_column
 from hangtu._settings import _display_units, settings
+from hangtu.analysis import _soil_class
 from hangtu.analysis._overburden import check_columns
 from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.registry import column_info
@@ -58,6 +59,9 @@ REFUSAL = "refusal"
 BELOW_RANGE = "below range"
 ABOVE_RANGE = "above range"
 REASONS = (NOT_FOR_SOIL, SOIL_UNKNOWN, INPUT_BLANK, REFUSAL, BELOW_RANGE, ABOVE_RANGE)
+#: The note on a row whose soil_class the correlation doesn't apply to. It keeps
+#: its estimate, so it isn't a reason, and a row's reason or bound note comes first.
+SOIL_CLASS_CONTRADICTS = "soil class contradicts"
 #: The column the opt-in USCS map reads (Decision 10). It is never derived.
 USCS = "uscs_symbol"
 #: The column a soil= mapping is keyed by (docs/analysis/correlations.md §2).
@@ -552,6 +556,7 @@ def estimate(
             "it is the estimate at the range's end: at least above it, at most "
             "below it."
         )
+    contradicts = _contradicting_class(df, item, name, rows)
     replaced = [column for column in (*shown, *OUTPUT_COLUMNS) if column in df.columns]
     if replaced:
         warn(f"Replaced the existing columns {', '.join(map(repr, replaced))}.")
@@ -563,9 +568,9 @@ def estimate(
     result["correlation_qualifier"] = pd.Series(
         bounded.qualifier, index=df.index, dtype=object
     )
-    result["correlation_note"] = pd.Series(
-        np.where(noted, note, bounded.note), index=df.index, dtype=object
-    )
+    row_note = np.where(noted, note, bounded.note)
+    row_note[contradicts & pd.isna(row_note)] = SOIL_CLASS_CONTRADICTS
+    result["correlation_note"] = pd.Series(row_note, index=df.index, dtype=object)
     result["correlation_input"] = pd.Series(upstream, index=df.index, dtype=object)
     result["correlation_soil"] = pd.Series(
         np.full(len(df), None, dtype=object) if rows is None else rows,
@@ -589,3 +594,34 @@ def estimate(
         uscs if uscs is None or isinstance(uscs, str) else list(uscs)
     )
     return result
+
+
+def _contradicting_class(
+    df: pd.DataFrame, item: Mapping[str, Any], name: str, rows: np.ndarray | None
+) -> np.ndarray:
+    """Return the rows whose ``soil_class`` the correlation isn't for, and warn.
+
+    The classes allowed are the entry's ``soil_classes``, or each soil row's
+    where the source gives a coefficient by soil type (``rows``); None is
+    all soils. The estimate is kept: the class is the user's, read only to
+    warn (docs/analysis/correlations.md §2).
+    """
+    classes = _soil_class.row_classes(df)
+    if rows is not None:
+        allowed = np.empty(len(df), dtype=object)
+        allowed[:] = [item["rows"][row].get("soil_classes") for row in rows]
+        contradicts = _soil_class.contradicting(classes, allowed)
+    elif item.get("soil_classes") is None:
+        return np.zeros(len(df), dtype=bool)
+    else:
+        contradicts = _soil_class.contradicting(classes, item["soil_classes"])
+    if contradicts.any():
+        found = _soil_class.by_unit(df, contradicts, classes)
+        warn(
+            f"{name} is for {item['applies_to']}, and {int(contradicts.sum())} of "
+            f"{len(df)} rows have a soil_class it doesn't apply to ({found}). Their "
+            f"estimates are kept and noted {SOIL_CLASS_CONTRADICTS!r} in "
+            "'correlation_note'. Pass only the rows the correlation applies to, or "
+            "correct soil_class in the geology map."
+        )
+    return contradicts

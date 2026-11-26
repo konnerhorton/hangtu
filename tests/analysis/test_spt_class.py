@@ -9,6 +9,7 @@ import pytest
 
 import hangtu as ht
 from hangtu import _config
+from hangtu.errors import HangtuError
 
 COHESIONLESS = ["Very loose", "Loose", "Medium dense", "Dense", "Very dense"]
 COHESIVE = ["Very soft", "Soft", "Medium stiff", "Stiff", "Very stiff", "Hard"]
@@ -16,7 +17,7 @@ COHESIVE = ["Very soft", "Soft", "Medium stiff", "Stiff", "Very stiff", "Hard"]
 
 def test_cohesionless_golden_values():
     df = pd.DataFrame({"spt_n": [0, 4, 10, 29, 30, 50, 51]})
-    assert ht.analysis.spt_class(df).tolist() == [
+    assert ht.analysis.spt_class(df, table="cohesionless").tolist() == [
         "Very loose",
         "Loose",
         "Medium dense",
@@ -30,7 +31,7 @@ def test_cohesionless_golden_values():
 def test_cohesionless_golden_counts_keep_n_equal_zero():
     # pd.cut's right-closed default drops N = 0 and gives a total of 6 (§1.4).
     df = pd.DataFrame({"spt_n": [0, 4, 10, 29, 30, 50, 51]})
-    counts = ht.analysis.spt_class(df).value_counts(sort=False)
+    counts = ht.analysis.spt_class(df, table="cohesionless").value_counts(sort=False)
     assert counts.tolist() == [1, 1, 2, 1, 2, 0]
     assert counts.sum() == 7
 
@@ -59,12 +60,16 @@ def test_categories_are_in_table_order_with_refusal_last():
 
 def test_refusal_is_refusal_only_whatever_its_n():
     df = pd.DataFrame({"spt_n": [12, np.nan, 12], "spt_refusal": [True, True, False]})
-    assert ht.analysis.spt_class(df).tolist() == ["Refusal", "Refusal", "Medium dense"]
+    assert ht.analysis.spt_class(df, table="cohesionless").tolist() == [
+        "Refusal",
+        "Refusal",
+        "Medium dense",
+    ]
 
 
 def test_blank_value_gives_a_blank_class():
     df = pd.DataFrame({"spt_n": [np.nan, 5]})
-    classes = ht.analysis.spt_class(df)
+    classes = ht.analysis.spt_class(df, table="cohesionless")
     assert pd.isna(classes.iloc[0])
     assert classes.iloc[1] == "Loose"
 
@@ -75,7 +80,7 @@ def test_every_row_with_a_value_lands_in_exactly_one_class():
     n[::17] = np.nan
     refusal = rng.random(200) < 0.1
     df = pd.DataFrame({"spt_n": n, "spt_refusal": refusal})
-    classes = ht.analysis.spt_class(df)
+    classes = ht.analysis.spt_class(df, table="cohesionless")
     expected = int((~np.isnan(n) | refusal).sum())
     assert classes.value_counts().sum() == expected
     assert classes.notna().sum() == expected
@@ -84,24 +89,28 @@ def test_every_row_with_a_value_lands_in_exactly_one_class():
 def test_classifies_n60():
     # N = 8 is loose; N60 = 8 * 80 / 60 = 10.667 is medium dense.
     df = pd.DataFrame({"spt_n": [8], "energy_ratio": [80]})
-    assert ht.analysis.spt_class(df).tolist() == ["Loose"]
-    assert ht.analysis.spt_class(df, n="spt_n60").tolist() == ["Medium dense"]
+    assert ht.analysis.spt_class(df, table="cohesionless").tolist() == ["Loose"]
+    assert ht.analysis.spt_class(df, table="cohesionless", n="spt_n60").tolist() == [
+        "Medium dense"
+    ]
 
 
 def test_n60_with_no_energy_ratio_is_blank():
     df = pd.DataFrame({"spt_n": [8]})
-    assert ht.analysis.spt_class(df, n="spt_n60").isna().all()
+    assert ht.analysis.spt_class(df, table="cohesionless", n="spt_n60").isna().all()
 
 
 def test_classifies_capped_n():
     df = pd.DataFrame({"spt_n": [120]})
-    assert ht.analysis.spt_class(df, n="spt_n_capped").tolist() == ["Very dense"]
+    assert ht.analysis.spt_class(
+        df, table="cohesionless", n="spt_n_capped"
+    ).tolist() == ["Very dense"]
 
 
 def test_keeps_the_index_and_leaves_df_unchanged():
     df = pd.DataFrame({"spt_n": [3, 40]}, index=["a", "b"])
     before = df.copy()
-    classes = ht.analysis.spt_class(df)
+    classes = ht.analysis.spt_class(df, table="cohesionless")
     assert list(classes.index) == ["a", "b"]
     pd.testing.assert_frame_equal(df, before)
 
@@ -115,13 +124,13 @@ def test_unknown_table_lists_the_tables():
 
 def test_unknown_n_lists_the_columns():
     with pytest.raises(ht.HangtuError, match=r"'spt_n', 'spt_n60'.*not 'N'"):
-        ht.analysis.spt_class(pd.DataFrame({"spt_n": [5]}), n="N")
+        ht.analysis.spt_class(pd.DataFrame({"spt_n": [5]}), table="cohesionless", n="N")
 
 
 def test_negative_n60_given_is_an_error():
     df = pd.DataFrame({"spt_n": [5, 5], "spt_n60": [6.0, -1.0]})
     with pytest.raises(ht.HangtuError, match=r"'spt_n60' has negative.*rows 1\b"):
-        ht.analysis.spt_class(df, n="spt_n60")
+        ht.analysis.spt_class(df, table="cohesionless", n="spt_n60")
 
 
 @pytest.mark.parametrize(
@@ -134,3 +143,59 @@ def test_config_tables_start_at_zero_and_rise(table, names):
     assert lowers[0] == 0
     assert lowers == sorted(set(lowers))
     assert entry["source"]
+
+
+# --- reliability-guards: table= required, and the soil_class check (AC 1, 2) ---
+
+
+def test_table_is_required():
+    df = pd.DataFrame({"spt_n": [5]})
+    with pytest.raises(HangtuError, match=r'needs table=: "cohesionless".*"cohesive"'):
+        ht.analysis.spt_class(df)
+
+
+def test_spt_histogram_requires_table():
+    df = pd.DataFrame({"spt_n": [5], "geology_unit": ["A"]})
+    with pytest.raises(HangtuError, match=r"spt_histogram\(\) needs table="):
+        ht.plot.spt_histogram(df)
+
+
+def classed():
+    return pd.DataFrame(
+        {
+            "spt_n": [3, 5, 8, 12, 20, 6, 7],
+            "geology_unit": ["Clay"] * 3 + ["Sand"] * 2 + ["Fill", "Unknown"],
+            "soil_class": ["fine"] * 3 + ["coarse"] * 2 + ["fill", None],
+        }
+    )
+
+
+def test_cohesionless_table_on_fine_rows_warns_and_classifies_as_asked():
+    df = classed()
+    with pytest.warns(UserWarning, match=r"3 of 7 rows .*Clay \(fine\): 3"):
+        result = ht.analysis.spt_class(df, table="cohesionless")
+    assert result.tolist()[:3] == ["Very loose", "Loose", "Loose"]
+
+
+def test_cohesive_table_on_coarse_rows_warns():
+    with pytest.warns(UserWarning, match=r"2 of 7 rows .*Sand \(coarse\): 2"):
+        ht.analysis.spt_class(classed(), table="cohesive")
+
+
+def test_matching_and_unchecked_classes_do_not_warn():
+    df = classed().iloc[3:]
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        ht.analysis.spt_class(df, table="cohesionless")
+
+
+def test_classes_from_attrs_with_a_categorical_unit():
+    df = classed().drop(columns="soil_class")
+    df["geology_unit"] = pd.Categorical(
+        df["geology_unit"], categories=["Sand", "Clay", "Fill", "Unknown", "Rock"]
+    )
+    df.attrs["soil_classes"] = {"Clay": "fine", "Sand": "coarse", "Fill": "fill"}
+    with pytest.warns(UserWarning, match=r"Clay \(fine\): 3"):
+        ht.analysis.spt_class(df, table="cohesionless")

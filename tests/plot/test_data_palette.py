@@ -59,7 +59,7 @@ def test_profile_uses_the_map_colors_and_order(data):
 
 
 def test_spt_histogram_follows_the_map_order(data):
-    fig, ax = ht.plot.spt_histogram(data)
+    fig, ax = ht.plot.spt_histogram(data, table="cohesionless")
     labels = [label.split(" (n = ")[0] for label in _legend(ax)]  # "Fill (n = 2)"
     assert labels == ORDER
     _close(fig)

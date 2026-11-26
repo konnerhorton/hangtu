@@ -39,7 +39,9 @@ atterberg = p.atterberg()
 # 5. The same four plots as from CSV, on a tabloid sheet.
 sheet = ht.Sheet("tabloid", layout=(2, 2), title="Riverside example site, from AGS")
 ht.plot.spt_profile(spt, n="spt_n60", ax=sheet[0, 0])
-ht.plot.spt_histogram(p.spt(geology=["Terrace"]), n="spt_n60", ax=sheet[0, 1])
+ht.plot.spt_histogram(
+    p.spt(geology=["Terrace"]), table="cohesionless", n="spt_n60", ax=sheet[0, 1]
+)
 ht.plot.profile(
     permeability,
     "hydraulic_conductivity",

@@ -39,7 +39,7 @@ ht.plot.spt_profile(spt, n="spt_n60", ax=sheet[0, 0])
 # 5. SPT N60 classes in the coarse soil (P03). The cohesionless table only
 #    fits sand and gravel, so the clay is left out.
 coarse = spt[spt["soil_class"] == "coarse"]
-ht.plot.spt_histogram(coarse, n="spt_n60", ax=sheet[0, 1])
+ht.plot.spt_histogram(coarse, table="cohesionless", n="spt_n60", ax=sheet[0, 1])
 
 # 6. Hydraulic conductivity on a log axis (P01). Lab tests are points; field
 #    tests are bars over the zone they tested.

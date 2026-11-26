@@ -131,7 +131,7 @@ def spt_histogram(
     df: pd.DataFrame,
     *,
     n: Literal["spt_n", "spt_n60"] = "spt_n",
-    table: Literal["cohesionless", "cohesive"] = "cohesionless",
+    table: Literal["cohesionless", "cohesive"] | None = None,  # required
     refusal: Literal["separate", "exclude"] = "separate",
     color_by: str | None = "geology_unit",
     order: list[str] | None = None,          # stratigraphic order of geology units
@@ -147,14 +147,16 @@ def spt_histogram(
     **style_overrides,
 ) -> tuple[Figure, Axes]:
 ```
+`table=` is required: the table is the engineer's call (SPEC §4), and a default put clays in "Very loose" with no warning. Leaving it out is an error naming both tables; rows whose `soil_class` contradicts the table are drawn as asked, with a warning (analysis §1.4).
+
 `spt_n_capped` isn't offered: it gives the same classes as `spt_n` unless the cap is set below a class boundary, and then it misclassifies.
 
 **Examples:**
 ```python
 spt = ht.read_csv("spt.csv", units={"spt_penetration": "in"})
 sand = spt[spt["geology_unit"].isin(["Fill", "Alluvial sand"])]
-fig, ax = ht.plot.spt_histogram(sand, order=["Fill", "Alluvial sand"])
-fig, ax = ht.plot.spt_histogram(sand, n="spt_n60", hammer_efficiency=80, bar_labels=True)
+fig, ax = ht.plot.spt_histogram(sand, table="cohesionless", order=["Fill", "Alluvial sand"])
+fig, ax = ht.plot.spt_histogram(sand, table="cohesionless", n="spt_n60", hammer_efficiency=80, bar_labels=True)
 fig, ax = ht.plot.spt_histogram(clay, table="cohesive", refusal="exclude")
 ```
 

@@ -40,7 +40,7 @@ For (N1)60, N60 corrected for overburden, and the correlations that take it, see
 
 ## Classes
 
-`ht.analysis.spt_class()` classifies each test by relative density or consistency. Each class runs from its lower bound up to, not including, the next, so N = 10 is Medium dense:
+`ht.analysis.spt_class()` classifies each test by relative density or consistency. `table=` is required: which table applies is your call, so pass the rows it applies to. Rows whose `soil_class` contradicts the table (a `fine` row for the cohesionless table) are classified as asked, with a warning. Each class runs from its lower bound up to, not including, the next, so N = 10 is Medium dense:
 
 | Cohesionless (`table="cohesionless"`) | N | Cohesive (`table="cohesive"`) | N |
 |---|---|---|---|

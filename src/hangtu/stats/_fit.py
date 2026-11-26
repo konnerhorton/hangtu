@@ -37,6 +37,9 @@ POSITIVE = ("lognormal", "gamma", "weibull")
 PARAMETER_COUNT = 2
 #: Fewer uncensored values per group is no fit; fewer than ``FEW`` warns.
 MIN_COUNT = 4
+#: Above this share of censored values, a fit rests on the censored likelihood
+#: more than on measured values, and says so (docs/analysis/statistics.md §1 and §2).
+MOSTLY_CENSORED = 0.5
 FEW = 10
 #: Fewer distinct values than this share of a group's values gets a note
 #: that the Anderson-Darling p-values read the ties as misfit (TODO #50).
@@ -434,6 +437,7 @@ def fit(
     names = checked["names"]
     limits = found.limits
     groups, notes, too_few, few = [], [], [], []
+    mostly: list[str] = []
     for one in found.groups:
         label, rows, chosen, values = one.label, one.rows, one.chosen, one.values
         group: dict[str, Any] = {
@@ -484,6 +488,13 @@ def fit(
                 "probabilities": positions[1].tolist(),
             }
         notes.extend(_group_notes(group, label, values, low))
+        concerns = censoring_concerns(values)
+        if concerns:
+            mostly.append(label)
+            notes.append(
+                f"{label}: {'; '.join(concerns)}, so the fits rest on the censored "
+                "likelihood more than on measured values."
+            )
 
     _rows.warn_left_out(found.reasons, read.column, function)
     _rows.warn_text(texts, read.column, function)
@@ -508,6 +519,13 @@ def fit(
             f"fit() has fewer than {MIN_COUNT} uncensored values of {read.column!r} "
             f"in: {', '.join(too_few)}. Those groups aren't fitted; their rows in "
             "the result have only the counts."
+        )
+    if mostly:
+        warn(
+            f"fit() has more than half the values of {read.column!r} censored in: "
+            f"{', '.join(mostly)}. A censored value is only a bound, so the fits "
+            "there rest on the censored likelihood more than on measured values; "
+            "judge them on the Q-Q plot, against the measured values."
         )
     if few:
         warn(
@@ -865,6 +883,33 @@ def _rank(fits: list[dict[str, Any]]) -> None:
     fits.sort(key=lambda fit: fit["aicc"])
     for rank, fit in enumerate(fits, start=1):
         fit["rank"] = rank
+
+
+def censoring_concerns(values: Values, value: float | None = None) -> list[str]:
+    """Say why a group's fit, or its ``value``, rests on its censored values.
+
+    More than half the values censored is one reason; a ``value`` beyond
+    every measured value on the censored side is the other: above the largest
+    for values censored "at least" (or between a refusal and its limit),
+    below the smallest for "at most" (docs/analysis/statistics.md §1 and §2).
+    """
+    concerns = []
+    if values.censored > values.count * MOSTLY_CENSORED:
+        concerns.append(f"{values.censored} of {values.count} values censored")
+    if value is None or not math.isfinite(value) or not values.exact.size:
+        return concerns
+    largest, smallest = values.exact.max(), values.exact.min()
+    if (values.right.size or len(values.interval)) and value > largest:
+        concerns.append(
+            f"the value, {value:.4g}, is above every measured value "
+            f"(largest {largest:.4g})"
+        )
+    if values.left.size and value < smallest:
+        concerns.append(
+            f"the value, {value:.4g}, is below every measured value "
+            f"(smallest {smallest:.4g})"
+        )
+    return concerns
 
 
 def _group_notes(

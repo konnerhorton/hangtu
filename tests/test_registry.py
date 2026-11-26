@@ -1,5 +1,6 @@
 import re
 import warnings
+from functools import partial
 from importlib.resources import files
 from pathlib import Path
 
@@ -301,7 +302,10 @@ def test_filled_templates_feed_the_plots(site, tmp_path):
         read[name] = ht.read_csv(path, units=units)
     calls = [
         (ht.plot.spt_profile, read["spt"]),
-        (ht.plot.spt_histogram, read["spt"]),
+        (
+            partial(ht.plot.spt_histogram, table="cohesionless"),
+            read["spt"][read["spt"]["soil_class"] == "coarse"],
+        ),
         (ht.plot.profile, read["permeability"], "hydraulic_conductivity"),
         (ht.plot.profile, read["atterberg"], "liquid_limit"),
         (ht.plot.geology_unit_comparison, read["atterberg"], "plasticity_index"),

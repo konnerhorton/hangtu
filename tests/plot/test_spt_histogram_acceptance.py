@@ -55,7 +55,9 @@ def footnote(ax):
 
 
 def test_cohesionless_units():
-    _, ax = ht.plot.spt_histogram(units_of(COHESIONLESS), order=COHESIONLESS)
+    _, ax = ht.plot.spt_histogram(
+        units_of(COHESIONLESS), table="cohesionless", order=COHESIONLESS
+    )
     assert [c.get_label() for c in ax.containers] == COHESIONLESS
     # Fill: 1 and 4 of 5. Sand: 1, 20 and 2 of 23.
     assert heights(ax, "Fill") == [20.0, 80.0, 0.0, 0.0, 0.0, 0.0]
@@ -97,7 +99,7 @@ def test_cohesive_units_without_refusals():
 
 def test_cohesionless_n60():
     _, ax = ht.plot.spt_histogram(
-        units_of(COHESIONLESS), n="spt_n60", order=COHESIONLESS
+        units_of(COHESIONLESS), table="cohesionless", n="spt_n60", order=COHESIONLESS
     )
     # Fill: 1, 1 and 1 of 3. Sand: 1, 9 and 2 of 12.
     assert heights(ax, "Fill") == [33.3, 33.3, 33.3, 0.0, 0.0, 0.0]
@@ -116,7 +118,9 @@ def test_bar_labels_sum_to_n():
 
 def test_sheet_with_both_tables(assert_no_global_state):
     sheet = ht.Sheet("letter", layout=(1, 2))
-    ht.plot.spt_histogram(units_of(COHESIONLESS), order=COHESIONLESS, ax=sheet[0])
+    ht.plot.spt_histogram(
+        units_of(COHESIONLESS), table="cohesionless", order=COHESIONLESS, ax=sheet[0]
+    )
     assert_no_global_state(
         ht.plot.spt_histogram, units_of(COHESIVE), table="cohesive", ax=sheet[1]
     )
@@ -127,6 +131,9 @@ def test_sheet_with_both_tables(assert_no_global_state):
 @pytest.mark.parametrize("display_units", ["US", "SI"])
 def test_display_units_change_nothing(display_units):
     _, ax = ht.plot.spt_histogram(
-        units_of(COHESIONLESS), order=COHESIONLESS, display_units=display_units
+        units_of(COHESIONLESS),
+        table="cohesionless",
+        order=COHESIONLESS,
+        display_units=display_units,
     )
     assert heights(ax, "Alluvial sand") == [0.0, 4.3, 87.0, 8.7, 0.0, 0.0]

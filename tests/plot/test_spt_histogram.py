@@ -57,13 +57,13 @@ def legend_texts(ax):
 
 
 def test_default_size_is_the_chart_size():
-    fig, _ = ht.plot.spt_histogram(spt_frame())
+    fig, _ = ht.plot.spt_histogram(spt_frame(), table="cohesionless")
     assert tuple(fig.get_size_inches()) == pytest.approx((6.5, 3.5))
 
 
 def test_a_missing_size_kind_uses_the_default_size(frame):
     ht.settings.figure_sizes = {"default": (6, 4)}
-    fig, _ = ht.plot.spt_histogram(spt_frame())
+    fig, _ = ht.plot.spt_histogram(spt_frame(), table="cohesionless")
     assert tuple(fig.get_size_inches()) == pytest.approx((6, 4))
     fig, _ = ht.plot.profile(frame(), "undrained_shear_strength")
     assert tuple(fig.get_size_inches()) == pytest.approx((6, 4))
@@ -74,14 +74,14 @@ def test_a_missing_size_kind_uses_the_default_size(frame):
 
 def test_golden_heights_lower_bound_inclusive():
     # Very loose 0; loose 4; medium dense 10, 29; dense 30; very dense 50, 51.
-    _, ax = ht.plot.spt_histogram(spt_frame())
+    _, ax = ht.plot.spt_histogram(spt_frame(), table="cohesionless")
     assert heights(ax, "A") == [14.3, 14.3, 28.6, 14.3, 28.6, 0.0]
     assert legend_texts(ax) == ["A (n = 7)"]
     assert ax.ags_notes == {}
 
 
 def test_cohesionless_axis():
-    _, ax = ht.plot.spt_histogram(spt_frame())
+    _, ax = ht.plot.spt_histogram(spt_frame(), table="cohesionless")
     assert tick_labels(ax) == COHESIONLESS
     assert ax.get_xlabel() == "SPT N class (cohesionless)"
     assert ax.get_ylabel() == "Tests in unit (%)"
@@ -108,7 +108,7 @@ def test_cohesive_table():
 def test_every_test_is_in_exactly_one_bar():
     rng = np.random.default_rng(1)
     df = spt_frame(n=rng.integers(0, 80, 40).astype(float))
-    _, ax = ht.plot.spt_histogram(df)
+    _, ax = ht.plot.spt_histogram(df, table="cohesionless")
     assert sum(heights(ax, "A")) == pytest.approx(100.0, abs=0.5)
     (bars,) = ax.containers
     counts = [round(p.get_height() * 40 / 100) for p in bars.patches]
@@ -116,7 +116,7 @@ def test_every_test_is_in_exactly_one_bar():
 
 
 def test_percent_is_per_unit():
-    _, ax = ht.plot.spt_histogram(two_units())
+    _, ax = ht.plot.spt_histogram(two_units(), table="cohesionless")
     # A: 2 very loose, 8 loose, 15 medium dense, 40 dense; 4 tests.
     assert heights(ax, "A") == [25.0, 25.0, 25.0, 25.0, 0.0, 0.0]
     # B: 5 loose, 12 medium dense, 35 dense; 3 tests.
@@ -125,7 +125,7 @@ def test_percent_is_per_unit():
 
 
 def test_bars_are_grouped_side_by_side():
-    _, ax = ht.plot.spt_histogram(two_units())
+    _, ax = ht.plot.spt_histogram(two_units(), table="cohesionless")
     a, b = ax.containers
     assert a.patches[0].get_width() == pytest.approx(0.4)
     assert a.patches[0].get_x() == pytest.approx(-0.4)
@@ -134,27 +134,29 @@ def test_bars_are_grouped_side_by_side():
 
 
 def test_order_puts_listed_units_first():
-    _, ax = ht.plot.spt_histogram(two_units(), order=["B"])
+    _, ax = ht.plot.spt_histogram(two_units(), table="cohesionless", order=["B"])
     assert [c.get_label() for c in ax.containers] == ["B", "A"]
     assert legend_texts(ax) == ["B (n = 3)", "A (n = 4)"]
 
 
 def test_blank_unit_is_last_in_gray():
     df = spt_frame(n=[5.0, 12.0, 35.0], geology_unit=["B", None, "A"])
-    _, ax = ht.plot.spt_histogram(df)
+    _, ax = ht.plot.spt_histogram(df, table="cohesionless")
     assert [c.get_label() for c in ax.containers] == ["A", "B", "(blank)"]
     (blank,) = [c for c in ax.containers if c.get_label() == "(blank)"]
     assert blank.patches[0].get_facecolor()[:3] == pytest.approx((0.3, 0.3, 0.3))
 
 
 def test_color_by_none_draws_one_group():
-    _, ax = ht.plot.spt_histogram(two_units(), color_by=None)
+    _, ax = ht.plot.spt_histogram(two_units(), table="cohesionless", color_by=None)
     assert len(ax.containers) == 1
     assert legend_texts(ax) == ["All tests (n = 7)"]
 
 
 def test_palette_colors_the_bars():
-    _, ax = ht.plot.spt_histogram(spt_frame(), palette={"A": "tan"})
+    _, ax = ht.plot.spt_histogram(
+        spt_frame(), table="cohesionless", palette={"A": "tan"}
+    )
     assert ax.containers[0].patches[0].get_facecolor()[:3] == pytest.approx(
         (210 / 255, 180 / 255, 140 / 255)
     )
@@ -162,7 +164,7 @@ def test_palette_colors_the_bars():
 
 def test_unknown_color_by_column_is_an_error():
     with pytest.raises(ht.ColumnError, match="color_by='soil' isn't a column"):
-        ht.plot.spt_histogram(spt_frame(), color_by="soil")
+        ht.plot.spt_histogram(spt_frame(), table="cohesionless", color_by="soil")
 
 
 # --- blank values and N60 ---------------------------------------------------------
@@ -170,7 +172,7 @@ def test_unknown_color_by_column_is_an_error():
 
 def test_blank_n_is_counted_not_classified():
     df = spt_frame(n=[5.0, np.nan, 12.0, np.nan])
-    _, ax = ht.plot.spt_histogram(df)
+    _, ax = ht.plot.spt_histogram(df, table="cohesionless")
     assert legend_texts(ax) == ["A (n = 2)"]
     assert heights(ax, "A")[1:3] == [50.0, 50.0]
     assert ax.ags_notes == {"nan": 2}
@@ -179,7 +181,7 @@ def test_blank_n_is_counted_not_classified():
 def test_n60_is_classified_and_labeled():
     # 30 * 80 / 60 = 40, dense; 9 * 80 / 60 = 12, medium dense.
     df = spt_frame(n=[30.0, 9.0], energy_ratio=[80, 80])
-    _, ax = ht.plot.spt_histogram(df, n="spt_n60")
+    _, ax = ht.plot.spt_histogram(df, table="cohesionless", n="spt_n60")
     assert ax.get_xlabel() == "SPT N60 class (cohesionless)"
     assert heights(ax, "A") == [0.0, 0.0, 50.0, 50.0, 0.0, 0.0]
 
@@ -187,20 +189,22 @@ def test_n60_is_classified_and_labeled():
 def test_n60_hammer_efficiency_is_passed_to_the_analysis():
     df = spt_frame(n=[30.0, 9.0])
     with pytest.warns(UserWarning, match="Energy ratio 80 %"):
-        _, ax = ht.plot.spt_histogram(df, n="spt_n60", hammer_efficiency=80)
+        _, ax = ht.plot.spt_histogram(
+            df, table="cohesionless", n="spt_n60", hammer_efficiency=80
+        )
     assert heights(ax, "A") == [0.0, 0.0, 50.0, 50.0, 0.0, 0.0]
 
 
 def test_tests_without_n60_are_counted():
     df = spt_frame(n=[30.0, 9.0, 20.0, np.nan], energy_ratio=[80, 80, None, 80])
-    _, ax = ht.plot.spt_histogram(df, n="spt_n60")
+    _, ax = ht.plot.spt_histogram(df, table="cohesionless", n="spt_n60")
     assert legend_texts(ax) == ["A (n = 2)"]
     assert ax.ags_notes == {"no_energy_ratio": 1, "nan": 1}
 
 
 def test_no_n60_anywhere_is_an_error():
     with pytest.raises(ht.HangtuError, match="No test has N60") as caught:
-        ht.plot.spt_histogram(spt_frame(), n="spt_n60")
+        ht.plot.spt_histogram(spt_frame(), table="cohesionless", n="spt_n60")
     assert "hammer_efficiency=80" in str(caught.value)
     assert 'n="spt_n"' in str(caught.value)
 
@@ -223,20 +227,20 @@ def test_unknown_choices_are_errors(argument, value, message):
 
 def test_missing_spt_n_is_the_analysis_error():
     with pytest.raises(ht.ColumnError, match="Column 'spt_n'"):
-        ht.plot.spt_histogram(spt_frame().drop(columns="spt_n"))
+        ht.plot.spt_histogram(spt_frame().drop(columns="spt_n"), table="cohesionless")
 
 
 def hints(df, **kwargs):
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
-        ht.plot.spt_histogram(df, **kwargs)
+        ht.plot.spt_histogram(df, table="cohesionless", **kwargs)
     return [str(w.message) for w in caught if issubclass(w.category, ht.HangtuHint)]
 
 
 def test_hint_without_geology_unit_draws_one_group():
     df = spt_frame().drop(columns="geology_unit")
     with pytest.warns(ht.HangtuHint, match="No 'geology_unit' column: all tests"):
-        _, ax = ht.plot.spt_histogram(df)
+        _, ax = ht.plot.spt_histogram(df, table="cohesionless")
     assert legend_texts(ax) == ["All tests (n = 7)"]
 
 
@@ -251,8 +255,8 @@ def test_no_hint_with_the_columns():
 
 
 def test_display_units_change_nothing():
-    _, us = ht.plot.spt_histogram(two_units(), display_units="US")
-    _, si = ht.plot.spt_histogram(two_units(), display_units="SI")
+    _, us = ht.plot.spt_histogram(two_units(), table="cohesionless", display_units="US")
+    _, si = ht.plot.spt_histogram(two_units(), table="cohesionless", display_units="SI")
     for unit in ("A", "B"):
         assert heights(us, unit) == heights(si, unit)
     assert tick_labels(us) == tick_labels(si)
@@ -260,16 +264,18 @@ def test_display_units_change_nothing():
 
 
 def test_no_global_state(assert_no_global_state):
-    assert_no_global_state(ht.plot.spt_histogram, two_units())
+    assert_no_global_state(ht.plot.spt_histogram, two_units(), table="cohesionless")
 
 
 def test_no_global_state_on_a_sheet_panel(assert_no_global_state):
     sheet = ht.Sheet("letter", layout=(1, 2))
-    assert_no_global_state(ht.plot.spt_histogram, two_units(), ax=sheet[1])
+    assert_no_global_state(
+        ht.plot.spt_histogram, two_units(), table="cohesionless", ax=sheet[1]
+    )
 
 
 def test_empty_input_shows_no_data():
-    _, ax = ht.plot.spt_histogram(spt_frame().iloc[0:0])
+    _, ax = ht.plot.spt_histogram(spt_frame().iloc[0:0], table="cohesionless")
     assert "No data" in [t.get_text() for t in ax.texts]
     assert ax.get_ylim() == (0.0, 100.0)
 
@@ -285,7 +291,7 @@ def with_refusal():
 
 
 def test_refusal_is_in_its_own_class_only():
-    _, ax = ht.plot.spt_histogram(with_refusal())
+    _, ax = ht.plot.spt_histogram(with_refusal(), table="cohesionless")
     # 1, 1, 2, 1, 2 and 1 refusal of 8; N = 12 doesn't add to medium dense.
     assert heights(ax, "A") == [12.5, 12.5, 25.0, 12.5, 25.0, 12.5]
     assert legend_texts(ax) == ["A (n = 8)", "refusal"]
@@ -293,7 +299,9 @@ def test_refusal_is_in_its_own_class_only():
 
 
 def test_refusal_bar_is_hatched_in_the_unit_color():
-    _, ax = ht.plot.spt_histogram(with_refusal(), palette={"A": "tan"})
+    _, ax = ht.plot.spt_histogram(
+        with_refusal(), table="cohesionless", palette={"A": "tan"}
+    )
     (bars,) = ax.containers
     tan = (210 / 255, 180 / 255, 140 / 255)
     assert bars.patches[-1].get_hatch() == "////"
@@ -304,26 +312,28 @@ def test_refusal_bar_is_hatched_in_the_unit_color():
 
 def test_one_shared_refusal_legend_entry():
     df = pd.concat([with_refusal(), with_refusal().assign(geology_unit="B")])
-    _, ax = ht.plot.spt_histogram(df.reset_index(drop=True))
+    _, ax = ht.plot.spt_histogram(df.reset_index(drop=True), table="cohesionless")
     assert legend_texts(ax) == ["A (n = 8)", "B (n = 8)", "refusal"]
     (entry,) = [h for h in ax.get_legend().get_patches() if h.get_hatch()]
     assert entry.get_label() == "refusal"
 
 
 def test_no_refusal_legend_entry_without_refusals():
-    _, ax = ht.plot.spt_histogram(spt_frame())
+    _, ax = ht.plot.spt_histogram(spt_frame(), table="cohesionless")
     assert legend_texts(ax) == ["A (n = 7)"]
 
 
 def test_refusal_with_blank_n_is_a_refusal():
     df = spt_frame(n=[5.0, np.nan], spt_refusal=[False, True])
-    _, ax = ht.plot.spt_histogram(df)
+    _, ax = ht.plot.spt_histogram(df, table="cohesionless")
     assert heights(ax, "A") == [0.0, 50.0, 0.0, 0.0, 0.0, 50.0]
     assert ax.ags_notes == {}
 
 
 def test_exclude_leaves_refusals_out_and_counts_them():
-    _, ax = ht.plot.spt_histogram(with_refusal(), refusal="exclude")
+    _, ax = ht.plot.spt_histogram(
+        with_refusal(), table="cohesionless", refusal="exclude"
+    )
     assert tick_labels(ax) == COHESIONLESS[:-1]
     assert heights(ax, "A") == [14.3, 14.3, 28.6, 14.3, 28.6]
     assert legend_texts(ax) == ["A (n = 7)"]
@@ -336,7 +346,7 @@ def test_refusals_are_counted_with_n60():
     df = spt_frame(
         n=[30.0, 9.0, 60.0], energy_ratio=[80, 80, None], spt_refusal=[0, 0, 1]
     )
-    _, ax = ht.plot.spt_histogram(df, n="spt_n60")
+    _, ax = ht.plot.spt_histogram(df, table="cohesionless", n="spt_n60")
     assert legend_texts(ax) == ["A (n = 3)", "refusal"]
     assert ax.ags_notes == {}
 
@@ -349,7 +359,7 @@ def footnote(ax):
 
 
 def test_bar_labels_on_non_zero_bars_only():
-    _, ax = ht.plot.spt_histogram(with_refusal(), bar_labels=True)
+    _, ax = ht.plot.spt_histogram(with_refusal(), table="cohesionless", bar_labels=True)
     labels = [t for t in ax.texts if t.get_text().isdigit()]
     assert [t.get_text() for t in labels] == ["1", "1", "2", "1", "2", "1"]
     (bars,) = ax.containers
@@ -360,24 +370,26 @@ def test_bar_labels_on_non_zero_bars_only():
 
 
 def test_no_bar_labels_by_default():
-    _, ax = ht.plot.spt_histogram(spt_frame())
+    _, ax = ht.plot.spt_histogram(spt_frame(), table="cohesionless")
     assert not [t for t in ax.texts if t.get_text().isdigit()]
 
 
 def test_note_is_in_the_footnote():
-    _, ax = ht.plot.spt_histogram(spt_frame(), note="Sands only")
+    _, ax = ht.plot.spt_histogram(spt_frame(), table="cohesionless", note="Sands only")
     assert "Sands only" in footnote(ax)
 
 
 def test_unit_in_order_with_no_tests_is_noted():
-    _, ax = ht.plot.spt_histogram(two_units(), order=["C", "B", "A"])
+    _, ax = ht.plot.spt_histogram(
+        two_units(), table="cohesionless", order=["C", "B", "A"]
+    )
     assert [c.get_label() for c in ax.containers] == ["B", "A"]
     assert "No classified tests: C" in footnote(ax)
 
 
 def test_unit_with_only_blank_n_is_noted():
     df = spt_frame(n=[5.0, np.nan, np.nan], geology_unit=["A", "B", "B"])
-    _, ax = ht.plot.spt_histogram(df)
+    _, ax = ht.plot.spt_histogram(df, table="cohesionless")
     assert [c.get_label() for c in ax.containers] == ["A"]
     assert legend_texts(ax) == ["A (n = 1)"]
     assert "No classified tests: B" in footnote(ax)
@@ -385,5 +397,5 @@ def test_unit_with_only_blank_n_is_noted():
 
 
 def test_no_note_when_every_unit_has_tests():
-    _, ax = ht.plot.spt_histogram(two_units(), order=["B", "A"])
+    _, ax = ht.plot.spt_histogram(two_units(), table="cohesionless", order=["B", "A"])
     assert "No classified tests" not in footnote(ax)

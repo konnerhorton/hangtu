@@ -7,4 +7,5 @@ spt = ht.read_csv(
 spt = ht.analysis.spt(spt)  # refusal, N60 and capped N
 
 coarse = spt[spt["soil_class"] == "coarse"]
-print(ht.analysis.spt_class(coarse, n="spt_n60").value_counts(sort=False))
+classes = ht.analysis.spt_class(coarse, table="cohesionless", n="spt_n60")
+print(classes.value_counts(sort=False))

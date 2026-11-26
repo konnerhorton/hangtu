@@ -45,6 +45,11 @@ _LEFT_OUT = (
     "count_multistage_left_out",
 )
 _STAGES = ("all", "single_stage")
+#: The overburden check (docs/analysis/strength.md §4), hangtu's rule with no
+#: source: a stress above max(RATIO · γ_max · z, FLOOR) suggests a wrong unit.
+_UNIT_WEIGHT_BOUND = 25.0  # kN/m³, above any soil's bulk unit weight
+_OVERBURDEN_RATIO = 10.0
+_STRESS_FLOOR = 500.0  # kPa
 
 
 def mohr_coulomb_fit(
@@ -116,7 +121,16 @@ def mohr_coulomb_fit(
     fit and a ``no_fit_reason``; the other groups are fitted. A negative
     intercept is reported as fitted, with a warning; a point with
     $\sigma'_3 < 0$ (tension) is fitted, with a warning. Nothing is clipped,
-    forced or extrapolated. **Scatter:** ``r_squared`` (centered, so a fit
+    forced or extrapolated.
+
+    **Stresses far above the overburden warn.** Where a row has a ``depth``
+    with a declared unit, its ``effective_consolidation_stress`` (else
+    $\sigma_3$ at failure) is compared with
+    $\max(10 \cdot 25\ \text{kN/m}^3 \cdot z,\ 500\ \text{kPa})$, an upper
+    bound on the overburden that needs no unit weights. Above it, one warning
+    names the rows: the stresses may be in another unit than declared, such
+    as psf declared as kPa. This is hangtu's rule, not a source's; the fit is
+    unchanged. **Scatter:** ``r_squared`` (centered, so a fit
     with ``cohesion=0`` can have a low or negative one); a fit of 2 points
     passes through both, so its R² is 1 by construction. **Judgments taken:**
     none; ``cohesion=0`` is an argument recorded on the result.
@@ -222,6 +236,7 @@ def mohr_coulomb_fit(
 
     stresses, unit = _stresses(df, stress, units, display_units)
     total_minor, total_major, minor, major = stresses
+    _check_overburden(df, minor, unit, units)
     reversed_ = major < minor
     if reversed_.any():
         prime = "′" if stress == "effective" else ""
@@ -334,6 +349,58 @@ def mohr_coulomb_fit(
         depth_units=_place_units(df, units),
         groups=tuple(groups),
     )
+
+
+def _check_overburden(
+    df: pd.DataFrame,
+    minor: np.ndarray,
+    unit: str | None,
+    units: Mapping[str, str] | None,
+) -> None:
+    """Warn where a stress is far above any overburden at the sample's depth.
+
+    The stress is ``effective_consolidation_stress`` where it is given, else
+    σ3 at failure. Its limit is max(10 · 25 kN/m³ · z, 500 kPa): an upper
+    bound on the overburden, so the check needs no unit weights. Stresses in
+    psf declared as kPa (about 20 times too large) exceed it; a stress
+    within it isn't checked further. Rows without a depth, or a depth or
+    stress without a declared unit, aren't checked (docs/analysis/strength.md
+    §4).
+    """
+    declared = {**_units.units_of(df), **(units or {})}
+    if "depth" not in df.columns or "depth" not in declared or unit is None:
+        return
+    meter, kilopascal = _units.parse_unit("m"), _units.parse_unit("kPa")
+    depth = _units.convert(
+        numeric_column(df, "depth"),
+        _units.parse_unit(declared["depth"], "depth"),
+        "length",
+        meter,
+    )
+    stress = _units.convert(minor, _units.parse_unit(unit), "stress", kilopascal)
+    column = "effective_consolidation_stress"
+    if column in df.columns and column in declared:
+        given = _units.convert(
+            numeric_column(df, column),
+            _units.parse_unit(declared[column], column),
+            "stress",
+            kilopascal,
+        )
+        stress = np.where(np.isnan(given), stress, given)
+    limit = np.maximum(_OVERBURDEN_RATIO * _UNIT_WEIGHT_BOUND * depth, _STRESS_FLOOR)
+    with np.errstate(invalid="ignore"):
+        high = stress > limit
+    if high.any():
+        warn(
+            f"{_FUNCTION}: rows {rows_text(df.index[high])} have a consolidation "
+            f"stress (or σ3 at failure) of up to {np.nanmax(stress[high]):,.0f} kPa, "
+            f"more than {_OVERBURDEN_RATIO:g} times an upper bound on the "
+            f"overburden at their depth ({_UNIT_WEIGHT_BOUND:g} kN/m³ × depth, and "
+            f"at least {_STRESS_FLOOR:g} kPa). The stresses may be in another unit "
+            "than declared (psf declared as kPa?): check the units of the stress "
+            "columns. If the tests were consolidated that high on purpose, the fit "
+            "stands."
+        )
 
 
 def _stresses(

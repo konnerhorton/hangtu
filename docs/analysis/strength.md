@@ -122,6 +122,14 @@ and `ground_level` where the input has them), not a reference to the input.
   `count_multistage_left_out`. σ′1 < σ′3 on a row is an error.
 - **Validity:** a slope tan α outside 0 ≤ tan α < 1 has no friction angle (sin φ = tan α), so no fit, with the reason;
   a point with σ′3 < 0 is kept, with a warning (tension).
+- **Stresses far above the overburden warn:** where a row has a `depth` with a declared unit, its
+  `effective_consolidation_stress` (else σ3 at failure, in kPa) is compared with max(10 × 25 kN/m³ × z, 500 kPa).
+  Above it, one warning names the rows and says the stresses may be in another unit than declared (psf declared as
+  kPa gives values about 20 times too large; a trial agent's CSV did this and got c′ = 104 kPa). The bound needs no
+  unit weights or stratigraphy, so it runs on a bare CSV: 25 kN/m³ is above any soil's bulk unit weight, and the
+  500 kPa floor stops false warnings on shallow samples tested at the usual 100–400 kPa. Both numbers are hangtu's
+  rule, with no source. Rows without a depth, or a depth with no unit, aren't checked; the fit is unchanged. The
+  oedometer isn't checked: it is loaded 10–30 times past σ′v0 by design.
 - **`cohesion=` takes None or 0.** It is an argument recorded on the result, not a judgment (it applies to one
   fit, not a geology unit). With c fixed at a non-zero value, a = c cos φ depends on the slope and the s–t fit is no
   longer a line, so another value is an error. With 0 it replaces the free fit.

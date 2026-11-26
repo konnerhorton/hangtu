@@ -234,6 +234,7 @@ fig, ax = ht.plot.profile(su, "undrained_shear_strength", preset="undrained_shea
 | Units unknown for value or vertical | Plot drawn with "(units unknown)" in the label, plus a warning naming the column and how to declare it (`ht.set_units`) |
 | Values ≤ 0 on a log axis | Excluded and counted in the footnote |
 | `stats_box=` on rows from different sources, or with assumed values | A mixing line reads "mixes sources (<column>)"; assumed values are drawn and counted on the "Also" line, not summarized (M15 (a)) |
+| An estimate noted `soil class contradicts` (a correlation on rows whose `soil_class` it isn't for) | Drawn, and counted: "n with a soil class the correlation isn't for, shown" |
 | A blank estimate with a `correlation_note` (a correlation's result, `ht.analysis.correlations`) | Counted by its note instead of as a blank value: "n refusals, no estimate", "n below range, no estimate" (or above), "n with a blank input, no estimate", "n not for this soil, no estimate", "n with soil type unknown, no estimate". A blank depth or elevation is still a blank value (M13 b1, b2) |
 | Values beyond `xlim`/`ylim` | Edge marker + arrow + count |
 | `depth_top` > `depth_base` | Bar not drawn for that row; warning naming the row |

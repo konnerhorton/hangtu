@@ -19,6 +19,7 @@ from hangtu import units as _units
 from hangtu._data import rows_text, text_values
 from hangtu._settings import _display_units, figure_size, settings
 from hangtu.analysis.correlations._framework import REASONS as CORRELATION_REASONS
+from hangtu.analysis.correlations._framework import SOIL_CLASS_CONTRADICTS
 from hangtu.errors import ColumnError, HangtuError, warn
 from hangtu.plot import _layers, _presets, _text_values, _value_ranges, _values, style
 from hangtu.plot._hints import hint_missing
@@ -725,6 +726,15 @@ def _draw_profile(
         notes.count(extra & ranged, "value_range")
         blank = (np.isnan(x) & (texts == "") & ~extra) | np.isnan(y)
         notes.count(blank & ~_count_no_estimate(df, blank & ~np.isnan(y), notes), "nan")
+        if "correlation_note" in df.columns:
+            notes.count(
+                ~blank
+                & (
+                    df["correlation_note"].to_numpy(dtype=object)
+                    == SOIL_CLASS_CONTRADICTS
+                ),
+                "correlation_soil_class_contradicts",
+            )
         texts = np.where(blank, "", texts)
         drawn = ~blank & (texts == "") & ~np.isnan(x)
         if log:

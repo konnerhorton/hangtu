@@ -42,7 +42,7 @@ Each one:
 
 - **reads the one N it was derived with,** by its column name, and has no argument to read another. A correlation on (N1)60 given only N60 stops with an error that says to run `spt_n1_60()` first, so field N never goes into an (N1)60 equation unnoticed.
 - **reads the soil type only when asked** (see [Soil type](#soil-type)). By default, pass the rows a correlation applies to, as for `spt_class()`. These are for relatively clean sands; the example's Terrace is a sand with gravel, at the edge of what they cover. On a project, check the gradation first.
-- **returns every row,** with the estimate in the property's column (`effective_friction_angle`), `correlation_name`, `correlation_qualifier`, `correlation_note` and `correlation_input`. `correlation_qualifier` marks an estimate that is a bound (see [Bounded estimates](#bounded-estimates)). `correlation_note` says why: `at least: refusal` and the like for a bound, and for no estimate `input blank`, `refusal`, `below range`, `above range`, `not for this soil` or `soil type unknown`. `correlation_input` names the correlation an input came from, where one did (see [Chaining](#chaining)).
+- **returns every row,** with the estimate in the property's column (`effective_friction_angle`), `correlation_name`, `correlation_qualifier`, `correlation_note` and `correlation_input`. `correlation_qualifier` marks an estimate that is a bound (see [Bounded estimates](#bounded-estimates)). `correlation_note` says why: `at least: refusal` and the like for a bound, and for no estimate `input blank`, `refusal`, `below range`, `above range`, `not for this soil` or `soil type unknown`; and `soil class contradicts` for an estimate on a row whose `soil_class` the correlation isn't for (see [Soil type](#soil-type)). `correlation_input` names the correlation an input came from, where one did (see [Chaining](#chaining)).
 - **records what it is** in `df.attrs["correlations"]`: the equation, inputs, range and sources of every correlation. `ht.analysis.correlations.describe(name)` returns the same entry when the attrs are lost.
 
 ## Bounded estimates
@@ -111,6 +111,8 @@ The correlations for clay (s_u, σ′p, OCR, K0) can read the soil type, if the 
 ``` { .text .no-copy }
 UserWarning: overconsolidation_ratio_mayne_kemper_1988 gave no estimate for 33 of 65 rows (33 not for this soil; see 'correlation_note'). [...]
 ```
+
+Without `uscs=`, every correlation still reads `soil_class`, which a project's datasets carry from the geology map. A row whose class the correlation isn't for (a `fine` row for a sand correlation, a `coarse` row for a clay one, a `rock` row for either) keeps its estimate, noted `soil class contradicts`, and one warning counts those rows by geology unit. `describe(name)["soil_classes"]` gives the classes each correlation is for. Other classes, such as `fill`, and a blank class aren't checked.
 
 ## Stiffness: the soil row and the strain level
 

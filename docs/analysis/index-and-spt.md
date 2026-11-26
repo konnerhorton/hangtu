@@ -61,11 +61,13 @@ An `spt_n60` already filled in is kept. N60 is computed for refusals too; the pl
 
 ### 1.4 `ht.analysis.spt_class()`
 ```python
-spt_class(df, *, n="spt_n", table="cohesionless") -> pandas.Series
+spt_class(df, *, n="spt_n", table) -> pandas.Series   # table= required
 ```
 Returns each test's class as an ordered categorical, in table order with "Refusal" last. It runs `spt()` on `df` first, so the refusal rule is the same.
 
-- **Which table** is the user's call: they pick `table=` and pass the rows it applies to. `soil_class` isn't read.
+- **Which table** is the user's call, so `table=` is required (SPEC §4): they pick it and pass the rows it applies to. Leaving it out is an error naming both tables. The default it once had (`cohesionless`) put clays in "Very loose" with no warning.
+- **`soil_class` is read only to warn:** rows whose class contradicts the table (`fine` or `rock` for `cohesionless`, `coarse` or `rock` for `cohesive`) are classified as asked, and one warning counts them by geology unit. `fill`, `organic`, other values and a blank class aren't checked. The class comes from `soil_class`, else `attrs["soil_classes"]` by `geology_unit`, never derived.
+- **`n=` keeps its default, `spt_n`:** N is defined by ASTM D1586, so which column to classify is data, not a judgment.
 - **Which value:** the column named by `n` (`spt_n`, `spt_n60` or `spt_n_capped`). For N60, set `ht.settings.hammer_efficiency`, fill in `energy_ratio`, or run `spt()` first with `hammer_efficiency=`; what `spt()` filled in is kept.
 - **Lower bound inclusive:** a class runs from its lower bound up to, not including, the next one. N = 0 is "very loose", N = 10 "medium dense", N = 50 "very dense".
 - **A refusal** is "Refusal" only, whatever its N. A blank value gives a blank class.
@@ -93,7 +95,7 @@ Each says what is wrong, where (the rows, listed as the plots do) and what to do
 - `cap` not a positive whole number.
 - `spt_refusal` holding something other than the values above.
 - `spt_penetration` with no units when a row needs it (`UnitsError`, with the `set_units` example).
-- `spt_class`: an unknown `table` (list the two); `n` other than the three columns in §1.4; negative values in the `n` column (an `spt_n60` filled in by the user).
+- `spt_class`: no `table` or an unknown one (list the two); `n` other than the three columns in §1.4; negative values in the `n` column (an `spt_n60` filled in by the user).
 
 ### 1.6 Acceptance criteria and golden values
 Worked by hand.
