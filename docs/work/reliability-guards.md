@@ -63,3 +63,66 @@ value driven by censored values, and stresses declared in the wrong unit.
 5. **Stresses warn when a consolidation stress is far above the overburden at the sample's depth** (about 10×), in
    the triaxial fit only. The oedometer is loaded 10–30× past σ′v0 by design, so it isn't checked.
 
+## Spec
+
+### Changes
+- **`spt_class()`, `spt_histogram()`:** `table` has no working default. The signature keeps `table=None` so that
+  leaving it out raises our own message rather than Python's bare `TypeError`: "spt_class() needs table=: "cohesionless"
+  (relative density) or "cohesive" (consistency). Which applies is the engineer's call; pass the rows it applies to."
+  A `soil_class` that contradicts the table warns: `cohesionless` on `fine` rows, `cohesive` on `coarse` rows, either
+  on `rock` rows. Other classes (`fill`, `organic`, blank, user-defined) aren't checked.
+- **Correlations:** each entry in `correlations.yaml` gets `soil_classes:`, hangtu's reading of `applies_to` (like
+  `uscs:`): Hatanaka & Uchida and Kulhawy & Mayne φ′: `[coarse]`; Terzaghi & Peck, Stroud, Mayne & Kemper (σ′p, OCR),
+  Kulhawy et al. K0: `[fine]`; AASHTO E′ by its soil row (silts `[fine]`, sands and gravels `[coarse]`); Kulhawy &
+  Mayne E′: `[coarse]`; Imai & Tonouchi and Ohta & Goto Vs: `null` (all soils, not checked). A row whose class is
+  `coarse`, `fine` or `rock` and not in the list keeps its estimate, gets the `correlation_note`
+  "soil class contradicts" when it has no other note, and is counted in one warning per call naming the geology
+  units. The class comes from the `soil_class` column, else from `attrs["soil_classes"]` by `geology_unit`; with
+  neither, nothing is checked.
+- **P01's footnote** counts the new note: "{n} soil class contradicts the correlation".
+- **`representative()`:** per group, a warning and a group note when `count_censored > count / 2`, or when the
+  representative value is above the largest uncensored value (right-censored values) or below the smallest
+  (left-censored values). `select()` inherits both through `representative()`.
+- **`fit()`:** the same warning and note on the first condition (it has no representative value).
+- **`mohr_coulomb_fit()`:** for each point with a depth, an upper bound on the overburden is
+  σ_v,max = γ_max · z with γ_max = 25 kN/m³. One warning per call lists the rows whose effective consolidation
+  stress (or σ′3 at failure, where the stress isn't given) exceeds max(10 · σ_v,max, 500 kPa), and says the likely
+  cause: "the stresses may be in another unit than declared (psf as kPa?)". Rows without a depth aren't checked.
+
+### Decisions
+1. **γ_max = 25 kN/m³ and a 500 kPa floor.** An upper bound needs no unit weights or stratigraphy, so the check
+   runs on a bare CSV. 25 kN/m³ is above any soil's bulk unit weight. The floor stops false warnings on shallow
+   samples tested at the usual 100–400 kPa (at 1 m the bound alone is 250 kPa). Checked against #67's case: 18 ft
+   (5.5 m) gives max(1,375, 500) = 1,375 kPa < 3,680 kPa, so it warns. A shallow psf file tested at 1× σv (2 m,
+   ≈ 40 kPa ≈ 835 psf) also warns (835 > 500). Both numbers are hangtu's rule, stated as such, with no source.
+2. **The class note comes last in `correlation_note`'s priority.** A row with no estimate keeps its reason for
+   being blank, and a bound keeps "refusal" or "above range"; the warning counts every contradicting row whatever its
+   note.
+3. **`rock` contradicts every soil table and correlation; `fill` and `organic` aren't checked.** Fill behaves as
+   its dominant soil, and organic clay is still a clay; both are TODO #3.
+4. **The checks read `soil_class` as given.** hangtu doesn't derive a class from USCS or gradation.
+
+### Acceptance criteria
+1. **Table required:** `spt_class(df)` and `spt_histogram(df)` without `table=` raise `HangtuError` naming both
+   tables. With `table=` given, results are unchanged (existing tests).
+2. **SPT class check:** `spt_class(rows, table="cohesionless")` on 3 `fine` and 2 `coarse` rows warns once, naming 3
+   rows; `table="cohesive"` on the same rows warns naming 2; rows with `soil_class` blank or `fill` don't warn.
+3. **Correlation check:** Hatanaka & Uchida on the example site's Alluvium rows (`fine`) warns once, with the count
+   and the unit; every estimate equals the estimate without the check; rows with no other note get
+   "soil class contradicts". On the Terrace rows (`coarse`) it doesn't warn. AASHTO with `soil=` a silt row on
+   `coarse` rows warns.
+4. **Class from attrs:** a frame without a `soil_class` column but with `attrs["soil_classes"]` and `geology_unit`
+   is checked the same way, including when `geology_unit` is categorical.
+5. **Censored count:** `representative()` on 3 uncensored values (30, 32, 34) and 4 right-censored at 40 warns
+   (4 > 3.5) and adds the group note; on 4 uncensored and 3 censored it doesn't warn on the count. `fit()` on the
+   first set warns.
+6. **Beyond the uncensored values:** a right-censored group whose representative value is above its largest
+   uncensored value warns; a left-censored group below its smallest warns; a characteristic value below the smallest
+   value of a right-censored group (the usual low side) doesn't.
+7. **Overburden check:** #67's case (σ′c 3,680 "kPa" at 5.5 m) warns naming the row; 400 kPa at 1 m, 1,000 kPa at
+   10 m and rows without a depth don't; the threshold in ft gives the same result as in m.
+8. **No silent change:** every number every function returned before is unchanged; only warnings and notes are
+   added.
+9. **Docs:** the site builds strict, every example runs without a new warning, and the reference pages show
+   `table=` as required.
+
