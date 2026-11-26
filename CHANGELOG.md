@@ -45,6 +45,13 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
   `ht.template("oedometer_readings")` lays them out for a CSV, and `ht.template("consolidation_overrides")` the
   overrides. The example project carries readings for its oedometer tests. Elapsed times in a file are read in any
   unit of time and given in minutes.
+- **Stiffness and dilatancy from triaxial readings:** `triaxial_stiffness_from_readings()` reads each stage's
+  E50, the secant modulus at half the peak deviator stress, and its strain ε50 from the q–ε1 readings, so you can
+  set it beside the lab's reported E50; and the failure ratio Rf of the Hardening Soil model's hyperbola, fitted to
+  the readings between 0.7 and 0.95 of the failure stress. `triaxial_dilatancy_from_readings()` reads each drained
+  stage's dilatancy angle ψ from the rate of volume change near failure. A stage a value can't be read from gets a
+  reason instead, and the fit's range and ψ's window are arguments. The new site page, Hardening Soil stiffness,
+  shows both on the example project.
 - `oedometer_load_branch()` marks each oedometer increment as loading, unloading, reloading or held at a
   constant stress, and `ht.template("oedometer")` lays out oedometer tests for a CSV.
 - **Classification and index analyses:** `plasticity()`, `uscs()`, `aashto()`, `gradation()`,
@@ -67,6 +74,15 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
 - **QC:** oedometer checks (E001 to E005): void ratios that don't follow on from one increment to the next,
   a void ratio that rises under a larger load, a lab's m_v that doesn't follow from its own void ratios,
   increments out of order, and an initial void ratio that disagrees with the densities.
+- **The lab's E50 in `p.triaxial()`:** `reported_secant_modulus_at_50_percent_peak` and
+  `reported_axial_strain_at_50_percent_peak` (`TRET_E50`, `TRET_EP50`), the secant modulus to half the peak
+  deviator stress and its strain, as the lab reports them; read E50 with `test_type`, since it is undrained on a CU
+  stage and drained on a CD one. `effective_vertical_consolidation_stress` and
+  `effective_radial_consolidation_stress` (`TRET_CVP`, `TRET_CRP`) say which stress an anisotropically
+  consolidated stage was consolidated to. All four are in `ht.template("triaxial")` too.
+- **QC:** triaxial checks X007 and X008: a lab's E50 that doesn't follow from its own q_f and ε50 (usually a unit
+  slip), and an ε50 at or past the strain at failure. They run where the failure criterion is the maximum
+  deviator stress.
 - **QC:** `p.qc(accepted=...)` takes findings a reviewer has checked and accepted, each with a reason. They
   stay in the report, marked accepted, so it shows what is still open.
 - The project's vertical datum is read from the file's `LOCA_DATM` and shown on elevation axes.

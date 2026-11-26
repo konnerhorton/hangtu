@@ -96,6 +96,37 @@ def test_qc_finds_only_the_planted_defects(site):
     ]
 
 
+def test_triaxial_stages_carry_the_labs_e50(site):
+    # M23 (a) AC 9: nine stages (the CU set on B-2-U2, the CD tests on B-1-U5
+    # and B-2-U4) carry the lab's E50 and ε50, read from their own curves.
+    stages = site.triaxial()
+    e50 = "reported_secant_modulus_at_50_percent_peak"
+    strain = "reported_axial_strain_at_50_percent_peak"
+    filled = stages[e50].notna()
+    assert set(stages.loc[filled, "sample_reference"]) == {
+        "B-2-U2",
+        "B-1-U5",
+        "B-2-U4",
+    }
+    uu = stages["test_type"] == "UU"  # TRIT rows: no such headings
+    assert filled.sum() == 9 and (~filled & ~uu).sum() == 9
+    assert not filled[uu].any()
+    assert stages.loc[filled, strain].notna().all()
+    assert stages.attrs["units"][e50] == "ksf"
+    # B-1-U5 specimen 1: 4123 psf / 2 / 0.0044 = 468.5 ksf, and ε50 0.435 to
+    # 0.445 % gives 463.3 to 473.9 ksf.
+    first = stages[stages["sample_reference"] == "B-1-U5"].iloc[0]
+    assert first["deviator_stress_at_failure"] == pytest.approx(4123)
+    assert first[strain] == pytest.approx(0.44)
+    assert first[e50] == pytest.approx(470.0)
+    assert 4123 / 2 / 0.00445 / 1000 <= first[e50] <= 4123 / 2 / 0.00435 / 1000
+    radial = stages.loc[filled, "effective_radial_consolidation_stress"]
+    consolidation = stages.loc[filled, "effective_consolidation_stress"]
+    assert radial.tolist() == consolidation.tolist()
+    checked = site.qc().rules.set_index("rule_id")["records_checked"]
+    assert checked[["X007", "X008"]].tolist() == [9, 9]
+
+
 def test_generator_reproduces_the_shipped_files(tmp_path):
     _load_generator().main(tmp_path)
     assert sorted(path.name for path in tmp_path.iterdir()) == FILES
@@ -186,8 +217,11 @@ DEGREES = dict.fromkeys(
     ],
     "deg",
 )
+MODULI = ["reported_secant_modulus_at_50_percent_peak"]
 TRIAXIAL_STRESSES = [
     "effective_consolidation_stress",
+    "effective_vertical_consolidation_stress",
+    "effective_radial_consolidation_stress",
     "back_pressure",
     "cell_pressure",
     "deviator_stress_at_failure",
@@ -225,14 +259,14 @@ EXAMPLE_ANALYSES = {
     "atterberg.csv": ({}, ht.analysis.plasticity),
     "spt.csv": ({"spt_penetration": "in"}, ht.analysis.spt),
     "triaxial.csv": (
-        dict.fromkeys(TRIAXIAL_STRESSES, "psf"),
+        {**dict.fromkeys(TRIAXIAL_STRESSES, "psf"), **dict.fromkeys(MODULI, "ksf")},
         lambda df: ht.analysis.mohr_coulomb_fit(
             ht.analysis.triaxial_failure_stresses(df),
             group_by=["geology_unit", "test_type"],
         ),
     ),
     "rock_triaxial.csv": (
-        dict.fromkeys(TRIAXIAL_STRESSES, "MPa"),
+        {**dict.fromkeys(TRIAXIAL_STRESSES, "MPa"), **dict.fromkeys(MODULI, "MPa")},
         lambda df: ht.analysis.hoek_brown_fit(
             ht.analysis.triaxial_failure_stresses(df), failure_modes=["Shear"]
         ),

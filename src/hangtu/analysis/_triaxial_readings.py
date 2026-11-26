@@ -308,12 +308,14 @@ class Readings:
         self.drained = types.isin(DRAINED).to_numpy()
         # Set per stage by stages(): Δu and εv at each reading (own, or
         # interpolated at a loading-part q reading), which were interpolated,
-        # and the loading-part q readings, the failure candidates.
+        # the loading-part q readings, the failure candidates, and the
+        # loading-part εv readings (E50 and ψ from readings read them).
         self.excess_at = self.excess.copy()
         self.volumetric_at = self.volumetric.copy()
         self.interpolated_excess = np.zeros(len(df), dtype=bool)
         self.interpolated_volumetric = np.zeros(len(df), dtype=bool)
         self.q_loading = np.zeros(len(df), dtype=bool)
+        self.volumetric_loading = np.zeros(len(df), dtype=bool)
         self._stresses()
 
     def _stresses(self) -> None:
@@ -379,13 +381,20 @@ class Readings:
         )
         self.q_loading[q_loading] = True
         decreasing = _decreases(strain, q_loading)
-        for values, filled, flags in (
-            (self.excess, self.excess_at, self.interpolated_excess),
-            (self.volumetric, self.volumetric_at, self.interpolated_volumetric),
+        for values, filled, flags, mask in (
+            (self.excess, self.excess_at, self.interpolated_excess, None),
+            (
+                self.volumetric,
+                self.volumetric_at,
+                self.interpolated_volumetric,
+                self.volumetric_loading,
+            ),
         ):
             loading, _ = _loading_part(
                 strain, rows[has_strain & ~np.isnan(values[rows])]
             )
+            if mask is not None:
+                mask[loading] = True
             decreasing = decreasing or _decreases(strain, loading)
             targets = q_loading[np.isnan(values[q_loading])]
             if not len(loading) or not len(targets):
@@ -526,6 +535,20 @@ class Readings:
                 units[failure] = declared[reading]
         result.attrs["units"] = units
         return result
+
+
+def check_strain_units(df: pd.DataFrame, units: Mapping[str, str] | None) -> None:
+    """Raise ``UnitsError`` unless the strains are in percent where declared.
+
+    ``axial_strain`` and ``volumetric_strain`` are percent columns, which are
+    never converted, so a strain declared in any other unit can't be read.
+    Undeclared, they are read as percent, as the failure rows read them.
+    """
+    columns = [c for c in ("axial_strain", "volumetric_strain") if c in df.columns]
+    declared = _units.resolve_units(df, columns, units, analysis=True)
+    for column, unit in declared.items():
+        if unit is not None:
+            _units.check_dimension(_units.parse_unit(unit, column), "percent", column)
 
 
 def _loading_part(

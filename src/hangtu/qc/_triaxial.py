@@ -1,13 +1,18 @@
-"""Triaxial rules X (qc.md §4.12, M11 a).
+"""Triaxial rules X001 to X008 (qc.md §4.12, M11 a and M23 a).
 
 Each checks one stage, or one test against its own stages: a record that can't
 give a valid failure state, or doesn't meet its test standard's own
 requirement. Plausible ranges for strength are level 2. A stage's test type is
-its test's (``TREG_TYPE`` or ``TRIG_TYPE``), joined by ``specimen_id``.
+its test's (``TREG_TYPE`` or ``TRIG_TYPE``), joined by ``specimen_id``. X007
+and X008 check the lab's E50 and ε50 against the stage's own q_f and strain at
+failure, where the failure criterion makes q_f the peak.
 """
+
+import math
 
 import pandas as pd
 
+from hangtu import units as _units
 from hangtu.analysis._triaxial import EXTENSION, LISTED, MULTISTAGE, UNDRAINED
 from hangtu.qc import _text
 from hangtu.qc._data import Data
@@ -240,4 +245,133 @@ def consolidation_stress_differs(data: Data, settings: RuleSettings) -> RuleResu
                 line=row["_line"],
             )
         )
+    return RuleResult(findings, len(rows))
+
+
+#: ``TREG_FCR`` texts that make q at failure the peak deviator stress, trimmed
+#: and in lower case (qc.md §4.12).
+_PEAK = {"maximum deviator stress", "peak deviator stress"}
+
+
+def _criteria(data: Data) -> pd.Series:
+    """Return each ``TRET`` row's failure criterion (``TREG_FCR``), or None."""
+    table = data.table("TRET")
+    if not data.has("TREG", "TREG_FCR"):
+        return pd.Series(None, index=table.index, dtype=object)
+    tests = data.table("TREG").dropna(subset=["specimen_id"])
+    by_specimen = dict(zip(tests["specimen_id"], tests["TREG_FCR"], strict=True))
+    return table["specimen_id"].map(by_specimen).astype(object)
+
+
+def _peak(text: object) -> bool:
+    """Return True if the criterion makes q at failure the peak; blank is not."""
+    return isinstance(text, str) and " ".join(text.split()).lower() in _PEAK
+
+
+def _e50_stages(data: Data, *headings: str) -> pd.DataFrame:
+    """Return the ``TRET`` rows X007 and X008 check, with a ``_type`` column.
+
+    A stage is checked where each of ``headings`` is an unflagged number, its
+    criterion makes q_f the peak, it isn't an extension stage, and q_f, where
+    given, is above 0 (X003 reports the rest).
+    """
+    tret = data.table("TRET")
+    types = _types(data, "TRET")
+    keep = _unflagged(data, "TRET", tret, *headings)
+    keep &= _criteria(data).map(_peak).astype(bool)
+    keep &= ~types.isin(EXTENSION)
+    if "TRET_DEVF" in tret:
+        keep &= ~(tret["TRET_DEVF"] <= SLACK)
+        keep &= tret["TRET_DEVF"].isna() | _unflagged(data, "TRET", tret, "TRET_DEVF")
+    rows = tret[keep].copy()
+    rows["_type"] = types[keep]
+    return rows
+
+
+def _half(data: Data, heading: str, text: str) -> float:
+    """Half a unit in the last place: from an ``xDP`` TYPE, else from the text."""
+    return _text.rounding(data, "TRET", heading) or _text.half_place(text)
+
+
+@rule("X007")
+def secant_modulus_mismatch(data: Data, settings: RuleSettings) -> RuleResult:
+    headings = ("TRET_DEVF", "TRET_EP50", "TRET_E50")
+    if not data.has("TRET", *headings):
+        return RuleResult()
+    file_units = {h: data.heading_info("TRET", h)["file_unit"] for h in headings}
+    if not all(file_units.values()):
+        return RuleResult()
+    q_unit, strain_unit, e50_unit = (file_units[h] for h in headings)
+    # The strain heading's unit as a fraction (% -> 0.01), and 1 of q's unit in
+    # E50's: the recomputed E50 is in E50's file unit, as the lab wrote it.
+    to_fraction = float(
+        _units.ureg.Quantity(1.0, _units.parse_unit(strain_unit))
+        .to("dimensionless")
+        .magnitude
+    )
+    q_to_e50 = float(
+        _units.ureg.Quantity(1.0, _units.parse_unit(q_unit))
+        .to(_units.parse_unit(e50_unit))
+        .magnitude
+    )
+    e50_places = _text._decimals(data.heading_info("TRET", "TRET_E50")["file_type"])
+    rows = _e50_stages(data, *headings)
+    findings = []
+    for row in rows.to_dict("records"):
+        q, strain, e50 = (data.text_at("TRET", row["_line"], h) for h in headings)
+        assert q and strain and e50  # not blank: unflagged numbers above
+        q_half, strain_half, e50_half = (
+            _half(data, h, t) for h, t in zip(headings, (q, strain, e50), strict=True)
+        )
+        q_value, strain_value, e50_value = float(q), float(strain), float(e50)
+        lowest_strain = (strain_value - strain_half) * to_fraction
+        low = (q_value - q_half) / 2 / ((strain_value + strain_half) * to_fraction)
+        high = (q_value + q_half) / 2 / lowest_strain if lowest_strain > 0 else math.inf
+        low, high = low * q_to_e50, high * q_to_e50
+        if low <= e50_value + e50_half + SLACK and e50_value - e50_half <= high + SLACK:
+            continue
+        middle = q_value / 2 / (strain_value * to_fraction) * q_to_e50
+        findings.append(
+            Finding(
+                "X007",
+                f"TRET_E50 {e50} {e50_unit} {_stage(row, data, 'TRET', row['_type'])} "
+                f"doesn't follow from TRET_DEVF {q} {q_unit} and TRET_EP50 "
+                f"{strain} {strain_unit}: E50 = (q_f / 2) / ε50 gives "
+                f"{_text.number(middle, e50_places)} {e50_unit} (from "
+                f"{_text.number(low)} to {_text.number(high)} within the rounding "
+                "of the values). The usual causes are a unit slip (E50 in kPa "
+                "written as MPa, or ε50 written as a fraction rather than a "
+                "percentage) or values copied from different stages; check the "
+                "lab's sheet, and whether it reports E50 by another definition.",
+                group="TRET",
+                heading="TRET_E50",
+                line=row["_line"],
+            )
+        )
+    return RuleResult(findings, len(rows))
+
+
+@rule("X008")
+def strain_at_half_peak_past_failure(data: Data, settings: RuleSettings) -> RuleResult:
+    headings = ("TRET_EP50", "TRET_STRN")
+    if not data.has("TRET", *headings):
+        return RuleResult()
+    rows = _e50_stages(data, *headings)
+    findings = [
+        Finding(
+            "X008",
+            f"{_value(data, 'TRET', 'TRET_EP50', row['TRET_EP50'])} "
+            f"{_stage(row, data, 'TRET', row['_type'])}, is at or above "
+            f"{_value(data, 'TRET', 'TRET_STRN', row['TRET_STRN'])}, the axial "
+            "strain at failure. The strain at half the peak deviator stress comes "
+            "before the peak, so one of the two is wrong: usually the strain at "
+            "failure written as a fraction rather than a percentage, the two "
+            "swapped, or values copied from different stages.",
+            group="TRET",
+            heading="TRET_EP50",
+            line=row["_line"],
+        )
+        for row in rows.to_dict("records")
+        if row["TRET_EP50"] >= row["TRET_STRN"] - SLACK
+    ]
     return RuleResult(findings, len(rows))

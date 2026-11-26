@@ -65,7 +65,10 @@ $$-\varepsilon_1 = \frac{1}{E_i}\frac{q}{1-q/q_a},\quad E_i = \frac{2E_{50}}{2-R
   Eur = secant slope of an unload-reload loop; Rf = qf/qa from a hyperbolic fit (transformed plot ε1/q vs ε1)
 - **Reference value:** convert E50 at σ′3 to E50ref with 5.1, or fit E50ref and m to tests at several σ′3 (log–log
   fit when c′ = 0) _[Judgment — for review]_
-- **Source:** [1] Eqs. 6–3, 6–4, 6–6, Fig. 6–5, pp. 66–73 [V]
+- **Built (M23 b):** `ht.analysis.triaxial_stiffness_from_readings()`: E50 and ε50 at half the stage's largest q;
+  Rf from the slope of ε1/q against ε1 over 0.7–0.95 of q_f (hangtu's rule; Duncan & Chang 1970 [U], TODO #79).
+- **Source:** [1] Eqs. 6–3, 6–4, 6–6, Fig. 6–5, pp. 66–73 [V]; in the 2026.1 manual, §6.1, Eqs. 6–3, 6–4, 6–6 and
+  Fig. 6–1, pp. 68–69 [V] (read from page images, 2026-11-24); [3] Eq. 2.11, the transformed hyperbola [V]
 
 ### 5.3 Eoed and Eur,oed at σ′v0 from the oedometer — built (`ht.analysis.oedometer_increments()`)
 $$m_v = \frac{e_1 - e_2}{(1 + e_1)(\sigma'_2 - \sigma'_1)},\qquad E_{oed} = \frac{1}{m_v}\ \text{(loading)},\qquad E_{ur,oed} = \frac{1}{m_v}\ \text{(unloading or reloading)}$$

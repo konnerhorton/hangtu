@@ -1,8 +1,7 @@
 # Status
 
-**Next:** M23 (a), the triaxial moduli the lab reports (`TRET_E50`, `TRET_EP50`) read into `p.triaxial()`: the
-intent starts from sheets 08, 11 and 09 (`docs/drafts/parameters/`). Then the rest of wave 5 (M23, M25, M26), M20,
-and waves 4 and 6. M19 (d), rock swelling, moved into M21 with the other rock lab tests.
+**Next:** M23 (c), E′ and ν′ selected and in the Mohr–Coulomb set, with the drained↔undrained conversion, Eu from
+s_u if its source is in hand, and **P20**. Then the rest of wave 5 (M23 d, M25, M26), M20, and waves 4 and 6. M19 (d), rock swelling, moved into M21 with the other rock lab tests.
 
 Last checkpoint: 4, after M19 (c2), 2026-11-24, 6791dcc.
 
@@ -15,7 +14,7 @@ moves to Done, in one line (its unit's work file has the detail).
 
 | M | Scope | Done when | Status |
 |---|---|---|---|
-| M23 | Wave 5: soil modulus from the lab tests already read: E, ν (08), the Hardening Soil set (11), soil dilatancy from curves (09); P20. Four units: (a) the lab's triaxial moduli in `p.triaxial()`; (b) E50, Eur and Rf from q–ε₁ readings, Eu from s_u, drained↔undrained conversion, ψ from εv readings; (c) E′ and ν′ selected and in the Mohr–Coulomb set, **P20**; (d) the HS set (E50ref and m across σ′3, Eoedref, Eurref, K0nc by rule) | Golden values; plot criteria | Not started |
+| M23 | Wave 5: soil modulus from the lab tests already read: E, ν (08), the Hardening Soil set (11), soil dilatancy from curves (09); P20. Four units: (a) the lab's triaxial moduli in `p.triaxial()`; (b) E50, Rf and ψ from the triaxial readings; (c) E′ and ν′ selected and in the Mohr–Coulomb set, the drained↔undrained conversion, Eu from s_u, **P20**; (d) the HS set (E50ref and m across σ′3, Eoedref, Eurref, K0nc by rule) | Golden values; plot criteria | (a) done: the lab's E50, ε50 and σ′vc, σ′rc in `p.triaxial()`, QC X007–X008; (b) done: `triaxial_stiffness_from_readings()` (E50, ε50, Rf) and `triaxial_dilatancy_from_readings()` (ψ), sheet 11's page; Eur from loops deferred (TODO #80); (c) next |
 | M25 | Wave 5: in situ modulus tests (pressuremeter, flat dilatometer, plate load); P19. Three units: (a) data (`PMTG`/`PMTL`, `DMTG`/`DMTP`, `PLTG`); (b) the moduli and **P19**; (c) these sources in P20 and the HS set | Golden values; plot criteria | Not started |
 | M26 | Wave 5: small-strain stiffness (10) and the HS-small set. Three units: (a) Vs and G0 data (`ISTA`, `LDYN`, `RESG`/`RESP`); (b) G0 from Vs, Hardin-type G0, γ0.7; (c) the HS-small set | Golden values | Not started |
 | M20 | Wave 3: K0 from OCR, SHANSEP; the Soft Soil set. Four units: (a) K0 from OCR; (b) CU-stage s_u data (`TRET_CU`); (c) SHANSEP; (d) the Soft Soil set | Golden values | Not started |

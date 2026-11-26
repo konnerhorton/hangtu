@@ -290,6 +290,18 @@ One unit can need two selected values of one parameter: EC7's Type A (a mean) fo
   - **Stale overrides:** what happens when an update changes or removes the readings an override was made on (a key that no longer exists, a time range past the new last reading, readings that changed under it). Possibly a hash of the readings it was made on, with a warning when they differ.
   - Whether σ′p overrides (#76) share the file and its format.
 
+### 78. `p.shear_box()`'s rate conversion reads no unit · Claude · `src/hangtu/datasets/_shear_box.py` (`RATES`), `docs/data/datasets.md` §6.12 · before a dataset reads a standard heading stored in a unit other than its column's
+- **Found (M23 a):** `p.shear_box()` converts `SHBT_DISP` and `SHBT_DISR` from `build.data.table("SHBT").attrs["units"]`, but the QC `Data.table()` sets no `attrs`; only `Project.table()` does. So the conversion never runs. It is harmless today, because ingest stores both in the dictionary's mm/min, the column's unit. `p.triaxial()` reads `TRET_E50`'s stored unit from `meta_heading` (`build.data.headings`) instead.
+- **Do:** read the stored unit the same way in `p.shear_box()`, or give `Build` one helper both use, with a test whose heading is stored in a unit other than the column's.
+
+### 79. Duncan & Chang (1970) for Rf's fit range · Claude (verify) · `docs/analysis/stiffness.md` §2, `docs/analysis/strength.md` §9 · when Duncan & Chang (1970) is in hand
+- **Settled (M23 b close-out, 2026-11-26):** Rf's hyperbola is fitted to the readings with 0.7 ≤ (q − q_0) / (q_f − q_0) ≤ 0.95 (`failure_ratio_range=`), and ψ's window starts where q first reaches 0.95 of q_f (`dilatancy_from=`). Both are stated as hangtu's rules: the PLAXIS manual, Obrzud & Truty (2018) and Vermeer & de Borst (1984) don't say which readings to use.
+- **Open:** Duncan & Chang (1970) are commonly said to fit 70 % and 95 % of q_f. Read the paper, and cite it in `triaxial_stiffness_from_readings()`'s docstring and stiffness.md §2 if it states them; otherwise nothing changes.
+
+### 80. Eur from unload–reload loops · You + Claude · `docs/analysis/stiffness.md`, sheet 11 · the first real file with unload–reload loops
+- **Deferred (M23 b intent):** no file in hand has a loop: the example's curves have no strain reversal before the largest strain, and the real sample's stages have a few reversals and no point marked as unload–reload.
+- **Open:** how a loop is marked in the readings, and its rules: `triaxial_failure_from_readings()` treats strain that falls within a loading part as a reading out of place, so loops change how the loading part is found. Then Eur as the secant of each loop, for the Hardening Soil set's Eurref.
+
 ## Agent-use review (2026-11-09)
 A review of the whole package asked one question: if an AI agent does the work and an engineer signs it off, how likely is a wrong answer, and how easy is it to catch? It used probe scripts plus two agent trials (an SPT correlation task and a lab strength task, from the public docs only). Items 60–61 can give a plausible wrong number with nothing to flag it; 62–67 lead an agent to misuse; 68–69 are friction.
 

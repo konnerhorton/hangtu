@@ -56,7 +56,7 @@ The computed sand values take I_R = Dr (10 − ln p′) − 1, φ′ − φ′cv
 | Direct shear with vertical displacement | D3080/D3080M | ISO 17892-10; BS 1377-7 | `SHBT`: `SHBT_PDIN`, `SHBT_PDIS`, `SHBT_NORM` | tan ψ ≈ −δy/δx at peak |
 | Pressuremeter in sand | D4719 | ISO 22476-4, -6 | `PMTP`: `PMTP_AD` | ψ from the expansion curve |
 
-hangtu doesn't read ψ from test curves yet.
+hangtu reads ψ from the readings of drained triaxial stages; not yet from the shear box.
 
 ## Methods
 
@@ -66,7 +66,8 @@ hangtu doesn't read ψ from test curves yet.
 | ψ = 0 (Vermeer & de Borst 1984, p. 13) | — | fine-grained units, normally consolidated | the Mohr–Coulomb set |
 | A selected value | your value, with its reason | any unit | the `selection` judgment, read by [`ht.stats.select()`](../reference/stats.md#hangtu.stats.select) |
 | Bolton (1986) from relative density, I_R = Dr (10 − ln p′) − 1 (Kulhawy & Mayne 1990, Eqs. 4-5 to 4-7, p. 4-10) | Dr, p′ at failure in kPa | clean quartz and feldspar sands | later |
-| From the test curves (definition) | the plastic strain increments | CD triaxial, direct shear | later |
+| From the triaxial readings, the rate of dilation near peak (Vermeer & de Borst 1984, Eqs. 3.1–3.3, pp. 12–13) | total strain increments of εv and ε1 near the failure reading | drained triaxial compression stages | [`ht.analysis.triaxial_dilatancy_from_readings()`](../reference/analysis.md#hangtu.analysis.triaxial_dilatancy_from_readings) |
+| From the shear box readings, tan ψ ≈ −δy/δx at peak | vertical and horizontal displacement | direct shear | later |
 
 Bolton's relation is the one the set applies to a coarse unit:
 
@@ -94,8 +95,9 @@ is an error asking for a selected ψ: guessing would put a rule where only you c
 
 ## How the methods compare
 
-A ψ measured on the unit's own soil, from the volume change of drained tests, overrules a relation. Until hangtu
-reads one, give it as a selection. Bolton's relation is the next best: it ties ψ to the φ′ you selected and the φ′cv
+A ψ measured on the unit's own soil, from the volume change of drained tests, overrules a relation:
+`ht.analysis.triaxial_dilatancy_from_readings()` reads it from each drained stage's readings, and the value you
+choose from them goes in as a selection. Bolton's relation is the next best: it ties ψ to the φ′ you selected and the φ′cv
 you judged, so the two can't drift apart. Its value is only as good as φ′ − φ′cv, and it moves 1.25° for each
 degree of either. The common rule of thumb ψ = φ′ − 30° is Bolton's relation with φ′cv fixed at 30° and the factor
 left out, so hangtu doesn't offer it.
@@ -115,7 +117,11 @@ amplified by 1/0.8: an uncertainty of ±2° in φ′ is ±2.5° in ψ, on a valu
 - A constant ψ dilates without limit. Use a dilatancy cut-off where the model has one (Hardening Soil).
 - An undrained analysis in effective stress with ψ above 0 overstates the strength.
 - Bolton's I_R: p′ in kPa, I_R limited to 4. hangtu leaves ψ blank beyond the limit rather than clipping it.
-- Reading ψ from a triaxial test needs the full volume change record, not only `TRET_STV` at failure.
+- Reading ψ from a triaxial test needs the full volume change record, not only `TRET_STV` at failure. hangtu
+  reads the slope of εv against ε1 from where q first reaches 0.95 of the failure stress to the failure reading
+  (`dilatancy_from=`), a rule of its own, and gives no ψ, with a reason, where fewer than 2 εv readings fall in it.
+- ψ from total strains is the plastic ψ only where the elastic strain rate is near zero, close to peak (Vermeer &
+  de Borst 1984, p. 12). An undrained stage has no volume change to read: hangtu leaves it blank.
 
 ## References
 

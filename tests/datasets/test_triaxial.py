@@ -278,8 +278,9 @@ def test_m17c_template_and_dataset_have_the_rock_columns(site):
     for columns in [list(ht.template("triaxial").columns), list(_site(site).columns)]:
         at = columns.index
         assert at("failure_mode") == at("failure_criterion") + 1
+        # M23 (a) puts the lab's E50 between the soil's and the rock's values.
         assert at("reported_intact_compressive_strength") == (
-            at("reported_effective_cohesion") + 1
+            at("reported_secant_modulus_at_50_percent_peak") + 1
         )
         assert at("reported_intact_hoek_brown_constant") == (
             at("reported_intact_compressive_strength") + 1
@@ -316,3 +317,71 @@ def test_m17c_failure_mode_is_read_as_written(tmp_path):
     df = _quiet(project.triaxial, display_units="SI")
     assert df["failure_mode"].tolist() == ["Brittle", "Shear", "Axial splitting", None]
     assert df["reported_intact_compressive_strength"].isna().all()
+
+
+# --- M23 (a): the lab's E50 and the consolidation stresses ---------------------------
+
+E50 = [
+    "effective_vertical_consolidation_stress",
+    "effective_radial_consolidation_stress",
+    "reported_axial_strain_at_50_percent_peak",
+    "reported_secant_modulus_at_50_percent_peak",
+]
+
+
+def test_m23a_1_lab_e50_read_through(site):
+    df = _site(site, display_units="SI")
+    assert df.attrs["units"]["reported_secant_modulus_at_50_percent_peak"] == "MPa"
+    assert df.attrs["units"]["reported_axial_strain_at_50_percent_peak"] == "%"
+    assert df.attrs["units"]["effective_radial_consolidation_stress"] == "kPa"
+    # BH1-U3 specimen 1 (CU): (180 / 2) / 0.0060 = 15 000 kPa = 15.00 MPa.
+    assert df.loc[0, E50].tolist() == [100, 100, 0.60, 15.00]
+    # BH2-U2 specimen 3 stage 1 (CDM): (300 / 2) / 0.0025 = 60 000 kPa.
+    assert df.loc[3, E50].tolist() == [100, 100, 0.25, 60.00]
+    others = df.drop(index=[0, 3])
+    assert others[E50].isna().all().all()
+    assert df.loc[df["test_type"] == "UU", E50].isna().all().all()  # TRIT rows
+    template = list(ht.template("triaxial").columns)
+    assert [c for c in df.columns if c in template] == template
+
+
+def test_m23a_1_e50_stored_in_mpa_and_read_in_kpa(site):
+    table = site.table("TRET")
+    assert table.attrs["units"]["TRET_E50"] == "MPa"
+    assert table["TRET_E50"].iloc[0] == pytest.approx(15.00)
+    status = site.sql(
+        "SELECT heading, status FROM meta_heading WHERE \"group\" = 'TRET'"
+    ).set_index("heading")["status"]
+    assert status["TRET_E50"] == "converted"
+    # Read as a plain stage number, 15 would be taken as kPa and shown as
+    # 0.015 MPa: 15.00 MPa means it was converted to the kind's kPa.
+    df = _site(site, display_units="SI")
+    assert df.loc[0, "reported_secant_modulus_at_50_percent_peak"] == 15.00
+
+
+def test_m23a_3_v404_has_the_columns_blank(fresh):
+    df = _quiet(fresh("site_v404").triaxial)
+    assert df[E50].isna().all().all()
+
+
+def test_m23a_4_anisotropic_stage_read_as_written(tmp_path):
+    # A CAUC stage: σ′vc 200, σ′rc 100 and TRET_CONP 100 kPa, returned as written.
+    tret = {**make_files.TRET, "rows": make_files.TRET["rows"][:1]}
+    at = [h for h, _, _ in tret["headings"]].index
+    row = list(tret["rows"][0])
+    row[at("TRET_CVP")], row[at("TRET_CRP")] = 200, 100
+    row[at("TRET_EP50")] = row[at("TRET_E50")] = None
+    tret["rows"] = [row]
+    treg = {**make_files.TREG, "rows": [list(make_files.TREG["rows"][0])]}
+    treg["rows"][0][[h for h, _, _ in treg["headings"]].index("TREG_TYPE")] = "CAUC"
+    path = tmp_path / "cauc.ags"
+    make_files.write_file(path, "4.2", [make_files.LOCA, make_files.SAMP, treg, tret])
+    project = ht.Project.from_ags(path, db=tmp_path / "cauc.sqlite")
+    df = _quiet(project.triaxial, display_units="SI")
+    assert df["test_type"].tolist() == ["CAUC"]
+    stresses = [
+        "effective_consolidation_stress",
+        "effective_vertical_consolidation_stress",
+        "effective_radial_consolidation_stress",
+    ]
+    assert df.loc[0, stresses].tolist() == [100, 200, 100]

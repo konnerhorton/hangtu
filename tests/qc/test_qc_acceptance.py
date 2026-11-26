@@ -59,6 +59,8 @@ EXPECTED = {
     ("X005", 149),  # a CU test with two stages
     ("X005", 169),  # a TRIG with no TRIT rows
     ("X006", 157),  # TRET_CONP 150, cell 400 less back 300 is 100
+    ("X007", 161),  # TRET_E50 75.50 MPa, (150 / 2) / 0.0322 is 2.33 MPa
+    ("X008", 162),  # TRET_EP50 9.00 above TRET_STRN 5.0
     ("Q001", 176),  # TRIT_CU 70, TRIT_DEVF 120 / 2 is 60 (M17 a)
     ("Q003", 182),  # LUCT_UCS 0
     ("Q002", 188),  # LVAN_VNRM 25 above LVAN_VNPK 20

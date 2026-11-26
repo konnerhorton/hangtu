@@ -9,7 +9,6 @@ Expected values are the spec's hand calculations: per reading
 
 import math
 import warnings
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -19,22 +18,12 @@ import hangtu as ht
 from hangtu.analysis._triaxial_readings import reduce_readings
 from hangtu.errors import ColumnError, HangtuError, UnitsError
 
-GOLDENS = Path(__file__).parents[1] / "data" / "triaxial_readings_goldens.csv"
-STRESSES = ["cell_pressure", "back_pressure", "deviator_stress", "excess_pore_pressure"]
+from .conftest import STRESSES
+from .conftest import triaxial_goldens as readings
+
 REL = 1e-7
 #: 1 psf in kPa: 0.45359237 kg × 9.80665 m/s² / 0.3048² m² (exact).
 PSF = 0.45359237 * 9.80665 / 0.3048**2 / 1000
-
-
-def readings(*stages, **columns):
-    """The golden readings of ``stages`` (all when none), in kPa."""
-    df = pd.read_csv(GOLDENS, dtype={"test_stage": str})
-    if stages:
-        df = df[df["specimen_id"].isin(stages)].reset_index(drop=True)
-    for column, values in columns.items():
-        df[column] = values
-    df.attrs["units"] = dict.fromkeys(STRESSES, "kPa")
-    return df
 
 
 def failure(df, **kwargs):
@@ -398,6 +387,19 @@ def test_ags_readings_values_at_each_q_reading():
     assert readings.volumetric_at[bh2] == pytest.approx(
         [0, 2 / 3 * 2.0, 2.5, 3.4, 3.8], rel=1e-9
     )
+
+
+def test_the_volumetric_loading_mask_leaves_out_the_tail():
+    tail = [*BH2_EV, (6.5, 3.6), (6.0, 3.5)]
+    df = stage_rows(
+        "BH2-U2", "CDM", 700, 300,
+        [("deviator_stress", BH2_Q), ("volumetric_strain", tail)],
+    )  # fmt: skip
+    df.attrs["units"] = dict.fromkeys(STRESSES, "kPa")
+    readings = reduce_readings(df, "max_deviator_stress", None).readings
+    assert list(readings.volumetric_loading) == [False] * len(BH2_Q) + [True] * len(
+        BH2_EV
+    ) + [False, False]
 
 
 def test_ags_readings_max_stress_ratio():

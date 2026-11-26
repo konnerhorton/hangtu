@@ -33,6 +33,8 @@ TRIAXIAL_COLUMNS = [
     "dry_unit_weight",
     "void_ratio",
     "effective_consolidation_stress",
+    "effective_vertical_consolidation_stress",
+    "effective_radial_consolidation_stress",
     "back_pressure",
     "pore_pressure_parameter_b",
     "cell_pressure",
@@ -44,6 +46,8 @@ TRIAXIAL_COLUMNS = [
     "effective_stress_basis",
     "reported_effective_friction_angle",
     "reported_effective_cohesion",
+    "reported_axial_strain_at_50_percent_peak",
+    "reported_secant_modulus_at_50_percent_peak",
     "reported_intact_compressive_strength",
     "reported_intact_hoek_brown_constant",
     "test_remarks",
@@ -98,6 +102,15 @@ STAGE_NUMBERS = {
     "axial_strain_at_failure": "_STRN",
     "volumetric_strain_at_failure": "_STV",
 }
+#: Numeric headings of ``TRET`` only (4.1's), by column: blank on ``TRIT`` rows.
+TRET_NUMBERS = {
+    "effective_vertical_consolidation_stress": "TRET_CVP",
+    "effective_radial_consolidation_stress": "TRET_CRP",
+    "reported_axial_strain_at_50_percent_peak": "TRET_EP50",
+}
+#: ``TRET`` moduli, stored by ingest in the file's unit (MPa in the dictionary),
+#: so converted here to the column's kind.
+TRET_MODULI = {"reported_secant_modulus_at_50_percent_peak": "TRET_E50"}
 #: The stresses ``triaxial_failure_stresses()`` reads, in kPa here (SI).
 INPUT_STRESSES = [
     "cell_pressure",
@@ -146,6 +159,7 @@ def _stages(build: Build, stage: str) -> pd.DataFrame:
     frame["test_stage"] = build.texts(rows, f"{stage}_TESN")
     for column, suffix in STAGE_NUMBERS.items():
         frame[column] = build.numbers(rows, f"{stage}{suffix}")
+    _tret_numbers(build, stage, rows, frame)
     frame["bulk_unit_weight"] = build.numbers(rows, f"{stage}_BDEN") * G
     frame["dry_unit_weight"] = build.numbers(rows, f"{stage}_DDEN") * G
     frame["remarks"] = build.texts(rows, f"{stage}_REM")
@@ -171,6 +185,30 @@ def _stages(build: Build, stage: str) -> pd.DataFrame:
     count = specimen.map(build.data.table(stage)["specimen_id"].value_counts())
     frame["multistage_test"] = is_multistage(frame["test_type"], count)
     return frame
+
+
+def _tret_numbers(
+    build: Build, stage: str, rows: pd.DataFrame, frame: pd.DataFrame
+) -> None:
+    """Add the ``TRET``-only columns, in SI; blank on ``TRIT`` rows (§6.10)."""
+    for column in [*TRET_NUMBERS, *TRET_MODULI]:
+        frame[column] = np.nan
+    if stage != "TRET":
+        return
+    for column, heading in TRET_NUMBERS.items():
+        frame[column] = build.numbers(rows, heading)
+    headings = build.data.headings
+    stored = headings[headings["group"] == stage].set_index("heading")["unit"]
+    to = units.ureg.Unit(units.quantity_kind("modulus")["canonical"])
+    for column, heading in TRET_MODULI.items():
+        values = build.numbers(rows, heading)
+        if heading in stored.index and isinstance(stored[heading], str):
+            unit = units.parse_unit(stored[heading], heading)
+            values = pd.Series(
+                units.convert(values.to_numpy(float), unit, "modulus", to),
+                index=values.index,
+            )
+        frame[column] = values
 
 
 def _failure_stresses(frame: pd.DataFrame) -> pd.DataFrame:

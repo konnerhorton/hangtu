@@ -40,6 +40,10 @@ Each analysis is a plain function on a DataFrame. It returns a new DataFrame or 
 
 ::: hangtu.analysis.triaxial_failure_from_readings
 
+::: hangtu.analysis.triaxial_stiffness_from_readings
+
+::: hangtu.analysis.triaxial_dilatancy_from_readings
+
 ::: hangtu.analysis.undrained_shear_strength_from_tests
 
 ::: hangtu.analysis.mohr_coulomb_fit
