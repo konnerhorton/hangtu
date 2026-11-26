@@ -341,6 +341,7 @@ def representative(
     vertical, vertical_unit = _vertical(read, column, trend, units, display_units)
     sign = -1.0 if side == "low" else 1.0
     groups, notes, at_or_below_zero = [], [], []
+    driven: list[str] = []
     left_out_of_trend = {"count_censored": 0, f"count_blank_{trend}": 0}
     for group in found.groups:
         record: dict[str, Any] = {
@@ -406,8 +407,22 @@ def representative(
                 f"{group.label}: {values.censored} of {values.count} values "
                 f"censored, {CENSORED[method]}"
             )
+        concerns = _fit.censoring_concerns(values, result)
+        if concerns:
+            driven.append(f"{group.label} ({'; '.join(concerns)})")
+            notes.append(
+                f"{group.label}: {'; '.join(concerns)}, so the value rests on the "
+                "censored values more than on measured ones."
+            )
 
     _rows.warn_left_out(found.reasons, read.column, FUNCTION)
+    if driven:
+        warn(
+            f"{FUNCTION}'s {method.replace('_', ' ')} value of {read.column!r} "
+            f"rests on censored values in: {', '.join(driven)}. A censored value "
+            "is only a bound, so the value can lie beyond what was measured. "
+            "Check it against the measured values before using it."
+        )
     censored, blank = left_out_of_trend.values()
     if censored or blank:
         listed = " and ".join(

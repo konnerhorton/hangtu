@@ -14,6 +14,7 @@ Update this file in the same commit as any change to a function's behavior, and 
 - Checks each with an Anderson–Darling p-value by seeded parametric bootstrap: none when a value is censored, and with a note that ties read as misfit when a group has fewer distinct values than half its count.
 - Reports each fit's probability beyond the physical bounds.
 - A group needs 4 uncensored values.
+- **Mostly censored:** a group with more than half its values censored gets a warning and a note: the fit then rests on the censored likelihood more than on measured values.
 - It never chooses the distribution: selection (`select()`) records that choice.
 - Takes no `log=True`: a normal fit to the logs is its lognormal fit.
 
@@ -32,6 +33,7 @@ Update this file in the same commit as any change to a function's behavior, and 
 - Type C's Γ² is θ/L, capped at 1, as the JRC gives it.
 - A lognormal view works on ln x.
 - A constant takes censored values through the censored maximum-likelihood fit; a trend (Bond & Harris 2008's confidence and prediction intervals) leaves them out and counts them.
+- **A value the censored values drive** warns, with a note on the group, when more than half the group's values are censored, or when the value lies beyond every measured value on the censored side: above the largest for values censored "at least" (or between a refusal and its limit), below the smallest for "at most". A characteristic value below the smallest value of a group censored "at least" is the usual low side and doesn't warn. A trend leaves censored values out, so only constants are checked. `select()` gets both through `representative()`.
 - The result gives P01's `design_lines` frame, and P09 (`ht.plot.representative_profile()`, `RepresentativeResult.plot()`) draws it with the mean and the view ([`P09`](../plots/P09-representative-profile.md)).
 
 ## 3. `compare()` and `compare_groups()`
