@@ -112,3 +112,58 @@ acceptance criteria.
     system="US")` (ft, psf, …).
 11. `ht.columns()` and `ht.columns("spt")` are unchanged (no `declared_unit` column).
 12. The units guide example runs in `prepare_site.py`, and the docs site builds with `--strict`.
+
+## Plan
+
+Four build commits, each green (`uv run ruff check . && uv run ruff format --check . && uv run mypy` and the tests the
+step touches; the whole suite with `-n 2` before step 4's commit). Steps 1–3 on Sonnet in one session, step 4 on Opus
+in a new one: it writes the published text and closes the unit.
+
+### 1. `units: alias the superscript unit texts that ht.columns() shows` (Sonnet)
+- `src/hangtu/units/aliases.yaml`: add `kN/m³`, `Mg/m³`, `ft²/kip`, `m²/MN`, `ft²/yr`, `m²/yr`, each beside its
+  ASCII form, with the same pint expression.
+- `tests/units/test_parse.py`: each of the six parses without a warning to the same unit as its ASCII form, and every
+  quantity kind's `US` and `SI` `text` in `config/defaults.yaml` parses without a warning (AC 8, second half). The
+  second test guards a kind added later.
+
+### 2. `units-system: declare a file's units with system=` (Sonnet)
+- `src/hangtu/units/__init__.py`:
+  - a private `_system_units(df, system) -> dict[str, str]`: for each column with `column_info` of type number and a
+    quantity kind whose `canonical` isn't null, the kind's `[system]["text"]`. It reads `quantity_kinds()` directly,
+    never `_display_target`, so `display_overrides` can't reach it (AC 4).
+  - `set_units(df, units=None, *, system=None)`: validate `system` (`"US"` or `"SI"`, else `UnitsError` naming both;
+    a message of its own, not `_settings._display_units`, whose text names `settings.display_units`); neither argument
+    raises `UnitsError` showing both forms; no registered column in the frame raises `UnitsError` naming the columns
+    and `ht.columns()`. Merge as `{**system_units, **units_of(df), **units}`, then check each declared unit as today.
+  - `read_csv(path, units=None, *, system=None, **pandas_kwargs)`: pass both through when either is given.
+  - Docstrings: `system` in Parameters, the precedence, and that `ht.columns(df)` shows what it would declare; an
+    example with an exception (`system="US", units={"cell_pressure": "ksf"}`) and a sentence that US stress is psf.
+- `tests/units/test_dataframes.py`: AC 1–7 and AC 9 (round trip through `to_display` with `display_units="SI"`:
+  10.0 ft → 3.048 m, 2,000 psf → 95.76 kPa, to 4 significant figures, the precision the golden values are given to).
+  Build AC 1's file in `tmp_path` and AC 5's frame with a text column (`loca_id`), a percent (`water_content`), a
+  count (`spt_n`), a dimensionless (`plasticity_index`) and an unregistered column (`my_note`). AC 8, first half:
+  `system=` on a frame of every registered number column, in both systems, under `warnings.simplefilter("error")`.
+- `tests/test_errors.py` picks up the new messages; check it passes, and fix the text rather than the test if not.
+
+### 3. `units-system: ht.columns(df) shows each column's units` (Sonnet)
+- `src/hangtu/registry.py`, `columns(template: str | pd.DataFrame | None = None)`: for a DataFrame, rows in the frame's
+  order with `declared_unit` from `df.attrs.get("units", {})` (read directly; importing `hangtu.units` here would be
+  circular), and "Not a registered column" with blanks for unknown names. Template and no-argument output unchanged.
+  Docstring: the DataFrame form, `declared_unit`, and the check-before-declaring use, with an example.
+- `tests/test_registry.py`: AC 10 and 11 (11 compares the columns of `ht.columns()` and `ht.columns("spt")` to the
+  current list).
+
+### 4. `units-system: guide section, column reference intro, close-out` (Opus)
+- `docs/site/examples/units-system.py`: read `ht.examples.path("triaxial.csv")` (US units: ft, psf, pcf) without
+  units; print `ht.columns(df)` for a few columns (depth, a stress, a unit weight, water content); declare
+  `system="US"`; print `ht.units_of()` for the same columns. No figure; its `.txt` output shows on the page.
+- `docs/site/guides/units.md`: section "Declaring a whole file at once" after "Declaring units": the example, the
+  precedence in one sentence, and a warning admonition that US stress is psf, so a lab sheet in ksf or tsf names its
+  stress and modulus columns in `units=`, and how to find them in `ht.columns(df)`.
+- `docs/prepare_site.py`: the column reference intro says these US and SI units are also what `system=` declares.
+- Close-out: `CHANGELOG.md` Unreleased (Added: `system=` on `read_csv()` and `set_units()`; `ht.columns()` takes a
+  DataFrame); `docs/TODO.md` #66 drops its "Open (You)" line, the rest of #66 staying for the tutorial unit;
+  `STATUS.md` (In progress cleared, a Done line); a TODO or CLAUDE.md note only if the build turns up something a
+  future session would get wrong.
+- Check: AC 12 (`uv run python docs/prepare_site.py && uv run zensical build --clean --strict`), read the generated
+  output on the page, and report each acceptance criterion as met or not.

@@ -6,6 +6,9 @@ s_u if its source is in hand, and **P20**. Then the rest of wave 5 (M23 d, M25, 
 Last checkpoint: 4, after M19 (c2), 2026-11-24, 6791dcc.
 
 ## In progress
+- units-system (TODO #66's open item, `system=` and `ht.columns(df)`): plan committed on `units-system`. First
+  step: build steps 1–3 of `docs/work/units-system.md` on Sonnet, then step 4 on Opus in a new session. The tutorial
+  unit (AGS file to a parameter set, site pages and `examples/`, then a marimo copy; with the rest of #66) follows.
 - M23 (c): paused on `m23c-modulus-selection`; its draft intent's "Open for the intent review" list is not
   reviewed yet. First step: review that list with the user, record the decisions, and amend the intent (Opus).
 
