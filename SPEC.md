@@ -117,9 +117,12 @@ Plots and analyses work on DataFrames that may come from anywhere, so the units 
 ```python
 spt = ht.read_csv("spt.csv", units={"depth": "ft", "elevation": "ft"})  # declare units on load
 spt = ht.set_units(df, {"depth": "ft", "hydraulic_conductivity": "cm/s"})  # or on an existing DataFrame
+lab = ht.read_csv("lab.csv", system="US", units={"cell_pressure": "ksf"})  # a whole file, with exceptions
 ht.units_of(spt)                                                        # -> {"depth": "ft", ...}
+ht.columns(lab)                                                         # each column's US, SI and declared unit
 ```
 - Units are stored in `df.attrs["units"]`. Columns whose quantity kind is dimensionless or a count (`spt_n`, `spt_n60`, `liquid_limit`, …) need no declaration.
+- **A whole file in one step:** `system="US"` or `"SI"` declares, for every registered number column with a unit, its quantity kind's unit in that system, the one `ht.columns()` lists. It is a declaration the user makes, not a guess: `units=` and units already declared win over it, display settings never change it, and columns not in the registry stay undeclared (a frame with none in the registry is an error). US stress is psf, so a lab sheet in ksf or tsf names those columns in `units=`; `ht.columns(df)` shows each column's default before declaring.
 - **Resolution order in every plot or analysis:**
   1. an explicit argument;
   2. `df.attrs["units"]`;
