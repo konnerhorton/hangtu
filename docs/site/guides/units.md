@@ -23,6 +23,29 @@ Columns in percent, counts or with no dimension, such as `spt_n` or `liquid_limi
 
 `ht.units_of(df)` shows what is declared. The units live in `df.attrs["units"]`; pandas `merge`, `join` and `concat` drop them, so declare them again on the result.
 
+## Declaring a whole file at once
+
+A lab sheet usually records every column in one system. Name the system, `system="US"` or `system="SI"`, and each registered column with a unit gets that system's unit, the one the [column reference](../reference/columns.md) lists. Check those units against the sheet first: `ht.columns(df)` lists a file's own columns with the US and SI unit of each.
+
+```python
+--8<-- "units-system.py"
+```
+
+``` { .text .no-copy }
+--8<-- "units-system.txt"
+```
+
+Give the columns that differ in `units=`; a unit there, or one already declared on the frame, wins over `system=`. Columns hangtu doesn't know, by a name outside the registry such as `Depth (ft)`, get no unit, and `ht.columns(df)` describes them as "Not a registered column". Display settings never change what `system=` declares.
+
+!!! warning "US stress is psf"
+    `system="US"` reads every stress column as psf and every modulus as ksf. A lab sheet with stresses in ksf or tsf would be read 1000 or 2000 times too small, so name those columns in `units=`:
+
+    ```python
+    lab = ht.read_csv("lab.csv", system="US", units={"cell_pressure": "ksf", "deviator_stress_at_failure": "ksf"})
+    ```
+
+    The rows of `ht.columns(df)` whose `quantity` is `stress` or `modulus` are the ones to check.
+
 ## Display units
 
 Plots and datasets show values in **US** or **SI** units:
@@ -38,7 +61,7 @@ A plot still draws a column with no declared units, but labels its axis "(units 
 
 ## Unit names
 
-Unit strings such as `"ft"`, `"in"`, `"m"`, `"kPa"`, `"pcf"` and `"cm/s"` are recognized. To use another spelling, add an alias with `ht.add_unit_alias("feet", "foot")`; for a new unit, `ht.define_unit()`.
+Unit strings such as `"ft"`, `"in"`, `"m"`, `"kPa"`, `"pcf"` and `"cm/s"` are recognized. To use another spelling, add an alias with `ht.add_unit_alias("feet", "foot")`; for a new unit, `ht.define_unit()`. The units the column reference lists, as written there (`"kN/m³"`, `"ft²/yr"`), are recognized too.
 
 ## See also
 

@@ -110,6 +110,11 @@ Everything below is on `main` (`pip install git+https://github.com/konnerhorton/
   - `mohr_coulomb_fit()` warns when a consolidation stress is far above any overburden at the sample's depth
     (above max(10 × 25 kN/m³ × depth, 500 kPa)): the stresses may be in another unit than declared, such as psf
     declared as kPa.
+- **A whole file's units in one step:** `read_csv(path, system="US")` and `set_units(df, system="SI")` give each
+  registered column with a unit its unit in that system, the one `ht.columns()` lists (US stress is psf, so name
+  columns in ksf or tsf in `units=`, which wins over `system=`). `ht.columns(df)` lists a file's own columns with
+  each one's US, SI and declared unit, to check before declaring. The unit texts `ht.columns()` shows, such as
+  `kN/m³` and `ft²/yr`, are now read without a warning.
 
 ### Changed
 - **Breaking:** `spt_class()` and `spt_histogram()` need `table=` (`"cohesionless"` or `"cohesive"`). The default

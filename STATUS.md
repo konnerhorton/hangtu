@@ -6,9 +6,8 @@ s_u if its source is in hand, and **P20**. Then the rest of wave 5 (M23 d, M25, 
 Last checkpoint: 4, after M19 (c2), 2026-11-24, 6791dcc.
 
 ## In progress
-- units-system (TODO #66's open item, `system=` and `ht.columns(df)`): plan committed on `units-system`. First
-  step: build steps 1–3 of `docs/work/units-system.md` on Sonnet, then step 4 on Opus in a new session. The tutorial
-  unit (AGS file to a parameter set, site pages and `examples/`, then a marimo copy; with the rest of #66) follows.
+- Tutorial unit (the rest of TODO #66): an AGS file to a parameter set, as site pages and `examples/`, then a
+  marimo copy. Not started; its CSV examples use `system=` from units-system.
 - M23 (c): paused on `m23c-modulus-selection`; its draft intent's "Open for the intent review" list is not
   reviewed yet. First step: review that list with the user, record the decisions, and amend the intent (Opus).
 
@@ -49,6 +48,7 @@ comes after M9 and M16 after M18. M10 (a feedback round) was dropped, and its nu
 - **M16:** wave 0: the readings map, `p.triaxial_readings()` and `p.shear_box_readings()` from user-defined groups; readings with one quantity per row, unload tails and interpolation in `triaxial_failure_from_readings()` and **P12**.
 - **M19:** wave 3: `p.oedometer()` and `p.oedometer_readings()`; `oedometer_fit()` and **P13**; `oedometer_increments()` and **P14**; `consolidation_coefficient_from_readings()` and **P15**.
 - **reliability-guards:** warnings where a plausible number may be wrong (TODO #60, #61, #63, #67): `soil_class` against correlations and the SPT class tables, `table=` required, censored values driving `representative()` and `fit()`, triaxial stresses far above the overburden.
+- **units-system:** `system="US"` or `"SI"` on `read_csv()` and `set_units()`, and `ht.columns(df)` (TODO #66's open item).
 
 ## Releases
 The latest is **0.1.0** (M9). Each release and what's unreleased: [`CHANGELOG.md`](CHANGELOG.md).

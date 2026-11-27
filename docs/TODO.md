@@ -305,10 +305,9 @@ One unit can need two selected values of one parameter: EC7's Type A (a mean) fo
 ## Agent-use review (2026-11-09)
 A review of the whole package asked one question: if an AI agent does the work and an engineer signs it off, how likely is a wrong answer, and how easy is it to catch? It used probe scripts plus two agent trials (an SPT correlation task and a lab strength task, from the public docs only). Items 60, 61, 63 and 67, which gave a plausible wrong number with nothing to flag it, now warn (see `docs/analysis/correlations.md` §2, `index-and-spt.md` §1.4, `statistics.md` §1–2, `strength.md` §4); 66 leads an agent to misuse; 69 is friction.
 
-### 66. The CSV route leads to invented inputs · Claude + You · `docs/site/getting-started/csv.md`, `src/hangtu/examples/data/`
-- **Problem:** no page shows a CSV stratigraphy for `vertical_stress()`, nor the triaxial and undrained strength analyses from CSV; every example starts from `site.ags`. The trial agent tried `strata.csv` as the log (it is the geology map), then made up layer boundaries midway between tests. The lab agent built about 24 unit declarations by hand from `ht.columns()`.
+### 66. The CSV route leads to invented inputs · Claude · `docs/site/getting-started/csv.md`, `src/hangtu/examples/data/`
+- **Problem:** no page shows a CSV stratigraphy for `vertical_stress()`, nor the triaxial and undrained strength analyses from CSV; every example starts from `site.ags`. The trial agent tried `strata.csv` as the log (it is the geology map), then made up layer boundaries midway between tests.
 - **Proposed:** ship `stratigraphy.csv` with the examples; add one CSV-route example per analysis family; rename `strata.csv` to `geology_map.csv` (examples-ags-first: written from `site.ags`).
-- **Open (You):** a way to declare a file's units in one step, e.g. from each column's `quantity` and a stated system. It is a declaration, not a guess, but it would cover columns the user never looked at.
 
 ### 69. Friction from the agent trials · Claude · plots, `src/hangtu/units/`
 - A long `note=` collapses the axes, and the only sign is matplotlib's warning.

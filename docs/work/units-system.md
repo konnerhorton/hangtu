@@ -167,3 +167,11 @@ in a new one: it writes the published text and closes the unit.
   future session would get wrong.
 - Check: AC 12 (`uv run python docs/prepare_site.py && uv run zensical build --clean --strict`), read the generated
   output on the page, and report each acceptance criterion as met or not.
+
+### Notes from the build
+- All four steps were built in one Opus session rather than steps 1–3 on Sonnet.
+- The superscript aliases sit after their ASCII forms in `aliases.yaml`: ingest's `_alias_for()` writes the first
+  alias that matches a canonical unit, so ingested frames keep `kN/m3` and `m2/yr`.
+- The guide's example declares `system="US"` with no exception, because `triaxial.csv` is in psf throughout; the
+  exception (`units={"cell_pressure": "ksf"}`) is shown in the warning admonition instead of being run against data
+  it would misread.
