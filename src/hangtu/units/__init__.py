@@ -267,7 +267,48 @@ def _check_declared(column: str, text: str, quantity: str | None) -> None:
         check_dimension(unit, quantity, column)
 
 
-def set_units(df: pd.DataFrame, units: Mapping[str, str]) -> pd.DataFrame:
+_SYSTEMS = ("US", "SI")
+
+
+def _system_units(df: pd.DataFrame, system: str) -> dict[str, str]:
+    """Return each registered number column's unit in ``system``, as ``ht.columns()``.
+
+    Reads the quantity kinds directly, never the display settings, so
+    ``display_overrides`` can't change what a file is declared to hold.
+    """
+    kinds = _config.quantity_kinds()
+    found: dict[str, str] = {}
+    for column in df.columns:
+        info = column_info(str(column))
+        if info is None or info["type"] != "number" or not info.get("quantity"):
+            continue
+        kind = kinds[info["quantity"]]
+        if kind["canonical"] is not None and kind[system]["text"]:
+            found[str(column)] = kind[system]["text"]
+    return found
+
+
+def _check_system(df: pd.DataFrame, system: str) -> None:
+    if system not in _SYSTEMS:
+        raise UnitsError(
+            f'system must be "US" or "SI", not {system!r}. '
+            'Example: ht.set_units(df, system="US")'
+        )
+    if not any(column_info(str(column)) for column in df.columns):
+        raise UnitsError(
+            f"None of the columns {', '.join(map(str, df.columns))} is a registered "
+            "column name, and system= declares units only for registered names. "
+            "Rename the columns to names from ht.columns(), or declare their units "
+            "one by one with units={column: unit}."
+        )
+
+
+def set_units(
+    df: pd.DataFrame,
+    units: Mapping[str, str] | None = None,
+    *,
+    system: str | None = None,
+) -> pd.DataFrame:
     """Declare the units of some columns, returning a new DataFrame.
 
     The units are checked and stored in ``df.attrs["units"]``, merged with any
@@ -277,13 +318,40 @@ def set_units(df: pd.DataFrame, units: Mapping[str, str]) -> pd.DataFrame:
     ----------
     df : pandas.DataFrame
         The data.
-    units : dict
+    units : dict, optional
         ``{column: unit string}``, e.g. ``{"depth": "ft"}``.
+    system : {"US", "SI"}, optional
+        The system the whole frame was recorded in. Each registered number
+        column with a unit gets its quantity kind's unit in that system, the one
+        ``ht.columns()`` lists (US: ft, in, psf, pcf, ksf for moduli; SI: m, mm,
+        kPa, kN/m³, MPa for moduli). A unit in ``units``, or one already
+        declared on the frame, wins over it; percent, count, dimensionless,
+        text and unregistered columns get nothing. Display settings never
+        change it. Run ``ht.columns(df)`` first to see the unit each column
+        would get.
+
+    Raises
+    ------
+    UnitsError
+        With neither ``units`` nor ``system``; for a ``system`` other than
+        ``"US"`` or ``"SI"``; with ``system`` on a frame none of whose columns
+        is registered.
 
     Examples
     --------
     >>> spt = ht.set_units(spt, {"depth": "ft", "ground_level": "ft"})
+
+    A whole lab sheet in US units, with stresses in ksf rather than psf, the
+    US stress unit:
+
+    >>> lab = ht.set_units(lab, system="US", units={"cell_pressure": "ksf"})
     """
+    if units is None and system is None:
+        raise UnitsError(
+            'Give the units to declare: ht.set_units(df, {"depth": "ft"}) for '
+            'some columns, or ht.set_units(df, system="US") for a whole file.'
+        )
+    units = {} if units is None else units
     if not isinstance(units, Mapping):
         raise UnitsError(
             f"units must be a dict of {{column: unit}}, not {units!r}. "
@@ -297,8 +365,12 @@ def set_units(df: pd.DataFrame, units: Mapping[str, str]) -> pd.DataFrame:
         )
     for column, text in units.items():
         _check_declared(column, text, _registered_kind(column))
+    from_system: dict[str, str] = {}
+    if system is not None:
+        _check_system(df, system)
+        from_system = _system_units(df, system)
     result = df.copy(deep=False)
-    result.attrs["units"] = {**units_of(df), **units}
+    result.attrs["units"] = {**from_system, **units_of(df), **units}
     return result
 
 
@@ -314,6 +386,8 @@ def units_of(df: pd.DataFrame) -> dict[str, str]:
 def read_csv(
     path: str | PathLike[str],
     units: Mapping[str, str] | None = None,
+    *,
+    system: str | None = None,
     **pandas_kwargs: Any,
 ) -> pd.DataFrame:
     """Read a CSV file and declare the units of its columns.
@@ -326,6 +400,11 @@ def read_csv(
     units : dict, optional
         ``{column: unit string}``, e.g. ``{"depth": "ft"}``. Columns that are
         percentages, counts or dimensionless need no units.
+    system : {"US", "SI"}, optional
+        The system the whole file was recorded in: every registered number
+        column with a unit gets that system's unit, as in ``ht.set_units``.
+        A unit in ``units`` wins over it. Run ``ht.columns(df)`` on the file
+        read without units to see the unit each column would get.
     **pandas_kwargs
         Passed to ``pandas.read_csv``.
 
@@ -344,6 +423,10 @@ def read_csv(
     --------
     >>> spt = ht.read_csv("spt.csv", units={"depth": "ft", "ground_level": "ft"})
 
+    A lab sheet in US units whose cell pressures are in ksf (US stress is psf):
+
+    >>> lab = ht.read_csv("lab.csv", system="US", units={"cell_pressure": "ksf"})
+
     A file with ``hydraulic_conductivity`` cells ``2e-7`` and ``<1e-9``:
 
     >>> lab = ht.read_csv("permeability.csv", units={"hydraulic_conductivity": "m/s"})
@@ -355,7 +438,9 @@ def read_csv(
     df = _split_bounds(
         pd.read_csv(path, **pandas_kwargs), _row_names(path, pandas_kwargs)
     )
-    return set_units(df, units) if units else df
+    if units or system is not None:
+        return set_units(df, units, system=system)
+    return df
 
 
 # pandas arguments after which a frame's row is no longer the file's line less two.
