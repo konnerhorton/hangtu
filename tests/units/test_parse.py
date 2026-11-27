@@ -131,3 +131,35 @@ def test_every_display_unit_has_its_kinds_dimension():
     ):
         if kind[system]["unit"]:
             check_dimension(ureg.Unit(kind[system]["unit"]), name)
+
+
+# --- The unit texts ht.columns() shows (units-system) ---------------------------
+
+
+@pytest.mark.parametrize(
+    ("text", "ascii_form"),
+    [
+        ("kN/m³", "kN/m3"),
+        ("Mg/m³", "Mg/m3"),
+        ("ft²/kip", "ft2/kip"),
+        ("m²/MN", "m2/MN"),
+        ("ft²/yr", "ft2/yr"),
+        ("m²/yr", "m2/yr"),
+    ],
+)
+def test_superscript_unit_texts_parse_silently_as_their_ascii_form(text, ascii_form):
+    unit, from_alias = units._lookup(text)
+    assert from_alias
+    assert unit == parse_unit(ascii_form)
+
+
+@pytest.mark.parametrize("system", ["US", "SI"])
+@pytest.mark.parametrize("name", list(_config.quantity_kinds()))
+def test_every_kind_unit_text_parses_silently(name, system):
+    # A kind added later must give a text that system= can declare without a warning.
+    kind = _config.quantity_kinds()[name]
+    if kind["canonical"] is None or kind[system]["text"] is None:
+        return
+    unit, from_alias = units._lookup(kind[system]["text"])
+    assert from_alias
+    check_dimension(unit, name)
