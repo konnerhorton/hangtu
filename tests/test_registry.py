@@ -5,6 +5,7 @@ from importlib.resources import files
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import pandas as pd
 import pytest
 
 import hangtu as ht
@@ -117,6 +118,39 @@ def test_columns_for_a_template_follows_template_order():
     ]
     assert table.loc["spt_n", ["quantity", "us_unit"]].tolist() == ["count", ""]
     assert table.loc["loca_id", "quantity"] == ""
+
+
+COLUMNS_TABLE = ["name", "description", "quantity", "us_unit", "si_unit", "used_by"]
+
+
+def test_columns_of_a_template_has_no_declared_unit():
+    # AC 11
+    assert list(ht.columns().columns) == COLUMNS_TABLE
+    assert list(ht.columns("spt").columns) == COLUMNS_TABLE
+
+
+def test_columns_of_a_frame_lists_its_columns_and_declared_units():
+    # AC 10
+    frame = pd.DataFrame(
+        {
+            "my_note": ["a"],
+            "depth": [3.0],
+            "cell_pressure": [2000.0],
+            "water_content": [25.0],
+        }
+    )
+    before = ht.columns(frame).set_index("name")
+    assert list(before.index) == ["my_note", "depth", "cell_pressure", "water_content"]
+    assert list(before.columns) == [*COLUMNS_TABLE[1:], "declared_unit"]
+    assert before.loc["my_note"].tolist() == ["Not a registered column", *[""] * 5]
+    assert before.loc["depth", ["us_unit", "si_unit"]].tolist() == ["ft", "m"]
+    assert before.loc["cell_pressure", ["us_unit", "si_unit"]].tolist() == [
+        "psf",
+        "kPa",
+    ]
+    assert set(before["declared_unit"]) == {""}
+    after = ht.columns(ht.set_units(frame, system="US")).set_index("name")
+    assert after["declared_unit"].tolist() == ["", "ft", "psf", ""]
 
 
 def test_template_is_an_empty_frame_with_typed_columns():

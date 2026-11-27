@@ -66,48 +66,84 @@ def _template_columns(name: str) -> list[str]:
     return templates[name]
 
 
-def columns(template: str | None = None) -> pd.DataFrame:
-    """List the registered columns as a table.
+def _column_row(name: str, entry: dict[str, Any]) -> dict[str, str]:
+    quantity = entry.get("quantity")
+    kind = _config.quantity_kinds().get(quantity, {}) if quantity else {}
+    return {
+        "name": name,
+        "description": entry["description"],
+        "quantity": entry.get("quantity", ""),
+        "us_unit": (kind.get("US") or {}).get("text") or "",
+        "si_unit": (kind.get("SI") or {}).get("text") or "",
+        "used_by": ", ".join(entry.get("used_by", [])),
+    }
+
+
+def _frame_columns(df: pd.DataFrame) -> pd.DataFrame:
+    # Units read from attrs directly: hangtu.units imports this module.
+    declared = df.attrs.get("units", {})
+    rows = []
+    for column in df.columns:
+        name = str(column)
+        entry = column_info(name)
+        row = (
+            _column_row(name, entry)
+            if entry is not None
+            else {
+                "name": name,
+                "description": "Not a registered column",
+                "quantity": "",
+                "us_unit": "",
+                "si_unit": "",
+                "used_by": "",
+            }
+        )
+        row["declared_unit"] = declared.get(column, "")
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def columns(template: str | pd.DataFrame | None = None) -> pd.DataFrame:
+    """List the registered columns as a table, or the columns of a DataFrame.
 
     Parameters
     ----------
-    template : str, optional
-        Only list the columns of this template, in template order, e.g. ``"spt"``.
-        Overlay templates such as ``"ranges"`` also list their overlay fields
-        (``low``, ``high``), which take the plotted value's units.
+    template : str or pandas.DataFrame, optional
+        A template name lists only that template's columns, in template order,
+        e.g. ``"spt"``. Overlay templates such as ``"ranges"`` also list their
+        overlay fields (``low``, ``high``), which take the plotted value's
+        units. A DataFrame lists its own columns, in its order, with the unit
+        declared on each, so you can check a file before declaring its units.
 
     Returns
     -------
     pandas.DataFrame
-        One row per column: name, description, quantity kind, US and SI display
-        unit (blank when the column has no unit), and the plots that use it.
+        One row per column: name, description, quantity kind, US and SI unit
+        (blank when the column has no unit), and the plots that use it. The US
+        and SI units are also what ``system="US"`` or ``"SI"`` declares. For a
+        DataFrame, a ``declared_unit`` column holds the unit declared on it
+        (blank if none), and a column the registry doesn't know is described as
+        "Not a registered column".
 
     Examples
     --------
     >>> ht.columns("spt")
+
+    Check a lab sheet's units before declaring them: compare ``us_unit`` with
+    the units on the sheet, then declare the system and any exceptions.
+
+    >>> lab = ht.read_csv("lab.csv")
+    >>> ht.columns(lab)[["name", "us_unit", "declared_unit"]]
+    >>> lab = ht.set_units(lab, system="US", units={"cell_pressure": "ksf"})
     """
+    if isinstance(template, pd.DataFrame):
+        return _frame_columns(template)
     names = (
         list(_registry()["columns"])
         if template is None
         else _template_columns(template)
     )
-    kinds = _config.quantity_kinds()
-    rows = []
-    for name in names:
-        entry = _entry(name)
-        quantity = entry.get("quantity")
-        kind = kinds.get(quantity, {}) if quantity else {}
-        rows.append(
-            {
-                "name": name,
-                "description": entry["description"],
-                "quantity": entry.get("quantity", ""),
-                "us_unit": (kind.get("US") or {}).get("text") or "",
-                "si_unit": (kind.get("SI") or {}).get("text") or "",
-                "used_by": ", ".join(entry.get("used_by", [])),
-            }
-        )
-    return pd.DataFrame(rows)
+    return pd.DataFrame([_column_row(name, _entry(name)) for name in names])
 
 
 def template(name: str) -> pd.DataFrame:
