@@ -106,6 +106,8 @@ The quantity kind of a column comes from the registry, or from a plot preset for
 ### 4.4 Units on DataFrames (SPEC §2.6)
 - `read_csv` and `set_units` validate every unit string, then store `{column: unit string}` in `df.attrs["units"]`. `set_units` merges with existing units and returns a shallow copy.
 - `units_of(df)` returns that dict (empty if none).
+- **`system="US"` or `"SI"`** on `read_csv` and `set_units` declares each registered number column whose kind has a unit in that system's unit from §4.1, as the string `ht.columns()` shows. Order: `units=` → units already declared → `system=`. `display_units` and `display_overrides` don't affect it. Unregistered columns stay undeclared; if none of the frame's columns is registered, `UnitsError` names them. A bad system value is a `UnitsError`.
+- **`ht.columns(df)`** lists a frame's columns in its order with the registry's US and SI units and a `declared_unit` column from `df.attrs["units"]`; an unregistered column says "Not a registered column".
 - **Resolution in a plot** (helper `resolve_units(df, columns, units=)`): `units=` argument → `df.attrs["units"]` → registry quantity kind (for unitless kinds) → unknown. Unknown means "(units unknown)" in the label plus a `UserWarning` naming the column and showing the `ht.set_units` call that fixes it. Analyses raise `UnitsError` instead.
 - **Conversion helper** `to_display(values, unit, quantity, display_units)` returns `(magnitudes, display_unit)`. Plots draw magnitudes only; pint never reaches matplotlib.
 

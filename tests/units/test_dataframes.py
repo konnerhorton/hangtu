@@ -1,8 +1,18 @@
+import warnings
+
 import pandas as pd
 import pytest
 
 import hangtu as ht
-from hangtu.units import needs_units, parse_quantity, resolve_units
+from hangtu import _config
+from hangtu.units import (
+    check_dimension,
+    needs_units,
+    parse_quantity,
+    parse_unit,
+    resolve_units,
+    to_display,
+)
 
 
 @pytest.fixture
@@ -281,3 +291,126 @@ def test_read_csv_bound_is_censored_in_describe(tmp_path):
     assert row["count"] == 3
     assert row["count_at_least"] == 1
     assert row["count_text"] == 0
+
+
+# --- system= (units-system) -------------------------------------------------------
+
+LAB = {
+    "depth": [10.0],
+    "spt_penetration": [18.0],
+    "cell_pressure": [2000.0],
+    "bulk_unit_weight": [120.0],
+    "hydraulic_conductivity": [1e-5],
+    "water_content": [25.0],
+    "spt_n": [12],
+}
+US_UNITS = {
+    "depth": "ft",
+    "spt_penetration": "in",
+    "cell_pressure": "psf",
+    "bulk_unit_weight": "pcf",
+    "hydraulic_conductivity": "cm/s",
+}
+SI_UNITS = {
+    "depth": "m",
+    "spt_penetration": "mm",
+    "cell_pressure": "kPa",
+    "bulk_unit_weight": "kN/m³",
+    "hydraulic_conductivity": "m/s",
+}
+
+
+@pytest.fixture
+def lab_csv(tmp_path):
+    path = tmp_path / "lab.csv"
+    pd.DataFrame(LAB).to_csv(path, index=False)
+    return path
+
+
+@pytest.mark.parametrize(("system", "expected"), [("US", US_UNITS), ("SI", SI_UNITS)])
+def test_read_csv_with_system_declares_each_kinds_unit(lab_csv, system, expected):
+    # AC 1: water_content (percent) and spt_n (count) get nothing.
+    assert ht.units_of(ht.read_csv(lab_csv, system=system)) == expected
+
+
+def test_units_win_over_system(lab_csv):
+    # AC 2
+    result = ht.read_csv(lab_csv, system="US", units={"cell_pressure": "ksf"})
+    assert ht.units_of(result) == {**US_UNITS, "cell_pressure": "ksf"}
+
+
+def test_units_already_declared_win_over_system(lab_csv):
+    # AC 3
+    frame = ht.set_units(pd.read_csv(lab_csv), {"depth": "ft"})
+    assert ht.units_of(ht.set_units(frame, system="SI")) == {**SI_UNITS, "depth": "ft"}
+
+
+def test_display_settings_dont_change_what_system_declares(lab_csv):
+    # AC 4
+    with ht.settings.override(display_units="SI", display_overrides={"stress": "ksf"}):
+        assert ht.units_of(ht.read_csv(lab_csv, system="US")) == US_UNITS
+
+
+def test_system_skips_columns_without_a_unit():
+    # AC 5
+    frame = pd.DataFrame(
+        {
+            "loca_id": ["BH1"],
+            "water_content": [25.0],
+            "spt_n": [12],
+            "plasticity_index": [20.0],
+            "my_note": [1.0],
+            "depth": [3.0],
+        }
+    )
+    assert ht.units_of(ht.set_units(frame, system="US")) == {"depth": "ft"}
+
+
+def test_system_on_a_frame_with_no_registered_column_raises():
+    # AC 6
+    frame = pd.DataFrame({"Depth (ft)": [1.0], "N": [12]})
+    with pytest.raises(
+        ht.UnitsError, match=r"Depth \(ft\), N.*registered.*ht\.columns\(\)"
+    ):
+        ht.set_units(frame, system="US")
+
+
+@pytest.mark.parametrize("system", ["us", "metric"])
+def test_bad_system_raises_naming_both(spt, system):
+    # AC 7
+    with pytest.raises(ht.UnitsError, match=r'"US" or "SI"'):
+        ht.set_units(spt, system=system)
+
+
+def test_set_units_needs_units_or_system(spt):
+    # AC 7
+    with pytest.raises(ht.UnitsError, match=r'\{"depth": "ft"\}.*system="US"'):
+        ht.set_units(spt)
+
+
+@pytest.mark.parametrize("system", ["US", "SI"])
+def test_system_declares_every_registered_column_silently(system):
+    # AC 8, first half; the suite runs with warnings as errors.
+    registry = _config.load("columns.yaml")["columns"]
+    names = [name for name, entry in registry.items() if entry["type"] == "number"]
+    frame = pd.DataFrame({name: [1.0] for name in names})
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        declared = ht.units_of(ht.set_units(frame, system=system))
+    assert declared
+    for column, text in declared.items():
+        check_dimension(parse_unit(text, column), registry[column]["quantity"], column)
+
+
+def test_values_read_with_system_us_draw_in_si(lab_csv):
+    # AC 9: P00 §14's golden values, to the 4 significant figures given there.
+    lab = ht.read_csv(lab_csv, system="US")
+    declared = ht.units_of(lab)
+    with ht.settings.override(display_units="SI"):
+        depth, depth_text = to_display(lab["depth"], declared["depth"], "length")
+        stress, stress_text = to_display(
+            lab["cell_pressure"], declared["cell_pressure"], "stress"
+        )
+    assert (depth_text, stress_text) == ("m", "kPa")
+    assert float(f"{depth[0]:.4g}") == 3.048
+    assert float(f"{stress[0]:.4g}") == 95.76

@@ -164,8 +164,9 @@ def write_columns_page() -> None:
         "",
         "Every column hangtu knows, from its column registry. A DataFrame's columns"
         " take these names, and a column with a quantity needs units: hangtu"
-        " converts it to the US or SI unit listed here for display. This page is"
-        " generated from `ht.columns()`.",
+        " converts it to the US or SI unit listed here for display. The same US and"
+        ' SI units are what `system="US"` or `"SI"` declares when you read a file.'
+        " This page is generated from `ht.columns()`.",
         "",
         "| Column | Description | Quantity | US unit | SI unit |",
         "|---|---|---|---|---|",

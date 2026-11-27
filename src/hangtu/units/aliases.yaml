@@ -15,9 +15,11 @@
 "tsf": "short_ton_force / foot**2"       # imperial context -> short ton
 "t/m2": "metric_ton_force / meter**2"    # metric context -> metric tonne
 "kN/m3": "kilonewton / meter**3"
+"kN/m³": "kilonewton / meter**3"        # as ht.columns() shows it; after kN/m3, which ingest writes
 "kN/mm": "kilonewton / millimeter"       # stiffness; no quantity kind, kept as written
 "pcf": "lbf / foot**3"                   # resolved per column quantity kind (P00 §4.3 #1)
 "Mg/m3": "megagram / meter**3"
+"Mg/m³": "megagram / meter**3"
 "m/s": "meter / second"
 "cm/s": "centimeter / second"
 "ft/s": "foot / second"
@@ -51,9 +53,13 @@
 "MPa/s": "megapascal / second"
 "MPa/m": "megapascal / meter"
 "m2/MN": "meter**2 / meganewton"         # coefficient of volume compressibility, m_v
+"m²/MN": "meter**2 / meganewton"
 "m2/yr": "meter**2 / year"               # coefficient of consolidation, c_v
+"m²/yr": "meter**2 / year"
 "ft2/kip": "foot**2 / kip"               # m_v in US units
+"ft²/kip": "foot**2 / kip"
 "ft2/yr": "foot**2 / year"                # c_v in US units
+"ft²/yr": "foot**2 / year"
 "cm3/MPa": "centimeter**3 / megapascal"
 "MJ/m3": "megajoule / meter**3"
 "mm2": "millimeter**2"
